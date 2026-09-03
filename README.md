@@ -7,7 +7,8 @@ A Node.js/TypeScript boilerplate built around [Spec-Driven Development](https://
 - `.specify/` — spec-kit engine: constitution, templates, and scripts that drive the SDD workflow
 - `.claude/skills/` — Claude Code skills that implement each SDD step (`/speckit-*`)
 - `specs/` — feature specs, plans, and tasks live here once you start a feature (created by `/speckit-specify`)
-- `src/` — application source (TypeScript)
+- `src/` — backend/Node source (TypeScript)
+- `frontend/` — React + Vite + TypeScript frontend (separate app, own `package.json`)
 
 ## SDD workflow
 
@@ -27,9 +28,20 @@ Optional, for extra rigor:
 
 ## App scaffolding
 
+Backend (root):
+
 ```bash
 npm install
-npm run dev     # run src/index.ts with live reload
+npm run dev      # run src/index.ts with live reload
 npm run build    # compile to dist/
 npm test         # run vitest
+```
+
+Frontend (`frontend/`):
+
+```bash
+cd frontend
+npm install
+npm run dev      # start Vite dev server
+npm run build    # build to frontend/dist/
 ```
