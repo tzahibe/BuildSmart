@@ -1,14 +1,14 @@
 # sddproject
 
-A Node.js/TypeScript boilerplate built around [Spec-Driven Development](https://github.com/github/spec-kit) (spec-kit).
+A boilerplate built around [Spec-Driven Development](https://github.com/github/spec-kit) (spec-kit), with a React frontend and a FastAPI backend.
 
 ## Structure
 
 - `.specify/` — spec-kit engine: constitution, templates, and scripts that drive the SDD workflow
 - `.claude/skills/` — Claude Code skills that implement each SDD step (`/speckit-*`)
 - `specs/` — feature specs, plans, and tasks live here once you start a feature (created by `/speckit-specify`)
-- `src/` — backend/Node source (TypeScript)
 - `frontend/` — React + Vite + TypeScript frontend (separate app, own `package.json`)
+- `backend/` — FastAPI backend, managed with `uv` (separate app, own `pyproject.toml`)
 
 ## SDD workflow
 
@@ -28,15 +28,6 @@ Optional, for extra rigor:
 
 ## App scaffolding
 
-Backend (root):
-
-```bash
-npm install
-npm run dev      # run src/index.ts with live reload
-npm run build    # compile to dist/
-npm test         # run vitest
-```
-
 Frontend (`frontend/`):
 
 ```bash
@@ -44,4 +35,12 @@ cd frontend
 npm install
 npm run dev      # start Vite dev server
 npm run build    # build to frontend/dist/
+```
+
+Backend (`backend/`):
+
+```bash
+cd backend
+uv sync
+uv run uvicorn app.main:app --reload --port 8000   # dev server, GET /health
 ```
