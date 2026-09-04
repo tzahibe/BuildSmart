@@ -21,6 +21,7 @@ VALID_PAYLOAD = {
     "city": "מודיעין-מכבים-רעות",
     "street": "אגוז מכבים רעות",
     "plot_area_m2": 500,
+    "built_area_m2": 220,
     "description": 'בית בן קומתיים 220 מ"ר, 4 חדרי שינה',
 }
 
@@ -38,6 +39,7 @@ def test_create_project_returns_201_with_generated_fields(client: TestClient):
     assert body["city"] == VALID_PAYLOAD["city"]
     assert body["street"] == VALID_PAYLOAD["street"]
     assert body["plot_area_m2"] == VALID_PAYLOAD["plot_area_m2"]
+    assert body["built_area_m2"] == VALID_PAYLOAD["built_area_m2"]
     assert body["description"] == VALID_PAYLOAD["description"]
     assert body["created_at"]
     assert body["updated_at"]
@@ -69,6 +71,31 @@ def test_create_project_empty_description_is_rejected(client: TestClient):
 
 def test_create_project_non_positive_plot_area_is_rejected(client: TestClient):
     payload = {**VALID_PAYLOAD, "plot_area_m2": 0}
+
+    response = client.post("/projects", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_create_project_non_positive_built_area_is_rejected(client: TestClient):
+    payload = {**VALID_PAYLOAD, "built_area_m2": 0}
+
+    response = client.post("/projects", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_create_project_built_area_equal_to_plot_area_is_rejected(client: TestClient):
+    """built_area_m2 must be strictly smaller than plot_area_m2, not merely <=."""
+    payload = {**VALID_PAYLOAD, "plot_area_m2": 300, "built_area_m2": 300}
+
+    response = client.post("/projects", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_create_project_built_area_larger_than_plot_area_is_rejected(client: TestClient):
+    payload = {**VALID_PAYLOAD, "plot_area_m2": 300, "built_area_m2": 400}
 
     response = client.post("/projects", json=payload)
 
@@ -129,6 +156,7 @@ def test_get_project_returns_exactly_what_was_submitted(client: TestClient):
     assert body["city"] == VALID_PAYLOAD["city"]
     assert body["street"] == VALID_PAYLOAD["street"]
     assert body["plot_area_m2"] == VALID_PAYLOAD["plot_area_m2"]
+    assert body["built_area_m2"] == VALID_PAYLOAD["built_area_m2"]
     assert body["description"] == VALID_PAYLOAD["description"]
     assert body["status"] == "created"
 
@@ -138,6 +166,160 @@ def test_get_nonexistent_project_returns_404(client: TestClient):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Project not found"
+
+
+# --- User Story 3: Update an existing project's requirements -----------------------------
+
+# A second real city/street pair, distinct from VALID_PAYLOAD's, for cross-city checks.
+OTHER_CITY = "ירושלים"
+OTHER_CITY_STREET = "א דרג'י"
+
+
+def test_update_project_partial_update_changes_only_given_fields(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+    created_updated_at = create_response.json()["updated_at"]
+
+    response = client.patch(f"/projects/{project_id}", json={"plot_area_m2": 250})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["plot_area_m2"] == 250
+    assert body["city"] == VALID_PAYLOAD["city"]
+    assert body["street"] == VALID_PAYLOAD["street"]
+    assert body["description"] == VALID_PAYLOAD["description"]
+    assert body["updated_at"] >= created_updated_at
+
+
+def test_update_project_invalid_value_is_rejected_and_applies_no_changes(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    response = client.patch(f"/projects/{project_id}", json={"plot_area_m2": -5})
+    assert response.status_code == 422
+
+    unchanged = client.get(f"/projects/{project_id}").json()
+    assert unchanged["plot_area_m2"] == VALID_PAYLOAD["plot_area_m2"]
+
+
+def test_update_nonexistent_project_returns_404(client: TestClient):
+    response = client.patch(
+        "/projects/00000000-0000-0000-0000-000000000000", json={"plot_area_m2": 100}
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Project not found"
+
+
+def test_update_project_city_and_street_together_to_a_valid_pair_succeeds(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    response = client.patch(
+        f"/projects/{project_id}", json={"city": OTHER_CITY, "street": OTHER_CITY_STREET}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["city"] == OTHER_CITY
+    assert body["street"] == OTHER_CITY_STREET
+
+
+def test_update_project_city_and_street_together_mismatched_is_rejected(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    # OTHER_CITY paired with VALID_PAYLOAD's street, which belongs to a different city.
+    response = client.patch(
+        f"/projects/{project_id}",
+        json={"city": OTHER_CITY, "street": VALID_PAYLOAD["street"]},
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_project_street_only_not_matching_existing_city_is_rejected(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    # Updating only `street` to one that belongs to a different city than the project's
+    # existing (unchanged) city — the router must re-check against the merged pair.
+    response = client.patch(f"/projects/{project_id}", json={"street": OTHER_CITY_STREET})
+
+    assert response.status_code == 422
+    unchanged = client.get(f"/projects/{project_id}").json()
+    assert unchanged["street"] == VALID_PAYLOAD["street"]
+
+
+def test_update_project_city_only_invalidating_existing_street_is_rejected(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    # Updating only `city` — the project's existing (unchanged) street doesn't belong to it.
+    response = client.patch(f"/projects/{project_id}", json={"city": OTHER_CITY})
+
+    assert response.status_code == 422
+    unchanged = client.get(f"/projects/{project_id}").json()
+    assert unchanged["city"] == VALID_PAYLOAD["city"]
+
+
+def test_update_project_street_only_still_matching_existing_city_succeeds(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    response = client.patch(f"/projects/{project_id}", json={"street": "אבני החושן"})
+
+    assert response.status_code == 200
+    assert response.json()["street"] == "אבני החושן"
+
+
+def test_update_project_plot_and_built_area_together_valid_succeeds(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    response = client.patch(
+        f"/projects/{project_id}", json={"plot_area_m2": 300, "built_area_m2": 250}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["plot_area_m2"] == 300
+    assert body["built_area_m2"] == 250
+
+
+def test_update_project_plot_and_built_area_together_mismatched_is_rejected(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    response = client.patch(
+        f"/projects/{project_id}", json={"plot_area_m2": 200, "built_area_m2": 220}
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_project_built_area_only_not_smaller_than_existing_plot_is_rejected(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    # VALID_PAYLOAD's plot_area_m2 is 500 — updating built_area_m2 alone to >= that must fail.
+    response = client.patch(f"/projects/{project_id}", json={"built_area_m2": 500})
+
+    assert response.status_code == 422
+    unchanged = client.get(f"/projects/{project_id}").json()
+    assert unchanged["built_area_m2"] == VALID_PAYLOAD["built_area_m2"]
+
+
+def test_update_project_plot_area_only_invalidating_existing_built_area_is_rejected(client: TestClient):
+    create_response = client.post("/projects", json=VALID_PAYLOAD)
+    project_id = create_response.json()["project_id"]
+
+    # VALID_PAYLOAD's built_area_m2 is 220 — shrinking plot_area_m2 below that must fail.
+    response = client.patch(f"/projects/{project_id}", json={"plot_area_m2": 100})
+
+    assert response.status_code == 422
+    unchanged = client.get(f"/projects/{project_id}").json()
+    assert unchanged["plot_area_m2"] == VALID_PAYLOAD["plot_area_m2"]
 
 
 # --- Localities autocomplete --------------------------------------------------------------

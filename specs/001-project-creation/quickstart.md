@@ -31,7 +31,7 @@ validation + not-found edge cases from `spec.md`.
    ```bash
    curl -s -X POST http://127.0.0.1:8000/projects \
      -H "Content-Type: application/json" \
-     -d '{"city": "מודיעין-מכבים-רעות", "street": "אגוז מכבים רעות", "plot_area_m2": 500, "description": "בית בן קומתיים 220 מ\"ר, 4 חדרי שינה"}'
+     -d '{"city": "מודיעין-מכבים-רעות", "street": "אגוז מכבים רעות", "plot_area_m2": 500, "built_area_m2": 220, "description": "בית בן קומתיים 220 מ\"ר, 4 חדרי שינה"}'
    ```
 
    (`street` must be a real street for the chosen `city` — check `GET
@@ -45,7 +45,7 @@ validation + not-found edge cases from `spec.md`.
    ```bash
    curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8000/projects \
      -H "Content-Type: application/json" \
-     -d '{"city": "", "street": "", "plot_area_m2": -10, "description": ""}'
+     -d '{"city": "", "street": "", "plot_area_m2": -10, "built_area_m2": -5, "description": ""}'
    ```
 
    Expected: `422`, and a subsequent list/count of projects shows nothing was created.
@@ -88,7 +88,7 @@ validation + not-found edge cases from `spec.md`.
    ```bash
    curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8000/projects \
      -H "Content-Type: application/json" \
-     -d '{"city": "עיר בדויה", "street": "רחוב כלשהו", "plot_area_m2": 100, "description": "בדיקה"}'
+     -d '{"city": "עיר בדויה", "street": "רחוב כלשהו", "plot_area_m2": 100, "built_area_m2": 50, "description": "בדיקה"}'
    ```
 
    Expected: `422` — `city` must exactly match a value from `GET /localities` (see research.md for why).
@@ -114,11 +114,31 @@ validation + not-found edge cases from `spec.md`.
    ```bash
    curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8000/projects \
      -H "Content-Type: application/json" \
-     -d '{"city": "מודיעין-מכבים-רעות", "street": "רחוב שלא קיים בעיר הזו", "plot_area_m2": 100, "description": "בדיקה"}'
+     -d '{"city": "מודיעין-מכבים-רעות", "street": "רחוב שלא קיים בעיר הזו", "plot_area_m2": 100, "built_area_m2": 50, "description": "בדיקה"}'
    ```
 
    Expected: `422`. Now try a street that is real, but for a *different* city than the one submitted
    (e.g. reuse step 1's `"אגוז מכבים רעות"` with `"city": "ירושלים"`) — also expected: `422`.
+
+9. **Built area must be strictly smaller than plot area** (FR-014):
+
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}\n" -X POST http://127.0.0.1:8000/projects \
+     -H "Content-Type: application/json" \
+     -d '{"city": "מודיעין-מכבים-רעות", "street": "אגוז מכבים רעות", "plot_area_m2": 300, "built_area_m2": 300, "description": "בדיקה"}'
+   ```
+
+   Expected: `422` (equal is rejected, not just greater). Then, with a project created via step 1
+   (`plot_area_m2: 500`, `built_area_m2: 220`), try updating only one of the two:
+
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://127.0.0.1:8000/projects/<project_id from step 1> \
+     -H "Content-Type: application/json" \
+     -d '{"built_area_m2": 500}'
+   ```
+
+   Expected: `422` — the router re-checks the merged pair (new `built_area_m2` against the *existing*
+   `plot_area_m2`), not just the single field in isolation.
 
 ## Interactive exploration
 

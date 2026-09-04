@@ -90,6 +90,10 @@ untouched by this feature).
 - [X] T011d [US1] *(added on request, same day, supersedes T011b/T011c's data source — not in the original plan)* City-scoped street autocomplete: replace the Wikipedia-sourced `ISRAELI_LOCALITIES` with a snapshot of an official data.gov.il address registry (`backend/app/localities/streets_by_city.json`, fetched via paginated `datastore_search`, 1,314 cities/63,575 streets), loaded by a rewritten `data.py` (`CITIES`, `KNOWN_CITIES`, `CITY_STREETS`); add `GET /localities/{city}/streets` in `router.py` (404 for an unrecognized city); update `models.py`'s `city` validator to check `KNOWN_CITIES` from the new source; in `App.tsx`, gate the street `<input>` (`disabled` + a `streets-datalist`) on the selected city being recognized and its streets having loaded, resetting `street` whenever `city` changes — see research.md for why this is a static snapshot rather than a live call
 - [X] T011e [US1] *(added on request, same day — not in the original plan)* Restrict `street` to an exact match within its city's `CITY_STREETS` entry: `model_validator(mode="after")` on `ProjectCreate` in `models.py` rejects any non-matching pair (including a real street from a *different* city) with `422`; `ProjectUpdate` gets the same check but only applied when both `city` and `street` are supplied together in one request (documented gap for `PATCH`/T013 — see research.md); `App.tsx` mirrors the check client-side before submitting, and cleans up the FastAPI cross-field error's generic `["body"]` location before displaying it
 
+- [X] T011f [US1] *(added 2026-09-03 on request, well after this feature originally shipped — not in the original plan)* Add a required `built_area_m2` field (the desired built house size, distinct from the existing `plot_area_m2`): `Field(gt=0)` on `ProjectCreate`/`Project`, optional on `ProjectUpdate`, plus a `model_validator` requiring `built_area_m2 < plot_area_m2` (strict) — on `ProjectCreate` always, on `ProjectUpdate` only when both fields are supplied together (same "not-both-provided" gap as T011e, closed the same way: `base_routes.py`'s `PATCH` handler re-checks the merged final pair against whichever value the existing project already has). `App.tsx` gets a new "שטח הבנייה" input plus a matching client-side check before submitting. Motivated by realizing a project could be created with a real plot size but a meaningless/empty-of-content `description` — this guarantees every project has real, validated numeric planning data (size and footprint) regardless of description quality; see research.md for how this relates to Feature 02's own `target_built_area_m2`.
+
+- [X] T011g [US1] *(added 2026-09-03, later the same day, per follow-up request — not in the original plan)* Absorb Feature 02's `StructuredRequirements` into `Project`: add `floors`/`bedrooms`/`safe_room`/`parking_spaces`/`pool`/`requirements_parsed_at` (all nullable, default `None`) to `Project` in `models.py` (and the shared `SourceTag`/`TaggedInt`/`TaggedFloat`/`TaggedBool`/`PoolField` types, moved here from `app/requirements/models.py`); add `ProjectRepository.set_parsed_requirements(...)` (`repository.py`) — merges those fields into an existing project without touching `updated_at`. Drop Feature 02's now-redundant `target_built_area_m2`. See research.md for the full decision and this task's counterpart in Feature 02's tasks.md.
+
 **Checkpoint**: User Stories 1 AND 2 both work independently
 
 ---
@@ -102,11 +106,11 @@ untouched by this feature).
 
 ### Tests for User Story 3
 
-- [ ] T012 [US3] Write tests for `PATCH /projects/{project_id}` (partial update changes only given fields and bumps `updated_at`; invalid field value returns 422 with no changes applied; nonexistent id returns 404) in `backend/tests/test_projects.py`
+- [X] T012 [US3] Write tests for `PATCH /projects/{project_id}` (partial update changes only given fields and bumps `updated_at`; invalid field value returns 422 with no changes applied; nonexistent id returns 404) in `backend/tests/test_projects.py`
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Implement the `PATCH /projects/{project_id}` endpoint in `backend/app/projects/routes/base_routes.py`: validate via `ProjectUpdate`, merge only the provided fields through the repository's `update`, refresh `updated_at`, return `200` with the updated `Project`, or `404`/`422` as applicable
+- [X] T013 [US3] Implement the `PATCH /projects/{project_id}` endpoint in `backend/app/projects/routes/base_routes.py`: validate via `ProjectUpdate`, merge only the provided fields through the repository's `update`, refresh `updated_at`, return `200` with the updated `Project`, or `404`/`422` as applicable. *(Extended beyond the original description, closing the gap noted in T011e/research.md: also re-checks the merged final `city`+`street` pair — existing values overlaid with whatever the update provides — against `CITY_STREETS` before saving, covering the case where only one of the two is updated.)*
 
 **Checkpoint**: All three user stories are independently functional
 
@@ -116,8 +120,8 @@ untouched by this feature).
 
 **Purpose**: Wrap-up validation and documentation, no new behavior
 
-- [ ] T014 Run the manual `curl` walkthrough in `specs/001-project-creation/quickstart.md` against the running server and confirm every step's expected result
-- [ ] T015 [P] Add a short section to `backend/README.md` documenting the new `/projects` endpoints and noting that storage is a temporary JSON file, to be replaced by a database-backed repository later
+- [X] T014 Run the manual `curl` walkthrough in `specs/001-project-creation/quickstart.md` against the running server and confirm every step's expected result
+- [X] T015 [P] Add a short section to `backend/README.md` documenting the new `/projects` endpoints and noting that storage is a temporary JSON file, to be replaced by a database-backed repository later
 
 ---
 

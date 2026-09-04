@@ -4,7 +4,15 @@ from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from pathlib import Path
 
-from app.projects.models import Project, ProjectCreate, ProjectUpdate
+from app.projects.models import (
+    PoolField,
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
+    Room,
+    TaggedBool,
+    TaggedInt,
+)
 
 
 class ProjectRepository(ABC):
@@ -16,6 +24,29 @@ class ProjectRepository(ABC):
 
     @abstractmethod
     def update(self, project_id: str, data: ProjectUpdate) -> Project | None: ...
+
+    @abstractmethod
+    def set_parsed_requirements(
+        self,
+        project_id: str,
+        *,
+        floors: TaggedInt,
+        bedrooms: TaggedInt,
+        safe_room: TaggedBool,
+        parking_spaces: TaggedInt,
+        pool: PoolField,
+    ) -> Project | None: ...
+
+    @abstractmethod
+    def set_design_model(
+        self,
+        project_id: str,
+        *,
+        site_width_m: float,
+        site_depth_m: float,
+        rooms: list[Room],
+        design_notes: list[str],
+    ) -> Project | None: ...
 
 
 class JsonFileProjectRepository(ProjectRepository):
@@ -54,6 +85,7 @@ class JsonFileProjectRepository(ProjectRepository):
             city=data.city,
             street=data.street,
             plot_area_m2=data.plot_area_m2,
+            built_area_m2=data.built_area_m2,
             description=data.description,
             status="created",
             created_at=now,
@@ -73,6 +105,66 @@ class JsonFileProjectRepository(ProjectRepository):
         existing = Project.model_validate(record)
         updates = data.model_dump(exclude_unset=True)
         updated = existing.model_copy(update={**updates, "updated_at": datetime.now(UTC)})
+
+        store[project_id] = json.loads(updated.model_dump_json())
+        self._save(store)
+        return updated
+
+    def set_design_model(
+        self,
+        project_id: str,
+        *,
+        site_width_m: float,
+        site_depth_m: float,
+        rooms: list[Room],
+        design_notes: list[str],
+    ) -> Project | None:
+        store = self._load()
+        record = store.get(project_id)
+        if record is None:
+            return None
+
+        existing = Project.model_validate(record)
+        updated = existing.model_copy(
+            update={
+                "site_width_m": site_width_m,
+                "site_depth_m": site_depth_m,
+                "rooms": rooms,
+                "design_notes": design_notes,
+                "design_generated_at": datetime.now(UTC),
+            }
+        )
+
+        store[project_id] = json.loads(updated.model_dump_json())
+        self._save(store)
+        return updated
+
+    def set_parsed_requirements(
+        self,
+        project_id: str,
+        *,
+        floors: TaggedInt,
+        bedrooms: TaggedInt,
+        safe_room: TaggedBool,
+        parking_spaces: TaggedInt,
+        pool: PoolField,
+    ) -> Project | None:
+        store = self._load()
+        record = store.get(project_id)
+        if record is None:
+            return None
+
+        existing = Project.model_validate(record)
+        updated = existing.model_copy(
+            update={
+                "floors": floors,
+                "bedrooms": bedrooms,
+                "safe_room": safe_room,
+                "parking_spaces": parking_spaces,
+                "pool": pool,
+                "requirements_parsed_at": datetime.now(UTC),
+            }
+        )
 
         store[project_id] = json.loads(updated.model_dump_json())
         self._save(store)

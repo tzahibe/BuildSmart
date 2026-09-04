@@ -1,22 +1,34 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  /* Cool, quiet neutrals — deliberately not warm paper/cream, not pure black/white. */
+  --bg: #f6f8f7;
+  --surface: #ffffff;
+  --text: #5c6b65;
+  --text-h: #16211c;
+  --border: #dfe6e2;
+  --code-bg: #eef2f0;
+
+  /* Single accent: a grounded forest green — building, land, stability. Not AI-purple,
+     not the generic SaaS blue, not the beige+brass "premium artisan" cliché. */
+  --accent: #2f6f4e;
+  --accent-ink: #ffffff;
+  --accent-bg: rgba(47, 111, 78, 0.08);
+  --accent-border: rgba(47, 111, 78, 0.4);
+  --accent-strong: #234f39;
+
+  --danger: #b6402c;
+  --danger-bg: rgba(182, 64, 44, 0.07);
+  --danger-border: rgba(182, 64, 44, 0.35);
+
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(22, 33, 28, 0.06) 0 1px 2px, rgba(22, 33, 28, 0.05) 0 12px 24px -8px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --sans: 'Assistant', system-ui, 'Segoe UI', sans-serif;
+  --heading: 'Assistant', system-ui, 'Segoe UI', sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  --radius: 10px;
+
+  font: 400 17px/1.6 var(--sans);
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -32,31 +44,32 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --bg: #101512;
+    --surface: #171e1a;
+    --text: #9aa9a2;
+    --text-h: #eef3f0;
+    --border: #263029;
+    --code-bg: #1b2320;
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --accent: #5fae85;
+    --accent-ink: #0c1410;
+    --accent-bg: rgba(95, 174, 133, 0.14);
+    --accent-border: rgba(95, 174, 133, 0.4);
+    --accent-strong: #7fc49e;
+
+    --danger: #e08770;
+    --danger-bg: rgba(224, 135, 112, 0.12);
+    --danger-border: rgba(224, 135, 112, 0.35);
+
+    --shadow:
+      rgba(0, 0, 0, 0.35) 0 1px 2px, rgba(0, 0, 0, 0.3) 12px 24px -8px;
   }
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;
   min-height: 100svh;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -69,41 +82,34 @@ body {
 h1,
 h2 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-h);
+  letter-spacing: -0.01em;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+  font-size: 34px;
+  margin: 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+    font-size: 28px;
   }
 }
+
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
+  font-size: 20px;
+  line-height: 1.25;
   margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
 }
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
+code {
   font-family: var(--mono);
   display: inline-flex;
   border-radius: 4px;
   color: var(--text-h);
-}
-
-code {
   font-size: 15px;
   line-height: 135%;
   padding: 4px 8px;

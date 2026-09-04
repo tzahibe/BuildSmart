@@ -148,16 +148,18 @@ defaults into a technical approach.
   (suggestion → whitelist). Straightforward given the previous decision: because `city` and `street` come
   from the same registry snapshot, "is `street` valid for `city`" is a pure local dict lookup, no new data
   or network access needed.
-- **Known gap — accepted, not solved**: `ProjectUpdate`'s cross-field check can't run when only one of
-  `city`/`street` is provided, because the schema has no access to the project's *currently stored*
-  values. Concretely: updating only `street` doesn't re-check it against the existing stored `city`, and
-  updating only `city` doesn't re-check the existing stored `street` against the new city's list — either
-  could leave a project's stored city+street inconsistent with each other after an update. `PATCH` (T013)
-  is not implemented yet; when it is, the router (not the schema) should re-validate the **merged** final
-  `city`+`street` pair (existing values overlaid with whatever the update provides) before saving, the way
-  a database-level check constraint would. This is deliberately deferred rather than solved now, since
-  solving it means implementing T013 itself, and only `POST /projects` currently exists to test this
-  against.
+- **Known gap at the time this was written — now closed by T013**: `ProjectUpdate`'s cross-field check
+  can't run when only one of `city`/`street` is provided, because the schema has no access to the
+  project's *currently stored* values. Concretely: updating only `street` wouldn't re-check it against the
+  existing stored `city`, and updating only `city` wouldn't re-check the existing stored `street` against
+  the new city's list — either could leave a project's stored city+street inconsistent with each other
+  after an update. This is exactly what `PATCH /projects/{project_id}` (T013,
+  `backend/app/projects/routes/base_routes.py`) now does at the router level: it loads the existing
+  project, computes the merged `city`/`street` pair (existing values overlaid with whatever the update
+  provides), and rejects with `422` before calling `repository.update` if that merged pair isn't a real
+  match in `CITY_STREETS` — the way a database-level check constraint would. Covered by
+  `test_update_project_street_only_not_matching_existing_city_is_rejected` and
+  `test_update_project_city_only_invalidating_existing_street_is_rejected` in `test_projects.py`.
 - **Alternatives considered**:
   - *Validate `ProjectUpdate.street` against `city="anywhere"` (i.e., street just needs to exist for *some*
     city)*: rejected — weaker than what was asked ("must be selected from the list" for the relevant
@@ -165,3 +167,75 @@ defaults into a technical approach.
   - *Require `city` and `street` together on every update (reject a street-only or city-only PATCH)*:
     a real option for closing the gap above cleanly, but changes `PATCH`'s contract before it's even
     built; left for the T013 implementation to decide, not bundled into this change.
+
+## Decision (2026-09-03, well after initial ship, per follow-up request): Add required `built_area_m2`, strictly less than `plot_area_m2`
+
+- **Context**: it was pointed out that a project could be created with a fully valid `plot_area_m2` but a
+  `description` carrying no real information at all (e.g. random characters) — since `description`'s
+  *content* was never validated, only its non-emptiness (FR-009). Such a project would have had no
+  reliable numeric planning data beyond the plot size.
+- **Decision**: add `built_area_m2` (the desired built house size) as a required field on `ProjectCreate`/
+  `Project`, `> 0`, and — via a `model_validator` — strictly smaller than `plot_area_m2`. Same
+  merged-pair-on-PATCH pattern as `city`/`street` (see decision above): `ProjectUpdate` only cross-checks
+  when both fields are supplied together; the `PATCH` route re-checks the merged pair (existing values
+  overlaid with the update) before saving.
+- **Rationale — deterministic structured data over validating free text**: the alternative (have `POST
+  /projects` call an LLM to judge whether `description` is "meaningful") was considered and rejected — it
+  would add cost/latency/a new failure mode to every project creation just to make a fuzzy, disputable
+  judgment ("is this text meaningful?" has no crisp answer), and doesn't actually guarantee anything
+  useful even if the description *is* judged "meaningful" (an LLM's idea of meaningful prose doesn't
+  imply usable planning numbers). Requiring a real, validated `built_area_m2` number directly guarantees
+  the one thing that actually matters downstream — real size/footprint data — regardless of what
+  `description` says. This is the same "prefer deterministic domain logic over LLM judgment for facts"
+  instinct that runs through this whole project (`docs/AI_Home_Planner_SPEC.md`'s central principle).
+  `description`'s semantic quality remains intentionally unvalidated; this was a conscious choice to solve
+  the actual risk (no usable data) rather than to chase "does the text sound meaningful," which is a much
+  harder and less well-defined problem.
+- **Relationship to Feature 02's `target_built_area_m2` — now resolved, see decision below**: Feature 02
+  (`specs/002-requirement-parser/`) originally had its own `target_built_area_m2`, extracted from
+  `description` by the LLM parser. That created exactly the unreconciled-duplicate-source problem this
+  note originally flagged. It was resolved the same day, not left open: see "Decision: `Project` absorbs
+  Feature 02's parsed fields" below.
+- **Alternatives considered**:
+  - *LLM-based "is this description meaningful?" gate on `POST /projects`*: rejected per the rationale
+    above.
+  - *Minimum character-length heuristic for `description`*: rejected — easy to defeat with meaningless
+    padding (e.g. `"aaaaaaaaaaaaaaaaaaaaaaa"`), and doesn't address the actual downstream problem (missing
+    usable planning numbers) the way a validated `built_area_m2` does directly.
+  - *Reconcile `built_area_m2` with Feature 02's `target_built_area_m2`*: superseded — see next decision.
+
+## Decision (2026-09-03, later the same day, per follow-up request): `Project` absorbs Feature 02's parsed fields
+
+- **Context**: per explicit request — "`Project` should contain everything needed to eventually produce a
+  sketch, with most of it filled in by the LLM from the user's description" — Feature 02's separate
+  `StructuredRequirements` entity (its own JSON file, its own repository, a dedicated `GET
+  /projects/{id}/requirements`) was merged directly into `Project`.
+- **Decision**: `Project` gained `floors`, `bedrooms`, `safe_room`, `parking_spaces`, `pool` (each a
+  tagged field, `null` until first parsed) and `requirements_parsed_at`. `ProjectRepository` gained a
+  `set_parsed_requirements(...)` method (loads, merges these fields in, saves — parallel to `update()` but
+  intentionally separate, since these come from the parser, not from `ProjectUpdate`/user input, and don't
+  touch `updated_at`). Feature 02's own `GET /projects/{project_id}/requirements` was removed entirely —
+  `GET /projects/{project_id}` (this feature) already returns everything now, so a second endpoint for the
+  same data would just be a duplicate to keep in sync. `POST /projects/{project_id}/requirements` (still
+  Feature 02, unchanged in location) now returns the updated `Project` instead of a separate resource.
+  Feature 02's own `target_built_area_m2` was dropped in the same change — see this file's earlier note
+  and Feature 02's research.md for why re-deriving built area from free text was redundant once
+  `built_area_m2` existed here as the validated, structured source of truth.
+- **Rationale**: this directly resolves the duplicate-source-of-truth risk noted above (two different
+  numbers both claiming to be "the built area"), and matches the real relationship between the two
+  features — Feature 02 doesn't own a separate concept, it *completes* a `Project` that Feature 01 already
+  created, filling in the fields a structured form is a poor fit for (natural-language preferences like
+  "עם ממ"ד" or "בריכה 8 על 4") while the fields with a good structured/validated form (areas, city, street)
+  stay exactly where they were. One entity, one place to look for "everything about this project."
+- **What stays unchanged**: `RequirementParser`/`OpenAIRequirementParser` (Feature 02) are untouched by
+  this move — they still just take a description string and return a tagged extraction; only *where the
+  result is stored* changed. The FR-011 floors-default-to-1 behavior, the `requested`/`inferred`/`unknown`
+  tagging, and the "no fabricated unknowns" guarantee all carry over exactly as before.
+- **Alternatives considered**:
+  - *Keep `StructuredRequirements` separate, add a cross-check between `target_built_area_m2` and
+    `built_area_m2`*: rejected in favor of removing the duplicate field entirely — a cross-check still
+    leaves two numbers a client has to reconcile; removing one is simpler and was explicitly requested
+    scope ("`Project` should contain everything").
+  - *Keep the separate `GET /projects/{id}/requirements` endpoint as a thin alias returning the same
+    `Project`*: rejected as pointless — two URLs for one representation of one resource, with no
+    behavioral difference, is just a maintenance burden.

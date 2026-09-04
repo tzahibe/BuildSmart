@@ -1,30 +1,19 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import './App.css'
+import { createProject, generateDesign, parseRequirements, PipelineStepError } from './api'
+import DesignPage from './design/DesignPage'
+import LoadingScreen from './design/LoadingScreen'
+import type { FormState, Project, ValidationErrorDetail } from './types'
 
-interface Project {
-  project_id: string
-  city: string
-  street: string
-  plot_area_m2: number
-  description: string
-  status: string
-  created_at: string
-  updated_at: string
+type View = 'form' | 'loading' | 'design'
+
+const initialForm: FormState = {
+  city: '',
+  street: '',
+  plot_area_m2: '',
+  built_area_m2: '',
+  description: '',
 }
-
-interface FormState {
-  city: string
-  street: string
-  plot_area_m2: string
-  description: string
-}
-
-interface ValidationErrorDetail {
-  loc: (string | number)[]
-  msg: string
-}
-
-const initialForm: FormState = { city: '', street: '', plot_area_m2: '', description: '' }
 
 function App() {
   const [form, setForm] = useState<FormState>(initialForm)
@@ -33,6 +22,8 @@ function App() {
   const [project, setProject] = useState<Project | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [view, setView] = useState<View>('form')
+  const [pipelineError, setPipelineError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -52,7 +43,7 @@ function App() {
   }, [])
 
   // Street suggestions only load once `city` is an exact match for a known
-  // locality — this is what gates the street field open (see handleCityChange).
+  // localities — this is what gates the street field open (see handleCityChange).
   useEffect(() => {
     let cancelled = false
 
@@ -72,6 +63,44 @@ function App() {
     }
   }, [form.city, cities])
 
+  // Drives User Story 1's loading screen: runs the parse (Feature 02) + design-generation (Feature 03)
+  // pipeline in sequence once a project has been created, then navigates to the Design page (FR-001-004).
+  //
+  // Depends on `project?.project_id` (a stable primitive), NOT the whole `project` object — the object
+  // reference changes on every setProject call *inside* this effect, and depending on the object itself
+  // would re-trigger the effect each time, cancelling the in-flight run before generateDesign could ever
+  // complete (an infinite re-parse loop that never reaches setView('design')).
+  useEffect(() => {
+    if (view !== 'loading' || project === null) return
+    const projectId = project.project_id
+    let cancelled = false
+
+    async function runPipeline() {
+      try {
+        const parsed = await parseRequirements(projectId)
+        if (cancelled) return
+        setProject(parsed)
+
+        const designed = await generateDesign(projectId)
+        if (cancelled) return
+        setProject(designed)
+        setView('design')
+      } catch (error) {
+        if (cancelled) return
+        const message =
+          error instanceof PipelineStepError ? error.message : 'אירעה שגיאה בלתי צפויה בהכנת התכנון'
+        setPipelineError(message)
+      }
+    }
+
+    void runPipeline()
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, project?.project_id])
+
   function handleCityChange(value: string) {
     // Changing the city invalidates any previously chosen street and its suggestions.
     setForm((prev) => ({ ...prev, city: value, street: '' }))
@@ -82,7 +111,6 @@ function App() {
     event.preventDefault()
     setSubmitting(true)
     setErrors([])
-    setProject(null)
 
     if (cities.length > 0 && !cities.includes(form.city)) {
       setErrors(['יש לבחור עיר / רשות מקומית מתוך הרשימה המוצעת'])
@@ -96,22 +124,27 @@ function App() {
       return
     }
 
+    if (Number(form.built_area_m2) >= Number(form.plot_area_m2)) {
+      setErrors(['שטח הבנייה חייב להיות קטן משטח המגרש'])
+      setSubmitting(false)
+      return
+    }
+
     try {
-      const response = await fetch('/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          city: form.city,
-          street: form.street,
-          plot_area_m2: Number(form.plot_area_m2),
-          description: form.description,
-        }),
+      const response = await createProject({
+        city: form.city,
+        street: form.street,
+        plot_area_m2: Number(form.plot_area_m2),
+        built_area_m2: Number(form.built_area_m2),
+        description: form.description,
       })
 
       if (response.status === 201) {
         const data = (await response.json()) as Project
         setProject(data)
         setForm(initialForm)
+        setPipelineError(null)
+        setView('loading')
       } else if (response.status === 422) {
         const data = (await response.json()) as { detail?: ValidationErrorDetail[] }
         const messages = (data.detail ?? []).map((detail) => {
@@ -132,12 +165,23 @@ function App() {
     }
   }
 
+  if (view === 'loading') {
+    return <LoadingScreen error={pipelineError} />
+  }
+
+  if (view === 'design' && project) {
+    return <DesignPage project={project} />
+  }
+
   const streetFieldEnabled = streets.length > 0
 
   return (
     <section id="center" dir="rtl">
-      <h1>AI Home Planner</h1>
-      <p>פתיחת פרויקט חדש — הזן/י את פרטי הבקשה הבסיסיים</p>
+      <header className="page-header">
+        <span className="eyebrow">BuildSmart</span>
+        <h1>נתחיל לתכנן את הבית שלך</h1>
+        <p>פתיחת פרויקט חדש — הזן/י את פרטי הבקשה הבסיסיים</p>
+      </header>
 
       <form className="project-form" onSubmit={handleSubmit}>
         <label>
@@ -176,17 +220,31 @@ function App() {
           </datalist>
         </label>
 
-        <label>
-          שטח מגרש (מ"ר)
-          <input
-            type="number"
-            min="0.01"
-            step="any"
-            required
-            value={form.plot_area_m2}
-            onChange={(event) => setForm({ ...form, plot_area_m2: event.target.value })}
-          />
-        </label>
+        <div className="field-row">
+          <label>
+            שטח מגרש (מ"ר)
+            <input
+              type="number"
+              min="0.01"
+              step="any"
+              required
+              value={form.plot_area_m2}
+              onChange={(event) => setForm({ ...form, plot_area_m2: event.target.value })}
+            />
+          </label>
+
+          <label>
+            שטח הבנייה (מ"ר)
+            <input
+              type="number"
+              min="0.01"
+              step="any"
+              required
+              value={form.built_area_m2}
+              onChange={(event) => setForm({ ...form, built_area_m2: event.target.value })}
+            />
+          </label>
+        </div>
 
         <label>
           תיאור הבית הרצוי
@@ -198,7 +256,7 @@ function App() {
           />
         </label>
 
-        <button type="submit" className="counter" disabled={submitting}>
+        <button type="submit" className="submit-button" disabled={submitting}>
           {submitting ? 'שולח...' : 'צור פרויקט'}
         </button>
       </form>
@@ -211,22 +269,6 @@ function App() {
               <li key={message}>{message}</li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {project && (
-        <div className="project-result">
-          <p>הפרויקט נוצר בהצלחה</p>
-          <dl>
-            <dt>מזהה פרויקט</dt>
-            <dd>{project.project_id}</dd>
-            <dt>עיר</dt>
-            <dd>{project.city}</dd>
-            <dt>רחוב</dt>
-            <dd>{project.street}</dd>
-            <dt>סטטוס</dt>
-            <dd>{project.status}</dd>
-          </dl>
         </div>
       )}
     </section>

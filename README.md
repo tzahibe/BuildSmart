@@ -1,6 +1,6 @@
 # BuildSmart
 
-A boilerplate built around [Spec-Driven Development](https://github.com/github/spec-kit) (spec-kit), with a React frontend and a FastAPI backend.
+An AI-assisted home planning app, built with [Spec-Driven Development](https://github.com/github/spec-kit) (spec-kit), with a React frontend and a FastAPI backend.
 
 ## Structure
 

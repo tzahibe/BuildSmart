@@ -1,114 +1,168 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  cursor: pointer;
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
 #center {
   display: flex;
   flex-direction: column;
-  gap: 20px;
   align-items: center;
   flex-grow: 1;
-  padding: 32px 20px;
+  padding: 56px 20px 64px;
   box-sizing: border-box;
+  gap: 32px;
+
+  @media (max-width: 640px) {
+    padding: 40px 16px 48px;
+  }
+}
+
+.page-header {
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.page-header .eyebrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.page-header p {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 .project-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   text-align: right;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+  box-sizing: border-box;
+
+  @media (max-width: 640px) {
+    padding: 22px;
+  }
 
   label {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    font-weight: 500;
+    gap: 7px;
+    font-weight: 600;
+    font-size: 14px;
     color: var(--text-h);
   }
 
   input,
   textarea {
-    font: inherit;
-    padding: 8px 10px;
-    border-radius: 6px;
+    font: 400 16px/1.5 var(--sans);
+    padding: 11px 13px;
+    border-radius: calc(var(--radius) - 3px);
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text-h);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text);
+    opacity: 0.65;
   }
 
   input:disabled {
     background: var(--code-bg);
     color: var(--text);
     cursor: not-allowed;
+    opacity: 0.7;
   }
 
-  input:focus,
-  textarea:focus {
+  input:hover:not(:disabled),
+  textarea:hover {
+    border-color: var(--accent-border);
+  }
+
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 96px;
+  }
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.submit-button {
+  font: 600 16px var(--sans);
+  padding: 12px 22px;
+  border-radius: calc(var(--radius) - 3px);
+  border: none;
+  color: var(--accent-ink);
+  background: var(--accent);
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background-color 0.15s ease, transform 0.08s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--accent-strong);
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
     outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline-offset: 2px;
   }
-
-  button {
-    align-self: flex-start;
-    margin-top: 8px;
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 
 .form-errors {
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   text-align: right;
-  color: #d1341e;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-sizing: border-box;
+  border-inline-start: 3px solid var(--danger);
+
+  p {
+    font-weight: 600;
+    color: var(--text-h);
+  }
 
   ul {
-    margin: 8px 0 0;
+    margin: 10px 0 0;
     padding-inline-start: 20px;
-  }
-}
-
-.project-result {
-  width: 100%;
-  max-width: 480px;
-  text-align: right;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
-
-  dl {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 12px;
-    margin: 8px 0 0;
-  }
-
-  dt {
-    color: var(--text);
-  }
-
-  dd {
-    margin: 0;
-    color: var(--text-h);
-    font-family: var(--mono);
+    color: var(--danger);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 }
