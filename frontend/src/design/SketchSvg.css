@@ -1,0 +1,148 @@
+.sketch-svg-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+  height: 100%;
+}
+
+.sketch-svg-floor-tabs {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.sketch-svg-floor-tab {
+  border: 1px solid #c9a876;
+  background: #fff;
+  color: #6b4226;
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.sketch-svg-floor-tab--active {
+  background: #b1503f;
+  border-color: #b1503f;
+  color: #fff;
+}
+
+.sketch-svg {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  font-family: 'Courier New', ui-monospace, 'Roboto Mono', monospace;
+}
+
+.sketch-svg-base {
+  fill: #fbfcfd;
+}
+
+.sketch-svg-grid-line {
+  stroke: #e1e8ee;
+  stroke-width: 0.018;
+}
+
+/* Room fill tints — deliberately pale; the walls (drawn separately below) carry the shape, not the
+ * fill, so this reads as a tinted floor plan rather than flat colored blocks. */
+.sketch-svg-room {
+  stroke: none;
+}
+
+.sketch-svg-room--living_room {
+  fill: #faf4e6;
+}
+
+.sketch-svg-room--kitchen {
+  fill: #eef6ec;
+}
+
+.sketch-svg-room--bathroom {
+  fill: #e9f2fa;
+}
+
+.sketch-svg-room--safe_room {
+  fill: #f7ece9;
+}
+
+.sketch-svg-room--bedroom {
+  fill: #f7eef5;
+}
+
+.sketch-svg-wall-exterior {
+  fill: none;
+  stroke: #1f2d3d;
+  stroke-width: 0.22;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sketch-svg-wall-interior {
+  fill: none;
+  stroke: #445064;
+  stroke-width: 0.09;
+  stroke-linecap: round;
+}
+
+.sketch-svg-door {
+  fill: none;
+  stroke: #1f2d3d;
+  stroke-width: 0.032;
+}
+
+.sketch-svg-room-label {
+  fill: #2b3444;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: -0.01em;
+}
+
+.sketch-svg-room-dims {
+  fill: #737f92;
+}
+
+.sketch-svg-dim-line {
+  stroke: #8a94a3;
+  stroke-width: 0.018;
+}
+
+.sketch-svg-dim-ext {
+  stroke: #ccd3db;
+  stroke-width: 0.014;
+  stroke-dasharray: 0.05 0.06;
+}
+
+.sketch-svg-dim-text {
+  fill: #5c6675;
+  text-anchor: middle;
+}
+
+.sketch-svg-compass-ring {
+  fill: #fff;
+  stroke: #1f2d3d;
+  stroke-width: 0.028;
+}
+
+.sketch-svg-compass-needle {
+  fill: #b1503f;
+}
+
+.sketch-svg-compass-label {
+  fill: #1f2d3d;
+  text-anchor: middle;
+  font-weight: 700;
+}
+
+.sketch-svg-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #7a7a7a;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 1rem;
+}

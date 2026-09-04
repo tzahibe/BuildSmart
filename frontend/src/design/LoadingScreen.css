@@ -1,0 +1,143 @@
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  background: linear-gradient(180deg, #dff1ff 0%, #f7fbff 60%, #eef7ee 100%);
+  z-index: 1000;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.loading-screen__house {
+  width: min(70vw, 260px);
+  height: auto;
+  overflow: visible;
+}
+
+.loading-screen__ground {
+  stroke: #8fbf7f;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.loading-screen__part {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  animation: house-build 4s ease-in-out infinite;
+}
+
+.loading-screen__part--foundation {
+  animation-name: build-foundation;
+}
+
+.loading-screen__part--walls {
+  animation-name: build-walls;
+}
+
+.loading-screen__part--roof {
+  transform-origin: bottom center;
+  animation-name: build-roof;
+}
+
+.loading-screen__part--door {
+  animation-name: build-fade;
+  animation-delay: 0s;
+}
+
+.loading-screen__part--window {
+  animation-name: build-fade;
+}
+
+.loading-screen__part--window-2 {
+  animation-name: build-fade;
+}
+
+@keyframes build-foundation {
+  0%,
+  6% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  16%,
+  88% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes build-walls {
+  0%,
+  16% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  32%,
+  88% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes build-roof {
+  0%,
+  32% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  46%,
+  88% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes build-fade {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  62%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.loading-screen__caption {
+  font-size: 1.05rem;
+  color: #3a5a40;
+  font-weight: 500;
+}
+
+.loading-screen__error {
+  max-width: 26rem;
+  color: #8a3b2a;
+  background: #fdecea;
+  border: 1px solid #f2c2ba;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.loading-screen__error-hint {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: #6b6b6b;
+}
