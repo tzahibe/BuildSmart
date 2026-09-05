@@ -53,6 +53,24 @@ function DesignPage({ project }: DesignPageProps) {
           </p>
         </header>
 
+        {project.design_notes && project.design_notes.length > 0 && (
+          <div className="design-page__incomplete-notice" role="status">
+            <span className="design-page__incomplete-notice-icon" aria-hidden="true">
+              ⚠
+            </span>
+            <div>
+              <p className="design-page__incomplete-notice-title">
+                חלק מהמידע היה חסר — לא הומצאו נתונים במקומו
+              </p>
+              <ul>
+                {project.design_notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <SketchCard
           rooms={project.rooms ?? []}
           expanded={activeOverlay === 'sketch'}
