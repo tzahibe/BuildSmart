@@ -63,8 +63,19 @@ _RELATIONSHIP_KIND_MAP = {
 }
 
 
+_REVERSE_ROOM_TYPE_MAP: dict[str, ModelRoomType] = {value: key for key, value in _ROOM_TYPE_MAP.items()}
+
+
 def _map_room_type(model_type: ModelRoomType) -> str:
     return _ROOM_TYPE_MAP[model_type]
+
+
+def model_room_type_for(buildsmart_room_type: str) -> ModelRoomType | None:
+    """Reverse of `_ROOM_TYPE_MAP` — used by the input side (`app/architect/local_gateway.py`'s
+    `_build_model_input`) to check whether a BuildSmart room type has any representation in the real
+    model's vocabulary at all. Returns `None` for e.g. `"safe_room"`, which has none — see
+    `model_schema.py`'s `ModelRoomType`."""
+    return _REVERSE_ROOM_TYPE_MAP.get(buildsmart_room_type)
 
 
 def _adapt_zone(zone: ModelZone) -> Zone:

@@ -12,6 +12,17 @@ dependencies = [
     "httpx>=0.27.0",
 ]
 
+[project.optional-dependencies]
+# Only needed for ARCHITECT_MODEL_PROVIDER=local (app/architect/local_gateway.py) — loads the accepted
+# Qwen2.5-Coder-7B-Instruct + LoRA adapter in-process. Not required for mock/remote, or for the test
+# suite's unit tests (which inject a fake tokenizer/model — see tests/test_local_gateway.py) — but IS
+# required for `import torch`'s `torch.no_grad()` context manager those tests still exercise.
+local-model = [
+    "torch>=2.2.0",
+    "transformers>=4.45.0",
+    "peft>=0.13.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",

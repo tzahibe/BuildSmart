@@ -1,4 +1,5 @@
 import type { Project, TaggedValue } from '../types'
+import { ROOM_LABELS } from './roomTypes'
 import './TechnicalDetailsPage.css'
 
 interface TechnicalDetailsPageProps {
@@ -10,14 +11,6 @@ const SOURCE_LABELS: Record<TaggedValue<unknown>['source'], string> = {
   requested: 'התבקש במפורש',
   inferred: 'הוסק מהתיאור',
   unknown: 'לא ידוע',
-}
-
-const ROOM_LABELS: Record<string, string> = {
-  kitchen: 'מטבח',
-  bathroom: 'חדר רחצה',
-  safe_room: 'ממ"ד',
-  living_room: 'סלון',
-  bedroom: 'חדר שינה',
 }
 
 function TaggedRow({

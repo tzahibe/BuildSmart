@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from app.architect.area_budget import AuthoritativeAreaExceedsBudgetError
 from app.architect.errors import (
     ArchitectModelError,
     ArchitectModelTimeoutError,
@@ -34,6 +35,11 @@ def generate_project_design(project_id: str) -> Project:
     # ArchitectModel*Error subclasses must be caught before the general ArchitectModelError base class.
     try:
         design = generate_design_via_solver(project)
+    except AuthoritativeAreaExceedsBudgetError as error:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": error.code, "message": str(error)},
+        ) from None
     except MultiFloorNotSupportedError as error:
         raise HTTPException(
             status_code=422,

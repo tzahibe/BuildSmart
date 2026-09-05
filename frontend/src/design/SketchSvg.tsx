@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { Room } from '../types'
+import { ROOM_LABELS } from './roomTypes'
 import './SketchSvg.css'
 
 interface SketchSvgProps {
   rooms: Room[]
-}
-
-const ROOM_LABELS: Record<string, string> = {
-  kitchen: 'מטבח',
-  bathroom: 'חדר רחצה',
-  safe_room: 'ממ"ד',
-  living_room: 'סלון',
-  bedroom: 'חדר שינה',
 }
 
 // Real-world-ish constants (meters) purely for how the drawing reads — walls, door swings, and

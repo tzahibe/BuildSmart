@@ -231,7 +231,10 @@ def test_full_pipeline_via_the_design_endpoint_returns_200_with_solved_rooms(
 def test_unsatisfiable_pipeline_via_the_design_endpoint_returns_422_and_no_design_is_saved(
     client: TestClient, repo: JsonFileProjectRepository
 ):
-    project_id = _create_and_parse_project(client, repo, plot_area_m2=100, built_area_m2=8)
+    # built_area_m2=15 still leaves a positive (if tiny) model_available_area_m2 after the safe_room
+    # reservation (see app/architect/area_budget.py), so this exercises genuine solver-level
+    # unsatisfiability rather than the earlier pre-model area-budget check below.
+    project_id = _create_and_parse_project(client, repo, plot_area_m2=100, built_area_m2=15)
 
     response = client.post(f"/projects/{project_id}/design")
 
@@ -241,6 +244,26 @@ def test_unsatisfiable_pipeline_via_the_design_endpoint_returns_422_and_no_desig
     assert detail["message"]
 
     # No partial/fabricated design was persisted.
+    project = repo.get(project_id)
+    assert project.rooms is None
+    assert project.design_generated_at is None
+
+
+def test_area_budget_exceeded_via_the_design_endpoint_returns_a_clear_422_before_any_model_call(
+    client: TestClient, repo: JsonFileProjectRepository
+):
+    # 8 m² total can't even fit the 9 m² safe_room reservation alone — see app/architect/area_budget.py.
+    # This must fail with its own distinct error code, not a generic DESIGN_UNSATISFIABLE, and must never
+    # reach the gateway at all.
+    project_id = _create_and_parse_project(client, repo, plot_area_m2=100, built_area_m2=8)
+
+    response = client.post(f"/projects/{project_id}/design")
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["error"] == "AUTHORITATIVE_AREA_EXCEEDS_BUDGET"
+    assert detail["message"]
+
     project = repo.get(project_id)
     assert project.rooms is None
     assert project.design_generated_at is None
@@ -276,7 +299,7 @@ def test_multi_floor_project_returns_a_clear_multi_floor_not_supported_error(
 #
 # These monkeypatch `get_architect_model_gateway` (not the mock-vs-real env var) so the endpoint's own
 # provider-selection code path is exercised unchanged — only WHICH gateway instance it receives is
-# swapped, exactly as it would be in production by setting ARCHITECT_MODEL_PROVIDER=real.
+# swapped, exactly as it would be in production by setting ARCHITECT_MODEL_PROVIDER=remote.
 
 _STUB_VALID_SPEC_JSON = """
 {
@@ -299,6 +322,11 @@ _STUB_VALID_SPEC_JSON = """
 def test_end_to_end_via_stubbed_real_gateway_returns_a_normal_design_response(
     client: TestClient, repo: JsonFileProjectRepository, monkeypatch
 ):
+    # The stub deliberately returns only 2 bedrooms and no safe room, while `_create_and_parse_project`'s
+    # default project authoritatively requests 3 bedrooms + a safe room — exercising
+    # `authoritative_merge.py`'s override here too (it runs for every provider, not just `local`): the
+    # gateway's own bedroom count must NOT win over BuildSmart's own known requirement, and the safe
+    # room must be present even though this stubbed "model" never produced one.
     stub_gateway = _stub_real_gateway(lambda request: httpx.Response(200, json={"output": _STUB_VALID_SPEC_JSON}))
     monkeypatch.setattr(pipeline_module, "get_architect_model_gateway", lambda: stub_gateway)
 
@@ -309,7 +337,8 @@ def test_end_to_end_via_stubbed_real_gateway_returns_a_normal_design_response(
     assert response.status_code == 200
     room_types = [room["type"] for room in response.json()["rooms"]]
     assert room_types.count("kitchen") == 1
-    assert room_types.count("bedroom") == 2
+    assert room_types.count("bedroom") == 3
+    assert room_types.count("safe_room") == 1
 
 
 def test_end_to_end_stubbed_real_gateway_valid_spec_but_solver_unsatisfiable_is_a_clean_422(

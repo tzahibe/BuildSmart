@@ -223,10 +223,23 @@ ArchitectConstraint = Annotated[
 
 
 class ArchitectModelRequest(BaseModel):
-    """INPUT to `ArchitectModelGateway.generate()`."""
+    """INPUT to `ArchitectModelGateway.generate()`.
+
+    `target_area_m2` is optional and unused by `MockArchitectModelGateway` (which derives room sizes
+    from its own fixed per-room-type constants, never from a total budget) — but real product
+    validation surfaced that it is NOT optional in practice for `LocalArchitectModelGateway`/Architect
+    Model V1: every training example the model saw included a total-area anchor (`brief.target_area_m2`
+    and a matching `TOTAL_AREA` constraint — see `app/architect/local_gateway.py`'s `_build_model_input`),
+    and without one the model has no signal for how large a house it's actually being asked for, and
+    was observed producing wildly oversized rooms (e.g. a 125 m² living room for a 70 m² house) that the
+    Geometry Solver then correctly rejected as unsatisfiable. Added here rather than only in
+    `local_gateway.py` because it's a fact about the request BuildSmart already has
+    (`project.built_area_m2`), not something specific to one gateway's wire format.
+    """
 
     brief: str
     site: SiteSpec
+    target_area_m2: float | None = Field(default=None, gt=0)
     hard_constraints: list[ArchitectConstraint] = Field(default_factory=list)
     soft_constraints: list[ArchitectConstraint] = Field(default_factory=list)
 

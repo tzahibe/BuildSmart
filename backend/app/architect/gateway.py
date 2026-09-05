@@ -31,9 +31,12 @@ class ArchitectModelGateway(ABC):
 
 
 # Placeholder sizing, not a standard — same spirit as Feature 03's fixed room-size constants
-# (specs/003-parametric-design-model/plan.md's Design decisions).
-_TARGET_AREA_M2 = {"kitchen": 12.0, "bathroom": 5.0, "safe_room": 9.0, "living_room": 20.0, "bedroom": 12.0}
-_MIN_WIDTH_M = {"kitchen": 2.4, "bathroom": 1.6, "safe_room": 2.2, "living_room": 3.0, "bedroom": 2.6}
+# (specs/003-parametric-design-model/plan.md's Design decisions). Exported (not module-private) because
+# `app/architect/authoritative_merge.py` reuses the same "bedroom"/"safe_room" figures when it has to
+# inject or correct one of these room types independently of what a model gateway returned — one set of
+# placeholder numbers, not two copies that could silently drift apart.
+TARGET_AREA_M2 = {"kitchen": 12.0, "bathroom": 5.0, "safe_room": 9.0, "living_room": 20.0, "bedroom": 12.0}
+MIN_WIDTH_M = {"kitchen": 2.4, "bathroom": 1.6, "safe_room": 2.2, "living_room": 3.0, "bedroom": 2.6}
 
 
 class _RequiredRoomLookup:
@@ -82,10 +85,10 @@ def _program_item(request: ArchitectModelRequest, room_type: str, count: int) ->
     return ProgramItem(
         room_type=room_type,
         count=count,
-        target_area_m2=_TARGET_AREA_M2[room_type],
+        target_area_m2=TARGET_AREA_M2[room_type],
         min_area_m2=min_area,
         max_area_m2=max_area,
-        min_width_m=min_width_override or _MIN_WIDTH_M[room_type],
+        min_width_m=min_width_override or MIN_WIDTH_M[room_type],
     )
 
 
@@ -206,16 +209,24 @@ def get_architect_model_gateway() -> ArchitectModelGateway:
     through this factory, so provider selection stays a single, explicit runtime decision rather than
     something tests need to fight against via environment variables.
 
-    `RealArchitectModelGateway` is imported lazily inside the `"real"` branch — it needs
-    `ArchitectModelGateway` from this module, so importing it at module scope here would be circular.
+    `LocalArchitectModelGateway`/`RealArchitectModelGateway` are imported lazily inside their branches —
+    each needs `ArchitectModelGateway` from this module (circular at module scope), and
+    `LocalArchitectModelGateway` additionally pulls in `torch`/`transformers`/`peft`, which must never
+    be imported (let alone load the 7B model) unless `provider == "local"` was actually selected.
     """
-    from app.architect.config import provider_name_from_env, real_config_from_env
+    from app.architect.config import provider_name_from_env
 
     provider = provider_name_from_env()
     if provider == "mock":
         return MockArchitectModelGateway()
-    if provider == "real":
+    if provider == "local":
+        from app.architect.config import local_config_from_env
+        from app.architect.local_gateway import LocalArchitectModelGateway
+
+        return LocalArchitectModelGateway(local_config_from_env())
+    if provider == "remote":
+        from app.architect.config import real_config_from_env
         from app.architect.real_gateway import RealArchitectModelGateway
 
         return RealArchitectModelGateway(real_config_from_env())
-    raise RuntimeError(f"Unknown ARCHITECT_MODEL_PROVIDER: {provider!r} (expected 'mock' or 'real')")
+    raise RuntimeError(f"Unknown ARCHITECT_MODEL_PROVIDER: {provider!r} (expected 'mock', 'local', or 'remote')")

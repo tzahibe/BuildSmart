@@ -47,9 +47,15 @@
 }
 
 /* Room fill tints — deliberately pale; the walls (drawn separately below) carry the shape, not the
- * fill, so this reads as a tinted floor plan rather than flat colored blocks. */
+ * fill, so this reads as a tinted floor plan rather than flat colored blocks.
+ *
+ * `.sketch-svg-room`'s own `fill` below is a completeness fallback (an SVG rect with no fill rule at
+ * all defaults to solid black) for any room `type` without its own `--<type>` rule yet — every type
+ * `roomTypes.ts`'s `ROOM_LABELS` knows about has one below, keeping this in sync with that file's
+ * comment; a type-specific rule always wins over this since it's declared later here. */
 .sketch-svg-room {
   stroke: none;
+  fill: #f0f0f0;
 }
 
 .sketch-svg-room--living_room {
@@ -70,6 +76,46 @@
 
 .sketch-svg-room--bedroom {
   fill: #f7eef5;
+}
+
+.sketch-svg-room--master_bedroom {
+  fill: #f2e9f7;
+}
+
+.sketch-svg-room--wc {
+  fill: #e6f5f0;
+}
+
+.sketch-svg-room--dining {
+  fill: #fdf1e0;
+}
+
+.sketch-svg-room--balcony {
+  fill: #eaf7ea;
+}
+
+.sketch-svg-room--corridor {
+  fill: #f0f0f0;
+}
+
+.sketch-svg-room--entrance {
+  fill: #fdf6e3;
+}
+
+.sketch-svg-room--storage {
+  fill: #f2ece4;
+}
+
+.sketch-svg-room--utility {
+  fill: #e9edf2;
+}
+
+.sketch-svg-room--staircase {
+  fill: #eee9f2;
+}
+
+.sketch-svg-room--parking {
+  fill: #e8e8e8;
 }
 
 .sketch-svg-wall-exterior {

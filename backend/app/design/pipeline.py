@@ -34,6 +34,8 @@ import math
 import os
 import time
 
+from app.architect.area_budget import AreaBudget, AuthoritativeAreaExceedsBudgetError, compute_area_budget
+from app.architect.authoritative_merge import merge_authoritative_requirements
 from app.architect.errors import ArchitectModelError
 from app.architect.gateway import ArchitectModelGateway, get_architect_model_gateway
 from app.architect.models import (
@@ -116,7 +118,7 @@ def _required_room_constraint(
     )
 
 
-def _build_request(project: Project, site_side_m: float) -> ArchitectModelRequest:
+def _build_request(project: Project, site_side_m: float) -> tuple[ArchitectModelRequest, AreaBudget]:
     hard_constraints = [
         _required_room_constraint(
             "bedroom",
@@ -130,11 +132,18 @@ def _build_request(project: Project, site_side_m: float) -> ArchitectModelReques
         ),
     ]
 
-    return ArchitectModelRequest(
+    # Reserves area for any authoritative HARD room requirement the model has no vocabulary for (today:
+    # safe_room) BEFORE the model is asked to allocate the rest — see area_budget.py's module docstring
+    # for why this has to happen here rather than after the fact.
+    budget = compute_area_budget(project.built_area_m2, hard_constraints)
+
+    request = ArchitectModelRequest(
         brief=project.description,
         site=SiteSpec(width_m=site_side_m, depth_m=site_side_m),
+        target_area_m2=budget.model_available_area_m2,
         hard_constraints=hard_constraints,
     )
+    return request, budget
 
 
 def _design_notes(incomplete_requirements: list[str]) -> list[str]:
@@ -172,8 +181,18 @@ def generate_design_via_solver(
     gateway = gateway or get_architect_model_gateway()
     provider_name = type(gateway).__name__
 
+    pipeline_started = time.monotonic()
     site_side_m = math.sqrt(project.plot_area_m2)  # same square-plot placeholder as Feature 03
-    request = _build_request(project, site_side_m)
+    request, area_budget = _build_request(project, site_side_m)
+    logger.info(
+        "authoritative_area_budget project_id=%s total_area_m2=%.1f reserved_authoritative_area_m2=%.1f "
+        "model_available_area_m2=%.1f reserved_room_types=%s",
+        project.project_id,
+        area_budget.total_area_m2,
+        area_budget.reserved_authoritative_area_m2,
+        area_budget.model_available_area_m2,
+        area_budget.reserved_room_types,
+    )
 
     if os.environ.get("BUILDSMART_DEBUG_LOGGING") == "1":
         # Full request content (includes the user's free-text description) — off by default; never
@@ -194,20 +213,42 @@ def generate_design_via_solver(
             error.code,
         )
         raise
-    duration_s = time.monotonic() - started
+    model_duration_s = time.monotonic() - started
     logger.info(
         "architect_model_call project_id=%s provider=%s duration_s=%.2f parse_success=true "
         "spec_valid=true incomplete_requirements=%s",
         project.project_id,
         provider_name,
-        duration_s,
+        model_duration_s,
         spec.incomplete_requirements,
     )
 
+    # Applied for every provider (mock/local/remote) — see `authoritative_merge.py`'s module docstring:
+    # BuildSmart's own HARD room requirements (bedroom count, safe room) must hold regardless of a given
+    # model's capabilities, and must never be silently overridden by whatever the model happened to
+    # infer on its own.
+    started = time.monotonic()
+    spec = merge_authoritative_requirements(spec, request)
+    merge_duration_s = time.monotonic() - started
+
     footprint = _derive_footprint(project)
 
+    final_program_area_m2 = sum((item.target_area_m2 or 0.0) * item.count for item in spec.program)
+
+    started = time.monotonic()
     result = GeometrySolver().solve(spec, footprint)
-    logger.info("geometry_solve project_id=%s status=%s", project.project_id, result.status.value)
+    solver_duration_s = time.monotonic() - started
+    logger.info(
+        "geometry_solve project_id=%s status=%s final_program_area_m2=%.1f model_duration_s=%.2f "
+        "merge_duration_s=%.3f solver_duration_s=%.2f total_duration_s=%.2f",
+        project.project_id,
+        result.status.value,
+        final_program_area_m2,
+        model_duration_s,
+        merge_duration_s,
+        solver_duration_s,
+        time.monotonic() - pipeline_started,
+    )
 
     if result.status == SolverStatus.unsatisfiable:
         raise DesignUnsatisfiableError(
