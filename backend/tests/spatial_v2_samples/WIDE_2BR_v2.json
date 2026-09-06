@@ -58,7 +58,7 @@
       "type": "bathroom",
       "floor": 1,
       "x": 7.9362,
-      "y": 3.4641,
+      "y": 3.1641,
       "width_m": 2.2361,
       "depth_m": 2.2361,
       "area_m2": 5.0,
@@ -152,12 +152,24 @@
       ]
     },
     {
+      "id": "INT_BEDROOM_1_BATHROOM",
+      "kind": "interior",
+      "orientation": "vertical",
+      "coord": 7.9362,
+      "start": 3.1641,
+      "end": 3.4641,
+      "room_ids": [
+        "BEDROOM_1",
+        "BATHROOM"
+      ]
+    },
+    {
       "id": "INT_BEDROOM_2_BATHROOM",
       "kind": "interior",
       "orientation": "vertical",
       "coord": 7.9362,
       "start": 3.4641,
-      "end": 5.700200000000001,
+      "end": 5.4002,
       "room_ids": [
         "BEDROOM_2",
         "BATHROOM"

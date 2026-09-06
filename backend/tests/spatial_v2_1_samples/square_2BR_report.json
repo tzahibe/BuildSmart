@@ -1,6 +1,6 @@
 {
-  "label": "2BR",
-  "v1_total_score_under_v2_scorer": 6.2818,
+  "label": "square_2BR",
+  "v1_score": 6.2818,
   "v1_components": {
     "adjacency": 0.4667,
     "zoning": 0.75,
@@ -14,9 +14,28 @@
     "privacy_penalty": 0.5,
     "dead_space_penalty": 0.0858
   },
-  "v1_bbox_aspect": 1.007,
-  "v2_total_score": 8.4853,
-  "v2_components": {
+  "v1_major_adjacencies": [
+    [
+      "bathroom",
+      "bedroom"
+    ],
+    [
+      "bathroom",
+      "living_room"
+    ],
+    [
+      "bedroom",
+      "living_room"
+    ],
+    [
+      "kitchen",
+      "living_room"
+    ]
+  ],
+  "v2_score": 8.4853,
+  "v2_unique_relative_layouts": 24,
+  "v21_score": 8.4853,
+  "v21_components": {
     "adjacency": 1.0,
     "zoning": 0.75,
     "circulation": 1.0,
@@ -29,22 +48,15 @@
     "privacy_penalty": 0.0,
     "dead_space_penalty": 0.0783
   },
-  "v2_bbox_aspect": 1.111,
-  "v2_candidate_count": 312,
-  "zoning": {
-    "public": [
-      "kitchen",
-      "living_room"
-    ],
-    "private": [
+  "v21_unique_relative_layouts": 232,
+  "v21_candidate_count": 312,
+  "v21_selected_strategy": "translation",
+  "v21_elapsed_s": 0.142,
+  "v21_major_adjacencies": [
+    [
       "bathroom",
       "bedroom"
     ],
-    "service": [],
-    "circulation": [],
-    "outdoor": []
-  },
-  "major_adjacencies": [
     [
       "bedroom",
       "living_room"
@@ -52,14 +64,7 @@
     [
       "kitchen",
       "living_room"
-    ],
-    [
-      "bathroom",
-      "living_room"
-    ],
-    [
-      "bathroom",
-      "bedroom"
     ]
-  ]
+  ],
+  "adjacencies_changed": true
 }

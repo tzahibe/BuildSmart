@@ -19,6 +19,9 @@ translation that would break entry-edge access is simply dropped, never forced t
 from app.architect.models import ArchitecturalSpec
 from app.geometry.models import BuildingFootprintSpec, RoomInstance
 from app.geometry.solver import _layout_satisfies_hard_requirements, generate_valid_candidate_pool
+from app.geometry.spatial_v2.fingerprint import exact_geometry_signature
+from app.geometry.spatial_v2.local_search import local_search_variants
+from app.geometry.spatial_v2.structural_variants import orientation_swap_variants, pair_swap_variants, reflection_variants
 
 # Bounded, deterministic set of translation fractions tried per pooled solution (fraction of the
 # solution's own free margin within the footprint) -- not exhaustive, not scenario-tuned: 0.0 is
@@ -26,6 +29,12 @@ from app.geometry.solver import _layout_satisfies_hard_requirements, generate_va
 # centers it. Bounded at 5 fractions so candidate count stays small and predictable regardless of
 # program size.
 _TRANSLATION_FRACTIONS = (0.0, 0.25, 0.5, 0.75, 1.0)
+
+# SPATIAL_V2_1: explicit, named bounds on every added search dimension -- see module docstring's
+# generate_candidates() for how each is used. None of these scale with program size beyond what's
+# already bounded upstream (generate_valid_candidate_pool caps at _MAX_SOLUTIONS per strategy).
+MAX_SEEDS_FOR_STRUCTURAL_VARIANTS = 24  # = _MAX_SOLUTIONS(8) * len(_INSTANCE_ORDER_STRATEGIES)(3)
+MAX_SEEDS_FOR_LOCAL_SEARCH = 12  # local search is the most expensive stage -- kept to half the seeds
 
 
 def _translate(placed: list[RoomInstance], dx: float, dy: float) -> list[RoomInstance]:
@@ -64,22 +73,67 @@ def _translated_variants(
 def generate_candidates(
     spec: ArchitecturalSpec, footprint: BuildingFootprintSpec
 ) -> list[list[RoomInstance]]:
-    """Every hard-feasible layout Spatial V2 will score: Spatial V1's own pooled backtracking
-    solutions, PLUS safe positional translations of each (deduped by rounded-coordinate signature).
-    Every returned candidate has already passed `_layout_satisfies_hard_requirements` -- hard
-    feasibility is fully decided before any Spatial V2 scoring runs (Phase 5's explicit
-    "keep hard feasibility separate from soft quality")."""
-    base_solutions = generate_valid_candidate_pool(spec, footprint)
+    """Every hard-feasible layout Spatial V2(.1) will score -- see `generate_tagged_candidates` for
+    the same pool with each candidate's originating strategy attached (used for reporting)."""
+    return [candidate for candidate, _strategy in generate_tagged_candidates(spec, footprint)]
 
-    all_candidates: list[list[RoomInstance]] = []
+
+def generate_tagged_candidates(
+    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec
+) -> list[tuple[list[RoomInstance], str]]:
+    """Every hard-feasible layout Spatial V2(.1) will score, combining (all bounded, all
+    deterministic, all hard-validated before being returned -- Phase 5's "keep hard feasibility
+    separate from soft quality"), each tagged with the strategy that produced it:
+
+      1. "base_pool"        -- Spatial V1's own pooled backtracking solutions, unmodified.
+      2. "translation"      -- safe positional translations of each (unchanged from V2 -- this is
+         what already helps wide/elongated footprints; kept exactly as before so behavior doesn't
+         regress).
+      3. "reflection" / "orientation_swap" / "pair_swap" -- SPATIAL_V2_1 structural variants
+         (structural_variants.py) -- transformations that change the RELATIVE arrangement, which
+         translation alone cannot do. This is what targets square/tight layouts, where every
+         pooled solution already sits in a similar relative arrangement.
+      4. "local_search"     -- SPATIAL_V2_1 bounded local search around a subset of seeds
+         (local_search.py) -- small single-room and whole-zone-cluster perturbations.
+
+    Deduplicated by exact geometry signature (fingerprint.py) -- a cheap, purely mechanical dedup;
+    relative-layout/adjacency-level deduplication and best-of-family selection happens in
+    `deduplicate.py`, run by the planner AFTER scoring (Phase 4), not here.
+    """
+    base_solutions = generate_valid_candidate_pool(spec, footprint)
+    program_by_type = {item.room_type: item for item in spec.program}
+
+    tagged: list[tuple[list[RoomInstance], str]] = []
     seen_signatures: set[tuple] = set()
+
+    def _add(candidate: list[RoomInstance], strategy: str) -> None:
+        signature = exact_geometry_signature(candidate)
+        if signature in seen_signatures:
+            return
+        seen_signatures.add(signature)
+        tagged.append((candidate, strategy))
+
     for solution in base_solutions:
+        _add(solution, "base_pool")
         for variant in _translated_variants(solution, spec, footprint):
-            signature = tuple(
-                sorted((room.id, round(room.x, 3), round(room.y, 3)) for room in variant)
-            )
-            if signature in seen_signatures:
-                continue
-            seen_signatures.add(signature)
-            all_candidates.append(variant)
-    return all_candidates
+            _add(variant, "translation")
+
+    structural_seeds = base_solutions[:MAX_SEEDS_FOR_STRUCTURAL_VARIANTS]
+    structural_variants: list[list[RoomInstance]] = []
+    for solution in structural_seeds:
+        for variant in reflection_variants(solution, spec, footprint):
+            _add(variant, "reflection")
+            structural_variants.append(variant)
+        for variant in orientation_swap_variants(solution, spec, footprint, program_by_type):
+            _add(variant, "orientation_swap")
+            structural_variants.append(variant)
+        for variant in pair_swap_variants(solution, spec, footprint):
+            _add(variant, "pair_swap")
+            structural_variants.append(variant)
+
+    local_search_seeds = (base_solutions + structural_variants)[:MAX_SEEDS_FOR_LOCAL_SEARCH]
+    for solution in local_search_seeds:
+        for variant in local_search_variants(solution, spec, footprint):
+            _add(variant, "local_search")
+
+    return tagged

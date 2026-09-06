@@ -1,0 +1,78 @@
+{
+  "label": "zoning_pressure_4BR_saferoom",
+  "v1_score": 7.5865,
+  "v1_components": {
+    "adjacency": 1.0,
+    "zoning": 0.5625,
+    "circulation": 1.0,
+    "compactness": 0.8305,
+    "balance": 0.7566,
+    "utilization": 0.5327,
+    "exterior_access": 0.6667,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0367
+  },
+  "v1_major_adjacencies": [
+    [
+      "bathroom",
+      "bedroom"
+    ],
+    [
+      "bathroom",
+      "safe_room"
+    ],
+    [
+      "bedroom",
+      "living_room"
+    ],
+    [
+      "bedroom",
+      "safe_room"
+    ],
+    [
+      "kitchen",
+      "living_room"
+    ]
+  ],
+  "v2_score": 7.5865,
+  "v2_unique_relative_layouts": 16,
+  "v21_score": 7.5897,
+  "v21_components": {
+    "adjacency": 1.0,
+    "zoning": 0.5625,
+    "circulation": 1.0,
+    "compactness": 0.789,
+    "balance": 0.7864,
+    "utilization": 0.5327,
+    "exterior_access": 0.6667,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0367
+  },
+  "v21_unique_relative_layouts": 288,
+  "v21_candidate_count": 396,
+  "v21_selected_strategy": "local_search",
+  "v21_elapsed_s": 0.423,
+  "v21_major_adjacencies": [
+    [
+      "bathroom",
+      "bedroom"
+    ],
+    [
+      "bathroom",
+      "safe_room"
+    ],
+    [
+      "bedroom",
+      "safe_room"
+    ],
+    [
+      "kitchen",
+      "living_room"
+    ]
+  ],
+  "adjacencies_changed": true
+}

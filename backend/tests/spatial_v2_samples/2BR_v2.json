@@ -47,8 +47,8 @@
       "floor": 1,
       "x": 4.4721,
       "y": 1.138652,
-      "width_m": 3.4641,
-      "depth_m": 3.4641,
+      "width_m": 4.0988,
+      "depth_m": 2.9277,
       "area_m2": 12.0,
       "is_circulation": false,
       "source": null
@@ -133,7 +133,7 @@
       "orientation": "vertical",
       "coord": 4.4721,
       "start": 1.138652,
-      "end": 4.602752000000001,
+      "end": 4.066352,
       "room_ids": [
         "LIVING_ROOM",
         "KITCHEN"

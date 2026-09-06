@@ -15,22 +15,22 @@
     "dead_space_penalty": 0.0367
   },
   "v1_bbox_aspect": 1.148,
-  "v2_total_score": 7.5853,
+  "v2_total_score": 7.5897,
   "v2_components": {
     "adjacency": 1.0,
     "zoning": 0.5625,
     "circulation": 1.0,
-    "compactness": 0.8305,
-    "balance": 0.7565,
+    "compactness": 0.789,
+    "balance": 0.7864,
     "utilization": 0.5327,
     "exterior_access": 0.6667,
     "corridor_penalty": 0.0,
     "strip_penalty": 0.0,
     "privacy_penalty": 0.0,
-    "dead_space_penalty": 0.0377
+    "dead_space_penalty": 0.0367
   },
-  "v2_bbox_aspect": 1.148,
-  "v2_candidate_count": 65,
+  "v2_bbox_aspect": 1.209,
+  "v2_candidate_count": 396,
   "zoning": {
     "public": [
       "kitchen",
@@ -47,20 +47,12 @@
   },
   "major_adjacencies": [
     [
-      "living_room",
-      "safe_room"
-    ],
-    [
-      "bedroom",
-      "living_room"
-    ],
-    [
-      "bedroom",
-      "safe_room"
-    ],
-    [
       "kitchen",
       "living_room"
+    ],
+    [
+      "bedroom",
+      "safe_room"
     ],
     [
       "bathroom",

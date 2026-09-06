@@ -83,8 +83,8 @@
       "floor": 1,
       "x": 6.4641,
       "y": 7.9362,
-      "width_m": 2.2361,
-      "depth_m": 2.2361,
+      "width_m": 1.8898,
+      "depth_m": 2.6458,
       "area_m2": 5.0,
       "is_circulation": false,
       "source": null
@@ -229,7 +229,7 @@
       "orientation": "vertical",
       "coord": 6.4641,
       "start": 7.9362,
-      "end": 10.1723,
+      "end": 10.582,
       "room_ids": [
         "SAFE_ROOM",
         "BATHROOM"

@@ -15,13 +15,13 @@
     "dead_space_penalty": 0.0596
   },
   "v1_bbox_aspect": 1.41,
-  "v2_total_score": 8.4811,
+  "v2_total_score": 8.9761,
   "v2_components": {
     "adjacency": 1.0,
-    "zoning": 0.75,
+    "zoning": 1.0,
     "circulation": 1.0,
     "compactness": 0.8104,
-    "balance": 0.8798,
+    "balance": 0.8765,
     "utilization": 0.7407,
     "exterior_access": 0.75,
     "corridor_penalty": 0.0,
@@ -30,7 +30,7 @@
     "dead_space_penalty": 0.0147
   },
   "v2_bbox_aspect": 1.375,
-  "v2_candidate_count": 105,
+  "v2_candidate_count": 283,
   "zoning": {
     "public": [
       "kitchen",

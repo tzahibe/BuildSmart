@@ -14,7 +14,8 @@ from app.geometry.models import (
     SolverStatus,
 )
 from app.geometry.solver import _find_pre_solver_contradiction
-from app.geometry.spatial_v2.candidates import generate_candidates
+from app.geometry.spatial_v2.candidates import generate_tagged_candidates
+from app.geometry.spatial_v2.fingerprint import relative_layout_fingerprint
 from app.geometry.spatial_v2.scoring import ArchitecturalScore, score_layout
 
 
@@ -26,6 +27,10 @@ class SpatialV2Result:
     candidate_count: int = 0
     all_scores: list[ArchitecturalScore] = field(default_factory=list)
     unsatisfiable_reason: str | None = None
+    # SPATIAL_V2_1 diversity reporting (Phase 1/6) -- always computed over the FULL candidate pool
+    # (before any dedup), so this number is never inflated by keeping only survivors.
+    unique_relative_layout_count: int = 0
+    selected_strategy: str | None = None
 
 
 def plan_v2(spec: ArchitecturalSpec, footprint: BuildingFootprintSpec) -> SpatialV2Result:
@@ -33,23 +38,27 @@ def plan_v2(spec: ArchitecturalSpec, footprint: BuildingFootprintSpec) -> Spatia
     if contradiction is not None:
         return SpatialV2Result(status=SolverStatus.unsatisfiable, unsatisfiable_reason=contradiction)
 
-    candidates = generate_candidates(spec, footprint)
-    if not candidates:
+    tagged_candidates = generate_tagged_candidates(spec, footprint)
+    if not tagged_candidates:
         return SpatialV2Result(
             status=SolverStatus.unsatisfiable,
             unsatisfiable_reason="Spatial V2 found no hard-feasible layout (same search Spatial V1 uses)",
         )
 
-    scored = [(candidate, score_layout(spec, footprint, candidate)) for candidate in candidates]
-    scored.sort(key=lambda entry: entry[1].total_score, reverse=True)
-    best_candidate, best_score = scored[0]
+    unique_relative_layouts = {relative_layout_fingerprint(c) for c, _s in tagged_candidates}
+
+    scored = [(candidate, strategy, score_layout(spec, footprint, candidate)) for candidate, strategy in tagged_candidates]
+    scored.sort(key=lambda entry: entry[2].total_score, reverse=True)
+    best_candidate, best_strategy, best_score = scored[0]
 
     return SpatialV2Result(
         status=SolverStatus.satisfied,
         instances=best_candidate,
         score=best_score,
-        candidate_count=len(candidates),
-        all_scores=[s for _c, s in scored],
+        candidate_count=len(tagged_candidates),
+        all_scores=[s for _c, _strat, s in scored],
+        unique_relative_layout_count=len(unique_relative_layouts),
+        selected_strategy=best_strategy,
     )
 
 
