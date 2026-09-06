@@ -48,7 +48,14 @@ async function createDesignThroughRealUI(page: Page) {
   await page.getByLabel('שטח הבנייה (מ"ר)').fill(String(BUILT_AREA_M2))
   await page.getByLabel('תיאור הבית הרצוי').fill(DESCRIPTION)
 
-  await page.getByRole('button', { name: 'צור פרויקט' }).click()
+  await page.getByRole('button', { name: 'המשך לבחירת צורת המבנה' }).click()
+
+  // FOOTPRINT SELECTION step (inserted between built-area entry and plan generation) — no project
+  // has been created yet at this point; picking a preset option and confirming is what actually
+  // calls POST /projects (see App.tsx's `handleConfirmFootprint`).
+  await expect(page.getByRole('heading', { name: 'בחר/י את צורת המבנה' })).toBeVisible()
+  await page.getByText('קומפקטי').click()
+  await page.getByRole('button', { name: 'המשך ליצירת התכנון' }).click()
 
   // Loading screen runs the real parse + generate pipeline against the real backend.
   await expect(page.locator('.sketch-svg').first()).toBeVisible({ timeout: 20_000 })

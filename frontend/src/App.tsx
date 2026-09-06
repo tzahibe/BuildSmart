@@ -2,10 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react'
 import './App.css'
 import { createProject, generateDesign, parseRequirements, PipelineStepError } from './api'
 import DesignPage from './design/DesignPage'
+import FootprintSelection from './design/FootprintSelection'
+import type { BuildingFootprint } from './design/footprint'
 import LoadingScreen from './design/LoadingScreen'
 import type { FormState, Project, ValidationErrorDetail } from './types'
 
-type View = 'form' | 'loading' | 'design'
+type View = 'form' | 'footprint' | 'loading' | 'design'
 
 const initialForm: FormState = {
   city: '',
@@ -24,6 +26,13 @@ function App() {
   const [submitting, setSubmitting] = useState(false)
   const [view, setView] = useState<View>('form')
   const [pipelineError, setPipelineError] = useState<string | null>(null)
+  // The SELECTED BUILDING FOOTPRINT (FOOTPRINT SELECTION step) — a real, typed choice the user makes
+  // explicitly, not just which card looks highlighted (see design/footprint.ts's module docstring).
+  // `null` until a valid option is chosen; cleared whenever `built_area_m2` changes (see the input's
+  // onChange below) so a stale selection made against a since-changed target area can never be
+  // carried forward — FootprintSelection itself defensively re-checks this too (see its own
+  // docstring), but App.tsx is the actual owner of this state and clears it at the source.
+  const [footprint, setFootprint] = useState<BuildingFootprint | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -107,28 +116,44 @@ function App() {
     setStreets([])
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // Validates the project-requirements form and, once the target built area is known, moves to the
+  // FOOTPRINT SELECTION step BEFORE any backend call — `createProject` itself only happens once a
+  // footprint is actually confirmed (see `handleConfirmFootprint`). This is what makes "changing the
+  // built area" simply a matter of coming back here: nothing has been persisted to the backend yet at
+  // this point, so there is no project to update, only the form to re-validate.
+  function handleContinueToFootprint(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSubmitting(true)
     setErrors([])
 
     if (cities.length > 0 && !cities.includes(form.city)) {
       setErrors(['יש לבחור עיר / רשות מקומית מתוך הרשימה המוצעת'])
-      setSubmitting(false)
       return
     }
 
     if (streets.length > 0 && !streets.includes(form.street)) {
       setErrors(['יש לבחור רחוב מתוך הרשימה המוצעת עבור העיר שנבחרה'])
-      setSubmitting(false)
       return
     }
 
     if (Number(form.built_area_m2) >= Number(form.plot_area_m2)) {
       setErrors(['שטח הבנייה חייב להיות קטן משטח המגרש'])
-      setSubmitting(false)
       return
     }
+
+    setView('footprint')
+  }
+
+  // Only fires with a confirmed, valid `footprint` (the "continue" button in FootprintSelection is
+  // disabled otherwise) — this is where the project is actually created, exactly as `handleSubmit`
+  // used to do directly from the form. NOTE (backend gap, see the task report): `footprint` itself is
+  // NOT sent anywhere here — there is no backend field/endpoint for it yet (createProject's payload
+  // and Project model are unchanged); the backend still derives its own square footprint from
+  // `built_area_m2` alone (see backend/app/design/pipeline.py's `_derive_footprint`). This keeps the
+  // choice ready to wire through once that support exists, without fabricating support that doesn't.
+  async function handleConfirmFootprint() {
+    if (footprint === null) return
+    setSubmitting(true)
+    setErrors([])
 
     try {
       const response = await createProject({
@@ -143,6 +168,7 @@ function App() {
         const data = (await response.json()) as Project
         setProject(data)
         setForm(initialForm)
+        setFootprint(null)
         setPipelineError(null)
         setView('loading')
       } else if (response.status === 422) {
@@ -155,11 +181,14 @@ function App() {
           return field && field !== 'body' ? `${field}: ${message}` : message
         })
         setErrors(messages.length > 0 ? messages : ['הבקשה אינה תקינה'])
+        setView('form')
       } else {
         setErrors(['אירעה שגיאה בלתי צפויה, נסה/י שוב'])
+        setView('form')
       }
     } catch {
       setErrors(['לא ניתן להתחבר לשרת'])
+      setView('form')
     } finally {
       setSubmitting(false)
     }
@@ -173,6 +202,32 @@ function App() {
     return <DesignPage project={project} onProjectUpdated={setProject} />
   }
 
+  if (view === 'footprint') {
+    return (
+      <section id="center" dir="rtl">
+        <FootprintSelection
+          targetAreaM2={Number(form.built_area_m2)}
+          value={footprint}
+          onChange={setFootprint}
+          onConfirm={handleConfirmFootprint}
+          onBack={() => setView('form')}
+          submitting={submitting}
+        />
+
+        {errors.length > 0 && (
+          <div className="form-errors">
+            <p>לא ניתן היה ליצור את הפרויקט:</p>
+            <ul>
+              {errors.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+    )
+  }
+
   const streetFieldEnabled = streets.length > 0
 
   return (
@@ -183,7 +238,7 @@ function App() {
         <p>פתיחת פרויקט חדש — הזן/י את פרטי הבקשה הבסיסיים</p>
       </header>
 
-      <form className="project-form" onSubmit={handleSubmit}>
+      <form className="project-form" onSubmit={handleContinueToFootprint}>
         <label>
           עיר / רשות מקומית
           <input
@@ -241,7 +296,13 @@ function App() {
               step="any"
               required
               value={form.built_area_m2}
-              onChange={(event) => setForm({ ...form, built_area_m2: event.target.value })}
+              onChange={(event) => {
+                setForm({ ...form, built_area_m2: event.target.value })
+                // TARGET BUILT AREA changed -> any previously selected footprint was computed for a
+                // now-stale area and must not be carried forward (see FootprintSelection's own
+                // defensive re-check for the same rule, kept independently for the same reason).
+                setFootprint(null)
+              }}
             />
           </label>
         </div>
@@ -256,8 +317,8 @@ function App() {
           />
         </label>
 
-        <button type="submit" className="submit-button" disabled={submitting}>
-          {submitting ? 'שולח...' : 'צור פרויקט'}
+        <button type="submit" className="submit-button">
+          המשך לבחירת צורת המבנה
         </button>
       </form>
 

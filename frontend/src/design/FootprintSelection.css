@@ -1,0 +1,181 @@
+.footprint-selection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.footprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.footprint-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.08s ease;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:active {
+    transform: scale(0.99);
+  }
+  &:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+}
+
+.footprint-card--selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.footprint-card--custom {
+  cursor: default;
+}
+
+.footprint-card__preview {
+  width: 100%;
+  max-width: 160px;
+  height: 92px;
+}
+
+.footprint-card__rect {
+  fill: var(--accent-bg);
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+.footprint-card--selected .footprint-card__rect {
+  fill: var(--accent-bg);
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.footprint-card__rect--placeholder {
+  fill: none;
+  stroke: var(--border);
+}
+
+.footprint-card__name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.footprint-card__dims {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.footprint-card__area {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.footprint-card__custom-inputs {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  cursor: default;
+
+  label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-h);
+    text-align: start;
+  }
+
+  input {
+    font: 400 15px/1.4 var(--sans);
+    padding: 8px 9px;
+    border-radius: calc(var(--radius) - 4px);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-h);
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  input:focus-visible {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+}
+
+.footprint-card__custom-feedback {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--accent-strong);
+}
+
+.footprint-card__custom-feedback--invalid {
+  color: var(--danger);
+}
+
+.footprint-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footprint-back {
+  font: 600 14px var(--sans);
+  color: var(--text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px;
+
+  &:hover {
+    color: var(--text-h);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.footprint-actions .submit-button {
+  margin-top: 0;
+}
+
+@media (max-width: 480px) {
+  .footprint-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .footprint-actions .submit-button {
+    width: 100%;
+  }
+}
