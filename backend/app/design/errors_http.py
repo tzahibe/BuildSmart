@@ -63,3 +63,28 @@ def raise_design_error_as_http(error: Exception) -> NoReturn:
         ) from None
 
     raise error
+
+
+# Reject reasons app.geometry.spatial_edit.apply_spatial_edit() can return (see
+# app.geometry.spatial_edit_types.RejectReason) -> HTTPException, same {"error", "message"}
+# convention as the design-pipeline mapping above. Kept in this shared module so a spatial edit
+# and a design-generation failure report through the identical shape.
+_SPATIAL_EDIT_REJECTION_STATUS = {
+    "ROOM_NOT_FOUND": 404,
+    "OUT_OF_BOUNDS": 422,
+    "OVERLAP": 422,
+    "CONSTRAINT_VIOLATION": 422,
+}
+
+_SPATIAL_EDIT_REJECTION_MESSAGE = {
+    "ROOM_NOT_FOUND": "No room with that id exists in the current design.",
+    "OUT_OF_BOUNDS": "That move would place the room outside the building footprint.",
+    "OVERLAP": "That move would overlap another room.",
+    "CONSTRAINT_VIOLATION": "That move would break a required adjacency between two rooms.",
+}
+
+
+def raise_spatial_edit_rejection_as_http(reason: str) -> NoReturn:
+    status_code = _SPATIAL_EDIT_REJECTION_STATUS.get(reason, 422)
+    message = _SPATIAL_EDIT_REJECTION_MESSAGE.get(reason, "The requested edit could not be applied.")
+    raise HTTPException(status_code=status_code, detail={"error": reason, "message": message}) from None
