@@ -210,6 +210,11 @@ class LocalArchitectModelGateway(ArchitectModelGateway):
         end-to-end against a fake model/tokenizer with no `torch`/`transformers`/`peft` import at all.
         Leaving them unset (the real, production path) is what actually loads the 7B model."""
         self._config = config
+        # Diagnostics from the most recent generate() call — a side-channel `getattr(gateway,
+        # "last_diagnostics", [])` read by app/design/pipeline.py for DesignVersion.adapter_diagnostics.
+        # Doesn't change generate()'s own return value/contract at all; Mock/Real gateways simply don't
+        # have this attribute, which the getattr default handles.
+        self.last_diagnostics: list[str] = []
         if tokenizer is not None and model is not None and device is not None:
             self._tokenizer, self._model, self._device = tokenizer, model, device
             return
@@ -256,4 +261,5 @@ class LocalArchitectModelGateway(ArchitectModelGateway):
         result = adapt_model_spec(model_spec)
         for diagnostic in result.diagnostics:
             logger.info("architect_model_adapter_diagnostic %s", diagnostic)
+        self.last_diagnostics = list(result.diagnostics)
         return result.spec

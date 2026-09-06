@@ -26,6 +26,15 @@ class ProjectRepository(ABC):
     def update(self, project_id: str, data: ProjectUpdate) -> Project | None: ...
 
     @abstractmethod
+    def replace(self, project_id: str, project: Project) -> Project:
+        """Persists `project` (already fully computed by the caller) verbatim under `project_id`. The
+        single lower-level primitive `app.projects.update.apply_project_update` and design-version
+        rollback build on — unlike `update()`/`set_parsed_requirements()`/`set_design_model()` above,
+        this doesn't itself decide what changed; callers that already have a complete, valid `Project`
+        to save use this directly instead of yet another bespoke partial-field setter."""
+        ...
+
+    @abstractmethod
     def set_parsed_requirements(
         self,
         project_id: str,
@@ -93,6 +102,12 @@ class JsonFileProjectRepository(ProjectRepository):
         )
         store = self._load()
         store[project.project_id] = json.loads(project.model_dump_json())
+        self._save(store)
+        return project
+
+    def replace(self, project_id: str, project: Project) -> Project:
+        store = self._load()
+        store[project_id] = json.loads(project.model_dump_json())
         self._save(store)
         return project
 

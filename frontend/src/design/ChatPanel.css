@@ -91,6 +91,44 @@
   border: 1px solid #f2c2ba;
 }
 
+.chat-panel__proposal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.chat-panel__proposal-confirm,
+.chat-panel__proposal-cancel {
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chat-panel__proposal-confirm {
+  background: #4a7c4e;
+  color: #fff;
+}
+
+.chat-panel__proposal-cancel {
+  background: #e0e0e0;
+  color: #444;
+}
+
+.chat-panel__proposal-confirm:disabled,
+.chat-panel__proposal-cancel:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.chat-panel__proposal-error {
+  align-self: center;
+  color: #8a3b2a;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
 .chat-panel__retry {
   margin-top: 0.35rem;
   border: none;

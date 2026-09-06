@@ -2,15 +2,19 @@ import { useState } from 'react'
 import type { Project } from '../types'
 import ChatPanel from './ChatPanel'
 import Menu from './Menu'
+import SettingsPage from './SettingsPage'
 import SketchCard from './SketchCard'
 import TechnicalDetailsPage from './TechnicalDetailsPage'
 import './DesignPage.css'
 
 interface DesignPageProps {
   project: Project
+  // Owned by the caller (App.tsx) — SettingsPage's update always replaces the whole Project via this,
+  // never a local merge, so there is exactly one place project state lives (see SettingsPage.tsx).
+  onProjectUpdated: (project: Project) => void
 }
 
-type Overlay = 'none' | 'sketch' | 'chat' | 'menu' | 'details'
+type Overlay = 'none' | 'sketch' | 'chat' | 'menu' | 'details' | 'settings'
 
 /** Decorative house-and-garden backdrop — static, non-interactive (spec.md's Assumptions). Original
  * CSS/SVG shapes, no image asset (research.md §6). */
@@ -39,7 +43,7 @@ function GardenBackdrop() {
  * exclusive, per spec.md's Edge Cases. Technical Details is rendered as an overlay *on top of* this
  * page rather than replacing it, so ChatPanel (always mounted) keeps its loaded conversation when the
  * user navigates back (FR-016). */
-function DesignPage({ project }: DesignPageProps) {
+function DesignPage({ project, onProjectUpdated }: DesignPageProps) {
   const [activeOverlay, setActiveOverlay] = useState<Overlay>('none')
 
   return (
@@ -83,6 +87,7 @@ function DesignPage({ project }: DesignPageProps) {
         open={activeOverlay === 'menu'}
         onToggle={() => setActiveOverlay(activeOverlay === 'menu' ? 'none' : 'menu')}
         onOpenDetails={() => setActiveOverlay('details')}
+        onOpenSettings={() => setActiveOverlay('settings')}
       />
 
       <button
@@ -98,10 +103,22 @@ function DesignPage({ project }: DesignPageProps) {
         projectId={project.project_id}
         open={activeOverlay === 'chat'}
         onClose={() => setActiveOverlay('none')}
+        onProjectUpdated={onProjectUpdated}
       />
 
       {activeOverlay === 'details' && (
         <TechnicalDetailsPage project={project} onBack={() => setActiveOverlay('none')} />
+      )}
+
+      {activeOverlay === 'settings' && (
+        <SettingsPage
+          project={project}
+          onBack={() => setActiveOverlay('none')}
+          onUpdated={(updated) => {
+            onProjectUpdated(updated)
+            setActiveOverlay('none')
+          }}
+        />
       )}
     </div>
   )

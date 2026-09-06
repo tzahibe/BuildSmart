@@ -96,6 +96,38 @@ class ConstraintCheckResult(BaseModel):
     note: str | None = None
 
 
+class LayoutQualityReport(BaseModel):
+    """Geometric quality metrics for one valid layout — see app/geometry/quality.py. Distinct from
+    `hard_constraints_checked`/soft relationship reports above: those are about the ArchitecturalSpec's
+    own relationship/zone/circulation requirements, this is purely about the resulting geometry's shape
+    (footprint utilization, unused-space fragmentation, compactness) that no per-relationship check
+    captures on its own."""
+
+    programmed_area_m2: float
+    footprint_area_m2: float
+    utilization_ratio: float
+    unused_area_m2: float
+    largest_contiguous_unused_region_m2: float
+    unused_region_fragmentation_ratio: float
+    compactness: float
+    zone_cohesion_ratio: float
+    circulation_quality_ratio: float
+
+
+class ObjectiveBreakdown(BaseModel):
+    """Explains the winning candidate's `objective_score` as an explicit, weighted sum — see
+    app/geometry/solver.py's `_OBJECTIVE_WEIGHTS` for the named, documented weight for each term. Lets a
+    caller see exactly why candidate A outscored candidate B instead of a single opaque number."""
+
+    soft_relationships_satisfied: float
+    zone_cohesion_score: float
+    circulation_reach_score: float
+    utilization_term: float
+    compactness_term: float
+    fragmentation_term: float
+    total: float
+
+
 class GeometrySolverResult(BaseModel):
     """OUTPUT of `GeometrySolver.solve()`. Always returned — the solver does not raise for the
     "expected" outcome of no valid layout existing within its search budget; that case is represented
@@ -116,3 +148,11 @@ class GeometrySolverResult(BaseModel):
     circulation_reach_score: float = 0.0
     objective_score: float = 0.0
     unsatisfiable_reason: str | None = None
+    # Populated only when status=satisfied. `quality` is the winning layout's own geometric report;
+    # `objective_breakdown` explains how `objective_score` was actually computed from it plus the
+    # relationship/zone/circulation terms above; `candidate_count`/`candidate_summaries` expose how many
+    # valid layouts were found and ranked (see app/geometry/solver.py's module docstring, Step 3).
+    quality: LayoutQualityReport | None = None
+    objective_breakdown: ObjectiveBreakdown | None = None
+    candidate_count: int = 0
+    candidate_summaries: list[ObjectiveBreakdown] = Field(default_factory=list)

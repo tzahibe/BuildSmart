@@ -24,6 +24,15 @@ class GeneratedDesign:
     rooms: list[Room]
     design_notes: list[str]
 
+    # Populated only by the new pipeline (app/design/pipeline.py), never by this module's own
+    # `generate_design` below — see app/design/version.py's DesignVersion, which these four exist to
+    # feed. `None`/empty here (this old generator's own construction sites never set them) simply means
+    # "no version can be built from this" — app/projects/update.py checks for that.
+    request_snapshot: dict | None = None
+    adapter_diagnostics: list[str] | None = None
+    spec_snapshot: dict | None = None
+    solver_summary: dict | None = None
+
 
 def _row_layout(floor: int, floor_depth_m: float, entries: list[tuple[str, float]]) -> list[Room]:
     """Lay `entries` (room type, area_m2) out left-to-right in a single row spanning the floor's depth —

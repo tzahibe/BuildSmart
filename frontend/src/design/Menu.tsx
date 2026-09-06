@@ -4,12 +4,13 @@ interface MenuProps {
   open: boolean
   onToggle: () => void
   onOpenDetails: () => void
+  onOpenSettings: () => void
 }
 
 /** User Story 4's menu: a toggle button revealing a dropdown that navigates to Technical Details
- * (FR-014). `open` is owned by DesignPage so it joins the same mutually-exclusive-overlay set as the
- * full-screen sketch and chat panel (spec.md's Edge Cases). */
-function Menu({ open, onToggle, onOpenDetails }: MenuProps) {
+ * (FR-014) or Settings. `open` is owned by DesignPage so it joins the same mutually-exclusive-overlay
+ * set as the full-screen sketch and chat panel (spec.md's Edge Cases). */
+function Menu({ open, onToggle, onOpenDetails, onOpenSettings }: MenuProps) {
   return (
     <div className="design-menu" dir="rtl">
       <button
@@ -27,6 +28,9 @@ function Menu({ open, onToggle, onOpenDetails }: MenuProps) {
         <div className="design-menu__dropdown" role="menu">
           <button type="button" className="design-menu__item" role="menuitem" onClick={onOpenDetails}>
             פרטים טכניים
+          </button>
+          <button type="button" className="design-menu__item" role="menuitem" onClick={onOpenSettings}>
+            הגדרות
           </button>
         </div>
       )}

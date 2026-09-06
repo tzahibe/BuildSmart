@@ -4,10 +4,13 @@ into concrete, non-overlapping, in-bounds room instances. Every HARD constraint 
 SOFT relationships/zones/circulation are treated as an objective to maximize among the valid layouts
 found, never as something that can silently fail.
 
-Algorithm (bounded backtracking over "corner point" candidate positions):
+Algorithm (bounded backtracking over "corner point" candidate positions, run once per instance-order
+strategy and pooled — see Step 3 below):
 
-1. Order instances: the circulation entry room first, then by how many HARD relationships its type
-   has (most-constrained-first — a standard CSP ordering heuristic).
+1. Order instances: the circulation entry room always first; then, per `_INSTANCE_ORDER_STRATEGIES`,
+   either by how many HARD relationships its type has (most-constrained-first — the original, default
+   CSP ordering heuristic), by largest target area first, or by smallest target area first (both
+   standard rectangle-packing heuristics). The search below runs once per strategy.
 2. For each instance, generate a small set of candidate (width, height) shapes from
    `target_area_m2` (preference, tried first) and `min_area_m2`/`max_area_m2` (hard bounds, tried as
    fallback areas), each combined with a few fixed aspect ratios, filtered to respect the HARD
@@ -23,11 +26,15 @@ Algorithm (bounded backtracking over "corner point" candidate positions):
    Failing any of these rejects the complete layout and the search backtracks further. This two-phase
    check (fast per-step feasibility, then mandatory final verification) is what makes the search
    correct.
-6. Among up to `_MAX_SOLUTIONS` complete valid layouts found within a bounded number of search steps,
-   the one with the highest `_objective_score` (soft relationships satisfied + zone cohesion +
-   circulation reach — see below) is returned as `GeometrySolverResult(status=satisfied, ...)`. If
-   none is found, `GeometrySolverResult(status=unsatisfiable, ...)` is returned instead — the solver
-   never raises for this expected outcome, and never returns a partial layout.
+6. Every complete valid layout found across ALL strategy passes (up to `_MAX_SOLUTIONS` each,
+   deduplicated by exact geometry) is pooled and scored by `_score_candidate`: soft relationships
+   satisfied + zone cohesion + circulation reach (as before this milestone) PLUS three new, explicitly
+   weighted geometric terms — footprint utilization, compactness, and unused-space fragmentation (see
+   `app/geometry/quality.py` and the `_WEIGHT_*` constants below). The highest-scoring pooled candidate
+   is returned as `GeometrySolverResult(status=satisfied, ...)`, along with the runner-ups' own score
+   breakdowns (`candidate_summaries`) so the choice is explainable, not just a single opaque number. If
+   no valid layout is found in any pass, `GeometrySolverResult(status=unsatisfiable, ...)` is returned
+   instead — the solver never raises for this expected outcome, and never returns a partial layout.
 
 --- V1 approximations, documented explicitly rather than silently assumed ---
 
@@ -89,18 +96,42 @@ from app.geometry.models import (
     BuildingFootprintSpec,
     ConstraintCheckResult,
     GeometrySolverResult,
+    LayoutQualityReport,
+    ObjectiveBreakdown,
     RoomInstance,
     SolverStatus,
 )
+from app.geometry.quality import compute_quality_metrics
 
 _DEFAULT_TARGET_AREA_M2 = 10.0
 _DEFAULT_MIN_WIDTH_M = 2.0
 # A deliberately small, fixed set of aspect ratios (width:height) tried per room — not a continuous
 # search. 1.0 = square-ish; the other two bias wider or deeper while preserving the chosen area.
 _ASPECT_RATIOS = (1.0, 1.4, 1 / 1.4)
-_MAX_SOLUTIONS = 5
+# Per-ordering-pass solution cap and shared step budget — see `GeometrySolver.solve`'s module docstring
+# Step 3 update: the search is run once per entry in `_INSTANCE_ORDER_STRATEGIES` below (a small set of
+# well-established bin-packing order heuristics — "largest item first" and "smallest item first" are
+# standard, general techniques, not tuned to any one example), and every complete valid layout found
+# across all passes is pooled and ranked together. `_MAX_SOLUTIONS` bounds each individual pass, not the
+# combined pool, so the effective candidate count is up to `_MAX_SOLUTIONS * len(_INSTANCE_ORDER_STRATEGIES)`.
+_MAX_SOLUTIONS = 8
 _MAX_BACKTRACK_STEPS = 20_000
 _EPSILON = 1e-6
+
+# --- Explicit, named objective weights (Step 3: "do not hide architectural decisions inside arbitrary
+# magic numbers without documenting them") ------------------------------------------------------------
+#
+# `soft_relationships`/`zone_cohesion`/`circulation_reach` keep their pre-existing weight of 1.0 per
+# unit — this milestone does not change how much a satisfied soft relationship or zone-cohesion pair is
+# worth relative to each other, only ADDS three new geometric terms alongside them. The three new
+# weights below were chosen so that, for a typical BuildSmart program (roughly 5-11 rooms), a full swing
+# of `utilization_ratio` (0->1) is worth roughly as much as satisfying 2-3 additional soft relationships
+# — geometric quality should matter, but must not make the solver indifferent to the relationship/zone
+# requirements the Architect Model and authoritative merge actually asked for. These are starting
+# values, deliberately conservative, not derived from any single observed layout.
+_WEIGHT_UTILIZATION = 3.0
+_WEIGHT_COMPACTNESS = 1.5
+_WEIGHT_FRAGMENTATION = 1.5
 # Standard interior door width (m) — the threshold that separates `direct_access` from plain
 # `adjacent`; see the module docstring's "Adjacency vs. direct access" section.
 _DOOR_OPENING_MIN_M = 0.9
@@ -368,12 +399,49 @@ def _circulation_reach_score(spec: ArchitecturalSpec, by_type: dict[str, list[Ro
     return score
 
 
-def _objective_score(spec: ArchitecturalSpec, placed: list[RoomInstance]) -> float:
+def _score_candidate(
+    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec, placed: list[RoomInstance]
+) -> tuple[ObjectiveBreakdown, LayoutQualityReport]:
+    """The full ranking score for one valid (all-HARD-constraints-satisfied) candidate layout — see the
+    module docstring's Step 3 update and `_WEIGHT_*` above for what each term means and why. Returns
+    both the score breakdown (for `GeometrySolverResult.objective_breakdown`/`candidate_summaries` —
+    Step 3's "the scoring must be explainable" requirement) and the raw geometric quality report (for
+    `GeometrySolverResult.quality`) so callers get the underlying numbers, not just the weighted total.
+    """
     by_type = _group_by_type(placed)
     soft_relationships = sum(
         1 for rel in spec.relationships if rel.severity == ConstraintSeverity.soft and _relationship_satisfied(rel, by_type)
     )
-    return soft_relationships + _zone_cohesion_score(spec, by_type) + _circulation_reach_score(spec, by_type)
+    zone_score = _zone_cohesion_score(spec, by_type)
+    circulation_score = _circulation_reach_score(spec, by_type)
+    quality = compute_quality_metrics(spec, footprint, placed, by_type, _shared_edge_length)
+
+    utilization_term = _WEIGHT_UTILIZATION * quality.utilization_ratio
+    compactness_term = _WEIGHT_COMPACTNESS * quality.compactness
+    fragmentation_term = _WEIGHT_FRAGMENTATION * quality.unused_region_fragmentation_ratio
+    total = soft_relationships + zone_score + circulation_score + utilization_term + compactness_term + fragmentation_term
+
+    breakdown = ObjectiveBreakdown(
+        soft_relationships_satisfied=float(soft_relationships),
+        zone_cohesion_score=zone_score,
+        circulation_reach_score=circulation_score,
+        utilization_term=round(utilization_term, 4),
+        compactness_term=round(compactness_term, 4),
+        fragmentation_term=round(fragmentation_term, 4),
+        total=round(total, 4),
+    )
+    quality_report = LayoutQualityReport(
+        programmed_area_m2=quality.programmed_area_m2,
+        footprint_area_m2=quality.footprint_area_m2,
+        utilization_ratio=quality.utilization_ratio,
+        unused_area_m2=quality.unused_area_m2,
+        largest_contiguous_unused_region_m2=quality.largest_contiguous_unused_region_m2,
+        unused_region_fragmentation_ratio=quality.unused_region_fragmentation_ratio,
+        compactness=quality.compactness,
+        zone_cohesion_ratio=quality.zone_cohesion_ratio,
+        circulation_quality_ratio=quality.circulation_quality_ratio,
+    )
+    return breakdown, quality_report
 
 
 def _describe(rel: RelationalConstraint) -> str:
@@ -398,8 +466,29 @@ def _relationship_reports(
     return reports
 
 
+# Step 3: a small, well-established set of bin-packing order heuristics — general techniques, not
+# tuned to any single observed layout. "most_constrained" is this module's original (pre-this-milestone)
+# ordering, kept as the first/default pass so existing behavior is still exactly reproducible as one of
+# the pooled candidates, not replaced. "largest_area_first"/"smallest_area_first" are standard rectangle-
+# packing heuristics: placing the biggest items first tends to leave more, larger contiguous space for
+# the smaller items that follow (and vice versa) — running both alongside the original gives the search
+# genuinely different placement orders to explore, which is what lets ranking (Step 3) actually choose
+# among meaningfully different layouts instead of near-duplicates of one traversal.
+_INSTANCE_ORDER_STRATEGIES = ("most_constrained", "largest_area_first", "smallest_area_first")
+
+
+def _instance_target_area(room_type: str, program_by_type: dict[str, ProgramItem]) -> float:
+    item = program_by_type.get(room_type)
+    if item is None:
+        return _DEFAULT_TARGET_AREA_M2
+    return item.target_area_m2 or item.min_area_m2 or item.max_area_m2 or _DEFAULT_TARGET_AREA_M2
+
+
 def _order_instances(
-    spec: ArchitecturalSpec, instances: list[tuple[str, str, ProgramItem]]
+    spec: ArchitecturalSpec,
+    instances: list[tuple[str, str, ProgramItem]],
+    program_by_type: dict[str, ProgramItem],
+    strategy: str,
 ) -> list[tuple[str, str, ProgramItem]]:
     hard_relationship_count: dict[str, int] = {}
     for rel in spec.relationships:
@@ -408,10 +497,16 @@ def _order_instances(
         hard_relationship_count[rel.room_type_a] = hard_relationship_count.get(rel.room_type_a, 0) + 1
         hard_relationship_count[rel.room_type_b] = hard_relationship_count.get(rel.room_type_b, 0) + 1
 
-    def sort_key(instance: tuple[str, str, ProgramItem]) -> tuple[int, int, str]:
+    def sort_key(instance: tuple[str, str, ProgramItem]):
         instance_id, room_type, _item = instance
         is_entry = spec.circulation is not None and room_type == spec.circulation.entry_room_type
-        return (0 if is_entry else 1, -hard_relationship_count.get(room_type, 0), instance_id)
+        if strategy == "largest_area_first":
+            secondary = -_instance_target_area(room_type, program_by_type)
+        elif strategy == "smallest_area_first":
+            secondary = _instance_target_area(room_type, program_by_type)
+        else:
+            secondary = -hard_relationship_count.get(room_type, 0)
+        return (0 if is_entry else 1, secondary, instance_id)
 
     return sorted(instances, key=sort_key)
 
@@ -480,61 +575,81 @@ class GeometrySolver:
         if contradiction is not None:
             return GeometrySolverResult(status=SolverStatus.unsatisfiable, unsatisfiable_reason=contradiction)
 
-        ordered = _order_instances(spec, expand_program_to_instances(spec.program))
         program_by_type = {item.room_type: item for item in spec.program}
-        pending = [
-            _PendingInstance(
-                id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(program_by_type[room_type])
-            )
-            for instance_id, room_type, _item in ordered
-        ]
+        instances = expand_program_to_instances(spec.program)
 
+        # Step 3: run the search once per order strategy (see `_INSTANCE_ORDER_STRATEGIES`) and pool
+        # every complete valid layout found across all passes — this is what gives ranking real
+        # candidates to choose among, instead of near-duplicates of a single fixed traversal. Hard
+        # constraints, overlap/bounds checks, and the shape/position candidate generation are completely
+        # unchanged from before this milestone; only WHICH ORDER instances are attempted in varies.
         solutions: list[list[RoomInstance]] = []
-        steps = 0
+        seen_signatures: set[tuple] = set()
 
-        def backtrack(index: int, placed: list[RoomInstance]) -> None:
-            nonlocal steps
-            if len(solutions) >= _MAX_SOLUTIONS or steps >= _MAX_BACKTRACK_STEPS:
-                return
+        for strategy in _INSTANCE_ORDER_STRATEGIES:
+            ordered = _order_instances(spec, instances, program_by_type, strategy)
+            pending = [
+                _PendingInstance(
+                    id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(program_by_type[room_type])
+                )
+                for instance_id, room_type, _item in ordered
+            ]
 
-            if index == len(pending):
-                if _layout_satisfies_hard_requirements(spec, footprint, placed):
-                    solutions.append(list(placed))
-                return
+            pass_solutions: list[list[RoomInstance]] = []
+            steps = 0
 
-            current = pending[index]
-            for width, height in current.candidate_shapes:
-                anchors = _candidate_positions(placed, footprint, width, height)
-                for x, y in anchors:
-                    steps += 1
-                    if steps >= _MAX_BACKTRACK_STEPS:
-                        return
-                    if x < -_EPSILON or y < -_EPSILON:
-                        continue
-                    if x + width > footprint.width_m + _EPSILON or y + height > footprint.depth_m + _EPSILON:
-                        continue
-                    if any(_overlaps(x, y, width, height, p.x, p.y, p.width, p.height) for p in placed):
-                        continue
+            def backtrack(index: int, placed: list[RoomInstance]) -> None:
+                nonlocal steps
+                if len(pass_solutions) >= _MAX_SOLUTIONS or steps >= _MAX_BACKTRACK_STEPS:
+                    return
 
-                    placed.append(
-                        RoomInstance(
-                            id=current.id,
-                            type=current.type,
-                            floor=footprint.floor,
-                            x=x,
-                            y=y,
-                            width=width,
-                            height=height,
-                            area_m2=round(width * height, 2),
+                if index == len(pending):
+                    if _layout_satisfies_hard_requirements(spec, footprint, placed):
+                        pass_solutions.append(list(placed))
+                    return
+
+                current = pending[index]
+                for width, height in current.candidate_shapes:
+                    anchors = _candidate_positions(placed, footprint, width, height)
+                    for x, y in anchors:
+                        steps += 1
+                        if steps >= _MAX_BACKTRACK_STEPS:
+                            return
+                        if x < -_EPSILON or y < -_EPSILON:
+                            continue
+                        if x + width > footprint.width_m + _EPSILON or y + height > footprint.depth_m + _EPSILON:
+                            continue
+                        if any(_overlaps(x, y, width, height, p.x, p.y, p.width, p.height) for p in placed):
+                            continue
+
+                        placed.append(
+                            RoomInstance(
+                                id=current.id,
+                                type=current.type,
+                                floor=footprint.floor,
+                                x=x,
+                                y=y,
+                                width=width,
+                                height=height,
+                                area_m2=round(width * height, 2),
+                            )
                         )
-                    )
-                    backtrack(index + 1, placed)
-                    placed.pop()
+                        backtrack(index + 1, placed)
+                        placed.pop()
 
-                    if len(solutions) >= _MAX_SOLUTIONS:
-                        return
+                        if len(pass_solutions) >= _MAX_SOLUTIONS:
+                            return
 
-        backtrack(0, [])
+            backtrack(0, [])
+
+            for solution in pass_solutions:
+                signature = tuple(
+                    sorted((room.type, round(room.x, 3), round(room.y, 3), round(room.width, 3), round(room.height, 3)) for room in solution)
+                )
+                if signature in seen_signatures:
+                    continue
+                seen_signatures.add(signature)
+                solutions.append(solution)
 
         if not solutions:
             return GeometrySolverResult(
@@ -542,12 +657,15 @@ class GeometrySolver:
                 unsatisfiable_reason=(
                     f"No layout satisfies every hard constraint within a {footprint.width_m:.1f}x"
                     f"{footprint.depth_m:.1f} m footprint (floor {footprint.floor}, "
-                    f"{footprint.available_area_m2:.1f} m² available) for {len(pending)} room "
-                    f"instance(s), within the search budget ({_MAX_BACKTRACK_STEPS} steps)"
+                    f"{footprint.available_area_m2:.1f} m² available) for {len(instances)} room "
+                    f"instance(s), within the search budget ({_MAX_BACKTRACK_STEPS} steps per ordering "
+                    f"strategy, {len(_INSTANCE_ORDER_STRATEGIES)} strategies tried)"
                 ),
             )
 
-        best = max(solutions, key=lambda placement: _objective_score(spec, placement))
+        scored = [(placement, *_score_candidate(spec, footprint, placement)) for placement in solutions]
+        scored.sort(key=lambda entry: entry[1].total, reverse=True)
+        best, best_breakdown, best_quality = scored[0]
         by_type = _group_by_type(best)
 
         soft_reports = _relationship_reports(spec, best, ConstraintSeverity.soft)
@@ -589,8 +707,10 @@ class GeometrySolver:
                     )
                 )
 
-        zone_score = _zone_cohesion_score(spec, by_type)
-        circulation_score = _circulation_reach_score(spec, by_type)
+        # Step 3: "explainable" candidate summaries — the top few pooled candidates' own breakdowns
+        # (already computed above for ranking, not recomputed here), so a caller can see why the winner
+        # beat the runners-up without re-running anything.
+        candidate_summaries = [breakdown for _placement, breakdown, _quality in scored[:5]]
 
         return GeometrySolverResult(
             status=SolverStatus.satisfied,
@@ -598,7 +718,11 @@ class GeometrySolver:
             hard_constraints_checked=hard_checked,
             soft_constraints_satisfied=soft_satisfied,
             soft_constraints_not_satisfied=soft_unsatisfied,
-            zone_cohesion_score=zone_score,
-            circulation_reach_score=circulation_score,
-            objective_score=float(len(soft_satisfied)) + zone_score + circulation_score,
+            zone_cohesion_score=best_breakdown.zone_cohesion_score,
+            circulation_reach_score=best_breakdown.circulation_reach_score,
+            objective_score=best_breakdown.total,
+            quality=best_quality,
+            objective_breakdown=best_breakdown,
+            candidate_count=len(scored),
+            candidate_summaries=candidate_summaries,
         )

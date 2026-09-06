@@ -216,8 +216,24 @@ def test_generous_footprint_achieves_the_soft_adjacency_too():
 
     assert result.status == SolverStatus.satisfied
     assert any("bedroom" in check.description and "bathroom" in check.description for check in result.soft_constraints_satisfied)
-    assert result.objective_score == (
-        len(result.soft_constraints_satisfied) + result.zone_cohesion_score + result.circulation_reach_score
+    # objective_score is the documented, explainable sum of its breakdown's own components (relationship/
+    # zone/circulation terms plus the geometric quality terms added this milestone — see
+    # app/geometry/solver.py's `_score_candidate`) — not a magic number and not just the old
+    # relationship-only formula.
+    breakdown = result.objective_breakdown
+    assert breakdown is not None
+    assert result.objective_score == breakdown.total
+    assert breakdown.soft_relationships_satisfied == len(result.soft_constraints_satisfied)
+    assert breakdown.zone_cohesion_score == result.zone_cohesion_score
+    assert breakdown.circulation_reach_score == result.circulation_reach_score
+    assert result.objective_score == round(
+        breakdown.soft_relationships_satisfied
+        + breakdown.zone_cohesion_score
+        + breakdown.circulation_reach_score
+        + breakdown.utilization_term
+        + breakdown.compactness_term
+        + breakdown.fragmentation_term,
+        4,
     )
 
 

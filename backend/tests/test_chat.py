@@ -7,11 +7,28 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.chat import router as chat_router
 from app.chat.assistant import ChatAssistant
+from app.chat.intent import ChatIntentExtraction, ChatIntentExtractor, ProposalActionType
 from app.chat.models import ChatMessage
+from app.chat.proposals import JsonFileProposalRepository
 from app.chat.repository import JsonFileConversationRepository
+from app.design.version import JsonFileDesignVersionRepository
 from app.projects.models import Project
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.routes import base_routes as project_base_routes
+
+
+class FakeChatIntentExtractor(ChatIntentExtractor):
+    """Defaults to NO_ACTION — preserves every pre-existing chat test's hermetic, plain-Q&A behavior
+    (falls straight through to FakeChatAssistant, no real OpenAI call for intent extraction either).
+    Tests exercising the new proposal flow override `.next_extraction`."""
+
+    def __init__(self):
+        self.next_extraction = ChatIntentExtraction(action=ProposalActionType.no_action)
+        self.calls: list[str] = []
+
+    def extract(self, project, design_versions, history, new_message):
+        self.calls.append(new_message)
+        return self.next_extraction
 
 
 class FakeChatAssistant(ChatAssistant):
@@ -55,10 +72,28 @@ def fake_assistant():
 
 
 @pytest.fixture
-def client(project_repo, conversation_repo, fake_assistant, monkeypatch):
+def fake_intent_extractor():
+    return FakeChatIntentExtractor()
+
+
+@pytest.fixture
+def design_version_repo(tmp_path):
+    return JsonFileDesignVersionRepository(tmp_path / "design_versions.json")
+
+
+@pytest.fixture
+def proposal_repo(tmp_path):
+    return JsonFileProposalRepository(tmp_path / "chat_proposals.json")
+
+
+@pytest.fixture
+def client(project_repo, conversation_repo, design_version_repo, proposal_repo, fake_assistant, fake_intent_extractor, monkeypatch):
     monkeypatch.setattr(project_base_routes, "repository", project_repo)
+    monkeypatch.setattr(project_base_routes, "design_version_repository", design_version_repo)
     monkeypatch.setattr(chat_router, "repository", conversation_repo)
+    monkeypatch.setattr(chat_router, "proposal_repository", proposal_repo)
     monkeypatch.setattr(chat_router, "assistant", fake_assistant)
+    monkeypatch.setattr(chat_router, "intent_extractor", fake_intent_extractor)
     return TestClient(app)
 
 

@@ -170,7 +170,7 @@ function App() {
   }
 
   if (view === 'design' && project) {
-    return <DesignPage project={project} />
+    return <DesignPage project={project} onProjectUpdated={setProject} />
   }
 
   const streetFieldEnabled = streets.length > 0

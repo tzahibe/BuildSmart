@@ -3,6 +3,8 @@ from enum import Enum
 
 from pydantic import BaseModel, field_validator
 
+from app.chat.proposals import ProposalSummary
+
 
 class ChatRole(str, Enum):
     user = "user"
@@ -13,6 +15,10 @@ class ChatMessage(BaseModel):
     role: ChatRole
     content: str
     created_at: datetime
+    # Set only on an assistant message that is proposing a change and awaiting confirmation — see
+    # app/chat/router.py. `None` for every plain conversational message (the overwhelming majority,
+    # unchanged from before this milestone) and for outcome messages after a confirm/cancel.
+    proposal: ProposalSummary | None = None
 
 
 class Conversation(BaseModel):

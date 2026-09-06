@@ -176,7 +176,9 @@ def test_reparse_after_description_update_replaces_the_previous_result(client: T
     first = client.post(f"/projects/{project_id}/requirements").json()
     assert first["pool"]["requested"]["value"] is True
 
-    patch_response = client.patch(f"/projects/{project_id}", json={"description": CONFLICT_DESCRIPTION})
+    patch_response = client.patch(
+        f"/projects/{project_id}", json={"source": "SETTINGS", "diff": {"description": CONFLICT_DESCRIPTION}}
+    )
     assert patch_response.status_code == 200
 
     second = client.post(f"/projects/{project_id}/requirements").json()

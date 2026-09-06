@@ -214,6 +214,9 @@ def generate_design_via_solver(
         )
         raise
     model_duration_s = time.monotonic() - started
+    # Only LocalArchitectModelGateway has this attribute (see its module docstring) — Mock/Real gateways
+    # simply produce no diagnostics, which the getattr default represents accurately, not as a gap.
+    adapter_diagnostics = list(getattr(gateway, "last_diagnostics", []) or [])
     logger.info(
         "architect_model_call project_id=%s provider=%s duration_s=%.2f parse_success=true "
         "spec_valid=true incomplete_requirements=%s",
@@ -255,6 +258,11 @@ def generate_design_via_solver(
             result.unsatisfiable_reason or "No layout satisfies every hard constraint for this project"
         )
 
+    # Traces each placed instance's room TYPE back to the (post-merge) ProgramItem that declared it, so
+    # the persisted Room carries the same source (MODEL_INFERENCE / USER_REQUIREMENT / REGULATION) the
+    # solver's input already had — see app/architect/models.py's `ProgramItem.source` and
+    # `ConstraintSource`. Not a new fact; just not discarding one that already existed in-memory.
+    source_by_room_type = {item.room_type: item.source for item in spec.program}
     rooms = [
         Room(
             type=instance.type,
@@ -264,13 +272,29 @@ def generate_design_via_solver(
             y=instance.y,
             width_m=instance.width,
             depth_m=instance.height,
+            source=source_by_room_type.get(instance.type),
         )
         for instance in result.instances
     ]
+    design_notes = _design_notes(spec.incomplete_requirements)
+
+    solver_summary = {
+        "status": result.status.value,
+        "hard_constraints_checked": [c.model_dump(mode="json") for c in result.hard_constraints_checked],
+        "soft_constraints_satisfied": [c.model_dump(mode="json") for c in result.soft_constraints_satisfied],
+        "soft_constraints_not_satisfied": [c.model_dump(mode="json") for c in result.soft_constraints_not_satisfied],
+        "zone_cohesion_score": result.zone_cohesion_score,
+        "circulation_reach_score": result.circulation_reach_score,
+        "objective_score": result.objective_score,
+    }
 
     return GeneratedDesign(
         site_width_m=site_side_m,
         site_depth_m=site_side_m,
         rooms=rooms,
-        design_notes=_design_notes(spec.incomplete_requirements),
+        design_notes=design_notes,
+        request_snapshot=request.model_dump(mode="json"),
+        adapter_diagnostics=adapter_diagnostics,
+        spec_snapshot=spec.model_dump(mode="json"),
+        solver_summary=solver_summary,
     )

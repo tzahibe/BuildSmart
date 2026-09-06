@@ -1,9 +1,11 @@
 from datetime import datetime
 from enum import Enum
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.localities.data import CITY_STREETS, KNOWN_CITIES
+from app.projects.preferences import Preference
 
 
 class SourceTag(str, Enum):
@@ -36,7 +38,15 @@ class PoolField(BaseModel):
 
 
 class Room(BaseModel):
-    """One room in a generated parametric design model — see app/design/generator.py."""
+    """One room in a generated parametric design model — see app/design/generator.py.
+
+    `source` records where this room's presence in the program came from — conventionally one of
+    "MODEL_INFERENCE" / "USER_REQUIREMENT" / "REGULATION" (see app/architect/models.py's
+    `ConstraintSource`; not imported directly here to keep app/projects free of a dependency on
+    app/architect — this module only stores the string, app/design/pipeline.py is what sets it from the
+    real `ConstraintSource`-typed value). `None` for rooms produced before this field existed (the old
+    deterministic generator in app/design/generator.py never sets it either) — never backfilled/guessed.
+    """
 
     type: str
     floor: int
@@ -45,6 +55,21 @@ class Room(BaseModel):
     y: float
     width_m: float
     depth_m: float
+    source: str | None = None
+
+
+class ChangeLogEntry(BaseModel):
+    """One recorded field-level change — see app/projects/update.py, the single place that appends
+    these. `old_value`/`new_value` are whatever JSON-compatible shape the field itself has (a plain
+    scalar for e.g. `city`, a `TaggedInt`-shaped dict for e.g. `bedrooms`, a `Preference`-shaped dict for
+    a preference add/update/remove) — kept loose on purpose rather than a per-field-type union, since
+    this is a display/audit trail, not something re-parsed back into a typed value."""
+
+    field: str
+    old_value: Any = None
+    new_value: Any = None
+    source: Literal["CHAT", "SETTINGS"]
+    at: datetime
 
 
 def _non_empty(value: str, field_name: str) -> str:
@@ -179,3 +204,19 @@ class Project(BaseModel):
     rooms: list[Room] | None = None
     design_notes: list[str] | None = None
     design_generated_at: datetime | None = None
+
+    # Which app/design/version.py::DesignVersion is "current" — `None` for a project created (or last
+    # designed) before versioning existed; the flat fields above still hold that pre-versioning design
+    # unchanged (see app/design/update.py's module docstring for the backward-compat read strategy).
+    # Every NEW design generation from now on both appends a DesignVersion AND mirrors it into the flat
+    # fields above, so existing frontend code that reads `project.rooms` directly keeps working.
+    active_design_version_id: str | None = None
+
+    # Soft, non-binding architectural wishes — see app/projects/preferences.py. Distinct from the
+    # authoritative requirement fields above; nothing here is enforced by the solver (yet).
+    preferences: list[Preference] = Field(default_factory=list)
+
+    # Append-only audit trail of every field-level change made via app/projects/update.py, regardless of
+    # whether it came from Settings or (future) Chat — the single place both write through, per that
+    # module's docstring on avoiding two sources of truth.
+    change_log: list[ChangeLogEntry] = Field(default_factory=list)
