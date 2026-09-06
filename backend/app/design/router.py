@@ -38,6 +38,7 @@ def generate_project_design(project_id: str) -> Project:
         site_depth_m=design.site_depth_m,
         rooms=design.rooms,
         design_notes=design.design_notes,
+        geometric_design=design.geometric_design,
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Project not found")

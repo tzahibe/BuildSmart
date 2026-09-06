@@ -46,6 +46,7 @@ from app.architect.models import (
     SiteSpec,
 )
 from app.design.generator import GeneratedDesign
+from app.geometry.geometric_design import build_geometric_design
 from app.geometry.models import BuildingFootprintSpec, SolverStatus
 from app.geometry.solver import GeometrySolver
 from app.projects.models import Project, Room, SourceTag
@@ -278,6 +279,11 @@ def generate_design_via_solver(
     ]
     design_notes = _design_notes(spec.incomplete_requirements)
 
+    # The stable UI geometry contract — see app/geometry/geometric_design.py's module docstring for
+    # exactly what's derived from what. Only ever built for a satisfied result (checked above); never
+    # attempted for `unsatisfiable`, which already raised `DesignUnsatisfiableError` before this point.
+    geometric_design = build_geometric_design(spec, footprint, result).model_dump(mode="json")
+
     solver_summary = {
         "status": result.status.value,
         "hard_constraints_checked": [c.model_dump(mode="json") for c in result.hard_constraints_checked],
@@ -297,4 +303,5 @@ def generate_design_via_solver(
         adapter_diagnostics=adapter_diagnostics,
         spec_snapshot=spec.model_dump(mode="json"),
         solver_summary=solver_summary,
+        geometric_design=geometric_design,
     )

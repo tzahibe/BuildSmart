@@ -228,6 +228,51 @@ def test_full_pipeline_via_the_design_endpoint_returns_200_with_solved_rooms(
         assert room["y"] >= 0
 
 
+def test_design_endpoint_response_includes_the_geometric_design_ui_contract(
+    client: TestClient, repo: JsonFileProjectRepository
+):
+    """End-to-end: `POST /projects/{id}/design`'s response `geometric_design` (see
+    app/geometry/geometric_design.py) must be internally consistent with the same response's `rooms` —
+    every room referenced by a door/wall must actually exist, and every door must trace back to an
+    actual `direct_access` relationship the MockArchitectModelGateway spec declares (bathroom<->
+    living_room, and safe_room<->bedroom given this project requests both — see
+    app/architect/gateway.py)."""
+    # The fixture's default parsed requirements (3 bedrooms, safe_room requested) already give the
+    # MockArchitectModelGateway both of its direct_access relationships to potentially satisfy.
+    project_id = _create_and_parse_project(client, repo)
+
+    response = client.post(f"/projects/{project_id}/design")
+
+    assert response.status_code == 200
+    body = response.json()
+    geometric_design = body["geometric_design"]
+    assert geometric_design is not None
+
+    room_ids = {room["id"] for room in geometric_design["rooms"]}
+    assert room_ids  # never empty for a satisfied design
+
+    wall_ids = {wall["id"] for wall in geometric_design["walls"]}
+    for wall in geometric_design["walls"]:
+        for room_id in wall["room_ids"]:
+            assert room_id in room_ids
+
+    for door in geometric_design["doors"]:
+        assert door["wall_id"] in wall_ids
+        for room_id in door["room_ids"]:
+            assert room_id in room_ids
+        # Every rendered door must be backed by an actual direct_access relationship between those two
+        # rooms' TYPES — never merely because their instances happen to be adjacent.
+        door_room_types = {
+            room["type"] for room in geometric_design["rooms"] if room["id"] in door["room_ids"]
+        }
+        assert door_room_types == {"bathroom", "living_room"} or door_room_types == {"safe_room", "bedroom"}
+
+    exterior_walls = [w for w in geometric_design["walls"] if w["kind"] == "exterior"]
+    assert len(exterior_walls) == 4
+    footprint = geometric_design["footprint"]
+    assert footprint["width_m"] > 0 and footprint["depth_m"] > 0
+
+
 def test_unsatisfiable_pipeline_via_the_design_endpoint_returns_422_and_no_design_is_saved(
     client: TestClient, repo: JsonFileProjectRepository
 ):

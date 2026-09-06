@@ -6,6 +6,11 @@
   border-radius: 1rem;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
   padding: 1rem;
+  /* This project has no global box-sizing reset — without this, `width: 100%` (content box) plus
+   * `padding: 1rem` made the card's actual border box 2rem WIDER than its allotted 100%, invisible on
+   * desktop's slack but enough to push the floor plan past the viewport edge on narrow (mobile)
+   * widths. Same fix applied to `.sketch-card__fullscreen-content` below for the same reason. */
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -47,6 +52,7 @@
   background: rgba(255, 255, 255, 0.97);
   border-radius: 1rem;
   padding: 1.5rem;
+  box-sizing: border-box;
   display: flex;
 }
 

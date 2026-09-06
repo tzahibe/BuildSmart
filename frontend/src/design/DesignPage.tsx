@@ -77,6 +77,7 @@ function DesignPage({ project, onProjectUpdated }: DesignPageProps) {
 
         <SketchCard
           rooms={project.rooms ?? []}
+          geometricDesign={project.geometric_design}
           expanded={activeOverlay === 'sketch'}
           onExpand={() => setActiveOverlay('sketch')}
           onClose={() => setActiveOverlay('none')}

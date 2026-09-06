@@ -278,6 +278,7 @@ def apply_project_update(
         solver_summary=design.solver_summary or {},
         rooms=design.rooms,
         design_notes=design.design_notes,
+        geometric_design=design.geometric_design,
     )
     design_version_repository.append(version)
 
@@ -288,6 +289,7 @@ def apply_project_update(
             "site_depth_m": design.site_depth_m,
             "rooms": design.rooms,
             "design_notes": design.design_notes,
+            "geometric_design": design.geometric_design,
             "design_generated_at": at,
         }
     )
@@ -334,6 +336,7 @@ def rollback_to_design_version(
             "active_design_version_id": version.design_version_id,
             "rooms": version.rooms,
             "design_notes": version.design_notes,
+            "geometric_design": version.geometric_design,
             "design_generated_at": version.created_at,
             "change_log": change_log,
             "updated_at": at,

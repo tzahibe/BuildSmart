@@ -55,6 +55,7 @@ class ProjectRepository(ABC):
         site_depth_m: float,
         rooms: list[Room],
         design_notes: list[str],
+        geometric_design: dict | None = None,
     ) -> Project | None: ...
 
 
@@ -133,6 +134,7 @@ class JsonFileProjectRepository(ProjectRepository):
         site_depth_m: float,
         rooms: list[Room],
         design_notes: list[str],
+        geometric_design: dict | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -146,6 +148,7 @@ class JsonFileProjectRepository(ProjectRepository):
                 "site_depth_m": site_depth_m,
                 "rooms": rooms,
                 "design_notes": design_notes,
+                "geometric_design": geometric_design,
                 "design_generated_at": datetime.now(UTC),
             }
         )

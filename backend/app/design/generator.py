@@ -33,6 +33,10 @@ class GeneratedDesign:
     spec_snapshot: dict | None = None
     solver_summary: dict | None = None
 
+    # The stable UI geometry contract (see app/geometry/geometric_design.py's GeometricDesign),
+    # `model_dump(mode="json")`-ed — populated only by the new pipeline, same as the four fields above.
+    geometric_design: dict | None = None
+
 
 def _row_layout(floor: int, floor_depth_m: float, entries: list[tuple[str, float]]) -> list[Room]:
     """Lay `entries` (room type, area_m2) out left-to-right in a single row spanning the floor's depth —

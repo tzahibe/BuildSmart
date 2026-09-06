@@ -45,6 +45,10 @@ class DesignVersion(BaseModel):
     rooms: list[Room]
     design_notes: list[str] = Field(default_factory=list)
 
+    # The stable UI geometry contract for this version — see app/geometry/geometric_design.py's
+    # GeometricDesign. `None` for a version created before this field existed (never backfilled).
+    geometric_design: dict | None = None
+
 
 class DesignVersionRepository(ABC):
     @abstractmethod

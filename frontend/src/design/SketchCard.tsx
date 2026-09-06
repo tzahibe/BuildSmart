@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
 import type { Room } from '../types'
+import type { GeometricDesign } from './geometricDesign'
 import SketchSvg from './SketchSvg'
 import './SketchCard.css'
 
 interface SketchCardProps {
   rooms: Room[]
+  geometricDesign?: GeometricDesign | null
   expanded: boolean
   onExpand: () => void
   onClose: () => void
@@ -16,7 +18,7 @@ interface SketchCardProps {
  *
  * `expanded` is owned by DesignPage (not local state) so it can enforce the "full-screen sketch, chat,
  * and menu are mutually exclusive overlays" rule from spec.md's Edge Cases. */
-function SketchCard({ rooms, expanded, onExpand, onClose }: SketchCardProps) {
+function SketchCard({ rooms, geometricDesign, expanded, onExpand, onClose }: SketchCardProps) {
   const hasSketch = rooms.length > 0
 
   useEffect(() => {
@@ -46,7 +48,7 @@ function SketchCard({ rooms, expanded, onExpand, onClose }: SketchCardProps) {
         }}
       >
         {hasSketch ? (
-          <SketchSvg rooms={rooms} />
+          <SketchSvg rooms={rooms} geometricDesign={geometricDesign} />
         ) : (
           <p className="sketch-card__empty">הסקיצה עדיין לא זמינה עבור הפרויקט הזה</p>
         )}
@@ -63,7 +65,7 @@ function SketchCard({ rooms, expanded, onExpand, onClose }: SketchCardProps) {
             ✕
           </button>
           <div className="sketch-card__fullscreen-content">
-            <SketchSvg rooms={rooms} />
+            <SketchSvg rooms={rooms} geometricDesign={geometricDesign} />
           </div>
         </div>
       )}

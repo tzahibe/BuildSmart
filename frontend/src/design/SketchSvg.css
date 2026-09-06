@@ -4,6 +4,11 @@
   gap: 0.6rem;
   width: 100%;
   height: 100%;
+  /* Pre-existing bug (reproduces identically on the legacy renderer, fixed here since both share this
+   * wrapper): a flex item's automatic minimum width defaults to its content's min-content size, which
+   * silently wins over `width: 100%`/the parent's actual width — this is what let the floor plan
+   * overflow its card and clip on narrow (mobile) viewports instead of shrinking with it. */
+  min-width: 0;
 }
 
 .sketch-svg-floor-tabs {
@@ -34,6 +39,7 @@
   height: 100%;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   font-family: 'Courier New', ui-monospace, 'Roboto Mono', monospace;
 }
 

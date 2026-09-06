@@ -1,3 +1,5 @@
+import type { GeometricDesign } from './design/geometricDesign'
+
 export interface TaggedValue<T> {
   value: T | null
   source: 'requested' | 'inferred' | 'unknown'
@@ -70,6 +72,11 @@ export interface Project {
   rooms: Room[] | null
   design_notes: string[] | null
   design_generated_at: string | null
+  // The stable UI geometry contract (footprint/walls/doors/circulation) for the active design — see
+  // backend/app/geometry/geometric_design.py and design/geometricDesign.ts. `null` for a design
+  // generated before this field existed; SketchSvg.tsx falls back to its legacy room-only rendering
+  // in that case rather than inventing walls/doors that were never computed.
+  geometric_design: GeometricDesign | null
   // Which DesignVersion is currently mirrored into the flat fields above — `null` for a project never
   // updated through the new PATCH /projects/{id} operation yet (see backend/app/design/version.py).
   active_design_version_id: string | null

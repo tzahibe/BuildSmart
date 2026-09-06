@@ -205,6 +205,15 @@ class Project(BaseModel):
     design_notes: list[str] | None = None
     design_generated_at: datetime | None = None
 
+    # The stable UI geometry contract (footprint/rooms/walls/doors — see
+    # app/geometry/geometric_design.py's GeometricDesign) for the currently active design. Stored as a
+    # plain dict, same convention as DesignVersion.solver_summary, to keep this module free of a direct
+    # dependency on app/geometry (see the Room.source docstring above for the same rationale). `None`
+    # for a project generated before this field existed, or never generated at all — the frontend must
+    # fall back to the legacy `rooms`-only rendering path in that case, never fabricate the missing
+    # walls/doors itself.
+    geometric_design: dict | None = None
+
     # Which app/design/version.py::DesignVersion is "current" — `None` for a project created (or last
     # designed) before versioning existed; the flat fields above still hold that pre-versioning design
     # unchanged (see app/design/update.py's module docstring for the backward-compat read strategy).
