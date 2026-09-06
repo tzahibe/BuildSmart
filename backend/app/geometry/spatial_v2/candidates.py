@@ -80,7 +80,7 @@ def generate_candidates(
 
 
 def generate_tagged_candidates(
-    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec
+    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec, base_solutions=None, hard_filter=None
 ) -> list[tuple[list[RoomInstance], str]]:
     """Every hard-feasible layout Spatial V2(.1) will score, combining (all bounded, all
     deterministic, all hard-validated before being returned -- Phase 5's "keep hard feasibility
@@ -101,7 +101,12 @@ def generate_tagged_candidates(
     relative-layout/adjacency-level deduplication and best-of-family selection happens in
     `deduplicate.py`, run by the planner AFTER scoring (Phase 4), not here.
     """
-    base_solutions = generate_valid_candidate_pool(spec, footprint)
+    # Concept-first planning (app.geometry.planning) passes its own concept-realizing pool as
+    # `base_solutions` and a `hard_filter` that rejects any variant breaking a concept edge -- so
+    # every V2.1 refinement move stays INSIDE the chosen architectural concept. Both default to the
+    # pre-existing behavior (legacy pool, no extra filter) for every prior caller.
+    if base_solutions is None:
+        base_solutions = generate_valid_candidate_pool(spec, footprint)
     # ROOM_INSTANCE_SIZE_FIDELITY: keyed by instance id (e.g. "BEDROOM_2"), never by room_type --
     # a type-keyed dict would collapse multiple same-type ProgramItems (differently-sized bedrooms)
     # onto whichever happens to be last.
@@ -113,6 +118,8 @@ def generate_tagged_candidates(
     seen_signatures: set[tuple] = set()
 
     def _add(candidate: list[RoomInstance], strategy: str) -> None:
+        if hard_filter is not None and not hard_filter(candidate):
+            return
         signature = exact_geometry_signature(candidate)
         if signature in seen_signatures:
             return

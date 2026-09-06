@@ -1,0 +1,65 @@
+{
+  "label": "square_2BR",
+  "concepts_considered": 2,
+  "structurally_distinct_concepts": 2,
+  "concepts_realized": 2,
+  "fallback_used": false,
+  "selected_concept": "concept_0",
+  "selected_concept_tier": 0.5758,
+  "selected_concept_tier_components": {
+    "privacy_gating": 0.3333,
+    "load_balance": 0.0,
+    "relationship_locality": 1.0,
+    "service_grouping": 1.0
+  },
+  "selected_hub_of": {
+    "BATHROOM": "KITCHEN",
+    "BEDROOM_1": "LIVING_ROOM",
+    "BEDROOM_2": "LIVING_ROOM"
+  },
+  "selected_edges": [
+    "KITCHEN<->BATHROOM:access",
+    "LIVING_ROOM<->BEDROOM_1:access",
+    "LIVING_ROOM<->BEDROOM_2:access",
+    "LIVING_ROOM<->KITCHEN:backbone"
+  ],
+  "unrealized_edges_in_final_geometry": [],
+  "selected_strategy": "reflection",
+  "geometry_score": 7.6955,
+  "geometry_components": {
+    "adjacency": 0.8333,
+    "zoning": 0.5,
+    "circulation": 1.0,
+    "compactness": 0.8968,
+    "balance": 0.9052,
+    "utilization": 0.7407,
+    "exterior_access": 0.75,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0915
+  },
+  "legacy_v21_score": 8.4853,
+  "legacy_v21_realized_signature_matches_a_considered_concept": false,
+  "outcomes": [
+    {
+      "concept": "concept_0",
+      "tier": 0.5758,
+      "realized": true,
+      "pool": 16,
+      "candidates": 234,
+      "best_geometry": 7.6955,
+      "refined": true
+    },
+    {
+      "concept": "concept_1",
+      "tier": 0.5758,
+      "realized": true,
+      "pool": 16,
+      "candidates": 236,
+      "best_geometry": 5.426,
+      "refined": true
+    }
+  ],
+  "runtime_s": 0.352
+}

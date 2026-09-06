@@ -572,8 +572,29 @@ def _find_pre_solver_contradiction(spec: ArchitecturalSpec, footprint: BuildingF
     return None
 
 
+def _attachment_positions(
+    placed_partners: list[RoomInstance], width: float, height: float
+) -> set[tuple[float, float]]:
+    """Extra candidate positions that put a shape flush against a REQUIRED partner on any of its
+    four sides, at both alignments -- used only when `required_edges` is given (concept-first
+    planning). The legacy `_candidate_positions` only offers a placed room's bottom-right corner
+    anchors, which cannot realize a planned edge to a partner's left/top side or a second partner
+    on the same side; these anchors let geometry REALIZE a planned adjacency rather than stumble
+    on it."""
+    positions: set[tuple[float, float]] = set()
+    for p in placed_partners:
+        right, bottom = p.x + p.width, p.y + p.height
+        for x in (right, p.x - width):                       # right of / left of partner
+            for y in (p.y, bottom - height):                 # top-aligned / bottom-aligned
+                positions.add((round(x, 6), round(y, 6)))
+        for y in (bottom, p.y - height):                     # below / above partner
+            for x in (p.x, right - width):                   # left-aligned / right-aligned
+                positions.add((round(x, 6), round(y, 6)))
+    return positions
+
+
 def generate_valid_candidate_pool(
-    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec
+    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec, required_edges=None
 ) -> list[list[RoomInstance]]:
     """Every complete, ALL-HARD-CONSTRAINTS-SATISFIED layout the backtracking search finds across
     every instance-order strategy (see `_INSTANCE_ORDER_STRATEGIES`), deduped by signature — the
@@ -583,10 +604,30 @@ def generate_valid_candidate_pool(
     duplicating any backtracking, shape-candidate, position-candidate, or hard-constraint logic.
     `solve()` below calls this function; its own behavior is unchanged by this extraction.
 
+    `required_edges` (concept-first planning, app.geometry.planning): an optional sequence of
+    objects with `.a`, `.b` (instance ids) and `.min_shared_wall_m`. When given, each edge is a
+    HARD constraint: a placement whose required partner is already placed is pruned unless the two
+    share at least that much wall, extra flush-against-partner anchors are tried
+    (`_attachment_positions`), and a complete layout is only kept if every edge holds. When `None`
+    (the default, and every pre-existing caller), the search is byte-for-byte the legacy one.
+
     Does NOT run `_find_pre_solver_contradiction` -- callers that want that cheap pre-check
     (as `solve()` does) must call it themselves first.
     """
     instances = expand_program_to_instances(spec.program)
+
+    partners_of: dict[str, list[tuple[str, float]]] = {}
+    for edge in required_edges or ():
+        partners_of.setdefault(edge.a, []).append((edge.b, edge.min_shared_wall_m))
+        partners_of.setdefault(edge.b, []).append((edge.a, edge.min_shared_wall_m))
+
+    def _required_edges_hold(placed_rooms: list[RoomInstance]) -> bool:
+        by_id = {room.id: room for room in placed_rooms}
+        for edge in required_edges or ():
+            a, b = by_id.get(edge.a), by_id.get(edge.b)
+            if a is None or b is None or _shared_edge_length(a, b) + _EPSILON < edge.min_shared_wall_m:
+                return False
+        return True
 
     # Step 3: run the search once per order strategy (see `_INSTANCE_ORDER_STRATEGIES`) and pool
     # every complete valid layout found across all passes — this is what gives ranking real
@@ -619,13 +660,20 @@ def generate_valid_candidate_pool(
                 return
 
             if index == len(pending):
-                if _layout_satisfies_hard_requirements(spec, footprint, placed):
+                if _layout_satisfies_hard_requirements(spec, footprint, placed) and _required_edges_hold(placed):
                     pass_solutions.append(list(placed))
                 return
 
             current = pending[index]
+            # Concept-first planning: required partners already placed drive extra anchors and prune.
+            placed_by_id = {p.id: p for p in placed}
+            required_partners = [
+                (placed_by_id[pid], min_wall) for pid, min_wall in partners_of.get(current.id, ()) if pid in placed_by_id
+            ]
             for width, height in current.candidate_shapes:
                 anchors = _candidate_positions(placed, footprint, width, height)
+                if required_partners:
+                    anchors = sorted(set(anchors) | _attachment_positions([p for p, _w in required_partners], width, height))
                 for x, y in anchors:
                     steps += 1
                     if steps >= _MAX_BACKTRACK_STEPS:
@@ -637,18 +685,23 @@ def generate_valid_candidate_pool(
                     if any(_overlaps(x, y, width, height, p.x, p.y, p.width, p.height) for p in placed):
                         continue
 
-                    placed.append(
-                        RoomInstance(
-                            id=current.id,
-                            type=current.type,
-                            floor=footprint.floor,
-                            x=x,
-                            y=y,
-                            width=width,
-                            height=height,
-                            area_m2=round(width * height, 2),
-                        )
+                    candidate_room = RoomInstance(
+                        id=current.id,
+                        type=current.type,
+                        floor=footprint.floor,
+                        x=x,
+                        y=y,
+                        width=width,
+                        height=height,
+                        area_m2=round(width * height, 2),
                     )
+                    if any(
+                        _shared_edge_length(candidate_room, partner) + _EPSILON < min_wall
+                        for partner, min_wall in required_partners
+                    ):
+                        continue  # planned edge would not be realized here -- prune, never relax
+
+                    placed.append(candidate_room)
                     backtrack(index + 1, placed)
                     placed.pop()
 

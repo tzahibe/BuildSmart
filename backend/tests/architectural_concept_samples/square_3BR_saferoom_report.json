@@ -1,0 +1,69 @@
+{
+  "label": "square_3BR_saferoom",
+  "concepts_considered": 8,
+  "structurally_distinct_concepts": 8,
+  "concepts_realized": 0,
+  "fallback_used": true,
+  "selected_concept": null,
+  "selected_concept_tier": null,
+  "selected_concept_tier_components": null,
+  "selected_hub_of": null,
+  "selected_edges": null,
+  "unrealized_edges_in_final_geometry": null,
+  "selected_strategy": "orientation_swap",
+  "geometry_score": 8.0476,
+  "geometry_components": {
+    "adjacency": 1.0,
+    "zoning": 0.6364,
+    "circulation": 1.0,
+    "compactness": 0.861,
+    "balance": 0.7867,
+    "utilization": 0.5808,
+    "exterior_access": 0.8,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0469
+  },
+  "legacy_v21_score": 8.0476,
+  "legacy_v21_realized_signature_matches_a_considered_concept": false,
+  "outcomes": [
+    {
+      "concept": "concept_1",
+      "tier": 0.8182,
+      "realized": false,
+      "pool": 0,
+      "candidates": 0,
+      "best_geometry": null,
+      "refined": false
+    },
+    {
+      "concept": "concept_10",
+      "tier": 0.8182,
+      "realized": false,
+      "pool": 0,
+      "candidates": 0,
+      "best_geometry": null,
+      "refined": false
+    },
+    {
+      "concept": "concept_11",
+      "tier": 0.8182,
+      "realized": false,
+      "pool": 0,
+      "candidates": 0,
+      "best_geometry": null,
+      "refined": false
+    },
+    {
+      "concept": "concept_12",
+      "tier": 0.8182,
+      "realized": false,
+      "pool": 0,
+      "candidates": 0,
+      "best_geometry": null,
+      "refined": false
+    }
+  ],
+  "runtime_s": 3.053
+}
