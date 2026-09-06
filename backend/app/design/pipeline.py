@@ -16,17 +16,40 @@ no longer part of the normal runtime path for this reason — see `backend/app/d
 kept in the repository, untouched and still tested, purely for reference/tests; nothing here calls it,
 and nothing silently falls back to it.
 
-**V1 footprint strategy** (see `_derive_footprint`): `built_area_m2` is a program AREA BUDGET — how
-much floor area the rooms should total — not a description of the building's physical outline. Treating
-`sqrt(built_area_m2)` as the footprint's side (as an earlier version of this module did) would silently
-assert that the building's footprint has exactly zero space beyond the sum of its rooms' areas, which
-is not a real architectural fact this codebase has any basis for. Instead, the footprint's own gross
-area is `built_area_m2 / _FOOTPRINT_EFFICIENCY` (still a square for V1 — this codebase has no real
-parcel/setback geometry yet, same placeholder spirit as Feature 03's square-site assumption) — a
-distinct, explicitly-labeled derived quantity, strictly larger than the program's area budget, leaving
-headroom for circulation/walls the room program doesn't itself account for. `built_area_m2` itself
-still flows through unchanged as `BuildingFootprintSpec.available_area_m2` — the solver's real area
-budget is untouched by this change; only the footprint's own *shape* stopped pretending to equal it.
+**V1 footprint strategy** (see `_derive_footprint`) — two distinct cases:
+
+1. **`project.selected_footprint` is set** (SELECTED_FOOTPRINT_E2E task): the user explicitly chose a
+   real rectangle (e.g. 10m x 20m) — see `app.projects.models.SelectedFootprint`. Its EXACT `width_m`/
+   `depth_m` become `BuildingFootprintSpec.width_m`/`depth_m`, unconditionally: never
+   `sqrt(area) x sqrt(area)`, never re-derived from `built_area_m2` at all. `available_area_m2` is the
+   selected footprint's own real area (`width_m * depth_m`), CAPPED at `built_area_m2` — this is a
+   correctness safeguard, not a reintroduction of case 2's circulation-margin heuristic below: a
+   PRESET option's displayed dimensions are rounded to 2 decimals, so its true area can differ from
+   the nominal target area it was generated from by a few hundredths of a m² (e.g. 199.94 vs 200.00),
+   and `BuildingFootprintSpec`'s own validator requires `available_area_m2 <= width_m * depth_m`
+   exactly — the `min(...)` exists purely to absorb that sub-0.1% rounding gap, never to silently
+   shrink or inflate a user's real choice the way case 2's 15% factor deliberately does. TARGET BUILT
+   AREA (`built_area_m2`) and SELECTED BUILDING FOOTPRINT AREA are two different numbers that happen
+   to be within a small explicit tolerance of each other (enforced at `ProjectCreate` validation
+   time, see `app.projects.models.ProjectCreate.selected_footprint_matches_built_area`) — never
+   conflated into one.
+
+2. **`project.selected_footprint` is `None`** (legacy path, unchanged): `built_area_m2` is a program
+   AREA BUDGET — how much floor area the rooms should total — not a description of the building's
+   physical outline. Treating `sqrt(built_area_m2)` as the footprint's side (as an earlier version of
+   this module did) would silently assert that the building's footprint has exactly zero space beyond
+   the sum of its rooms' areas, which is not a real architectural fact this codebase has any basis
+   for. Instead, the footprint's own gross area is `built_area_m2 / _FOOTPRINT_EFFICIENCY` (still a
+   square — this codebase has no real parcel/setback geometry yet, same placeholder spirit as Feature
+   03's square-site assumption) — a distinct, explicitly-labeled derived quantity, strictly larger
+   than the program's area budget, leaving headroom for circulation/walls the room program doesn't
+   itself account for. `built_area_m2` itself still flows through unchanged as
+   `BuildingFootprintSpec.available_area_m2` in this case — the solver's real area budget is
+   untouched; only the footprint's own *shape* is a placeholder.
+
+`_FOOTPRINT_EFFICIENCY` (the 0.85 factor) applies ONLY to case 2 — it has no role at all once a real
+footprint has been explicitly selected, and must never be applied to one (this was verified directly:
+an explicitly selected 200 m² footprint must never silently become ~235 m² = 200 / 0.85).
 """
 
 import logging
@@ -89,9 +112,18 @@ class MultiFloorNotSupportedError(Exception):
 
 
 def _derive_footprint(project: Project) -> BuildingFootprintSpec:
-    """See the module docstring's "V1 footprint strategy" — `built_area_m2` is the program's area
-    BUDGET (passed through unchanged as `available_area_m2`); the footprint's own gross area is a
-    separate, larger, explicitly-labeled derived quantity, never `built_area_m2` itself."""
+    """See the module docstring's "V1 footprint strategy" for the full explanation of both cases and
+    why `available_area_m2` is computed differently in each."""
+    if project.selected_footprint is not None:
+        selected = project.selected_footprint
+        footprint_area_m2 = round(selected.width_m * selected.depth_m, 2)
+        return BuildingFootprintSpec(
+            width_m=selected.width_m,
+            depth_m=selected.depth_m,
+            floor=1,
+            available_area_m2=min(project.built_area_m2, footprint_area_m2),
+        )
+
     footprint_area_m2 = project.built_area_m2 / _FOOTPRINT_EFFICIENCY
     footprint_side_m = math.sqrt(footprint_area_m2)
     return BuildingFootprintSpec(

@@ -96,12 +96,86 @@ def _check_built_area_fits_plot(plot_area_m2: float, built_area_m2: float) -> No
         raise ValueError("built_area_m2 must be smaller than plot_area_m2")
 
 
+class FootprintSource(str, Enum):
+    """Where a `SelectedFootprint` came from — a PRESET card (COMPACT/BALANCED/WIDE/NARROW; the
+    frontend's own aspect-ratio catalog, not represented here at all, since the backend only ever
+    needs to know the resulting rectangle) or a CUSTOM manual width/depth entry. Both travel through
+    the exact same contract and the exact same downstream planning path — see
+    app/design/pipeline.py's `_derive_footprint`."""
+
+    preset = "PRESET"
+    custom = "CUSTOM"
+
+
+class FootprintPoint(BaseModel):
+    x: float
+    y: float
+
+
+# Explicit, small ROUNDING tolerance for "is this area still close enough" — relative (0.5%) so it
+# scales sensibly across small and large footprints, with a small absolute floor. Mirrors (but is
+# computed independently of, per this task's own validation requirement — the backend must not
+# simply trust whatever the frontend already checked) frontend/src/design/footprint.ts's own
+# `footprintAreaToleranceM2`.
+_FOOTPRINT_AREA_TOLERANCE_FRACTION = 0.005
+_FOOTPRINT_AREA_TOLERANCE_FLOOR_M2 = 0.05
+
+
+def _footprint_area_tolerance_m2(area_m2: float) -> float:
+    return max(_FOOTPRINT_AREA_TOLERANCE_FLOOR_M2, area_m2 * _FOOTPRINT_AREA_TOLERANCE_FRACTION)
+
+
+class SelectedFootprint(BaseModel):
+    """The user's chosen BUILDING FOOTPRINT — kept deliberately distinct from the PLOT
+    (`Project.plot_area_m2`) and the TARGET BUILT AREA (`Project.built_area_m2`, the room-program
+    area budget this footprint was generated/entered for); see
+    frontend/src/design/footprint.ts's module docstring for the full four-concept distinction this
+    is the backend's own half of.
+
+    V1 supports RECTANGLE only: `shape_type` is a `Literal`, not a free string, so an unsupported
+    shape is rejected at the schema boundary (422) rather than silently accepted and mishandled by
+    `_derive_footprint`/`BuildingFootprintSpec` (app/design/pipeline.py, app/geometry/models.py —
+    both still rectangle-only). `polygon`, when given, is stored and returned as-is but read by
+    NOTHING downstream today — carried through only so a future non-rectangular shape could extend
+    this same contract instead of replacing it; its presence here is not a claim that polygon
+    footprints are actually planned/solved yet.
+    """
+
+    source: FootprintSource
+    shape_type: Literal["RECTANGLE"]
+    target_area_m2: float = Field(gt=0)
+    width_m: float = Field(gt=0)
+    depth_m: float = Field(gt=0)
+    area_m2: float = Field(gt=0)
+    polygon: list[FootprintPoint] | None = None
+
+    @model_validator(mode="after")
+    def _area_matches_dimensions(self) -> "SelectedFootprint":
+        """Rejects a malformed/tampered payload where `area_m2` doesn't actually describe
+        `width_m x depth_m` — never silently repaired, never re-derived from one field or the
+        other (see this task's validation requirement: reject, don't fix)."""
+        actual = self.width_m * self.depth_m
+        tolerance = _footprint_area_tolerance_m2(actual)
+        if abs(self.area_m2 - actual) > tolerance:
+            raise ValueError(
+                f"selected_footprint.area_m2 ({self.area_m2}) does not match width_m * depth_m "
+                f"({actual:.2f}) within tolerance ({tolerance:.3f} m²)"
+            )
+        return self
+
+
 class ProjectCreate(BaseModel):
     city: str
     street: str
     plot_area_m2: float = Field(gt=0)
     built_area_m2: float = Field(gt=0)
     description: str
+    # The user's explicit BUILDING FOOTPRINT choice (see SelectedFootprint's own docstring) — `None`
+    # for a legacy caller that never went through footprint selection at all; see
+    # app/design/pipeline.py's `_derive_footprint` for the resulting fallback. Optional so existing
+    # callers/tests that predate this field keep working unchanged, per this task's explicit
+    # "do not unnecessarily break legacy callers" requirement.
+    selected_footprint: SelectedFootprint | None = None
 
     @field_validator("city")
     @classmethod
@@ -126,6 +200,21 @@ class ProjectCreate(BaseModel):
     @model_validator(mode="after")
     def built_area_fits_plot(self) -> "ProjectCreate":
         _check_built_area_fits_plot(self.plot_area_m2, self.built_area_m2)
+        return self
+
+    @model_validator(mode="after")
+    def selected_footprint_matches_built_area(self) -> "ProjectCreate":
+        """The backend's OWN check that the footprint's real area still matches `built_area_m2`
+        within tolerance — never trusts that the frontend already validated this (a request can
+        reach this schema from anywhere, not only the app's own UI)."""
+        if self.selected_footprint is not None:
+            actual = self.selected_footprint.width_m * self.selected_footprint.depth_m
+            tolerance = _footprint_area_tolerance_m2(self.built_area_m2)
+            if abs(actual - self.built_area_m2) > tolerance:
+                raise ValueError(
+                    f"selected_footprint's area ({actual:.2f} m²) does not match built_area_m2 "
+                    f"({self.built_area_m2:.2f} m²) within tolerance ({tolerance:.3f} m²)"
+                )
         return self
 
 
@@ -180,6 +269,13 @@ class Project(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+
+    # The user's explicit BUILDING FOOTPRINT choice, persisted verbatim from `ProjectCreate` — see
+    # SelectedFootprint's own docstring for the PLOT / TARGET BUILT AREA / SELECTED BUILDING
+    # FOOTPRINT distinction. `None` for a project created before this field existed, or by a caller
+    # that never went through footprint selection — app/design/pipeline.py's `_derive_footprint`
+    # falls back to the legacy derived-square footprint in that case, never fabricates a selection.
+    selected_footprint: SelectedFootprint | None = None
 
     # Planning fields the user doesn't fill in directly — extracted from `description` by
     # Feature 02's parser (see app/requirements/). `None` means "never parsed yet"; after a parse,

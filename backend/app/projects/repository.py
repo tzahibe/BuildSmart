@@ -97,6 +97,7 @@ class JsonFileProjectRepository(ProjectRepository):
             plot_area_m2=data.plot_area_m2,
             built_area_m2=data.built_area_m2,
             description=data.description,
+            selected_footprint=data.selected_footprint,
             status="created",
             created_at=now,
             updated_at=now,

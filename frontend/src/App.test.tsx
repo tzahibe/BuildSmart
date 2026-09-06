@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { generateFootprintOptions } from './design/footprint'
 
 /** All calls this test file's `fetch` mock recorded, typed loosely on purpose (vitest's own
  * `mock.calls` type is `any[][]`, and TS's overload resolution rejects a tuple-destructuring
@@ -32,6 +33,7 @@ function fakeProject(overrides: Record<string, unknown> = {}) {
     requirements_parsed_at: null,
     site_width_m: null,
     site_depth_m: null,
+    selected_footprint: null,
     rooms: null,
     design_notes: null,
     design_generated_at: null,
@@ -141,10 +143,67 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
       plot_area_m2: 400,
       built_area_m2: 120,
       description: 'בית עם 3 חדרי שינה',
+      selected_footprint: {
+        source: 'PRESET',
+        shape_type: 'RECTANGLE',
+        target_area_m2: 120,
+        width_m: 10.95,
+        depth_m: 10.95,
+        area_m2: 119.9,
+        polygon: [
+          { x: 0, y: 0 },
+          { x: 10.95, y: 0 },
+          { x: 10.95, y: 10.95 },
+          { x: 0, y: 10.95 },
+        ],
+      },
     })
-    // the selected footprint is NOT sent to POST /projects — no backend support exists for it yet
-    // (see FOOTPRINT SELECTION task's own reported backend gap); it must not be smuggled into an
-    // unrelated existing field either.
-    expect(Object.keys(body)).toEqual(['city', 'street', 'plot_area_m2', 'built_area_m2', 'description'])
+  })
+
+  it('the selected footprint is sent EXACTLY as confirmed — never independently recalculated for the API call', async () => {
+    render(<App />)
+    await fillAndSubmitForm('200')
+
+    fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' })) // no-op: nothing selected yet
+    expect(projectCreatePostCalls()).toHaveLength(0)
+
+    // CUSTOM 8x25 for a 200 m2 target (matches the task's own worked example)
+    fireEvent.change(screen.getByTestId('footprint-custom-width'), { target: { value: '8' } })
+    fireEvent.change(screen.getByTestId('footprint-custom-depth'), { target: { value: '25' } })
+    fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' }))
+
+    await waitFor(() => expect(projectCreatePostCalls()).toHaveLength(1))
+    const body = JSON.parse(projectCreatePostCalls()[0][1]!.body as string)
+    // the SAME source of truth FootprintSelection computed — width/depth preserved exactly, not
+    // reduced back to area=200 and not normalized toward sqrt(200) x sqrt(200)
+    expect(body.selected_footprint).toEqual({
+      source: 'CUSTOM',
+      shape_type: 'RECTANGLE',
+      target_area_m2: 200,
+      width_m: 8,
+      depth_m: 25,
+      area_m2: 200,
+      polygon: [
+        { x: 0, y: 0 },
+        { x: 8, y: 0 },
+        { x: 8, y: 25 },
+        { x: 0, y: 25 },
+      ],
+    })
+  })
+
+  it('a PRESET selection is sent using the exact dimensions FootprintSelection displayed, not a recomputed value', async () => {
+    render(<App />)
+    await fillAndSubmitForm('150')
+    const wide = generateFootprintOptions(150).find((option) => option.shape_type === 'WIDE')!
+
+    fireEvent.click(screen.getByText('רחב'))
+    fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' }))
+
+    await waitFor(() => expect(projectCreatePostCalls()).toHaveLength(1))
+    const body = JSON.parse(projectCreatePostCalls()[0][1]!.body as string)
+    expect(body.selected_footprint.width_m).toBe(wide.width_m)
+    expect(body.selected_footprint.depth_m).toBe(wide.depth_m)
+    expect(body.selected_footprint.source).toBe('PRESET')
   })
 })

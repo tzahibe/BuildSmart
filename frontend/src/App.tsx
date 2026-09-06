@@ -3,7 +3,7 @@ import './App.css'
 import { createProject, generateDesign, parseRequirements, PipelineStepError } from './api'
 import DesignPage from './design/DesignPage'
 import FootprintSelection from './design/FootprintSelection'
-import type { BuildingFootprint } from './design/footprint'
+import { toSelectedFootprintPayload, type BuildingFootprint } from './design/footprint'
 import LoadingScreen from './design/LoadingScreen'
 import type { FormState, Project, ValidationErrorDetail } from './types'
 
@@ -145,11 +145,11 @@ function App() {
 
   // Only fires with a confirmed, valid `footprint` (the "continue" button in FootprintSelection is
   // disabled otherwise) — this is where the project is actually created, exactly as `handleSubmit`
-  // used to do directly from the form. NOTE (backend gap, see the task report): `footprint` itself is
-  // NOT sent anywhere here — there is no backend field/endpoint for it yet (createProject's payload
-  // and Project model are unchanged); the backend still derives its own square footprint from
-  // `built_area_m2` alone (see backend/app/design/pipeline.py's `_derive_footprint`). This keeps the
-  // choice ready to wire through once that support exists, without fabricating support that doesn't.
+  // used to do directly from the form. The confirmed `footprint` — the ONE source of truth for what
+  // was actually selected — is sent verbatim via `toSelectedFootprintPayload`, never recomputed here
+  // from raw form numbers (see backend/app/projects/models.py's `SelectedFootprint` for the backend
+  // half of this contract, and app/design/pipeline.py's `_derive_footprint` for how it becomes
+  // authoritative planning geometry).
   async function handleConfirmFootprint() {
     if (footprint === null) return
     setSubmitting(true)
@@ -162,6 +162,7 @@ function App() {
         plot_area_m2: Number(form.plot_area_m2),
         built_area_m2: Number(form.built_area_m2),
         description: form.description,
+        selected_footprint: toSelectedFootprintPayload(footprint),
       })
 
       if (response.status === 201) {

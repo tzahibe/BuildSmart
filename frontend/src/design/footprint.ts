@@ -10,9 +10,10 @@
  *     `SiteSpec`) — deliberately left unknown here too, never silently assumed.
  *   - TARGET BUILT AREA: `Project.built_area_m2` — the room-program area BUDGET the user requested.
  *   - SELECTED BUILDING FOOTPRINT (this module): the actual outline shape/dimensions chosen for that
- *     budget — today the backend derives this itself, always as a square (see
- *     backend/app/design/pipeline.py's `_derive_footprint`); nothing here is sent to the backend yet
- *     (see App.tsx's own note on that gap).
+ *     budget. Sent to the backend as `selected_footprint` on `POST /projects` (see
+ *     `toSelectedFootprintPayload` below and backend/app/projects/models.py's own
+ *     `SelectedFootprint`, which mirrors this same four-concept distinction) — when present, it wins
+ *     outright over backend/app/design/pipeline.py's legacy derived-square fallback.
  */
 
 export type FootprintSource = 'PRESET' | 'CUSTOM'
@@ -142,4 +143,36 @@ export function customFootprint(targetAreaM2: number, widthM: number, depthM: nu
  * not needlessly discarded. */
 export function isFootprintStillValid(footprint: BuildingFootprint, targetAreaM2: number): boolean {
   return isFootprintAreaValid(footprint.area_m2, targetAreaM2)
+}
+
+/** The WIRE contract for `POST /projects`'s `selected_footprint` field — mirrors
+ * backend/app/projects/models.py's `SelectedFootprint` exactly. Deliberately narrower than
+ * `BuildingFootprint`: no `id` (a frontend-only UI/selection-tracking concern, not a domain fact the
+ * backend needs), and `shape_type` is always `'RECTANGLE'` — the backend only ever needs to know the
+ * resulting GEOMETRY, never which named preset card (COMPACT/BALANCED/WIDE/NARROW) produced it; that
+ * aspect-ratio catalog is this app's own UI taxonomy, not part of the domain contract. */
+export interface SelectedFootprintPayload {
+  source: FootprintSource
+  shape_type: 'RECTANGLE'
+  target_area_m2: number
+  width_m: number
+  depth_m: number
+  area_m2: number
+  polygon?: FootprintPoint[]
+}
+
+/** The ONE place a `BuildingFootprint` becomes the API payload — every caller (App.tsx) must go
+ * through this rather than reconstructing a payload from raw numbers, so there is exactly one source
+ * of truth for "what was actually selected" all the way to the wire. PRESET and CUSTOM footprints
+ * both pass through here unchanged; neither is treated specially. */
+export function toSelectedFootprintPayload(footprint: BuildingFootprint): SelectedFootprintPayload {
+  return {
+    source: footprint.source,
+    shape_type: 'RECTANGLE',
+    target_area_m2: footprint.target_area_m2,
+    width_m: footprint.width_m,
+    depth_m: footprint.depth_m,
+    area_m2: footprint.area_m2,
+    polygon: footprint.polygon,
+  }
 }

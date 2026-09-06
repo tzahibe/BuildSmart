@@ -1,4 +1,5 @@
 import type { GeometricDesign } from './design/geometricDesign'
+import type { SelectedFootprintPayload } from './design/footprint'
 
 export interface TaggedValue<T> {
   value: T | null
@@ -56,6 +57,11 @@ export interface Project {
   plot_area_m2: number
   built_area_m2: number
   description: string
+  // The SELECTED BUILDING FOOTPRINT, persisted verbatim from project creation — `null` for a project
+  // created before this field existed, or created without going through footprint selection. See
+  // design/footprint.ts's module docstring for the PLOT / TARGET BUILT AREA / SELECTED BUILDING
+  // FOOTPRINT distinction this mirrors from the backend's own `SelectedFootprint`.
+  selected_footprint: SelectedFootprintPayload | null
   status: string
   created_at: string
   updated_at: string
@@ -162,6 +168,10 @@ export interface ProjectCreatePayload {
   plot_area_m2: number
   built_area_m2: number
   description: string
+  // Required in THIS app's own flow (App.tsx only calls createProject once FootprintSelection has a
+  // valid, confirmed choice — see its "continue" button) — the backend field itself stays optional
+  // (see backend/app/projects/models.py's ProjectCreate) for any other/legacy caller.
+  selected_footprint: SelectedFootprintPayload
 }
 
 export interface FormState {
