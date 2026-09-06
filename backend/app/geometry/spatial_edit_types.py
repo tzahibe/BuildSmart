@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Literal, Optional
 
 Direction = Literal["NORTH", "SOUTH", "EAST", "WEST"]
-CommandType = Literal["MOVE_ROOM"]
+CommandType = Literal["MOVE_ROOM", "MOVE_ROOM_BY_VECTOR"]
 RejectReason = Literal["ROOM_NOT_FOUND", "OUT_OF_BOUNDS", "OVERLAP", "CONSTRAINT_VIOLATION"]
 
 # Single centrally-defined default edit step. Callers (including an LLM issuing a command with no
@@ -48,6 +48,20 @@ class MoveRoomCommand:
 
     def resolved_distance_m(self) -> float:
         return self.distance_m if self.distance_m is not None else DEFAULT_EDIT_STEP_M
+
+
+@dataclass(frozen=True)
+class MoveRoomByVectorCommand:
+    """A free-vector move -- prepared for a future drag-to-move UI, where the caller already knows
+    exactly how far the pointer moved in each axis and a snap to one of the four cardinal
+    directions would lose information. `dx_m`/`dy_m` use the EXACT SAME sign convention as
+    `direction_delta` above (never redefined here): positive dx = EAST, positive dy = SOUTH. This
+    is purely additive -- `MoveRoomCommand`/`direction_delta` and every existing MOVE_ROOM behavior,
+    test, and the committed spatial-edit E2E flow are unchanged."""
+    room_id: str
+    dx_m: float
+    dy_m: float
+    type: CommandType = "MOVE_ROOM_BY_VECTOR"
 
 
 @dataclass(frozen=True)

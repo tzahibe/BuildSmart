@@ -17,7 +17,13 @@ as additional `_apply_<TYPE>` handlers without touching this module's public ent
 existing MOVE_ROOM handler.
 """
 from app.geometry.solver import _overlaps
-from app.geometry.spatial_edit_types import EditResult, MoveRoomCommand, SpatialLayout, direction_delta
+from app.geometry.spatial_edit_types import (
+    EditResult,
+    MoveRoomByVectorCommand,
+    MoveRoomCommand,
+    SpatialLayout,
+    direction_delta,
+)
 from app.geometry.spatial_v1_topology import derive_door_topology
 
 
@@ -43,19 +49,21 @@ def _overlaps_any_other(room: dict, all_rooms: list) -> bool:
     return False
 
 
-def _apply_move_room(layout: SpatialLayout, command: MoveRoomCommand) -> EditResult:
-    target = next((r for r in layout.rooms if r["id"] == command.room_id), None)
+def _move_and_validate(layout: SpatialLayout, room_id: str, dx: float, dy: float) -> EditResult:
+    """Shared core for every translate-one-room command: apply (dx, dy) to `room_id`, leave every
+    other room untouched, and run the exact same validation regardless of how the caller arrived
+    at (dx, dy) (a cardinal direction + distance, or a raw vector)."""
+    target = next((r for r in layout.rooms if r["id"] == room_id), None)
     if target is None:
         return EditResult(status="REJECTED", reason="ROOM_NOT_FOUND")
 
-    dx, dy = direction_delta(command.direction, command.resolved_distance_m())
     moved_room = dict(target)
     moved_room["x"] = target["x"] + dx
     moved_room["y"] = target["y"] + dy
 
     # only the target room's dict is replaced -- every other room dict is the SAME object,
     # unmodified, guaranteeing no unrelated room can change as a side effect of this edit
-    new_rooms = [moved_room if r["id"] == command.room_id else r for r in layout.rooms]
+    new_rooms = [moved_room if r["id"] == room_id else r for r in layout.rooms]
 
     if _room_out_of_bounds(moved_room, layout.footprint):
         return EditResult(status="REJECTED", reason="OUT_OF_BOUNDS")
@@ -72,12 +80,22 @@ def _apply_move_room(layout: SpatialLayout, command: MoveRoomCommand) -> EditRes
     return EditResult(status="APPLIED", layout=new_layout)
 
 
+def _apply_move_room(layout: SpatialLayout, command: MoveRoomCommand) -> EditResult:
+    dx, dy = direction_delta(command.direction, command.resolved_distance_m())
+    return _move_and_validate(layout, command.room_id, dx, dy)
+
+
+def _apply_move_room_by_vector(layout: SpatialLayout, command: MoveRoomByVectorCommand) -> EditResult:
+    return _move_and_validate(layout, command.room_id, command.dx_m, command.dy_m)
+
+
 _HANDLERS = {
     "MOVE_ROOM": _apply_move_room,
+    "MOVE_ROOM_BY_VECTOR": _apply_move_room_by_vector,
 }
 
 
-def apply_spatial_edit(layout: SpatialLayout, command: MoveRoomCommand) -> EditResult:
+def apply_spatial_edit(layout: SpatialLayout, command: MoveRoomCommand | MoveRoomByVectorCommand) -> EditResult:
     """Applies one structured edit command to an existing SOLVED Spatial V1 layout and validates
     the result via existing Spatial V1 / production validation. Never silently repairs,
     regenerates, or moves any room other than the one named in the command -- an invalid edit is

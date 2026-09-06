@@ -117,6 +117,11 @@ def _edit(client: TestClient, project_id: str, room_id: str, direction: str, dis
     return client.post(f"/projects/{project_id}/design/spatial-edit", json=body)
 
 
+def _edit_vector(client: TestClient, project_id: str, room_id: str, dx_m: float, dy_m: float):
+    body = {"type": "MOVE_ROOM_BY_VECTOR", "room_id": room_id, "dx_m": dx_m, "dy_m": dy_m}
+    return client.post(f"/projects/{project_id}/design/spatial-edit", json=body)
+
+
 # --- directional correctness -------------------------------------------------------------
 
 
@@ -260,3 +265,65 @@ def test_response_matches_geometric_design_contract(client: TestClient, repo: Js
     assert validated.footprint.width_m > 0
     assert len(validated.rooms) == 7
     assert all(isinstance(w.coord, float) for w in validated.walls)
+
+
+# --- MOVE_ROOM_BY_VECTOR (additive; prepared for a future drag-to-move UI, not yet wired to any
+# frontend code) -- same validation path, same atomicity, exercised with an arbitrary (dx, dy)
+# instead of a cardinal direction + distance. -------------------------------------------------
+
+
+def test_vector_move_applies_exact_dx_dy(client: TestClient, repo: JsonFileProjectRepository):
+    project_id, design = _generate_real_design(client, repo)
+    original = _room(design, "KITCHEN")
+    response = _edit_vector(client, project_id, "KITCHEN", dx_m=1.3, dy_m=0.4)
+    assert response.status_code == 200
+    moved = _room(response.json(), "KITCHEN")
+    assert moved["x"] == pytest.approx(original["x"] + 1.3)
+    assert moved["y"] == pytest.approx(original["y"] + 0.4)
+
+
+def test_vector_move_unrelated_rooms_unchanged(client: TestClient, repo: JsonFileProjectRepository):
+    project_id, design = _generate_real_design(client, repo)
+    other_rooms_before = {r["id"]: r for r in design["rooms"] if r["id"] != "KITCHEN"}
+    response = _edit_vector(client, project_id, "KITCHEN", dx_m=1.0, dy_m=0.0)
+    assert response.status_code == 200
+    other_rooms_after = {r["id"]: r for r in response.json()["rooms"] if r["id"] != "KITCHEN"}
+    assert other_rooms_after == other_rooms_before
+
+
+def test_vector_move_rejections_use_same_reasons(client: TestClient, repo: JsonFileProjectRepository):
+    project_id, _ = _generate_real_design(client, repo)
+
+    response = _edit_vector(client, project_id, "NOT_A_ROOM", dx_m=1.0, dy_m=0.0)
+    assert response.status_code == 404
+    assert response.json()["detail"]["error"] == "ROOM_NOT_FOUND"
+
+    response = _edit_vector(client, project_id, "KITCHEN", dx_m=10.0, dy_m=0.0)
+    assert response.status_code == 422
+    assert response.json()["detail"]["error"] == "OUT_OF_BOUNDS"
+
+    response = _edit_vector(client, project_id, "SAFE_ROOM", dx_m=0.3, dy_m=0.0)
+    assert response.status_code == 422
+    assert response.json()["detail"]["error"] == "OVERLAP"
+
+
+def test_vector_move_missing_dx_dy_is_rejected_as_bad_request(client: TestClient, repo: JsonFileProjectRepository):
+    project_id, _ = _generate_real_design(client, repo)
+    response = client.post(
+        f"/projects/{project_id}/design/spatial-edit",
+        json={"type": "MOVE_ROOM_BY_VECTOR", "room_id": "KITCHEN"},
+    )
+    assert response.status_code == 422
+
+
+def test_existing_move_room_flow_unaffected_by_vector_addition(client: TestClient, repo: JsonFileProjectRepository):
+    """Regression check: the original MOVE_ROOM request shape (no `type` field at all, exactly what
+    the committed frontend sends) still works identically after adding MOVE_ROOM_BY_VECTOR."""
+    project_id, design = _generate_real_design(client, repo)
+    original_x = _room(design, "KITCHEN")["x"]
+    response = client.post(
+        f"/projects/{project_id}/design/spatial-edit",
+        json={"room_id": "KITCHEN", "direction": "EAST", "distance_m": 1.0},
+    )
+    assert response.status_code == 200
+    assert _room(response.json(), "KITCHEN")["x"] == pytest.approx(original_x + 1.0)

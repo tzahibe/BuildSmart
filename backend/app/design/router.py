@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from app.design.errors_http import (
     DESIGN_PIPELINE_ERRORS,
@@ -10,7 +10,7 @@ from app.design.pipeline import generate_design_via_solver
 from app.geometry.geometric_design import GeometricDesign
 from app.geometry.spatial_edit import apply_spatial_edit
 from app.geometry.spatial_edit_adapter import geometric_design_to_spatial_layout, spatial_layout_to_geometric_design
-from app.geometry.spatial_edit_types import Direction, MoveRoomCommand
+from app.geometry.spatial_edit_types import CommandType, Direction, MoveRoomByVectorCommand, MoveRoomCommand
 from app.projects.models import Project, Room
 from app.projects.routes import base_routes as project_routes
 
@@ -22,13 +22,31 @@ class SpatialEditRequest(BaseModel):
     codebase's snake_case convention (see app/projects/models.py, app/chat/models.py) rather than
     the camelCase used in the original task illustration -- no other request model in this API
     uses camelCase, so matching the existing convention takes priority over that illustration.
-    Only MOVE_ROOM exists today; `type` is still explicit so future edit commands can be added to
-    this same endpoint without a breaking request-shape change."""
 
-    type: str = "MOVE_ROOM"
+    Two command shapes share this one model, discriminated by `type` (kept explicit so future edit
+    commands can extend this same endpoint without a breaking request-shape change):
+      - "MOVE_ROOM" (default, unchanged from the original committed spatial-edit flow):
+        room_id + direction + optional distance_m.
+      - "MOVE_ROOM_BY_VECTOR" (prepared for a future drag-to-move UI -- not yet wired to any
+        frontend code): room_id + dx_m + dy_m, same coordinate convention as `direction_delta`
+        (positive dx = EAST, positive dy = SOUTH), letting a caller who already knows the exact
+        movement skip the direction+distance decomposition entirely.
+    """
+
+    type: CommandType = "MOVE_ROOM"
     room_id: str
-    direction: Direction
+    direction: Direction | None = None
     distance_m: float | None = None
+    dx_m: float | None = None
+    dy_m: float | None = None
+
+    @model_validator(mode="after")
+    def _validate_fields_for_type(self) -> "SpatialEditRequest":
+        if self.type == "MOVE_ROOM" and self.direction is None:
+            raise ValueError("direction is required when type is MOVE_ROOM")
+        if self.type == "MOVE_ROOM_BY_VECTOR" and (self.dx_m is None or self.dy_m is None):
+            raise ValueError("dx_m and dy_m are required when type is MOVE_ROOM_BY_VECTOR")
+        return self
 
 
 @router.post("/{project_id}/design", response_model=Project)
@@ -98,7 +116,10 @@ def apply_spatial_edit_to_project_design(project_id: str, body: SpatialEditReque
     current_design = GeometricDesign.model_validate(project.geometric_design)
     layout = geometric_design_to_spatial_layout(current_design)
 
-    command = MoveRoomCommand(room_id=body.room_id, direction=body.direction, distance_m=body.distance_m)
+    if body.type == "MOVE_ROOM_BY_VECTOR":
+        command = MoveRoomByVectorCommand(room_id=body.room_id, dx_m=body.dx_m, dy_m=body.dy_m)
+    else:
+        command = MoveRoomCommand(room_id=body.room_id, direction=body.direction, distance_m=body.distance_m)
     result = apply_spatial_edit(layout, command)
 
     if result.status == "REJECTED":
