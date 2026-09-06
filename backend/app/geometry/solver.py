@@ -569,87 +569,107 @@ def _find_pre_solver_contradiction(spec: ArchitecturalSpec, footprint: BuildingF
     return None
 
 
+def generate_valid_candidate_pool(
+    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec
+) -> list[list[RoomInstance]]:
+    """Every complete, ALL-HARD-CONSTRAINTS-SATISFIED layout the backtracking search finds across
+    every instance-order strategy (see `_INSTANCE_ORDER_STRATEGIES`), deduped by signature — the
+    exact same pool `GeometrySolver.solve()` itself ranks over. Extracted as its own function
+    (Spatial V2 integration) so a caller other than `solve()` can reuse this identical,
+    unmodified hard-feasibility search and apply its own ranking/selection on top, without
+    duplicating any backtracking, shape-candidate, position-candidate, or hard-constraint logic.
+    `solve()` below calls this function; its own behavior is unchanged by this extraction.
+
+    Does NOT run `_find_pre_solver_contradiction` -- callers that want that cheap pre-check
+    (as `solve()` does) must call it themselves first.
+    """
+    program_by_type = {item.room_type: item for item in spec.program}
+    instances = expand_program_to_instances(spec.program)
+
+    # Step 3: run the search once per order strategy (see `_INSTANCE_ORDER_STRATEGIES`) and pool
+    # every complete valid layout found across all passes — this is what gives ranking real
+    # candidates to choose among, instead of near-duplicates of a single fixed traversal. Hard
+    # constraints, overlap/bounds checks, and the shape/position candidate generation are completely
+    # unchanged from before this milestone; only WHICH ORDER instances are attempted in varies.
+    solutions: list[list[RoomInstance]] = []
+    seen_signatures: set[tuple] = set()
+
+    for strategy in _INSTANCE_ORDER_STRATEGIES:
+        ordered = _order_instances(spec, instances, program_by_type, strategy)
+        pending = [
+            _PendingInstance(
+                id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(program_by_type[room_type])
+            )
+            for instance_id, room_type, _item in ordered
+        ]
+
+        pass_solutions: list[list[RoomInstance]] = []
+        steps = 0
+
+        def backtrack(index: int, placed: list[RoomInstance]) -> None:
+            nonlocal steps
+            if len(pass_solutions) >= _MAX_SOLUTIONS or steps >= _MAX_BACKTRACK_STEPS:
+                return
+
+            if index == len(pending):
+                if _layout_satisfies_hard_requirements(spec, footprint, placed):
+                    pass_solutions.append(list(placed))
+                return
+
+            current = pending[index]
+            for width, height in current.candidate_shapes:
+                anchors = _candidate_positions(placed, footprint, width, height)
+                for x, y in anchors:
+                    steps += 1
+                    if steps >= _MAX_BACKTRACK_STEPS:
+                        return
+                    if x < -_EPSILON or y < -_EPSILON:
+                        continue
+                    if x + width > footprint.width_m + _EPSILON or y + height > footprint.depth_m + _EPSILON:
+                        continue
+                    if any(_overlaps(x, y, width, height, p.x, p.y, p.width, p.height) for p in placed):
+                        continue
+
+                    placed.append(
+                        RoomInstance(
+                            id=current.id,
+                            type=current.type,
+                            floor=footprint.floor,
+                            x=x,
+                            y=y,
+                            width=width,
+                            height=height,
+                            area_m2=round(width * height, 2),
+                        )
+                    )
+                    backtrack(index + 1, placed)
+                    placed.pop()
+
+                    if len(pass_solutions) >= _MAX_SOLUTIONS:
+                        return
+
+        backtrack(0, [])
+
+        for solution in pass_solutions:
+            signature = tuple(
+                sorted((room.type, round(room.x, 3), round(room.y, 3), round(room.width, 3), round(room.height, 3)) for room in solution)
+            )
+            if signature in seen_signatures:
+                continue
+            seen_signatures.add(signature)
+            solutions.append(solution)
+
+    return solutions
+
+
 class GeometrySolver:
     def solve(self, spec: ArchitecturalSpec, footprint: BuildingFootprintSpec) -> GeometrySolverResult:
         contradiction = _find_pre_solver_contradiction(spec, footprint)
         if contradiction is not None:
             return GeometrySolverResult(status=SolverStatus.unsatisfiable, unsatisfiable_reason=contradiction)
 
-        program_by_type = {item.room_type: item for item in spec.program}
         instances = expand_program_to_instances(spec.program)
-
-        # Step 3: run the search once per order strategy (see `_INSTANCE_ORDER_STRATEGIES`) and pool
-        # every complete valid layout found across all passes — this is what gives ranking real
-        # candidates to choose among, instead of near-duplicates of a single fixed traversal. Hard
-        # constraints, overlap/bounds checks, and the shape/position candidate generation are completely
-        # unchanged from before this milestone; only WHICH ORDER instances are attempted in varies.
-        solutions: list[list[RoomInstance]] = []
-        seen_signatures: set[tuple] = set()
-
-        for strategy in _INSTANCE_ORDER_STRATEGIES:
-            ordered = _order_instances(spec, instances, program_by_type, strategy)
-            pending = [
-                _PendingInstance(
-                    id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(program_by_type[room_type])
-                )
-                for instance_id, room_type, _item in ordered
-            ]
-
-            pass_solutions: list[list[RoomInstance]] = []
-            steps = 0
-
-            def backtrack(index: int, placed: list[RoomInstance]) -> None:
-                nonlocal steps
-                if len(pass_solutions) >= _MAX_SOLUTIONS or steps >= _MAX_BACKTRACK_STEPS:
-                    return
-
-                if index == len(pending):
-                    if _layout_satisfies_hard_requirements(spec, footprint, placed):
-                        pass_solutions.append(list(placed))
-                    return
-
-                current = pending[index]
-                for width, height in current.candidate_shapes:
-                    anchors = _candidate_positions(placed, footprint, width, height)
-                    for x, y in anchors:
-                        steps += 1
-                        if steps >= _MAX_BACKTRACK_STEPS:
-                            return
-                        if x < -_EPSILON or y < -_EPSILON:
-                            continue
-                        if x + width > footprint.width_m + _EPSILON or y + height > footprint.depth_m + _EPSILON:
-                            continue
-                        if any(_overlaps(x, y, width, height, p.x, p.y, p.width, p.height) for p in placed):
-                            continue
-
-                        placed.append(
-                            RoomInstance(
-                                id=current.id,
-                                type=current.type,
-                                floor=footprint.floor,
-                                x=x,
-                                y=y,
-                                width=width,
-                                height=height,
-                                area_m2=round(width * height, 2),
-                            )
-                        )
-                        backtrack(index + 1, placed)
-                        placed.pop()
-
-                        if len(pass_solutions) >= _MAX_SOLUTIONS:
-                            return
-
-            backtrack(0, [])
-
-            for solution in pass_solutions:
-                signature = tuple(
-                    sorted((room.type, round(room.x, 3), round(room.y, 3), round(room.width, 3), round(room.height, 3)) for room in solution)
-                )
-                if signature in seen_signatures:
-                    continue
-                seen_signatures.add(signature)
-                solutions.append(solution)
+        solutions = generate_valid_candidate_pool(spec, footprint)
 
         if not solutions:
             return GeometrySolverResult(

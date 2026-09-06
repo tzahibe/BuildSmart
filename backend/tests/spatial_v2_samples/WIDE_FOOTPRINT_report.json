@@ -1,0 +1,70 @@
+{
+  "label": "WIDE_FOOTPRINT",
+  "v1_total_score_under_v2_scorer": 4.6564,
+  "v1_components": {
+    "adjacency": 0.3,
+    "zoning": 0.4545,
+    "circulation": 1.0,
+    "compactness": 0.6611,
+    "balance": 0.8418,
+    "utilization": 0.5808,
+    "exterior_access": 0.4,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.094,
+    "privacy_penalty": 0.5,
+    "dead_space_penalty": 0.0192
+  },
+  "v1_bbox_aspect": 1.969,
+  "v2_total_score": 7.0586,
+  "v2_components": {
+    "adjacency": 0.8333,
+    "zoning": 0.3636,
+    "circulation": 1.0,
+    "compactness": 0.7715,
+    "balance": 0.772,
+    "utilization": 0.5808,
+    "exterior_access": 0.8,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0456
+  },
+  "v2_bbox_aspect": 1.687,
+  "v2_candidate_count": 49,
+  "zoning": {
+    "public": [
+      "kitchen",
+      "living_room"
+    ],
+    "private": [
+      "bathroom",
+      "bedroom",
+      "safe_room"
+    ],
+    "service": [],
+    "circulation": [],
+    "outdoor": []
+  },
+  "major_adjacencies": [
+    [
+      "living_room",
+      "safe_room"
+    ],
+    [
+      "bedroom",
+      "living_room"
+    ],
+    [
+      "bedroom",
+      "safe_room"
+    ],
+    [
+      "kitchen",
+      "living_room"
+    ],
+    [
+      "bathroom",
+      "kitchen"
+    ]
+  ]
+}

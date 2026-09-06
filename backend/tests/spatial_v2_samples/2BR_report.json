@@ -1,0 +1,65 @@
+{
+  "label": "2BR",
+  "v1_total_score_under_v2_scorer": 6.2818,
+  "v1_components": {
+    "adjacency": 0.4667,
+    "zoning": 0.75,
+    "circulation": 1.0,
+    "compactness": 0.8249,
+    "balance": 0.9125,
+    "utilization": 0.7407,
+    "exterior_access": 0.5,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.5,
+    "dead_space_penalty": 0.0858
+  },
+  "v1_bbox_aspect": 1.007,
+  "v2_total_score": 8.4494,
+  "v2_components": {
+    "adjacency": 1.0,
+    "zoning": 0.75,
+    "circulation": 1.0,
+    "compactness": 0.8717,
+    "balance": 0.8714,
+    "utilization": 0.7407,
+    "exterior_access": 0.75,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0952
+  },
+  "v2_bbox_aspect": 1.111,
+  "v2_candidate_count": 54,
+  "zoning": {
+    "public": [
+      "kitchen",
+      "living_room"
+    ],
+    "private": [
+      "bathroom",
+      "bedroom"
+    ],
+    "service": [],
+    "circulation": [],
+    "outdoor": []
+  },
+  "major_adjacencies": [
+    [
+      "bedroom",
+      "living_room"
+    ],
+    [
+      "kitchen",
+      "living_room"
+    ],
+    [
+      "bathroom",
+      "living_room"
+    ],
+    [
+      "bathroom",
+      "bedroom"
+    ]
+  ]
+}

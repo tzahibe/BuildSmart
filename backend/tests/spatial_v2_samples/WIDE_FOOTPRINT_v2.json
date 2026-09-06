@@ -1,0 +1,233 @@
+{
+  "footprint": {
+    "width_m": 16.80336100833612,
+    "depth_m": 8.40168050416806,
+    "floor": 1
+  },
+  "rooms": [
+    {
+      "id": "LIVING_ROOM",
+      "type": "living_room",
+      "floor": 1,
+      "x": 0.0,
+      "y": 0.465481,
+      "width_m": 4.4721,
+      "depth_m": 4.4721,
+      "area_m2": 20.0,
+      "is_circulation": false,
+      "source": null
+    },
+    {
+      "id": "BEDROOM_1",
+      "type": "bedroom",
+      "floor": 1,
+      "x": 0.0,
+      "y": 4.937581,
+      "width_m": 3.4641,
+      "depth_m": 3.4641,
+      "area_m2": 12.0,
+      "is_circulation": false,
+      "source": "USER_REQUIREMENT"
+    },
+    {
+      "id": "BEDROOM_2",
+      "type": "bedroom",
+      "floor": 1,
+      "x": 3.4641,
+      "y": 4.937581,
+      "width_m": 3.4641,
+      "depth_m": 3.4641,
+      "area_m2": 12.0,
+      "is_circulation": false,
+      "source": "USER_REQUIREMENT"
+    },
+    {
+      "id": "BEDROOM_3",
+      "type": "bedroom",
+      "floor": 1,
+      "x": 6.9282,
+      "y": 4.937581,
+      "width_m": 3.4641,
+      "depth_m": 3.4641,
+      "area_m2": 12.0,
+      "is_circulation": false,
+      "source": "USER_REQUIREMENT"
+    },
+    {
+      "id": "KITCHEN",
+      "type": "kitchen",
+      "floor": 1,
+      "x": 4.4721,
+      "y": 0.465481,
+      "width_m": 3.4641,
+      "depth_m": 3.4641,
+      "area_m2": 12.0,
+      "is_circulation": false,
+      "source": null
+    },
+    {
+      "id": "SAFE_ROOM",
+      "type": "safe_room",
+      "floor": 1,
+      "x": 10.3923,
+      "y": 4.937581,
+      "width_m": 3.0,
+      "depth_m": 3.0,
+      "area_m2": 9.0,
+      "is_circulation": false,
+      "source": "USER_REQUIREMENT"
+    },
+    {
+      "id": "BATHROOM",
+      "type": "bathroom",
+      "floor": 1,
+      "x": 7.9362,
+      "y": 0.465481,
+      "width_m": 2.2361,
+      "depth_m": 2.2361,
+      "area_m2": 5.0,
+      "is_circulation": false,
+      "source": null
+    }
+  ],
+  "walls": [
+    {
+      "id": "EXT_N",
+      "kind": "exterior",
+      "orientation": "horizontal",
+      "coord": 0.0,
+      "start": 0.0,
+      "end": 16.80336100833612,
+      "room_ids": []
+    },
+    {
+      "id": "EXT_S",
+      "kind": "exterior",
+      "orientation": "horizontal",
+      "coord": 8.40168050416806,
+      "start": 0.0,
+      "end": 16.80336100833612,
+      "room_ids": []
+    },
+    {
+      "id": "EXT_W",
+      "kind": "exterior",
+      "orientation": "vertical",
+      "coord": 0.0,
+      "start": 0.0,
+      "end": 8.40168050416806,
+      "room_ids": []
+    },
+    {
+      "id": "EXT_E",
+      "kind": "exterior",
+      "orientation": "vertical",
+      "coord": 16.80336100833612,
+      "start": 0.0,
+      "end": 8.40168050416806,
+      "room_ids": []
+    },
+    {
+      "id": "INT_LIVING_ROOM_BEDROOM_1",
+      "kind": "interior",
+      "orientation": "horizontal",
+      "coord": 4.937581,
+      "start": 0.0,
+      "end": 3.4641,
+      "room_ids": [
+        "LIVING_ROOM",
+        "BEDROOM_1"
+      ]
+    },
+    {
+      "id": "INT_LIVING_ROOM_BEDROOM_2",
+      "kind": "interior",
+      "orientation": "horizontal",
+      "coord": 4.937581,
+      "start": 3.4641,
+      "end": 4.4721,
+      "room_ids": [
+        "LIVING_ROOM",
+        "BEDROOM_2"
+      ]
+    },
+    {
+      "id": "INT_LIVING_ROOM_KITCHEN",
+      "kind": "interior",
+      "orientation": "vertical",
+      "coord": 4.4721,
+      "start": 0.465481,
+      "end": 3.929581,
+      "room_ids": [
+        "LIVING_ROOM",
+        "KITCHEN"
+      ]
+    },
+    {
+      "id": "INT_BEDROOM_1_BEDROOM_2",
+      "kind": "interior",
+      "orientation": "vertical",
+      "coord": 3.4641,
+      "start": 4.937581,
+      "end": 8.401681,
+      "room_ids": [
+        "BEDROOM_1",
+        "BEDROOM_2"
+      ]
+    },
+    {
+      "id": "INT_BEDROOM_2_BEDROOM_3",
+      "kind": "interior",
+      "orientation": "vertical",
+      "coord": 6.9282,
+      "start": 4.937581,
+      "end": 8.401681,
+      "room_ids": [
+        "BEDROOM_2",
+        "BEDROOM_3"
+      ]
+    },
+    {
+      "id": "INT_BEDROOM_3_SAFE_ROOM",
+      "kind": "interior",
+      "orientation": "vertical",
+      "coord": 10.3923,
+      "start": 4.937581,
+      "end": 7.937581,
+      "room_ids": [
+        "BEDROOM_3",
+        "SAFE_ROOM"
+      ]
+    },
+    {
+      "id": "INT_KITCHEN_BATHROOM",
+      "kind": "interior",
+      "orientation": "vertical",
+      "coord": 7.9362,
+      "start": 0.465481,
+      "end": 2.701581,
+      "room_ids": [
+        "KITCHEN",
+        "BATHROOM"
+      ]
+    }
+  ],
+  "doors": [
+    {
+      "id": "DOOR_SAFE_ROOM_BEDROOM_3",
+      "wall_id": "INT_BEDROOM_3_SAFE_ROOM",
+      "orientation": "vertical",
+      "coord": 10.3923,
+      "center": 6.437581,
+      "width_m": 0.9,
+      "room_ids": [
+        "SAFE_ROOM",
+        "BEDROOM_3"
+      ],
+      "provenance": "direct_access_proxy",
+      "note": "Derived from the solver's own direct_access shared-wall-length proxy (>= 0.9 m) — confirms a door-width opening could plausibly exist here, not a modeled door swing/leaf/frame."
+    }
+  ],
+  "programmed_area_m2": 82.0,
+  "circulation_area_m2": 0.0
+}

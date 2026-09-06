@@ -1,0 +1,70 @@
+{
+  "label": "3BR_SAFEROOM",
+  "v1_total_score_under_v2_scorer": 8.0104,
+  "v1_components": {
+    "adjacency": 1.0,
+    "zoning": 0.6364,
+    "circulation": 1.0,
+    "compactness": 0.8267,
+    "balance": 0.7865,
+    "utilization": 0.5808,
+    "exterior_access": 0.8,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0496
+  },
+  "v1_bbox_aspect": 1.31,
+  "v2_total_score": 8.0104,
+  "v2_components": {
+    "adjacency": 1.0,
+    "zoning": 0.6364,
+    "circulation": 1.0,
+    "compactness": 0.8267,
+    "balance": 0.7865,
+    "utilization": 0.5808,
+    "exterior_access": 0.8,
+    "corridor_penalty": 0.0,
+    "strip_penalty": 0.0,
+    "privacy_penalty": 0.0,
+    "dead_space_penalty": 0.0496
+  },
+  "v2_bbox_aspect": 1.31,
+  "v2_candidate_count": 87,
+  "zoning": {
+    "public": [
+      "kitchen",
+      "living_room"
+    ],
+    "private": [
+      "bathroom",
+      "bedroom",
+      "safe_room"
+    ],
+    "service": [],
+    "circulation": [],
+    "outdoor": []
+  },
+  "major_adjacencies": [
+    [
+      "bedroom",
+      "living_room"
+    ],
+    [
+      "bedroom",
+      "safe_room"
+    ],
+    [
+      "kitchen",
+      "living_room"
+    ],
+    [
+      "bathroom",
+      "bedroom"
+    ],
+    [
+      "bathroom",
+      "safe_room"
+    ]
+  ]
+}
