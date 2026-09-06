@@ -46,8 +46,8 @@
       "concept": "concept_0",
       "tier": 0.5758,
       "realized": true,
-      "pool": 16,
-      "candidates": 234,
+      "pool": 14,
+      "candidates": 227,
       "best_geometry": 7.6955,
       "refined": true
     },
@@ -56,10 +56,10 @@
       "tier": 0.5758,
       "realized": true,
       "pool": 16,
-      "candidates": 236,
-      "best_geometry": 5.426,
+      "candidates": 216,
+      "best_geometry": 5.1292,
       "refined": true
     }
   ],
-  "runtime_s": 0.352
+  "runtime_s": 0.32
 }

@@ -19,7 +19,13 @@ strategy and pooled — see Step 3 below):
    rooms (flush against a placed room's right or bottom edge — a standard rectangle-packing
    heuristic).
 4. A candidate placement is accepted only if it stays inside the footprint boundary and does not
-   overlap any already-placed room; the search backtracks otherwise.
+   overlap any already-placed room; the search backtracks otherwise. It is then checked against
+   `_no_early_hard_violation`, which mirrors `_layout_satisfies_hard_requirements` but only enforces
+   the pieces of it that are already DECIDABLE from a partial layout (available-area usage, and any
+   hard relationship/zone/entry-access rule none of whose room types can still be affected by a room
+   not yet placed) — this abandons a branch that is already provably dead without waiting for every
+   remaining instance to be placed first, but never rejects a branch merely because a requirement is
+   not yet satisfied.
 5. Once every instance is placed, the COMPLETE layout is checked against every HARD requirement (see
    `_layout_satisfies_hard_requirements`): relationships, the footprint's `available_area_m2` budget,
    the entry room touching the footprint perimeter, and any zone whose `cohesion_severity="hard"`.
@@ -572,6 +578,100 @@ def _find_pre_solver_contradiction(spec: ArchitecturalSpec, footprint: BuildingF
     return None
 
 
+def _perimeter_door_capacity(width: float, height: float, usable_fraction: float = 0.40) -> float:
+    """How many independent door-width (>= _DOOR_OPENING_MIN_M) openings this rectangle's perimeter
+    could plausibly host -- a generic geometric estimate (perimeter x usable-fraction / door width),
+    not a room-type rule. `usable_fraction` defaults to the value already validated (by direct
+    bisection against real geometry, see app.geometry.planning.concept_generation's own docstring)
+    for a room whose purpose is hosting many openings along its length; used here only as an upper
+    bound on whether a SHAPE can geometrically support a MEASURED number of required edges, never as
+    a planning preference."""
+    return 2 * (width + height) * usable_fraction / _DOOR_OPENING_MIN_M
+
+
+def _degree_driven_shapes(item: ProgramItem, required_degree: int) -> list[tuple[float, float]]:
+    """Additional (width, height) candidates, MORE ELONGATED than `_candidate_shapes`' fixed
+    `_ASPECT_RATIOS` ceiling (1.4), generated ONLY as far as needed for this instance's OWN
+    measured required-edge degree to plausibly fit its perimeter -- tied directly to the actual
+    number of partners this instance must touch (from `required_edges`), never to its room type or
+    a fixed constant. A room with no unusually high required degree gets nothing extra: this is a
+    targeted escape hatch for the specific case `_ASPECT_RATIOS` cannot serve, not a general shape
+    preference. Bounded at aspect 12.0 so this can never produce an unbounded sliver shape."""
+    if required_degree <= 0:
+        return []
+    min_width = item.min_width_m or _DEFAULT_MIN_WIDTH_M
+    area = max(_candidate_areas(item))  # largest available area gives the most perimeter to work with
+    aspect = max(_ASPECT_RATIOS) + 0.4
+    while aspect <= 12.0:
+        width = (area * aspect) ** 0.5
+        height = area / width
+        if width + _EPSILON < min_width or height + _EPSILON < min_width:
+            break
+        if _perimeter_door_capacity(width, height) + _EPSILON >= required_degree:
+            return [(round(width, 4), round(height, 4)), (round(height, 4), round(width, 4))]
+        aspect += 0.4
+    return []
+
+
+def _type_complete(room_type: str, by_type: dict[str, list[RoomInstance]], total_count_by_type: dict[str, int]) -> bool:
+    return len(by_type.get(room_type, [])) >= total_count_by_type.get(room_type, 0)
+
+
+def _no_early_hard_violation(
+    spec: ArchitecturalSpec,
+    footprint: BuildingFootprintSpec,
+    by_type: dict[str, list[RoomInstance]],
+    total_count_by_type: dict[str, int],
+) -> bool:
+    """True if a PARTIAL layout has not yet definitely violated a hard constraint -- lets the search
+    abandon a doomed branch before wasting steps filling in the rest of it, instead of only
+    discovering the failure once every instance is placed (`_layout_satisfies_hard_requirements`,
+    which this mirrors exactly). Each check only fires once no room placed LATER could change its
+    answer:
+      - available-area usage only grows as rooms are added, so a budget overrun is permanent and can
+        be checked immediately;
+      - a "must not touch" / min-distance separation is a property of the two specific instances
+        involved, so once both are placed the answer can never change -- checked immediately (and
+        `_relationship_satisfied`'s `all(...)` over an as-yet-empty side is vacuously true, so an
+        unplaced type never triggers a false prune here);
+      - adjacency / direct-access (`any(...)`, vacuously FALSE while a side is empty) / entry-edge
+        access / hard zone connectivity can all still be satisfied by an instance not yet placed, so
+        each is only evaluated once EVERY instance of every room type it depends on already exists
+        (`total_count_by_type`) -- before that point it is undecided, not violated, and must not
+        prune.
+    A branch this accepts is not guaranteed valid (later placements can still fail); a branch this
+    rejects is guaranteed invalid -- so pruning here changes only how fast the search abandons a
+    dead end, never which complete layouts it can find."""
+    placed = [room for rooms in by_type.values() for room in rooms]
+    if not _within_available_area(footprint, placed):
+        return False
+
+    for rel in spec.relationships:
+        if rel.severity != ConstraintSeverity.hard:
+            continue
+        if rel.kind == ConstraintKind.separation:
+            if not _relationship_satisfied(rel, by_type):
+                return False
+        elif _type_complete(rel.room_type_a, by_type, total_count_by_type) and _type_complete(
+            rel.room_type_b, by_type, total_count_by_type
+        ):
+            if not _relationship_satisfied(rel, by_type):
+                return False
+
+    if spec.circulation is not None and _type_complete(spec.circulation.entry_room_type, by_type, total_count_by_type):
+        if not _entry_room_has_allowed_edge_access(spec, footprint, by_type):
+            return False
+
+    for zone in spec.zones:
+        if zone.cohesion_severity != ConstraintSeverity.hard:
+            continue
+        if all(_type_complete(rt, by_type, total_count_by_type) for rt in zone.room_types):
+            if not _zone_is_connected(zone, by_type):
+                return False
+
+    return True
+
+
 def _attachment_positions(
     placed_partners: list[RoomInstance], width: float, height: float
 ) -> set[tuple[float, float]]:
@@ -594,7 +694,7 @@ def _attachment_positions(
 
 
 def generate_valid_candidate_pool(
-    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec, required_edges=None
+    spec: ArchitecturalSpec, footprint: BuildingFootprintSpec, required_edges=None, max_backtrack_steps: int | None = None
 ) -> list[list[RoomInstance]]:
     """Every complete, ALL-HARD-CONSTRAINTS-SATISFIED layout the backtracking search finds across
     every instance-order strategy (see `_INSTANCE_ORDER_STRATEGIES`), deduped by signature — the
@@ -615,11 +715,18 @@ def generate_valid_candidate_pool(
     (as `solve()` does) must call it themselves first.
     """
     instances = expand_program_to_instances(spec.program)
+    total_count_by_type: dict[str, int] = {}
+    for _, room_type, _ in instances:
+        total_count_by_type[room_type] = total_count_by_type.get(room_type, 0) + 1
 
     partners_of: dict[str, list[tuple[str, float]]] = {}
+    required_degree: dict[str, int] = {}
+    step_budget = max_backtrack_steps if max_backtrack_steps is not None else _MAX_BACKTRACK_STEPS
     for edge in required_edges or ():
         partners_of.setdefault(edge.a, []).append((edge.b, edge.min_shared_wall_m))
         partners_of.setdefault(edge.b, []).append((edge.a, edge.min_shared_wall_m))
+        required_degree[edge.a] = required_degree.get(edge.a, 0) + 1
+        required_degree[edge.b] = required_degree.get(edge.b, 0) + 1
 
     def _required_edges_hold(placed_rooms: list[RoomInstance]) -> bool:
         by_id = {room.id: room for room in placed_rooms}
@@ -639,6 +746,34 @@ def generate_valid_candidate_pool(
 
     for strategy in _INSTANCE_ORDER_STRATEGIES:
         ordered = _order_instances(spec, instances, strategy)
+        if required_degree:
+            # DENSE_CONCEPT_REALIZATION: an instance required to touch many specific partners
+            # must be placed EARLY, while most of the footprint is still free, or it inherits
+            # whatever scraps are left after every other room has already claimed the good
+            # positions -- traced directly (not assumed): with a degree-5 required instance left
+            # in its strategy's natural (late) position, the search reached that instance in
+            # ~97% of its step budget and failed there every time.
+            #
+            # It must go SECOND, not first: placed first, it only gets a raw footprint CORNER
+            # (only 2 sides free of the 4) via `_candidate_positions`' empty-layout anchors, which
+            # is MORE constrained, not less -- also traced directly (a degree-5 instance placed
+            # first exhausted its own search with zero solutions, in far fewer steps than the
+            # 20-step budget, i.e. it is not merely slow, it is impossible from a corner in this
+            # program). Placed right after the entry/anchor instance (which `_order_instances`
+            # already sorts first, unconditionally, in every strategy), it instead gets
+            # `_attachment_positions`' flush-against-partner anchors -- an INTERIOR position with
+            # up to 3 sides free -- while the rest of the footprint is still open. `sorted` is
+            # stable and keeps the entry instance's existing top priority untouched; only
+            # non-entry instances are reordered by required degree, and only the few that
+            # actually carry required edges move at all (everything else keeps degree 0 and its
+            # original relative order).
+            ordered = sorted(
+                ordered,
+                key=lambda t: (
+                    0 if (spec.circulation is not None and t[1] == spec.circulation.entry_room_type) else 1,
+                    -required_degree.get(t[0], 0),
+                ),
+            )
         # ROOM_INSTANCE_SIZE_FIDELITY: `item` here is THIS instance's own originating ProgramItem
         # (from `ordered`'s tuple, never a `{room_type: item}` re-lookup) -- two same-type
         # instances from different ProgramItems (e.g. differently-sized bedrooms) each get shape
@@ -646,7 +781,8 @@ def generate_valid_candidate_pool(
         # happened to keep.
         pending = [
             _PendingInstance(
-                id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(item)
+                id=instance_id, type=room_type,
+                candidate_shapes=_candidate_shapes(item) + _degree_driven_shapes(item, required_degree.get(instance_id, 0)),
             )
             for instance_id, room_type, item in ordered
         ]
@@ -656,7 +792,7 @@ def generate_valid_candidate_pool(
 
         def backtrack(index: int, placed: list[RoomInstance]) -> None:
             nonlocal steps
-            if len(pass_solutions) >= _MAX_SOLUTIONS or steps >= _MAX_BACKTRACK_STEPS:
+            if len(pass_solutions) >= _MAX_SOLUTIONS or steps >= step_budget:
                 return
 
             if index == len(pending):
@@ -676,7 +812,7 @@ def generate_valid_candidate_pool(
                     anchors = sorted(set(anchors) | _attachment_positions([p for p, _w in required_partners], width, height))
                 for x, y in anchors:
                     steps += 1
-                    if steps >= _MAX_BACKTRACK_STEPS:
+                    if steps >= step_budget:
                         return
                     if x < -_EPSILON or y < -_EPSILON:
                         continue
@@ -700,6 +836,11 @@ def generate_valid_candidate_pool(
                         for partner, min_wall in required_partners
                     ):
                         continue  # planned edge would not be realized here -- prune, never relax
+
+                    trial_by_type = _group_by_type(placed)
+                    trial_by_type.setdefault(candidate_room.type, []).append(candidate_room)
+                    if not _no_early_hard_violation(spec, footprint, trial_by_type, total_count_by_type):
+                        continue  # definite hard-constraint violation -- dead branch, prune now
 
                     placed.append(candidate_room)
                     backtrack(index + 1, placed)

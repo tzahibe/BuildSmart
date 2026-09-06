@@ -2,43 +2,63 @@
   "label": "square_3BR_saferoom",
   "concepts_considered": 8,
   "structurally_distinct_concepts": 8,
-  "concepts_realized": 0,
-  "fallback_used": true,
-  "selected_concept": null,
-  "selected_concept_tier": null,
-  "selected_concept_tier_components": null,
-  "selected_hub_of": null,
-  "selected_edges": null,
-  "unrealized_edges_in_final_geometry": null,
-  "selected_strategy": "orientation_swap",
-  "geometry_score": 8.0476,
+  "concepts_realized": 1,
+  "fallback_used": false,
+  "selected_concept": "concept_8",
+  "selected_concept_tier": 0.8182,
+  "selected_concept_tier_components": {
+    "privacy_gating": 1.0,
+    "load_balance": 0.0,
+    "relationship_locality": 1.0,
+    "service_grouping": 1.0
+  },
+  "selected_hub_of": {
+    "BATHROOM": "CORRIDOR",
+    "BEDROOM_1": "KITCHEN",
+    "BEDROOM_2": "CORRIDOR",
+    "BEDROOM_3": "CORRIDOR",
+    "SAFE_ROOM": "CORRIDOR"
+  },
+  "selected_edges": [
+    "CORRIDOR<->BATHROOM:access",
+    "CORRIDOR<->BEDROOM_2:access",
+    "CORRIDOR<->BEDROOM_3:access",
+    "CORRIDOR<->SAFE_ROOM:access",
+    "KITCHEN<->BEDROOM_1:access",
+    "LIVING_ROOM<->CORRIDOR:backbone",
+    "LIVING_ROOM<->KITCHEN:backbone",
+    "SAFE_ROOM<->BEDROOM_2:relationship:direct_access"
+  ],
+  "unrealized_edges_in_final_geometry": [],
+  "selected_strategy": "translation",
+  "geometry_score": 5.8428,
   "geometry_components": {
-    "adjacency": 1.0,
-    "zoning": 0.6364,
-    "circulation": 1.0,
-    "compactness": 0.861,
-    "balance": 0.7867,
-    "utilization": 0.5808,
-    "exterior_access": 0.8,
+    "adjacency": 0.8462,
+    "zoning": 0.3636,
+    "circulation": 0.7143,
+    "compactness": 0.7346,
+    "balance": 0.8274,
+    "utilization": 0.6375,
+    "exterior_access": 0.6,
     "corridor_penalty": 0.0,
     "strip_penalty": 0.0,
-    "privacy_penalty": 0.0,
-    "dead_space_penalty": 0.0469
+    "privacy_penalty": 0.5,
+    "dead_space_penalty": 0.0543
   },
   "legacy_v21_score": 8.0476,
   "legacy_v21_realized_signature_matches_a_considered_concept": false,
   "outcomes": [
     {
-      "concept": "concept_1",
+      "concept": "concept_8",
       "tier": 0.8182,
-      "realized": false,
-      "pool": 0,
-      "candidates": 0,
-      "best_geometry": null,
-      "refined": false
+      "realized": true,
+      "pool": 8,
+      "candidates": 155,
+      "best_geometry": 5.8428,
+      "refined": true
     },
     {
-      "concept": "concept_10",
+      "concept": "concept_9",
       "tier": 0.8182,
       "realized": false,
       "pool": 0,
@@ -48,7 +68,7 @@
     },
     {
       "concept": "concept_11",
-      "tier": 0.8182,
+      "tier": 0.7455,
       "realized": false,
       "pool": 0,
       "candidates": 0,
@@ -57,7 +77,7 @@
     },
     {
       "concept": "concept_12",
-      "tier": 0.8182,
+      "tier": 0.7455,
       "realized": false,
       "pool": 0,
       "candidates": 0,
@@ -65,5 +85,5 @@
       "refined": false
     }
   ],
-  "runtime_s": 3.053
+  "runtime_s": 5.075
 }
