@@ -38,6 +38,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from app.architect.models import ArchitecturalSpec, ConstraintKind
+from app.geometry.instances import expand_program_to_instances
 from app.geometry.models import BuildingFootprintSpec, GeometrySolverResult, RoomInstance
 from app.geometry.solver import _DOOR_OPENING_MIN_M, _EPSILON, _group_by_type, _shared_edge_length
 
@@ -237,9 +238,15 @@ def build_geometric_design(
     walls = _exterior_walls(footprint) + _interior_walls(instances)
     doors = _find_direct_access_doors(spec, instances, walls)
 
-    # Same provenance already carried on `Project.rooms` (see app/design/pipeline.py) — traced back to
-    # the (post-authoritative-merge) ProgramItem that declared each room TYPE, not a new fact.
-    source_by_room_type = {item.room_type: item.source for item in spec.program}
+    # Same provenance already carried on `Project.rooms` (see app/design/pipeline.py) — traced back
+    # to the (post-authoritative-merge) ProgramItem that declared each room INSTANCE, not a new
+    # fact. Keyed by instance id, not room_type: ROOM_INSTANCE_SIZE_FIDELITY relies on multiple
+    # same-type ProgramItems (e.g. a 14 m2 bedroom and a 10 m2 bedroom, each its own item) being
+    # able to carry DIFFERENT `source` values (e.g. one USER_REQUIREMENT, one MODEL_INFERENCE) --
+    # a type-keyed dict would collapse them onto whichever item happens to be last.
+    source_by_instance_id = {
+        instance_id: item.source for instance_id, _room_type, item in expand_program_to_instances(spec.program)
+    }
     rooms = [
         GeometricRoom(
             id=instance.id,
@@ -251,7 +258,7 @@ def build_geometric_design(
             depth_m=instance.height,
             area_m2=instance.area_m2,
             is_circulation=instance.type in _CIRCULATION_ROOM_TYPES,
-            source=source_by_room_type.get(instance.type),
+            source=source_by_instance_id.get(instance.id),
         )
         for instance in instances
     ]

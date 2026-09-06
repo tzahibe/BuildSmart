@@ -43,16 +43,26 @@ def test_valid_spec_constructs_without_error():
     assert len(spec.program) == 2
 
 
-def test_duplicate_program_room_type_is_rejected():
-    with pytest.raises(ValidationError, match="duplicate room_type"):
-        ArchitecturalSpec(
-            **_minimal_spec_kwargs(
-                program=[
-                    ProgramItem(room_type="kitchen", count=1, target_area_m2=12.0),
-                    ProgramItem(room_type="kitchen", count=1, target_area_m2=10.0),
-                ]
-            )
+def test_duplicate_program_room_type_is_now_allowed():
+    """ROOM_INSTANCE_SIZE_FIDELITY: multiple ProgramItems of the same room_type are explicitly
+    ALLOWED now (previously rejected here) -- this is how a program represents several
+    differently-sized instances of one type (e.g. two `bedroom` items, each count=1, at different
+    explicit target areas). Cross-reference validation (zones/relationships/circulation) is
+    unaffected: it already worked from the SET of declared types, duplicates or not."""
+    spec = ArchitecturalSpec(
+        **_minimal_spec_kwargs(
+            program=[
+                ProgramItem(room_type="kitchen", count=1, target_area_m2=12.0, min_width_m=2.4),
+                ProgramItem(room_type="living_room", count=1, target_area_m2=20.0, min_width_m=3.0),
+                ProgramItem(room_type="bedroom", count=1, target_area_m2=14.0),
+                ProgramItem(room_type="bedroom", count=1, target_area_m2=10.0),
+            ]
         )
+    )
+    assert len(spec.program) == 4
+    bedroom_items = [item for item in spec.program if item.room_type == "bedroom"]
+    assert len(bedroom_items) == 2
+    assert {item.target_area_m2 for item in bedroom_items} == {14.0, 10.0}
 
 
 def test_zone_referencing_unknown_room_type_is_rejected():

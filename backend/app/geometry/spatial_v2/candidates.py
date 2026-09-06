@@ -17,6 +17,7 @@ every translated variant is re-validated through the exact same
 translation that would break entry-edge access is simply dropped, never forced through.
 """
 from app.architect.models import ArchitecturalSpec
+from app.geometry.instances import expand_program_to_instances
 from app.geometry.models import BuildingFootprintSpec, RoomInstance
 from app.geometry.solver import _layout_satisfies_hard_requirements, generate_valid_candidate_pool
 from app.geometry.spatial_v2.fingerprint import exact_geometry_signature
@@ -101,7 +102,12 @@ def generate_tagged_candidates(
     `deduplicate.py`, run by the planner AFTER scoring (Phase 4), not here.
     """
     base_solutions = generate_valid_candidate_pool(spec, footprint)
-    program_by_type = {item.room_type: item for item in spec.program}
+    # ROOM_INSTANCE_SIZE_FIDELITY: keyed by instance id (e.g. "BEDROOM_2"), never by room_type --
+    # a type-keyed dict would collapse multiple same-type ProgramItems (differently-sized bedrooms)
+    # onto whichever happens to be last.
+    program_by_instance_id = {
+        instance_id: item for instance_id, _room_type, item in expand_program_to_instances(spec.program)
+    }
 
     tagged: list[tuple[list[RoomInstance], str]] = []
     seen_signatures: set[tuple] = set()
@@ -124,7 +130,7 @@ def generate_tagged_candidates(
         for variant in reflection_variants(solution, spec, footprint):
             _add(variant, "reflection")
             structural_variants.append(variant)
-        for variant in orientation_swap_variants(solution, spec, footprint, program_by_type):
+        for variant in orientation_swap_variants(solution, spec, footprint, program_by_instance_id):
             _add(variant, "orientation_swap")
             structural_variants.append(variant)
         for variant in pair_swap_variants(solution, spec, footprint):

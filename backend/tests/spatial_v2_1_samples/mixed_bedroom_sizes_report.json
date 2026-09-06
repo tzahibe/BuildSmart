@@ -1,0 +1,88 @@
+{
+  "v1": {
+    "BATHROOM": {
+      "actual_area_m2": 5.0,
+      "width_m": 2.2361,
+      "depth_m": 2.2361
+    },
+    "BEDROOM_1": {
+      "actual_area_m2": 11.0,
+      "width_m": 3.3166,
+      "depth_m": 3.3166,
+      "target_area_m2": 11.0,
+      "error_m2": 0.0,
+      "error_pct": 0.0
+    },
+    "BEDROOM_2": {
+      "actual_area_m2": 10.0,
+      "width_m": 2.6726,
+      "depth_m": 3.7417,
+      "target_area_m2": 10.0,
+      "error_m2": 0.0,
+      "error_pct": 0.0
+    },
+    "KITCHEN": {
+      "actual_area_m2": 9.0,
+      "width_m": 2.5355,
+      "depth_m": 3.5496
+    },
+    "LIVING_ROOM": {
+      "actual_area_m2": 22.0,
+      "width_m": 4.6904,
+      "depth_m": 4.6904
+    },
+    "MASTER_BEDROOM": {
+      "actual_area_m2": 14.0,
+      "width_m": 3.7417,
+      "depth_m": 3.7417,
+      "target_area_m2": 14.0,
+      "error_m2": 0.0,
+      "error_pct": 0.0
+    }
+  },
+  "v21": {
+    "BATHROOM": {
+      "actual_area_m2": 5.0,
+      "width_m": 2.2361,
+      "depth_m": 2.2361
+    },
+    "BEDROOM_1": {
+      "actual_area_m2": 11.0,
+      "width_m": 3.3166,
+      "depth_m": 3.3166,
+      "target_area_m2": 11.0,
+      "error_m2": 0.0,
+      "error_pct": 0.0
+    },
+    "BEDROOM_2": {
+      "actual_area_m2": 10.0,
+      "width_m": 3.1623,
+      "depth_m": 3.1623,
+      "target_area_m2": 10.0,
+      "error_m2": 0.0,
+      "error_pct": 0.0
+    },
+    "KITCHEN": {
+      "actual_area_m2": 9.0,
+      "width_m": 3.0,
+      "depth_m": 3.0
+    },
+    "LIVING_ROOM": {
+      "actual_area_m2": 22.0,
+      "width_m": 4.6904,
+      "depth_m": 4.6904
+    },
+    "MASTER_BEDROOM": {
+      "actual_area_m2": 14.0,
+      "width_m": 3.1623,
+      "depth_m": 4.4272,
+      "target_area_m2": 14.0,
+      "error_m2": 0.0,
+      "error_pct": 0.0
+    }
+  },
+  "ordering_14_gt_11_gt_10_preserved": {
+    "v1": true,
+    "v21": true
+  }
+}

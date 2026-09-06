@@ -47,6 +47,7 @@ from app.architect.models import (
 )
 from app.design.generator import GeneratedDesign
 from app.geometry.geometric_design import build_geometric_design
+from app.geometry.instances import expand_program_to_instances
 from app.geometry.models import BuildingFootprintSpec, SolverStatus
 from app.geometry.solver import GeometrySolver
 from app.projects.models import Project, Room, SourceTag
@@ -259,11 +260,20 @@ def generate_design_via_solver(
             result.unsatisfiable_reason or "No layout satisfies every hard constraint for this project"
         )
 
-    # Traces each placed instance's room TYPE back to the (post-merge) ProgramItem that declared it, so
-    # the persisted Room carries the same source (MODEL_INFERENCE / USER_REQUIREMENT / REGULATION) the
-    # solver's input already had — see app/architect/models.py's `ProgramItem.source` and
-    # `ConstraintSource`. Not a new fact; just not discarding one that already existed in-memory.
-    source_by_room_type = {item.room_type: item.source for item in spec.program}
+    # Traces each placed instance back to the SPECIFIC (post-merge) ProgramItem that declared it,
+    # so the persisted Room carries the same source (MODEL_INFERENCE / USER_REQUIREMENT /
+    # REGULATION) the solver's input already had — see app/architect/models.py's
+    # `ProgramItem.source` and `ConstraintSource`. Not a new fact; just not discarding one that
+    # already existed in-memory. Keyed by instance id (e.g. "BEDROOM_2"), not room_type:
+    # ROOM_INSTANCE_SIZE_FIDELITY relies on multiple same-type ProgramItems (e.g. a 14 m2 bedroom
+    # and a 10 m2 bedroom, each its own item) being able to carry different `source` values -- a
+    # type-keyed dict would collapse them onto whichever item happens to be last. `Room` itself has
+    # no `id` field to persist this by (a pre-existing, unrelated limitation of that flat legacy
+    # model), but the lookup below still resolves each instance's OWN source correctly before
+    # that information would otherwise be discarded.
+    source_by_instance_id = {
+        instance_id: item.source for instance_id, _room_type, item in expand_program_to_instances(spec.program)
+    }
     rooms = [
         Room(
             type=instance.type,
@@ -273,7 +283,7 @@ def generate_design_via_solver(
             y=instance.y,
             width_m=instance.width,
             depth_m=instance.height,
-            source=source_by_room_type.get(instance.type),
+            source=source_by_instance_id.get(instance.id),
         )
         for instance in result.instances
     ]

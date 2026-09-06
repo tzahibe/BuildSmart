@@ -356,10 +356,20 @@ class ArchitecturalSpec(BaseModel):
 
     @model_validator(mode="after")
     def _validate_cross_references(self) -> "ArchitecturalSpec":
-        room_types = [item.room_type for item in self.program]
-        if len(room_types) != len(set(room_types)):
-            raise ValueError("program contains duplicate room_type entries")
-        known = set(room_types)
+        # ROOM_INSTANCE_SIZE_FIDELITY: multiple ProgramItems of the SAME room_type are now
+        # explicitly ALLOWED -- this is exactly how a program represents several differently-sized
+        # instances of one type (e.g. two `bedroom` items, each count=1, at 11 m2 and 10 m2 --
+        # `master_bedroom` already gets its own type for the primary case, but two ordinary bedrooms
+        # of different explicit sizes have no other type to use). This was previously rejected here
+        # unconditionally; it is safe now that app.geometry.instances.expand_program_to_instances
+        # numbers instances GLOBALLY per type across every item (not per-item, which used to
+        # collide/reset), and every downstream `{room_type: item}`-style lookup
+        # (app.geometry.solver, app.design.pipeline, app.geometry.geometric_design,
+        # app.geometry.spatial_v2) has been changed to key by instance id instead, so a duplicate
+        # room_type no longer causes one item's target area/bounds/source to silently shadow
+        # another's. A program with only one item per type (the common case, unaffected by this
+        # change) behaves exactly as before.
+        known = {item.room_type for item in self.program}
 
         for zone in self.zones:
             unknown = sorted(set(zone.room_types) - known)

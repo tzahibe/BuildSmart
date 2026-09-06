@@ -21,6 +21,7 @@ from app.architect.models import (
     ArchitectModelRequest,
     ConstraintSeverity,
     DirectAccessConstraint,
+    ProgramItem,
     RequiredRoomConstraint,
     RequirementState,
     SiteSpec,
@@ -166,3 +167,34 @@ def test_merge_is_a_no_op_for_a_spec_that_already_satisfies_every_authoritative_
 
     assert len(merged.program) == len(spec.program)
     assert sorted(item.room_type for item in merged.program) == sorted(item.room_type for item in spec.program)
+
+
+def test_authoritative_bedroom_count_preserves_multiple_differently_sized_bedroom_items():
+    """ROOM_INSTANCE_SIZE_FIDELITY: `_ensure_room_type`'s "does the model already agree" check must
+    sum the TOTAL bedroom count across every same-type ProgramItem, not inspect a single item's own
+    `.count` -- otherwise a model output expressing 3 differently-sized bedrooms as 3 separate
+    count=1 items would (since no single item's own count equals 3) always be treated as
+    "disagreeing", and the old behavior would silently replace all 3 with ONE generic-sized
+    count=3 item, destroying every instance-specific size on this authoritative merge step that
+    runs on virtually every real request."""
+    spec = _adapted_case_2()  # base fixture; program/zones/relationships get replaced below
+    multi_bedroom_spec = spec.model_copy(
+        update={
+            "program": [item for item in spec.program if item.room_type != "bedroom"] + [
+                ProgramItem(room_type="bedroom", count=1, target_area_m2=14.0, source="MODEL_INFERENCE"),
+                ProgramItem(room_type="bedroom", count=1, target_area_m2=11.0, source="MODEL_INFERENCE"),
+                ProgramItem(room_type="bedroom", count=1, target_area_m2=10.0, source="MODEL_INFERENCE"),
+            ]
+        }
+    )
+    request = _request(bedroom_state=RequirementState.known, bedroom_count=3)
+
+    merged = merge_authoritative_requirements(multi_bedroom_spec, request)
+
+    bedroom_items = sorted(
+        (item for item in merged.program if item.room_type == "bedroom"),
+        key=lambda item: item.target_area_m2, reverse=True,
+    )
+    assert len(bedroom_items) == 3, "all 3 distinct bedroom ProgramItems must survive the authoritative merge"
+    assert [item.target_area_m2 for item in bedroom_items] == [14.0, 11.0, 10.0]
+    assert all(item.source == "USER_REQUIREMENT" for item in bedroom_items)

@@ -69,10 +69,22 @@ def _strip_room_type(
 
 
 def _ensure_room_type(room_type: str, count: int, program: list[ProgramItem], zones: list[Zone]) -> tuple[list[ProgramItem], list[Zone]]:
-    existing = next((item for item in program if item.room_type == room_type), None)
-    if existing is not None and existing.count == count:
-        # Already present with the right count (the model happened to agree) — just stamp it
-        # authoritative, since BuildSmart is now the one vouching for this fact, not the model.
+    # ROOM_INSTANCE_SIZE_FIDELITY: the "does the model already agree with BuildSmart's authoritative
+    # count" check must sum across EVERY ProgramItem of this type, not just inspect one -- a model
+    # (now or in a future adapter) may express several differently-sized instances of one type as
+    # multiple same-type items (e.g. two `bedroom` items, count=1 each, at different target areas).
+    # Checking only a single item's own `.count` would almost always disagree with the authoritative
+    # total in that case, incorrectly triggering the full-replace branch below and silently
+    # collapsing every instance-specific size back into one generic value on every real request
+    # (bedroom count is enforced here for virtually every project).
+    existing_items = [item for item in program if item.room_type == room_type]
+    existing_total = sum(item.count for item in existing_items)
+    if existing_items and existing_total == count:
+        # Already present with the right TOTAL count (the model happened to agree, however it
+        # split the count across items) — stamp every one of them authoritative, since BuildSmart
+        # is now the one vouching for this fact, not the model. Each item's own count/target_area
+        # is preserved untouched, whether that's a single count=N item or several count=1 items
+        # with distinct explicit sizes.
         program = [
             item if item.room_type != room_type else item.model_copy(update={"source": _AUTHORITATIVE_SOURCE})
             for item in program

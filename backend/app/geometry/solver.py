@@ -477,8 +477,12 @@ def _relationship_reports(
 _INSTANCE_ORDER_STRATEGIES = ("most_constrained", "largest_area_first", "smallest_area_first")
 
 
-def _instance_target_area(room_type: str, program_by_type: dict[str, ProgramItem]) -> float:
-    item = program_by_type.get(room_type)
+def _instance_target_area(item: ProgramItem | None) -> float:
+    """ROOM_INSTANCE_SIZE_FIDELITY: takes the SPECIFIC ProgramItem an instance came from (as
+    `expand_program_to_instances` already attaches to every instance tuple), never a type-keyed
+    re-lookup -- two same-type instances originating from different ProgramItems (e.g. a 14 m2
+    bedroom and a 10 m2 bedroom, each its own count=1 item) must resolve to their OWN target, not
+    whichever item happens to be last in a `{room_type: item}` dict."""
     if item is None:
         return _DEFAULT_TARGET_AREA_M2
     return item.target_area_m2 or item.min_area_m2 or item.max_area_m2 or _DEFAULT_TARGET_AREA_M2
@@ -487,7 +491,6 @@ def _instance_target_area(room_type: str, program_by_type: dict[str, ProgramItem
 def _order_instances(
     spec: ArchitecturalSpec,
     instances: list[tuple[str, str, ProgramItem]],
-    program_by_type: dict[str, ProgramItem],
     strategy: str,
 ) -> list[tuple[str, str, ProgramItem]]:
     hard_relationship_count: dict[str, int] = {}
@@ -498,12 +501,12 @@ def _order_instances(
         hard_relationship_count[rel.room_type_b] = hard_relationship_count.get(rel.room_type_b, 0) + 1
 
     def sort_key(instance: tuple[str, str, ProgramItem]):
-        instance_id, room_type, _item = instance
+        instance_id, room_type, item = instance
         is_entry = spec.circulation is not None and room_type == spec.circulation.entry_room_type
         if strategy == "largest_area_first":
-            secondary = -_instance_target_area(room_type, program_by_type)
+            secondary = -_instance_target_area(item)
         elif strategy == "smallest_area_first":
-            secondary = _instance_target_area(room_type, program_by_type)
+            secondary = _instance_target_area(item)
         else:
             secondary = -hard_relationship_count.get(room_type, 0)
         return (0 if is_entry else 1, secondary, instance_id)
@@ -583,7 +586,6 @@ def generate_valid_candidate_pool(
     Does NOT run `_find_pre_solver_contradiction` -- callers that want that cheap pre-check
     (as `solve()` does) must call it themselves first.
     """
-    program_by_type = {item.room_type: item for item in spec.program}
     instances = expand_program_to_instances(spec.program)
 
     # Step 3: run the search once per order strategy (see `_INSTANCE_ORDER_STRATEGIES`) and pool
@@ -595,12 +597,17 @@ def generate_valid_candidate_pool(
     seen_signatures: set[tuple] = set()
 
     for strategy in _INSTANCE_ORDER_STRATEGIES:
-        ordered = _order_instances(spec, instances, program_by_type, strategy)
+        ordered = _order_instances(spec, instances, strategy)
+        # ROOM_INSTANCE_SIZE_FIDELITY: `item` here is THIS instance's own originating ProgramItem
+        # (from `ordered`'s tuple, never a `{room_type: item}` re-lookup) -- two same-type
+        # instances from different ProgramItems (e.g. differently-sized bedrooms) each get shape
+        # candidates from their OWN target/min/max area, not whichever item a type-keyed dict
+        # happened to keep.
         pending = [
             _PendingInstance(
-                id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(program_by_type[room_type])
+                id=instance_id, type=room_type, candidate_shapes=_candidate_shapes(item)
             )
-            for instance_id, room_type, _item in ordered
+            for instance_id, room_type, item in ordered
         ]
 
         pass_solutions: list[list[RoomInstance]] = []

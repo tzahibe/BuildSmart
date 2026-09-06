@@ -65,18 +65,23 @@ def reflection_variants(
 
 def orientation_swap_variants(
     solution: list[RoomInstance], spec: ArchitecturalSpec, footprint: BuildingFootprintSpec,
-    program_by_type: dict,
+    program_by_instance_id: dict,
 ) -> list[list[RoomInstance]]:
     """For each room, tries swapping width<->height in place (same x, y) -- reshapes that single
     room's footprint (potentially changing which neighbor it touches) without moving anyone else.
-    Skipped if the swapped dimensions would fall below the room type's own min_width_m (the same
-    hard bound app.geometry.solver._candidate_shapes already enforces when generating shapes in
-    the first place) or would immediately overlap another room / exceed the footprint."""
+    Skipped if the swapped dimensions would fall below THIS room INSTANCE's own min_width_m (the
+    same hard bound app.geometry.solver._candidate_shapes already enforces when generating shapes
+    in the first place) or would immediately overlap another room / exceed the footprint.
+
+    `program_by_instance_id` (keyed by room.id, e.g. "BEDROOM_2", not room.type) is required, not
+    a `{room_type: item}` dict -- ROOM_INSTANCE_SIZE_FIDELITY: two same-type instances can come
+    from different ProgramItems with different bounds/targets, and a type-keyed lookup would
+    silently apply the wrong instance's constraint here."""
     variants = []
     for i, room in enumerate(solution):
         if abs(room.width - room.height) < 1e-6:
             continue  # square room -- swapping is a no-op, not a new candidate
-        item = program_by_type.get(room.type)
+        item = program_by_instance_id.get(room.id)
         min_width = (item.min_width_m if item is not None else None) or _DEFAULT_MIN_WIDTH_M
         new_width, new_height = room.height, room.width
         if new_width + 1e-9 < min_width or new_height + 1e-9 < min_width:
