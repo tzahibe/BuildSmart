@@ -1,0 +1,61 @@
+.spatial-edit-controls {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.spatial-edit-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.spatial-edit-controls select,
+.spatial-edit-controls input {
+  border: 1px solid #c9a876;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.spatial-edit-controls input[type='number'] {
+  width: 4.5rem;
+}
+
+.spatial-edit-controls button {
+  border: 1px solid #b1503f;
+  background: #fff;
+  color: #b1503f;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-width: 4.5rem;
+}
+
+.spatial-edit-controls button:hover:not(:disabled),
+.spatial-edit-controls button:focus-visible:not(:disabled) {
+  background: #b1503f;
+  color: #fff;
+  outline: none;
+}
+
+.spatial-edit-controls button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.spatial-edit-controls__error {
+  margin: 0;
+  color: #a33;
+  text-align: center;
+}

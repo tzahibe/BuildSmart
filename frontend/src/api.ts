@@ -1,3 +1,5 @@
+import type { GeometricDesign } from './design/geometricDesign'
+import type { SpatialEditRequest } from './design/spatialEdit'
 import type { ChatMutationResponse, Conversation, Project, ProjectCreatePayload, ProjectUpdateRequest } from './types'
 
 /** The backend's `/design` failure codes (see backend/app/architect/errors.py and
@@ -98,6 +100,71 @@ export async function generateDesign(projectId: string): Promise<Project> {
     throw new DesignGenerationError(code, DESIGN_ERROR_MESSAGES[code])
   }
   return (await response.json()) as Project
+}
+
+/** The backend's `POST /design/spatial-edit` rejection reasons (see
+ * backend/app/geometry/spatial_edit_types.py's `RejectReason` and
+ * backend/app/design/errors_http.py's `raise_spatial_edit_rejection_as_http`) — same
+ * `{"error", "message"}` detail shape and same defensive-fallback convention as `DesignErrorCode`
+ * above, kept as its own type rather than merged into it since these are a distinct endpoint's
+ * failure modes, not the design-generation pipeline's. */
+export type SpatialEditErrorCode = 'ROOM_NOT_FOUND' | 'OUT_OF_BOUNDS' | 'OVERLAP' | 'CONSTRAINT_VIOLATION' | 'UNKNOWN'
+
+export class SpatialEditError extends Error {
+  code: SpatialEditErrorCode
+
+  constructor(code: SpatialEditErrorCode, message: string) {
+    super(message)
+    this.code = code
+  }
+}
+
+const SPATIAL_EDIT_ERROR_MESSAGES: Record<SpatialEditErrorCode, string> = {
+  ROOM_NOT_FOUND: 'החדר המבוקש לא נמצא בתכנון הנוכחי.',
+  OUT_OF_BOUNDS: 'ההזזה תוציא את החדר מגבולות המבנה.',
+  OVERLAP: 'ההזזה תגרום לחפיפה עם חדר אחר.',
+  CONSTRAINT_VIOLATION: 'ההזזה תפגע בדרישת סמיכות מחייבת בין חדרים.',
+  UNKNOWN: 'לא ניתן היה להזיז את החדר.',
+}
+
+function spatialEditErrorCodeFrom(detail: unknown): SpatialEditErrorCode {
+  if (
+    detail !== null &&
+    typeof detail === 'object' &&
+    'error' in detail &&
+    typeof (detail as { error: unknown }).error === 'string' &&
+    (detail as { error: string }).error in SPATIAL_EDIT_ERROR_MESSAGES
+  ) {
+    return (detail as { error: SpatialEditErrorCode }).error
+  }
+  return 'UNKNOWN'
+}
+
+/** Applies one bounded spatial edit (currently always MOVE_ROOM) to a project's CURRENT
+ * GeometricDesign — see backend/app/design/router.py's `apply_spatial_edit_to_project_design`. The
+ * backend is the sole authority on whether/how a room moves; this function only forwards `request`
+ * verbatim and returns whatever `GeometricDesign` comes back (or throws `SpatialEditError` for a
+ * REJECTED edit) — see design/spatialEdit.ts's `mergeGeometricDesignIntoProject` for folding a
+ * successful result back into the caller's `Project`. */
+export async function applySpatialEdit(projectId: string, request: SpatialEditRequest): Promise<GeometricDesign> {
+  const response = await fetch(`/projects/${projectId}/design/spatial-edit`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  if (!response.ok) {
+    let code: SpatialEditErrorCode = 'UNKNOWN'
+    try {
+      const body: unknown = await response.json()
+      if (body !== null && typeof body === 'object' && 'detail' in body) {
+        code = spatialEditErrorCodeFrom((body as { detail: unknown }).detail)
+      }
+    } catch {
+      // response wasn't JSON at all — keep UNKNOWN
+    }
+    throw new SpatialEditError(code, SPATIAL_EDIT_ERROR_MESSAGES[code])
+  }
+  return (await response.json()) as GeometricDesign
 }
 
 /** Thrown by `updateProject` — either a plain validation message (e.g. an invalid street/area pair,

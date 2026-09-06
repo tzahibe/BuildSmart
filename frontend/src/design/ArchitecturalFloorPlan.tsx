@@ -109,9 +109,10 @@ function ArchitecturalFloorPlan({ design }: ArchitecturalFloorPlanProps) {
           const fontSize = Math.max(0.15, Math.min(0.32, Math.min(room.width_m, room.depth_m) * 0.24))
 
           return (
-            <g key={room.id}>
+            <g key={room.id} data-testid={`room-${room.id}`}>
               <rect
                 className={`sketch-svg-room sketch-svg-room--${room.type}`}
+                data-testid={`room-rect-${room.id}`}
                 x={room.x}
                 y={room.y}
                 width={room.width_m}

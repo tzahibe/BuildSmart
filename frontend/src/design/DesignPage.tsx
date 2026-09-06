@@ -4,6 +4,7 @@ import ChatPanel from './ChatPanel'
 import Menu from './Menu'
 import SettingsPage from './SettingsPage'
 import SketchCard from './SketchCard'
+import SpatialEditControls from './SpatialEditControls'
 import TechnicalDetailsPage from './TechnicalDetailsPage'
 import './DesignPage.css'
 
@@ -82,6 +83,8 @@ function DesignPage({ project, onProjectUpdated }: DesignPageProps) {
           onExpand={() => setActiveOverlay('sketch')}
           onClose={() => setActiveOverlay('none')}
         />
+
+        <SpatialEditControls project={project} onProjectUpdated={onProjectUpdated} />
       </div>
 
       <Menu
