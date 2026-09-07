@@ -104,16 +104,6 @@
   }
 }
 
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-}
-
 .submit-button {
   font: 600 16px var(--sans);
   padding: 12px 22px;

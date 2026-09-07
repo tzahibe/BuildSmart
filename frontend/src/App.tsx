@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import './App.css'
 import { createProject, generateDesign, parseRequirements, PipelineStepError } from './api'
+import Autocomplete from './Autocomplete'
 import DesignPage from './design/DesignPage'
 import FootprintSelection from './design/FootprintSelection'
 import { toSelectedFootprintPayload, type BuildingFootprint } from './design/footprint'
@@ -111,7 +112,13 @@ function App() {
   }, [view, project?.project_id])
 
   function handleCityChange(value: string) {
-    // Changing the city invalidates any previously chosen street and its suggestions.
+    // A no-op re-selection of the SAME city (e.g. the user re-clicks/re-confirms a suggestion that
+    // already matches the field's current value) must not wipe the streets already loaded for it —
+    // the fetch effect below only re-fires when `form.city` actually CHANGES, so clearing `streets`
+    // here unconditionally would leave the street field disabled with no way to recover, even though
+    // nothing about the selected city changed. Only an actual city change invalidates the previously
+    // chosen street and its suggestions.
+    if (value === form.city) return
     setForm((prev) => ({ ...prev, city: value, street: '' }))
     setStreets([])
   }
@@ -125,6 +132,8 @@ function App() {
     event.preventDefault()
     setErrors([])
 
+    // City/street stay free-text (Autocomplete just suggests) — the typed value can still be
+    // anything, so this exact-match check against the real lists is still required here.
     if (cities.length > 0 && !cities.includes(form.city)) {
       setErrors(['יש לבחור עיר / רשות מקומית מתוך הרשימה המוצעת'])
       return
@@ -242,71 +251,59 @@ function App() {
       <form className="project-form" onSubmit={handleContinueToFootprint}>
         <label>
           עיר / רשות מקומית
-          <input
-            type="text"
-            required
-            list="cities-datalist"
-            autoComplete="off"
-            value={form.city}
-            onChange={(event) => handleCityChange(event.target.value)}
-          />
-          <datalist id="cities-datalist">
-            {cities.map((city) => (
-              <option key={city} value={city} />
-            ))}
-          </datalist>
+          {/* Custom autocomplete (Autocomplete.tsx), not the native <input list="..."> + <datalist>
+              this used to be — a datalist only SUGGESTS matching options while the user keeps typing
+              free text, it never forces the value to actually become one of them. Several real city
+              names in this dataset don't match how people naturally type them (e.g. the city is
+              stored as "תל אביב - יפו", not "תל אביב") — a user typing the natural short form ended
+              up with a value that looked chosen but matched nothing, silently leaving the street
+              field disabled forever with no indication why. Typing still filters suggestions exactly
+              as before; clicking (or arrowing to) one now always sets the exact matching value. */}
+          <Autocomplete required value={form.city} onChange={handleCityChange} options={cities} />
         </label>
 
         <label>
           רחוב ומספר
-          <input
-            type="text"
+          {/* Same fix as the city field above, and for the same reason — see that field's comment. */}
+          <Autocomplete
             required
             disabled={!streetFieldEnabled}
-            list="streets-datalist"
-            autoComplete="off"
             placeholder={streetFieldEnabled ? '' : 'יש לבחור עיר תחילה'}
             value={form.street}
-            onChange={(event) => setForm({ ...form, street: event.target.value })}
+            onChange={(value) => setForm({ ...form, street: value })}
+            options={streets}
           />
-          <datalist id="streets-datalist">
-            {streets.map((street) => (
-              <option key={street} value={street} />
-            ))}
-          </datalist>
         </label>
 
-        <div className="field-row">
-          <label>
-            שטח מגרש (מ"ר)
-            <input
-              type="number"
-              min="0.01"
-              step="any"
-              required
-              value={form.plot_area_m2}
-              onChange={(event) => setForm({ ...form, plot_area_m2: event.target.value })}
-            />
-          </label>
+        <label>
+          שטח מגרש (מ"ר)
+          <input
+            type="number"
+            min="0.01"
+            step="any"
+            required
+            value={form.plot_area_m2}
+            onChange={(event) => setForm({ ...form, plot_area_m2: event.target.value })}
+          />
+        </label>
 
-          <label>
-            שטח הבנייה (מ"ר)
-            <input
-              type="number"
-              min="0.01"
-              step="any"
-              required
-              value={form.built_area_m2}
-              onChange={(event) => {
-                setForm({ ...form, built_area_m2: event.target.value })
-                // TARGET BUILT AREA changed -> any previously selected footprint was computed for a
-                // now-stale area and must not be carried forward (see FootprintSelection's own
-                // defensive re-check for the same rule, kept independently for the same reason).
-                setFootprint(null)
-              }}
-            />
-          </label>
-        </div>
+        <label>
+          שטח הבנייה (מ"ר)
+          <input
+            type="number"
+            min="0.01"
+            step="any"
+            required
+            value={form.built_area_m2}
+            onChange={(event) => {
+              setForm({ ...form, built_area_m2: event.target.value })
+              // TARGET BUILT AREA changed -> any previously selected footprint was computed for a
+              // now-stale area and must not be carried forward (see FootprintSelection's own
+              // defensive re-check for the same rule, kept independently for the same reason).
+              setFootprint(null)
+            }}
+          />
+        </label>
 
         <label>
           תיאור הבית הרצוי

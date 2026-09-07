@@ -49,11 +49,14 @@ function fakeProject(overrides: Record<string, unknown> = {}) {
  * fields/labels the real UI exposes (see e2e/spatial-edit.spec.ts's own helper for the real-backend
  * equivalent of this). Stops right after submission, at the new FOOTPRINT SELECTION step — this
  * test suite's whole point is to check what appears there and that nothing beyond it is needed to
- * exercise it, so it deliberately does not fill in city/street autocomplete lists (this app's
- * `/localities` returns `[]` in every test here, which leaves the free-text fields ungated).
+ * exercise it. City/street stay free-text (Autocomplete.tsx just suggests — see its own docstring);
+ * typing the exact value directly (as the mock's `/localities`/`/localities/{city}/streets` below
+ * are set up to match) is equivalent to clicking that same suggestion, since Autocomplete never
+ * transforms what lands in the field either way.
  */
 async function fillAndSubmitForm(builtAreaM2 = '120') {
   fireEvent.change(screen.getByLabelText('עיר / רשות מקומית'), { target: { value: 'תל אביב' } })
+  await waitFor(() => expect(screen.getByLabelText('רחוב ומספר')).toBeEnabled())
   fireEvent.change(screen.getByLabelText('רחוב ומספר'), { target: { value: 'הרצל 1' } })
   fireEvent.change(screen.getByLabelText('שטח מגרש (מ"ר)'), { target: { value: '400' } })
   fireEvent.change(screen.getByLabelText('שטח הבנייה (מ"ר)'), { target: { value: builtAreaM2 } })
@@ -71,7 +74,10 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
         const method = init?.method ?? 'GET'
 
         if (url === '/localities') {
-          return new Response(JSON.stringify([]), { status: 200 })
+          return new Response(JSON.stringify(['תל אביב']), { status: 200 })
+        }
+        if (url.includes('/localities/') && url.endsWith('/streets')) {
+          return new Response(JSON.stringify(['הרצל 1']), { status: 200 })
         }
         if (url === '/projects' && method === 'POST') {
           return new Response(JSON.stringify(fakeProject()), { status: 201 })

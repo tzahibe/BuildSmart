@@ -36,13 +36,23 @@ const ROOM_IDS = Object.keys(EXPECTED_BASELINE)
 // matches this project's existing numeric tolerance convention (areas/dims rounded to 2 decimals).
 const DECIMAL_PRECISION = 2
 
+/** Types into a city/street Autocomplete field and clicks its real, exact-text suggestion — the
+ * actual fix (see Autocomplete.tsx) is that this click always lands the EXACT list value, never
+ * whatever partial text was typed. */
+async function pickFromAutocomplete(page: Page, label: string, typed: string, exact: string) {
+  const field = page.getByLabel(label)
+  await field.fill(typed)
+  await page.getByRole('option', { name: exact, exact: true }).click()
+  await expect(field).toHaveValue(exact)
+}
+
 async function createDesignThroughRealUI(page: Page) {
   await page.goto('/')
 
-  await page.getByLabel('עיר / רשות מקומית').fill(CITY)
+  await pickFromAutocomplete(page, 'עיר / רשות מקומית', CITY, CITY)
   const streetInput = page.getByLabel('רחוב ומספר')
   await expect(streetInput).toBeEnabled({ timeout: 10_000 })
-  await streetInput.fill(STREET)
+  await pickFromAutocomplete(page, 'רחוב ומספר', STREET, STREET)
 
   await page.getByLabel('שטח מגרש (מ"ר)').fill('500')
   await page.getByLabel('שטח הבנייה (מ"ר)').fill(String(BUILT_AREA_M2))

@@ -1,0 +1,39 @@
+.autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.autocomplete__list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  inset-inline: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 3px);
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+}
+
+.autocomplete__option {
+  padding: 9px 11px;
+  border-radius: calc(var(--radius) - 5px);
+  font: 400 15px/1.4 var(--sans);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.autocomplete__option--highlighted {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
