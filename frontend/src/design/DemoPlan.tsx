@@ -14,15 +14,19 @@ import './DemoPlan.css'
 
 const PAD_M = 1.5
 
-const WALL_STYLE: Record<string, { color: string; width: number }> = {
+/** Exported so `PlanLegend` swatches are drawn from the SAME values as the plan itself — a legend
+ * that keeps its own copy of the colours is a legend that eventually lies about the drawing. */
+export const WALL_STYLE: Record<string, { color: string; width: number }> = {
   RC_SAFE_ROOM: { color: '#b03a2e', width: 0.3 },
   STRUCTURAL: { color: '#1a1a1a', width: 0.26 },
   STANDARD_PARTITION: { color: '#8b939c', width: 0.1 },
 }
 
-function wallStyle(construction: string, context: string) {
+export const EXTERIOR_WALL_STYLE = { color: '#1a1a1a', width: 0.26 }
+
+export function wallStyle(construction: string, context: string) {
   if (construction === 'RC_SAFE_ROOM') return WALL_STYLE.RC_SAFE_ROOM
-  if (context === 'EXTERIOR') return { color: '#1a1a1a', width: 0.26 }
+  if (context === 'EXTERIOR') return EXTERIOR_WALL_STYLE
   return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
 }
 

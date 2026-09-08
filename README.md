@@ -7,7 +7,7 @@ doors, windows, a safe room, parking and garden — and refuses to show you anyt
 pass its own planning checks.
 
 <p align="center">
-  <img src="docs/images/05-plan-only.png" alt="A generated floor plan: open-plan living, dining and kitchen; three bedrooms; a reinforced safe room; two bathrooms; parking and garden" width="620">
+  <img src="docs/images/04-plan.png" alt="The plan workspace: a generated floor plan with open-plan living, dining and kitchen, three bedrooms, a reinforced safe room and two bathrooms, beside a room schedule, a colour key and the list of planning checks it passed" width="960">
 </p>
 
 <p align="center">
@@ -69,9 +69,27 @@ is what actually gets built: change 3 bedrooms to 2 here and a two-bedroom house
 
 ### 4 · Get the plan
 
-<img src="docs/images/04-plan.png" alt="The plan workspace: the floor plan with a room schedule and the list of planning checks that passed" width="900">
+<img src="docs/images/05-plan-only.png" alt="The floor plan on its own: open-plan living, dining and kitchen to the west, a corridor spine, three bedrooms and a red-walled safe room to the east, with parking, an entrance walk and garden around the building" width="640">
 
-Alongside the drawing is every check the plan passed, in plain language rather than check codes.
+Alongside the drawing is a room schedule, every check the plan passed in plain language rather than
+check codes, and a key to the drawing itself.
+
+### Reading the drawing
+
+<img src="docs/images/07-legend.png" alt="The plan key: exterior wall, interior partition, reinforced concrete safe-room wall, door opening, entrance door, window, open passage, garden, parking, entrance walk" width="300" align="left" hspace="16">
+
+The **red walls are the safe room** (ממ״ד) — reinforced concrete, drawn heavier and in its own
+colour because it is a structural requirement rather than an ordinary partition. Black is the
+exterior envelope, grey an interior partition, blue a window, green the entrance door.
+
+An **open passage carries no line at all**: where two spaces are genuinely open to each other the
+wall is not drawn thin or dashed, it is absent, which is why the living room, dining area and
+kitchen read as one continuous space above.
+
+The key is generated from the drawing's own style values, and it lists only what is actually in
+*this* plan — a house without a safe room shows no safe-room entry.
+
+<br clear="left">
 
 ### When it can't be built, it says so
 

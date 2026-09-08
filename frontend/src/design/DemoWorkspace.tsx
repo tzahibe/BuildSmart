@@ -1,5 +1,6 @@
 import type { DemoDesign } from './demoDesign'
 import DemoPlan from './DemoPlan'
+import PlanLegend from './PlanLegend'
 import './DemoWorkspace.css'
 
 /** SCREEN D — the plan workspace. The drawing dominates; information sits beside it, never on top.
@@ -42,6 +43,8 @@ function DemoWorkspace({ design, onChangeRequirements }: {
             </li>
           ))}
         </ul>
+
+        <PlanLegend design={design} />
 
         {design.validation.statements.length > 0 ? (
           <>

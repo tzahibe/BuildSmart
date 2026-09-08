@@ -106,3 +106,63 @@ describe('DemoWorkspace', () => {
     expect(getByText('בעיה כלשהי')).toBeTruthy()
   })
 })
+
+describe('PlanLegend', () => {
+  it('names every colour the plan actually used', () => {
+    const full = design({
+      walls: [
+        { orientation: 'horizontal', coord: 5.5, start: 3, end: 8, construction: 'STANDARD_PARTITION', boundary_context: 'EXTERIOR', room_ids: ['LIVING'] },
+        { orientation: 'vertical', coord: 8, start: 5.5, end: 11.5, construction: 'RC_SAFE_ROOM', boundary_context: 'INTERIOR', room_ids: ['SAFE_ROOM'] },
+        { orientation: 'vertical', coord: 6, start: 5.5, end: 9, construction: 'STANDARD_PARTITION', boundary_context: 'INTERIOR', room_ids: ['LIVING', 'HALL'] },
+      ],
+    })
+    const { getByText } = render(<DemoWorkspace design={full} onChangeRequirements={() => {}} />)
+    getByText('מקרא')
+    getByText('קיר חוץ')
+    getByText('מחיצה פנימית')
+    getByText('קיר ממ״ד — בטון מזוין')
+    getByText('חלון')
+    getByText('דלת כניסה')
+    getByText('פתח דלת — קיר שנקטע')
+    getByText('מעבר פתוח — אין קיר כלל')
+    getByText('גינה')
+    getByText('חניה')
+  })
+
+  it('omits a key for anything this design does not contain', () => {
+    const plain = design({
+      walls: [
+        { orientation: 'horizontal', coord: 5.5, start: 3, end: 8, construction: 'STANDARD_PARTITION', boundary_context: 'EXTERIOR', room_ids: ['LIVING'] },
+      ],
+      open_interfaces: [],
+      windows: [],
+      parking: [],
+      garden: [],
+      doors: [],
+    })
+    const { queryByText, getByText } = render(
+      <DemoWorkspace design={plain} onChangeRequirements={() => {}} />,
+    )
+    getByText('קיר חוץ')
+    // no safe room in this house, so no safe-room key — and likewise for the rest
+    expect(queryByText('קיר ממ״ד — בטון מזוין')).toBeNull()
+    expect(queryByText('מעבר פתוח — אין קיר כלל')).toBeNull()
+    expect(queryByText('חלון')).toBeNull()
+    expect(queryByText('דלת כניסה')).toBeNull()
+    expect(queryByText('פתח דלת — קיר שנקטע')).toBeNull()
+    expect(queryByText('גינה')).toBeNull()
+    expect(queryByText('חניה')).toBeNull()
+  })
+
+  it('draws its swatches from the renderer’s own styles, so it cannot drift from the plan', () => {
+    const { container } = render(<DemoWorkspace design={design()} onChangeRequirements={() => {}} />)
+    const swatches = container.querySelectorAll('.legend-swatch')
+    expect(swatches.length).toBeGreaterThan(0)
+    const strokes = Array.from(container.querySelectorAll('.legend-swatch line')).map((l) =>
+      l.getAttribute('stroke'),
+    )
+    expect(strokes).toContain('#b03a2e') // WALL_STYLE.RC_SAFE_ROOM
+    expect(strokes).toContain('#1a1a1a') // EXTERIOR_WALL_STYLE
+    expect(strokes).toContain('#8b939c') // WALL_STYLE.STANDARD_PARTITION
+  })
+})
