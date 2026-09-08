@@ -1,0 +1,296 @@
+"""Stage 8 — Validation.
+
+Aggregates the checks the review's acceptance list named, reusing the geometry-core spike's
+PROVEN proof logic (P1-P11) wherever the same question applies to solved production rects, and
+adding the ones the spike explicitly did not attempt: a real accessibility-graph reachability
+check (closing part of the "RealizedAccessGraph" gap the Fable review's §5 flagged — this
+vertical slice does not build a full graph type, but it does verify the graph-level property:
+every room is reachable from the entrance), door/window placeability, and the two site checks
+(parking-to-street, entrance-to-house).
+
+Returns one `ValidationReport`: a flat, ordered list of named checks with pass/fail + detail,
+in the same spirit as `spikes/geometry_core/validate.py`'s `Report`, but this is production
+code, not a pytest fixture-proof — it is meant to be read by a caller deciding whether to
+accept the candidate, not just asserted on in a test.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from .doors import Door
+from .furniture import FurnitureCheck
+from .geometry_core.engine import WallMap, net_rect_m
+from .geometry_core.model import (
+    ConnectionKind,
+    Fixture,
+    OutdoorClassification,
+    Rect,
+    Side,
+    WallType,
+    u_to_m,
+)
+from .site import SitePlan
+from .windows import DAYLIGHT_ROLES, Window
+
+TOL_M2 = 0.01
+
+_OPPOSITE_SIDE = {Side.N: Side.S, Side.S: Side.N, Side.E: Side.W, Side.W: Side.E}
+
+
+@dataclass(frozen=True)
+class RealizedConnection:
+    """A physically traversable connection, evidenced by the built geometry.
+
+    THE INVARIANT THIS TYPE EXISTS FOR: a declared access edge is never treated as realized
+    because the graph contains it. The realized plan — walls, openings and generated doors — is
+    the source of truth for physical accessibility.
+    """
+
+    a: str
+    b: str
+    kind: str      # "DOOR" | "OPEN"
+    evidence: str
+
+
+def realized_connections(rects: dict[str, Rect], walls: WallMap,
+                         interior_doors: list[Door]) -> list[RealizedConnection]:
+    """Every traversable connection the BUILT geometry actually provides.
+
+    Two, and only two, forms of physical evidence are accepted:
+
+      * a generated door or cased opening that is placeable — an unplaceable one is a hole that
+        does not fit, so it carries no traffic;
+      * a shared boundary whose facing wall sides are BOTH `OPEN` — a genuine wall-less join.
+
+    Anything a declared edge asserts beyond these is intent, not fact.
+    """
+    out: list[RealizedConnection] = []
+    for door in interior_doors:
+        if door.placeable and door.shared_length_m > 0:
+            out.append(RealizedConnection(
+                door.a, door.b, "DOOR",
+                f"{door.kind.value.lower()} {door.width_m} m on a "
+                f"{door.shared_length_m:.2f} m shared wall"))
+
+    ids = sorted(rects)
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            a, b = ids[i], ids[j]
+            ra, rb = rects[a], rects[b]
+            if ra.shared_edge_len_u(rb) <= 0:
+                continue
+            side = _side_between(ra, rb)
+            if side is None:
+                continue
+            if (walls.get((a, side)) is WallType.OPEN
+                    and walls.get((b, _OPPOSITE_SIDE[side])) is WallType.OPEN):
+                out.append(RealizedConnection(
+                    a, b, "OPEN",
+                    f"wall-less join over {u_to_m(ra.shared_edge_len_u(rb)):.2f} m"))
+    return out
+
+
+@dataclass
+class Check:
+    check_id: str
+    name: str
+    passed: bool
+    detail: str = ""
+
+
+@dataclass
+class ValidationReport:
+    checks: list[Check] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return all(c.passed for c in self.checks)
+
+    def add(self, check_id: str, name: str, passed: bool, detail: str = "") -> None:
+        self.checks.append(Check(check_id, name, passed, detail))
+
+    def failures(self) -> list[Check]:
+        return [c for c in self.checks if not c.passed]
+
+
+def _side_between(a: Rect, b: Rect) -> Side | None:
+    if a.x2 == b.x:
+        return Side.E
+    if b.x2 == a.x:
+        return Side.W
+    if a.y2 == b.y:
+        return Side.S
+    if b.y2 == a.y:
+        return Side.N
+    return None
+
+
+def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
+             interior_doors: list[Door], entrance_door: Door, windows: list[Window],
+             furniture: list[FurnitureCheck], site: SitePlan) -> ValidationReport:
+    rep = ValidationReport()
+
+    # C1 — no overlap
+    ids = sorted(rects)
+    worst, pair = 0, ""
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            ov = rects[ids[i]].overlap_area_u(rects[ids[j]])
+            if ov > worst:
+                worst, pair = ov, f"{ids[i]}/{ids[j]}"
+    rep.add("C1", "no overlap between rooms", worst == 0, "none" if worst == 0 else f"{pair} overlap")
+
+    # C2 — no residual interior area (the whole footprint is fully consumed by rooms)
+    covered = sum(r.w * r.h for r in rects.values())
+    footprint_area_u = site.footprint.w * site.footprint.h
+    rep.add("C2", "no residual interior area", covered == footprint_area_u,
+            "footprint fully consumed by rooms" if covered == footprint_area_u
+            else f"{footprint_area_u - covered} unit^2 unassigned inside the footprint")
+
+    # C3 — room areas and dimensions valid
+    bad = []
+    for z in fixture.zones:
+        if z.zone_id not in rects:
+            continue
+        nw, nh, na = net_rect_m(z.zone_id, rects[z.zone_id], walls)
+        if not (z.net_area_min_m2 - TOL_M2 <= na <= z.net_area_max_m2 + TOL_M2):
+            bad.append(f"{z.zone_id} net {na} m2 outside [{z.net_area_min_m2},{z.net_area_max_m2}]")
+        if min(nw, nh) < z.min_short_side_m - 1e-6:
+            bad.append(f"{z.zone_id} short side {min(nw, nh):.2f} < {z.min_short_side_m}")
+        aspect = max(nw, nh) / min(nw, nh)
+        if aspect > z.max_aspect_ratio + 1e-6:
+            bad.append(f"{z.zone_id} aspect {aspect:.2f} > {z.max_aspect_ratio}")
+    rep.add("C3", "room areas and dimensions valid", not bad, "; ".join(bad) or "all zones within spec")
+
+    # C4 — safe room valid under current RuleSet parameters
+    bad = []
+    for z in fixture.zones:
+        if not z.is_safe_room or z.zone_id not in rects:
+            continue
+        sides = {s: walls[(z.zone_id, s)] for s in Side}
+        if any(v is not WallType.RC_SAFE_ROOM for v in sides.values()):
+            bad.append(f"{z.zone_id} not RC on all sides: " + ",".join(f"{k.value}={v.value}" for k, v in sides.items()))
+        _, _, na = net_rect_m(z.zone_id, rects[z.zone_id], walls)
+        if na < z.net_area_min_m2 - 1e-6:
+            bad.append(f"{z.zone_id} net {na} below regulated minimum {z.net_area_min_m2}")
+    rep.add("C4", "safe room valid (RC envelope + regulated minimum)", not bad, "; ".join(bad) or "safe room compliant")
+
+    # C5 — all required spaces accessible, over the REALIZED graph.
+    #
+    # This used to traverse `fixture.access.edges` — the DECLARED topology — and therefore
+    # reported a room reachable whenever the graph said so, even with a solid wall in the way.
+    # It now walks only connections the built geometry actually provides, so a declared edge can
+    # no longer make anything reachable by assertion.
+    realized = realized_connections(rects, walls, interior_doors)
+    graph: dict[str, set[str]] = {}
+    for connection in realized:
+        graph.setdefault(connection.a, set()).add(connection.b)
+        graph.setdefault(connection.b, set()).add(connection.a)
+    if entrance_door.placeable:
+        graph.setdefault("OUTSIDE", set()).add(entrance_door.b)
+        graph.setdefault(entrance_door.b, set()).add("OUTSIDE")
+    seen = {"OUTSIDE"}
+    frontier = ["OUTSIDE"]
+    while frontier:
+        cur = frontier.pop()
+        for nxt in graph.get(cur, ()):
+            if nxt not in seen:
+                seen.add(nxt)
+                frontier.append(nxt)
+    all_zones = {z.zone_id for z in fixture.zones}
+    unreachable = sorted(all_zones - seen)
+    rep.add("C5", "all required spaces physically reachable from the entrance", not unreachable,
+            "; ".join(unreachable) or
+            f"all {len(all_zones)} zones reachable over {len(realized)} realized connections")
+
+    # C6 — no artificial doors in open-plan
+    open_pairs = {frozenset((e.a, e.b)) for e in fixture.access.edges if e.kind is ConnectionKind.OPEN_CONNECTION}
+    bad = [f"{d.a}-{d.b}" for d in interior_doors if frozenset((d.a, d.b)) in open_pairs]
+    for group in fixture.open_groups:
+        for i in range(len(group)):
+            for j in range(i + 1, len(group)):
+                pair = frozenset((group[i], group[j]))
+                if any(frozenset((d.a, d.b)) == pair for d in interior_doors):
+                    bad.append(f"artificial door inside open group: {group[i]}-{group[j]}")
+    rep.add("C6", "no artificial doors in open-plan", not bad, "; ".join(bad) or "open-plan clean")
+
+    # C7 — doors physically placeable
+    bad = [f"{d.a}-{d.b} shared {d.shared_length_m:.2f} m too short for a {d.width_m} m door"
+           for d in interior_doors if not d.placeable]
+    if not entrance_door.placeable:
+        bad.append("entrance door not placeable on the street-facing wall")
+    rep.add("C7", "doors physically placeable", not bad, "; ".join(bad) or f"{len(interior_doors) + 1} doors placeable")
+
+    # C8 — daylight/window exposure present where required
+    windowed = {w.zone_id for w in windows if w.placeable}
+    required = {z.zone_id for z in fixture.zones if set(z.roles) & DAYLIGHT_ROLES}
+    missing = sorted(required - windowed)
+    rep.add("C8", "daylight/window exposure present where required", not missing,
+            "; ".join(missing) or f"all {len(required)} daylight-requiring zones windowed")
+
+    # C9 — furniture-envelope feasibility
+    bad = [f"{f.zone_id} net {f.net_w_m:.2f}x{f.net_h_m:.2f} cannot inscribe {f.envelope_m} m"
+           for f in furniture if f.fits is False]
+    rep.add("C9", "furniture-envelope feasibility", not bad, "; ".join(bad) or "all furnished zones fit")
+
+    # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)
+    bad = [f"parking bay at x={p.x} does not front the street (y={p.y}, plot street at y={site.plot.y})"
+           for p in site.parking if p.y != site.plot.y]
+    rep.add("C10", "parking connected to street", not bad, "; ".join(bad) or f"{len(site.parking)} bays front the street")
+
+    # C11 — pedestrian entrance connected to house
+    bad = []
+    if not entrance_door.placeable:
+        bad.append("entrance door itself is not placeable")
+    walk = site.entrance.path_rect
+    if walk.y != site.plot.y:
+        bad.append("entrance walk does not start at the street edge")
+    if walk.y2 != site.footprint.y:
+        bad.append("entrance walk does not reach the building line")
+    for p in site.parking:
+        if walk.overlap_area_u(p) > 0:
+            bad.append(f"entrance walk overlaps a parking bay")
+    rep.add("C11", "pedestrian entrance connected to house", not bad, "; ".join(bad) or "entrance walk clear, street to door")
+
+    # C12 — garden explicitly classified (Correction 3 discipline carried into the site stage)
+    unclassified = [o.region_id for o in site.garden if o.classification is OutdoorClassification.UNCLASSIFIED_REMAINDER]
+    rep.add("C12", "outdoor regions explicitly classified", not unclassified,
+            "; ".join(unclassified) or f"{len(site.garden)} garden region(s) explicitly classified")
+
+    # C13 — every DECLARED access edge is physically realized.
+    #
+    # DesiredAccessTopology is preserved as design INTENT; this check is the comparison between
+    # that intent and the geometry actually built. It never repairs anything — it fails loudly
+    # with the specific physical reason.
+    realized_pairs = {frozenset((c.a, c.b)): c for c in realized}
+    unrealized: list[str] = []
+    for edge in fixture.access.edges:
+        pair = frozenset((edge.a, edge.b))
+        if pair in realized_pairs:
+            continue
+        ra, rb = rects.get(edge.a), rects.get(edge.b)
+        if ra is None or rb is None:
+            unrealized.append(f"{edge.a}-{edge.b} ({edge.kind.value}): zone missing from the plan")
+            continue
+        shared = ra.shared_edge_len_u(rb)
+        if shared <= 0:
+            unrealized.append(
+                f"{edge.a}-{edge.b} ({edge.kind.value}): the zones share no physical interface, "
+                f"so no connection could be built")
+            continue
+        side = _side_between(ra, rb)
+        wall_a = walls.get((edge.a, side)) if side else None
+        if edge.kind is ConnectionKind.OPEN_CONNECTION:
+            unrealized.append(
+                f"{edge.a}-{edge.b} (OPEN_CONNECTION): blocked by a "
+                f"{wall_a.value if wall_a else 'unknown'} wall over their "
+                f"{u_to_m(shared):.2f} m shared boundary — declared open, physically walled")
+        else:
+            unrealized.append(
+                f"{edge.a}-{edge.b} ({edge.kind.value}): shares {u_to_m(shared):.2f} m of wall "
+                f"but no placeable opening was generated")
+    rep.add("C13", "declared access topology is physically realized", not unrealized,
+            "; ".join(unrealized) or
+            f"all {len(fixture.access.edges)} declared edges have a physical connection")
+
+    return rep

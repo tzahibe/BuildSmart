@@ -44,6 +44,8 @@ class ProjectRepository(ABC):
         safe_room: TaggedBool,
         parking_spaces: TaggedInt,
         pool: PoolField,
+        wet_rooms: TaggedInt | None = None,
+        open_plan: TaggedBool | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -167,6 +169,8 @@ class JsonFileProjectRepository(ProjectRepository):
         safe_room: TaggedBool,
         parking_spaces: TaggedInt,
         pool: PoolField,
+        wet_rooms: TaggedInt | None = None,
+        open_plan: TaggedBool | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -181,6 +185,8 @@ class JsonFileProjectRepository(ProjectRepository):
                 "safe_room": safe_room,
                 "parking_spaces": parking_spaces,
                 "pool": pool,
+                "wet_rooms": wet_rooms,
+                "open_plan": open_plan,
                 "requirements_parsed_at": datetime.now(UTC),
             }
         )

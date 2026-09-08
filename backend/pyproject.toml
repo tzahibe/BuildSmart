@@ -10,6 +10,13 @@ dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
     "httpx>=0.27.0",
+    # app.vertical_slice.renderer — first vertical slice's floor-plan renderer (was present
+    # transitively before this; declared explicitly so `uv sync` doesn't silently drop it).
+    "matplotlib>=3.8.0",
+    # app.geometry_domain.booleans — polygon booleans/offsetting via GEOS. Used instead of a
+    # hand-written implementation: robust boolean geometry is where hand-rolled code fails
+    # silently, and it is not the problem this product exists to solve.
+    "shapely>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -30,3 +37,10 @@ dev = [
 
 [tool.uv]
 package = false
+
+[tool.pytest.ini_options]
+# The production suite is `tests/` and only `tests/`. `spikes/` holds isolated throwaway proof
+# code (see spikes/geometry_core/README.md) which must never become a production dependency or
+# gate a production run — it is run on purpose, from its own directory, not swept up by a bare
+# `pytest`. Naming a path explicitly (e.g. `pytest spikes/geometry_core`) still works.
+testpaths = ["tests"]

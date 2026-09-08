@@ -288,6 +288,10 @@ class Project(BaseModel):
     safe_room: TaggedBool | None = None
     parking_spaces: TaggedInt | None = None
     pool: PoolField | None = None
+    #: Demo-path requirements. Both are extracted by the parser and both are user-correctable in
+    #: the REVIEW step before generation.
+    wet_rooms: TaggedInt | None = None
+    open_plan: TaggedBool | None = None
     requirements_parsed_at: datetime | None = None
 
     # Parametric design model — generated deterministically (no LLM) from the fields above by

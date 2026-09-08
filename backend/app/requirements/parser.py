@@ -2,7 +2,7 @@ import os
 from abc import ABC, abstractmethod
 
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.projects.models import PoolField, TaggedBool, TaggedInt
 
@@ -29,6 +29,24 @@ another), output {"value": null, "source": "unknown"} instead — a conflict is 
 "unstated", so do NOT apply the single-story default in that case.
 - If the text clearly states one floor count, output that value with source "requested".
 
+Special rule for `wet_rooms` (bathrooms / shower rooms / toilet rooms):
+- Count every bathroom or shower room the person asks for, including an en-suite attached to a \
+bedroom. A separate guest toilet counts as one.
+- If the text does not mention bathrooms at all, output {"value": 1, "source": "inferred"} — a house \
+with no stated bathroom count is assumed to have one.
+- If the text states a count, output it with source "requested".
+
+Special rule for `open_plan` (is the kitchen open to the living/dining area?):
+- READ NEGATION CAREFULLY. This is the field most easily got wrong.
+- Only output {"value": true, "source": "requested"} when the text positively asks for an open, \
+connected or shared kitchen/living/dining space ("מטבח פתוח", "מטבח פתוח לסלון", "חלל פתוח").
+- If the text asks for a CLOSED or SEPARATE kitchen, or explicitly denies an open one \
+("מטבח סגור", "מטבח נפרד", "לא מטבח פתוח", "בלי מטבח פתוח"), output \
+{"value": false, "source": "requested"}. A sentence containing the words "מטבח" and "פתוח" is NOT \
+automatically an open-plan request — check whether it is being negated.
+- If the text says nothing either way, output {"value": false, "source": "inferred"} — do not assume \
+an open plan that was never asked for.
+
 Special rule for `pool`:
 - If the text never mentions a pool, `pool.requested` is "unknown" (not false), and `length_m`/`width_m` \
 are "unknown" too.
@@ -44,6 +62,11 @@ class RequirementExtraction(BaseModel):
     safe_room: TaggedBool
     parking_spaces: TaggedInt
     pool: PoolField
+    # Added for the demo path: `ProgramSpec` needs both, and neither was extracted before.
+    # Defaulted to "unknown" so extractions constructed before these fields existed still validate;
+    # the live prompt above always fills them.
+    wet_rooms: TaggedInt = Field(default_factory=lambda: TaggedInt(value=None, source="unknown"))
+    open_plan: TaggedBool = Field(default_factory=lambda: TaggedBool(value=None, source="unknown"))
 
 
 class RequirementParser(ABC):

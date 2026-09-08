@@ -23,6 +23,8 @@ def parse_requirements(project_id: str) -> Project:
         safe_room=extraction.safe_room,
         parking_spaces=extraction.parking_spaces,
         pool=extraction.pool,
+        wet_rooms=extraction.wet_rooms,
+        open_plan=extraction.open_plan,
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Project not found")
