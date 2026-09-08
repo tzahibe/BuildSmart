@@ -19,11 +19,20 @@ describe('SketchSvg', () => {
   it('falls back to the legacy renderer when no geometricDesign is supplied (old design payload)', () => {
     const { container } = render(<SketchSvg rooms={legacyAdjacentRooms()} geometricDesign={null} />)
 
-    // Legacy path is reachable and behaves exactly as before: it still infers an interior door from
-    // the long shared wall, plus an exterior entry door (living_room touches the footprint's west
-    // edge) — this is the isolated, unchanged compatibility fallback, not the new contract.
-    expect(container.querySelectorAll('.sketch-svg-door')).toHaveLength(2)
+    // The legacy path is still reachable and still draws the rooms and their walls.
+    expect(container.querySelector('.sketch-svg')).not.toBeNull()
     expect(container.querySelectorAll('.arch-door')).toHaveLength(0)
+  })
+
+  it('legacy renderer draws NO doors, because it has no authoritative door data', () => {
+    // It used to infer an interior door from "shared wall long enough" and an entrance from which
+    // outer edge the living room touched. Both inferences were removed in demo P0: a renderer must
+    // not decide where a door is, and a legacy design carries no backend door data to draw instead.
+    // Two adjacent rooms with a long shared wall, and a living room on the footprint edge — the
+    // exact input that previously produced two invented doors.
+    const { container } = render(<SketchSvg rooms={legacyAdjacentRooms()} geometricDesign={null} />)
+
+    expect(container.querySelectorAll('.sketch-svg-door')).toHaveLength(0)
   })
 
   it('uses the authoritative ArchitecturalFloorPlan renderer once geometricDesign matches the active floor', () => {

@@ -37,11 +37,11 @@ test.describe('City autocomplete — real UI', () => {
     await page.getByLabel('שטח הבנייה (מ"ר)').fill('120')
     await page.getByLabel('תיאור הבית הרצוי').fill('בית עם 2 חדרי שינה')
 
-    await page.getByRole('button', { name: 'המשך לבחירת צורת המבנה' }).click()
+    await page.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }).click()
 
     // rejected with a clear, existing error -- not a silent pass into the next step
     await expect(page.getByText('יש לבחור עיר / רשות מקומית מתוך הרשימה המוצעת')).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'בחר/י את צורת המבנה' })).not.toBeVisible()
+    await expect(page.getByRole('heading', { name: 'בחר/י את מתאר הבניין' })).not.toBeVisible()
   })
 
   test('a hyphenated multi-part city name (מודיעין-מכבים-רעות) is also found and selected correctly', async ({ page }) => {

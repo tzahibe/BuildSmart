@@ -36,8 +36,8 @@ async function fillFormOnly(page: Page, builtAreaM2: number) {
 
 async function goToFootprintStep(page: Page, builtAreaM2 = 120) {
   await fillFormOnly(page, builtAreaM2)
-  await page.getByRole('button', { name: 'המשך לבחירת צורת המבנה' }).click()
-  await expect(page.getByRole('heading', { name: 'בחר/י את צורת המבנה' })).toBeVisible()
+  await page.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }).click()
+  await expect(page.getByRole('heading', { name: 'בחר/י את מתאר הבניין' })).toBeVisible()
 }
 
 test.describe('Footprint selection — real UI, no backend needed until confirmed', () => {
@@ -105,8 +105,8 @@ test.describe('Footprint selection — real UI, no backend needed until confirme
     await expect(page.getByLabel('שטח הבנייה (מ"ר)')).toHaveValue('120')
 
     await page.getByLabel('שטח הבנייה (מ"ר)').fill('240')
-    await page.getByRole('button', { name: 'המשך לבחירת צורת המבנה' }).click()
-    await expect(page.getByRole('heading', { name: 'בחר/י את צורת המבנה' })).toBeVisible()
+    await page.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }).click()
+    await expect(page.getByRole('heading', { name: 'בחר/י את מתאר הבניין' })).toBeVisible()
 
     // recalculated: different dimensions for the same shape at the new area
     const compactDimsAt240 = await page.locator('.footprint-card', { hasText: 'קומפקטי' }).locator('.footprint-card__dims').innerText()

@@ -191,7 +191,16 @@ function CustomCard({
  * view), before any architectural plan generation runs. Presents several PRESET rectangular options
  * (all preserving the same target built area, at genuinely different aspect ratios) plus a CUSTOM
  * option for the user's own exact width/depth. Selection is single (radiogroup semantics) and is
- * reported to the caller as a full `BuildingFootprint`, never as bare numbers. */
+ * reported to the caller as a full `BuildingFootprint`, never as bare numbers.
+ *
+ * WHAT THIS STEP IS, AND WHAT IT IS NOT. It selects AUTHORITATIVE PHYSICAL INPUT: the building's
+ * outline on the plot, which becomes the buildable rectangle the planner must fit the house inside
+ * (backend/app/demo/requirements_view.py's `spec_for` -> `_buildable_from`). It is NOT a choice of
+ * internal layout. The layout strategy, corridor organization, zoning and room arrangement are
+ * INTERNAL PLANNING DECISIONS: `concept_generator.ConceptStrategy` is picked by the generator from
+ * the approved requirements plus this outline, and is never an input the user supplies or sees.
+ * The preset names (COMPACT/BALANCED/WIDE/NARROW) are outline PROPORTIONS, not layout styles —
+ * hence the explicit note in the header, which exists to keep the two from being read as one. */
 function FootprintSelection({ targetAreaM2, value, onChange, onConfirm, onBack, submitting = false }: FootprintSelectionProps) {
   const options = useMemo(() => generateFootprintOptions(targetAreaM2), [targetAreaM2])
 
@@ -212,10 +221,14 @@ function FootprintSelection({ targetAreaM2, value, onChange, onConfirm, onBack, 
     <section className="footprint-selection" dir="rtl">
       <header className="page-header">
         <span className="eyebrow">BuildSmart</span>
-        <h1>בחר/י את צורת המבנה</h1>
+        <h1>בחר/י את מתאר הבניין</h1>
         <p>
-          שטח בנייה יעד: {targetAreaM2.toFixed(2)} מ&quot;ר. כל אפשרות שומרת בקירוב על אותו שטח בנייה — הצורה הסופית
-          עדיין לא נקבעה על ידי המערכת.
+          שטח בנייה יעד: {targetAreaM2.toFixed(2)} מ&quot;ר. זהו המתאר הפיזי של הבניין על המגרש — הגבול החיצוני
+          בלבד. כל אפשרות שומרת בקירוב על אותו שטח בנייה ונבדלת רק ביחס המידות שלה.
+        </p>
+        <p className="footprint-selection__scope-note">
+          החלוקה הפנימית — סידור החדרים, המסדרון והאזורים — נקבעת אוטומטית על ידי המערכת מתוך הדרישות שאישרת,
+          ואינה נבחרת כאן.
         </p>
       </header>
 

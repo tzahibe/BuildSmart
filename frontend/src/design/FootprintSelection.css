@@ -8,6 +8,18 @@
   margin: 0 auto;
 }
 
+/* The scope note that separates AUTHORITATIVE PHYSICAL INPUT (this outline) from INTERNAL PLANNING
+   DECISIONS (the layout the system derives). Set quieter than the lead paragraph — it is a
+   clarification, not a second instruction — but never muted to the point of being missable. */
+.footprint-selection__scope-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  border-inline-start: 3px solid var(--accent-border);
+  padding-inline-start: 10px;
+  text-align: start;
+}
+
 .footprint-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

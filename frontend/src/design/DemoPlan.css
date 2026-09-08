@@ -1,0 +1,12 @@
+.demo-plan { width: 100%; height: 100%; display: block; background: #ffffff; }
+.demo-plot { fill: #f4f6f2; stroke: #d5dbd2; stroke-width: 0.05; }
+.demo-garden { fill: #d9ead3; }
+.demo-walk { fill: #e8d9b5; }
+.demo-parking { fill: #d9d9d9; stroke: #9aa0a6; stroke-width: 0.04; }
+.demo-parking-label { font-size: 0.7px; fill: #5f6368; text-anchor: middle; dominant-baseline: middle; }
+.demo-footprint { fill: #ffffff; }
+.demo-room-name { font-size: 0.52px; fill: #1f2933; text-anchor: middle; dominant-baseline: middle; }
+.demo-room-area { font-size: 0.4px; fill: #66707a; text-anchor: middle; dominant-baseline: middle; }
+.demo-door { stroke: #ffffff; stroke-width: 0.16; }
+.demo-door--entrance { stroke: #2f6b34; stroke-width: 0.2; }
+.demo-window { stroke: #2f7fd6; stroke-width: 0.18; }

@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import pytest
 
+from app.geometry_domain.constraints import BuildableRegion
+from app.geometry_domain.primitives import MultiRegion, Region, Ring
+from app.geometry_domain.provenance import Authority, Provenance, Source
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_generator import (
     ConceptStrategy,
@@ -247,3 +250,81 @@ def test_metrics_are_reported(name):
     assert metrics.latency_ms > 0
     assert metrics.room_count > 0
     assert metrics.wing_count_offered >= 1
+
+
+# --------------------------------------------------------------------------- closed-plan house
+#
+# Reported from the product: 3 bedrooms, 2 wet rooms, CLOSED kitchen. Generation failed with
+#   C5: KITCHEN; C8: MASTER; C13: HALL-KITCHEN (DOOR): the zones share no physical interface
+# for every footprint size and proportion tried. Open-plan hid both defects, so the whole
+# open_plan=False half of the supported scope had never actually produced a plan.
+
+CLOSED_PLAN_3BR = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=False)
+
+
+def _closed_plan_run(width_m: float, depth_m: float):
+    spec = ArchitecturalSpec(
+        plot=PlotSpec(width_m=width_m + 6.0, depth_m=depth_m + 9.5,
+                      front_setback_m=5.5, side_setback_m=3.0, rear_setback_m=4.0),
+        program=CLOSED_PLAN_3BR,
+    )
+    # The buildable region IS the selected footprint rectangle, exactly as the product builds it
+    # (app/demo/service.py::_buildable_from) — this is the geometry the reported failure ran on.
+    origin_x, origin_y = spec.plot.buildable_origin_m()
+    bw, bd = spec.plot.buildable_size_m()
+    buildable = BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y, bw, bd))),
+        Provenance(Source.USER, Authority.ASSUMED, ref="selected building footprint"),
+    )
+    return run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
+                       program=spec.program)
+
+
+@pytest.mark.parametrize("width_m,depth_m", [(11.83, 11.83), (14.23, 10.54), (17.49, 9.72)])
+def test_closed_plan_house_generates_a_valid_plan(width_m, depth_m):
+    result = _closed_plan_run(width_m, depth_m)
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
+
+
+@pytest.mark.parametrize("width_m,depth_m", [(11.83, 11.83), (14.23, 10.54), (17.49, 9.72)])
+def test_closed_kitchen_is_entered_through_a_real_interface(width_m, depth_m):
+    """DEFECT 1. The front-band parti sizes the FIRST public zone to span the hall's x-range, so
+    every later band zone begins at the hall's far edge and shares no boundary with it. A door
+    was nevertheless declared from HALL to each public zone, and HALL-KITCHEN could never be
+    built. A closed band is a chain: the hall enters the first zone, the rest follow from it."""
+    result = _closed_plan_run(width_m, depth_m)
+    rooms = {r.zone_id: r for r in result.design.rooms}
+
+    def touches(a, b) -> bool:
+        ax, ay, aw, ah = rooms[a].rect_m
+        bx, by, bw, bh = rooms[b].rect_m
+        x_overlap = min(ax + aw, bx + bw) - max(ax, bx)
+        y_overlap = min(ay + ah, by + bh) - max(ay, by)
+        return (abs(x_overlap) < 1e-9 and y_overlap > 1e-9) or (abs(y_overlap) < 1e-9 and x_overlap > 1e-9)
+
+    # Whatever the kitchen is entered from, it must actually be next to it. In the band parti
+    # that is the living room, never the hall.
+    for door in result.design.interior_doors:
+        pair = {door.a, door.b}
+        if "KITCHEN" in pair:
+            other = (pair - {"KITCHEN"}).pop()
+            assert touches("KITCHEN", other), f"door KITCHEN-{other} across zones that do not touch"
+
+    for check_id in ("C5", "C13"):
+        check = next(c for c in result.validation.checks if c.check_id == check_id)
+        assert check.passed, f"{check_id}: {check.detail}"
+
+
+@pytest.mark.parametrize("width_m,depth_m", [(11.83, 11.83), (14.23, 10.54), (17.49, 9.72)])
+def test_master_in_a_shared_row_still_reaches_the_envelope(width_m, depth_m):
+    """DEFECT 2. A shared row is split again, so its inner (corridor-facing) member holds no
+    part of the column's outer edge. Placed first in a rear column it was enclosed on all four
+    sides — the band to the north, the next row to the south — and MASTER ended up windowless
+    while its own ensuite held the pair's only exterior wall. Shared rows now go last, where the
+    column's south edge is building envelope."""
+    result = _closed_plan_run(width_m, depth_m)
+    master = next(r for r in result.design.rooms if r.zone_id == "MASTER")
+    assert "EXTERIOR" in master.walls.values(), master.walls
+    c8 = next(c for c in result.validation.checks if c.check_id == "C8")
+    assert c8.passed, c8.detail

@@ -85,80 +85,47 @@ interface LegacyFloorPlanProps {
   activeFloor: number
 }
 
-/** LEGACY rendering path — kept, unchanged in behavior, ONLY as an isolated compatibility fallback for
+/** LEGACY rendering path — a compatibility fallback for
  * a design generated before the backend produced `GeometricDesign` (see this file's module docstring
- * and `Project.geometric_design` in `types.ts`). Every door here is still inferred from "shared wall
- * segment long enough" — the exact assumption BUILDSMART_ARCHITECTURAL_UI_V1 requires removed from the
- * PRIMARY rendering path — because a legacy design genuinely has no backend door data to render
- * instead. New/regenerated designs never reach this component; see `SketchSvg` below. */
+ * and `Project.geometric_design` in `types.ts`).
+ *
+ * It draws NO doors and NO entrance. It used to infer both from room adjacency; that inference was
+ * removed in demo P0. A legacy design has no authoritative opening data, so none is drawn rather
+ * than invented. New designs never reach this component. */
 function LegacyFloorPlan({ floorRooms, groundFloor, activeFloor }: LegacyFloorPlanProps) {
   const maxX = Math.max(...floorRooms.map((room) => room.x + room.width_m), 0)
   const maxDepth = Math.max(...floorRooms.map((room) => room.y + room.depth_m), 0)
   const viewBox = `${-SIDE_PAD_M} ${-TOP_PAD_M} ${maxX + SIDE_PAD_M + RIGHT_PAD_M} ${maxDepth + TOP_PAD_M + SIDE_PAD_M}`
 
+  // The entrance door was inferred here too, from which outer edge the living room happened to
+  // touch. Also removed: a legacy design has no authoritative entrance.
   const livingRoom = activeFloor === groundFloor ? floorRooms.find((room) => room.type === 'living_room') : undefined
   const entryEdge = livingRoom ? outerEdgeTouched(livingRoom, maxX, maxDepth) : null
 
-  let exteriorWallPath: string
-  let exteriorDoorPath: string | null = null
-  if (livingRoom && entryEdge) {
-    const isHorizontalEdge = entryEdge === 'north' || entryEdge === 'south'
-    const span = isHorizontalEdge ? livingRoom.width_m : livingRoom.depth_m
-    const half = Math.min(DOOR_WIDTH_M / 2, span / 2 - 0.1)
-    const center = isHorizontalEdge ? livingRoom.x + livingRoom.width_m / 2 : livingRoom.y + livingRoom.depth_m / 2
-    const gapStart = center - half
-    const gapEnd = center + half
+  // The entrance door was inferred here too — from which outer edge the living room happened to
+  // touch — and the exterior wall was broken to make a gap for it. Both removed: a legacy design
+  // has no authoritative entrance, so the envelope is drawn closed and no door is invented.
+  const exteriorWallPath = `M 0 0 L ${maxX} 0 L ${maxX} ${maxDepth} L 0 ${maxDepth} Z`
+  const exteriorDoorPath: string | null = null
 
-    if (entryEdge === 'south') {
-      exteriorWallPath =
-        `M 0 0 L ${maxX} 0 L ${maxX} ${maxDepth} L ${gapEnd} ${maxDepth} ` +
-        `M ${gapStart} ${maxDepth} L 0 ${maxDepth} L 0 0`
-      exteriorDoorPath = doorSymbolPath([gapStart, maxDepth], [gapStart, maxDepth - DOOR_WIDTH_M], [gapEnd, maxDepth], DOOR_WIDTH_M)
-    } else if (entryEdge === 'north') {
-      exteriorWallPath = `M ${gapEnd} 0 L ${maxX} 0 L ${maxX} ${maxDepth} L 0 ${maxDepth} L 0 0 L ${gapStart} 0`
-      exteriorDoorPath = doorSymbolPath([gapStart, 0], [gapStart, DOOR_WIDTH_M], [gapEnd, 0], DOOR_WIDTH_M)
-    } else if (entryEdge === 'west') {
-      exteriorWallPath = `M 0 ${gapEnd} L 0 ${maxDepth} L ${maxX} ${maxDepth} L ${maxX} 0 L 0 0 L 0 ${gapStart}`
-      exteriorDoorPath = doorSymbolPath([0, gapStart], [DOOR_WIDTH_M, gapStart], [0, gapEnd], DOOR_WIDTH_M)
-    } else {
-      exteriorWallPath = `M ${maxX} ${gapEnd} L ${maxX} ${maxDepth} L 0 ${maxDepth} L 0 0 L ${maxX} 0 L ${maxX} ${gapStart}`
-      exteriorDoorPath = doorSymbolPath([maxX, gapStart], [maxX - DOOR_WIDTH_M, gapStart], [maxX, gapEnd], DOOR_WIDTH_M)
-    }
-  } else {
-    exteriorWallPath = `M 0 0 L ${maxX} 0 L ${maxX} ${maxDepth} L 0 ${maxDepth} Z`
-  }
-
+  // ARCHITECTURAL INFERENCE REMOVED (demo P0).
+  //
+  // This block used to decide `hasDoor = segmentLength > doorSpan + 0.2` — inventing an interior
+  // door wherever two rooms happened to share a long enough wall, and drawing a swing for it. A
+  // renderer must not decide where a door is. A legacy design carries no authoritative door data,
+  // so the honest rendering is a wall with NO opening: interior partitions are drawn unbroken and
+  // no door symbol is produced. Doors, openings and windows now come only from the backend, on the
+  // demo path (`DemoPlan.tsx` + `DemoDesign`).
   const interiorEdges: { key: string; wallPath: string; doorPath: string | null }[] = []
   for (let i = 0; i < floorRooms.length; i++) {
     for (let j = i + 1; j < floorRooms.length; j++) {
       const edge = sharedEdge(floorRooms[i], floorRooms[j])
       if (!edge) continue
-
-      const segmentLength = edge.end - edge.start
-      const doorSpan = Math.min(DOOR_WIDTH_M, segmentLength * 0.7)
-      const hasDoor = segmentLength > doorSpan + 0.2
-      const mid = (edge.start + edge.end) / 2
-      const gapStart = mid - doorSpan / 2
-      const gapEnd = mid + doorSpan / 2
-
-      let wallPath: string
-      let doorPath: string | null = null
-      if (edge.orientation === 'vertical') {
-        wallPath = hasDoor
-          ? `M ${edge.coord} ${edge.start} L ${edge.coord} ${gapStart} M ${edge.coord} ${gapEnd} L ${edge.coord} ${edge.end}`
-          : `M ${edge.coord} ${edge.start} L ${edge.coord} ${edge.end}`
-        if (hasDoor) {
-          doorPath = doorSymbolPath([edge.coord, gapStart], [edge.coord + doorSpan, gapStart], [edge.coord, gapEnd], doorSpan)
-        }
-      } else {
-        wallPath = hasDoor
-          ? `M ${edge.start} ${edge.coord} L ${gapStart} ${edge.coord} M ${gapEnd} ${edge.coord} L ${edge.end} ${edge.coord}`
+      const wallPath =
+        edge.orientation === 'vertical'
+          ? `M ${edge.coord} ${edge.start} L ${edge.coord} ${edge.end}`
           : `M ${edge.start} ${edge.coord} L ${edge.end} ${edge.coord}`
-        if (hasDoor) {
-          doorPath = doorSymbolPath([gapStart, edge.coord], [gapStart, edge.coord + doorSpan], [gapEnd, edge.coord], doorSpan)
-        }
-      }
-      interiorEdges.push({ key: `${i}-${j}`, wallPath, doorPath })
+      interiorEdges.push({ key: `${i}-${j}`, wallPath, doorPath: null })
     }
   }
 

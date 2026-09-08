@@ -370,6 +370,29 @@ def _orient_row(row: list[ProgramRoom], corridor_on_east: bool) -> list[ProgramR
     return dependent + corridor_facing if corridor_on_east else corridor_facing + dependent
 
 
+def _daylight_order(rows: list[list[ProgramRoom]]) -> list[list[ProgramRoom]]:
+    """Order one REAR column's rows so a shared row keeps its inner member on the envelope.
+
+    A full-width row spans its column, so it always reaches the column's outer long edge. A
+    SHARED row is split again by a V-cut: the outer slot takes that edge and the inner slot —
+    the corridor-facing one, by `_orient_row` — is left with only the row's own north and south
+    edges. In the COLUMN partis the column runs the full depth, so its first row's north edge is
+    the building envelope and the inner member still sees daylight. In the FRONT-BAND parti it
+    does not: the rear columns start under the public band, so a shared row placed first is
+    enclosed on all four sides — north the band, south the next row, east the hall, west its own
+    ensuite. That is exactly how a 3-bedroom closed-plan house put MASTER in a windowless box and
+    failed C8, with an ensuite bathroom holding the only exterior wall of the pair.
+
+    Moving shared rows LAST gives their inner member the column's south edge, which is building
+    envelope in this parti. It is also the better arrangement architecturally — the master suite
+    lands at the quiet rear rather than against the living space.
+
+    With more than one shared row in a column only the last would be fixed; the supported
+    programme has at most one ensuite (see `build_room_program`), so that case cannot arise here.
+    """
+    return [row for row in rows if len(row) < 2] + [row for row in rows if len(row) >= 2]
+
+
 @dataclass(frozen=True)
 class ColumnPlan:
     width_m: float
@@ -555,12 +578,26 @@ def _forced_chain(rows: list[list[ProgramRoom]], depths: list[float], net_width:
 
 def _build_access(rooms: list[ProgramRoom], hall_ids: list[str],
                   public_ids: list[str], open_plan: bool,
-                  hall_for: dict[str, str]) -> tuple[DesiredAccessTopology, tuple[tuple[str, ...], ...]]:
+                  hall_for: dict[str, str],
+                  hall_borders_only_first_public: bool = False,
+                  ) -> tuple[DesiredAccessTopology, tuple[tuple[str, ...], ...]]:
     """Access topology from the programme — never from the rectangle dimensions.
 
     Rules applied, all general: circulation reaches every private and service room directly;
     the safe room is reached from circulation, never through a bedroom; an ensuite is entered
     from its bedroom; open-plan zones connect with OPEN_CONNECTION and therefore no doors.
+
+    `hall_borders_only_first_public` states a PARTI fact, not a dimension: in the front-band
+    parti the public zones lie side by side across the front and the hall runs south from under
+    the FIRST of them (`_plan_front_band` sizes that zone to span the hall's x-range exactly so
+    the hall has a public neighbour at all). Every later band zone therefore begins at the hall's
+    far edge and shares no boundary with it. Declaring HALL -> each public zone there produced a
+    door that could never be built: with the kitchen closed rather than open-plan, HALL-KITCHEN
+    was declared, C13 rejected it as unrealized and C5 found the kitchen unreachable. A closed
+    band is a CHAIN — the hall enters the first zone, and each later zone is entered from its
+    neighbour, which is the interface that actually exists. In the column partis every public
+    zone is its own full-width row against the spine, so each really does border circulation and
+    the flat form stays correct.
     """
     edges: list[DesiredAccessEdge] = []
     groups: list[tuple[str, ...]] = []
@@ -570,6 +607,10 @@ def _build_access(rooms: list[ProgramRoom], hall_ids: list[str],
         for a, b in zip(public_ids, public_ids[1:]):
             edges.append(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION))
         edges.append(DesiredAccessEdge(hall_ids[0], public_ids[0], ConnectionKind.DOOR))
+    elif hall_borders_only_first_public:
+        edges.append(DesiredAccessEdge(hall_ids[0], public_ids[0], ConnectionKind.DOOR))
+        for a, b in zip(public_ids, public_ids[1:]):
+            edges.append(DesiredAccessEdge(a, b, ConnectionKind.DOOR))
     else:
         for public_id in public_ids:
             edges.append(DesiredAccessEdge(hall_ids[0], public_id, ConnectionKind.DOOR))
@@ -784,8 +825,10 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
         for _ in range(7):
             trial = footprint_of(candidate, width, depth)
             for split_at in split_options:
-                west_try = [_orient_row(r, corridor_on_east=True) for r in rows[:split_at]]
-                east_try = [_orient_row(r, corridor_on_east=False) for r in rows[split_at:]]
+                west_try = [_orient_row(r, corridor_on_east=True)
+                            for r in _daylight_order(rows[:split_at])]
+                east_try = [_orient_row(r, corridor_on_east=False)
+                            for r in _daylight_order(rows[split_at:])]
                 attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
                                                    u_to_m(trial.w), u_to_m(trial.h))
                 if attempt is not None:
@@ -817,7 +860,8 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
 
     hall_for = {r.zone_id: "HALL" for r in private}
     access, groups = _build_access(rooms, ["HALL"], [r.zone_id for r in public],
-                                   spec.program.open_plan_living, hall_for)
+                                   spec.program.open_plan_living, hall_for,
+                                   hall_borders_only_first_public=True)
 
     wing = Wing("W", footprint.x, footprint.y, footprint.w, footprint.h, tree)
     fixture = Fixture(f"GEN_{strategy.value}", (wing,),

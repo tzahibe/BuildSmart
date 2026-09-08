@@ -156,3 +156,23 @@
     gap: 4px;
   }
 }
+
+
+/* Product-level failure from the demo pipeline: unsupported scope or an unrealizable brief.
+   Shown above the REVIEW screen so the user can correct the request — the requirements are never
+   silently changed for them. */
+.demo-error {
+  direction: rtl;
+  text-align: right;
+  max-width: 640px;
+  margin: 24px auto -8px;
+  padding: 14px 16px;
+  border: 1px solid #e6c3c0;
+  border-radius: 8px;
+  background: #fdf3f2;
+  color: #8a2f28;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.demo-error-detail { font-size: 12px; color: #a3736f; }

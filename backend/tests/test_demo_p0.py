@@ -319,3 +319,54 @@ def test_old_solver_path_is_not_used_by_the_demo_service():
                if isinstance(n, ast.ImportFrom) and n.module]
     assert not any("app.geometry.solver" in m or "app.architect" in m for m in modules)
     assert any("vertical_slice" in m for m in modules)
+
+
+# ------------------------------------------------------------------ review edits (PUT)
+
+def test_user_correction_becomes_authoritative_and_drives_generation(client):
+    """The REVIEW screen's whole purpose: what the user corrects is what gets built."""
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+
+    before = client.post(f"/projects/{project_id}/design/demo").json()
+    assert sum(1 for r in before["rooms"] if r["type"] in ("BEDROOM", "MASTER_BEDROOM")) == 3
+
+    edited = client.put(f"/projects/{project_id}/review", json={"bedrooms": 2})
+    assert edited.status_code == 200
+    assert edited.json()["bedrooms"] == {"value": 2, "source": "requested"}
+
+    after = client.post(f"/projects/{project_id}/design/demo").json()
+    assert sum(1 for r in after["rooms"] if r["type"] in ("BEDROOM", "MASTER_BEDROOM")) == 2
+
+
+def test_review_edit_leaves_untouched_fields_alone(client):
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    original = client.get(f"/projects/{project_id}/review").json()
+
+    updated = client.put(f"/projects/{project_id}/review", json={"wet_rooms": 3}).json()
+    assert updated["wet_rooms"]["value"] == 3
+    assert updated["bedrooms"] == original["bedrooms"]
+    assert updated["open_plan"] == original["open_plan"]
+
+
+def test_correcting_into_unsupported_scope_is_refused_not_planned(client):
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    client.put(f"/projects/{project_id}/review", json={"bedrooms": 4})
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "BEDROOMS_UNSUPPORTED"
+
+
+def test_turning_off_open_plan_in_review_changes_the_built_plan(client):
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    open_plan = client.post(f"/projects/{project_id}/design/demo").json()
+    assert [i for i in open_plan["open_interfaces"] if len(i["room_ids"]) > 1]
+
+    client.put(f"/projects/{project_id}/review", json={"open_plan": False})
+    closed = client.post(f"/projects/{project_id}/design/demo").json()
+    public = {r["id"] for r in closed["rooms"] if r["type"] in ("LIVING", "KITCHEN", "DINING")}
+    assert not [i for i in closed["open_interfaces"]
+                if len(i["room_ids"]) > 1 and set(i["room_ids"]) <= public]

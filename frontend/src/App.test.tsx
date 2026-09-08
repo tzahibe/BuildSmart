@@ -45,6 +45,23 @@ function fakeProject(overrides: Record<string, unknown> = {}) {
   }
 }
 
+/** The `GET /projects/{id}/review` body — only the fields ReviewPage actually reads. */
+function fakeReview(overrides: Record<string, unknown> = {}) {
+  return {
+    bedrooms: { value: 3, source: 'requested' },
+    safe_room: { value: true, source: 'inferred' },
+    wet_rooms: { value: 2, source: 'inferred' },
+    open_plan: { value: true, source: 'requested' },
+    parking_spaces: { value: 2, source: 'inferred' },
+    floors: { value: 1, source: 'inferred' },
+    built_area_m2: 120,
+    footprint_width_m: 10.95,
+    footprint_depth_m: 10.95,
+    description: 'בית עם 3 חדרי שינה',
+    ...overrides,
+  }
+}
+
 /** Fills and submits the initial project-requirements form exactly as a real user would — the same
  * fields/labels the real UI exposes (see e2e/spatial-edit.spec.ts's own helper for the real-backend
  * equivalent of this). Stops right after submission, at the new FOOTPRINT SELECTION step — this
@@ -61,8 +78,8 @@ async function fillAndSubmitForm(builtAreaM2 = '120') {
   fireEvent.change(screen.getByLabelText('שטח מגרש (מ"ר)'), { target: { value: '400' } })
   fireEvent.change(screen.getByLabelText('שטח הבנייה (מ"ר)'), { target: { value: builtAreaM2 } })
   fireEvent.change(screen.getByLabelText('תיאור הבית הרצוי'), { target: { value: 'בית עם 3 חדרי שינה' } })
-  fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת צורת המבנה' }))
-  await waitFor(() => expect(screen.getByText('בחר/י את צורת המבנה')).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
+  await waitFor(() => expect(screen.getByText('בחר/י את מתאר הבניין')).toBeInTheDocument())
 }
 
 describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', () => {
@@ -81,6 +98,9 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
         }
         if (url === '/projects' && method === 'POST') {
           return new Response(JSON.stringify(fakeProject()), { status: 201 })
+        }
+        if (url.endsWith('/review') && method === 'GET') {
+          return new Response(JSON.stringify(fakeReview()), { status: 200 })
         }
         if (url.endsWith('/requirements') && method === 'POST') {
           return new Response(JSON.stringify(fakeProject({ requirements_parsed_at: '2026-01-01T00:00:00Z' })), { status: 200 })
@@ -127,8 +147,8 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(screen.getByLabelText('שטח הבנייה (מ"ר)')).toHaveValue(120)
 
     // going forward again shows freshly (re)generated options, and nothing was ever created
-    fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת צורת המבנה' }))
-    await waitFor(() => expect(screen.getByText('בחר/י את צורת המבנה')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
+    await waitFor(() => expect(screen.getByText('בחר/י את מתאר הבניין')).toBeInTheDocument())
     expect(projectCreatePostCalls()).toHaveLength(0)
   })
 
@@ -211,5 +231,69 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(body.selected_footprint.width_m).toBe(wide.width_m)
     expect(body.selected_footprint.depth_m).toBe(wide.depth_m)
     expect(body.selected_footprint.source).toBe('PRESET')
+  })
+
+  // REGRESSION: "חזרה לתיאור" used to land on a blank form. Creating the project cleared `form` and
+  // `footprint`, so every field the user had just typed — city, street, both areas, and the whole
+  // free-text brief — was gone, and the brief in particular had to be retyped from scratch just to
+  // change one requirement. Going back is a normal step in this flow, not an exit from it.
+  it('going back to the description from REVIEW keeps everything the user entered', async () => {
+    render(<App />)
+    await fillAndSubmitForm('120')
+    fireEvent.click(screen.getByText('קומפקטי'))
+    fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' }))
+
+    await waitFor(() => expect(screen.getByText('זה מה שהבנתי')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'חזרה לתיאור' }))
+
+    await waitFor(() => expect(screen.getByLabelText('תיאור הבית הרצוי')).toBeInTheDocument())
+    expect(screen.getByLabelText('תיאור הבית הרצוי')).toHaveValue('בית עם 3 חדרי שינה')
+    expect(screen.getByLabelText('עיר / רשות מקומית')).toHaveValue('תל אביב')
+    expect(screen.getByLabelText('רחוב ומספר')).toHaveValue('הרצל 1')
+    expect(screen.getByLabelText('שטח מגרש (מ"ר)')).toHaveValue(400)
+    expect(screen.getByLabelText('שטח הבנייה (מ"ר)')).toHaveValue(120)
+  })
+
+  // The confirmed footprint is part of "what the user entered" too — coming back must not silently
+  // drop a still-valid selection and force the user to pick a shape again.
+  it('the confirmed footprint survives going back, as long as the built area has not changed', async () => {
+    render(<App />)
+    await fillAndSubmitForm('120')
+    fireEvent.click(screen.getByText('רחב'))
+    fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' }))
+
+    await waitFor(() => expect(screen.getByText('זה מה שהבנתי')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'חזרה לתיאור' }))
+    await waitFor(() => expect(screen.getByLabelText('תיאור הבית הרצוי')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
+    await waitFor(() => expect(screen.getByText('בחר/י את מתאר הבניין')).toBeInTheDocument())
+    // still selected, so the "continue" button is live without re-picking anything
+    expect(screen.getByRole('button', { name: 'המשך ליצירת התכנון' })).toBeEnabled()
+  })
+
+  // CATEGORY SEPARATION. This step selects AUTHORITATIVE PHYSICAL INPUT (the building outline) and
+  // nothing else: the internal layout strategy, corridor organization and room arrangement are the
+  // planner's decisions, derived from the approved requirements. The screen must say so, and the
+  // request must carry no layout/strategy/concept field for the backend to obey.
+  it('the footprint step selects a physical outline, never an internal layout', async () => {
+    render(<App />)
+    await fillAndSubmitForm('120')
+
+    expect(screen.getByText(/החלוקה הפנימית/)).toBeInTheDocument()
+    expect(screen.getByText(/נקבעת אוטומטית על ידי המערכת/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('קומפקטי'))
+    fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' }))
+    await waitFor(() => expect(projectCreatePostCalls()).toHaveLength(1))
+
+    const body = JSON.parse(projectCreatePostCalls()[0][1]!.body as string)
+    for (const key of ['layout', 'strategy', 'concept', 'layout_strategy', 'concept_strategy']) {
+      expect(body).not.toHaveProperty(key)
+      expect(body.selected_footprint).not.toHaveProperty(key)
+    }
+    // what it DOES carry is geometry: an outline, its dimensions, and the area it preserves
+    expect(body.selected_footprint.width_m).toBeGreaterThan(0)
+    expect(body.selected_footprint.polygon).toHaveLength(4)
   })
 })

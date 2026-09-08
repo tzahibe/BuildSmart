@@ -1,4 +1,5 @@
 import type { GeometricDesign } from './design/geometricDesign'
+import type { DemoDesign, RequirementsReview, ReviewEdit } from './design/demoDesign'
 import type { SpatialEditRequest } from './design/spatialEdit'
 import type { ChatMutationResponse, Conversation, Project, ProjectCreatePayload, ProjectUpdateRequest } from './types'
 
@@ -266,4 +267,59 @@ export function confirmProposal(projectId: string, proposalId: string): Promise<
 
 export function cancelProposal(projectId: string, proposalId: string): Promise<ChatMutationResponse> {
   return postProposalAction(projectId, proposalId, 'cancel')
+}
+
+
+/** A product-level failure from the demo pipeline: an unsupported request, or a brief the
+ * validated pipeline could not realize. `message` is written for a person and is safe to show
+ * as-is; `detail` carries the measured reason for support. */
+export class DemoPipelineError extends Error {
+  code: string
+  detail: string
+
+  constructor(code: string, message: string, detail: string) {
+    super(message)
+    this.code = code
+    this.detail = detail
+  }
+}
+
+async function demoErrorFrom(response: Response): Promise<DemoPipelineError> {
+  let code = 'UNKNOWN'
+  let message = 'אירעה שגיאה בעת יצירת התוכנית.'
+  let detail = ''
+  try {
+    const body = await response.json()
+    const payload = body?.detail
+    if (payload && typeof payload === 'object') {
+      code = payload.code ?? code
+      message = payload.message ?? message
+      detail = payload.detail ?? ''
+    }
+  } catch {
+    /* keep the defaults */
+  }
+  return new DemoPipelineError(code, message, detail)
+}
+
+export async function getRequirementsReview(projectId: string): Promise<RequirementsReview> {
+  const response = await fetch(`/projects/${projectId}/review`)
+  if (!response.ok) throw await demoErrorFrom(response)
+  return response.json()
+}
+
+export async function updateRequirementsReview(projectId: string, edit: ReviewEdit): Promise<RequirementsReview> {
+  const response = await fetch(`/projects/${projectId}/review`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(edit),
+  })
+  if (!response.ok) throw await demoErrorFrom(response)
+  return response.json()
+}
+
+export async function generateDemoDesign(projectId: string): Promise<DemoDesign> {
+  const response = await fetch(`/projects/${projectId}/design/demo`, { method: 'POST' })
+  if (!response.ok) throw await demoErrorFrom(response)
+  return response.json()
 }

@@ -1,14 +1,26 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import './App.css'
-import { createProject, generateDesign, parseRequirements, PipelineStepError } from './api'
+import {
+  createProject,
+  DemoPipelineError,
+  generateDemoDesign,
+  generateDesign,
+  getRequirementsReview,
+  parseRequirements,
+  PipelineStepError,
+  updateRequirementsReview,
+} from './api'
 import Autocomplete from './Autocomplete'
 import DesignPage from './design/DesignPage'
+import ReviewPage from './design/ReviewPage'
+import DemoWorkspace from './design/DemoWorkspace'
+import type { DemoDesign, RequirementsReview, ReviewEdit } from './design/demoDesign'
 import FootprintSelection from './design/FootprintSelection'
 import { toSelectedFootprintPayload, type BuildingFootprint } from './design/footprint'
 import LoadingScreen from './design/LoadingScreen'
 import type { FormState, Project, ValidationErrorDetail } from './types'
 
-type View = 'form' | 'footprint' | 'loading' | 'design'
+type View = 'form' | 'footprint' | 'loading' | 'review' | 'generating' | 'plan' | 'design'
 
 const initialForm: FormState = {
   city: '',
@@ -27,6 +39,11 @@ function App() {
   const [submitting, setSubmitting] = useState(false)
   const [view, setView] = useState<View>('form')
   const [pipelineError, setPipelineError] = useState<string | null>(null)
+  // DEMO PATH state. The brief is parsed, REVIEWED and corrected, and only then generated through
+  // the validated pipeline (POST /design/demo). Nothing here reuses the old solver route.
+  const [review, setReview] = useState<RequirementsReview | null>(null)
+  const [demoDesign, setDemoDesign] = useState<DemoDesign | null>(null)
+  const [demoError, setDemoError] = useState<{ message: string; detail: string } | null>(null)
   // The SELECTED BUILDING FOOTPRINT (FOOTPRINT SELECTION step) — a real, typed choice the user makes
   // explicitly, not just which card looks highlighted (see design/footprint.ts's module docstring).
   // `null` until a valid option is chosen; cleared whenever `built_area_m2` changes (see the input's
@@ -91,14 +108,18 @@ function App() {
         if (cancelled) return
         setProject(parsed)
 
-        const designed = await generateDesign(projectId)
+        // DEMO PATH: stop after parsing and show the user what we understood. Generation only
+        // happens once they confirm — the old "parse then immediately solve" jump is gone.
+        const parsedReview = await getRequirementsReview(projectId)
         if (cancelled) return
-        setProject(designed)
-        setView('design')
+        setReview(parsedReview)
+        setView('review')
       } catch (error) {
         if (cancelled) return
         const message =
-          error instanceof PipelineStepError ? error.message : 'אירעה שגיאה בלתי צפויה בהכנת התכנון'
+          error instanceof PipelineStepError || error instanceof DemoPipelineError
+            ? error.message
+            : 'אירעה שגיאה בלתי צפויה בהכנת התכנון'
         setPipelineError(message)
       }
     }
@@ -177,8 +198,12 @@ function App() {
       if (response.status === 201) {
         const data = (await response.json()) as Project
         setProject(data)
-        setForm(initialForm)
-        setFootprint(null)
+        // The form and the confirmed footprint are deliberately NOT cleared here. Creating the
+        // project is not the end of the flow — REVIEW's "חזרה לתיאור" comes straight back to this
+        // form, and wiping it on the way out meant the user returned to an empty form and had to
+        // retype everything they had just entered. The entered data is the user's, so it survives
+        // until they change it themselves; the built-area field still clears `footprint` on its own
+        // (see its onChange) so a stale selection can never be carried forward.
         setPipelineError(null)
         setView('loading')
       } else if (response.status === 422) {
@@ -202,6 +227,59 @@ function App() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function handleConfirmReview(edit: ReviewEdit) {
+    if (project === null) return
+    setDemoError(null)
+    setView('generating')
+    try {
+      const updated = await updateRequirementsReview(project.project_id, edit)
+      setReview(updated)
+      const design = await generateDemoDesign(project.project_id)
+      setDemoDesign(design)
+      setView('plan')
+    } catch (error) {
+      // Product-level failure: an unsupported request or an unrealizable brief. The message is
+      // shown as-is and the requirements are left exactly as the user set them — never silently
+      // adjusted to something that would have worked.
+      const failure =
+        error instanceof DemoPipelineError
+          ? { message: error.message, detail: error.detail }
+          : { message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
+      setDemoError(failure)
+      setView('review')
+    }
+  }
+
+  if (view === 'review' && review) {
+    return (
+      <>
+        {demoError ? (
+          <div className="demo-error" role="alert">
+            <strong>{demoError.message}</strong>
+            {demoError.detail ? <span className="demo-error-detail">{demoError.detail}</span> : null}
+          </div>
+        ) : null}
+        <ReviewPage review={review} onConfirm={handleConfirmReview} onBack={() => setView('form')} />
+      </>
+    )
+  }
+
+  if (view === 'generating') {
+    return <LoadingScreen />
+  }
+
+  if (view === 'plan' && demoDesign) {
+    return (
+      <DemoWorkspace
+        design={demoDesign}
+        onChangeRequirements={() => {
+          setDemoError(null)
+          setView('review')
+        }}
+      />
+    )
   }
 
   if (view === 'loading') {
@@ -316,7 +394,7 @@ function App() {
         </label>
 
         <button type="submit" className="submit-button">
-          המשך לבחירת צורת המבנה
+          המשך לבחירת מתאר הבניין
         </button>
       </form>
 
