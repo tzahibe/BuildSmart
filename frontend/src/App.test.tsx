@@ -75,7 +75,10 @@ async function fillAndSubmitForm(builtAreaM2 = '120') {
   fireEvent.change(screen.getByLabelText('עיר / רשות מקומית'), { target: { value: 'תל אביב' } })
   await waitFor(() => expect(screen.getByLabelText('רחוב ומספר')).toBeEnabled())
   fireEvent.change(screen.getByLabelText('רחוב ומספר'), { target: { value: 'הרצל 1' } })
-  fireEvent.change(screen.getByLabelText('שטח מגרש (מ"ר)'), { target: { value: '400' } })
+  // The site is entered as DIMENSIONS now — an area cannot say whether a house fits (same area,
+  // different shape, different answer) and the setbacks are edge-relative.
+  fireEvent.change(screen.getByLabelText("רוחב מגרש (מ')"), { target: { value: '20' } })
+  fireEvent.change(screen.getByLabelText("עומק מגרש (מ')"), { target: { value: '24' } })
   fireEvent.change(screen.getByLabelText('שטח הבנייה (מ"ר)'), { target: { value: builtAreaM2 } })
   fireEvent.change(screen.getByLabelText('תיאור הבית הרצוי'), { target: { value: 'בית עם 3 חדרי שינה' } })
   fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
@@ -95,6 +98,27 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
         }
         if (url.includes('/localities/') && url.endsWith('/streets')) {
           return new Response(JSON.stringify(['הרצל 1']), { status: 200 })
+        }
+        if (url === '/projects/site/footprint-options' && method === 'POST') {
+          // The options are computed by the BACKEND now, from the buildable region. The mock
+          // returns the same four proportions the old client-side generator produced, on a site
+          // large enough to hold them, so these tests still exercise selection rather than fit.
+          const requested = JSON.parse(String(init?.body ?? '{}')).built_area_m2 as number
+          return new Response(JSON.stringify({
+            plot_width_m: 20, plot_depth_m: 24, street_facing_side: 'NORTH',
+            front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+            setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
+            buildable_width_m: 40, buildable_depth_m: 40,
+            one_storey_footprint_capacity_m2: 1600,
+            requested_built_area_m2: requested,
+            options: generateFootprintOptions(requested).map((o) => ({
+              shape_type: o.shape_type, width_m: o.width_m, depth_m: o.depth_m, area_m2: o.area_m2,
+            })),
+            rejection: null,
+          }), { status: 200 })
+        }
+        if (url === '/failures' && method === 'POST') {
+          return new Response(JSON.stringify({ recorded: true }), { status: 201 })
         }
         if (url === '/projects' && method === 'POST') {
           return new Response(JSON.stringify(fakeProject()), { status: 201 })
@@ -166,7 +190,10 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(body).toEqual({
       city: 'תל אביב',
       street: 'הרצל 1',
-      plot_area_m2: 400,
+      plot_area_m2: 480,
+      plot_width_m: 20,
+      plot_depth_m: 24,
+      street_facing_side: 'NORTH',
       built_area_m2: 120,
       description: 'בית עם 3 חדרי שינה',
       selected_footprint: {
@@ -250,7 +277,8 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(screen.getByLabelText('תיאור הבית הרצוי')).toHaveValue('בית עם 3 חדרי שינה')
     expect(screen.getByLabelText('עיר / רשות מקומית')).toHaveValue('תל אביב')
     expect(screen.getByLabelText('רחוב ומספר')).toHaveValue('הרצל 1')
-    expect(screen.getByLabelText('שטח מגרש (מ"ר)')).toHaveValue(400)
+    expect(screen.getByLabelText("רוחב מגרש (מ')")).toHaveValue(20)
+    expect(screen.getByLabelText("עומק מגרש (מ')")).toHaveValue(24)
     expect(screen.getByLabelText('שטח הבנייה (מ"ר)')).toHaveValue(120)
   })
 

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.projects.models import (
     CorridorWidthField,
+    SetbackAssumptions,
     RoomRelationshipRecord,
     UnsupportedRequestRecord,
     PoolField,
@@ -52,6 +53,7 @@ class ProjectRepository(ABC):
         unsupported_requests: list[UnsupportedRequestRecord] | None = None,
         corridor_width: CorridorWidthField | None = None,
         room_relationships: list[RoomRelationshipRecord] | None = None,
+        setbacks: SetbackAssumptions | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -103,6 +105,10 @@ class JsonFileProjectRepository(ProjectRepository):
             city=data.city,
             street=data.street,
             plot_area_m2=data.plot_area_m2,
+            plot_width_m=data.plot_width_m,
+            plot_depth_m=data.plot_depth_m,
+            street_facing_side=data.street_facing_side,
+            setbacks=data.setbacks,
             built_area_m2=data.built_area_m2,
             description=data.description,
             selected_footprint=data.selected_footprint,
@@ -180,6 +186,7 @@ class JsonFileProjectRepository(ProjectRepository):
         unsupported_requests: list[UnsupportedRequestRecord] | None = None,
         corridor_width: CorridorWidthField | None = None,
         room_relationships: list[RoomRelationshipRecord] | None = None,
+        setbacks: SetbackAssumptions | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -199,6 +206,7 @@ class JsonFileProjectRepository(ProjectRepository):
                 "unsupported_requests": unsupported_requests or [],
                 "corridor_width": corridor_width,
                 "room_relationships": room_relationships or [],
+                "setbacks": setbacks if setbacks is not None else existing.setbacks,
                 "requirements_parsed_at": datetime.now(UTC),
             }
         )

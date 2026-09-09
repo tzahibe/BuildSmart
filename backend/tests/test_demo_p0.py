@@ -101,11 +101,30 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-def _create(client: TestClient, description: str, *, width=11.0, depth=13.5) -> str:
+#: The demo setback assumptions these fixtures are sized against (app/demo/site_geometry.py).
+_F, _S, _R = 5.5, 3.0, 4.0
+
+
+def _create(client: TestClient, description: str, *, width=11.0, depth=13.5,
+            plot_width_m: float | None = None, plot_depth_m: float | None = None,
+            street_facing_side: str = "NORTH") -> str:
+    """Creates a project on a parcel that GENUINELY holds the house.
+
+    These used to declare a flat `plot_area_m2: 500` and no dimensions at all, which the planner
+    then ignored — it synthesised its own site from the footprint. One fixture
+    (15.5 x 15.5) needed 538 m² and declared 500, and nothing noticed. Now the plot is stated
+    honestly: the footprint plus the setbacks plus a metre of slack, so each test is a person whose
+    land really does fit their house. Callers that are testing the FIT RULE itself pass their own
+    plot dimensions instead.
+    """
     area = round(width * depth, 2)
+    plot_w = plot_width_m if plot_width_m is not None else round(width + 2 * _S + 1.0, 2)
+    plot_d = plot_depth_m if plot_depth_m is not None else round(depth + _F + _R + 1.0, 2)
     response = client.post("/projects", json={
         "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
-        "plot_area_m2": 500.0, "built_area_m2": area,
+        "plot_area_m2": round(plot_w * plot_d, 2), "built_area_m2": area,
+        "plot_width_m": plot_w, "plot_depth_m": plot_d,
+        "street_facing_side": street_facing_side,
         "description": description,
         "selected_footprint": {
             "source": "PRESET", "shape_type": "RECTANGLE",
@@ -749,3 +768,298 @@ def test_near_is_not_quietly_upgraded_to_adjacent(tmp_path, monkeypatch):
     assert review["room_relationships"][0]["relation"] == "near"
     assert design.status_code == 200, design.text
     assert design.json()["relationships"][0]["satisfied"] is True
+
+
+# --------------------------------------------------- the review must account for the whole brief
+#
+# Reported from the product. The brief was: 2 children's rooms, a large master with its own shower
+# and toilet, a living room, a kitchen, A SMALL STUDY, and 2 parking spaces. The review came back as
+# "3 bedrooms, 1 bathroom, 2 parking" — the study was neither planned nor reported as unplannable,
+# and nothing on the screen said what the house would actually contain.
+
+def test_the_review_says_what_the_house_will_actually_contain(client):
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+
+    rooms = review["planned_rooms"]
+    assert rooms, "counts alone hide what is missing — the room list must be shown"
+    # named rooms, not counts: a reader can see at a glance that no study is among them
+    assert "סלון" in rooms and "מטבח" in rooms and "חדר הורים" in rooms
+    assert any(r.startswith("חדר שינה") for r in rooms)
+    assert not any("עבודה" in r for r in rooms)
+
+
+def test_the_room_list_matches_the_plan_that_gets_built(client):
+    """The list is built from the planner's own programme, so it cannot promise a room the drawing
+    does not have."""
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    listed = client.get(f"/projects/{project_id}/review").json()["planned_rooms"]
+    design = client.post(f"/projects/{project_id}/design/demo")
+    assert design.status_code == 200, design.text
+
+    def counted(names):
+        out = {}
+        for name in names:
+            base, _, mult = name.partition(" ×")
+            out[base] = out.get(base, 0) + (int(mult) if mult else 1)
+        return out
+
+    assert counted(listed) == counted(r["name"] for r in design.json()["rooms"])
+
+
+def test_the_room_list_follows_a_correction(client):
+    """Correcting the review changes what will be built, so the list must change with it."""
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    before = client.get(f"/projects/{project_id}/review").json()["planned_rooms"]
+    after = client.put(f"/projects/{project_id}/review",
+                       json={"bedrooms": 2}).json()["planned_rooms"]
+    assert before != after
+    assert "חדר שינה" in after      # one child's room now, so no "×2"
+
+
+# ------------------------------------------------------------ authoritative site geometry (P0)
+#
+# The planner used to build the plot FROM the building — footprint + setbacks — so a person who
+# entered a 300 m² parcel had their house laid out on a synthesised 517 m². The site is now the
+# input and the buildable region is what is left after subtracting the demo setbacks from it.
+
+def _create_raw(client, *, footprint, plot, street="NORTH", setbacks=None):
+    """POST /projects WITHOUT asserting success — for the cases that are meant to be refused."""
+    area = round(footprint[0] * footprint[1], 2)
+    body = {
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": round(plot[0] * plot[1], 2), "built_area_m2": area,
+        "plot_width_m": plot[0], "plot_depth_m": plot[1], "street_facing_side": street,
+        "description": BRIEF_2BR_COMPACT,
+        "selected_footprint": {"source": "PRESET", "shape_type": "RECTANGLE",
+                               "target_area_m2": area, "area_m2": area,
+                               "width_m": footprint[0], "depth_m": footprint[1]},
+    }
+    if setbacks:
+        body["setbacks"] = setbacks
+    return client.post("/projects", json=body)
+
+
+def _site_run(client, *, footprint=(11.0, 12.0), plot=(20.0, 20.0), street="NORTH"):
+    project_id = _create(client, BRIEF_2BR_COMPACT, width=footprint[0], depth=footprint[1],
+                         plot_width_m=plot[0], plot_depth_m=plot[1], street_facing_side=street)
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+    return project_id, review, client.post(f"/projects/{project_id}/design/demo")
+
+
+def test_A_a_footprint_that_fits_the_real_site_is_planned(client):
+    _, review, design = _site_run(client, footprint=(11.0, 12.0), plot=(20.0, 24.0))
+    site = review["site"]
+    assert (site["plot_width_m"], site["plot_depth_m"]) == (20.0, 24.0)
+    # 20 - 2*3 wide, 24 - 5.5 - 4 deep — the parcel MINUS the setbacks, never more
+    assert (site["buildable_width_m"], site["buildable_depth_m"]) == (14.0, 14.5)
+    assert site["footprint_fits"] is True
+    assert design.status_code == 200, design.text
+
+
+def test_B_a_footprint_that_does_not_fit_is_refused_at_the_moment_it_is_chosen(client):
+    """Refused at CREATION now, not at generation — the earliest point it can be known."""
+    response = _create_raw(client, footprint=(11.0, 12.0), plot=(25.0, 16.0))
+    assert response.status_code == 422, response.text
+    body = response.json()["detail"]
+    assert body["code"] == "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+    assert "19.00 × 6.50" in body["message"] or "19.00" in body["message"]
+    assert "5.50 m too deep" in body["detail"]
+    assert "impossible" not in body["message"].lower()
+
+
+def test_C_the_same_plot_area_gives_different_answers_by_shape(client):
+    """400 m² is not a site. 20x20 holds this house; 25x16 and 16x25 do not."""
+    _, _, square = _site_run(client, footprint=(11.0, 10.0), plot=(20.0, 20.0))
+    wide = _create_raw(client, footprint=(11.0, 10.0), plot=(25.0, 16.0))
+    deep = _create_raw(client, footprint=(11.0, 10.0), plot=(16.0, 25.0))
+    assert square.status_code == 200, square.text
+    assert wide.status_code == 422 and deep.status_code == 422
+    assert wide.json()["detail"]["code"] == "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+
+
+def test_D_the_street_facing_side_changes_the_buildable_rectangle(client):
+    """Setbacks are edge-relative, so the frontage decides which dimension loses 9.5 m."""
+    def options(street):
+        return client.post("/projects/site/footprint-options", json={
+            "plot_width_m": 25.0, "plot_depth_m": 16.0,
+            "street_facing_side": street, "built_area_m2": 72.0}).json()
+
+    north, east = options("NORTH"), options("EAST")
+    assert (north["buildable_width_m"], north["buildable_depth_m"]) == (19.0, 6.5)
+    assert (east["buildable_width_m"], east["buildable_depth_m"]) == (10.0, 15.5)
+
+    # a 9 x 8 outline is offered on the east frontage and cannot be on the north one
+    assert not any(abs(o["width_m"] - 9.0) < 0.3 and abs(o["depth_m"] - 8.0) < 0.3
+                   for o in north["options"])
+    assert _create_raw(client, footprint=(9.0, 8.0), plot=(25.0, 16.0),
+                       street="NORTH").status_code == 422
+    assert _create_raw(client, footprint=(9.0, 8.0), plot=(25.0, 16.0),
+                       street="EAST").status_code == 201
+
+
+def test_E_a_plot_area_that_contradicts_the_dimensions_is_refused(client):
+    response = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 300.0, "plot_width_m": 20.0, "plot_depth_m": 20.0,
+        "street_facing_side": "NORTH", "built_area_m2": 120.0, "description": "x",
+    })
+    assert response.status_code == 422, response.text
+    assert "does not match plot_width_m * plot_depth_m" in response.text
+
+
+def test_F_a_project_without_site_dimensions_is_refused_not_invented(client):
+    """The old fixtures declared an area and no dimensions, and the planner made a site up."""
+    response = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 500.0, "built_area_m2": 132.0, "description": BRIEF_2BR_COMPACT,
+        "selected_footprint": {"source": "PRESET", "shape_type": "RECTANGLE",
+                               "target_area_m2": 132.0, "area_m2": 132.0,
+                               "width_m": 11.0, "depth_m": 12.0},
+    })
+    project_id = response.json()["project_id"]
+    client.post(f"/projects/{project_id}/requirements")
+    design = client.post(f"/projects/{project_id}/design/demo")
+    assert design.status_code == 422
+    assert design.json()["detail"]["code"] == "SITE_GEOMETRY_REQUIRED"
+
+
+def test_G_no_code_path_reconstructs_a_site_from_the_footprint():
+    """The defect itself, pinned at the source: the building may never generate the land."""
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[1] / "app"
+    banned = ("footprint.width_m + 2 * SIDE_SETBACK", "footprint.depth_m + FRONT_SETBACK",
+              "width_m=footprint.width_m + ", "depth_m=footprint.depth_m + ")
+    offenders = []
+    # The demo path only. `app/geometry` is the legacy solver, which has its own (already flagged)
+    # square-site placeholder and is not what this rule is about.
+    for path in list((root / "demo").rglob("*.py")) + list((root / "vertical_slice").rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        for phrase in banned:
+            if phrase in text:
+                offenders.append(f"{path.relative_to(root)}: {phrase}")
+    assert not offenders, f"a site is being derived from a building: {offenders}"
+
+    # and the derivation cannot even see a footprint
+    import inspect
+    from app.demo import site_geometry
+    assert "footprint" not in inspect.signature(site_geometry.derive).parameters
+
+
+def test_setbacks_are_assumptions_that_decide_what_can_be_chosen(client):
+    """They are demo assumptions, labelled as such, and correcting them changes what is possible.
+
+    They are supplied at CREATION as well as editable in review, because they decide which
+    footprints exist to choose from — validating a choice against defaults the person had already
+    corrected would refuse an outline that is fine under their own numbers.
+    """
+    # 11 x 12 does not fit 20 x 20 at the default 5.5 / 4
+    assert _create_raw(client, footprint=(11.0, 12.0), plot=(20.0, 20.0)).status_code == 422
+
+    relaxed = {"front_m": 3.0, "side_m": 3.0, "rear_m": 2.0}
+    created = _create_raw(client, footprint=(11.0, 12.0), plot=(20.0, 20.0), setbacks=relaxed)
+    assert created.status_code == 201, created.text
+
+    project_id = created.json()["project_id"]
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+    assert review["site"]["front_setback_m"] == 3.0
+    assert review["site"]["buildable_depth_m"] == 15.0     # 20 - 3 - 2
+    assert review["site"]["footprint_fits"] is True
+    assert review["site"]["setback_disclaimer"] == (
+        "הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.")
+    assert client.post(f"/projects/{project_id}/design/demo").status_code == 200
+
+
+# ------------------------------------------------- footprint options come FROM the site, not an area
+#
+# A 1440-scenario scan found 1032 FOOTPRINT_DOES_NOT_FIT refusals — 80% of every failure — each one
+# a person choosing an outline the system had itself offered from `built_area_m2` alone, knowing
+# nothing about the land. Options are now generated from the buildable region.
+
+def _options(client, *, plot=(20.0, 24.0), area=120.0, street="NORTH", setbacks=None):
+    body = {"plot_width_m": plot[0], "plot_depth_m": plot[1],
+            "street_facing_side": street, "built_area_m2": area}
+    if setbacks:
+        body.update(setbacks)
+    response = client.post("/projects/site/footprint-options", json=body)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_every_offered_option_fits_the_buildable_region(client):
+    site = _options(client, plot=(20.0, 24.0), area=120.0)
+    assert site["options"], "a site that can hold the area must offer something"
+    for option in site["options"]:
+        assert option["width_m"] <= site["buildable_width_m"] + 1e-9
+        assert option["depth_m"] <= site["buildable_depth_m"] + 1e-9
+
+
+def test_offered_options_never_reduce_the_requested_area(client):
+    site = _options(client, plot=(20.0, 24.0), area=120.0)
+    for option in site["options"]:
+        assert abs(option["area_m2"] - 120.0) <= 0.6, option
+
+
+def test_variety_is_preserved_where_the_site_allows_it(client):
+    """A generous site still offers genuinely different proportions, not four near-identical ones."""
+    site = _options(client, plot=(30.0, 34.0), area=120.0)
+    ratios = sorted(o["width_m"] / o["depth_m"] for o in site["options"])
+    assert len(site["options"]) >= 3
+    assert ratios[-1] / ratios[0] > 1.5, ratios
+
+
+def test_a_tight_site_offers_fewer_options_rather_than_impossible_ones(client):
+    site = _options(client, plot=(15.0, 20.0), area=94.0)
+    assert 1 <= len(site["options"]) <= 4
+    for option in site["options"]:
+        assert option["width_m"] <= site["buildable_width_m"] + 1e-9
+
+
+def test_nothing_fits_is_said_before_choosing_with_the_capacity_named(client):
+    site = _options(client, plot=(15.0, 20.0), area=220.0)
+    assert site["options"] == []
+    rejection = site["rejection"]
+    assert rejection["code"] == "BUILT_AREA_EXCEEDS_ONE_STOREY_CAPACITY"
+    assert site["one_storey_footprint_capacity_m2"] == 94.5
+    for number in ("220", "15.00", "20.00", "9.00", "10.50", "94"):
+        assert number in rejection["message"], f"{number} missing from: {rejection['message']}"
+    # a GEOMETRIC ceiling, never described as the largest house that can be built
+    assert "קיבולת מתאר גאומטרית" in rejection["message"]
+    assert "בית מקסימלי" not in rejection["message"]
+
+
+def test_the_capacity_is_geometric_and_the_programme_can_reduce_it_further(client):
+    """The capacity is the buildable rectangle. A plan of exactly that area is not promised."""
+    site = _options(client, plot=(15.0, 20.0), area=94.0)
+    assert site["one_storey_footprint_capacity_m2"] == pytest.approx(
+        site["buildable_width_m"] * site["buildable_depth_m"], abs=0.01)
+
+
+def test_relaxing_the_assumptions_changes_which_options_exist(client):
+    blocked = _options(client, plot=(15.0, 20.0), area=120.0)
+    assert blocked["options"] == []
+    relaxed = _options(client, plot=(15.0, 20.0), area=120.0,
+                       setbacks={"front_setback_m": 3.0, "side_setback_m": 1.5,
+                                 "rear_setback_m": 2.0})
+    assert relaxed["options"], "correcting the assumptions must open real choices"
+
+
+def test_the_backend_refuses_an_outline_it_never_offered(client):
+    """Client-side filtering is not a guarantee: a stale page or a direct call must still be refused."""
+    response = _create_raw(client, footprint=(14.0, 14.0), plot=(15.0, 20.0))
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+
+
+def test_an_offered_option_is_always_accepted_end_to_end(client):
+    """The contract that makes the refusal disappear from normal flows: offer it, and it works."""
+    site = _options(client, plot=(20.0, 26.0), area=120.0)
+    for option in site["options"]:
+        created = _create_raw(client, footprint=(option["width_m"], option["depth_m"]),
+                              plot=(20.0, 26.0))
+        assert created.status_code == 201, f"{option} was offered but refused: {created.text}"

@@ -118,3 +118,97 @@
 .review-relations-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .review-relations-list li { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
 .review-relations-text { color: var(--text); }
+
+/* "The rooms your plan will contain" — the answer to "did you understand my description?", which
+   a list of counts cannot give. Chips rather than a paragraph: scannable, and an absence shows. */
+.review-rooms { margin-bottom: 16px; }
+
+.review-rooms-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.review-rooms-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.review-rooms-list li {
+  font-size: 13px;
+  color: var(--text-h);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.review-rooms-note { margin: 0; font-size: 12.5px; color: var(--text); }
+
+/* The site block: facts first, then the assumptions that act on them, then what they leave. The
+   setbacks are inputs rather than text precisely because they are assumptions, not determinations. */
+.review-site {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.review-site-title { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: var(--text-h); }
+.review-site-subtitle { margin: 12px 0 6px; font-size: 13.5px; font-weight: 600; color: var(--text-h); }
+
+.review-site-facts { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.review-site-facts > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.review-site-facts dt { color: var(--text); }
+.review-site-facts dd { margin: 0; color: var(--text-h); }
+
+.review-setbacks { display: flex; gap: 10px; }
+.review-setbacks label { flex: 1; font-size: 12.5px; color: var(--text); }
+.review-setbacks input { width: 100%; }
+
+.review-site-disclaimer { margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: #8a7855; }
+.review-site-nofit { color: var(--danger); }
+
+
+/* A width × depth pair, read left-to-right inside an RTL sentence. Without the isolation the bidi
+   algorithm swaps the two numbers on screen and the reader sees a different plot from the one they
+   entered — the values were correct, the reading order was not. */
+.dim {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The setback fields are real inputs on a screen that is otherwise read-only, so they carry the
+   same chrome as the project form's controls rather than the browser default. */
+.review-setbacks input {
+  font: 400 15px/1.5 var(--sans);
+  padding: 8px 10px;
+  border-radius: calc(var(--radius) - 4px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.review-setbacks input:hover { border-color: var(--accent-border); }
+
+.review-setbacks input:focus-visible,
+.review-setbacks input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.review-setbacks label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}

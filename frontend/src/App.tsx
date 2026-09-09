@@ -3,11 +3,13 @@ import './App.css'
 import {
   createProject,
   DemoPipelineError,
+  fetchFootprintOptions,
   generateDemoDesign,
   generateDesign,
   getRequirementsReview,
   parseRequirements,
   PipelineStepError,
+  reportFailure,
   updateRequirementsReview,
 } from './api'
 import Autocomplete from './Autocomplete'
@@ -16,7 +18,11 @@ import ReviewPage from './design/ReviewPage'
 import DemoWorkspace from './design/DemoWorkspace'
 import type { DemoDesign, RequirementsReview, ReviewEdit } from './design/demoDesign'
 import FootprintSelection from './design/FootprintSelection'
-import { toSelectedFootprintPayload, type BuildingFootprint } from './design/footprint'
+import {
+  toSelectedFootprintPayload,
+  type BuildingFootprint,
+  type FootprintOptionsResponse,
+} from './design/footprint'
 import LoadingScreen from './design/LoadingScreen'
 import type { FormState, Project, ValidationErrorDetail } from './types'
 
@@ -25,7 +31,9 @@ type View = 'form' | 'footprint' | 'loading' | 'review' | 'generating' | 'plan' 
 const initialForm: FormState = {
   city: '',
   street: '',
-  plot_area_m2: '',
+  plot_width_m: '',
+  plot_depth_m: '',
+  street_facing_side: 'NORTH',
   built_area_m2: '',
   description: '',
 }
@@ -51,6 +59,9 @@ function App() {
   // carried forward — FootprintSelection itself defensively re-checks this too (see its own
   // docstring), but App.tsx is the actual owner of this state and clears it at the source.
   const [footprint, setFootprint] = useState<BuildingFootprint | null>(null)
+  // The buildable region and the outlines that fit it, computed by the BACKEND. Fetched before the
+  // footprint step so the screen can only ever offer options that are actually possible.
+  const [siteOptions, setSiteOptions] = useState<FootprintOptionsResponse | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -120,6 +131,11 @@ function App() {
           error instanceof PipelineStepError || error instanceof DemoPipelineError
             ? error.message
             : 'אירעה שגיאה בלתי צפויה בהכנת התכנון'
+        reportFailure(
+          error instanceof DemoPipelineError ? error.code : 'PARSE_PIPELINE_FAILED',
+          message, 'parse pipeline',
+          error instanceof Error ? error.stack ?? error.message : String(error),
+          { projectId })
         setPipelineError(message)
       }
     }
@@ -165,11 +181,24 @@ function App() {
       return
     }
 
-    if (Number(form.built_area_m2) >= Number(form.plot_area_m2)) {
+    const plotArea = Number(form.plot_width_m) * Number(form.plot_depth_m)
+    if (Number(form.built_area_m2) >= plotArea) {
       setErrors(['שטח הבנייה חייב להיות קטן משטח המגרש'])
       return
     }
 
+    setSiteOptions(null)
+    void fetchFootprintOptions({
+      plot_width_m: Number(form.plot_width_m),
+      plot_depth_m: Number(form.plot_depth_m),
+      street_facing_side: form.street_facing_side,
+      built_area_m2: Number(form.built_area_m2),
+    })
+      .then(setSiteOptions)
+      .catch((error) => {
+        reportFailure('FOOTPRINT_OPTIONS_FAILED', String(error), 'footprint options')
+        setErrors(['לא ניתן היה לחשב את אפשרויות המתאר עבור המגרש'])
+      })
     setView('footprint')
   }
 
@@ -189,7 +218,12 @@ function App() {
       const response = await createProject({
         city: form.city,
         street: form.street,
-        plot_area_m2: Number(form.plot_area_m2),
+        // Area is DERIVED from the dimensions, never entered separately — the two could otherwise
+        // contradict each other and the backend would (correctly) refuse to guess which is right.
+        plot_area_m2: Number((Number(form.plot_width_m) * Number(form.plot_depth_m)).toFixed(2)),
+        plot_width_m: Number(form.plot_width_m),
+        plot_depth_m: Number(form.plot_depth_m),
+        street_facing_side: form.street_facing_side,
         built_area_m2: Number(form.built_area_m2),
         description: form.description,
         selected_footprint: toSelectedFootprintPayload(footprint),
@@ -247,6 +281,12 @@ function App() {
         error instanceof DemoPipelineError
           ? { message: error.message, detail: error.detail }
           : { message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
+      // The moment somebody does not get a drawing. Recorded from the UI as well as the API,
+      // because a network failure or a response the client could not use never reaches the server
+      // log at all — and it ends the journey just the same.
+      reportFailure(
+        error instanceof DemoPipelineError ? error.code : 'GENERATE_FAILED',
+        failure.message, 'generate', failure.detail, { projectId: project.project_id })
       setDemoError(failure)
       setView('review')
     }
@@ -294,6 +334,7 @@ function App() {
     return (
       <section id="center" dir="rtl">
         <FootprintSelection
+          site={siteOptions}
           targetAreaM2={Number(form.built_area_m2)}
           value={footprint}
           onChange={setFootprint}
@@ -353,16 +394,47 @@ function App() {
           />
         </label>
 
+        {/* THE SITE, as dimensions rather than an area. An area cannot say whether a house fits:
+            the same 400 m² is 20×20 (fits) or 25×16 (does not), and the setbacks are edge-relative
+            so the frontage matters too. The area is derived from these and shown, not entered. */}
+        <div className="form-row">
+          <label>
+            רוחב מגרש (מ')
+            <input
+              type="number" min="0.01" step="any" required
+              value={form.plot_width_m}
+              onChange={(event) => setForm({ ...form, plot_width_m: event.target.value })}
+            />
+          </label>
+          <label>
+            עומק מגרש (מ')
+            <input
+              type="number" min="0.01" step="any" required
+              value={form.plot_depth_m}
+              onChange={(event) => setForm({ ...form, plot_depth_m: event.target.value })}
+            />
+          </label>
+        </div>
+
+        {Number(form.plot_width_m) > 0 && Number(form.plot_depth_m) > 0 ? (
+          <p className="form-derived">
+            שטח מגרש: {(Number(form.plot_width_m) * Number(form.plot_depth_m)).toFixed(2)} מ&quot;ר
+          </p>
+        ) : null}
+
         <label>
-          שטח מגרש (מ"ר)
-          <input
-            type="number"
-            min="0.01"
-            step="any"
-            required
-            value={form.plot_area_m2}
-            onChange={(event) => setForm({ ...form, plot_area_m2: event.target.value })}
-          />
+          איזו חזית פונה לרחוב
+          <select
+            value={form.street_facing_side}
+            onChange={(event) =>
+              setForm({ ...form, street_facing_side: event.target.value as FormState['street_facing_side'] })
+            }
+          >
+            <option value="NORTH">צפון</option>
+            <option value="SOUTH">דרום</option>
+            <option value="EAST">מזרח</option>
+            <option value="WEST">מערב</option>
+          </select>
         </label>
 
         <label>

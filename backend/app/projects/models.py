@@ -91,6 +91,35 @@ def _check_street_belongs_to_city(city: str, street: str) -> None:
         raise ValueError("street must be selected from the list of streets for the chosen city")
 
 
+class StreetSide(str, Enum):
+    """Which edge of the parcel faces the street.
+
+    The setbacks are asymmetric — front, rear and sides are different numbers — so a plot's
+    buildable rectangle depends on this and cannot be derived from its area or even its dimensions
+    alone. P0 supports the four cardinal edges of a rectangle and nothing else; anything richer
+    (corner lots, angled frontage) is refused rather than guessed.
+    """
+
+    north = "NORTH"
+    south = "SOUTH"
+    east = "EAST"
+    west = "WEST"
+
+
+class SetbackAssumptions(BaseModel):
+    """DEMO PLANNING ASSUMPTIONS for the setbacks, in metres.
+
+    Stored per project and editable on the review screen, because they are assumptions rather than
+    determinations: nobody has verified them against a municipal plan, and on a small parcel they
+    decide almost everything about what can be built. Keeping them fixed and invisible made a
+    demo-level guess look like a regulatory fact.
+    """
+
+    front_m: float = Field(gt=0)
+    side_m: float = Field(gt=0)
+    rear_m: float = Field(gt=0)
+
+
 class CorridorWidthField(BaseModel):
     """The corridor width the brief asked for — see requirements/parser.py's `CorridorWidth`.
     `mode` is stored as a plain string so a future mode does not invalidate stored projects."""
@@ -122,6 +151,30 @@ class UnsupportedRequestRecord(BaseModel):
     #: `RequestSeverity`. Stored as a plain string so a future severity does not invalidate
     #: projects already on disk. Defaults to the fail-closed value.
     severity: str = "ambiguous"
+
+
+#: How far `plot_width_m * plot_depth_m` may differ from a supplied `plot_area_m2` before the two
+#: are treated as contradicting each other. Same relative-with-a-floor shape as the footprint
+#: tolerance, for the same reason: it must scale from a small plot to a large one.
+def _plot_area_tolerance_m2(area_m2: float) -> float:
+    return max(0.5, area_m2 * 0.01)
+
+
+def _check_plot_area_consistent(plot_area_m2: float | None,
+                                width_m: float | None, depth_m: float | None) -> None:
+    """Dimensions and area must agree. When they do not, NEITHER is trusted.
+
+    Guessing which one the person meant would silently plan on a parcel they never described —
+    the same class of mistake as synthesising a site from the building.
+    """
+    if plot_area_m2 is None or width_m is None or depth_m is None:
+        return
+    actual = width_m * depth_m
+    tolerance = _plot_area_tolerance_m2(actual)
+    if abs(plot_area_m2 - actual) > tolerance:
+        raise ValueError(
+            f"plot_area_m2 ({plot_area_m2}) does not match plot_width_m * plot_depth_m "
+            f"({actual:.2f}) within tolerance ({tolerance:.2f} m²) — please correct one of them")
 
 
 def _check_built_area_fits_plot(plot_area_m2: float, built_area_m2: float) -> None:
@@ -201,6 +254,17 @@ class ProjectCreate(BaseModel):
     city: str
     street: str
     plot_area_m2: float = Field(gt=0)
+    #: AUTHORITATIVE SITE GEOMETRY. The parcel's real dimensions and which edge fronts the street.
+    #: Optional on the model so projects stored before this existed still load and the legacy
+    #: `app/design` path keeps working; the DEMO path refuses to plan without them rather than
+    #: inventing a site (see app/demo/scope.py) — which is exactly what it used to do.
+    plot_width_m: float | None = Field(default=None, gt=0)
+    plot_depth_m: float | None = Field(default=None, gt=0)
+    street_facing_side: StreetSide | None = None
+    #: The setback assumptions the offered footprint options were generated under. Accepted here so
+    #: creation validates the chosen outline against the SAME assumptions the person was shown,
+    #: rather than against defaults they may have already corrected. `None` = the module defaults.
+    setbacks: SetbackAssumptions | None = None
     built_area_m2: float = Field(gt=0)
     description: str
     # The user's explicit BUILDING FOOTPRINT choice (see SelectedFootprint's own docstring) — `None`
@@ -233,6 +297,7 @@ class ProjectCreate(BaseModel):
     @model_validator(mode="after")
     def built_area_fits_plot(self) -> "ProjectCreate":
         _check_built_area_fits_plot(self.plot_area_m2, self.built_area_m2)
+        _check_plot_area_consistent(self.plot_area_m2, self.plot_width_m, self.plot_depth_m)
         return self
 
     @model_validator(mode="after")
@@ -297,6 +362,13 @@ class Project(BaseModel):
     city: str
     street: str
     plot_area_m2: float
+    #: AUTHORITATIVE SITE GEOMETRY — see `ProjectCreate`. `None` for projects created before the
+    #: site model existed; the demo path refuses those rather than inventing dimensions for them.
+    plot_width_m: float | None = None
+    plot_depth_m: float | None = None
+    street_facing_side: StreetSide | None = None
+    #: Editable demo assumptions; `None` falls back to the module defaults in demo/site_geometry.
+    setbacks: SetbackAssumptions | None = None
     built_area_m2: float
     description: str
     status: str

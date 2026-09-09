@@ -55,6 +55,11 @@ export interface Project {
   city: string
   street: string
   plot_area_m2: number
+  /** The authoritative site. Derived nowhere else — the planner refuses without it rather than
+   *  synthesising a parcel from the building, which is what it used to do. */
+  plot_width_m: number
+  plot_depth_m: number
+  street_facing_side: string
   built_area_m2: number
   description: string
   // The SELECTED BUILDING FOOTPRINT, persisted verbatim from project creation — `null` for a project
@@ -177,7 +182,12 @@ export interface ProjectCreatePayload {
 export interface FormState {
   city: string
   street: string
-  plot_area_m2: string
+  /** AUTHORITATIVE SITE GEOMETRY. The plot's real dimensions and which edge fronts the street —
+   *  area alone cannot decide whether a house fits, because the same area in a different shape
+   *  gives a different answer, and the setbacks are edge-relative. */
+  plot_width_m: string
+  plot_depth_m: string
+  street_facing_side: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST'
   built_area_m2: string
   description: string
 }

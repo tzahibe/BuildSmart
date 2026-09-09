@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import {
   customFootprint,
+  fitsBuildable,
+  footprintFromOption,
+  type FootprintOptionsResponse,
   FOOTPRINT_SHAPE_LABELS,
   footprintAreaToleranceM2,
   generateFootprintOptions,
@@ -11,6 +14,9 @@ import {
 import './FootprintSelection.css'
 
 interface FootprintSelectionProps {
+  /** Site-aware options computed by the BACKEND. Every entry is already proven to fit the buildable
+   *  region, so the screen cannot offer an impossible outline — the defect this replaced. */
+  site: FootprintOptionsResponse | null
   /** TARGET BUILT AREA (Project.built_area_m2) — never re-derived here, always passed down from the
    * one place it was actually entered (App.tsx's form). */
   targetAreaM2: number
@@ -102,12 +108,14 @@ function parsePositive(text: string): number | null {
 }
 
 function CustomCard({
+  buildable,
   targetAreaM2,
   selected,
   initialWidthText,
   initialDepthText,
   onSelect,
 }: {
+  buildable: { width_m: number; depth_m: number } | null
   targetAreaM2: number
   selected: boolean
   initialWidthText: string
@@ -120,7 +128,13 @@ function CustomCard({
   const width = parsePositive(widthText)
   const depth = parsePositive(depthText)
   const area = width !== null && depth !== null ? width * depth : null
-  const valid = area !== null && isFootprintAreaValid(area, targetAreaM2)
+  // Valid means BOTH: the right area, and an outline that actually goes on the land. The backend
+  // enforces the second independently (see projects/routes/base_routes.py) — this only stops the
+  // person submitting something it will refuse.
+  const fits = width !== null && depth !== null && buildable !== null
+    ? fitsBuildable(width, depth, buildable.width_m, buildable.depth_m)
+    : buildable === null
+  const valid = area !== null && isFootprintAreaValid(area, targetAreaM2) && fits
   const hasBothValues = width !== null && depth !== null
   const tolerance = footprintAreaToleranceM2(targetAreaM2)
 
@@ -177,7 +191,9 @@ function CustomCard({
         <p className={valid ? 'footprint-card__custom-feedback' : 'footprint-card__custom-feedback footprint-card__custom-feedback--invalid'}>
           {width.toFixed(2)} × {depth.toFixed(2)} מ&apos; → {area.toFixed(2)} מ&quot;ר
           {valid ? (
-            ' — תואם לשטח היעד'
+            ' — תואם לשטח היעד ונכנס בשטח הבנייה'
+          ) : !fits && buildable ? (
+            <> — אינו נכנס בשטח הבנייה ({buildable.width_m.toFixed(2)} × {buildable.depth_m.toFixed(2)} מ׳)</>
           ) : (
             <> — שטח היעד {targetAreaM2.toFixed(2)} מ&quot;ר (הפרש {Math.abs(area - targetAreaM2).toFixed(2)} מ&quot;ר, מעבר לסטייה המותרת {tolerance.toFixed(2)} מ&quot;ר)</>
           )}
@@ -201,8 +217,11 @@ function CustomCard({
  * the approved requirements plus this outline, and is never an input the user supplies or sees.
  * The preset names (COMPACT/BALANCED/WIDE/NARROW) are outline PROPORTIONS, not layout styles —
  * hence the explicit note in the header, which exists to keep the two from being read as one. */
-function FootprintSelection({ targetAreaM2, value, onChange, onConfirm, onBack, submitting = false }: FootprintSelectionProps) {
-  const options = useMemo(() => generateFootprintOptions(targetAreaM2), [targetAreaM2])
+function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, onBack, submitting = false }: FootprintSelectionProps) {
+  const options = useMemo(
+    () => (site?.options ?? []).map((option) => footprintFromOption(option, targetAreaM2)),
+    [site, targetAreaM2],
+  )
 
   // Defensive invalidation: if `targetAreaM2` changes while a selection exists (App.tsx already
   // clears its own state when the built-area field itself changes, but this guards the component's
@@ -232,6 +251,32 @@ function FootprintSelection({ targetAreaM2, value, onChange, onConfirm, onBack, 
         </p>
       </header>
 
+      {/* NOTHING FITS. Said here, before any choosing, rather than as a refusal after a choice the
+          system itself offered. The two actions are the two the system actually implements — a
+          second storey is not among them. */}
+      {site?.rejection ? (
+        <section className="footprint-blocked" role="alert">
+          <h2>שטח הבנייה המבוקש אינו נכנס בקומה אחת על המגרש הזה</h2>
+          <dl>
+            <div><dt>שטח בנייה מבוקש</dt><dd>{site.requested_built_area_m2.toFixed(2)} מ״ר</dd></div>
+            <div><dt>מידות המגרש</dt><dd><span className="dim">{site.plot_width_m.toFixed(2)} × {site.plot_depth_m.toFixed(2)}</span> מ׳</dd></div>
+            <div><dt>אזור בנייה שנגזר</dt><dd><span className="dim">{site.buildable_width_m.toFixed(2)} × {site.buildable_depth_m.toFixed(2)}</span> מ׳</dd></div>
+            <div>
+              <dt>קיבולת מתאר גאומטרית לקומה אחת</dt>
+              <dd>{site.one_storey_footprint_capacity_m2.toFixed(2)} מ״ר</dd>
+            </div>
+          </dl>
+          <p className="footprint-blocked__note">
+            זו קיבולת גאומטרית בלבד — תוכנית החדרים, מידות מינימום ורוחב המסדרון עשויים להקטין
+            אותה עוד. {site.setback_disclaimer}
+          </p>
+          <p className="footprint-blocked__actions">
+            אפשר להקטין את שטח הבנייה המבוקש, או לעדכן את הנחות הנסיגה — שתי האפשרויות זמינות
+            במסך הקודם.
+          </p>
+        </section>
+      ) : null}
+
       <div className="footprint-grid" role="radiogroup" aria-label="בחירת צורת מבנה">
         {options.map((option) => (
           <PresetCard
@@ -242,6 +287,7 @@ function FootprintSelection({ targetAreaM2, value, onChange, onConfirm, onBack, 
           />
         ))}
         <CustomCard
+          buildable={site ? { width_m: site.buildable_width_m, depth_m: site.buildable_depth_m } : null}
           targetAreaM2={targetAreaM2}
           selected={selectedIsCustom}
           initialWidthText={selectedIsCustom && value ? String(value.width_m) : ''}

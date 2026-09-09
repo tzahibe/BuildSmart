@@ -1,4 +1,5 @@
 import type { GeometricDesign } from './design/geometricDesign'
+import type { FootprintOptionsResponse } from './design/footprint'
 import type { DemoDesign, RequirementsReview, ReviewEdit } from './design/demoDesign'
 import type { SpatialEditRequest } from './design/spatialEdit'
 import type { ChatMutationResponse, Conversation, Project, ProjectCreatePayload, ProjectUpdateRequest } from './types'
@@ -66,6 +67,50 @@ export class ChatError extends Error {}
 
 /** Raw `POST /projects` call — status-code handling (201/422/other) stays in App.tsx, which already has
  * the field-level Hebrew error-message logic for this specific endpoint. */
+/** Reports a failure the UI showed the user, so it lands in the same log as the backend's own.
+ *
+ * A backend-only log misses the half of the problem the person experiences: a request that never
+ * arrived, a response the UI could not use, a crash in the browser. Those end the journey just as
+ * completely as a 500 does. Fire-and-forget on purpose — a failing failure report must never
+ * become a second error in front of the user.
+ */
+export function reportFailure(code: string, message: string, where: string,
+                              detail = '', context: Record<string, unknown> = {}): void {
+  try {
+    void fetch('/failures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, message, detail, where, context }),
+    }).catch(() => {})
+  } catch {
+    /* never let logging surface to the user */
+  }
+}
+
+/** Site-aware footprint options, computed by the BACKEND from the buildable region.
+ *
+ * The options used to be generated in the browser from `built_area_m2` alone, which knew nothing
+ * about the land — across a 1440-scenario scan that produced 1032 refusals, 80% of all failures,
+ * every one of them somebody choosing an option the system itself had offered. They now come from
+ * the same module that enforces the fit rule, so an impossible outline is never on screen.
+ */
+export async function fetchFootprintOptions(body: {
+  plot_width_m: number
+  plot_depth_m: number
+  street_facing_side: string
+  built_area_m2: number
+}): Promise<FootprintOptionsResponse> {
+  const response = await fetch('/projects/site/footprint-options', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    throw new PipelineStepError('לא ניתן היה לחשב את אפשרויות המתאר עבור המגרש')
+  }
+  return (await response.json()) as FootprintOptionsResponse
+}
+
 export function createProject(payload: ProjectCreatePayload): Promise<Response> {
   return fetch('/projects', {
     method: 'POST',

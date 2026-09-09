@@ -149,6 +149,25 @@ export interface RoomRelationshipNote {
   statement: string
 }
 
+/** The parcel and the assumptions applied to it. Everything here is either entered or derived by
+ *  subtraction — the buildable rectangle is never larger than the plot. */
+export interface SiteNote {
+  plot_width_m: number
+  plot_depth_m: number
+  plot_area_m2: number
+  street_facing_side: string
+  front_setback_m: number
+  side_setback_m: number
+  rear_setback_m: number
+  setback_disclaimer: string
+  buildable_width_m: number
+  buildable_depth_m: number
+  buildable_area_m2: number
+  footprint_width_m: number | null
+  footprint_depth_m: number | null
+  footprint_fits: boolean | null
+}
+
 export interface RequirementsReview {
   bedrooms: ReviewField
   safe_room: ReviewField
@@ -163,9 +182,15 @@ export interface RequirementsReview {
   unsupported_requests?: UnsupportedRequestNote[]
   corridor_width?: CorridorWidthNote | null
   room_relationships?: RoomRelationshipNote[]
+  /** The rooms the plan will actually contain — what makes a missing room visible. */
+  planned_rooms?: string[]
+  site?: SiteNote | null
 }
 
 export interface ReviewEdit {
+  front_setback_m?: number
+  side_setback_m?: number
+  rear_setback_m?: number
   bedrooms?: number
   safe_room?: boolean
   wet_rooms?: number

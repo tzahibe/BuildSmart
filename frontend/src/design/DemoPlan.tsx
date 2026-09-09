@@ -1,4 +1,4 @@
-import type { DemoDesign } from './demoDesign'
+import type { DemoDesign, DemoRect } from './demoDesign'
 import './DemoPlan.css'
 
 /** THE DEMO RENDERER — presentation only.
@@ -13,6 +13,36 @@ import './DemoPlan.css'
  * and an `OPEN` boundary is drawn as a deliberate absence. */
 
 const PAD_M = 1.5
+
+/** How much surrounding site to keep around the building, as a share of its longest side. */
+const CONTEXT_MARGIN_RATIO = 0.3
+
+/** Frames the drawing on the BUILDING, not on the parcel.
+ *
+ * A 400 x 200 m plot holding a 19 x 10.5 m house is a legitimate site, and framing the parcel
+ * makes the plan a stamp in a green field. The subject is the building plus the site work that
+ * touches it (the entrance walk, the parking bays), padded with a margin proportional to the
+ * building so the drawing reads at the same weight on any parcel. The frame is then clipped to
+ * the parcel, so a plot barely larger than the house still shows the whole site. Everything
+ * outside the frame — the rest of the garden — simply falls off the edges of the SVG. */
+export function planViewBox(design: DemoDesign): string {
+  const { plot, footprint } = design
+  const subjects: DemoRect[] = [footprint, design.entrance_walk, ...design.parking]
+
+  const minX = Math.min(...subjects.map((r) => r.x))
+  const minY = Math.min(...subjects.map((r) => r.y))
+  const maxX = Math.max(...subjects.map((r) => r.x + r.width_m))
+  const maxY = Math.max(...subjects.map((r) => r.y + r.depth_m))
+
+  const margin = Math.max(PAD_M, CONTEXT_MARGIN_RATIO * Math.max(maxX - minX, maxY - minY))
+
+  const x0 = Math.max(minX - margin, plot.x - PAD_M)
+  const y0 = Math.max(minY - margin, plot.y - PAD_M)
+  const x1 = Math.min(maxX + margin, plot.x + plot.width_m + PAD_M)
+  const y1 = Math.min(maxY + margin, plot.y + plot.depth_m + PAD_M)
+
+  return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`
+}
 
 /** Exported so `PlanLegend` swatches are drawn from the SAME values as the plan itself — a legend
  * that keeps its own copy of the colours is a legend that eventually lies about the drawing. */
@@ -32,7 +62,7 @@ export function wallStyle(construction: string, context: string) {
 
 function DemoPlan({ design }: { design: DemoDesign }) {
   const { plot, footprint } = design
-  const viewBox = `${plot.x - PAD_M} ${plot.y - PAD_M} ${plot.width_m + PAD_M * 2} ${plot.depth_m + PAD_M * 2}`
+  const viewBox = planViewBox(design)
 
   return (
     <svg className="demo-plan" viewBox={viewBox} role="img" aria-label="תוכנית אדריכלית">

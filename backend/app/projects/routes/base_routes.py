@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.design.errors_http import raise_design_error_as_http
 from app.design.version import DesignVersion, JsonFileDesignVersionRepository
-from app.projects.models import Project, ProjectCreate
+from app.projects.models import StreetSide, Project, ProjectCreate
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.update import ProjectNotFoundError, ProjectUpdateRequest, apply_project_update, rollback_to_design_version
 
@@ -18,6 +18,44 @@ design_version_repository = JsonFileDesignVersionRepository(_DESIGN_VERSIONS_FIL
 
 @router.post("", response_model=Project, status_code=201)
 def create_project(data: ProjectCreate) -> Project:
+    # BACKEND ENFORCEMENT of the fit rule, at the moment the footprint is actually chosen.
+    #
+    # The options offered by the UI are already site-aware, but filtering in the client is not a
+    # guarantee — a stale page, a direct API call or a hand-edited payload can all still submit an
+    # outline that cannot go on the land. Rejecting it here means an impossible footprint can never
+    # be stored, rather than being caught later at generation with a plan already half-expected.
+    if data.selected_footprint is not None and data.plot_width_m and data.plot_depth_m:
+        from app.demo import site_geometry  # local: app.demo depends on app.projects, not vice versa
+
+        site = site_geometry.SiteGeometry(
+            plot_width_m=data.plot_width_m, plot_depth_m=data.plot_depth_m,
+            street_facing_side=data.street_facing_side or StreetSide.north,
+            canonical_width_m=(data.plot_depth_m
+                               if data.street_facing_side in (StreetSide.east, StreetSide.west)
+                               else data.plot_width_m),
+            canonical_depth_m=(data.plot_width_m
+                               if data.street_facing_side in (StreetSide.east, StreetSide.west)
+                               else data.plot_depth_m),
+            front_setback_m=(data.setbacks.front_m if data.setbacks
+                             else site_geometry.FRONT_SETBACK_M),
+            side_setback_m=(data.setbacks.side_m if data.setbacks
+                            else site_geometry.SIDE_SETBACK_M),
+            rear_setback_m=(data.setbacks.rear_m if data.setbacks
+                            else site_geometry.REAR_SETBACK_M),
+        )
+        fit = site_geometry.check_footprint_fits(
+            site, data.selected_footprint.width_m, data.selected_footprint.depth_m)
+        if not fit.fits:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
+                    "message": (
+                        f"המתאר שנבחר אינו נכנס בשטח שנותר לבנייה על המגרש הזה "
+                        f"({site.buildable_width_m:.2f} × {site.buildable_depth_m:.2f} מ׳). "
+                        f"{site_geometry.SETBACK_DISCLAIMER}"),
+                    "detail": fit.detail,
+                })
     return repository.create(data)
 
 

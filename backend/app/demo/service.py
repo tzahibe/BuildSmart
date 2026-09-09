@@ -33,13 +33,32 @@ from app.vertical_slice.safe_adapter import AdapterOutcome
 
 from .contract import DemoDesign, to_demo_design
 from .requirements_view import spec_for
+from . import site_geometry
 from .scope import ScopeRejection, check_supported
+
+
+#: Refusals that are about FEASIBILITY — this brief, this parcel, these assumptions — rather than
+#: about a malformed request. Each carries the scoping sentence so no refusal can be read as
+#: "this house cannot be designed".
+_FEASIBILITY_CODES = frozenset({
+    "PLAN_NOT_REALIZABLE",
+    "PLAN_FAILED_VALIDATION",
+    "PLAN_OUTSIDE_BUILDABLE",
+    "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
+    "CORRIDOR_WIDTH_NOT_FEASIBLE",
+    "ROOM_RELATIONSHIP_NOT_FEASIBLE",
+    "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
+    "SITE_GEOMETRY_REQUIRED",
+})
 
 
 class DemoGenerationError(Exception):
     """A product-level failure. Carries a message meant for a person."""
 
     def __init__(self, code: str, message: str, detail: str = "") -> None:
+        if code in _FEASIBILITY_CODES:
+            message = f"{message} {site_geometry.NOT_FEASIBLE_HE}"
+            detail = f"{detail} [{site_geometry.NOT_FEASIBLE_PHRASE}]".strip()
         super().__init__(message)
         self.code = code
         self.message = message
@@ -64,13 +83,29 @@ def _set_aside(project: Project, spec, preference_dropped: bool) -> list[str]:
     return notes
 
 
-def _buildable_from(spec) -> BuildableRegion:
-    """The user's selected rectangle IS the buildable region, placed inside its setbacks."""
-    origin_x, origin_y = spec.plot.buildable_origin_m()
-    width, depth = spec.plot.buildable_size_m()
+def _buildable_from(spec, project: Project) -> BuildableRegion:
+    """The land the planner may use: the chosen footprint, PLACED INSIDE the real buildable area.
+
+    Both containments are real — footprint inside buildable, buildable inside the parcel — so the
+    region handed to the engine is a subset of land the person actually owns. It used to be the
+    footprint rectangle at an origin derived from a plot that had itself been computed from that
+    same footprint, which made the containment vacuous.
+
+    Centred across the plot and flush to the street-side edge of the buildable rectangle, matching
+    the convention the site stage already uses for parking and the entrance walk.
+    """
+    site = site_geometry.derive(project)
+    footprint = project.selected_footprint
+    if site is None or footprint is None:  # both guaranteed by scope.check_supported
+        raise ValueError("_buildable_from requires an authoritative site and a footprint")
+
+    origin_x, origin_y = site.buildable_origin_m()
+    origin_x += max(0.0, (site.buildable_width_m - footprint.width_m) / 2)
     return BuildableRegion.known(
-        MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y, width, depth))),
-        Provenance(Source.USER, Authority.ASSUMED, ref="selected building footprint"),
+        MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y,
+                                            footprint.width_m, footprint.depth_m))),
+        Provenance(Source.USER, Authority.AUTHORITATIVE,
+                   ref="selected footprint inside the supplied parcel"),
     )
 
 
@@ -82,7 +117,7 @@ def generate_demo_design(project: Project) -> DemoResult:
     spec = spec_for(project)
     corridor = spec.program.corridor
 
-    result = _plan(spec)
+    result = _plan(spec, project)
 
     # A PREFERRED width may be dropped when the programme cannot fit it; a required one may not.
     # The retry happens once, without the corridor, and the plan says plainly that the preference
@@ -91,7 +126,7 @@ def generate_demo_design(project: Project) -> DemoResult:
     if (result.outcome is not AdapterOutcome.SOLVED and corridor is not None
             and not corridor.is_binding):
         without = replace(spec, program=replace(spec.program, corridor=None))
-        retry = _plan(without)
+        retry = _plan(without, project)
         if retry.outcome is AdapterOutcome.SOLVED:
             result, preference_dropped = retry, True
 
@@ -121,9 +156,9 @@ def realized_corridor_width_m_of(design) -> float:
     return round(min(widths), 2) if widths else 0.0
 
 
-def _plan(spec):
+def _plan(spec, project: Project):
     return run_general(
-        _buildable_from(spec),
+        _buildable_from(spec, project),
         plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
         program=spec.program,
     )

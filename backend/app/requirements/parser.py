@@ -30,12 +30,26 @@ another), output {"value": null, "source": "unknown"} instead — a conflict is 
 "unstated", so do NOT apply the single-story default in that case.
 - If the text clearly states one floor count, output that value with source "requested".
 
+Special rule for `bedrooms` (sleeping rooms):
+- Count EVERY sleeping room, the master bedroom included. "2 חדרי ילדים וחדר הורים" is 3 bedrooms,
+  not 2 — the master is a bedroom. "3 חדרי שינה ובנוסף חדר הורים" is 4.
+- A room named for who sleeps in it is a bedroom: חדר ילדים, חדר הורים, חדר שינה, חדר אורחים
+  (when described as a room to sleep in).
+- A room named for what is DONE in it is not: חדר עבודה, חדר משחקים, חדר כביסה, מחסן, ספרייה.
+  Do not count those here — report them under `other_requests` (see the room-type rule there).
+- If the text does not state any sleeping rooms at all, output {"value": null, "source": "unknown"}.
+  Never assume a bedroom count.
+
 Special rule for `wet_rooms` (bathrooms / shower rooms / toilet rooms):
 - Count every bathroom or shower room the person asks for, including an en-suite attached to a \
 bedroom. A separate guest toilet counts as one.
 - If the text does not mention bathrooms at all, output {"value": 1, "source": "inferred"} — a house \
 with no stated bathroom count is assumed to have one.
 - If the text states a count, output it with source "requested".
+- ONE ROOM CONTAINING BOTH a shower and a toilet is ONE wet room: "חדר הורים עם מקלחת ושירותים" adds
+  one, not two. Separate rooms are separate: a שירותי אורחים in addition to that master en-suite
+  makes two.
+- An en-suite described as part of a bedroom still counts, and the count is the TOTAL for the house.
 
 Special rule for `open_plan` (is the kitchen open to the living/dining area?):
 - READ NEGATION CAREFULLY. This is the field most easily got wrong.
@@ -92,7 +106,12 @@ Special rule for `corridor_width` (the hall / מסדרון / פרוזדור):
 
 `other_requests` — REQUIREMENTS THIS SYSTEM CANNOT YET EXPRESS:
 - The fields above are the ONLY requirements the planner can act on. A description often carries
-  more: dimensions for a space OTHER than the corridor ("a 4 m ceiling"), orientation
+  more: A ROOM THIS SYSTEM CANNOT PLAN — the planner knows only living, dining, kitchen, corridor,
+  bedrooms, a safe room and bathrooms, so any OTHER room the person asks for must be reported here
+  with topic "room_type": חדר עבודה, חדר כביסה, מחסן, חדר משחקים, ספרייה, מרתף, יחידת דיור, סטודיו,
+  a walk-in closet, a garage as a room. This is the most commonly dropped kind of request and the
+  one people notice first, so never let a named room go unreported. Also: dimensions for a space
+  OTHER than the corridor ("a 4 m ceiling"), orientation
   ("living room facing south"), style, materials, budget, accessibility, a garden layout, a
   basement, a balcony, storage.
 - List each such requirement as one entry, quoting the person's OWN words in `text` (a short phrase,

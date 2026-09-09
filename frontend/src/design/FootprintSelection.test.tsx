@@ -2,7 +2,33 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import FootprintSelection from './FootprintSelection'
-import { generateFootprintOptions, type BuildingFootprint } from './footprint'
+import {
+  generateFootprintOptions,
+  type BuildingFootprint,
+  type FootprintOptionsResponse,
+} from './footprint'
+
+/** A site whose buildable rectangle comfortably holds every option, so these tests exercise the
+ * selection behaviour rather than the fit rule (which has its own tests, backend and front). The
+ * options themselves now come from the backend, so the harness supplies them as it would arrive. */
+function siteFor(targetAreaM2: number, buildable = { width_m: 40, depth_m: 40 }): FootprintOptionsResponse {
+  return {
+    plot_width_m: buildable.width_m + 6, plot_depth_m: buildable.depth_m + 9.5,
+    street_facing_side: 'NORTH',
+    front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+    setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
+    buildable_width_m: buildable.width_m, buildable_depth_m: buildable.depth_m,
+    one_storey_footprint_capacity_m2: buildable.width_m * buildable.depth_m,
+    requested_built_area_m2: targetAreaM2,
+    options: generateFootprintOptions(targetAreaM2).map((option) => ({
+      shape_type: option.shape_type,
+      width_m: option.width_m,
+      depth_m: option.depth_m,
+      area_m2: option.area_m2,
+    })),
+    rejection: null,
+  }
+}
 
 /** A thin controlled-component harness — App.tsx owns `footprint` state the same way; these tests
  * exercise FootprintSelection exactly as it's actually used, not with a bare `onChange` spy that
@@ -11,6 +37,7 @@ function Harness({ targetAreaM2, onConfirm }: { targetAreaM2: number; onConfirm?
   const [value, setValue] = useState<BuildingFootprint | null>(null)
   return (
     <FootprintSelection
+      site={siteFor(targetAreaM2)}
       targetAreaM2={targetAreaM2}
       value={value}
       onChange={setValue}
@@ -32,7 +59,7 @@ function ReareaHarness() {
       <button type="button" onClick={() => setArea(240)}>
         change-area
       </button>
-      <FootprintSelection targetAreaM2={area} value={value} onChange={setValue} onConfirm={() => {}} onBack={() => {}} />
+      <FootprintSelection site={siteFor(area)} targetAreaM2={area} value={value} onChange={setValue} onConfirm={() => {}} onBack={() => {}} />
     </div>
   )
 }

@@ -51,6 +51,24 @@ const SEVERITY_LABEL: Record<string, string> = {
   ambiguous: 'לא ברור',
 }
 
+/** A width x depth pair, isolated from the surrounding RTL run.
+ *
+ * Without this, "20.00 × 24.00" is reordered by the bidi algorithm and displayed as
+ * "24.00 × 20.00" — the reader sees a different plot from the one they entered, and the buildable
+ * rectangle and footprint had the same problem. The numbers were right; the reading order was not.
+ */
+function Dim({ a, b }: { a: number; b: number }) {
+  return (
+    <span className="dim">
+      {a.toFixed(2)} × {b.toFixed(2)}
+    </span>
+  )
+}
+
+const STREET_SIDE_LABEL: Record<string, string> = {
+  NORTH: 'צפון', SOUTH: 'דרום', EAST: 'מזרח', WEST: 'מערב',
+}
+
 const CORRIDOR_MODE_LABEL: Record<string, string> = {
   minimum: 'רוחב מסדרון מינימלי',
   exact: 'רוחב מסדרון',
@@ -61,6 +79,14 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const corridor = review.corridor_width ?? null
   // Ambiguous ones never reach here as a statement — the backend asks for clarification first.
   const relationships = (review.room_relationships ?? []).filter((r) => !r.ambiguous)
+  const plannedRooms = review.planned_rooms ?? []
+  const site = review.site ?? null
+  // Seeded from the site the backend derived, so the fields show the assumptions actually in force.
+  const [setbacks, setSetbacks] = useState({
+    front_setback_m: site?.front_setback_m ?? 5.5,
+    rear_setback_m: site?.rear_setback_m ?? 4.0,
+    side_setback_m: site?.side_setback_m ?? 3.0,
+  })
   const unsupported = review.unsupported_requests ?? []
   // Anything not worded as a preference stops generation on the backend (scope.py). Saying so here,
   // before the button is pressed, beats letting the person press it and read a refusal.
@@ -117,6 +143,76 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           {CORRIDOR_MODE_LABEL[corridor.mode] ?? 'רוחב מסדרון'}:{' '}
           <strong>{corridor.value_m.toFixed(2)} מ׳</strong>
         </p>
+      ) : null}
+
+      {/* THE SITE. Shown before Generate because it is what everything else is measured against,
+          and because the setbacks are ASSUMPTIONS — nobody verified them — yet on a small parcel
+          they decide almost everything about what can be built. They are editable here for exactly
+          that reason. The planner subtracts them from this plot; it never grows the plot. */}
+      {site ? (
+        <section className="review-site" aria-label="המגרש והנחות התכנון">
+          <h2 className="review-site-title">המגרש</h2>
+          <dl className="review-site-facts">
+            <div><dt>מידות</dt><dd><Dim a={site.plot_width_m} b={site.plot_depth_m} /> מ׳</dd></div>
+            <div><dt>שטח</dt><dd>{site.plot_area_m2.toFixed(2)} מ״ר</dd></div>
+            <div><dt>חזית לרחוב</dt><dd>{STREET_SIDE_LABEL[site.street_facing_side] ?? site.street_facing_side}</dd></div>
+          </dl>
+
+          <h3 className="review-site-subtitle">הנחות נסיגה לדמו</h3>
+          <div className="review-setbacks">
+            {([['front_setback_m', 'חזית'], ['rear_setback_m', 'אחורית'], ['side_setback_m', 'צדדים']] as const).map(
+              ([key, label]) => (
+                <label key={key}>
+                  {label} (מ׳)
+                  <input
+                    type="number" min={0.1} step={0.1} value={setbacks[key]}
+                    aria-label={`נסיגה ${label}`}
+                    onChange={(event) =>
+                      setSetbacks({ ...setbacks, [key]: Number(event.target.value) })
+                    }
+                  />
+                </label>
+              ),
+            )}
+          </div>
+          <p className="review-site-disclaimer">{site.setback_disclaimer}</p>
+
+          <dl className="review-site-facts">
+            <div>
+              <dt>אזור בנייה שנגזר</dt>
+              <dd><Dim a={site.buildable_width_m} b={site.buildable_depth_m} /> מ׳ ({site.buildable_area_m2.toFixed(2)} מ״ר)</dd>
+            </div>
+            {site.footprint_width_m !== null && site.footprint_depth_m !== null ? (
+              <div>
+                <dt>מתאר הבית שנבחר</dt>
+                <dd>
+                  <Dim a={site.footprint_width_m} b={site.footprint_depth_m} /> מ׳
+                  {site.footprint_fits === false ? (
+                    <strong className="review-site-nofit"> — אינו נכנס בשטח שנותר לבנייה</strong>
+                  ) : null}
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+        </section>
+      ) : null}
+
+      {/* WHAT THE HOUSE WILL ACTUALLY CONTAIN. The counts below answer "how many bedrooms"; they
+          cannot answer "did you understand my study?". A brief asking for one came back as
+          "3 bedrooms, 1 bathroom" and the study was simply absent — planned nowhere and reported
+          nowhere. Naming every room the plan will have makes an omission visible in one glance. */}
+      {plannedRooms.length > 0 ? (
+        <section className="review-rooms" aria-label="חדרים שייכללו בתוכנית">
+          <h2 className="review-rooms-title">החדרים שייכללו בתוכנית</h2>
+          <ul className="review-rooms-list">
+            {plannedRooms.map((room) => (
+              <li key={room}>{room}</li>
+            ))}
+          </ul>
+          <p className="review-rooms-note">
+            חדר שביקשת ואינו ברשימה — לא ייבנה. אפשר לתקן את הדרישות כאן או לחזור לתיאור.
+          </p>
+        </section>
       ) : null}
 
       {/* The understood room relationships. Shown before Generate precisely so a misreading —
@@ -185,11 +281,10 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         </label>
       </div>
 
-      {review.footprint_width_m && review.footprint_depth_m ? (
-        <p className="review-footprint">
-          מתאר הבניין שנבחר: {review.footprint_width_m} × {review.footprint_depth_m} מ׳
-        </p>
-      ) : null}
+      {/* The footprint used to be stated here on its own. It now appears in the site block above,
+          next to the buildable rectangle it has to fit inside — which is the only place the number
+          means anything. Repeating it at the bottom just asked the reader to compare two figures
+          across the screen. */}
 
       <div className="review-actions">
         <button type="button" className="review-back" onClick={onBack} disabled={busy}>
@@ -202,6 +297,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           title={blocking.length > 0 ? 'יש בקשות שצריך להכריע בהן קודם' : undefined}
           onClick={() =>
             onConfirm({
+              ...setbacks,
               bedrooms,
               wet_rooms: wetRooms,
               parking_spaces: parking,

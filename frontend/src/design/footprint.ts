@@ -176,3 +176,47 @@ export function toSelectedFootprintPayload(footprint: BuildingFootprint): Select
     polygon: footprint.polygon,
   }
 }
+
+
+/** What the backend returns for a site: only outlines that fit, plus the numbers behind them. */
+export interface FootprintOptionsResponse {
+  plot_width_m: number
+  plot_depth_m: number
+  street_facing_side: string
+  front_setback_m: number
+  side_setback_m: number
+  rear_setback_m: number
+  setback_disclaimer: string
+  buildable_width_m: number
+  buildable_depth_m: number
+  /** A GEOMETRIC ceiling for a single storey — the buildable rectangle's area. Not a promise about
+   *  how big a house can be: the room programme can reduce it further. */
+  one_storey_footprint_capacity_m2: number
+  requested_built_area_m2: number
+  options: Array<{ shape_type: FootprintShapeType; width_m: number; depth_m: number; area_m2: number }>
+  rejection: { code: string; message: string } | null
+}
+
+/** A backend option -> this app's own selection type, unchanged in every dimension. */
+export function footprintFromOption(
+  option: FootprintOptionsResponse['options'][number],
+  targetAreaM2: number,
+): BuildingFootprint {
+  return {
+    id: `site-${option.shape_type.toLowerCase()}-${option.width_m}x${option.depth_m}`,
+    source: 'PRESET',
+    shape_type: option.shape_type,
+    target_area_m2: round2(targetAreaM2),
+    width_m: option.width_m,
+    depth_m: option.depth_m,
+    area_m2: option.area_m2,
+    polygon: rectanglePolygon(option.width_m, option.depth_m),
+  }
+}
+
+/** Does a custom entry fit the buildable rectangle? The backend enforces this too — this only
+ *  stops the person submitting something it will refuse. */
+export function fitsBuildable(widthM: number, depthM: number,
+                              buildableWidthM: number, buildableDepthM: number): boolean {
+  return widthM <= buildableWidthM + 1e-9 && depthM <= buildableDepthM + 1e-9
+}

@@ -16,6 +16,9 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from app.projects.models import Project
+
+from . import site_geometry
+from app.vertical_slice.concept_generator import build_room_program
 from app.vertical_slice.relationships import describe
 from app.vertical_slice.spec import (
     ArchitecturalSpec,
@@ -28,12 +31,12 @@ from app.vertical_slice.spec import (
     ProgramSpec,
 )
 
-#: Setbacks used to place the selected footprint inside a plot. The footprint the user picked is
-#: treated as the BUILDABLE area exactly; the setbacks only create the surrounding site the
-#: parking, entrance walk and garden are laid out in. PARAMETER, not a regulation figure.
-FRONT_SETBACK_M = 5.5
-SIDE_SETBACK_M = 3.0
-REAR_SETBACK_M = 4.0
+#: The setbacks now live with the site model that applies them (`site_geometry`), re-exported here
+#: only so existing importers keep working. They are DEMO ASSUMPTIONS, subtracted from the
+#: authoritative parcel — never used to generate one.
+FRONT_SETBACK_M = site_geometry.FRONT_SETBACK_M
+SIDE_SETBACK_M = site_geometry.SIDE_SETBACK_M
+REAR_SETBACK_M = site_geometry.REAR_SETBACK_M
 
 
 class RequirementField(BaseModel):
@@ -54,6 +57,29 @@ class RoomRelationshipNote(BaseModel):
     ambiguous: bool = False
     #: Product wording, e.g. 'חדר ההורים צמוד לחדרי הרחצה' — built here so the UI never has to.
     statement: str = ""
+
+
+class SiteNote(BaseModel):
+    """The site as the planner will use it, shown before Generate.
+
+    Everything here is either what the person entered or a stated assumption derived from it — the
+    buildable rectangle is the parcel MINUS the setbacks, never anything larger.
+    """
+
+    plot_width_m: float
+    plot_depth_m: float
+    plot_area_m2: float
+    street_facing_side: str
+    front_setback_m: float
+    side_setback_m: float
+    rear_setback_m: float
+    setback_disclaimer: str
+    buildable_width_m: float
+    buildable_depth_m: float
+    buildable_area_m2: float
+    footprint_width_m: float | None = None
+    footprint_depth_m: float | None = None
+    footprint_fits: bool | None = None
 
 
 class CorridorWidthNote(BaseModel):
@@ -88,6 +114,13 @@ class RequirementsReview(BaseModel):
     #: asked for — the planner then keeps its own derived width.
     corridor_width: CorridorWidthNote | None = None
     room_relationships: list[RoomRelationshipNote] = Field(default_factory=list)
+    #: The rooms the plan will ACTUALLY contain, in the person's words. Counts alone hid the gap
+    #: that prompted this: a brief asking for a study came back as "3 bedrooms, 1 bathroom" and the
+    #: study was nowhere — not planned, and not reported as unplanned either. A list of what will be
+    #: built makes anything missing from it visible before Generate.
+    planned_rooms: list[str] = Field(default_factory=list)
+    #: The authoritative parcel and the assumptions applied to it. `None` before the site is known.
+    site: SiteNote | None = None
 
 
 class ReviewEdit(BaseModel):
@@ -100,6 +133,11 @@ class ReviewEdit(BaseModel):
     open_plan: bool | None = None
     parking_spaces: int | None = None
     floors: int | None = None
+    #: Demo setback assumptions, editable here precisely because they are assumptions. Supplying
+    #: any of them replaces that one; the rest keep their current value.
+    front_setback_m: float | None = None
+    side_setback_m: float | None = None
+    rear_setback_m: float | None = None
 
 
 def _field(tagged, default=None, default_source: str = "inferred") -> RequirementField:
@@ -110,11 +148,18 @@ def _field(tagged, default=None, default_source: str = "inferred") -> Requiremen
 
 def review_of(project: Project) -> RequirementsReview:
     footprint = project.selected_footprint
+    bedrooms = _field(project.bedrooms)
+    safe_room = _field(project.safe_room, default=False)
+    wet_rooms = _field(project.wet_rooms, default=1)
+    open_plan = _field(project.open_plan, default=False)
     return RequirementsReview(
-        bedrooms=_field(project.bedrooms),
-        safe_room=_field(project.safe_room, default=False),
-        wet_rooms=_field(project.wet_rooms, default=1),
-        open_plan=_field(project.open_plan, default=False),
+        planned_rooms=_planned_rooms(bedrooms.value, safe_room.value,
+                                     open_plan.value, wet_rooms.value),
+        site=_site_note(project),
+        bedrooms=bedrooms,
+        safe_room=safe_room,
+        wet_rooms=wet_rooms,
+        open_plan=open_plan,
         parking_spaces=_field(project.parking_spaces, default=0),
         floors=_field(project.floors, default=1),
         built_area_m2=project.built_area_m2,
@@ -128,6 +173,7 @@ def review_of(project: Project) -> RequirementsReview:
                               mode=project.corridor_width.mode,
                               source=project.corridor_width.source.value)
             if project.corridor_width and project.corridor_width.value_m is not None else None),
+
         room_relationships=[
             RoomRelationshipNote(
                 source_role=r.source_role, target_role=r.target_role, relation=r.relation,
@@ -137,6 +183,59 @@ def review_of(project: Project) -> RequirementsReview:
                     relation=RoomRelation(r.relation),
                     strength=RelationStrength(r.strength), source_text=r.source_text))))
             for r in project.room_relationships],
+    )
+
+
+#: Room role -> what to call it on screen. Mirrors the plan's own names so the review and the
+#: drawing never disagree about what a room is called.
+_ROOM_WORDS = {
+    "LIVING": "סלון", "DINING": "פינת אוכל", "KITCHEN": "מטבח", "HALL": "מסדרון",
+    "MASTER_BEDROOM": "חדר הורים", "BEDROOM": "חדר שינה", "SAFE_ROOM": 'ממ"ד',
+    "BATHROOM": "חדר רחצה",
+}
+
+
+def _planned_rooms(bedrooms, safe_room, open_plan, wet_rooms) -> list[str]:
+    """The room programme this brief will actually produce, named and counted.
+
+    Takes the ALREADY-RESOLVED review values rather than the project, because `spec_for` is built
+    on top of `review_of` — calling it from inside `review_of` recursed until the stack ran out.
+    It still goes through the planner's own `build_room_program`, so the list cannot drift from
+    what actually gets drawn.
+    """
+    if bedrooms is None:
+        return []
+    program = ProgramSpec(
+        bedrooms=int(bedrooms), safe_room=bool(safe_room),
+        open_plan_living=bool(open_plan), wet_rooms=int(wet_rooms or 1))
+    rooms = build_room_program(ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=program))
+
+    counts: dict[str, int] = {}
+    for room in rooms:
+        word = _ROOM_WORDS.get(room.role.value, room.zone_id)
+        counts[word] = counts.get(word, 0) + 1
+    return [word if n == 1 else f"{word} ×{n}" for word, n in counts.items()]
+
+
+def _site_note(project: Project) -> SiteNote | None:
+    site = site_geometry.derive(project)
+    if site is None:
+        return None
+    footprint = project.selected_footprint
+    fit = (site_geometry.check_footprint_fits(site, footprint.width_m, footprint.depth_m)
+           if footprint is not None else None)
+    return SiteNote(
+        plot_width_m=site.plot_width_m, plot_depth_m=site.plot_depth_m,
+        plot_area_m2=site.plot_area_m2,
+        street_facing_side=site.street_facing_side.value,
+        front_setback_m=site.front_setback_m, side_setback_m=site.side_setback_m,
+        rear_setback_m=site.rear_setback_m,
+        setback_disclaimer=site_geometry.SETBACK_DISCLAIMER,
+        buildable_width_m=site.buildable_width_m, buildable_depth_m=site.buildable_depth_m,
+        buildable_area_m2=site.buildable_area_m2,
+        footprint_width_m=footprint.width_m if footprint else None,
+        footprint_depth_m=footprint.depth_m if footprint else None,
+        footprint_fits=fit.fits if fit else None,
     )
 
 
@@ -185,13 +284,23 @@ def spec_for(project: Project) -> ArchitecturalSpec:
     if footprint is None:  # guarded by scope.check_supported before this is ever called
         raise ValueError("spec_for requires a selected rectangular footprint")
 
+    site = site_geometry.derive(project)
+    if site is None:  # guarded by scope.check_supported before this is ever called
+        raise ValueError("spec_for requires authoritative site dimensions")
+
+    # THE PLOT IS THE PARCEL THE PERSON ENTERED. It is no longer computed from the footprint —
+    # see site_geometry's module docstring for what that used to do and why it was wrong.
     return ArchitecturalSpec(
         plot=PlotSpec(
-            width_m=footprint.width_m + 2 * SIDE_SETBACK_M,
-            depth_m=footprint.depth_m + FRONT_SETBACK_M + REAR_SETBACK_M,
-            front_setback_m=FRONT_SETBACK_M,
-            side_setback_m=SIDE_SETBACK_M,
-            rear_setback_m=REAR_SETBACK_M,
+            width_m=site.canonical_width_m,
+            depth_m=site.canonical_depth_m,
+            # NEAR/FAR rather than front/rear: `PlotSpec` measures its buildable origin from the
+            # y=0 edge, and for a SOUTH or WEST frontage the street is at the far end. Passing the
+            # near setback first keeps `site.py`'s own use of that helper correct without it
+            # needing to know anything about orientation.
+            front_setback_m=site.near_setback_m,
+            side_setback_m=site.side_setback_m,
+            rear_setback_m=site.far_setback_m,
         ),
         program=ProgramSpec(
             bedrooms=int(review.bedrooms.value or 0),

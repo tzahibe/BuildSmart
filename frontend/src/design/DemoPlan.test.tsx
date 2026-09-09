@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { render, within } from '@testing-library/react'
-import DemoPlan from './DemoPlan'
+import { fireEvent, render, within } from '@testing-library/react'
+import DemoPlan, { planViewBox } from './DemoPlan'
 import DemoWorkspace from './DemoWorkspace'
 import ReviewPage from './ReviewPage'
 import type { DemoDesign, RequirementsReview } from './demoDesign'
@@ -50,6 +50,30 @@ function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
 }
 
 describe('DemoPlan', () => {
+  it('frames the drawing on the building, not on a vast parcel', () => {
+    // 400 x 200 m of land around a 19 x 10.5 m house: framing the plot draws a stamp.
+    const large = design({
+      plot: { x: 0, y: 0, width_m: 400, depth_m: 200 },
+      footprint: { x: 190, y: 4, width_m: 19, depth_m: 10.5 },
+      entrance_walk: { x: 198, y: 0, width_m: 1.2, depth_m: 4 },
+      parking: [],
+      garden: [{ x: 0, y: 0, width_m: 400, depth_m: 200 }],
+    })
+    const [, , w, h] = planViewBox(large).split(' ').map(Number)
+    // The house must dominate the frame rather than be lost in it.
+    expect(w).toBeLessThan(50)
+    expect(h).toBeLessThan(50)
+    expect(19 / w).toBeGreaterThan(0.5)
+  })
+
+  it('still shows the whole site when the plot is barely larger than the house', () => {
+    const [x, y, w, h] = planViewBox(design()).split(' ').map(Number)
+    expect(x).toBeLessThanOrEqual(0)
+    expect(y).toBeLessThanOrEqual(0)
+    expect(x + w).toBeGreaterThanOrEqual(20)
+    expect(y + h).toBeGreaterThanOrEqual(24)
+  })
+
   it('draws exactly the walls the backend supplied — no more, no fewer', () => {
     const { container } = render(<DemoPlan design={design()} />)
     // 2 walls + 2 doors + 1 window = 5 <line> elements. An inferred door would push this to 6.
@@ -327,5 +351,102 @@ describe('ReviewPage — understood room relationships', () => {
                   onConfirm={() => {}} onBack={() => {}} />,
     )
     expect(queryByLabelText('יחסים בין חדרים')).toBeNull()
+  })
+})
+
+describe('ReviewPage — the rooms the plan will contain', () => {
+  const base: RequirementsReview = {
+    bedrooms: { value: 3, source: 'requested' },
+    safe_room: { value: true, source: 'requested' },
+    wet_rooms: { value: 2, source: 'requested' },
+    open_plan: { value: true, source: 'requested' },
+    parking_spaces: { value: 2, source: 'requested' },
+    floors: { value: 1, source: 'inferred' },
+    built_area_m2: 220,
+    footprint_width_m: 17.23,
+    footprint_depth_m: 12.77,
+    description: '2 חדרי ילדים, חדר הורים עם מקלחת, סלון, מטבח, חדר עבודה קטן, 2 חניות',
+    planned_rooms: ['סלון', 'פינת אוכל', 'מטבח', 'מסדרון', 'חדר הורים', 'חדר שינה ×2', 'ממ"ד', 'חדר רחצה ×2'],
+  }
+
+  it('names every room, so a requested room that is missing can be seen', () => {
+    const { getByLabelText } = render(
+      <ReviewPage review={base} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    const panel = within(getByLabelText('חדרים שייכללו בתוכנית'))
+    panel.getByText('חדר הורים')
+    panel.getByText('חדר שינה ×2')
+    panel.getByText('מטבח')
+    // the study the brief asked for is absent from the plan, and therefore from this list
+    expect(panel.queryByText(/עבודה/)).toBeNull()
+  })
+
+  it('says plainly that a room not on the list will not be built', () => {
+    const { getByText } = render(
+      <ReviewPage review={base} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    getByText(/לא ייבנה/)
+  })
+
+  it('shows nothing before there is a programme to show', () => {
+    const { queryByLabelText } = render(
+      <ReviewPage review={{ ...base, planned_rooms: [] }} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    expect(queryByLabelText('חדרים שייכללו בתוכנית')).toBeNull()
+  })
+})
+
+describe('ReviewPage — the site and its assumptions', () => {
+  const base: RequirementsReview = {
+    bedrooms: { value: 3, source: 'requested' },
+    safe_room: { value: true, source: 'requested' },
+    wet_rooms: { value: 2, source: 'requested' },
+    open_plan: { value: true, source: 'requested' },
+    parking_spaces: { value: 2, source: 'requested' },
+    floors: { value: 1, source: 'inferred' },
+    built_area_m2: 132,
+    footprint_width_m: 11,
+    footprint_depth_m: 12,
+    description: 'brief',
+    site: {
+      plot_width_m: 20, plot_depth_m: 24, plot_area_m2: 480, street_facing_side: 'NORTH',
+      front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+      setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
+      buildable_width_m: 14, buildable_depth_m: 14.5, buildable_area_m2: 203,
+      footprint_width_m: 11, footprint_depth_m: 12, footprint_fits: true,
+    },
+  }
+
+  it('shows the plot, the frontage, the assumptions and what they leave', () => {
+    const { getByLabelText } = render(
+      <ReviewPage review={base} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    const panel = within(getByLabelText('המגרש והנחות התכנון'))
+    panel.getByText('20.00 × 24.00')
+    panel.getByText('480.00 מ״ר')
+    panel.getByText('צפון')
+    panel.getByText('14.00 × 14.50')
+    panel.getByText(/203\.00 מ״ר/)
+    panel.getByText('הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.')
+  })
+
+  it('lets the assumptions be corrected, and sends them with Generate', () => {
+    const sent: unknown[] = []
+    const { getByLabelText, getByRole } = render(
+      <ReviewPage review={base} onConfirm={(edit) => sent.push(edit)} onBack={() => {}} />,
+    )
+    fireEvent.change(getByLabelText('נסיגה חזית'), { target: { value: '3' } })
+    getByRole('button', { name: 'יצירת תוכנית' }).click()
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toMatchObject({ front_setback_m: 3, rear_setback_m: 4, side_setback_m: 3 })
+  })
+
+  it('says plainly when the chosen outline does not fit the land that is left', () => {
+    const { getByLabelText } = render(
+      <ReviewPage
+        review={{ ...base, site: { ...base.site!, buildable_depth_m: 6.5, footprint_fits: false } }}
+        onConfirm={() => {}} onBack={() => {}} />,
+    )
+    within(getByLabelText('המגרש והנחות התכנון')).getByText(/אינו נכנס בשטח שנותר לבנייה/)
   })
 })

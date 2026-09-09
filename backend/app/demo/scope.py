@@ -14,6 +14,8 @@ from enum import Enum
 
 from app.projects.models import Project
 
+from . import site_geometry
+
 SUPPORTED_BEDROOMS = (2, 3)
 SUPPORTED_WET_ROOMS = (1, 2, 3)
 MAX_PARKING_SPACES = 2
@@ -37,6 +39,11 @@ class ScopeCode(str, Enum):
     CLARIFICATION_REQUIRED = "CLARIFICATION_REQUIRED"
     #: A room in a requested relationship could not be resolved to one room the plan has.
     AMBIGUOUS_ROOM_REFERENCE = "AMBIGUOUS_ROOM_REFERENCE"
+    #: The project carries no authoritative parcel geometry. The planner refuses rather than
+    #: inventing one from the building, which is what it used to do.
+    SITE_GEOMETRY_REQUIRED = "SITE_GEOMETRY_REQUIRED"
+    #: The chosen outline does not fit the land that is left after the demo setbacks.
+    FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION = "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
 
 
 @dataclass(frozen=True)
@@ -136,6 +143,17 @@ def check_supported(project: Project) -> ScopeRejection | None:
             f"ואז ניצור את התוכנית.",
             "; ".join(f"{r.topic}: {r.text}" for r in unclear))
 
+    # AUTHORITATIVE SITE. Without real parcel dimensions there is nothing honest to plan inside, and
+    # the old behaviour — deriving a plot from the footprint — could only ever invent land.
+    site = site_geometry.derive(project)
+    if site is None:
+        return ScopeRejection(
+            ScopeCode.SITE_GEOMETRY_REQUIRED,
+            "כדי לתכנן צריך את מידות המגרש עצמו — רוחב, עומק, ואיזו חזית פונה לרחוב. "
+            "שטח בלבד אינו מספיק: אותו שטח בצורות שונות נותן תוצאות שונות.",
+            f"plot_width_m={project.plot_width_m}, plot_depth_m={project.plot_depth_m}, "
+            f"street_facing_side={project.street_facing_side}")
+
     if project.selected_footprint is None:
         return ScopeRejection(
             ScopeCode.FOOTPRINT_REQUIRED,
@@ -146,5 +164,21 @@ def check_supported(project: Project) -> ScopeRejection | None:
             ScopeCode.FOOTPRINT_REQUIRED,
             "בשלב זה הדמו תומך במתאר מלבני בלבד.",
             f"shape_type={project.selected_footprint.shape_type}")
+
+    # FIT. The site is not enlarged and the footprint is not shrunk — the person is told both sets
+    # of numbers and decides which to change.
+    fit = site_geometry.check_footprint_fits(
+        site, project.selected_footprint.width_m, project.selected_footprint.depth_m)
+    if not fit.fits:
+        return ScopeRejection(
+            ScopeCode.FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION,
+            f"המתאר שנבחר ({project.selected_footprint.width_m:.2f} × "
+            f"{project.selected_footprint.depth_m:.2f} מ׳) אינו נכנס בשטח שנותר לבנייה. "
+            f"המגרש הוא {site.plot_width_m:.2f} × {site.plot_depth_m:.2f} מ׳, ואחרי נסיגות הדמו "
+            f"(חזית {site.front_setback_m}, אחורית {site.rear_setback_m}, צדדים "
+            f"{site.side_setback_m}) נשאר שטח בנייה של {site.buildable_width_m:.2f} × "
+            f"{site.buildable_depth_m:.2f} מ׳. אפשר לבחור מתאר קטן יותר או לעדכן את מידות המגרש. "
+            f"{site_geometry.SETBACK_DISCLAIMER}",
+            fit.detail)
 
     return None

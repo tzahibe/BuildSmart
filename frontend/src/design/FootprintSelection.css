@@ -191,3 +191,28 @@
     width: 100%;
   }
 }
+
+/* Nothing fits. Shown INSTEAD of a grid of impossible choices, with the numbers behind the answer
+   and only the actions the system actually implements. */
+.footprint-blocked {
+  width: 100%;
+  border: 1px solid var(--danger-border);
+  background: var(--danger-bg);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-sizing: border-box;
+  text-align: start;
+}
+
+.footprint-blocked h2 { margin: 0 0 12px; font-size: 16px; color: var(--danger); }
+
+.footprint-blocked dl { margin: 0 0 12px; display: flex; flex-direction: column; gap: 5px; }
+.footprint-blocked dl > div { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; }
+.footprint-blocked dt { color: var(--text); }
+.footprint-blocked dd { margin: 0; color: var(--text-h); font-weight: 600; }
+
+.footprint-blocked__note,
+.footprint-blocked__actions { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: var(--text); }
+.footprint-blocked__actions { margin-bottom: 0; color: var(--text-h); }
+
+.footprint-selection .dim { direction: ltr; unicode-bidi: isolate; display: inline-block; }
