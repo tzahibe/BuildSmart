@@ -149,7 +149,8 @@ def realized_corridor_width_m(fixture: Fixture, rects: dict[str, Rect],
 def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
              interior_doors: list[Door], entrance_door: Door, windows: list[Window],
              furniture: list[FurnitureCheck], site: SitePlan,
-             corridor: CorridorRequirement | None = None) -> ValidationReport:
+             corridor: CorridorRequirement | None = None,
+             relationships: tuple = ()) -> ValidationReport:
     rep = ValidationReport()
 
     # C1 — no overlap
@@ -327,6 +328,20 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                     corridor.satisfied_by(realized),
                     f"requested {corridor.mode.value} {corridor.width_m:.2f} m, "
                     f"realized {realized:.2f} m")
+
+    # C15 — requested room relationships, measured on the REALIZED geometry.
+    #
+    # Not the declared concept graph: a plan is checked on the walls and doors it actually has, so
+    # ADJACENT means a real shared wall and NOT_ADJACENT means no shared wall anywhere. Only HARD
+    # relationships gate the plan; preferences are reported by the pipeline as warnings and never
+    # fail a plan that is otherwise valid.
+    if relationships:
+        from .relationships import evaluate as _evaluate_relationships
+        outcomes = _evaluate_relationships(
+            fixture, rects, realized_connections(rects, walls, interior_doors), relationships)
+        broken = [f"{o.statement}: {o.detail}" for o in outcomes if o.is_hard and not o.satisfied]
+        rep.add("C15", "requested room relationships are realized", not broken,
+                "; ".join(broken) or "every required relationship holds in the built plan")
 
     rep.add("C13", "declared access topology is physically realized", not unrealized,
             "; ".join(unrealized) or

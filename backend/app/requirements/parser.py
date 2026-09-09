@@ -69,10 +69,30 @@ Special rule for `corridor_width` (the hall / מסדרון / פרוזדור):
     "אני מעדיף מסדרון של 2 מטר".
 - A corridor width reported here must NOT also appear in `other_requests`; it is supported now.
 
+`room_relationships` — HOW ROOMS SHOULD SIT RELATIVE TO EACH OTHER:
+- Extract every request about two rooms' relationship. Both rooms must resolve to one of these
+  tokens, and to nothing else: MASTER_BEDROOM, BEDROOM (a child's/secondary bedroom),
+  SAFE_ROOM (ממ"ד), KITCHEN, LIVING, DINING, BATHROOM, ENSUITE (a bathroom belonging to the master
+  bedroom), GUEST_BATHROOM (שירותי אורחים), ENTRANCE (הכניסה).
+- `relation` is one of, and these are NOT interchangeable:
+  - "adjacent"      — צמוד, נושק, קיר משותף. A shared wall.
+  - "direct_access" — ONLY when the wording asks to pass between them: "כניסה מ...", "דלת בין...",
+    "יציאה ישירה ל...". "צמוד" alone is NOT direct access.
+  - "near"          — קרוב, ליד, בסמוך, לא רחוק. Do NOT upgrade this to "adjacent".
+  - "not_adjacent"  — לא צמוד, לא ליד, רחוק מ, שלא יהיה ליד.
+- `strength` is "hard_requirement" when worded as binding (חייב, חובה, נדרש, אסור, לא רוצה,
+  must, has to) and "preference" when wished for (עדיף, רצוי, אשמח, כדאי, אם אפשר).
+  "אני רוצה ש..." is a hard requirement; "אני מעדיף ש..." is a preference.
+- `source_text` quotes the person's own words for that one relationship.
+- AMBIGUOUS REFERENCES: if a room cannot be resolved to exactly one token — "החדר הגדול",
+  "החדר של יוסי", a room this system has no concept of — do NOT guess and do NOT drop it. Set
+  `ambiguous` true, leave the unresolved side's token empty, and still quote `source_text`. It is
+  reported back for the person to clarify.
+- A relationship reported here must NOT also appear in `other_requests`.
+
 `other_requests` — REQUIREMENTS THIS SYSTEM CANNOT YET EXPRESS:
 - The fields above are the ONLY requirements the planner can act on. A description often carries
-  more: how rooms should relate ("chambers not next to each other", "kitchen away from the
-  bedrooms"), dimensions for a space OTHER than the corridor ("a 4 m ceiling"), orientation
+  more: dimensions for a space OTHER than the corridor ("a 4 m ceiling"), orientation
   ("living room facing south"), style, materials, budget, accessibility, a garden layout, a
   basement, a balcony, storage.
 - List each such requirement as one entry, quoting the person's OWN words in `text` (a short phrase,
@@ -94,9 +114,9 @@ Special rule for `corridor_width` (the hall / מסדרון / פרוזדור):
   "orientation", "ceiling_height", "storage", "style", "budget", "outdoor", "accessibility". Use
   "other" when nothing fits.
 - Do NOT list anything already covered by the structured fields above: a bathroom count, a bedroom
-  count, a safe room, parking, a pool, floors, whether the kitchen is open, or a NUMERIC corridor
-  width. Those are extracted, not unsupported. A corridor mentioned WITHOUT a number still belongs
-  here — there is nothing to plan from.
+  count, a safe room, parking, a pool, floors, whether the kitchen is open, a NUMERIC corridor
+  width, or a room RELATIONSHIP between two resolvable rooms. Those are extracted, not unsupported.
+  A corridor mentioned WITHOUT a number still belongs here — there is nothing to plan from.
 - Do NOT invent requirements, and do NOT list mere description of the family or the plot. If the
   text asks for nothing beyond the structured fields, return an empty list.
 """
@@ -133,6 +153,29 @@ class CorridorWidth(BaseModel):
     source: SourceTag = SourceTag.unknown
 
 
+class RoomRelation(str, Enum):
+    ADJACENT = "adjacent"
+    DIRECT_ACCESS = "direct_access"
+    NEAR = "near"
+    NOT_ADJACENT = "not_adjacent"
+
+
+class RoomRelationship(BaseModel):
+    """One requested relationship between two rooms, in role tokens.
+
+    `ambiguous` is how the parser declines to guess: a reference it cannot resolve to exactly one
+    room kind is reported, not silently dropped and not silently resolved to whichever room seemed
+    likeliest.
+    """
+
+    source_role: str = ""
+    target_role: str = ""
+    relation: RoomRelation = RoomRelation.NEAR
+    strength: RequestSeverity = RequestSeverity.PREFERENCE
+    source_text: str = ""
+    ambiguous: bool = False
+
+
 class UnsupportedRequest(BaseModel):
     """One requirement the person asked for that the planner cannot act on.
 
@@ -164,6 +207,7 @@ class RequirementExtraction(BaseModel):
     #: built before this field existed still validate.
     other_requests: list[UnsupportedRequest] = Field(default_factory=list)
     #: Defaulted so extractions built before this field existed still validate.
+    room_relationships: list[RoomRelationship] = Field(default_factory=list)
     corridor_width: CorridorWidth = Field(
         default_factory=lambda: CorridorWidth(value_m=None, source=SourceTag.unknown))
 

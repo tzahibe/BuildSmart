@@ -100,6 +100,18 @@ class CorridorWidthField(BaseModel):
     source: SourceTag = SourceTag.unknown
 
 
+class RoomRelationshipRecord(BaseModel):
+    """Storage form of a requested room relationship — role tokens, never zone ids, so the record
+    stays valid whatever concept the planner later chooses."""
+
+    source_role: str = ""
+    target_role: str = ""
+    relation: str = "near"
+    strength: str = "preference"
+    source_text: str = ""
+    ambiguous: bool = False
+
+
 class UnsupportedRequestRecord(BaseModel):
     """Storage form of `requirements.parser.UnsupportedRequest` — the person's own words, kept
     verbatim, plus a grouping slug."""
@@ -318,6 +330,7 @@ class Project(BaseModel):
     #: show them back instead of the system dropping them silently.
     unsupported_requests: list[UnsupportedRequestRecord] = Field(default_factory=list)
     corridor_width: CorridorWidthField | None = None
+    room_relationships: list[RoomRelationshipRecord] = Field(default_factory=list)
     requirements_parsed_at: datetime | None = None
 
     # Parametric design model — generated deterministically (no LLM) from the fields above by

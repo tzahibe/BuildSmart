@@ -16,8 +16,12 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 from app.projects.models import Project
+from app.vertical_slice.relationships import describe
 from app.vertical_slice.spec import (
     ArchitecturalSpec,
+    RelationStrength,
+    RoomRelation,
+    RoomRelationshipRequirement,
     CorridorRequirement,
     CorridorWidthMode,
     PlotSpec,
@@ -37,6 +41,19 @@ class RequirementField(BaseModel):
 
     value: int | bool | None
     source: str  # "requested" | "inferred" | "unknown"
+
+
+class RoomRelationshipNote(BaseModel):
+    """One understood relationship, shown back before Generate so a misreading is catchable."""
+
+    source_role: str
+    target_role: str
+    relation: str
+    strength: str
+    source_text: str
+    ambiguous: bool = False
+    #: Product wording, e.g. 'חדר ההורים צמוד לחדרי הרחצה' — built here so the UI never has to.
+    statement: str = ""
 
 
 class CorridorWidthNote(BaseModel):
@@ -70,6 +87,7 @@ class RequirementsReview(BaseModel):
     #: The corridor width the brief asked for, shown back before generation. `None` when none was
     #: asked for — the planner then keeps its own derived width.
     corridor_width: CorridorWidthNote | None = None
+    room_relationships: list[RoomRelationshipNote] = Field(default_factory=list)
 
 
 class ReviewEdit(BaseModel):
@@ -110,6 +128,15 @@ def review_of(project: Project) -> RequirementsReview:
                               mode=project.corridor_width.mode,
                               source=project.corridor_width.source.value)
             if project.corridor_width and project.corridor_width.value_m is not None else None),
+        room_relationships=[
+            RoomRelationshipNote(
+                source_role=r.source_role, target_role=r.target_role, relation=r.relation,
+                strength=r.strength, source_text=r.source_text, ambiguous=r.ambiguous,
+                statement=("" if r.ambiguous else describe(RoomRelationshipRequirement(
+                    source_role=r.source_role, target_role=r.target_role,
+                    relation=RoomRelation(r.relation),
+                    strength=RelationStrength(r.strength), source_text=r.source_text))))
+            for r in project.room_relationships],
     )
 
 
@@ -127,6 +154,24 @@ def _corridor_of(project: Project) -> CorridorRequirement | None:
     except ValueError:
         mode = CorridorWidthMode.MINIMUM
     return CorridorRequirement(width_m=float(field.value_m), mode=mode)
+
+
+def _relationships_of(project: Project) -> tuple[RoomRelationshipRequirement, ...]:
+    """The authoritative relationships. Ambiguous ones are excluded — they never reach the planner,
+    because `scope.check_supported` refuses first and asks the person which room they meant."""
+    out = []
+    for record in project.room_relationships:
+        if record.ambiguous or not record.source_role or not record.target_role:
+            continue
+        try:
+            relation = RoomRelation(record.relation)
+            strength = RelationStrength(record.strength)
+        except ValueError:
+            continue
+        out.append(RoomRelationshipRequirement(
+            source_role=record.source_role, target_role=record.target_role,
+            relation=relation, strength=strength, source_text=record.source_text))
+    return tuple(out)
 
 
 def spec_for(project: Project) -> ArchitecturalSpec:
@@ -160,5 +205,6 @@ def spec_for(project: Project) -> ArchitecturalSpec:
             # authoritative one and is never adjusted here.
             target_built_area_m2=project.built_area_m2,
             corridor=_corridor_of(project),
+            relationships=_relationships_of(project),
         ),
     )

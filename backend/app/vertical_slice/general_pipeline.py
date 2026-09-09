@@ -30,6 +30,7 @@ from app.geometry_domain.primitives import MultiRegion
 
 from . import concept_generator as generator
 from . import doors as doors_stage
+from . import relationships as relationships_stage
 from . import furniture as furniture_stage
 from . import site as site_stage
 from . import validation as validation_stage
@@ -91,6 +92,8 @@ class GeneralSliceResult:
     concept: generator.ConceptCandidate | None = None
     metrics: RunMetrics = field(default_factory=RunMetrics)
     notes: tuple[str, ...] = ()
+    #: Every requested room relationship, measured on the plan that was actually built.
+    relationships: tuple = ()
 
     @property
     def ok(self) -> bool:
@@ -163,6 +166,15 @@ def _check_safety(design: GeometricDesign, authoritative: MultiRegion,
     return SafetyReport(inside_all, clear_all, tuple(dict.fromkeys(offenders)))
 
 
+def _relationship_outcomes(concept_candidate, solve, relationships):
+    """Measure one realized candidate. Doors are generated here because DIRECT_ACCESS and NEAR are
+    defined over the REALIZED access graph, which does not exist until they are."""
+    fixture = concept_candidate.concept.fixture
+    doors = doors_stage.generate_interior_doors(fixture, solve.rects)
+    connections = validation_stage.realized_connections(solve.rects, solve.walls, doors)
+    return relationships_stage.evaluate(fixture, solve.rects, connections, relationships)
+
+
 def run_general(buildable: BuildableRegion, *,
                 render_path: str | None = None,
                 site_constraints: SiteConstraints | None = None,
@@ -208,17 +220,54 @@ def run_general(buildable: BuildableRegion, *,
     chosen: generator.ConceptCandidate | None = None
     solve = None
     failures: list[str] = []
+    relationships = spec.program.relationships
+    # Room relationships are honoured by CHOOSING between candidates the generator already
+    # produces, not by rebuilding how it produces them — the smallest extension compatible with the
+    # current architecture. Each realized candidate is measured on its actual geometry (the same
+    # function C15 uses), a candidate that breaks a HARD relationship is passed over, and among
+    # those that survive the one satisfying the most PREFERENCES wins. Without relationships this
+    # loop behaves exactly as before, including the fast path.
+    best_score: tuple[int, int] | None = None
+    best_solve = None
     for index, concept_candidate in enumerate(generated.candidates):
         attempts += 1
         try:
-            solve = solve_fixture(concept_candidate.concept.fixture)
+            candidate_solve = solve_fixture(concept_candidate.concept.fixture)
         except GeometryInfeasible as exc:
             failures.append(f"candidate {index} ({concept_candidate.strategy.value}): {exc}")
             continue
-        chosen = concept_candidate
-        chosen_index = index
-        if fast_path:
+
+        if not relationships:
+            chosen, solve, chosen_index = concept_candidate, candidate_solve, index
+            if fast_path:
+                break
+            continue
+
+        outcomes = _relationship_outcomes(concept_candidate, candidate_solve, relationships)
+        broken = [o for o in outcomes if o.is_hard and not o.satisfied]
+        if broken:
+            failures.append(
+                f"candidate {index} ({concept_candidate.strategy.value}) breaks a required "
+                f"relationship: " + "; ".join(f"{o.statement} — {o.detail}" for o in broken))
+            continue
+
+        # Preferences only ever break a TIE between candidates that already satisfy every hard
+        # relationship; `-index` keeps the generator's own ordering as the tiebreak, so a preference
+        # can never promote a candidate the generator ranked lower on its own merits by more than
+        # the preference it actually delivers.
+        score = (sum(1 for o in outcomes if o.satisfied), -index)
+        if best_score is None or score > best_score:
+            best_score, best_solve = score, candidate_solve
+            chosen, chosen_index = concept_candidate, index
+        if best_score[0] == len(outcomes):
             break
+
+    if relationships and best_solve is not None:
+        # `solve` must always be the solve of the CHOSEN candidate. Assigning it inside the loop
+        # left the two out of step whenever a later candidate was rejected, and the pipeline then
+        # measured one fixture against another's rectangles — C2 reported thousands of unassigned
+        # units. Set it once, here, from the candidate that actually won.
+        solve = best_solve
 
     if chosen is None or solve is None:
         return GeneralSliceResult(
@@ -244,6 +293,7 @@ def run_general(buildable: BuildableRegion, *,
         concept.fixture, rects, solve.walls, interior_doors, entrance_door,
         windows, furniture, site_plan,
         corridor=spec.program.corridor,
+        relationships=relationships,
     )
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
                       interior_doors, entrance_door, windows, furniture, site_plan)
@@ -262,9 +312,15 @@ def run_general(buildable: BuildableRegion, *,
         unused_safe_wing_area_m2=round(unused, 2),
         **base_metrics,
     )
-    return GeneralSliceResult(AdapterOutcome.SOLVED, adapter_result, design, validation,
-                              safety, path, adapter_result.candidates[0], chosen, metrics,
-                              tuple(failures))
+    return GeneralSliceResult(
+        AdapterOutcome.SOLVED, adapter_result, design, validation, safety, path,
+        adapter_result.candidates[0], chosen, metrics, tuple(failures),
+        # Measured on the CHOSEN plan, so the summary the person reads and the plan they see are
+        # the same thing.
+        relationships=tuple(relationships_stage.evaluate(
+            concept.fixture, rects,
+            validation_stage.realized_connections(rects, solve.walls, interior_doors),
+            relationships)) if relationships else ())
 
 
 def run_general_from_site(site: SiteConstraints, *, render_path: str | None = None,

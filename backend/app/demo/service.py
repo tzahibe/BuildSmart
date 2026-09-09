@@ -26,6 +26,8 @@ from app.vertical_slice.concept_generator import (
     build_room_program,
     program_capacity_gross_m2,
 )
+from app.vertical_slice.relationships import describe
+from app.vertical_slice.spec import RelationStrength
 from app.vertical_slice.general_pipeline import run_general
 from app.vertical_slice.safe_adapter import AdapterOutcome
 
@@ -128,6 +130,33 @@ def _plan(spec):
 
 
 def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoResult:
+    # A hard relationship that no candidate could realize is its own outcome: the geometry could
+    # not be arranged that way with this programme, which is NOT a claim that no such house exists.
+    if (result.outcome is not AdapterOutcome.SOLVED
+            or (result.validation is not None and not result.validation.ok
+                and any(c.check_id == "C15" for c in result.validation.failures()))):
+        hard = [r for r in spec.program.relationships
+                if r.strength is RelationStrength.HARD_REQUIREMENT]
+        # `notes` carries the per-candidate rejections, which is where a relationship failure is
+        # recorded when NO candidate survives; `rejection_reasons` carries the generator's own.
+        # Both have to be read, or a relationship that nothing could realize surfaces as a generic
+        # "could not plan" and the person is never told which requirement was the obstacle.
+        reasons = "; ".join(tuple(result.metrics.rejection_reasons) + tuple(result.notes))
+        broke_relationship = (
+            "breaks a required relationship" in reasons
+            or (result.validation is not None
+                and any(c.check_id == "C15" for c in result.validation.failures())))
+        if hard and broke_relationship:
+            wanted = "; ".join(describe(r) for r in hard)
+            raise DemoGenerationError(
+                "ROOM_RELATIONSHIP_NOT_FEASIBLE",
+                f"לא הצלחנו לסדר את החדרים כך ש{wanted}, יחד עם שאר הדרישות והמתאר שנבחר. "
+                f"אפשר להגדיל את שטח הבנייה, לוותר על אחת הדרישות, או לנסח אותה כהעדפה — "
+                f"לא נציג תוכנית שלא מקיימת מה שביקשת.",
+                reasons or "; ".join(f"{c.check_id}: {c.detail}"
+                                     for c in (result.validation.failures()
+                                               if result.validation else [])))
+
     if result.outcome is not AdapterOutcome.SOLVED or result.design is None:
         reasons = "; ".join(result.metrics.rejection_reasons or result.notes) or result.outcome.value
 
@@ -185,4 +214,5 @@ def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoRes
         # Only PREFERENCES can reach a plan: `check_supported` refuses outright on a hard
         # requirement or an unclear one, so anything still here was explicitly optional.
         unsupported=_set_aside(project, spec, preference_dropped),
-        corridor=spec.program.corridor))
+        corridor=spec.program.corridor,
+        relationships=result.relationships))

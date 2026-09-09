@@ -287,3 +287,45 @@ describe('ReviewPage — the understood corridor requirement', () => {
     expect(queryByText(/רוחב מסדרון/)).toBeNull()
   })
 })
+
+describe('ReviewPage — understood room relationships', () => {
+  const base: RequirementsReview = {
+    bedrooms: { value: 3, source: 'requested' },
+    safe_room: { value: true, source: 'requested' },
+    wet_rooms: { value: 2, source: 'requested' },
+    open_plan: { value: true, source: 'requested' },
+    parking_spaces: { value: 2, source: 'requested' },
+    floors: { value: 1, source: 'inferred' },
+    built_area_m2: 200,
+    footprint_width_m: 14.14,
+    footprint_depth_m: 14.14,
+    description: 'brief',
+    room_relationships: [
+      { source_role: 'MASTER_BEDROOM', target_role: 'ENSUITE', relation: 'adjacent',
+        strength: 'hard_requirement', source_text: 'a', ambiguous: false,
+        statement: 'חדר ההורים צמוד לחדר הרחצה של ההורים' },
+      { source_role: 'SAFE_ROOM', target_role: 'BEDROOM', relation: 'near',
+        strength: 'preference', source_text: 'b', ambiguous: false,
+        statement: 'הממ"ד קרוב לחדרי השינה' },
+    ],
+  }
+
+  it('shows each one with its strength, before Generate', () => {
+    const { getByLabelText } = render(
+      <ReviewPage review={base} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    const panel = within(getByLabelText('יחסים בין חדרים'))
+    panel.getByText('חדר ההורים צמוד לחדר הרחצה של ההורים')
+    panel.getByText('הממ"ד קרוב לחדרי השינה')
+    panel.getByText('דרישה מחייבת')
+    panel.getByText('העדפה')
+  })
+
+  it('says nothing when the brief asked for no relationships', () => {
+    const { queryByLabelText } = render(
+      <ReviewPage review={{ ...base, room_relationships: [] }}
+                  onConfirm={() => {}} onBack={() => {}} />,
+    )
+    expect(queryByLabelText('יחסים בין חדרים')).toBeNull()
+  })
+})

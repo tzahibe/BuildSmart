@@ -95,6 +95,15 @@ class ValidationSummary(BaseModel):
     checks: dict[str, bool]
 
 
+class RelationshipOut(BaseModel):
+    """One requested room relationship and whether the built plan delivers it, in plain words."""
+
+    statement: str            # "חדר ההורים צמוד לחדרי הרחצה"
+    satisfied: bool
+    strength: str             # hard_requirement | preference
+    source_text: str = ""
+
+
 class CorridorOut(BaseModel):
     """What was asked for and what the plan actually delivers, side by side.
 
@@ -122,6 +131,7 @@ class DemoDesign(BaseModel):
     gross_area_m2: float
     net_area_m2: float
     corridor: CorridorOut | None = None
+    relationships: list[RelationshipOut] = []
     validation: ValidationSummary
 
 
@@ -141,6 +151,7 @@ _STATEMENTS = {
     "C12": "שטחי החוץ מסווגים במפורש",
     "C13": "כל קשר שתוכנן קיים בפועל בתוכנית",
     "C14": "רוחב המסדרון עומד בדרישה שביקשת",
+    "C15": "יחסי החדרים שביקשת מתקיימים בתוכנית",
 }
 
 
@@ -213,7 +224,8 @@ def _corridor_out(design: SolvedDesign, corridor: CorridorRequirement | None) ->
 
 
 def summarize(report: ValidationReport,
-              unsupported: list[str] | None = None) -> ValidationSummary:
+              unsupported: list[str] | None = None,
+              relationships: tuple = ()) -> ValidationSummary:
     statements = [_STATEMENTS[c.check_id] for c in report.checks
                   if c.passed and c.check_id in _STATEMENTS]
     warnings = [f"{_STATEMENTS.get(c.check_id, c.name)}: {c.detail}" for c in report.failures()]
@@ -223,6 +235,14 @@ def summarize(report: ValidationReport,
     # the checks above only ever describe what WAS done.
     for text in unsupported or []:
         warnings.append(f'לא נכלל בתכנון: "{text}"')
+
+    # A relationship that HELD becomes a statement the person can read back; one that did not is a
+    # warning. Only preferences can get here unsatisfied — a hard one never reaches a plan.
+    for outcome in relationships:
+        if outcome.satisfied:
+            statements.append(outcome.statement)
+        else:
+            warnings.append(f"העדפה שלא התממשה: {outcome.statement}")
     return ValidationSummary(
         passed=report.ok,
         statements=statements,
@@ -233,7 +253,8 @@ def summarize(report: ValidationReport,
 
 def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    unsupported: list[str] | None = None,
-                   corridor: CorridorRequirement | None = None) -> DemoDesign:
+                   corridor: CorridorRequirement | None = None,
+                   relationships: tuple = ()) -> DemoDesign:
     walls, opens = _wall_segments(design)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
                      y=d.center_m[1], orientation=d.orientation)
@@ -266,5 +287,10 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         gross_area_m2=design.gross_area_m2,
         net_area_m2=design.net_area_m2,
         corridor=_corridor_out(design, corridor),
-        validation=summarize(report, unsupported),
+        relationships=[
+            RelationshipOut(statement=o.statement, satisfied=o.satisfied,
+                            strength=o.requirement.strength.value,
+                            source_text=o.requirement.source_text)
+            for o in relationships],
+        validation=summarize(report, unsupported, relationships),
     )

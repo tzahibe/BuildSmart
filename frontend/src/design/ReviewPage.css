@@ -103,3 +103,18 @@
   font-size: 14px;
   color: var(--text);
 }
+
+/* Understood room relationships — grouped with the extracted requirements, because these WILL be
+   planned, unlike the disclosure panel above. */
+.review-relations { margin-bottom: 16px; }
+
+.review-relations-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.review-relations-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.review-relations-list li { display: flex; align-items: baseline; gap: 8px; font-size: 14px; }
+.review-relations-text { color: var(--text); }

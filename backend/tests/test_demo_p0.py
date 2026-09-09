@@ -24,6 +24,7 @@ from app.projects.routes import base_routes as project_base_routes
 from app.requirements import router as requirements_router
 from app.requirements.parser import (
     CorridorWidth,
+    RoomRelationship,
     CorridorWidthMode,
     RequestSeverity,
     RequirementExtraction,
@@ -604,3 +605,147 @@ def test_a_supported_corridor_width_is_not_left_in_other_requests(tmp_path, monk
     review, _ = _corridor_run(tmp_path, monkeypatch, 1.8, CorridorWidthMode.MINIMUM)
     assert review["corridor_width"]["value_m"] == 1.8
     assert all("מסדרון" not in r["text"] for r in review["unsupported_requests"])
+
+
+# ------------------------------------------------------------- room relationships, end to end
+#
+# "לא רוצה חדר שינה צמוד למטבח" used to be dropped as an unsupported request. Relationships now
+# reach the planner as structure, decide WHICH realized candidate is chosen, and are checked (C15)
+# against the walls and doors the plan actually has.
+
+def _rel(source, target, relation, strength, text="בקשה", ambiguous=False) -> RoomRelationship:
+    return RoomRelationship(source_role=source, target_role=target, relation=relation,
+                            strength=strength, source_text=text, ambiguous=ambiguous)
+
+
+def _rel_run(tmp_path, monkeypatch, *relations, side_m=14.14, brief=BRIEF_3BR_SAFE_OPEN):
+    class _P(RequirementParser):
+        def parse(self, description: str) -> RequirementExtraction:
+            return CANNED[brief].model_copy(update={"room_relationships": list(relations)})
+
+    repo = JsonFileProjectRepository(tmp_path / "projects.json")
+    monkeypatch.setattr(project_base_routes, "repository", repo)
+    monkeypatch.setattr(requirements_router, "parser", _P())
+    client = TestClient(app)
+    project_id = _create(client, brief, width=side_m, depth=side_m)
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+    return review, client.post(f"/projects/{project_id}/design/demo")
+
+
+def _shared_boundary_m(design: dict, a_type: str, b_type: str) -> float:
+    """Longest shared boundary between any room of each type, measured off the returned plan."""
+    def rooms(t):
+        return [r for r in design["rooms"] if r["type"] == t]
+    best = 0.0
+    for ra in rooms(a_type):
+        for rb in rooms(b_type):
+            x_overlap = min(ra["x"] + ra["width_m"], rb["x"] + rb["width_m"]) - max(ra["x"], rb["x"])
+            y_overlap = min(ra["y"] + ra["depth_m"], rb["y"] + rb["depth_m"]) - max(ra["y"], rb["y"])
+            if abs(x_overlap) < 1e-9 and y_overlap > 1e-9:
+                best = max(best, y_overlap)
+            elif abs(y_overlap) < 1e-9 and x_overlap > 1e-9:
+                best = max(best, x_overlap)
+    return best
+
+
+def test_A_hard_adjacency_is_realized_in_the_geometry(tmp_path, monkeypatch):
+    """"חדר ההורים חייב להיות צמוד לחדר הרחצה" — a real shared wall, not a declared edge."""
+    review, design = _rel_run(tmp_path, monkeypatch,
+                              _rel("MASTER_BEDROOM", "ENSUITE", "adjacent", "hard_requirement"))
+    assert review["room_relationships"][0]["relation"] == "adjacent"
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["validation"]["checks"]["C15"] is True
+    assert body["relationships"][0]["satisfied"] is True
+    assert _shared_boundary_m(body, "MASTER_BEDROOM", "BATHROOM") >= 0.9
+
+
+def test_B_a_separation_leaves_no_shared_wall(tmp_path, monkeypatch):
+    """"לא רוצה חדר שינה צמוד למטבח" — measured on the plan, not asserted by the concept."""
+    _, design = _rel_run(tmp_path, monkeypatch,
+                         _rel("BEDROOM", "KITCHEN", "not_adjacent", "hard_requirement"))
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["validation"]["checks"]["C15"] is True
+    assert _shared_boundary_m(body, "BEDROOM", "KITCHEN") == 0.0
+
+
+def test_C_a_preference_is_reported_either_way(tmp_path, monkeypatch):
+    """"עדיף שהממ״ד יהיה קרוב לחדרי הילדים" — never blocks, always reported."""
+    _, design = _rel_run(tmp_path, monkeypatch,
+                         _rel("SAFE_ROOM", "BEDROOM", "near", "preference"))
+    assert design.status_code == 200, design.text
+    body = design.json()
+    outcome = body["relationships"][0]
+    assert outcome["strength"] == "preference"
+    if outcome["satisfied"]:
+        assert outcome["statement"] in body["validation"]["statements"]
+    else:
+        assert any(outcome["statement"] in w for w in body["validation"]["warnings"])
+
+
+def test_D_a_hard_relationship_that_cannot_be_realized_fails_explicitly(tmp_path, monkeypatch):
+    """A kitchen against the safe room is not something this programme can arrange."""
+    _, design = _rel_run(tmp_path, monkeypatch,
+                         _rel("KITCHEN", "SAFE_ROOM", "adjacent", "hard_requirement"))
+    assert design.status_code == 422, design.text
+    body = design.json()["detail"]
+    assert body["code"] == "ROOM_RELATIONSHIP_NOT_FEASIBLE"
+    assert "impossible" not in body["message"].lower()
+    assert "העדפה" in body["message"]      # offers the way forward
+
+
+def test_E_the_same_relationship_as_a_preference_still_produces_a_plan(tmp_path, monkeypatch):
+    _, design = _rel_run(tmp_path, monkeypatch,
+                         _rel("KITCHEN", "SAFE_ROOM", "adjacent", "preference"))
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["relationships"][0]["satisfied"] is False
+    assert any("העדפה שלא התממשה" in w for w in body["validation"]["warnings"])
+    assert body["validation"]["passed"] is True
+
+
+def test_F_an_ambiguous_room_reference_asks_instead_of_guessing(tmp_path, monkeypatch):
+    _, design = _rel_run(tmp_path, monkeypatch,
+                         _rel("", "KITCHEN", "not_adjacent", "hard_requirement",
+                              text="החדר הגדול לא ליד המטבח", ambiguous=True))
+    assert design.status_code == 422, design.text
+    body = design.json()["detail"]
+    assert body["code"] == "AMBIGUOUS_ROOM_REFERENCE"
+    assert "החדר הגדול" in body["message"]
+
+
+def test_G_adjacency_alone_never_fabricates_a_door(tmp_path, monkeypatch):
+    """ADJACENCY IS NOT ACCESS. Asking for a shared wall must not produce a door through it."""
+    _, plain = _rel_run(tmp_path, monkeypatch)
+    _, adjacent = _rel_run(tmp_path, monkeypatch,
+                           _rel("MASTER_BEDROOM", "ENSUITE", "adjacent", "hard_requirement"))
+    assert plain.status_code == 200 and adjacent.status_code == 200
+
+    def door_pairs(response):
+        return {frozenset((d["a"], d["b"])) for d in response.json()["doors"]}
+
+    # the adjacency request adds no door that the same plan did not already have
+    assert door_pairs(adjacent) - door_pairs(plain) == set()
+
+
+def test_H_direct_access_uses_the_existing_topology(tmp_path, monkeypatch):
+    """DIRECT_ACCESS is satisfied by a real door — the engine's own connection, not a new one."""
+    _, design = _rel_run(tmp_path, monkeypatch,
+                         _rel("MASTER_BEDROOM", "ENSUITE", "direct_access", "hard_requirement"))
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["relationships"][0]["satisfied"] is True
+    master = next(r["id"] for r in body["rooms"] if r["type"] == "MASTER_BEDROOM")
+    bath_ids = {r["id"] for r in body["rooms"] if r["type"] == "BATHROOM"}
+    assert any({d["a"], d["b"]} & bath_ids and master in {d["a"], d["b"]} for d in body["doors"])
+
+
+def test_near_is_not_quietly_upgraded_to_adjacent(tmp_path, monkeypatch):
+    """NEAR has its own measurable meaning and must not be satisfied only by a shared wall."""
+    review, design = _rel_run(tmp_path, monkeypatch,
+                              _rel("SAFE_ROOM", "BEDROOM", "near", "hard_requirement"))
+    assert review["room_relationships"][0]["relation"] == "near"
+    assert design.status_code == 200, design.text
+    assert design.json()["relationships"][0]["satisfied"] is True

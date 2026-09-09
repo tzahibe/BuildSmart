@@ -59,6 +59,8 @@ const CORRIDOR_MODE_LABEL: Record<string, string> = {
 
 function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps) {
   const corridor = review.corridor_width ?? null
+  // Ambiguous ones never reach here as a statement — the backend asks for clarification first.
+  const relationships = (review.room_relationships ?? []).filter((r) => !r.ambiguous)
   const unsupported = review.unsupported_requests ?? []
   // Anything not worded as a preference stops generation on the backend (scope.py). Saying so here,
   // before the button is pressed, beats letting the person press it and read a refusal.
@@ -115,6 +117,25 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           {CORRIDOR_MODE_LABEL[corridor.mode] ?? 'רוחב מסדרון'}:{' '}
           <strong>{corridor.value_m.toFixed(2)} מ׳</strong>
         </p>
+      ) : null}
+
+      {/* The understood room relationships. Shown before Generate precisely so a misreading —
+          "near" heard as "adjacent", the wrong room, a preference read as a requirement — is
+          catchable by the person who wrote the brief, not discovered in the finished plan. */}
+      {relationships.length > 0 ? (
+        <section className="review-relations" aria-label="יחסים בין חדרים">
+          <h2 className="review-relations-title">יחסים בין חדרים שהבנו</h2>
+          <ul className="review-relations-list">
+            {relationships.map((relation) => (
+              <li key={relation.source_text + relation.statement}>
+                <span className={`review-severity review-severity--${relation.strength}`}>
+                  {relation.strength === 'hard_requirement' ? 'דרישה מחייבת' : 'העדפה'}
+                </span>
+                <span className="review-relations-text">{relation.statement}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <div className="review-grid">

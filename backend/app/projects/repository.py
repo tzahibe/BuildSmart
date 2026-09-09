@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.projects.models import (
     CorridorWidthField,
+    RoomRelationshipRecord,
     UnsupportedRequestRecord,
     PoolField,
     Project,
@@ -50,6 +51,7 @@ class ProjectRepository(ABC):
         open_plan: TaggedBool | None = None,
         unsupported_requests: list[UnsupportedRequestRecord] | None = None,
         corridor_width: CorridorWidthField | None = None,
+        room_relationships: list[RoomRelationshipRecord] | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -177,6 +179,7 @@ class JsonFileProjectRepository(ProjectRepository):
         open_plan: TaggedBool | None = None,
         unsupported_requests: list[UnsupportedRequestRecord] | None = None,
         corridor_width: CorridorWidthField | None = None,
+        room_relationships: list[RoomRelationshipRecord] | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -195,6 +198,7 @@ class JsonFileProjectRepository(ProjectRepository):
                 "open_plan": open_plan,
                 "unsupported_requests": unsupported_requests or [],
                 "corridor_width": corridor_width,
+                "room_relationships": room_relationships or [],
                 "requirements_parsed_at": datetime.now(UTC),
             }
         )

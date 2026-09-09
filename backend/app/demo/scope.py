@@ -35,6 +35,8 @@ class ScopeCode(str, Enum):
     #: The wording does not settle whether it was binding. Guessing either way is a decision that
     #: belongs to the person, so ask before planning.
     CLARIFICATION_REQUIRED = "CLARIFICATION_REQUIRED"
+    #: A room in a requested relationship could not be resolved to one room the plan has.
+    AMBIGUOUS_ROOM_REFERENCE = "AMBIGUOUS_ROOM_REFERENCE"
 
 
 @dataclass(frozen=True)
@@ -95,6 +97,19 @@ def check_supported(project: Project) -> ScopeRejection | None:
             ScopeCode.POOL_UNSUPPORTED,
             "תכנון בריכה עדיין לא נתמך בדמו.",
             "pool.requested=True")
+
+    # A relationship naming a room we cannot identify is not ours to resolve: guessing which room
+    # was meant would silently plan something the person did not ask for.
+    unresolved = [r for r in project.room_relationships
+                  if r.ambiguous or not r.source_role or not r.target_role]
+    if unresolved:
+        quoted = "; ".join(f'"{r.source_text}"' for r in unresolved if r.source_text)
+        return ScopeRejection(
+            ScopeCode.AMBIGUOUS_ROOM_REFERENCE,
+            f"לא הצלחנו לזהות בוודאות באיזה חדר מדובר: {quoted or 'אחת מהבקשות'}. "
+            f"אפשר לנסח מחדש בתיאור בשם החדר כפי שהוא מופיע בתוכנית — למשל חדר הורים, חדר שינה, "
+            f'ממ"ד, מטבח, סלון או חדר רחצה.',
+            "; ".join(f"{r.source_role or '?'}->{r.target_role or '?'}" for r in unresolved))
 
     # Requests the planner cannot act on, graded by how the person worded them. A PREFERENCE may be
     # set aside with a visible warning and generation continues; a HARD REQUIREMENT may not, because

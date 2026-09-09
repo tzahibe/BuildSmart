@@ -77,6 +77,37 @@ class CorridorRequirement:
         return realized_m >= self.width_m - tol_m
 
 
+class RoomRelation(str, Enum):
+    """What the person asked for between two rooms. Four distinct things, never collapsed.
+
+    ADJACENT is a shared wall. DIRECT_ACCESS is a door THROUGH that wall — a separate request, and
+    one that must never be inferred from adjacency. NEAR has one fixed, measurable meaning defined
+    in `relationships.py`. NOT_ADJACENT forbids a shared wall.
+    """
+
+    ADJACENT = "adjacent"
+    DIRECT_ACCESS = "direct_access"
+    NEAR = "near"
+    NOT_ADJACENT = "not_adjacent"
+
+
+class RelationStrength(str, Enum):
+    HARD_REQUIREMENT = "hard_requirement"
+    PREFERENCE = "preference"
+
+
+@dataclass(frozen=True)
+class RoomRelationshipRequirement:
+    """One relationship, in role tokens rather than zone ids — the person named a KIND of room and
+    the plan decides which zone that is (see `relationships.resolve_reference`)."""
+
+    source_role: str
+    target_role: str
+    relation: RoomRelation
+    strength: RelationStrength = RelationStrength.PREFERENCE
+    source_text: str = ""
+
+
 @dataclass(frozen=True)
 class ProgramSpec:
     """What the house must contain. Counts, plus the size the user asked for.
@@ -97,6 +128,8 @@ class ProgramSpec:
     #: The corridor width the person asked for, when they asked for one. `None` keeps the
     #: generator's own derived width and its existing default behaviour.
     corridor: CorridorRequirement | None = None
+    #: Room relationships the brief asked for. Hard ones gate the plan; preferences rank candidates.
+    relationships: tuple[RoomRelationshipRequirement, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -87,6 +87,14 @@ export interface DemoCorridor {
   satisfied: boolean | null
 }
 
+/** Whether the built plan delivers each requested relationship. */
+export interface DemoRelationship {
+  statement: string
+  satisfied: boolean
+  strength: string
+  source_text: string
+}
+
 export interface DemoDesign {
   plot: DemoRect
   footprint: DemoRect
@@ -101,6 +109,7 @@ export interface DemoDesign {
   gross_area_m2: number
   net_area_m2: number
   corridor?: DemoCorridor | null
+  relationships?: DemoRelationship[]
   validation: DemoValidation
 }
 
@@ -128,6 +137,18 @@ export interface CorridorWidthNote {
   source: string
 }
 
+/** One understood room relationship, shown back before Generate. */
+export interface RoomRelationshipNote {
+  source_role: string
+  target_role: string
+  relation: 'adjacent' | 'direct_access' | 'near' | 'not_adjacent'
+  strength: 'hard_requirement' | 'preference'
+  source_text: string
+  ambiguous: boolean
+  /** Product wording, built by the backend — the UI never composes architectural language. */
+  statement: string
+}
+
 export interface RequirementsReview {
   bedrooms: ReviewField
   safe_room: ReviewField
@@ -141,6 +162,7 @@ export interface RequirementsReview {
   description: string
   unsupported_requests?: UnsupportedRequestNote[]
   corridor_width?: CorridorWidthNote | null
+  room_relationships?: RoomRelationshipNote[]
 }
 
 export interface ReviewEdit {
