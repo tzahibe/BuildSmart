@@ -174,17 +174,6 @@
 .review-site-disclaimer { margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: #8a7855; }
 .review-site-nofit { color: var(--danger); }
 
-
-/* A width × depth pair, read left-to-right inside an RTL sentence. Without the isolation the bidi
-   algorithm swaps the two numbers on screen and the reader sees a different plot from the one they
-   entered — the values were correct, the reading order was not. */
-.dim {
-  direction: ltr;
-  unicode-bidi: isolate;
-  display: inline-block;
-  font-variant-numeric: tabular-nums;
-}
-
 /* The setback fields are real inputs on a screen that is otherwise read-only, so they carry the
    same chrome as the project form's controls rather than the browser default. */
 .review-setbacks input {

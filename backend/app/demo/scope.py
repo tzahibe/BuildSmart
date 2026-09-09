@@ -44,6 +44,10 @@ class ScopeCode(str, Enum):
     SITE_GEOMETRY_REQUIRED = "SITE_GEOMETRY_REQUIRED"
     #: The chosen outline does not fit the land that is left after the demo setbacks.
     FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION = "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+    #: There is no land left at all — the setbacks alone use up a whole side of the parcel. Kept
+    #: apart from the code above because the outline is not what failed: no outline of any size
+    #: would pass, and the numbers worth changing are the site's, not the building's.
+    NO_BUILDABLE_AREA = site_geometry.NO_BUILDABLE_AREA_CODE
 
 
 @dataclass(frozen=True)
@@ -170,14 +174,21 @@ def check_supported(project: Project) -> ScopeRejection | None:
     fit = site_geometry.check_footprint_fits(
         site, project.selected_footprint.width_m, project.selected_footprint.depth_m)
     if not fit.fits:
+        # No buildable region at all is a different answer from an outline that is too big for one,
+        # and it gets the message that names its own cause rather than one comparing the outline
+        # against a rectangle that does not exist.
+        no_area = site_geometry.no_buildable_area_message(site)
+        if no_area is not None:
+            return ScopeRejection(ScopeCode.NO_BUILDABLE_AREA, no_area, fit.detail)
         return ScopeRejection(
             ScopeCode.FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION,
             f"המתאר שנבחר ({project.selected_footprint.width_m:.2f} × "
             f"{project.selected_footprint.depth_m:.2f} מ׳) אינו נכנס בשטח שנותר לבנייה. "
             f"המגרש הוא {site.plot_width_m:.2f} × {site.plot_depth_m:.2f} מ׳, ואחרי נסיגות הדמו "
             f"(חזית {site.front_setback_m}, אחורית {site.rear_setback_m}, צדדים "
-            f"{site.side_setback_m}) נשאר שטח בנייה של {site.buildable_width_m:.2f} × "
-            f"{site.buildable_depth_m:.2f} מ׳. אפשר לבחור מתאר קטן יותר או לעדכן את מידות המגרש. "
+            f"{site.side_setback_m}) נשאר שטח בנייה של "
+            f"{site_geometry.buildable_dimensions_he(site)}. "
+            f"אפשר לבחור מתאר קטן יותר או לעדכן את מידות המגרש. "
             f"{site_geometry.SETBACK_DISCLAIMER}",
             fit.detail)
 

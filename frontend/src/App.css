@@ -218,3 +218,43 @@
   gap: 6px;
 }
 .demo-error-detail { font-size: 12px; color: #a3736f; }
+
+/* The setback assumptions, grouped and labelled on the form whose numbers they decide. Styled as a
+   quieter block than the required fields — they have working defaults and most people will not
+   touch them, but they are the lever when the capacity comes out too small. */
+.project-form .form-setbacks {
+  /* A fieldset defaults to `min-inline-size: min-content`, which let this group grow wider than the
+     card it sits in — the three number fields plus padding do not compress. */
+  min-inline-size: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 14px 16px 12px;
+  margin: 0;
+  background: var(--bg);
+}
+
+.project-form .form-setbacks legend {
+  padding: 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.project-form .form-setbacks label { font-weight: 500; font-size: 13px; }
+.project-form .form-note { margin: 10px 0 0; font-size: 12px; line-height: 1.4; color: #8a7855; }
+
+/* The capacity, under the number it constrains. Turns into a warning the moment the entered area
+   passes it — before the person walks any further through the flow. */
+.project-form .form-capacity {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text);
+}
+
+.project-form .form-capacity--over { color: var(--danger); font-weight: 500; }
+
+.project-form .dim { direction: ltr; unicode-bidi: isolate; display: inline-block; }

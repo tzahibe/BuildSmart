@@ -50,6 +50,10 @@ _FEASIBILITY_CODES = frozenset({
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "SITE_GEOMETRY_REQUIRED",
 })
+#: NO_BUILDABLE_AREA is deliberately NOT in that set. It is a feasibility refusal, but it already
+#: carries a stronger version of the scoping sentence in its own text — the house was never weighed
+#: against anything, so nothing about it was decided — and appending the generic one would say the
+#: same thing twice. See site_geometry.no_buildable_area_message.
 
 
 class DemoGenerationError(Exception):

@@ -1,0 +1,9 @@
+/* See Dim.tsx: an LTR island for a width × depth pair inside an RTL sentence. `direction` sets the
+   reading order, `unicode-bidi: isolate` keeps the pair from being reordered with the text around
+   it, and the tabular figures keep columns of dimensions aligned. */
+.dim {
+  direction: ltr;
+  unicode-bidi: isolate;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}

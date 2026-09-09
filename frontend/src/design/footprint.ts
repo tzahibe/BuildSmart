@@ -178,6 +178,11 @@ export function toSelectedFootprintPayload(footprint: BuildingFootprint): Select
 }
 
 
+/** The setbacks alone use up a whole side of the parcel, so there is no buildable rectangle at all
+ *  — a different refusal from "the requested area does not fit into the one there is". Mirrors
+ *  `NO_BUILDABLE_AREA_CODE` in backend/app/demo/site_geometry.py. */
+export const NO_BUILDABLE_AREA_CODE = 'NO_BUILDABLE_AREA'
+
 /** What the backend returns for a site: only outlines that fit, plus the numbers behind them. */
 export interface FootprintOptionsResponse {
   plot_width_m: number
@@ -187,8 +192,11 @@ export interface FootprintOptionsResponse {
   side_setback_m: number
   rear_setback_m: number
   setback_disclaimer: string
+  /** PRESENTATION-SAFE: 0 where the setbacks use up an axis, never the negative the raw
+   *  subtraction produces. `has_buildable_area` is what separates an EMPTY region from a small one. */
   buildable_width_m: number
   buildable_depth_m: number
+  has_buildable_area: boolean
   /** A GEOMETRIC ceiling for a single storey — the buildable rectangle's area. Not a promise about
    *  how big a house can be: the room programme can reduce it further. */
   one_storey_footprint_capacity_m2: number

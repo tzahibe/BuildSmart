@@ -14,6 +14,8 @@ canned outputs matching what the prompt asks the model to produce.
 """
 from __future__ import annotations
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -1063,3 +1065,165 @@ def test_an_offered_option_is_always_accepted_end_to_end(client):
         created = _create_raw(client, footprint=(option["width_m"], option["depth_m"]),
                               plot=(20.0, 26.0))
         assert created.status_code == 201, f"{option} was offered but refused: {created.text}"
+
+
+# -------------------------------------------- when the setbacks are bigger than the parcel side
+#
+# A 200 x 3 m strip is a real thing for someone to type, and 3 - 5.5 - 4 = -6.5 is a correct
+# intermediate. It is not a DIMENSION: the screen presented "-6.50 מ׳" as the derived buildable
+# area, and the refusal beside it explained the wrong thing — that the requested house was too big
+# for a parcel that has no buildable region at all, so shrinking the house could never help.
+#
+# Nothing here corrects the entered numbers. A strip stays a strip; what changes is that the answer
+# names its own cause and points at the two inputs that can actually change it.
+
+_NEGATIVE_NUMBER = re.compile(r"(?<![0-9A-Za-zא-ת])-\s*\d")   # not "כ-0 מ״ר", which is a prefix
+
+
+def test_setbacks_deeper_than_the_plot_leave_no_buildable_area(client):
+    """(a) The reported case, end to end: 200 x 3 m with 5.5 + 4.0 of front and rear setback."""
+    site = _options(client, plot=(200.0, 3.0), area=250.0)
+
+    assert site["has_buildable_area"] is False
+    assert (site["buildable_width_m"], site["buildable_depth_m"]) == (194.0, 0.0)
+    assert site["one_storey_footprint_capacity_m2"] == 0.0
+    assert site["options"] == []
+    # the entered dimensions are reported back untouched — never quietly "fixed" into a sane plot
+    assert (site["plot_width_m"], site["plot_depth_m"]) == (200.0, 3.0)
+
+    rejection = site["rejection"]
+    assert rejection["code"] == "NO_BUILDABLE_AREA"
+    message = rejection["message"]
+    assert message.startswith("אין אזור בנייה:")
+    assert "סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳" in message
+    assert "גדול מעומק המגרש 3.00 מ׳" in message
+    # the two inputs that can change the answer, and no claim about the house
+    assert "מידות המגרש" in message and "הנחות הנסיגה" in message
+    assert "בלתי אפשרי" not in message
+    assert "להקטין את שטח הבנייה" not in message
+
+
+def test_setbacks_wider_than_the_plot_name_the_width_not_the_depth(client):
+    """(b) The other axis: the side setbacks alone use up a 4 m wide parcel."""
+    site = _options(client, plot=(4.0, 40.0), area=120.0)
+
+    assert site["has_buildable_area"] is False
+    assert (site["buildable_width_m"], site["buildable_depth_m"]) == (0.0, 30.5)
+    assert site["rejection"]["code"] == "NO_BUILDABLE_AREA"
+    message = site["rejection"]["message"]
+    assert "סך הנסיגות משני הצדדים הוא 6.00 מ׳" in message
+    assert "גדול מרוחב המגרש 4.00 מ׳" in message
+    assert "הקדמית והאחורית" not in message, "only the axis that actually ran out is named"
+
+
+def test_the_named_dimension_is_the_one_the_person_entered(client):
+    """An east frontage swaps the axes, so the depth setbacks consume the entered WIDTH.
+
+    Naming the canonical axis here would send someone to correct a field that is already right.
+    """
+    site = _options(client, plot=(3.0, 200.0), area=250.0, street="EAST")
+    assert site["has_buildable_area"] is False
+    assert "סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳, גדול מרוחב המגרש 3.00 מ׳" in (
+        site["rejection"]["message"])
+
+
+def test_a_parcel_smaller_than_the_setbacks_on_both_axes_names_both(client):
+    site = _options(client, plot=(4.0, 5.0), area=20.0)
+    message = site["rejection"]["message"]
+    assert "סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳, גדול מעומק המגרש 5.00 מ׳" in message
+    assert "סך הנסיגות משני הצדדים הוא 6.00 מ׳, גדול מרוחב המגרש 4.00 מ׳" in message
+
+
+def test_setbacks_exactly_equal_to_the_plot_side_are_not_described_as_greater(client):
+    """Exactly 9.5 m of depth leaves exactly nothing — true, and not "greater than"."""
+    site = _options(client, plot=(20.0, 9.5), area=100.0)
+    assert site["has_buildable_area"] is False
+    assert site["buildable_depth_m"] == 0.0
+    assert "שווה לעומק המגרש 9.50 מ׳" in site["rejection"]["message"]
+
+
+def test_relaxing_the_assumptions_gives_this_parcel_a_buildable_region(client):
+    """The refusal is about these assumptions, not about the land — so correcting them answers it."""
+    relaxed = _options(client, plot=(200.0, 3.0), area=250.0,
+                       setbacks={"front_setback_m": 1.0, "side_setback_m": 1.0,
+                                 "rear_setback_m": 1.0})
+    assert relaxed["has_buildable_area"] is True
+    assert (relaxed["buildable_width_m"], relaxed["buildable_depth_m"]) == (198.0, 1.0)
+
+
+def test_no_negative_dimension_reaches_a_response_or_a_message(client):
+    """(c) The rule itself, swept rather than spot-checked, across every surface that presents one."""
+    degenerate = [(200.0, 3.0), (3.0, 200.0), (4.0, 40.0), (40.0, 4.0),
+                  (5.0, 5.0), (9.5, 6.0), (6.0, 9.5), (2.0, 2.0)]
+    for plot in degenerate:
+        for street in ("NORTH", "EAST", "SOUTH", "WEST"):
+            where = f"plot={plot} street={street}"
+
+            site = _options(client, plot=plot, area=250.0, street=street)
+            assert site["buildable_width_m"] >= 0.0, where
+            assert site["buildable_depth_m"] >= 0.0, where
+            assert site["one_storey_footprint_capacity_m2"] >= 0.0, where
+            assert not _NEGATIVE_NUMBER.search(site["rejection"]["message"]), (
+                where, site["rejection"]["message"])
+
+            # the same site refusing a chosen footprint at creation. The outline is kept tiny
+            # because some of these parcels are smaller than a house — the point is the SITE.
+            refused = _create_raw(client, footprint=(1.0, 1.0), plot=plot, street=street)
+            assert refused.status_code == 422, where
+            detail = refused.json()["detail"]
+            assert detail["code"] == "NO_BUILDABLE_AREA", where
+            assert not _NEGATIVE_NUMBER.search(detail["message"]), (where, detail["message"])
+
+            # and the review screen for a project stored on that same site
+            project_id = client.post("/projects", json={
+                "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+                "plot_area_m2": round(plot[0] * plot[1], 2), "built_area_m2": 1.0,
+                "plot_width_m": plot[0], "plot_depth_m": plot[1],
+                "street_facing_side": street, "description": BRIEF_2BR_COMPACT,
+            }).json()["project_id"]
+            client.post(f"/projects/{project_id}/requirements")
+            review_site = client.get(f"/projects/{project_id}/review").json()["site"]
+            assert review_site["buildable_width_m"] >= 0.0, where
+            assert review_site["buildable_depth_m"] >= 0.0, where
+            assert review_site["buildable_area_m2"] >= 0.0, where
+            assert review_site["has_buildable_area"] is False, where
+
+
+def test_the_planner_refuses_such_a_site_by_its_own_cause(client):
+    """The generation path says the same thing the footprint screen did, for the same reason."""
+    created = _create_raw(client, footprint=(10.0, 10.0), plot=(200.0, 3.0))
+    assert created.status_code == 422
+    # stored without a footprint, the refusal comes from the pipeline instead
+    project_id = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 600.0, "built_area_m2": 250.0,
+        "plot_width_m": 200.0, "plot_depth_m": 3.0, "street_facing_side": "NORTH",
+        "description": BRIEF_2BR_COMPACT,
+        "selected_footprint": None,
+    }).json()["project_id"]
+    client.post(f"/projects/{project_id}/requirements")
+    design = client.post(f"/projects/{project_id}/design/demo")
+    assert design.status_code == 422
+    # no footprint was ever chosen here, so that is what it asks for first — and once one is,
+    # the site's own refusal is what comes back
+    assert design.json()["detail"]["code"] == "FOOTPRINT_REQUIRED"
+
+
+def test_the_named_cause_never_disagrees_with_the_flag():
+    """A parcel with no buildable area always has an axis to blame — rounding edges included.
+
+    The two are computed separately (a boolean for the API, a sentence for the person) and would
+    silently produce a refusal with no explanation in it if they ever drifted apart.
+    """
+    from app.demo import site_geometry as sg
+
+    for width in (2.0, 5.999, 6.0, 6.004, 6.01, 9.5, 20.0):
+        for depth in (3.0, 9.499, 9.5, 9.504, 9.51, 24.0):
+            site = sg.SiteGeometry(
+                plot_width_m=width, plot_depth_m=depth,
+                street_facing_side=sg.StreetSide.north,
+                canonical_width_m=width, canonical_depth_m=depth)
+            assert site.has_buildable_area is (sg.no_buildable_area_message(site) is None), (
+                width, depth)
+            assert site.presented_buildable_width_m >= 0.0
+            assert site.presented_buildable_depth_m >= 0.0

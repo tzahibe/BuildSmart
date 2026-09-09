@@ -74,9 +74,12 @@ class SiteNote(BaseModel):
     side_setback_m: float
     rear_setback_m: float
     setback_disclaimer: str
+    #: Presentation-safe: 0.00 where the setbacks use up an axis, never the raw negative. Read
+    #: `has_buildable_area` to tell an empty region from a small one.
     buildable_width_m: float
     buildable_depth_m: float
     buildable_area_m2: float
+    has_buildable_area: bool
     footprint_width_m: float | None = None
     footprint_depth_m: float | None = None
     footprint_fits: bool | None = None
@@ -231,8 +234,10 @@ def _site_note(project: Project) -> SiteNote | None:
         front_setback_m=site.front_setback_m, side_setback_m=site.side_setback_m,
         rear_setback_m=site.rear_setback_m,
         setback_disclaimer=site_geometry.SETBACK_DISCLAIMER,
-        buildable_width_m=site.buildable_width_m, buildable_depth_m=site.buildable_depth_m,
+        buildable_width_m=site.presented_buildable_width_m,
+        buildable_depth_m=site.presented_buildable_depth_m,
         buildable_area_m2=site.buildable_area_m2,
+        has_buildable_area=site.has_buildable_area,
         footprint_width_m=footprint.width_m if footprint else None,
         footprint_depth_m=footprint.depth_m if footprint else None,
         footprint_fits=fit.fits if fit else None,

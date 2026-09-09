@@ -9,8 +9,10 @@ import {
   generateFootprintOptions,
   isFootprintAreaValid,
   isFootprintStillValid,
+  NO_BUILDABLE_AREA_CODE,
   type BuildingFootprint,
 } from './footprint'
+import { Dim } from './Dim'
 import './FootprintSelection.css'
 
 interface FootprintSelectionProps {
@@ -95,7 +97,7 @@ function PresetCard({
       <FootprintPreview widthM={footprint.width_m} depthM={footprint.depth_m} />
       <p className="footprint-card__name">{FOOTPRINT_SHAPE_LABELS[footprint.shape_type]}</p>
       <p className="footprint-card__dims">
-        {footprint.width_m.toFixed(2)} × {footprint.depth_m.toFixed(2)} מ&apos;
+        <Dim a={footprint.width_m} b={footprint.depth_m} /> מ&apos;
       </p>
       <p className="footprint-card__area">{footprint.area_m2.toFixed(2)} מ&quot;ר</p>
     </div>
@@ -115,7 +117,7 @@ function CustomCard({
   initialDepthText,
   onSelect,
 }: {
-  buildable: { width_m: number; depth_m: number } | null
+  buildable: { width_m: number; depth_m: number; has_area: boolean } | null
   targetAreaM2: number
   selected: boolean
   initialWidthText: string
@@ -132,7 +134,7 @@ function CustomCard({
   // enforces the second independently (see projects/routes/base_routes.py) — this only stops the
   // person submitting something it will refuse.
   const fits = width !== null && depth !== null && buildable !== null
-    ? fitsBuildable(width, depth, buildable.width_m, buildable.depth_m)
+    ? buildable.has_area && fitsBuildable(width, depth, buildable.width_m, buildable.depth_m)
     : buildable === null
   const valid = area !== null && isFootprintAreaValid(area, targetAreaM2) && fits
   const hasBothValues = width !== null && depth !== null
@@ -189,11 +191,13 @@ function CustomCard({
 
       {hasBothValues && area !== null && (
         <p className={valid ? 'footprint-card__custom-feedback' : 'footprint-card__custom-feedback footprint-card__custom-feedback--invalid'}>
-          {width.toFixed(2)} × {depth.toFixed(2)} מ&apos; → {area.toFixed(2)} מ&quot;ר
+          <Dim a={width} b={depth} /> מ&apos; → {area.toFixed(2)} מ&quot;ר
           {valid ? (
             ' — תואם לשטח היעד ונכנס בשטח הבנייה'
+          ) : !fits && buildable && !buildable.has_area ? (
+            <> — אין אזור בנייה על המגרש הזה אחרי הנסיגות</>
           ) : !fits && buildable ? (
-            <> — אינו נכנס בשטח הבנייה ({buildable.width_m.toFixed(2)} × {buildable.depth_m.toFixed(2)} מ׳)</>
+            <> — אינו נכנס בשטח הבנייה (<Dim a={buildable.width_m} b={buildable.depth_m} /> מ׳)</>
           ) : (
             <> — שטח היעד {targetAreaM2.toFixed(2)} מ&quot;ר (הפרש {Math.abs(area - targetAreaM2).toFixed(2)} מ&quot;ר, מעבר לסטייה המותרת {tolerance.toFixed(2)} מ&quot;ר)</>
           )}
@@ -256,24 +260,45 @@ function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, on
           second storey is not among them. */}
       {site?.rejection ? (
         <section className="footprint-blocked" role="alert">
-          <h2>שטח הבנייה המבוקש אינו נכנס בקומה אחת על המגרש הזה</h2>
+          <h2>
+            {site.rejection.code === NO_BUILDABLE_AREA_CODE
+              ? 'אין אזור בנייה על המגרש הזה'
+              : 'שטח הבנייה המבוקש אינו נכנס בקומה אחת על המגרש הזה'}
+          </h2>
           <dl>
             <div><dt>שטח בנייה מבוקש</dt><dd>{site.requested_built_area_m2.toFixed(2)} מ״ר</dd></div>
-            <div><dt>מידות המגרש</dt><dd><span className="dim">{site.plot_width_m.toFixed(2)} × {site.plot_depth_m.toFixed(2)}</span> מ׳</dd></div>
-            <div><dt>אזור בנייה שנגזר</dt><dd><span className="dim">{site.buildable_width_m.toFixed(2)} × {site.buildable_depth_m.toFixed(2)}</span> מ׳</dd></div>
+            <div><dt>מידות המגרש</dt><dd><Dim a={site.plot_width_m} b={site.plot_depth_m} /> מ׳</dd></div>
+            <div>
+              <dt>אזור בנייה שנגזר</dt>
+              {/* An axis the setbacks used up leaves no rectangle to state the size of. The region
+                  is EMPTY, and it is said in words — a negative length is not a dimension. */}
+              <dd>{site.has_buildable_area
+                ? <><Dim a={site.buildable_width_m} b={site.buildable_depth_m} /> מ׳</>
+                : 'אין אזור בנייה'}</dd>
+            </div>
             <div>
               <dt>קיבולת מתאר גאומטרית לקומה אחת</dt>
               <dd>{site.one_storey_footprint_capacity_m2.toFixed(2)} מ״ר</dd>
             </div>
           </dl>
-          <p className="footprint-blocked__note">
-            זו קיבולת גאומטרית בלבד — תוכנית החדרים, מידות מינימום ורוחב המסדרון עשויים להקטין
-            אותה עוד. {site.setback_disclaimer}
-          </p>
-          <p className="footprint-blocked__actions">
-            אפשר להקטין את שטח הבנייה המבוקש, או לעדכן את הנחות הנסיגה — שתי האפשרויות זמינות
-            במסך הקודם.
-          </p>
+          {/* The NO-BUILDABLE-AREA refusal states its own cause and its own two remedies, so it is
+              shown as the backend wrote it. The capacity refusal's numbers are already in the list
+              above and its remedies below, and repeating its sentence here would only duplicate
+              them. */}
+          {site.rejection.code === NO_BUILDABLE_AREA_CODE ? (
+            <p className="footprint-blocked__note">{site.rejection.message}</p>
+          ) : (
+            <>
+              <p className="footprint-blocked__note">
+                זו קיבולת גאומטרית בלבד — תוכנית החדרים, מידות מינימום ורוחב המסדרון עשויים להקטין
+                אותה עוד. {site.setback_disclaimer}
+              </p>
+              <p className="footprint-blocked__actions">
+                אפשר להקטין את שטח הבנייה המבוקש, או לעדכן את הנחות הנסיגה — שתי האפשרויות זמינות
+                במסך הקודם.
+              </p>
+            </>
+          )}
         </section>
       ) : null}
 
@@ -287,7 +312,8 @@ function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, on
           />
         ))}
         <CustomCard
-          buildable={site ? { width_m: site.buildable_width_m, depth_m: site.buildable_depth_m } : null}
+          buildable={site ? { width_m: site.buildable_width_m, depth_m: site.buildable_depth_m,
+                              has_area: site.has_buildable_area } : null}
           targetAreaM2={targetAreaM2}
           selected={selectedIsCustom}
           initialWidthText={selectedIsCustom && value ? String(value.width_m) : ''}

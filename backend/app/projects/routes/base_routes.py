@@ -46,13 +46,17 @@ def create_project(data: ProjectCreate) -> Project:
         fit = site_geometry.check_footprint_fits(
             site, data.selected_footprint.width_m, data.selected_footprint.depth_m)
         if not fit.fits:
+            # A parcel with no buildable region at all is refused for its own reason: no outline
+            # would have fitted, so pointing at the chosen one would be pointing at the wrong number.
+            no_area = site_geometry.no_buildable_area_message(site)
             raise HTTPException(
                 status_code=422,
                 detail={
-                    "code": "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
-                    "message": (
+                    "code": (site_geometry.NO_BUILDABLE_AREA_CODE if no_area is not None
+                             else "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"),
+                    "message": no_area if no_area is not None else (
                         f"המתאר שנבחר אינו נכנס בשטח שנותר לבנייה על המגרש הזה "
-                        f"({site.buildable_width_m:.2f} × {site.buildable_depth_m:.2f} מ׳). "
+                        f"({site_geometry.buildable_dimensions_he(site)}). "
                         f"{site_geometry.SETBACK_DISCLAIMER}"),
                     "detail": fit.detail,
                 })

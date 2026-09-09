@@ -34,6 +34,9 @@ const initialForm: FormState = {
   plot_width_m: '',
   plot_depth_m: '',
   street_facing_side: 'NORTH',
+  front_setback_m: '5.5',
+  side_setback_m: '3',
+  rear_setback_m: '4',
   built_area_m2: '',
   description: '',
 }
@@ -181,9 +184,27 @@ function App() {
       return
     }
 
-    const plotArea = Number(form.plot_width_m) * Number(form.plot_depth_m)
-    if (Number(form.built_area_m2) >= plotArea) {
-      setErrors(['שטח הבנייה חייב להיות קטן משטח המגרש'])
+    const buildableWidth = Number(form.plot_width_m) - 2 * Number(form.side_setback_m)
+    const buildableDepth =
+      Number(form.plot_depth_m) - Number(form.front_setback_m) - Number(form.rear_setback_m)
+    if (!(buildableWidth > 0) || !(buildableDepth > 0)) {
+      setErrors([
+        'הנסיגות שהוזנו אינן משאירות שטח בנייה על המגרש. אפשר לעדכן אותן או את מידות המגרש.',
+      ])
+      return
+    }
+    // Checked HERE, before the rest of the flow, rather than after the footprint step. The backend
+    // recomputes and enforces this independently — this only stops the person walking three screens
+    // to be told their first number was impossible.
+    const oneStoreyCapacity = buildableWidth * buildableDepth
+    if (Number(form.built_area_m2) > oneStoreyCapacity) {
+      setErrors([
+        `שטח בנייה של ${Number(form.built_area_m2).toFixed(2)} מ"ר אינו נכנס בקומה אחת על מגרש ` +
+          `${form.plot_width_m} × ${form.plot_depth_m} מ׳. אחרי הנסיגות נשאר ` +
+          `${buildableWidth.toFixed(2)} × ${buildableDepth.toFixed(2)} מ׳ — קיבולת מתאר גאומטרית ` +
+          `לקומה אחת של ${oneStoreyCapacity.toFixed(2)} מ"ר. אפשר להקטין את השטח המבוקש או לעדכן ` +
+          `את הנחות הנסיגה כאן.`,
+      ])
       return
     }
 
@@ -193,6 +214,9 @@ function App() {
       plot_depth_m: Number(form.plot_depth_m),
       street_facing_side: form.street_facing_side,
       built_area_m2: Number(form.built_area_m2),
+      front_setback_m: Number(form.front_setback_m),
+      side_setback_m: Number(form.side_setback_m),
+      rear_setback_m: Number(form.rear_setback_m),
     })
       .then(setSiteOptions)
       .catch((error) => {
@@ -224,6 +248,11 @@ function App() {
         plot_width_m: Number(form.plot_width_m),
         plot_depth_m: Number(form.plot_depth_m),
         street_facing_side: form.street_facing_side,
+        setbacks: {
+          front_m: Number(form.front_setback_m),
+          side_m: Number(form.side_setback_m),
+          rear_m: Number(form.rear_setback_m),
+        },
         built_area_m2: Number(form.built_area_m2),
         description: form.description,
         selected_footprint: toSelectedFootprintPayload(footprint),
@@ -357,6 +386,19 @@ function App() {
     )
   }
 
+  // The buildable rectangle, live. A subtraction, not an algorithm — the backend stays the
+  // authority (it recomputes and enforces on the options call and again on create), but the person
+  // should not have to submit a form to find out their first number cannot work.
+  const capacity = (() => {
+    const width = Number(form.plot_width_m) - 2 * Number(form.side_setback_m)
+    const depth =
+      Number(form.plot_depth_m) - Number(form.front_setback_m) - Number(form.rear_setback_m)
+    if (!(width > 0) || !(depth > 0)) return null
+    return { width, depth, area: width * depth }
+  })()
+  const overCapacity =
+    capacity !== null && Number(form.built_area_m2) > 0 && Number(form.built_area_m2) > capacity.area
+
   const streetFieldEnabled = streets.length > 0
 
   return (
@@ -437,13 +479,40 @@ function App() {
           </select>
         </label>
 
+        {/* THE SETBACK ASSUMPTIONS, on the screen whose numbers they decide. They used to live only
+            on the review screen — two steps later — while the capacity they produce was already
+            being used here to accept or refuse a built area. The refusal even told people both
+            levers were "on the previous screen" when only one of them was. */}
+        <fieldset className="form-setbacks">
+          <legend>הנחות נסיגה לדמו</legend>
+          <div className="form-row">
+            {([['front_setback_m', 'חזית'], ['rear_setback_m', 'אחורית'], ['side_setback_m', 'צדדים']] as const).map(
+              ([key, label]) => (
+                <label key={key}>
+                  {label} (מ')
+                  <input
+                    type="number" min="0.1" step="0.1" required
+                    value={form[key]}
+                    onChange={(event) => {
+                      setForm({ ...form, [key]: event.target.value })
+                      setFootprint(null)
+                    }}
+                  />
+                </label>
+              ),
+            )}
+          </div>
+          <p className="form-note">הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.</p>
+        </fieldset>
+
         <label>
-          שטח הבנייה (מ"ר)
+          שטח בנייה בקומה אחת (טביעת רגל) (מ&quot;ר)
           <input
             type="number"
             min="0.01"
             step="any"
             required
+            aria-describedby="one-storey-capacity"
             value={form.built_area_m2}
             onChange={(event) => {
               setForm({ ...form, built_area_m2: event.target.value })
@@ -454,6 +523,22 @@ function App() {
             }}
           />
         </label>
+
+        {/* The capacity, right under the number it constrains — OUTSIDE the label, so it does not
+            become part of the field's accessible name. Refusing at the footprint step meant filling
+            in the whole form to learn that the first number was impossible. */}
+        {capacity !== null ? (
+          <p
+            id="one-storey-capacity"
+            className={overCapacity ? 'form-capacity form-capacity--over' : 'form-capacity'}
+          >
+            {overCapacity ? '⚠ ' : ''}
+            קיבולת מתאר גאומטרית לקומה אחת על המגרש הזה:{' '}
+            <strong>{capacity.area.toFixed(2)} מ&quot;ר</strong>{' '}
+            (<span className="dim">{capacity.width.toFixed(2)} × {capacity.depth.toFixed(2)}</span> מ׳)
+            {overCapacity ? ' — השטח שהוזן גדול מכך ולא ייכנס בקומה אחת.' : ''}
+          </p>
+        ) : null}
 
         <label>
           תיאור הבית הרצוי

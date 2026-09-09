@@ -77,17 +77,20 @@ async function fillAndSubmitForm(builtAreaM2 = '120') {
   fireEvent.change(screen.getByLabelText('רחוב ומספר'), { target: { value: 'הרצל 1' } })
   // The site is entered as DIMENSIONS now — an area cannot say whether a house fits (same area,
   // different shape, different answer) and the setbacks are edge-relative.
-  fireEvent.change(screen.getByLabelText("רוחב מגרש (מ')"), { target: { value: '20' } })
-  fireEvent.change(screen.getByLabelText("עומק מגרש (מ')"), { target: { value: '24' } })
-  fireEvent.change(screen.getByLabelText('שטח הבנייה (מ"ר)'), { target: { value: builtAreaM2 } })
+  // A parcel that genuinely holds these built areas in one storey: 30 - 2*3 = 24 wide,
+  // 34 - 5.5 - 4 = 24.5 deep => 588 m² of geometric one-storey capacity.
+  fireEvent.change(screen.getByLabelText("רוחב מגרש (מ')"), { target: { value: '30' } })
+  fireEvent.change(screen.getByLabelText("עומק מגרש (מ')"), { target: { value: '34' } })
+  fireEvent.change(screen.getByLabelText('שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)'), { target: { value: builtAreaM2 } })
   fireEvent.change(screen.getByLabelText('תיאור הבית הרצוי'), { target: { value: 'בית עם 3 חדרי שינה' } })
   fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
   await waitFor(() => expect(screen.getByText('בחר/י את מתאר הבניין')).toBeInTheDocument())
 }
 
-describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', () => {
-  beforeEach(() => {
-    vi.stubGlobal(
+/** The fake backend both describes run against — one definition, so a new suite cannot
+ * silently exercise a different API from the existing ones. */
+function stubBackend() {
+  vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = typeof input === 'string' ? input : input.toString()
@@ -108,7 +111,7 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
             plot_width_m: 20, plot_depth_m: 24, street_facing_side: 'NORTH',
             front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
             setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
-            buildable_width_m: 40, buildable_depth_m: 40,
+            buildable_width_m: 40, buildable_depth_m: 40, has_buildable_area: true,
             one_storey_footprint_capacity_m2: 1600,
             requested_built_area_m2: requested,
             options: generateFootprintOptions(requested).map((o) => ({
@@ -135,6 +138,11 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
         throw new Error(`unexpected fetch in test: ${method} ${url}`)
       })
     )
+}
+
+describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', () => {
+  beforeEach(() => {
+    stubBackend()
   })
 
   afterEach(() => {
@@ -143,7 +151,7 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
 
   it('does NOT call POST /projects merely from filling out the built-area field', async () => {
     render(<App />)
-    fireEvent.change(screen.getByLabelText('שטח הבנייה (מ"ר)'), { target: { value: '120' } })
+    fireEvent.change(screen.getByLabelText('שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)'), { target: { value: '120' } })
     expect(projectCreatePostCalls()).toHaveLength(0)
   })
 
@@ -168,7 +176,7 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     fireEvent.click(screen.getByText('רחב'))
     fireEvent.click(screen.getByText('‹ חזרה לעריכת שטח הבנייה'))
 
-    expect(screen.getByLabelText('שטח הבנייה (מ"ר)')).toHaveValue(120)
+    expect(screen.getByLabelText('שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)')).toHaveValue(120)
 
     // going forward again shows freshly (re)generated options, and nothing was ever created
     fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
@@ -190,10 +198,11 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(body).toEqual({
       city: 'תל אביב',
       street: 'הרצל 1',
-      plot_area_m2: 480,
-      plot_width_m: 20,
-      plot_depth_m: 24,
+      plot_area_m2: 1020,
+      plot_width_m: 30,
+      plot_depth_m: 34,
       street_facing_side: 'NORTH',
+      setbacks: { front_m: 5.5, side_m: 3, rear_m: 4 },
       built_area_m2: 120,
       description: 'בית עם 3 חדרי שינה',
       selected_footprint: {
@@ -277,9 +286,9 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(screen.getByLabelText('תיאור הבית הרצוי')).toHaveValue('בית עם 3 חדרי שינה')
     expect(screen.getByLabelText('עיר / רשות מקומית')).toHaveValue('תל אביב')
     expect(screen.getByLabelText('רחוב ומספר')).toHaveValue('הרצל 1')
-    expect(screen.getByLabelText("רוחב מגרש (מ')")).toHaveValue(20)
-    expect(screen.getByLabelText("עומק מגרש (מ')")).toHaveValue(24)
-    expect(screen.getByLabelText('שטח הבנייה (מ"ר)')).toHaveValue(120)
+    expect(screen.getByLabelText("רוחב מגרש (מ')")).toHaveValue(30)
+    expect(screen.getByLabelText("עומק מגרש (מ')")).toHaveValue(34)
+    expect(screen.getByLabelText('שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)')).toHaveValue(120)
   })
 
   // The confirmed footprint is part of "what the user entered" too — coming back must not silently
@@ -323,5 +332,87 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     // what it DOES carry is geometry: an outline, its dimensions, and the area it preserves
     expect(body.selected_footprint.width_m).toBeGreaterThan(0)
     expect(body.selected_footprint.polygon).toHaveLength(4)
+  })
+})
+
+describe('one-storey footprint semantics on the form', () => {
+  beforeEach(() => {
+    stubBackend()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  /** Fills only the site fields, which is all the capacity depends on. */
+  async function siteOnly(width = '15', depth = '20') {
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('עיר / רשות מקומית'), { target: { value: 'תל אביב' } })
+    await waitFor(() => expect(screen.getByLabelText('רחוב ומספר')).toBeEnabled())
+    fireEvent.change(screen.getByLabelText('רחוב ומספר'), { target: { value: 'הרצל 1' } })
+    fireEvent.change(screen.getByLabelText("רוחב מגרש (מ')"), { target: { value: width } })
+    fireEvent.change(screen.getByLabelText("עומק מגרש (מ')"), { target: { value: depth } })
+  }
+
+  const AREA_FIELD = 'שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)'
+
+  it('names the field as a one-storey footprint, not an unqualified built area', async () => {
+    await siteOnly()
+    // the old label promised something the demo does not plan: a total across floors
+    expect(screen.queryByLabelText('שטח הבנייה (מ"ר)')).toBeNull()
+    expect(screen.getByLabelText(AREA_FIELD)).toBeInTheDocument()
+  })
+
+  it('shows the geometric one-storey capacity for the entered site', async () => {
+    await siteOnly('15', '20')
+    // 15 - 2*3 = 9.00 wide, 20 - 5.5 - 4 = 10.50 deep -> 94.50 m²
+    expect(screen.getByText(/קיבולת מתאר גאומטרית לקומה אחת/)).toBeInTheDocument()
+    expect(screen.getByText('94.50 מ"ר')).toBeInTheDocument()
+    expect(screen.getByText('9.00 × 10.50')).toBeInTheDocument()
+  })
+
+  it('warns while the value is being typed, not three screens later', async () => {
+    await siteOnly('15', '20')
+    fireEvent.change(screen.getByLabelText(AREA_FIELD), { target: { value: '250' } })
+    // the exact case that was reported: 250 m² on a 15 x 20 plot
+    expect(screen.getByText(/השטח שהוזן גדול מכך ולא ייכנס בקומה אחת/)).toBeInTheDocument()
+  })
+
+  it('blocks continuing and names both levers', async () => {
+    await siteOnly('15', '20')
+    fireEvent.change(screen.getByLabelText(AREA_FIELD), { target: { value: '250' } })
+    fireEvent.change(screen.getByLabelText('תיאור הבית הרצוי'), { target: { value: 'בית' } })
+    fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
+
+    expect(screen.getByText(/קיבולת מתאר גאומטרית/, { selector: 'li' })).toBeInTheDocument()
+    expect(screen.getByText(/להקטין את השטח המבוקש או לעדכן את הנחות הנסיגה כאן/)).toBeInTheDocument()
+    expect(projectCreatePostCalls()).toHaveLength(0)
+  })
+
+  it('the setback assumptions are on this screen, labelled, and change the capacity', async () => {
+    await siteOnly('15', '20')
+    expect(screen.getByText('הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText("חזית (מ')"), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText("אחורית (מ')"), { target: { value: '2' } })
+    // 20 - 3 - 2 = 15.00 deep now
+    expect(screen.getByText('9.00 × 15.00')).toBeInTheDocument()
+    expect(screen.getByText('135.00 מ"ר')).toBeInTheDocument()
+  })
+
+  it('an area within capacity is accepted and carries the assumptions onward', async () => {
+    await siteOnly('30', '34')
+    fireEvent.change(screen.getByLabelText(AREA_FIELD), { target: { value: '140' } })
+    fireEvent.change(screen.getByLabelText('תיאור הבית הרצוי'), { target: { value: 'בית' } })
+    fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
+
+    await waitFor(() => expect(screen.getByText('בחר/י את מתאר הבניין')).toBeInTheDocument())
+    const optionsCall = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call: unknown[]) => call[0] === '/projects/site/footprint-options',
+    ) as [string, RequestInit]
+    expect(JSON.parse(String(optionsCall[1].body))).toMatchObject({
+      plot_width_m: 30, plot_depth_m: 34, built_area_m2: 140,
+      front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+    })
   })
 })

@@ -160,9 +160,12 @@ export interface SiteNote {
   side_setback_m: number
   rear_setback_m: number
   setback_disclaimer: string
+  /** PRESENTATION-SAFE: 0 where the setbacks use up an axis, never the negative the raw
+   *  subtraction produces. `has_buildable_area` separates an EMPTY region from a small one. */
   buildable_width_m: number
   buildable_depth_m: number
   buildable_area_m2: number
+  has_buildable_area: boolean
   footprint_width_m: number | null
   footprint_depth_m: number | null
   footprint_fits: boolean | null

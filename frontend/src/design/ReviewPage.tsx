@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { RequirementsReview, ReviewEdit } from './demoDesign'
+import { Dim } from './Dim'
 import './ReviewPage.css'
 
 interface ReviewPageProps {
@@ -49,20 +50,6 @@ const SEVERITY_LABEL: Record<string, string> = {
   preference: 'העדפה',
   hard_requirement: 'דרישה מחייבת',
   ambiguous: 'לא ברור',
-}
-
-/** A width x depth pair, isolated from the surrounding RTL run.
- *
- * Without this, "20.00 × 24.00" is reordered by the bidi algorithm and displayed as
- * "24.00 × 20.00" — the reader sees a different plot from the one they entered, and the buildable
- * rectangle and footprint had the same problem. The numbers were right; the reading order was not.
- */
-function Dim({ a, b }: { a: number; b: number }) {
-  return (
-    <span className="dim">
-      {a.toFixed(2)} × {b.toFixed(2)}
-    </span>
-  )
 }
 
 const STREET_SIDE_LABEL: Record<string, string> = {
@@ -180,7 +167,11 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           <dl className="review-site-facts">
             <div>
               <dt>אזור בנייה שנגזר</dt>
-              <dd><Dim a={site.buildable_width_m} b={site.buildable_depth_m} /> מ׳ ({site.buildable_area_m2.toFixed(2)} מ״ר)</dd>
+              {/* An axis the setbacks used up leaves no rectangle to state the size of — the
+                  region is EMPTY, and is said in words rather than as a negative length. */}
+              <dd>{site.has_buildable_area
+                ? <><Dim a={site.buildable_width_m} b={site.buildable_depth_m} /> מ׳ ({site.buildable_area_m2.toFixed(2)} מ״ר)</>
+                : 'אין אזור בנייה — הנסיגות מכסות את המגרש כולו'}</dd>
             </div>
             {site.footprint_width_m !== null && site.footprint_depth_m !== null ? (
               <div>

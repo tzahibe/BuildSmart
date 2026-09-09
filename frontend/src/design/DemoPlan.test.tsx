@@ -413,6 +413,7 @@ describe('ReviewPage — the site and its assumptions', () => {
       front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
       setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
       buildable_width_m: 14, buildable_depth_m: 14.5, buildable_area_m2: 203,
+      has_buildable_area: true,
       footprint_width_m: 11, footprint_depth_m: 12, footprint_fits: true,
     },
   }

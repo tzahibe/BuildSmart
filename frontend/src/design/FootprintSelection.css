@@ -214,5 +214,3 @@
 .footprint-blocked__note,
 .footprint-blocked__actions { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: var(--text); }
 .footprint-blocked__actions { margin-bottom: 0; color: var(--text-h); }
-
-.footprint-selection .dim { direction: ltr; unicode-bidi: isolate; display: inline-block; }

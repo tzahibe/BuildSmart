@@ -18,6 +18,7 @@ function siteFor(targetAreaM2: number, buildable = { width_m: 40, depth_m: 40 })
     front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
     setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
     buildable_width_m: buildable.width_m, buildable_depth_m: buildable.depth_m,
+    has_buildable_area: true,
     one_storey_footprint_capacity_m2: buildable.width_m * buildable.depth_m,
     requested_built_area_m2: targetAreaM2,
     options: generateFootprintOptions(targetAreaM2).map((option) => ({
@@ -69,7 +70,10 @@ describe('FootprintSelection', () => {
     render(<Harness targetAreaM2={120} />)
     const options = generateFootprintOptions(120)
     for (const option of options) {
-      expect(screen.getByText(`${option.width_m.toFixed(2)} × ${option.depth_m.toFixed(2)} מ'`)).toBeInTheDocument()
+      const pair = screen.getByText(`${option.width_m.toFixed(2)} × ${option.depth_m.toFixed(2)}`)
+      expect(pair).toHaveAttribute('dir', 'ltr')      // read left-to-right inside the RTL page
+      expect(pair.parentElement).toHaveTextContent(
+        `${option.width_m.toFixed(2)} × ${option.depth_m.toFixed(2)} מ'`)
     }
     // the CUSTOM card is present too
     expect(screen.getByTestId('footprint-card-custom')).toBeInTheDocument()
@@ -91,7 +95,8 @@ describe('FootprintSelection', () => {
     // the WIDE card is now visually the selected one (radio semantics)
     const wideCard = screen.getByText('רחב').closest('[role="radio"]')
     expect(wideCard).toHaveAttribute('aria-checked', 'true')
-    expect(screen.getByText(`${target.width_m.toFixed(2)} × ${target.depth_m.toFixed(2)} מ'`)).toBeInTheDocument()
+    expect(screen.getByText(`${target.width_m.toFixed(2)} × ${target.depth_m.toFixed(2)}`)
+      .parentElement).toHaveTextContent(`${target.width_m.toFixed(2)} × ${target.depth_m.toFixed(2)} מ'`)
   })
 
   it('selecting a different preset deselects the previous one (single selection only)', () => {
@@ -155,13 +160,15 @@ describe('FootprintSelection', () => {
   it('changing the target area recalculates option dimensions', () => {
     render(<ReareaHarness />)
     const before120 = generateFootprintOptions(120).find((option) => option.shape_type === 'COMPACT')!
-    expect(screen.getByText(`${before120.width_m.toFixed(2)} × ${before120.depth_m.toFixed(2)} מ'`)).toBeInTheDocument()
+    const pair = (option: { width_m: number; depth_m: number }) =>
+      `${option.width_m.toFixed(2)} × ${option.depth_m.toFixed(2)}`
+    expect(screen.getByText(pair(before120))).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('change-area'))
 
     const after240 = generateFootprintOptions(240).find((option) => option.shape_type === 'COMPACT')!
-    expect(screen.getByText(`${after240.width_m.toFixed(2)} × ${after240.depth_m.toFixed(2)} מ'`)).toBeInTheDocument()
-    expect(screen.queryByText(`${before120.width_m.toFixed(2)} × ${before120.depth_m.toFixed(2)} מ'`)).not.toBeInTheDocument()
+    expect(screen.getByText(pair(after240))).toBeInTheDocument()
+    expect(screen.queryByText(pair(before120))).not.toBeInTheDocument()
   })
 
   it('a stale selection (made before the target area changed) is invalidated and cannot be submitted', () => {
@@ -194,5 +201,120 @@ describe('FootprintSelection', () => {
     fireEvent.click(screen.getByText('קומפקטי'))
     fireEvent.click(screen.getByRole('button', { name: 'המשך ליצירת התכנון' }))
     expect(onConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  // ------------------------------------------------------------------ a site with nothing to build on
+  //
+  // 200 x 3 m is a real thing for someone to type. The raw subtraction 3 - 5.5 - 4 is -6.5, and the
+  // screen used to present that as the derived buildable area — a negative length, beside a refusal
+  // about the requested house being too big for a parcel that has no buildable region at all.
+
+  /** What the backend returns for that parcel: the region is EMPTY, and says so. */
+  function noBuildableAreaSite(): FootprintOptionsResponse {
+    return {
+      plot_width_m: 200, plot_depth_m: 3,
+      street_facing_side: 'NORTH',
+      front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+      setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
+      buildable_width_m: 194, buildable_depth_m: 0,
+      has_buildable_area: false,
+      one_storey_footprint_capacity_m2: 0,
+      requested_built_area_m2: 250,
+      options: [],
+      rejection: {
+        code: 'NO_BUILDABLE_AREA',
+        message: 'אין אזור בנייה: סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳, גדול מעומק המגרש 3.00 מ׳.',
+      },
+    }
+  }
+
+  function renderSite(site: FootprintOptionsResponse) {
+    return render(
+      <FootprintSelection
+        site={site}
+        targetAreaM2={site.requested_built_area_m2}
+        value={null}
+        onChange={() => {}}
+        onConfirm={() => {}}
+        onBack={() => {}}
+      />,
+    )
+  }
+
+  it('states that there is no buildable area instead of showing a negative dimension', () => {
+    renderSite(noBuildableAreaSite())
+
+    expect(screen.getByRole('alert')).toHaveTextContent('אין אזור בנייה על המגרש הזה')
+    // the derived region is named in words, because an empty rectangle has no size to state
+    expect(screen.getByText('אזור בנייה שנגזר').parentElement).toHaveTextContent('אין אזור בנייה')
+    // the backend's own explanation of the CAUSE is what the person reads
+    expect(screen.getByText(/סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳/)).toBeInTheDocument()
+    // ...and not the capacity advice, which points at the one number that cannot help here
+    expect(screen.queryByText(/אפשר להקטין את שטח הבנייה המבוקש/)).not.toBeInTheDocument()
+    // the entered plot is echoed back exactly as entered
+    expect(screen.getByText('מידות המגרש').parentElement).toHaveTextContent('200.00 × 3.00')
+  })
+
+  it('never renders a negative number anywhere on such a site', () => {
+    const { container } = renderSite(noBuildableAreaSite())
+    fireEvent.change(screen.getByTestId('footprint-custom-width'), { target: { value: '200' } })
+    fireEvent.change(screen.getByTestId('footprint-custom-depth'), { target: { value: '3' } })
+
+    expect(container.textContent).not.toMatch(/(?<![0-9A-Za-z\u0590-\u05FF])-\s*\d/)
+    const custom = within(screen.getByTestId('footprint-card-custom'))
+    expect(custom.getByText(/אין אזור בנייה על המגרש הזה אחרי הנסיגות/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'המשך ליצירת התכנון' })).toBeDisabled()
+  })
+
+  // ------------------------------------------------------------- reading order in an RTL page
+  //
+  // The numbers were never wrong; the reading order was. In an RTL paragraph the "×" between two
+  // numbers resolves to right-to-left and the bidi algorithm reverses the run, so "200.00 × 3.00"
+  // is DISPLAYED as "3.00 × 200.00" and the reader sees a plot they never entered. Every pair has
+  // to sit in an LTR island for the order on screen to be the order in the markup.
+
+  /** An element's own text — what it holds directly, not what its children add. */
+  function ownText(el: Element): string {
+    return Array.from(el.childNodes)
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent)
+      .join('')
+      .trim()
+  }
+
+  /** Every element that itself holds a "W × D" pair. */
+  function pairHosts(root: HTMLElement): HTMLElement[] {
+    return Array.from(root.querySelectorAll<HTMLElement>('*'))
+      .filter((el) => /\d\s*×\s*\d/.test(ownText(el)))
+  }
+
+  it('every width × depth pair on the screen is isolated left-to-right', () => {
+    const { container } = render(<Harness targetAreaM2={200} />)
+    fireEvent.change(screen.getByTestId('footprint-custom-width'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('footprint-custom-depth'), { target: { value: '20' } })
+
+    const hosts = pairHosts(container)
+    expect(hosts.length).toBeGreaterThan(0)          // preset cards + the custom feedback line
+    for (const host of hosts) {
+      expect(host.closest('[dir]')).toHaveAttribute('dir', 'ltr')
+    }
+  })
+
+  it('a pair reads width first — the width the person entered, not the depth', () => {
+    const { container } = renderSite(noBuildableAreaSite())
+    const texts = pairHosts(container).map(ownText)
+    expect(texts).toContain('200.00 × 3.00')         // the plot, width first
+    expect(texts).not.toContain('3.00 × 200.00')
+  })
+
+  it('the custom feedback echoes the entered pair in the order it was typed', () => {
+    const { container } = render(<Harness targetAreaM2={200} />)
+    fireEvent.change(screen.getByTestId('footprint-custom-width'), { target: { value: '10' } })
+    fireEvent.change(screen.getByTestId('footprint-custom-depth'), { target: { value: '20' } })
+
+    const feedback = pairHosts(screen.getByTestId('footprint-card-custom')).map(ownText)
+    expect(feedback).toContain('10.00 × 20.00')      // as typed: width, then depth
+    expect(feedback).not.toContain('20.00 × 10.00')
+    expect(container.querySelectorAll('[dir="ltr"]').length).toBeGreaterThan(0)
   })
 })

@@ -99,6 +99,9 @@ export async function fetchFootprintOptions(body: {
   plot_depth_m: number
   street_facing_side: string
   built_area_m2: number
+  front_setback_m?: number
+  side_setback_m?: number
+  rear_setback_m?: number
 }): Promise<FootprintOptionsResponse> {
   const response = await fetch('/projects/site/footprint-options', {
     method: 'POST',

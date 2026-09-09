@@ -38,6 +38,11 @@ REAR_SETBACK_M = 4.0
 #: Shown with the numbers wherever they appear, so nobody mistakes them for a planning determination.
 SETBACK_DISCLAIMER = "הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת."
 
+#: The setbacks alone use up a whole side of the parcel, so there is no buildable rectangle at all.
+#: A DISTINCT case from "the requested area does not fit": nothing about the house was even weighed,
+#: and the numbers to change are the site's or the assumptions', not the programme's.
+NO_BUILDABLE_AREA_CODE = "NO_BUILDABLE_AREA"
+
 #: Appended to every feasibility refusal, in both languages. The point is the SCOPE of the claim:
 #: what failed is this brief against THIS parcel and THESE assumptions. Nothing here says the house
 #: cannot be designed — change the plot, the setbacks or the programme and the answer changes.
@@ -82,6 +87,22 @@ class SiteGeometry:
     @property
     def has_buildable_area(self) -> bool:
         return self.buildable_width_m > 0 and self.buildable_depth_m > 0
+
+    @property
+    def presented_buildable_width_m(self) -> float:
+        """The width AS IT MAY BE SHOWN.
+
+        The raw properties above are a subtraction, and a subtraction can go NEGATIVE: a 3.00 m deep
+        plot minus 5.50 + 4.00 of setback is -6.50. That is a correct intermediate and a meaningless
+        physical dimension, and it was reaching the screen as the size of the derived buildable
+        area. Where an axis is used up the region is EMPTY, and empty is 0.00 — with
+        `has_buildable_area` beside it to say the region is empty rather than merely small.
+        """
+        return max(self.buildable_width_m, 0.0)
+
+    @property
+    def presented_buildable_depth_m(self) -> float:
+        return max(self.buildable_depth_m, 0.0)
 
     @property
     def buildable_area_m2(self) -> float:
@@ -144,6 +165,96 @@ def derive(project: Project) -> SiteGeometry | None:
 
 
 @dataclass(frozen=True)
+class ConsumedAxis:
+    """One parcel axis that the setbacks use up on their own, described in the person's own terms.
+
+    The comparison happens in the CANONICAL frame, because that is the frame the setbacks are
+    applied in — but an east/west frontage swaps the axes, so the canonical depth is the number the
+    person entered as the plot's WIDTH. `plot_label` is resolved from the frontage for exactly that
+    reason: naming the wrong field would send someone to correct a dimension that is already right.
+    """
+
+    axis: str                 #: "DEPTH" | "WIDTH", in the canonical frame
+    plot_label: str           #: the field the person filled in, ready for a "גדול מ..." sentence
+    plot_dimension_m: float
+    setback_label: str
+    setback_total_m: float
+
+    @property
+    def comparator(self) -> str:
+        """Equal is not greater. A 9.50 m plot against 9.50 m of setback leaves exactly nothing."""
+        return "גדול מ" if self.setback_total_m > self.plot_dimension_m else "שווה ל"
+
+
+def consumed_axes(site: SiteGeometry) -> list[ConsumedAxis]:
+    """Every axis with no room left in it. Empty exactly when `has_buildable_area` is True.
+
+    Both read the same rounded buildable dimensions, so a parcel can never be refused for having no
+    buildable area and then have no axis to blame for it.
+    """
+    axes: list[ConsumedAxis] = []
+    depth_setbacks = round(site.front_setback_m + site.rear_setback_m, 2)
+    width_setbacks = round(2 * site.side_setback_m, 2)
+    frontage_runs_along_width = site.street_facing_side in (StreetSide.north, StreetSide.south)
+
+    if site.buildable_depth_m <= 0:
+        axes.append(ConsumedAxis(
+            axis="DEPTH",
+            plot_label="עומק המגרש" if frontage_runs_along_width else "רוחב המגרש",
+            plot_dimension_m=site.canonical_depth_m,
+            setback_label="סך הנסיגות הקדמית והאחורית",
+            setback_total_m=depth_setbacks))
+    if site.buildable_width_m <= 0:
+        axes.append(ConsumedAxis(
+            axis="WIDTH",
+            plot_label="רוחב המגרש" if frontage_runs_along_width else "עומק המגרש",
+            plot_dimension_m=site.canonical_width_m,
+            setback_label="סך הנסיגות משני הצדדים",
+            setback_total_m=width_setbacks))
+    return axes
+
+
+def no_buildable_area_message(site: SiteGeometry) -> str | None:
+    """Why this parcel has no buildable region, or `None` when it has one.
+
+    Says the CAUSE — these setbacks against this side of this parcel — rather than reporting the
+    subtraction's negative result as though it were a dimension. It names the two numbers the person
+    can actually change and, deliberately, makes no claim about the house: nothing here was measured
+    against the programme, so nothing here can say the programme is impossible.
+    """
+    axes = consumed_axes(site)
+    if not axes:
+        return None
+    causes = " ".join(
+        f"{axis.setback_label} הוא {axis.setback_total_m:.2f} מ׳, "
+        f"{axis.comparator}{axis.plot_label} {axis.plot_dimension_m:.2f} מ׳."
+        for axis in axes)
+    return (
+        f"אין אזור בנייה: {causes} "
+        f"המגרש הוא {site.plot_width_m:.2f} × {site.plot_depth_m:.2f} מ׳, ונסיגות הדמו הן "
+        f"חזית {site.front_setback_m:.2f}, אחורית {site.rear_setback_m:.2f}, "
+        f"צדדים {site.side_setback_m:.2f} מ׳. "
+        f"אפשר לעדכן את מידות המגרש או את הנחות הנסיגה — שתי האפשרויות זמינות במסך הקודם. "
+        f"אין בכך קביעה על הבית או על התוכנית עצמם: הם לא נבדקו כאן כלל. "
+        f"{SETBACK_DISCLAIMER}")
+
+
+def no_buildable_area_detail(site: SiteGeometry) -> str:
+    """The engineering line for the log. Reports the SHORTFALL, never a negative dimension."""
+    return "; ".join(
+        f"canonical {axis.axis.lower()} {axis.plot_dimension_m:.2f} m vs "
+        f"{axis.setback_total_m:.2f} m of setback"
+        for axis in consumed_axes(site))
+
+
+def buildable_dimensions_he(site: SiteGeometry) -> str:
+    """A buildable rectangle for a Hebrew sentence — or the words for not having one."""
+    if not site.has_buildable_area:
+        return "אין אזור בנייה"
+    return f"{site.buildable_width_m:.2f} × {site.buildable_depth_m:.2f} מ׳"
+
+
+@dataclass(frozen=True)
 class FitResult:
     fits: bool
     detail: str
@@ -160,7 +271,7 @@ def check_footprint_fits(site: SiteGeometry, width_m: float, depth_m: float) -> 
     if not site.has_buildable_area:
         return FitResult(False, (
             f"after the demo setbacks the plot leaves no buildable area at all "
-            f"({site.buildable_width_m:.2f} x {site.buildable_depth_m:.2f} m)"))
+            f"({no_buildable_area_detail(site)})"))
     if width_m <= site.buildable_width_m + 1e-9 and depth_m <= site.buildable_depth_m + 1e-9:
         return FitResult(True, (
             f"{width_m:.2f} x {depth_m:.2f} m fits inside "

@@ -60,6 +60,9 @@ export interface Project {
   plot_width_m: number
   plot_depth_m: number
   street_facing_side: string
+  /** The assumptions the offered options were generated under, so the backend validates the choice
+   *  against the same numbers the person was shown rather than against defaults. */
+  setbacks?: { front_m: number; side_m: number; rear_m: number }
   built_area_m2: number
   description: string
   // The SELECTED BUILDING FOOTPRINT, persisted verbatim from project creation — `null` for a project
@@ -188,6 +191,21 @@ export interface FormState {
   plot_width_m: string
   plot_depth_m: string
   street_facing_side: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST'
+  /** The demo's setback ASSUMPTIONS. They live on this form because they decide the buildable
+   *  rectangle, and therefore the capacity shown beside the built-area field and which footprints
+   *  exist at all — the consequence and the lever belong on the same screen. */
+  front_setback_m: string
+  side_setback_m: string
+  rear_setback_m: string
+  /** ONE-STOREY FOOTPRINT AREA under the current demo semantics — the ground area of the building,
+   *  not a total across floors.
+   *
+   *  This is NOT the domain's final shape. A real model has to distinguish four different things:
+   *  the TOTAL requested floor area, the NUMBER OF STOREYS, the PER-STOREY area, and the BUILDING
+   *  FOOTPRINT. Today the demo plans a single storey, so those four collapse into one number — and
+   *  that collapse is the reason somebody entering 250 m² (meaning the total, as "שטח בנייה"
+   *  normally does) was told it does not fit on a 300 m² plot. The label says which one we mean;
+   *  it does not make the other three go away. */
   built_area_m2: string
   description: string
 }

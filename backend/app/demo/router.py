@@ -153,8 +153,13 @@ class FootprintOptionsResponse(BaseModel):
     side_setback_m: float
     rear_setback_m: float
     setback_disclaimer: str
+    #: The buildable rectangle AS IT MAY BE SHOWN. Where the setbacks use up an axis the region is
+    #: empty and these are 0.00 — never the negative the raw subtraction produces, which is an
+    #: intermediate and not a dimension anything can have. `has_buildable_area` is what separates
+    #: "empty" from "small": 0.00 x 0.00 with the flag False means there is no region at all.
     buildable_width_m: float
     buildable_depth_m: float
+    has_buildable_area: bool
     #: The buildable rectangle's area — a GEOMETRIC ceiling for one storey, not a promise about how
     #: big a house can be. The room programme can reduce it further.
     one_storey_footprint_capacity_m2: float
@@ -191,13 +196,31 @@ def footprint_options(body: FootprintOptionsRequest) -> FootprintOptionsResponse
     capacity = site_geometry.one_storey_capacity_m2(site)
 
     rejection = None
-    if not pairs:
+    if not pairs and not site.has_buildable_area:
+        # THE SETBACKS ATE THE PARCEL. Distinct from the capacity refusal below, which weighs a
+        # requested area against a region that exists: here there is no region, the requested area
+        # was never the binding constraint, and telling someone to ask for a smaller house would
+        # point them at the one number that cannot help them.
+        rejection = {
+            "code": site_geometry.NO_BUILDABLE_AREA_CODE,
+            "message": site_geometry.no_buildable_area_message(site),
+        }
+        failure_log.refusal(
+            rejection["code"], rejection["message"],
+            site_geometry.no_buildable_area_detail(site),
+            where="POST /projects/site/footprint-options",
+            context={"plot_width_m": body.plot_width_m, "plot_depth_m": body.plot_depth_m,
+                     "street_facing_side": site.street_facing_side.value,
+                     "front_setback_m": site.front_setback_m,
+                     "rear_setback_m": site.rear_setback_m,
+                     "side_setback_m": site.side_setback_m})
+    elif not pairs:
         rejection = {
             "code": "BUILT_AREA_EXCEEDS_ONE_STOREY_CAPACITY",
             "message": (
                 f"שטח הבנייה שביקשת, {body.built_area_m2:.0f} מ״ר, אינו נכנס בקומה אחת על המגרש הזה. "
                 f"המגרש הוא {body.plot_width_m:.2f} × {body.plot_depth_m:.2f} מ׳, ואחרי נסיגות הדמו "
-                f"נשאר שטח בנייה של {site.buildable_width_m:.2f} × {site.buildable_depth_m:.2f} מ׳ — "
+                f"נשאר שטח בנייה של {site_geometry.buildable_dimensions_he(site)} — "
                 f"קיבולת מתאר גאומטרית לקומה אחת של כ-{capacity:.0f} מ״ר. "
                 f"אפשר להקטין את שטח הבנייה המבוקש, או לעדכן את הנחות הנסיגה. "
                 f"{site_geometry.SETBACK_DISCLAIMER}"),
@@ -215,7 +238,9 @@ def footprint_options(body: FootprintOptionsRequest) -> FootprintOptionsResponse
         front_setback_m=site.front_setback_m, side_setback_m=site.side_setback_m,
         rear_setback_m=site.rear_setback_m,
         setback_disclaimer=site_geometry.SETBACK_DISCLAIMER,
-        buildable_width_m=site.buildable_width_m, buildable_depth_m=site.buildable_depth_m,
+        buildable_width_m=site.presented_buildable_width_m,
+        buildable_depth_m=site.presented_buildable_depth_m,
+        has_buildable_area=site.has_buildable_area,
         one_storey_footprint_capacity_m2=capacity,
         requested_built_area_m2=body.built_area_m2,
         options=[FootprintOption(shape_type=site_geometry.shape_name(w, d),
