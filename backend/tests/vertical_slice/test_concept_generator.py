@@ -8,12 +8,14 @@ from app.geometry_domain.primitives import MultiRegion, Region, Ring
 from app.geometry_domain.provenance import Authority, Provenance, Source
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_generator import (
+    ROOM_TEMPLATES,
     ConceptStrategy,
     RejectionReason,
     ZoneGroup,
     build_room_program,
     generate_concepts,
     minimum_footprint_width_m,
+    program_capacity_gross_m2,
     target_gross_area_m2,
 )
 from app.vertical_slice.general_pipeline import run_general, run_general_from_site
@@ -328,3 +330,134 @@ def test_master_in_a_shared_row_still_reaches_the_envelope(width_m, depth_m):
     assert "EXTERIOR" in master.walls.values(), master.walls
     c8 = next(c for c in result.validation.checks if c.check_id == "C8")
     assert c8.passed, c8.detail
+
+
+# --------------------------------------------------------------- built area tracks the target
+#
+# The generated house used to be sized from the ROOM TEMPLATE TABLE and not from the area the user
+# asked for: a 2-bedroom brief produced 104.5 m2 whether 150, 180 or 200 m2 was requested — the same
+# number to the decimal, because the search walked the footprint width up from the programme's own
+# minimum and stopped at the first proportion that planned. See docs/BUILT_AREA_AUDIT_REPORT.md.
+
+AREA_TARGETS = [120.0, 150.0, 180.0, 200.0]
+#: The template-driven size the 2BR programme collapsed to for EVERY requested area.
+_OLD_FIXED_POINT_M2 = 104.5
+
+
+def _program(target_m2: float | None, **kwargs) -> ProgramSpec:
+    base = dict(bedrooms=2, safe_room=False, wet_rooms=1, open_plan_living=True, parking_spaces=2)
+    base.update(kwargs)
+    return ProgramSpec(target_built_area_m2=target_m2, **base)
+
+
+def _run_for_target(target_m2: float, **kwargs):
+    """One square footprint sized to `target_m2`, exactly as the footprint step produces it."""
+    side = round(target_m2 ** 0.5, 2)
+    spec = ArchitecturalSpec(
+        plot=PlotSpec(width_m=side + 6.0, depth_m=side + 9.5,
+                      front_setback_m=5.5, side_setback_m=3.0, rear_setback_m=4.0),
+        program=_program(target_m2, **kwargs),
+    )
+    origin_x, origin_y = spec.plot.buildable_origin_m()
+    bw, bd = spec.plot.buildable_size_m()
+    buildable = BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y, bw, bd))),
+        Provenance(Source.USER, Authority.ASSUMED, ref="selected building footprint"),
+    )
+    return run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
+                       program=spec.program)
+
+
+@pytest.mark.parametrize("target_m2", AREA_TARGETS)
+def test_generated_area_tracks_the_requested_target(target_m2):
+    result = _run_for_target(target_m2)
+    if result.design is None:
+        # 120 m2 fails on C11 (entrance walk / parking overlap), a separate defect that predates
+        # this fix — but it must NOT fail by silently producing the old fixed-point house.
+        pytest.skip(f"not realizable at {target_m2} m2: {result.metrics.rejection_reasons}")
+    gross = result.design.gross_area_m2
+    assert abs(gross - target_m2) / target_m2 < 0.10, (
+        f"requested {target_m2} m2, generated {gross} m2 — the plan must track the request")
+
+
+def test_generated_area_is_no_longer_pinned_to_the_template_fixed_point():
+    """The defect itself: three different requests, one identical answer."""
+    produced = []
+    for target_m2 in (150.0, 180.0, 200.0):
+        result = _run_for_target(target_m2)
+        assert result.design is not None, result.metrics.rejection_reasons
+        produced.append(result.design.gross_area_m2)
+
+    assert len(set(produced)) == 3, f"the same house for every request: {produced}"
+    for gross in produced:
+        assert abs(gross - _OLD_FIXED_POINT_M2) > 5.0, (
+            f"{gross} m2 is still the old template fixed point ({_OLD_FIXED_POINT_M2} m2)")
+    # and it moves in the right direction, not merely differently
+    assert produced == sorted(produced), f"a larger request must not shrink the house: {produced}"
+
+
+#: Measured worst-case overshoot of a template `max_area_m2` across the supported scope (67 plans:
+#: 2-3 bedrooms x safe room x 1-3 wet rooms x open/closed x 150-220 m2). Geometry Core tiles the
+#: footprint EXACTLY, so the last few m2 of residue must land in some room; the front-band depth is
+#: now bounded by the binding room's own maximum, which brought this from 35.50 m2 down to 5.75.
+#: Closing the remaining gap means bounding every column and row site the same way — a Concept
+#: Generator redesign, deliberately not attempted here. Tighten this bound, never loosen it.
+MAX_TEMPLATE_OVERSHOOT_M2 = 6.0
+
+
+def test_rooms_are_not_inflated_to_fill_space():
+    """Extra area is absorbed by elasticity within bounds, not by ballooning one room.
+
+    Before the front-band depth was bounded, a 2-bedroom house asked for 220 m2 came back with an
+    81.5 m2 living room against its own 46 m2 maximum — the band simply took whatever depth the rear
+    did not need. The remaining overshoot is exact-tiling residue, pinned by the constant above.
+    """
+    caps = {role.value: t.max_area_m2 for role, t in ROOM_TEMPLATES.items()}
+    for target_m2 in (150.0, 180.0, 200.0):
+        result = _run_for_target(target_m2)
+        if result.design is None:
+            continue
+        for room in result.design.rooms:
+            cap = max(caps[r] for r in room.roles if r in caps)
+            assert room.net_area_m2 <= cap + MAX_TEMPLATE_OVERSHOOT_M2, (
+                f"at {target_m2} m2, {room.zone_id} is {room.net_area_m2} m2 against a {cap} m2 "
+                f"maximum — area is being absorbed by inflating a room")
+
+
+def test_target_above_the_programme_capacity_is_reported_not_silently_shrunk():
+    """A 2-bedroom programme cannot responsibly fill 300 m2. Saying so is correct; quietly
+    returning a 104 m2 house and calling it a success is not."""
+    rooms = build_room_program(ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=_program(None)))
+    capacity = program_capacity_gross_m2(rooms)
+    assert 200.0 < capacity < 230.0, capacity  # ~213 m2 for 2BR + 1 wet
+
+    result = _run_for_target(capacity + 60.0)
+    assert result.design is None
+    reasons = " ".join(result.metrics.rejection_reasons)
+    assert "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY" in reasons, reasons
+    # the diagnosis must not claim the house is impossible to build
+    assert "impossible" not in reasons.lower()
+
+
+def test_a_bigger_programme_can_absorb_what_a_smaller_one_cannot():
+    """The ceiling belongs to the ROOM PROGRAMME, not to the engine — adding rooms raises it."""
+    small = build_room_program(ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=_program(None)))
+    large = build_room_program(ArchitecturalSpec(
+        plot=PlotSpec(20.0, 24.0),
+        program=_program(None, bedrooms=3, safe_room=True, wet_rooms=3)))
+    assert program_capacity_gross_m2(large) > program_capacity_gross_m2(small)
+
+
+def test_without_a_target_the_original_programme_minimum_sizing_is_kept():
+    """Site-driven runs have no user target; their sizing (and baselines) must not move."""
+    spec = ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=_program(None))
+    origin_x, origin_y = spec.plot.buildable_origin_m()
+    bw, bd = spec.plot.buildable_size_m()
+    buildable = BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y, bw, bd))),
+        Provenance(Source.USER, Authority.ASSUMED, ref="site"),
+    )
+    result = run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
+                         program=spec.program)
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert abs(result.design.gross_area_m2 - _OLD_FIXED_POINT_M2) < 6.0, result.design.gross_area_m2

@@ -29,6 +29,12 @@ class ScopeCode(str, Enum):
     FOOTPRINT_REQUIRED = "FOOTPRINT_REQUIRED"
     REQUIREMENTS_NOT_PARSED = "REQUIREMENTS_NOT_PARSED"
     BEDROOMS_UNKNOWN = "BEDROOMS_UNKNOWN"
+    #: The brief states, as a requirement, something the planner cannot honour. Producing a plan
+    #: anyway would mean overruling the person on a point they made binding.
+    UNSUPPORTED_HARD_REQUIREMENT = "UNSUPPORTED_HARD_REQUIREMENT"
+    #: The wording does not settle whether it was binding. Guessing either way is a decision that
+    #: belongs to the person, so ask before planning.
+    CLARIFICATION_REQUIRED = "CLARIFICATION_REQUIRED"
 
 
 @dataclass(frozen=True)
@@ -89,6 +95,31 @@ def check_supported(project: Project) -> ScopeRejection | None:
             ScopeCode.POOL_UNSUPPORTED,
             "תכנון בריכה עדיין לא נתמך בדמו.",
             "pool.requested=True")
+
+    # Requests the planner cannot act on, graded by how the person worded them. A PREFERENCE may be
+    # set aside with a visible warning and generation continues; a HARD REQUIREMENT may not, because
+    # planning around it would overrule a point they made binding; an AMBIGUOUS one is not ours to
+    # decide either way. Hard requirements are reported before ambiguous ones — a definite blocker
+    # is more useful to hear about than an unclear one.
+    hard = [r for r in project.unsupported_requests if r.severity == "hard_requirement"]
+    if hard:
+        quoted = "; ".join(f'"{r.text}"' for r in hard)
+        return ScopeRejection(
+            ScopeCode.UNSUPPORTED_HARD_REQUIREMENT,
+            f"ביקשת כדרישה מחייבת משהו שהמתכנן עדיין לא יודע לכבד: {quoted}. "
+            f"אפשר לנסח את זה כהעדפה, להסיר את הדרישה, או להמתין עד שנתמוך בה — "
+            f"לא נייצר תוכנית שמתעלמת ממנה.",
+            "; ".join(f"{r.topic}: {r.text}" for r in hard))
+
+    unclear = [r for r in project.unsupported_requests if r.severity == "ambiguous"]
+    if unclear:
+        quoted = "; ".join(f'"{r.text}"' for r in unclear)
+        return ScopeRejection(
+            ScopeCode.CLARIFICATION_REQUIRED,
+            f"לא ברור לנו אם זו דרישה מחייבת או העדפה: {quoted}. "
+            f"אפשר לנסח מחדש בתיאור — למשל \"עדיף ש...\" להעדפה או \"חייב להיות...\" לדרישה — "
+            f"ואז ניצור את התוכנית.",
+            "; ".join(f"{r.topic}: {r.text}" for r in unclear))
 
     if project.selected_footprint is None:
         return ScopeRejection(

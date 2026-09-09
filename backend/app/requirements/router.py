@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.projects.models import Project
+from app.projects.models import CorridorWidthField, Project, UnsupportedRequestRecord
 from app.projects.routes import base_routes as project_routes
 from app.requirements.parser import OpenAIRequirementParser, RequirementParser
 
@@ -25,6 +25,12 @@ def parse_requirements(project_id: str) -> Project:
         pool=extraction.pool,
         wet_rooms=extraction.wet_rooms,
         open_plan=extraction.open_plan,
+        unsupported_requests=[UnsupportedRequestRecord(text=r.text, topic=r.topic, severity=r.severity.value)
+                              for r in extraction.other_requests],
+        corridor_width=CorridorWidthField(
+            value_m=extraction.corridor_width.value_m,
+            mode=extraction.corridor_width.mode.value,
+            source=extraction.corridor_width.source),
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Project not found")

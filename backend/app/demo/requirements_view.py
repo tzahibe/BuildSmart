@@ -13,10 +13,16 @@ NOT used here and is not on the demo path.
 """
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.projects.models import Project
-from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+from app.vertical_slice.spec import (
+    ArchitecturalSpec,
+    CorridorRequirement,
+    CorridorWidthMode,
+    PlotSpec,
+    ProgramSpec,
+)
 
 #: Setbacks used to place the selected footprint inside a plot. The footprint the user picked is
 #: treated as the BUILDABLE area exactly; the setbacks only create the surrounding site the
@@ -33,6 +39,18 @@ class RequirementField(BaseModel):
     source: str  # "requested" | "inferred" | "unknown"
 
 
+class CorridorWidthNote(BaseModel):
+    value_m: float
+    mode: str
+    source: str
+
+
+class UnsupportedRequestNote(BaseModel):
+    text: str
+    topic: str = "other"
+    severity: str = "ambiguous"
+
+
 class RequirementsReview(BaseModel):
     """What the REVIEW screen shows and lets the user correct."""
 
@@ -46,6 +64,12 @@ class RequirementsReview(BaseModel):
     footprint_width_m: float | None = None
     footprint_depth_m: float | None = None
     description: str = ""
+    #: What the brief asked for that this stage cannot plan. Shown back to the person rather than
+    #: dropped — the screen quotes their whole description, so silence here reads as agreement.
+    unsupported_requests: list[UnsupportedRequestNote] = Field(default_factory=list)
+    #: The corridor width the brief asked for, shown back before generation. `None` when none was
+    #: asked for — the planner then keeps its own derived width.
+    corridor_width: CorridorWidthNote | None = None
 
 
 class ReviewEdit(BaseModel):
@@ -79,7 +103,30 @@ def review_of(project: Project) -> RequirementsReview:
         footprint_width_m=footprint.width_m if footprint else None,
         footprint_depth_m=footprint.depth_m if footprint else None,
         description=project.description,
+        unsupported_requests=[UnsupportedRequestNote(text=r.text, topic=r.topic, severity=r.severity)
+                              for r in project.unsupported_requests],
+        corridor_width=(
+            CorridorWidthNote(value_m=project.corridor_width.value_m,
+                              mode=project.corridor_width.mode,
+                              source=project.corridor_width.source.value)
+            if project.corridor_width and project.corridor_width.value_m is not None else None),
     )
+
+
+def _corridor_of(project: Project) -> CorridorRequirement | None:
+    """The authoritative corridor requirement, or None when the brief asked for no width.
+
+    The parser's mode is carried through unchanged — "at least 1.6 m" stays a MINIMUM and is never
+    flattened into "exactly 1.6 m".
+    """
+    field = project.corridor_width
+    if field is None or field.value_m is None:
+        return None
+    try:
+        mode = CorridorWidthMode(field.mode)
+    except ValueError:
+        mode = CorridorWidthMode.MINIMUM
+    return CorridorRequirement(width_m=float(field.value_m), mode=mode)
 
 
 def spec_for(project: Project) -> ArchitecturalSpec:
@@ -107,5 +154,11 @@ def spec_for(project: Project) -> ArchitecturalSpec:
             open_plan_living=bool(review.open_plan.value),
             wet_rooms=int(review.wet_rooms.value or 1),
             parking_spaces=int(review.parking_spaces.value or 0),
+            # The TARGET BUILT AREA the person entered, carried through as a target the plan should
+            # meet — not as a ceiling. The selected footprint is validated to be within 0.5% of it
+            # (see projects/models.py), so the two agree by construction; the requested value is the
+            # authoritative one and is never adjusted here.
+            target_built_area_m2=project.built_area_m2,
+            corridor=_corridor_of(project),
         ),
     )

@@ -243,6 +243,7 @@ def run_general(buildable: BuildableRegion, *,
     validation = validation_stage.validate(
         concept.fixture, rects, solve.walls, interior_doors, entrance_door,
         windows, furniture, site_plan,
+        corridor=spec.program.corridor,
     )
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
                       interior_doors, entrance_door, windows, furniture, site_plan)

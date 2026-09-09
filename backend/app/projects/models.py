@@ -91,6 +91,27 @@ def _check_street_belongs_to_city(city: str, street: str) -> None:
         raise ValueError("street must be selected from the list of streets for the chosen city")
 
 
+class CorridorWidthField(BaseModel):
+    """The corridor width the brief asked for — see requirements/parser.py's `CorridorWidth`.
+    `mode` is stored as a plain string so a future mode does not invalidate stored projects."""
+
+    value_m: float | None = None
+    mode: str = "minimum"
+    source: SourceTag = SourceTag.unknown
+
+
+class UnsupportedRequestRecord(BaseModel):
+    """Storage form of `requirements.parser.UnsupportedRequest` — the person's own words, kept
+    verbatim, plus a grouping slug."""
+
+    text: str
+    topic: str = "other"
+    #: "preference" | "hard_requirement" | "ambiguous" — see requirements/parser.py's
+    #: `RequestSeverity`. Stored as a plain string so a future severity does not invalidate
+    #: projects already on disk. Defaults to the fail-closed value.
+    severity: str = "ambiguous"
+
+
 def _check_built_area_fits_plot(plot_area_m2: float, built_area_m2: float) -> None:
     if built_area_m2 >= plot_area_m2:
         raise ValueError("built_area_m2 must be smaller than plot_area_m2")
@@ -292,6 +313,11 @@ class Project(BaseModel):
     #: the REVIEW step before generation.
     wet_rooms: TaggedInt | None = None
     open_plan: TaggedBool | None = None
+    #: Requirements the brief asked for that no structured field can carry (see
+    #: requirements/parser.py's `UnsupportedRequest`). Kept on the project so the REVIEW screen can
+    #: show them back instead of the system dropping them silently.
+    unsupported_requests: list[UnsupportedRequestRecord] = Field(default_factory=list)
+    corridor_width: CorridorWidthField | None = None
     requirements_parsed_at: datetime | None = None
 
     # Parametric design model — generated deterministically (no LLM) from the fields above by

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.design_output import GeometricDesign as SolvedDesign
 from app.vertical_slice.validation import ValidationReport
 
@@ -94,6 +95,19 @@ class ValidationSummary(BaseModel):
     checks: dict[str, bool]
 
 
+class CorridorOut(BaseModel):
+    """What was asked for and what the plan actually delivers, side by side.
+
+    `realized_width_m` is MEASURED off the realized geometry, never echoed from the request — that
+    is the whole point of reporting both.
+    """
+
+    requested_width_m: float | None = None
+    requested_mode: str | None = None
+    realized_width_m: float | None = None
+    satisfied: bool | None = None
+
+
 class DemoDesign(BaseModel):
     plot: RectOut
     footprint: RectOut
@@ -107,6 +121,7 @@ class DemoDesign(BaseModel):
     entrance_walk: RectOut
     gross_area_m2: float
     net_area_m2: float
+    corridor: CorridorOut | None = None
     validation: ValidationSummary
 
 
@@ -125,6 +140,7 @@ _STATEMENTS = {
     "C11": "הכניסה להולכי רגל מחוברת לבית",
     "C12": "שטחי החוץ מסווגים במפורש",
     "C13": "כל קשר שתוכנן קיים בפועל בתוכנית",
+    "C14": "רוחב המסדרון עומד בדרישה שביקשת",
 }
 
 
@@ -180,10 +196,33 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
     return list(walls.values()), list(opens.values())
 
 
-def summarize(report: ValidationReport) -> ValidationSummary:
+def _corridor_out(design: SolvedDesign, corridor: CorridorRequirement | None) -> CorridorOut | None:
+    """Measured from the realized rooms — the narrowest circulation zone is what a person walks."""
+    widths = [min(r.net_w_m, r.net_h_m) for r in design.rooms
+              if {"HALL", "CIRCULATION"} & {str(getattr(role, "value", role)) for role in r.roles}]
+    realized = round(min(widths), 2) if widths else None
+    if corridor is None and realized is None:
+        return None
+    return CorridorOut(
+        requested_width_m=corridor.width_m if corridor else None,
+        requested_mode=corridor.mode.value if corridor else None,
+        realized_width_m=realized,
+        satisfied=(corridor.satisfied_by(realized)
+                   if corridor is not None and realized is not None else None),
+    )
+
+
+def summarize(report: ValidationReport,
+              unsupported: list[str] | None = None) -> ValidationSummary:
     statements = [_STATEMENTS[c.check_id] for c in report.checks
                   if c.passed and c.check_id in _STATEMENTS]
     warnings = [f"{_STATEMENTS.get(c.check_id, c.name)}: {c.detail}" for c in report.failures()]
+
+    # The plan must not read as though it honoured the whole brief. Anything the person asked for
+    # that this stage cannot plan is carried onto the plan screen as a warning, in their own words —
+    # the checks above only ever describe what WAS done.
+    for text in unsupported or []:
+        warnings.append(f'לא נכלל בתכנון: "{text}"')
     return ValidationSummary(
         passed=report.ok,
         statements=statements,
@@ -192,7 +231,9 @@ def summarize(report: ValidationReport) -> ValidationSummary:
     )
 
 
-def to_demo_design(design: SolvedDesign, report: ValidationReport) -> DemoDesign:
+def to_demo_design(design: SolvedDesign, report: ValidationReport,
+                   unsupported: list[str] | None = None,
+                   corridor: CorridorRequirement | None = None) -> DemoDesign:
     walls, opens = _wall_segments(design)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
                      y=d.center_m[1], orientation=d.orientation)
@@ -224,5 +265,6 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport) -> DemoDesign
         entrance_walk=_rect(design.entrance_walk_m),
         gross_area_m2=design.gross_area_m2,
         net_area_m2=design.net_area_m2,
-        validation=summarize(report),
+        corridor=_corridor_out(design, corridor),
+        validation=summarize(report, unsupported),
     )

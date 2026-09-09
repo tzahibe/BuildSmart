@@ -32,6 +32,9 @@ from enum import Enum
 
 from .concept import Concept
 from .geometry_core.model import (
+    UNIT_M,
+    WALL_THICKNESS_M,
+    WallType,
     ConnectionKind,
     Cut,
     DesiredAccessEdge,
@@ -49,7 +52,7 @@ from .geometry_core.model import (
     u_to_m,
 )
 from .safe_adapter import SolverGeometryCandidate
-from .spec import ArchitecturalSpec
+from .spec import ArchitecturalSpec, CorridorRequirement, CorridorWidthMode
 
 # --------------------------------------------------------------------------- product policy
 # PRODUCT POLICY placeholders, in the same sense as WALL_THICKNESS_M's safe-room entry: plausible
@@ -121,6 +124,7 @@ class RejectionReason(str, Enum):
     OPEN_GROUP_INCOMPATIBLE = "OPEN_GROUP_INCOMPATIBLE"
     NO_SEAM_ALIGNMENT = "NO_SEAM_ALIGNMENT"
     CIRCULATION_WOULD_CROSS_PRIVATE = "CIRCULATION_WOULD_CROSS_PRIVATE"
+    TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY = "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY"
 
 
 @dataclass(frozen=True)
@@ -259,7 +263,14 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
             roles=roles,
             net_area_min_m2=max(floor_of(room), target * 0.70),
             net_area_target_m2=target,
-            net_area_max_m2=max(target * 1.45, t.min_area_m2 * 1.5),
+            # Never above the template's own maximum. `targets` already respects that cap, but the
+            # solver tiles the footprint EXACTLY and may spend the residue anywhere inside
+            # [min, max] — which let a room drift past its cap purely to absorb space (DINING came
+            # out at 30.66 m2 against a 30.0 cap). The ceiling that `program_capacity_gross_m2`
+            # gates on is the sum of these same maxima, so a footprint that passed the gate can
+            # still be tiled with every room inside its own limit.
+            net_area_max_m2=min(max(target * 1.45, t.min_area_m2 * 1.5),
+                                max(t.max_area_m2, target)),
             min_short_side_m=t.min_short_side_m,
             max_aspect_ratio=t.max_aspect_ratio,
         )
@@ -268,6 +279,17 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
 
 def target_gross_area_m2(rooms: list[ProgramRoom]) -> float:
     return sum(r.template.target_area_m2 for r in rooms) / ASSUMED_EFFICIENCY
+
+
+def program_capacity_gross_m2(rooms: list[ProgramRoom]) -> float:
+    """The largest house THIS programme can responsibly fill.
+
+    `scale_program` never grows a room past its template `max_area_m2`, and Geometry Core tiles the
+    footprint EXACTLY — so a footprint bigger than the sum of those maxima cannot be absorbed: the
+    surplus has nowhere to go and the layout is rejected. This is a limit of the current room
+    programme and its template table, NOT a statement that such a house is impossible to build.
+    """
+    return sum(r.template.max_area_m2 for r in rooms) / ASSUMED_EFFICIENCY
 
 
 # --------------------------------------------------------------------------- 2. footprint
@@ -393,6 +415,102 @@ def _daylight_order(rows: list[list[ProgramRoom]]) -> list[list[ProgramRoom]]:
     return [row for row in rows if len(row) < 2] + [row for row in rows if len(row) >= 2]
 
 
+#: The corridor width used when the brief asks for none. Unchanged default behaviour: the column
+#: partis derive a width from the hall's own area and clamp it here, and the front-band parti uses
+#: the lower figure directly because its hall is short.
+_DERIVED_HALL_CAP_M = 2.4
+_FRONT_BAND_HALL_M = 1.4
+
+
+def _corridor_wall_allowance_m(has_safe_room: bool) -> float:
+    """Gross-to-net allowance for the corridor, budgeted for the WORST wall it can touch.
+
+    A corridor between two partitions loses half of each (0.05 + 0.05). Where the programme has a
+    safe room its RC envelope may abut the hall, and that side loses 0.15 instead. The planner fixes
+    the corridor width BEFORE wall types are derived, so it cannot know which case applies and must
+    budget for the worse one — under-budgeting realized a requested 1.60 m as 1.50 m of usable
+    corridor, which C14 then (correctly) rejected. Over-budgeting only ever makes the corridor
+    slightly wider than asked, which is why EXACT tolerates a small overshoot upward and none down.
+    """
+    half_partition = WALL_THICKNESS_M[WallType.PARTITION] / 2
+    other = WALL_THICKNESS_M[WallType.RC_SAFE_ROOM] / 2 if has_safe_room else half_partition
+    return half_partition + other
+
+
+def _hall_width_m(corridor: CorridorRequirement | None, derived_m: float, *, cap_m: float,
+                  has_safe_room: bool = False) -> float:
+    """The corridor width to plan to, on the 5 cm grid.
+
+    Without a requirement this is exactly what the code did before: the derived width, clamped by
+    `cap_m`. With one, the REQUIREMENT wins and the cap does not apply — the cap exists to stop an
+    area-derived hall from ballooning, not to overrule the person. The two constants it replaces
+    (a 2.4 m ceiling and a fixed 1.4 m) are why a request for 1.8 m could never have been honoured
+    even if it had been extracted.
+
+    MINIMUM and PREFERENCE are floors, so a hall the layout wants wider stays wider. EXACT is
+    planned to the stated width.
+    """
+    if corridor is None:
+        return round(min(derived_m, cap_m) / UNIT_M) * UNIT_M
+
+    # The person means the width they can WALK, so the requirement is a NET dimension. The planner
+    # works in gross rectangles, so the wall insets have to be added back or a request for 1.6 m
+    # would be realized as 1.4 m of usable corridor and C14 would (correctly) reject it.
+    #
+    # The allowance is ONE PARTITION THICKNESS: a corridor is flanked by two partitions and loses
+    # half of each. `_EDGE_INSET_ALLOWANCE_M` is the wrong figure here — it budgets for an exterior
+    # half — and over-granting by 10 cm made an EXACT 2.00 m request realize at 2.10 m and get
+    # rejected for being too wide. Where a thicker wall (an RC safe-room envelope) actually abuts
+    # the hall the net comes out narrower than this predicts, which is exactly what C14 measures
+    # and reports rather than something the planner pretends to know in advance.
+    gross = corridor.width_m + _corridor_wall_allowance_m(has_safe_room)
+    if corridor.mode is CorridorWidthMode.EXACT:
+        return round(gross / UNIT_M) * UNIT_M
+    return round(max(derived_m, gross) / UNIT_M) * UNIT_M
+
+
+def _proportions(min_width_m: float, max_width_m: float, max_depth_m: float,
+                 gross_m2: float, target_m2: float | None) -> list[tuple[float, float]]:
+    """The footprint proportions to try, IN THE ORDER THEY SHOULD BE TRIED.
+
+    This ordering is the whole fix for the built-area defect. The search used to walk the width up
+    from the programme's own minimum and take the first proportion that planned, with depth derived
+    from the programme's target gross — so it always produced the SMALLEST feasible house and the
+    user's requested area acted only as a ceiling. A 2-bedroom brief came out at 104.5 m² whether
+    150, 180 or 200 m² was asked for.
+
+    With a target, the same candidate proportions are simply visited nearest-target-area first, so
+    the first feasible one is the closest to what the person asked for rather than the smallest that
+    fits. The objective is to TRACK the target, not to maximise: a proportion 5 m² over the target
+    is preferred to one 40 m² under it, and vice versa. Ties break toward the smaller house, then on
+    dimensions, so the search stays deterministic.
+
+    Without a target the original order is reproduced exactly, which is what keeps the site-driven
+    baselines (L-shape, curved facade, obstacle, disconnected) numerically unchanged.
+    """
+    widths: list[float] = []
+    w = min_width_m
+    while w <= max_width_m + 1e-9 and len(widths) < 14:
+        widths.append(round(w / 0.05) * 0.05)
+        w += 0.5
+
+    pairs: list[tuple[float, float]] = []
+    for width in widths:
+        base_depth = min(max_depth_m, gross_m2 / max(width, 1e-6))
+        depth = base_depth
+        step = max(0.25, (max_depth_m - base_depth) / 6) if max_depth_m > base_depth else 0.0
+        for _ in range(7):
+            pairs.append((width, depth))
+            if step <= 0 or depth >= max_depth_m - 1e-9:
+                break
+            depth = min(max_depth_m, depth + step)
+
+    if target_m2 is None:
+        return pairs
+    return sorted(pairs, key=lambda wd: (round(abs(wd[0] * wd[1] - target_m2), 4),
+                                         round(wd[0] * wd[1], 4), wd[0], wd[1]))
+
+
 @dataclass(frozen=True)
 class ColumnPlan:
     width_m: float
@@ -470,6 +588,7 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
 
 def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[ProgramRoom],
                 hall_ids: list[str], footprint_w_m: float, footprint_h_m: float,
+                corridor: CorridorRequirement | None = None,
                 ) -> tuple[LayoutPlan | None, str]:
     """Column widths, row depths and the resulting zone specs, all mutually consistent."""
     net_depth = max(footprint_h_m - _EDGE_INSET_ALLOWANCE_M, 1e-6)
@@ -478,9 +597,12 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
     areas = {z: spec.net_area_target_m2 for z, spec in base.items()}
 
     hall_area = sum(areas[h] for h in hall_ids)
-    hall_w = max(base[hall_ids[0]].min_short_side_m + _EDGE_INSET_ALLOWANCE_M,
-                 hall_area / net_depth + _EDGE_INSET_ALLOWANCE_M)
-    hall_w = round(min(hall_w, 2.4) / 0.05) * 0.05
+    hall_w = _hall_width_m(
+        corridor,
+        max(base[hall_ids[0]].min_short_side_m + _EDGE_INSET_ALLOWANCE_M,
+            hall_area / net_depth + _EDGE_INSET_ALLOWANCE_M),
+        cap_m=_DERIVED_HALL_CAP_M,
+        has_safe_room=any(r.role is ProgramRole.SAFE_ROOM for r in rooms))
 
     usable = footprint_w_m - hall_w
     west_min = _column_min_width(west)
@@ -637,15 +759,26 @@ def _build_access(rooms: list[ProgramRoom], hall_ids: list[str],
 # in how the programme is allocated between the two columns. The hall runs the full depth
 # against both, so every room borders circulation directly and none is reached through another.
 
+#: How many feasible footprint proportions a single strategy may offer when a target area is set.
+#: One is not enough: `plan_layout` is a PRE-CHECK, and a proportion it accepts can still be
+#: rejected by Geometry Core. Committing each strategy to exactly one proportion meant that when the
+#: nearest-target proportion failed in the solver, the whole strategy was lost — a 3BR + 3 wet brief
+#: that used to plan stopped planning entirely. Offering the nearest few lets the pipeline fall to
+#: the next-closest instead of off a cliff. Bounded so the solver attempt count stays small.
+_MAX_PROPORTIONS_PER_STRATEGY = 3
+
+
 def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
            strategy: ConceptStrategy, west: list[ProgramRoom], east: list[ProgramRoom],
-           rationale: str) -> tuple[ConceptCandidate | None, ConceptRejection | None]:
+           rationale: str) -> tuple[list[ConceptCandidate], ConceptRejection | None]:
     if not west or not east:
-        return None, ConceptRejection(strategy, RejectionReason.INSUFFICIENT_WING_AREA,
-                                      "allocation left a column empty")
+        return [], ConceptRejection(strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+                                    "allocation left a column empty")
     hall_ids = ["HALL"]
     gross = target_gross_area_m2(rooms)
     min_width = minimum_footprint_width_m(rooms)
+    target_m2 = spec.program.target_built_area_m2
+    corridor = spec.program.corridor
 
     # Bounded, deterministic search over footprint PROPORTIONS. A single aspect constant cannot
     # work: widen the footprint and the columns get wide enough but the rows get shallow; deepen
@@ -657,36 +790,40 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
     max_width = u_to_m(candidate.w)
     max_depth = u_to_m(candidate.h)
 
-    widths: list[float] = []
-    w = min_width
-    while w <= max_width + 1e-9 and len(widths) < 14:
-        widths.append(round(w / 0.05) * 0.05)
-        w += 0.5
-
-    for width in widths:
-        # Depth is searched too, not just derived: the minimum-dimension floors make rooms
-        # LARGER than their template targets, so the programme genuinely needs more gross area
-        # than the template estimate. Re-proportioning a fixed area can never satisfy that;
-        # letting the footprint grow into the proven-safe candidate can.
-        base_depth = min(max_depth, gross / max(width, 1e-6))
-        depth = base_depth
-        step = max(0.25, (max_depth - base_depth) / 6) if max_depth > base_depth else 0.0
-        for _ in range(7):
-            trial = footprint_of(candidate, width, depth)
-            tw, th = u_to_m(trial.w), u_to_m(trial.h)
-            attempt, reason = plan_layout(rooms, west, east, hall_ids, tw, th)
-            if attempt is not None:
-                footprint, plan = trial, attempt
+    # Depth is searched as well as derived: the minimum-dimension floors make rooms LARGER than
+    # their template targets, so the programme genuinely needs more gross area than the template
+    # estimate. Re-proportioning a fixed area can never satisfy that; letting the footprint grow
+    # into the proven-safe candidate can. `_proportions` decides the ORDER — nearest the user's
+    # target first when there is one (see its docstring).
+    wanted = _MAX_PROPORTIONS_PER_STRATEGY if target_m2 is not None else 1
+    found: list[tuple[Rect, LayoutPlan]] = []
+    for width, depth in _proportions(min_width, max_width, max_depth, gross, target_m2):
+        trial = footprint_of(candidate, width, depth)
+        tw, th = u_to_m(trial.w), u_to_m(trial.h)
+        attempt, reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor)
+        if attempt is not None:
+            if any(f.w == trial.w and f.h == trial.h for f, _ in found):
+                continue  # `footprint_of` clamps, so distinct proportions can land on one rectangle
+            found.append((trial, attempt))
+            if len(found) >= wanted:
                 break
+        else:
             why = reason
-            if step <= 0 or depth >= max_depth - 1e-9:
-                break
-            depth = min(max_depth, depth + step)
-        if plan is not None:
-            break
 
-    if plan is None or footprint is None:
-        return None, ConceptRejection(strategy, RejectionReason.ROOM_BELOW_MINIMUM_DIMENSION, why)
+    if not found:
+        return [], ConceptRejection(strategy, RejectionReason.ROOM_BELOW_MINIMUM_DIMENSION, why)
+
+    built = [_concept_from(spec, rooms, candidate, strategy, rationale, footprint, plan)
+             for footprint, plan in found]
+    return built, None
+
+
+def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
+                  strategy: ConceptStrategy, rationale: str,
+                  footprint: Rect, plan: LayoutPlan) -> ConceptCandidate:
+    """One realized proportion -> one `ConceptCandidate`. Split out of `_build` unchanged so that
+    function can offer several proportions without duplicating any of this."""
+    hall_ids = ["HALL"]
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
 
     specs = plan.specs
@@ -714,7 +851,7 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                    f"({len(plan.east.rows)} rows) over {fh:.2f} m"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
-    ), None
+    )
 
 
 def _allocations(rooms: list[ProgramRoom]) -> list[tuple[ConceptStrategy, list[ProgramRoom],
@@ -818,30 +955,23 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
     west_rows: list[list[ProgramRoom]] = []
     east_rows: list[list[ProgramRoom]] = []
     why = "no footprint proportion satisfied the front-band parti"
-    width = min_width
-    while width <= max_width + 1e-9 and plan is None:
-        depth = min(max_depth, gross / max(width, 1e-6))
-        step = max(0.25, (max_depth - depth) / 6) if max_depth > depth else 0.0
-        for _ in range(7):
-            trial = footprint_of(candidate, width, depth)
-            for split_at in split_options:
-                west_try = [_orient_row(r, corridor_on_east=True)
-                            for r in _daylight_order(rows[:split_at])]
-                east_try = [_orient_row(r, corridor_on_east=False)
-                            for r in _daylight_order(rows[split_at:])]
-                attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
-                                                   u_to_m(trial.w), u_to_m(trial.h))
-                if attempt is not None:
-                    footprint, plan = trial, attempt
-                    west_rows, east_rows = west_try, east_try
-                    break
-                why = reason
-            if plan is not None:
+    for width, depth in _proportions(min_width, max_width, max_depth, gross,
+                                     spec.program.target_built_area_m2):
+        trial = footprint_of(candidate, width, depth)
+        for split_at in split_options:
+            west_try = [_orient_row(r, corridor_on_east=True)
+                        for r in _daylight_order(rows[:split_at])]
+            east_try = [_orient_row(r, corridor_on_east=False)
+                        for r in _daylight_order(rows[split_at:])]
+            attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
+                                               u_to_m(trial.w), u_to_m(trial.h))
+            if attempt is not None:
+                footprint, plan = trial, attempt
+                west_rows, east_rows = west_try, east_try
                 break
-            if step <= 0 or depth >= max_depth - 1e-9:
-                break
-            depth = min(max_depth, depth + step)
-        width += 0.5
+            why = reason
+        if plan is not None:
+            break
 
     if plan is None or footprint is None:
         return None, ConceptRejection(strategy, RejectionReason.ROOM_BELOW_MINIMUM_DIMENSION, why)
@@ -876,7 +1006,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
     ), None
 
 
-def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh):
+def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None):
     """Band depth, public widths, rear column widths and row depths — all mutually consistent.
 
     Order matters, and it is the opposite of the obvious one. Sizing the rooms from the whole
@@ -889,8 +1019,12 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh):
     modest = scale_program(rooms, sum(r.template.target_area_m2 for r in rooms))
     areas = {z: spec.net_area_target_m2 for z, spec in modest.items()}
 
-    hall_w = round(max(ROOM_TEMPLATES[ProgramRole.HALL].min_short_side_m
-                       + _EDGE_INSET_ALLOWANCE_M, 1.4) / 0.05) * 0.05
+    hall_w = _hall_width_m(
+        corridor,
+        max(ROOM_TEMPLATES[ProgramRole.HALL].min_short_side_m + _EDGE_INSET_ALLOWANCE_M,
+            _FRONT_BAND_HALL_M),
+        cap_m=_FRONT_BAND_HALL_M,
+        has_safe_room=any(r.role is ProgramRole.SAFE_ROOM for r in rooms))
     west = [r for row in west_rows for r in row]
     east = [r for row in east_rows for r in row]
     usable = fw - hall_w
@@ -919,25 +1053,6 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh):
                    for row in rws)
         rear_need = max(rear_need, need)
 
-    band_min = max(r.template.min_short_side_m for r in public) + _EDGE_INSET_ALLOWANCE_M
-    # Round the rear UP: rounding to nearest could land a couple of centimetres BELOW the
-    # requirement this value was just derived from, and the row planner would then reject it.
-    rear_depth = math.ceil(min(rear_need, fh - band_min) / 0.05 - 1e-9) * 0.05
-    band_depth = round((fh - rear_depth) / 0.05) * 0.05
-    rear_depth = fh - band_depth
-    if rear_depth < 1.0 or band_depth < band_min - 1e-9:
-        return None, (f"rear needs {rear_need:.2f} m and the front band at least {band_min:.2f} m, "
-                      f"which does not fit {fh:.2f} m of depth")
-
-    depths = []
-    for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
-        net_w = width - _EDGE_INSET_ALLOWANCE_M
-        d = _row_depths(rws, areas, net_w, rear_depth)
-        if d is None:
-            return None, (f"rear {name} column needs more than {rear_depth:.2f} m of depth for "
-                          f"its {len(rws)} rows at their minimum dimensions")
-        depths.append(d)
-
     # The first public zone must span the hall's x-range, or the hall has no public neighbour.
     needed_first = west_w + hall_w
     remaining = fw - needed_first
@@ -951,6 +1066,41 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh):
         if w - _EDGE_INSET_ALLOWANCE_M + 1e-6 < room.template.min_short_side_m:
             return None, (f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
                           f"{room.template.min_short_side_m} m minimum")
+
+    band_min = max(r.template.min_short_side_m for r in public) + _EDGE_INSET_ALLOWANCE_M
+    # Round the rear UP: rounding to nearest could land a couple of centimetres BELOW the
+    # requirement this value was just derived from, and the row planner would then reject it.
+    rear_depth = math.ceil(min(rear_need, fh - band_min) / 0.05 - 1e-9) * 0.05
+    band_depth = round((fh - rear_depth) / 0.05) * 0.05
+    rear_depth = fh - band_depth
+    if rear_depth < 1.0 or band_depth < band_min - 1e-9:
+        return None, (f"rear needs {rear_need:.2f} m and the front band at least {band_min:.2f} m, "
+                      f"which does not fit {fh:.2f} m of depth")
+
+    # The band takes whatever depth the rear does not need, and that is where surplus area used to
+    # be dumped: at 220 m2 a 2-bedroom house came out with an 81.5 m2 living room against its own
+    # 46 m2 maximum. Elasticity is meant to be BOUNDED by the template maxima, so a band deeper than
+    # the public rooms can absorb is not a plan to accept — reject the proportion and let the
+    # footprint search fall to a smaller one, which is exactly the behaviour the multi-proportion
+    # search was added for.
+    # The band's width per room is already fixed above, so the depth is what decides each public
+    # room's area. The BINDING room is the one that reaches its own maximum first — the living room
+    # in practice, whose width is forced to span the hall.
+    binding = min(((r.template.max_area_m2 / max(w - _EDGE_INSET_ALLOWANCE_M, 1e-6), r)
+                   for r, w in zip(public, widths + [last_w])), key=lambda t: t[0])
+    band_cap_depth = binding[0] + _EDGE_INSET_ALLOWANCE_M / 2
+    if band_depth > band_cap_depth + 1e-9:
+        return None, (f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
+                      f"{binding[1].template.max_area_m2:.0f} m2 maximum")
+
+    depths = []
+    for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
+        net_w = width - _EDGE_INSET_ALLOWANCE_M
+        d = _row_depths(rws, areas, net_w, rear_depth)
+        if d is None:
+            return None, (f"rear {name} column needs more than {rear_depth:.2f} m of depth for "
+                          f"its {len(rws)} rows at their minimum dimensions")
+        depths.append(d)
 
     specs: dict[str, ZoneSpec] = {}
     net_band = band_depth - _EDGE_INSET_ALLOWANCE_M
@@ -1038,6 +1188,20 @@ def generate_concepts(spec: ArchitecturalSpec,
             f"largest safe wing is {candidates[0].area_m2:.1f} m2; the programme needs about "
             f"{needed:.1f} m2"),), tuple(rooms))
 
+    # The requested target may simply be more area than THIS room programme can absorb: room growth
+    # stops at each template's max_area_m2 and Geometry Core tiles the footprint exactly, so the
+    # surplus would have nowhere to go. That is a limit of the current programme, not a claim that
+    # the house cannot be built — say so precisely and leave the user's target untouched.
+    target_m2 = spec.program.target_built_area_m2
+    capacity = program_capacity_gross_m2(rooms)
+    if target_m2 is not None and target_m2 > capacity + 1e-6:
+        return GenerationResult((), (ConceptRejection(
+            ConceptStrategy.SPINE_PUBLIC_PRIVATE,
+            RejectionReason.TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY,
+            f"a target of {target_m2:.1f} m2 exceeds what this room programme can responsibly "
+            f"fill ({capacity:.1f} m2): {len(rooms)} rooms, each capped at its own maximum area"),),
+            tuple(rooms))
+
     primary = usable[0]
     band, rejection = _front_band_concept(spec, rooms, primary.rect)
     if band is not None:
@@ -1046,14 +1210,21 @@ def generate_concepts(spec: ArchitecturalSpec,
         rejections.append(rejection)
 
     for strategy, west, east, rationale in _allocations(rooms):
-        candidate, rejection = _build(spec, rooms, primary.rect, strategy, west, east, rationale)
-        if candidate is not None:
-            accepted.append(candidate)
-        elif rejection is not None:
+        built, rejection = _build(spec, rooms, primary.rect, strategy, west, east, rationale)
+        accepted.extend(built)
+        if not built and rejection is not None:
             rejections.append(rejection)
 
     multi = _multi_wing_assessment(candidates)
     if multi is not None:
         rejections.append(multi)
+
+    # "Best first" now means CLOSEST TO THE REQUESTED AREA first, not simply the order the
+    # strategies happen to be generated in — the pipeline takes the first concept Geometry Core can
+    # realize, so this ordering is what actually decides the delivered house size. Without a target
+    # the original strategy order is kept, so the site-driven baselines do not move.
+    if target_m2 is not None:
+        accepted.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
+                                     round(c.used_area_m2, 4), c.strategy.value))
 
     return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms))

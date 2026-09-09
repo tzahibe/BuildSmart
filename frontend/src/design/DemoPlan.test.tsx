@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, within } from '@testing-library/react'
 import DemoPlan from './DemoPlan'
 import DemoWorkspace from './DemoWorkspace'
-import type { DemoDesign } from './demoDesign'
+import ReviewPage from './ReviewPage'
+import type { DemoDesign, RequirementsReview } from './demoDesign'
 
 /** The renderer boundary: DemoPlan draws exactly what the backend supplied, and nothing else. */
 function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
@@ -164,5 +165,125 @@ describe('PlanLegend', () => {
     expect(strokes).toContain('#b03a2e') // WALL_STYLE.RC_SAFE_ROOM
     expect(strokes).toContain('#1a1a1a') // EXTERIOR_WALL_STYLE
     expect(strokes).toContain('#8b939c') // WALL_STYLE.STANDARD_PARTITION
+  })
+})
+
+describe('ReviewPage — requests we cannot plan', () => {
+  const review: RequirementsReview = {
+    bedrooms: { value: 3, source: 'requested' },
+    safe_room: { value: true, source: 'requested' },
+    wet_rooms: { value: 2, source: 'requested' },
+    open_plan: { value: true, source: 'requested' },
+    parking_spaces: { value: 2, source: 'requested' },
+    floors: { value: 1, source: 'inferred' },
+    built_area_m2: 195,
+    footprint_width_m: 13,
+    footprint_depth_m: 15,
+    description: 'בית עם 2 חדרי רחצה שלא צמודים ומסדרון ברוחב 5 מטר',
+    unsupported_requests: [
+      { text: '2 חדרי רחצה שלא יהיו צמודים זה לזה', topic: 'room_adjacency', severity: 'ambiguous' },
+      { text: 'מסדרון ברוחב 5 מטר', topic: 'corridor_width', severity: 'hard_requirement' },
+    ],
+  }
+
+  it('quotes them back in the person’s own words before generation', () => {
+    const { getByLabelText, getByText } = render(
+      <ReviewPage review={review} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    getByText('צריך להכריע בבקשות האלה לפני שנתכנן')
+    // scoped to the section: the same words also appear in the quoted brief above it, which is
+    // exactly the overlap that made the old silence so easy to miss
+    const panel = within(getByLabelText('בקשות שלא ייכללו בתכנון'))
+    panel.getByText(/2 חדרי רחצה שלא יהיו צמודים זה לזה/)
+    panel.getByText(/מסדרון ברוחב 5 מטר/)
+    panel.getByText('יחסים בין חדרים')
+    panel.getByText('רוחב מסדרון')
+  })
+
+  it('says nothing when the brief asked for nothing extra', () => {
+    const { queryByText } = render(
+      <ReviewPage review={{ ...review, unsupported_requests: [] }}
+                  onConfirm={() => {}} onBack={() => {}} />,
+    )
+    expect(queryByText('מה שלא ייכלל בתכנון בשלב זה')).toBeNull()
+  })
+
+  it('grades each one by how it was worded', () => {
+    const { getByLabelText } = render(
+      <ReviewPage review={review} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    const panel = within(getByLabelText('בקשות שלא ייכללו בתכנון'))
+    panel.getByText('דרישה מחייבת')
+    panel.getByText('לא ברור')
+  })
+
+  it('a preference alone still lets the plan be generated', () => {
+    const confirmed: unknown[] = []
+    const preferenceOnly: RequirementsReview = {
+      ...review,
+      unsupported_requests: [
+        { text: 'אני מעדיף מסדרון רחב', topic: 'corridor_width', severity: 'preference' },
+      ],
+    }
+    const { getByRole, getByText } = render(
+      <ReviewPage review={preferenceOnly} onConfirm={(edit) => confirmed.push(edit)} onBack={() => {}} />,
+    )
+    getByText('מה שלא ייכלל בתכנון בשלב זה')
+    const generate = getByRole('button', { name: 'יצירת תוכנית' })
+    expect(generate).toBeEnabled()
+    generate.click()
+    expect(confirmed).toHaveLength(1)
+  })
+
+  it('a binding or unclear request holds generation until it is settled', () => {
+    const { getByRole, getByText } = render(
+      <ReviewPage review={review} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    getByText('צריך להכריע בבקשות האלה לפני שנתכנן')
+    expect(getByRole('button', { name: 'יצירת תוכנית' })).toBeDisabled()
+    // and the way out is still open
+    expect(getByRole('button', { name: 'חזרה לתיאור' })).toBeEnabled()
+  })
+})
+
+describe('ReviewPage — the understood corridor requirement', () => {
+  const base: RequirementsReview = {
+    bedrooms: { value: 3, source: 'requested' },
+    safe_room: { value: true, source: 'requested' },
+    wet_rooms: { value: 2, source: 'requested' },
+    open_plan: { value: true, source: 'requested' },
+    parking_spaces: { value: 2, source: 'requested' },
+    floors: { value: 1, source: 'inferred' },
+    built_area_m2: 200,
+    footprint_width_m: 14.14,
+    footprint_depth_m: 14.14,
+    description: 'המסדרון חייב להיות לפחות 1.8 מטר',
+  }
+
+  it('shows a minimum as a minimum, before Generate', () => {
+    const { getByText } = render(
+      <ReviewPage
+        review={{ ...base, corridor_width: { value_m: 1.8, mode: 'minimum', source: 'requested' } }}
+        onConfirm={() => {}} onBack={() => {}} />,
+    )
+    getByText(/רוחב מסדרון מינימלי/)
+    getByText('1.80 מ׳')
+  })
+
+  it('does not call an exact width a minimum', () => {
+    const { getByText, queryByText } = render(
+      <ReviewPage
+        review={{ ...base, corridor_width: { value_m: 2, mode: 'exact', source: 'requested' } }}
+        onConfirm={() => {}} onBack={() => {}} />,
+    )
+    getByText('2.00 מ׳')
+    expect(queryByText(/מינימלי/)).toBeNull()
+  })
+
+  it('says nothing when no width was asked for', () => {
+    const { queryByText } = render(
+      <ReviewPage review={base} onConfirm={() => {}} onBack={() => {}} />,
+    )
+    expect(queryByText(/רוחב מסדרון/)).toBeNull()
   })
 })

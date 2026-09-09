@@ -23,6 +23,7 @@ from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import (
     ConnectionKind,
     Fixture,
+    ProgramRole,
     OutdoorClassification,
     Rect,
     Side,
@@ -30,6 +31,7 @@ from .geometry_core.model import (
     u_to_m,
 )
 from .site import SitePlan
+from .spec import CorridorRequirement
 from .windows import DAYLIGHT_ROLES, Window
 
 TOL_M2 = 0.01
@@ -125,9 +127,29 @@ def _side_between(a: Rect, b: Rect) -> Side | None:
     return None
 
 
+def realized_corridor_width_m(fixture: Fixture, rects: dict[str, Rect],
+                              walls: WallMap) -> float | None:
+    """The NET width of the realized circulation zone, in metres — measured, never assumed.
+
+    A corridor is the narrow dimension of its own rectangle after wall insets, so this reports the
+    short side. With several circulation zones (a hall split across a parti) the NARROWEST is what
+    a person actually has to walk through, so that is what is reported.
+    """
+    widths = []
+    for zone in fixture.zones:
+        if ProgramRole.CIRCULATION not in zone.roles and ProgramRole.HALL not in zone.roles:
+            continue
+        if zone.zone_id not in rects:
+            continue
+        nw, nh, _ = net_rect_m(zone.zone_id, rects[zone.zone_id], walls)
+        widths.append(min(nw, nh))
+    return min(widths) if widths else None
+
+
 def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
              interior_doors: list[Door], entrance_door: Door, windows: list[Window],
-             furniture: list[FurnitureCheck], site: SitePlan) -> ValidationReport:
+             furniture: list[FurnitureCheck], site: SitePlan,
+             corridor: CorridorRequirement | None = None) -> ValidationReport:
     rep = ValidationReport()
 
     # C1 — no overlap
@@ -289,6 +311,23 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
             unrealized.append(
                 f"{edge.a}-{edge.b} ({edge.kind.value}): shares {u_to_m(shared):.2f} m of wall "
                 f"but no placeable opening was generated")
+    # C14 — the realized corridor actually meets the requested width.
+    #
+    # It is not enough that ProgramSpec carried corridor_width=1.8: the planner clamps to the 5 cm
+    # grid, wall insets eat into the gross rectangle, and a later stage could narrow the hall. This
+    # measures the NET width of the realized corridor rectangle and compares it to what was asked
+    # for. Skipped entirely when the brief asked for no width, so the default path is unaffected.
+    if corridor is not None:
+        realized = realized_corridor_width_m(fixture, rects, walls)
+        if realized is None:
+            rep.add("C14", "corridor meets the requested width", False,
+                    "no circulation zone was realized")
+        else:
+            rep.add("C14", "corridor meets the requested width",
+                    corridor.satisfied_by(realized),
+                    f"requested {corridor.mode.value} {corridor.width_m:.2f} m, "
+                    f"realized {realized:.2f} m")
+
     rep.add("C13", "declared access topology is physically realized", not unrealized,
             "; ".join(unrealized) or
             f"all {len(fixture.access.edges)} declared edges have a physical connection")

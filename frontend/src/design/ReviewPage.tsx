@@ -29,7 +29,40 @@ function Provenance({ source }: { source: string }) {
   return <span className={`review-source review-source--${source}`}>{SOURCE_LABEL[source] ?? source}</span>
 }
 
+/** Grouping slugs the parser emits -> what to call them on screen. An unknown slug falls back to a
+ * neutral label rather than showing the raw slug. */
+const TOPIC_LABEL: Record<string, string> = {
+  room_adjacency: 'יחסים בין חדרים',
+  corridor_width: 'רוחב מסדרון',
+  orientation: 'כיווני אוויר',
+  ceiling_height: 'גובה תקרה',
+  storage: 'אחסון',
+  style: 'סגנון',
+  budget: 'תקציב',
+  outdoor: 'שטחי חוץ',
+  accessibility: 'נגישות',
+  other: 'לא נתמך',
+}
+
+/** How the person worded it, in their language. Only a preference can be set aside. */
+const SEVERITY_LABEL: Record<string, string> = {
+  preference: 'העדפה',
+  hard_requirement: 'דרישה מחייבת',
+  ambiguous: 'לא ברור',
+}
+
+const CORRIDOR_MODE_LABEL: Record<string, string> = {
+  minimum: 'רוחב מסדרון מינימלי',
+  exact: 'רוחב מסדרון',
+  preference: 'רוחב מסדרון מועדף',
+}
+
 function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps) {
+  const corridor = review.corridor_width ?? null
+  const unsupported = review.unsupported_requests ?? []
+  // Anything not worded as a preference stops generation on the backend (scope.py). Saying so here,
+  // before the button is pressed, beats letting the person press it and read a refusal.
+  const blocking = unsupported.filter((r) => r.severity !== 'preference')
   const [bedrooms, setBedrooms] = useState(Number(review.bedrooms.value ?? 3))
   const [wetRooms, setWetRooms] = useState(Number(review.wet_rooms.value ?? 1))
   const [parking, setParking] = useState(Number(review.parking_spaces.value ?? 0))
@@ -42,6 +75,47 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
       <p className="review-subtitle">אפשר לתקן כל דבר לפני שמייצרים את התוכנית.</p>
 
       <blockquote className="review-brief">{review.description}</blockquote>
+
+      {/* WHAT WE CANNOT PLAN. The brief is quoted in full just above, which made silence here read
+          as agreement: a request for non-adjacent bathrooms or a 5 m corridor was dropped without a
+          word and the plan came back looking complete. Anything the planner cannot act on is now
+          said out loud, in the person's own words, before they press generate. */}
+      {unsupported.length > 0 ? (
+        <section
+          className={blocking.length > 0 ? 'review-unsupported review-unsupported--blocking' : 'review-unsupported'}
+          aria-label="בקשות שלא ייכללו בתכנון"
+        >
+          <h2 className="review-unsupported-title">
+            {blocking.length > 0 ? 'צריך להכריע בבקשות האלה לפני שנתכנן' : 'מה שלא ייכלל בתכנון בשלב זה'}
+          </h2>
+          <p className="review-unsupported-lead">
+            {blocking.length > 0
+              ? 'המתכנן עדיין לא יודע לכבד אותן, ולכן לא נייצר תוכנית שמתעלמת מהן. אפשר לנסח מחדש בתיאור — "עדיף ש..." להעדפה או "חייב להיות..." לדרישה — או להסיר אותן.'
+              : 'זיהינו את הבקשות האלה בתיאור שלך, אבל המתכנן עדיין לא יודע לכבד אותן. הן לא ישתנו ולא יימחקו — הן פשוט לא ישפיעו על התוכנית.'}
+          </p>
+          <ul className="review-unsupported-list">
+            {unsupported.map((request) => (
+              <li key={`${request.topic}:${request.text}`}>
+                <span className={`review-severity review-severity--${request.severity}`}>
+                  {SEVERITY_LABEL[request.severity] ?? SEVERITY_LABEL.ambiguous}
+                </span>
+                <span className="review-unsupported-text">&ldquo;{request.text}&rdquo;</span>
+                <span className="review-unsupported-topic">{TOPIC_LABEL[request.topic] ?? 'לא נתמך'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* The understood corridor requirement, shown BEFORE generate — the mode is spelled out
+          because "at least 1.8 m" and "exactly 1.8 m" are different requests and the person is the
+          only one who can tell us we read it wrong. */}
+      {corridor ? (
+        <p className="review-corridor">
+          {CORRIDOR_MODE_LABEL[corridor.mode] ?? 'רוחב מסדרון'}:{' '}
+          <strong>{corridor.value_m.toFixed(2)} מ׳</strong>
+        </p>
+      ) : null}
 
       <div className="review-grid">
         <label className="review-row">
@@ -103,7 +177,8 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         <button
           type="button"
           className="review-generate"
-          disabled={busy}
+          disabled={busy || blocking.length > 0}
+          title={blocking.length > 0 ? 'יש בקשות שצריך להכריע בהן קודם' : undefined}
           onClick={() =>
             onConfirm({
               bedrooms,

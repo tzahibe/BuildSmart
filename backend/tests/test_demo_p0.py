@@ -22,7 +22,14 @@ from app.projects.models import PoolField, SourceTag, TaggedBool, TaggedFloat, T
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.routes import base_routes as project_base_routes
 from app.requirements import router as requirements_router
-from app.requirements.parser import RequirementExtraction, RequirementParser
+from app.requirements.parser import (
+    CorridorWidth,
+    CorridorWidthMode,
+    RequestSeverity,
+    RequirementExtraction,
+    RequirementParser,
+    UnsupportedRequest,
+)
 
 REQ = SourceTag.requested
 INF = SourceTag.inferred
@@ -370,3 +377,230 @@ def test_turning_off_open_plan_in_review_changes_the_built_plan(client):
     public = {r["id"] for r in closed["rooms"] if r["type"] in ("LIVING", "KITCHEN", "DINING")}
     assert not [i for i in closed["open_interfaces"]
                 if len(i["room_ids"]) > 1 and set(i["room_ids"]) <= public]
+
+
+# --------------------------------------------- requirements we cannot plan, graded by how they were asked
+#
+# Reported from the product: a brief asking for non-adjacent bathrooms and a 5 m corridor produced a
+# plan with adjacent bathrooms and a 1.4 m corridor, silently. Disclosure alone is not enough — the
+# WORDING decides what may happen next. "עדיף מסדרון רחב" can be set aside with a visible warning;
+# "המסדרון חייב להיות לפחות 1.8 מטר" cannot, because planning around it overrules a point the person
+# made binding; and wording that settles neither is not ours to decide.
+
+PREFERENCE = "אני מעדיף מסדרון רחב"
+HARD = "המסדרון חייב להיות לפחות 1.8 מטר"
+AMBIGUOUS = "מסדרון רחב"
+
+
+def _parser_reporting(*requests: UnsupportedRequest) -> RequirementParser:
+    """A parser whose structured half is always the 3BR + safe room + 2 wet + open-plan extraction —
+    these tests are only about what it reports ALONGSIDE that."""
+
+    class _P(RequirementParser):
+        def parse(self, description: str) -> RequirementExtraction:
+            return CANNED[BRIEF_3BR_SAFE_OPEN].model_copy(
+                update={"other_requests": list(requests)})
+
+    return _P()
+
+
+def _client_reporting(tmp_path, monkeypatch, *requests: UnsupportedRequest) -> TestClient:
+    repo = JsonFileProjectRepository(tmp_path / "projects.json")
+    monkeypatch.setattr(project_base_routes, "repository", repo)
+    monkeypatch.setattr(requirements_router, "parser", _parser_reporting(*requests))
+    return TestClient(app)
+
+
+def _run_with(tmp_path, monkeypatch, *requests: UnsupportedRequest):
+    client = _client_reporting(tmp_path, monkeypatch, *requests)
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=13.0, depth=15.0)
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+    design = client.post(f"/projects/{project_id}/design/demo")
+    return review, design
+
+
+def _req(text: str, severity: RequestSeverity, topic: str = "corridor_width") -> UnsupportedRequest:
+    return UnsupportedRequest(text=text, topic=topic, severity=severity)
+
+
+def test_a_preference_we_cannot_honour_warns_but_still_plans(tmp_path, monkeypatch):
+    review, design = _run_with(tmp_path, monkeypatch,
+                               _req(PREFERENCE, RequestSeverity.PREFERENCE))
+
+    assert [r["severity"] for r in review["unsupported_requests"]] == ["preference"]
+    assert design.status_code == 200, design.text
+    assert design.json()["validation"]["passed"] is True
+    assert any(PREFERENCE in w for w in design.json()["validation"]["warnings"])
+    # the checks that passed still describe only what WAS done
+    assert all("לא נכלל" not in st for st in design.json()["validation"]["statements"])
+
+
+def test_a_hard_requirement_we_cannot_honour_stops_generation(tmp_path, monkeypatch):
+    review, design = _run_with(tmp_path, monkeypatch,
+                               _req(HARD, RequestSeverity.HARD_REQUIREMENT))
+
+    assert [r["severity"] for r in review["unsupported_requests"]] == ["hard_requirement"]
+    assert design.status_code == 422, design.text
+    body = design.json()["detail"]
+    assert body["code"] == "UNSUPPORTED_HARD_REQUIREMENT"
+    assert HARD in body["message"]
+    # it must offer a way forward, and must not pretend the house cannot be built
+    assert "העדפה" in body["message"]
+    assert "impossible" not in body["message"].lower()
+
+
+def test_wording_that_settles_neither_asks_before_planning(tmp_path, monkeypatch):
+    review, design = _run_with(tmp_path, monkeypatch,
+                               _req(AMBIGUOUS, RequestSeverity.AMBIGUOUS))
+
+    assert [r["severity"] for r in review["unsupported_requests"]] == ["ambiguous"]
+    assert design.status_code == 422, design.text
+    body = design.json()["detail"]
+    assert body["code"] == "CLARIFICATION_REQUIRED"
+    assert AMBIGUOUS in body["message"]
+
+
+def test_mixed_severities_are_judged_by_the_most_binding_one(tmp_path, monkeypatch):
+    review, design = _run_with(
+        tmp_path, monkeypatch,
+        _req(PREFERENCE, RequestSeverity.PREFERENCE),
+        _req(AMBIGUOUS, RequestSeverity.AMBIGUOUS),
+        _req(HARD, RequestSeverity.HARD_REQUIREMENT),
+        _req("2 חדרי רחצה שלא יהיו צמודים זה לזה", RequestSeverity.AMBIGUOUS, "room_adjacency"),
+    )
+
+    assert len(review["unsupported_requests"]) == 4
+    assert {r["severity"] for r in review["unsupported_requests"]} == {
+        "preference", "ambiguous", "hard_requirement"}
+
+    assert design.status_code == 422
+    body = design.json()["detail"]
+    # the hard requirement is the blocker, and it is named — an unclear one is less useful to hear
+    assert body["code"] == "UNSUPPORTED_HARD_REQUIREMENT"
+    assert HARD in body["message"]
+    assert PREFERENCE not in body["message"]
+
+
+def test_an_unclassified_request_fails_closed(tmp_path, monkeypatch):
+    """A request with no severity must not be quietly treated as a preference and planned around."""
+    review, design = _run_with(tmp_path, monkeypatch,
+                               UnsupportedRequest(text=AMBIGUOUS, topic="corridor_width"))
+    assert review["unsupported_requests"][0]["severity"] == "ambiguous"
+    assert design.status_code == 422
+    assert design.json()["detail"]["code"] == "CLARIFICATION_REQUIRED"
+
+
+def test_a_brief_with_nothing_extra_reports_nothing(client):
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+    assert review["unsupported_requests"] == []
+
+
+# ------------------------------------------------------------------ corridor width, end to end
+#
+# Reported from the product: "מסדרון ברוחב 5 מטר" was silently planned as 1.4 m. Two constants made
+# that unavoidable even had the number been extracted — a 2.4 m ceiling in the column partis and a
+# fixed 1.4 m in the front-band parti. Both are gone; the requirement now decides the width, and
+# C14 checks the REALIZED geometry rather than trusting the spec.
+
+def _corridor_parser(value_m, mode, brief) -> RequirementParser:
+    class _P(RequirementParser):
+        def parse(self, description: str) -> RequirementExtraction:
+            update = {"corridor_width": CorridorWidth(
+                value_m=value_m, mode=mode, source="requested" if value_m else "unknown")}
+            return CANNED[brief].model_copy(update=update)
+    return _P()
+
+
+def _corridor_run(tmp_path, monkeypatch, value_m, mode, *, side_m=15.5,
+                  brief=BRIEF_3BR_SAFE_OPEN):
+    repo = JsonFileProjectRepository(tmp_path / "projects.json")
+    monkeypatch.setattr(project_base_routes, "repository", repo)
+    monkeypatch.setattr(requirements_router, "parser", _corridor_parser(value_m, mode, brief))
+    client = TestClient(app)
+    project_id = _create(client, brief, width=side_m, depth=side_m)
+    client.post(f"/projects/{project_id}/requirements")
+    review = client.get(f"/projects/{project_id}/review").json()
+    return review, client.post(f"/projects/{project_id}/design/demo")
+
+
+def test_no_corridor_width_keeps_the_existing_default(tmp_path, monkeypatch):
+    review, design = _corridor_run(tmp_path, monkeypatch, None, CorridorWidthMode.MINIMUM)
+    assert review["corridor_width"] is None
+    assert design.status_code == 200, design.text
+    body = design.json()
+    # the default path is untouched: no requirement, no C14, and a corridor the planner derived
+    assert body["corridor"]["requested_width_m"] is None
+    assert "C14" not in body["validation"]["checks"]
+    assert body["corridor"]["realized_width_m"] > 0
+
+
+@pytest.mark.parametrize("requested", [1.6, 1.8])
+def test_a_minimum_corridor_width_is_met_or_exceeded(tmp_path, monkeypatch, requested):
+    review, design = _corridor_run(tmp_path, monkeypatch, requested, CorridorWidthMode.MINIMUM)
+
+    assert review["corridor_width"]["value_m"] == requested
+    assert review["corridor_width"]["mode"] == "minimum"
+
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["validation"]["checks"]["C14"] is True
+    # MINIMUM is one-sided: wider is a pass, narrower is not
+    assert body["corridor"]["realized_width_m"] >= requested
+    assert body["corridor"]["satisfied"] is True
+
+
+def test_a_minimum_is_never_reinterpreted_as_an_exact_width(tmp_path, monkeypatch):
+    """"לפחות 1.6" must not become "exactly 1.6" — the mode survives the whole path."""
+    review, design = _corridor_run(tmp_path, monkeypatch, 1.6, CorridorWidthMode.MINIMUM)
+    assert review["corridor_width"]["mode"] == "minimum"
+    assert design.json()["corridor"]["requested_mode"] == "minimum"
+
+
+def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
+    # A 2 m corridor needs room to exist: the 3-bedroom + safe-room programme cannot spare the
+    # width at these sizes (see `test_a_width_the_geometry_cannot_hold_fails_explicitly`), so this
+    # uses the two-bedroom brief, where it fits.
+    _, design = _corridor_run(tmp_path, monkeypatch, 2.0, CorridorWidthMode.EXACT,
+                              side_m=14.14, brief=BRIEF_2BR_COMPACT)
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["corridor"]["requested_mode"] == "exact"
+    assert abs(body["corridor"]["realized_width_m"] - 2.0) <= 0.05
+    assert body["validation"]["checks"]["C14"] is True
+
+
+def test_a_width_the_geometry_cannot_hold_fails_explicitly(tmp_path, monkeypatch):
+    """Not shrunk, not violated, and not called impossible — a structured planning outcome."""
+    _, design = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.MINIMUM)
+    assert design.status_code == 422, design.text
+    body = design.json()["detail"]
+    assert body["code"] == "CORRIDOR_WIDTH_NOT_FEASIBLE"
+    assert "6.00" in body["message"]
+    assert "impossible" not in body["message"].lower()
+
+
+def test_a_preferred_width_gives_way_rather_than_blocking(tmp_path, monkeypatch):
+    """A preference may be dropped — but never in silence."""
+    _, design = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.PREFERENCE)
+    assert design.status_code == 200, design.text
+    body = design.json()
+    assert body["corridor"]["requested_mode"] == "preference"
+    assert body["corridor"]["satisfied"] is False
+    assert any("מסדרון" in w for w in body["validation"]["warnings"]), body["validation"]["warnings"]
+
+
+def test_a_hard_width_request_blocks_where_a_preference_would_not(tmp_path, monkeypatch):
+    """The same impossible number, worded two ways, must end differently."""
+    _, hard = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.MINIMUM)
+    _, soft = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.PREFERENCE)
+    assert hard.status_code == 422
+    assert soft.status_code == 200
+
+
+def test_a_supported_corridor_width_is_not_left_in_other_requests(tmp_path, monkeypatch):
+    review, _ = _corridor_run(tmp_path, monkeypatch, 1.8, CorridorWidthMode.MINIMUM)
+    assert review["corridor_width"]["value_m"] == 1.8
+    assert all("מסדרון" not in r["text"] for r in review["unsupported_requests"])

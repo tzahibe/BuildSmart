@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app.projects.models import (
+    CorridorWidthField,
+    UnsupportedRequestRecord,
     PoolField,
     Project,
     ProjectCreate,
@@ -46,6 +48,8 @@ class ProjectRepository(ABC):
         pool: PoolField,
         wet_rooms: TaggedInt | None = None,
         open_plan: TaggedBool | None = None,
+        unsupported_requests: list[UnsupportedRequestRecord] | None = None,
+        corridor_width: CorridorWidthField | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -171,6 +175,8 @@ class JsonFileProjectRepository(ProjectRepository):
         pool: PoolField,
         wet_rooms: TaggedInt | None = None,
         open_plan: TaggedBool | None = None,
+        unsupported_requests: list[UnsupportedRequestRecord] | None = None,
+        corridor_width: CorridorWidthField | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -187,6 +193,8 @@ class JsonFileProjectRepository(ProjectRepository):
                 "pool": pool,
                 "wet_rooms": wet_rooms,
                 "open_plan": open_plan,
+                "unsupported_requests": unsupported_requests or [],
+                "corridor_width": corridor_width,
                 "requirements_parsed_at": datetime.now(UTC),
             }
         )

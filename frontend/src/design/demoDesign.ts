@@ -79,6 +79,14 @@ export interface DemoValidation {
   checks: Record<string, boolean>
 }
 
+/** Requested vs REALIZED corridor width — `realized_width_m` is measured off the plan. */
+export interface DemoCorridor {
+  requested_width_m: number | null
+  requested_mode: string | null
+  realized_width_m: number | null
+  satisfied: boolean | null
+}
+
 export interface DemoDesign {
   plot: DemoRect
   footprint: DemoRect
@@ -92,6 +100,7 @@ export interface DemoDesign {
   entrance_walk: DemoRect
   gross_area_m2: number
   net_area_m2: number
+  corridor?: DemoCorridor | null
   validation: DemoValidation
 }
 
@@ -99,6 +108,24 @@ export interface DemoDesign {
 export interface ReviewField {
   value: number | boolean | null
   source: 'requested' | 'inferred' | 'unknown'
+}
+
+/** A requirement the brief asked for that this stage cannot plan — the person's own words. */
+export type RequestSeverity = 'preference' | 'hard_requirement' | 'ambiguous'
+
+export interface UnsupportedRequestNote {
+  text: string
+  topic: string
+  /** How binding the person's own wording was. Only a `preference` can be set aside and still
+   *  produce a plan; the other two stop generation (see backend/app/demo/scope.py). */
+  severity: RequestSeverity
+}
+
+/** The corridor width the brief asked for. `mode` decides how binding it is. */
+export interface CorridorWidthNote {
+  value_m: number
+  mode: 'exact' | 'minimum' | 'preference'
+  source: string
 }
 
 export interface RequirementsReview {
@@ -112,6 +139,8 @@ export interface RequirementsReview {
   footprint_width_m: number | null
   footprint_depth_m: number | null
   description: string
+  unsupported_requests?: UnsupportedRequestNote[]
+  corridor_width?: CorridorWidthNote | null
 }
 
 export interface ReviewEdit {
