@@ -374,6 +374,14 @@ function App() {
   }
 
   if (view === 'footprint') {
+    // `siteOptions` is fetched asynchronously (fired the moment this view is entered, in
+    // `handleContinueToFootprint`) and starts out null — without this, the screen appeared blank
+    // for however long that fetch took. `errors.length` excludes the fetch's own failure path,
+    // where `siteOptions` also stays null but FootprintSelection's existing empty state plus the
+    // error banner below already handle it; looping here forever would hide that error instead.
+    if (siteOptions === null && errors.length === 0) {
+      return <LoadingScreen caption="בודקים את אפשרויות המתאר עבור המגרש שלך..." />
+    }
     return (
       <section id="center" dir="rtl">
         <FootprintSelection

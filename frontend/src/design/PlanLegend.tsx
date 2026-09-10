@@ -148,6 +148,10 @@ function PlanLegend({ design }: { design: DemoDesign }) {
           />
         ) : null}
 
+        {design.rooms.some((r) => r.type === 'FLEX') ? (
+          <LegendRow swatch={<AreaSwatch className="demo-room-flex" />} label="שטח גמיש — לא הוקצה לחדר" />
+        ) : null}
+
         {design.garden.length > 0 ? (
           <LegendRow swatch={<AreaSwatch className="demo-garden" />} label="גינה" />
         ) : null}

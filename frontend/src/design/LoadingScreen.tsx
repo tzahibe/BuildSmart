@@ -7,15 +7,19 @@ interface LoadingScreenProps {
   error?: string | null
   /** The stage generation is actually in, streamed from the backend. Absent while the pipeline
    * reports nothing measurable (the parse step, or an older backend without the stream) — and then
-   * NO percentage is shown at all, because a number invented from elapsed time would be a
-   * progress indicator that indicates nothing. */
+   * an indeterminate bar is shown instead of a percentage, because a number invented from elapsed
+   * time would be a progress indicator that indicates nothing. */
   progress?: DemoProgress | null
+  /** Caption shown while `progress` is absent (no streamed stage to report yet, or none applies to
+   * this step at all — e.g. the footprint-options fetch, which has no pipeline stages of its own).
+   * Ignored once `progress` arrives, since `progress.label` then takes over. */
+  caption?: string
 }
 
 /** Full-screen "house being built" loading state shown while the parse+design pipeline
  * (App.tsx's runPipeline) is in flight. The house animation loops indefinitely — its duration has no
  * relation to how long the pipeline takes (FR-002); the percentage beneath it does. */
-function LoadingScreen({ error = null, progress = null }: LoadingScreenProps) {
+function LoadingScreen({ error = null, progress = null, caption = 'בונים את הבית שלך...' }: LoadingScreenProps) {
   const percent = progress ? Math.max(0, Math.min(100, Math.round(progress.percent))) : null
 
   return (
@@ -99,7 +103,7 @@ function LoadingScreen({ error = null, progress = null }: LoadingScreenProps) {
       ) : (
         <div className="loading-screen__status">
           <p className="loading-screen__caption">
-            {progress ? progress.label : 'בונים את הבית שלך...'}
+            {progress ? progress.label : caption}
           </p>
           {percent !== null && progress ? (
             <div
@@ -124,7 +128,15 @@ function LoadingScreen({ error = null, progress = null }: LoadingScreenProps) {
                 </span>
               </div>
             </div>
-          ) : null}
+          ) : (
+            /* No stage reported yet, so no real percent exists to show — an indeterminate sweep
+               signals "still working" without inventing a number (see the `progress` prop doc). */
+            <div className="loading-screen__progress" role="progressbar" aria-label="בתהליך">
+              <div className="loading-screen__bar">
+                <div className="loading-screen__bar-fill loading-screen__bar-fill--indeterminate" />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

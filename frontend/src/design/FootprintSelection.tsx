@@ -161,6 +161,9 @@ function CustomCard({
     >
       <FootprintPreview widthM={width ?? 0} depthM={depth ?? 0} placeholder={!hasBothValues} />
       <p className="footprint-card__name">{FOOTPRINT_SHAPE_LABELS.RECTANGLE}</p>
+      {/* Names WHOSE dimensions these two fields are. Without it they read "רוחב"/"עומק" — the exact
+          wording of the plot fields two screens back — and get re-entered as the plot's numbers. */}
+      <p className="footprint-card__custom-caption">מידות הבניין</p>
 
       <div className="footprint-card__custom-inputs">
         <label>

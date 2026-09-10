@@ -93,6 +93,14 @@ function DemoPlan({ design }: { design: DemoDesign }) {
 
       <rect x={footprint.x} y={footprint.y} width={footprint.width_m} height={footprint.depth_m} className="demo-footprint" />
 
+      {/* FLEX is not a room anyone asked for — it is the honest remainder when the requested
+          built area exceeds what the room programme can responsibly use. Filled distinctly so it
+          reads as "unallocated," never mistaken for a room the plan forgot to name. */}
+      {design.rooms.filter((room) => room.type === 'FLEX').map((room) => (
+        <rect key={`flex-${room.id}`} x={room.x} y={room.y} width={room.width_m} height={room.depth_m}
+              className="demo-room-flex" />
+      ))}
+
       {/* Rooms: label + authoritative area. */}
       {design.rooms.map((room) => (
         <g key={room.id}>

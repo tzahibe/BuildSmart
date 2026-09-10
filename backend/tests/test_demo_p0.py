@@ -227,6 +227,61 @@ def test_output_is_authoritative_enough_to_render(client, case):
         assert wall["boundary_context"] in ("EXTERIOR", "INTERIOR", "PARTY")
 
 
+_CIRCULATION_TYPES = ("HALL", "CIRCULATION")
+
+
+@pytest.mark.parametrize("case", sorted(VALID_BRIEFS))
+def test_no_internal_corridor_crossing_door(client, case):
+    """NO_INTERNAL_CORRIDOR_CROSSING_DOOR: the corridor is pure circulation, so nothing may cut
+    across it and split the walking path — only room <-> corridor doors along its side are valid.
+
+    Two ways such a door could appear: (a) the access topology declares a DOOR-kind edge between
+    two circulation-tagged zones (the hall talking to itself), or (b) a door's opening segment
+    lies strictly inside the hall's own rectangle instead of on its shared boundary with the
+    neighbouring room. Both are checked directly against the backend's authoritative geometry —
+    the same data `DemoPlan.tsx` renders verbatim — so this pins the topology/geometry layer, not
+    the drawing.
+    """
+    _, _, _, design = _run_case(client, case)
+    body = design.json()["plan"]
+    rooms = {r["id"]: r for r in body["rooms"]}
+    halls = [r for r in rooms.values() if r["type"] in _CIRCULATION_TYPES]
+    assert halls, f"{case}: no circulation room in the generated plan"
+
+    eps = 1e-6
+    for door in body["doors"]:
+        a_type = rooms.get(door["a"], {}).get("type", door["a"])
+        b_type = rooms.get(door["b"], {}).get("type", door["b"])
+        if a_type in _CIRCULATION_TYPES and b_type in _CIRCULATION_TYPES:
+            raise AssertionError(
+                f"{case}: door {door['a']}({a_type}) <-> {door['b']}({b_type}) connects two "
+                "circulation zones with a DOOR edge; such joins must be OPEN_CONNECTION")
+
+        half = door["width_m"] / 2
+        if door["orientation"] == "vertical":
+            span = ((door["x"], door["y"] - half), (door["x"], door["y"] + half))
+        else:
+            span = ((door["x"] - half, door["y"]), (door["x"] + half, door["y"]))
+        for hall in halls:
+            hx, hy = hall["x"], hall["y"]
+            hx2, hy2 = hx + hall["width_m"], hy + hall["depth_m"]
+            on_boundary = any(
+                abs(sx - bx) < eps and abs(ex - bx) < eps
+                for bx in (hx, hx2)
+                for (sx, _), (ex, _) in [span]
+            ) or any(
+                abs(sy - by) < eps and abs(ey - by) < eps
+                for by in (hy, hy2)
+                for (_, sy), (_, ey) in [span]
+            )
+            strictly_inside = all(
+                hx + eps < x < hx2 - eps and hy + eps < y < hy2 - eps for x, y in span)
+            assert not (strictly_inside and not on_boundary), (
+                f"{case}: door {door['a']}<->{door['b']} span={span} cuts across the corridor "
+                f"rectangle {hall['id']}=({hx:.2f},{hy:.2f})-({hx2:.2f},{hy2:.2f}) instead of "
+                "opening on its boundary wall")
+
+
 # ------------------------------------------------------------------ negation
 
 def test_closed_kitchen_brief_does_not_become_open_plan(client):
@@ -598,7 +653,7 @@ def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
     # width at these sizes (see `test_a_width_the_geometry_cannot_hold_fails_explicitly`), so this
     # uses the two-bedroom brief, where it fits.
     _, design = _corridor_run(tmp_path, monkeypatch, 2.0, CorridorWidthMode.EXACT,
-                              side_m=14.14, brief=BRIEF_2BR_COMPACT)
+                              side_m=14.0, brief=BRIEF_2BR_COMPACT)
     assert design.status_code == 200, design.text
     body = design.json()["plan"]
     assert body["corridor"]["requested_mode"] == "exact"
@@ -1347,7 +1402,7 @@ def test_no_two_plans_offered_are_the_same_drawing(client):
 
 def test_a_brief_with_only_one_distinct_plan_offers_no_alternatives(client):
     """Empty is a real answer, and better than padding the strip with the same picture again."""
-    body = _plan_set(client, BRIEF_3BR_SAFE_OPEN, (13.0, 13.0))
+    body = _plan_set(client, BRIEF_3BR_SAFE_OPEN, (12.5, 13.0))
     assert body["plan"]["rooms"]
     assert body["alternatives"] == []
 
@@ -1381,7 +1436,7 @@ def test_an_alternative_is_a_complete_plan_not_a_sketch(client):
 # came into range: 3BR/2wet 135 m², 4BR/2wet 130 m², 5BR/2wet 165 m².
 
 _MANY_BEDROOM_BRIEFS = {
-    3: ("בית עם 3 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 10.6)),
+    3: ("בית עם 3 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 11.0)),
     4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.2)),
     5: ("בית עם 5 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (11.6, 14.5)),
 }

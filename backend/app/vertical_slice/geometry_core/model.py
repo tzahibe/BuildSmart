@@ -159,6 +159,11 @@ class ProgramRole(str, Enum):
     SAFE_ROOM = "SAFE_ROOM"
     BATHROOM = "BATHROOM"
     CIRCULATION = "CIRCULATION"
+    #: Genuine unassigned interior area — the requested built area exceeds what the room programme
+    #: can responsibly use, and rather than stretching a bedroom past its own cap (or refusing to
+    #: plan at all), the gap is a real, visible zone. Never requested by the person; added only by
+    #: `concept_generator.generate_concepts` when the numbers require it.
+    FLEX = "FLEX"
 
 
 @dataclass(frozen=True)

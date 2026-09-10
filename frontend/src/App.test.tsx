@@ -170,6 +170,56 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
     expect(projectCreatePostCalls()).toHaveLength(0)
   })
 
+  it('shows a loading indicator while footprint options are being fetched, not a blank screen', async () => {
+    let resolveOptions: (response: Response) => void = () => {}
+    const optionsPromise = new Promise<Response>((resolve) => { resolveOptions = resolve })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        const method = init?.method ?? 'GET'
+        if (url === '/localities') return new Response(JSON.stringify(['תל אביב']), { status: 200 })
+        if (url.includes('/localities/') && url.endsWith('/streets')) {
+          return new Response(JSON.stringify(['הרצל 1']), { status: 200 })
+        }
+        if (url === '/projects/site/footprint-options' && method === 'POST') return optionsPromise
+        if (url === '/failures' && method === 'POST') {
+          return new Response(JSON.stringify({ recorded: true }), { status: 201 })
+        }
+        throw new Error(`unexpected fetch in test: ${method} ${url}`)
+      }),
+    )
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('עיר / רשות מקומית'), { target: { value: 'תל אביב' } })
+    await waitFor(() => expect(screen.getByLabelText('רחוב ומספר')).toBeEnabled())
+    fireEvent.change(screen.getByLabelText('רחוב ומספר'), { target: { value: 'הרצל 1' } })
+    fireEvent.change(screen.getByLabelText("רוחב מגרש (מ')"), { target: { value: '30' } })
+    fireEvent.change(screen.getByLabelText("עומק מגרש (מ')"), { target: { value: '34' } })
+    fireEvent.change(screen.getByLabelText('שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)'), { target: { value: '120' } })
+    fireEvent.change(screen.getByLabelText('תיאור הבית הרצוי'), { target: { value: 'בית עם 3 חדרי שינה' } })
+    fireEvent.click(screen.getByRole('button', { name: 'המשך לבחירת מתאר הבניין' }))
+
+    // The footprint-options fetch is still pending: a loading indicator is shown, not the (until
+    // now) blank footprint screen.
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+    expect(screen.queryByText('בחר/י את מתאר הבניין')).not.toBeInTheDocument()
+
+    resolveOptions(new Response(JSON.stringify({
+      plot_width_m: 20, plot_depth_m: 24, street_facing_side: 'NORTH',
+      front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+      setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
+      buildable_width_m: 40, buildable_depth_m: 40, has_buildable_area: true,
+      one_storey_footprint_capacity_m2: 1600,
+      requested_built_area_m2: 120,
+      options: generateFootprintOptions(120).map((o) => (
+        { shape_type: o.shape_type, width_m: o.width_m, depth_m: o.depth_m, area_m2: o.area_m2 })),
+      rejection: null,
+    }), { status: 200 }))
+
+    await waitFor(() => expect(screen.getByText('בחר/י את מתאר הבניין')).toBeInTheDocument())
+  })
+
   it('"back" returns to the form without having created a project, and editing built area is safe', async () => {
     render(<App />)
     await fillAndSubmitForm('120')

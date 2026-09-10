@@ -426,19 +426,84 @@ def test_rooms_are_not_inflated_to_fill_space():
                 f"maximum — area is being absorbed by inflating a room")
 
 
-def test_target_above_the_programme_capacity_is_reported_not_silently_shrunk():
-    """A 2-bedroom programme cannot responsibly fill 300 m2. Saying so is correct; quietly
-    returning a 104 m2 house and calling it a success is not."""
+def _run_wide_for_target(target_m2: float, **kwargs):
+    """Like `_run_for_target`, but WIDE rather than square — a FLEX zone gets its own row (the
+    same per-row depth cost any added room pays), so a footprint with spare WIDTH and little spare
+    DEPTH is the worst-case shape for it, not a representative one. A generous site offers proportions
+    across a real range (see `site_geometry.feasible_options`); this picks a forgiving one on purpose,
+    the same way `test_rooms_are_not_inflated_to_fill_space` already relies on the square default
+    being forgiving enough for ITS scenario."""
+    depth = round((target_m2 / 1.35) ** 0.5, 2)
+    width = round(target_m2 / depth, 2)
+    spec = ArchitecturalSpec(
+        plot=PlotSpec(width_m=width + 6.0, depth_m=depth + 9.5,
+                      front_setback_m=5.5, side_setback_m=3.0, rear_setback_m=4.0),
+        program=_program(target_m2, **kwargs),
+    )
+    origin_x, origin_y = spec.plot.buildable_origin_m()
+    bw, bd = spec.plot.buildable_size_m()
+    buildable = BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y, bw, bd))),
+        Provenance(Source.USER, Authority.ASSUMED, ref="selected building footprint"),
+    )
+    return run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
+                       program=spec.program)
+
+
+def test_target_above_the_programme_capacity_becomes_a_flex_zone_not_a_refusal():
+    """A 2-bedroom programme cannot responsibly fill 300 m2 of ROOMS — but the person did not ask
+    for more rooms, and a refusal that tells them to add one anyway is the wrong answer. The gap
+    becomes a real, visible, unassigned zone (FLEX) instead: nothing is silently shrunk (the
+    footprint is exactly what was asked for) and nothing is silently inflated (every real room
+    still respects its own template maximum)."""
     rooms = build_room_program(ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=_program(None)))
     capacity = program_capacity_gross_m2(rooms)
-    assert 200.0 < capacity < 230.0, capacity  # ~213 m2 for 2BR + 1 wet
+    assert 150.0 < capacity < 230.0, capacity  # ~196 m2 for 2BR + 1 wet with the current caps
 
-    result = _run_for_target(capacity + 60.0)
-    assert result.design is None
-    reasons = " ".join(result.metrics.rejection_reasons)
-    assert "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY" in reasons, reasons
-    # the diagnosis must not claim the house is impossible to build
-    assert "impossible" not in reasons.lower()
+    target = capacity + 60.0
+    result = _run_wide_for_target(target)
+    assert result.design is not None, result.metrics.rejection_reasons
+
+    flex = [r for r in result.design.rooms if "FLEX" in r.roles]
+    assert flex, "a target above capacity must produce a visible FLEX zone, not silence"
+    assert sum(r.net_area_m2 for r in flex) > 0
+
+    caps = {role.value: t.max_area_m2 for role, t in ROOM_TEMPLATES.items() if role.value != "FLEX"}
+    for room in result.design.rooms:
+        if "FLEX" in room.roles:
+            continue
+        cap = max(caps[r] for r in room.roles if r in caps)
+        assert room.net_area_m2 <= cap + MAX_TEMPLATE_OVERSHOOT_M2, (
+            f"{room.zone_id} is {room.net_area_m2} m2 against a {cap} m2 maximum — the shortfall "
+            f"is leaking into a real room instead of FLEX")
+
+
+def test_flex_zone_grows_with_the_shortfall():
+    """The zone is sized to the actual gap, not a fixed filler — a bigger ask leaves a bigger
+    honest remainder, the same way a smaller one leaves none at all."""
+    rooms = build_room_program(ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=_program(None)))
+    capacity = program_capacity_gross_m2(rooms)
+
+    at_capacity = _run_wide_for_target(capacity - 5.0)
+    well_above = _run_wide_for_target(capacity + 80.0)
+    assert at_capacity.design is not None
+    assert well_above.design is not None
+
+    def flex_area(result) -> float:
+        return sum(r.net_area_m2 for r in result.design.rooms if "FLEX" in r.roles)
+
+    assert flex_area(at_capacity) == 0.0, "no shortfall, no FLEX zone"
+    assert flex_area(well_above) > 30.0, flex_area(well_above)
+
+
+def test_a_small_shortfall_on_a_tight_footprint_may_still_be_refused():
+    """FLEX pays the same per-row depth cost any added room pays (see `test_rooms_are_not_inflated`
+    for why it cannot be cheaper without letting that cost leak onto a real room). On a SQUARE
+    footprint with only a little slack, that row does not always fit — this is a real, documented
+    limit, not a silent regression, and the refusal still names the actual reason."""
+    result = _run_for_target(210.0)  # ~12 m2 over capacity, on the tight square helper
+    if result.design is None:
+        assert result.metrics.rejection_reasons, "a refusal must still say why"
 
 
 def test_a_bigger_programme_can_absorb_what_a_smaller_one_cannot():

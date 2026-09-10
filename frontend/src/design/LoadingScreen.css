@@ -196,8 +196,32 @@
   unicode-bidi: isolate;
 }
 
+/* ------------------------------------------------------------- indeterminate progress
+   No stage has been reported yet, so there is no real percent to size the fill by. A sweep
+   signals "working" without claiming a position, per the `progress` prop doc in LoadingScreen.tsx. */
+
+.loading-screen__bar-fill--indeterminate {
+  width: 40%;
+  animation: indeterminate-sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes indeterminate-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .loading-screen__bar-fill {
     transition: none;
+  }
+
+  .loading-screen__bar-fill--indeterminate {
+    animation: none;
+    width: 100%;
+    opacity: 0.5;
   }
 }

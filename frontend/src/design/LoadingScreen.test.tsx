@@ -4,7 +4,8 @@ import LoadingScreen from './LoadingScreen'
 import { generateDemoDesignStreaming } from '../api'
 
 /** The percentage exists to report work that genuinely happened. These tests hold that line: a
- * number is shown when the backend reported a stage, and no number is shown when it did not. */
+ * number is shown when the backend reported a stage, and no number is invented when it did not —
+ * an indeterminate bar fills that gap instead. */
 describe('LoadingScreen progress indicator', () => {
   it('shows the percentage and the stage the backend reported', () => {
     render(<LoadingScreen progress={{ step: 4, total: 6, label: 'מוסיפים דלתות וחלונות', percent: 67 }} />)
@@ -15,10 +16,10 @@ describe('LoadingScreen progress indicator', () => {
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '67')
   })
 
-  it('shows NO percentage until a stage is reported', () => {
+  it('shows an indeterminate indicator, not an invented percentage, until a stage is reported', () => {
     render(<LoadingScreen />)
 
-    expect(screen.queryByRole('progressbar')).toBeNull()
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow')
     expect(screen.queryByText(/%/)).toBeNull()
     expect(screen.getByText('בונים את הבית שלך...')).toBeInTheDocument()
   })

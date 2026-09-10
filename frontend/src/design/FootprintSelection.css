@@ -93,6 +93,13 @@
   color: var(--text-h);
 }
 
+.footprint-card__custom-caption {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: -2px;
+}
+
 .footprint-card__dims {
   font-family: var(--mono);
   font-size: 13px;

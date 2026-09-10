@@ -76,12 +76,20 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # Caps set by the user directly: a standard bedroom is ~9 m2, a master 11-20 m2 — a
     # generous house should get MORE rooms, or a bigger hall/living room (elasticity above),
     # never one bedroom stretched to fill leftover footprint.
-    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.2, elasticity=0.3),
-    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.2, elasticity=0.1),
+    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=1.0),
+    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.6),
     # Regulated minimum: never scaled down, and not inflated just because the house is large.
     ProgramRole.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
     ProgramRole.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.2),
     ProgramRole.HALL: RoomTemplate(5.0, 11.0, 30.0, 1.2, 8.0, elasticity=0.8),
+    # Absorbs whatever area the real programme cannot responsibly use — see `generate_concepts`.
+    # A small non-zero min/target (not 0) matters: the front-band parti prices every public room's
+    # SHARE of the band's width from this same template before the real shortfall is known, and a
+    # zero there priced FLEX at exactly 0.00 m wide. Max is generous on purpose, since refusing to
+    # plan a house because this one zone would be "too big" is exactly the outcome it exists to
+    # avoid. Elasticity is the highest of any template so the surplus-redistribution loop in
+    # `scale_program` lands here first, not on a bedroom.
+    ProgramRole.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
 }
 
 #: Net/gross ratio used to size a footprint from a programme. Measured 0.90-0.92 in the spike.
@@ -966,6 +974,15 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
     strategy = ConceptStrategy.FRONT_PUBLIC_BAND
     public = [r for r in rooms if r.group is ZoneGroup.PUBLIC]
     private = [r for r in rooms if r.group in (ZoneGroup.PRIVATE, ZoneGroup.SERVICE)]
+    if any(r.role is ProgramRole.FLEX for r in rooms):
+        # This parti already has its OWN way of absorbing surplus: "the public band absorbs
+        # whatever depth is left over — which is what a living room's elasticity is for" (see
+        # `_plan_front_band`). Combining that with an explicit FLEX zone double-counts the same
+        # surplus and produced both an inflated LIVING *and* a leftover FLEX zone in the same
+        # plan. FLEX is for the SPINE partis, which have no such mechanism of their own.
+        return None, ConceptRejection(
+            strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+            "front band already absorbs surplus through its own elasticity; not combined with FLEX")
     if len(public) < 2 or len(private) < 3:
         return None, ConceptRejection(
             strategy, RejectionReason.INSUFFICIENT_WING_AREA,
@@ -1225,19 +1242,26 @@ def generate_concepts(spec: ArchitecturalSpec,
             f"largest safe wing is {candidates[0].area_m2:.1f} m2; the programme needs about "
             f"{needed:.1f} m2"),), tuple(rooms))
 
-    # The requested target may simply be more area than THIS room programme can absorb: room growth
-    # stops at each template's max_area_m2 and Geometry Core tiles the footprint exactly, so the
-    # surplus would have nowhere to go. That is a limit of the current programme, not a claim that
-    # the house cannot be built — say so precisely and leave the user's target untouched.
+    # The requested target may simply be more area than THIS room programme can absorb: real room
+    # growth stops at each template's max_area_m2. That USED to be a refusal — "add rooms or shrink
+    # the target" — but the person did not ask for more rooms, and forcing that choice on them is
+    # exactly what this exists to avoid. Geometry Core still tiles the footprint EXACTLY, so the
+    # gap becomes a real zone (FLEX) rather than nowhere: honest about the shortfall, visible on the
+    # plan, and never absorbed by inflating a bedroom past its own cap.
     target_m2 = spec.program.target_built_area_m2
     capacity = program_capacity_gross_m2(rooms)
     if target_m2 is not None and target_m2 > capacity + 1e-6:
-        return GenerationResult((), (ConceptRejection(
-            ConceptStrategy.SPINE_PUBLIC_PRIVATE,
-            RejectionReason.TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY,
-            f"a target of {target_m2:.1f} m2 exceeds what this room programme can responsibly "
-            f"fill ({capacity:.1f} m2): {len(rooms)} rooms, each capped at its own maximum area"),),
-            tuple(rooms))
+        flex_template = ROOM_TEMPLATES[ProgramRole.FLEX]
+        # Tried sharing LIVING's row the way an ensuite shares its bedroom's — it avoided the extra
+        # row's depth cost, but a shared row's DEPTH is set by the pair's COMBINED area, which
+        # stretched LIVING itself past its own 46 m2 cap (59 m2, observed) to satisfy FLEX's share.
+        # That is the exact defect this exists to prevent, just relocated. FLEX gets its own row:
+        # more expensive in depth, but every OTHER room's cap stays intact, which is the one
+        # property that must never give.
+        def _with_flex(variant: list[ProgramRoom]) -> list[ProgramRoom]:
+            return [*variant, ProgramRoom("FLEX", ProgramRole.FLEX, ZoneGroup.PUBLIC, flex_template)]
+        variants = [_with_flex(variant) for variant in variants]
+        rooms = variants[0]                 # keep `variant is rooms` true for the literal reading
 
     primary = usable[0]
     # Every arrangement of the same rooms, in order: the brief as written first, then the ones that
