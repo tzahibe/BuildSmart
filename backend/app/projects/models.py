@@ -115,9 +115,12 @@ class SetbackAssumptions(BaseModel):
     demo-level guess look like a regulatory fact.
     """
 
-    front_m: float = Field(gt=0)
-    side_m: float = Field(gt=0)
-    rear_m: float = Field(gt=0)
+    # ZERO IS LEGAL. "No setback on this side" is a real planning situation — a building on the
+    # street line, a party wall — and rejecting it made the review screen crash with a 500 the
+    # moment somebody typed 0 (caught by the failure log, PUT /review, ValidationError).
+    front_m: float = Field(ge=0)
+    side_m: float = Field(ge=0)
+    rear_m: float = Field(ge=0)
 
 
 class CorridorWidthField(BaseModel):

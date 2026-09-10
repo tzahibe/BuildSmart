@@ -69,6 +69,11 @@ class DoorOut(BaseModel):
     y: float
     orientation: str
     is_entrance: bool = False
+    #: The room the leaf opens into, and the hinged jamb — so the drawing can show a real door
+    #: symbol (leaf plus swing arc) instead of a gap in a wall, without deciding anything itself.
+    swings_into: str = ""
+    hinge_x: float = 0.0
+    hinge_y: float = 0.0
 
 
 class WindowOut(BaseModel):
@@ -135,6 +140,19 @@ class DemoDesign(BaseModel):
     validation: ValidationSummary
 
 
+class DemoPlanSet(BaseModel):
+    """What the design request answers with: a plan, and the other plans that were also possible.
+
+    `alternatives` is not a ranked list of runners-up — every entry passed exactly the same checks
+    `plan` did (see general_pipeline._alternative_plans). Which one is "best" is a matter of taste
+    the engine cannot settle, so the person is shown that the choice existed and can take it.
+    Empty is a real and common answer: for many briefs the engine produces only one distinct plan.
+    """
+
+    plan: DemoDesign
+    alternatives: list[DemoDesign] = []
+
+
 #: C-code -> the product statement it justifies. Only claims backed by a real check appear.
 _STATEMENTS = {
     "C1": "אין חפיפה בין חדרים",
@@ -173,7 +191,57 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
     wall is. Identical segments produced by two adjacent rooms are merged so a shared wall is one
     entity carrying both room ids; an `OPEN` side yields no wall at all and is reported separately
     so the drawing can show the absence deliberately rather than by omission.
+
+    ONE SIDE, SEVERAL NEIGHBOURS. The engine gives a wall SIDE exactly one type, which is right for
+    solving — insets have to be known before dimensions — but wrong to draw. A corridor whose east
+    side runs past two bedrooms, a safe room and a bathroom is typed `RC_SAFE_ROOM` for its whole
+    length, because the strongest neighbour wins the side. Drawn literally that put 17 m of
+    reinforced concrete on a plan whose safe room is 3 m long.
+
+    So a side with several neighbours is CUT at their boundaries, and each piece takes the
+    construction its own pair justifies: reinforced concrete only where a safe room is actually on
+    one side of it. Nothing is invented — the pieces come from room rectangles the plan already
+    has, and a side with one neighbour is unchanged.
     """
+    rooms = {r.zone_id: r for r in design.rooms}
+    is_safe = {r.zone_id: "SAFE_ROOM" in [str(x) for x in r.roles] for r in design.rooms}
+
+    def neighbours_along(room, side, orientation, coord, start, end):
+        """The pieces of this side, split where the room on the other side changes."""
+        cuts = {start, end}
+        for other in design.rooms:
+            if other.zone_id == room.zone_id:
+                continue
+            ox, oy, ow, oh = other.rect_m
+            touches = (abs(ox - coord) < 1e-6 or abs(ox + ow - coord) < 1e-6) if orientation == "vertical" \
+                else (abs(oy - coord) < 1e-6 or abs(oy + oh - coord) < 1e-6)
+            if not touches:
+                continue
+            lo, hi = (oy, oy + oh) if orientation == "vertical" else (ox, ox + ow)
+            if hi <= start + 1e-6 or lo >= end - 1e-6:
+                continue
+            cuts.add(max(lo, start))
+            cuts.add(min(hi, end))
+        ordered = sorted(cuts)
+        for lo, hi in zip(ordered, ordered[1:]):
+            if hi - lo < 1e-6:
+                continue
+            mid = (lo + hi) / 2
+            facing = None
+            for other in design.rooms:
+                if other.zone_id == room.zone_id:
+                    continue
+                ox, oy, ow, oh = other.rect_m
+                touches = (abs(ox - coord) < 1e-6 or abs(ox + ow - coord) < 1e-6) if orientation == "vertical" \
+                    else (abs(oy - coord) < 1e-6 or abs(oy + oh - coord) < 1e-6)
+                if not touches:
+                    continue
+                olo, ohi = (oy, oy + oh) if orientation == "vertical" else (ox, ox + ow)
+                if olo - 1e-6 <= mid <= ohi + 1e-6:
+                    facing = other.zone_id
+                    break
+            yield lo, hi, facing
+
     walls: dict[tuple, WallSegment] = {}
     opens: dict[tuple, OpenInterface] = {}
     for room in design.rooms:
@@ -186,24 +254,36 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
         }
         for side, (orientation, coord, start, end) in edges.items():
             facts = room.wall_facts[side]
-            key = (orientation, round(coord, 4), round(start, 4), round(end, 4))
-            if facts.construction.value == "NONE":
-                entry = opens.get(key)
+            for lo, hi, facing in neighbours_along(room, side, orientation, coord, start, end):
+                construction = facts.construction.value
+                # Reinforced concrete belongs to the safe room's own envelope, not to every
+                # neighbour that happens to share a side with it.
+                if construction == "RC_SAFE_ROOM" and not (
+                        is_safe.get(room.zone_id) or (facing and is_safe.get(facing))):
+                    construction = "STANDARD_PARTITION"
+
+                key = (orientation, round(coord, 4), round(lo, 4), round(hi, 4))
+                if construction == "NONE":
+                    entry = opens.get(key)
+                    if entry is None:
+                        opens[key] = OpenInterface(orientation=orientation, coord=coord, start=lo,
+                                                   end=hi, room_ids=[room.zone_id])
+                    elif room.zone_id not in entry.room_ids:
+                        entry.room_ids.append(room.zone_id)
+                    continue
+                entry = walls.get(key)
                 if entry is None:
-                    opens[key] = OpenInterface(orientation=orientation, coord=coord, start=start,
-                                               end=end, room_ids=[room.zone_id])
-                elif room.zone_id not in entry.room_ids:
-                    entry.room_ids.append(room.zone_id)
-                continue
-            entry = walls.get(key)
-            if entry is None:
-                walls[key] = WallSegment(
-                    orientation=orientation, coord=coord, start=start, end=end,
-                    construction=facts.construction.value,
-                    boundary_context=facts.boundary_context.value,
-                    room_ids=[room.zone_id])
-            elif room.zone_id not in entry.room_ids:
-                entry.room_ids.append(room.zone_id)
+                    walls[key] = WallSegment(
+                        orientation=orientation, coord=coord, start=lo, end=hi,
+                        construction=construction,
+                        boundary_context=facts.boundary_context.value,
+                        room_ids=[room.zone_id])
+                else:
+                    if room.zone_id not in entry.room_ids:
+                        entry.room_ids.append(room.zone_id)
+                    # A pair disagrees only when one of them is the safe room; that side wins.
+                    if construction == "RC_SAFE_ROOM":
+                        entry.construction = construction
     return list(walls.values()), list(opens.values())
 
 
@@ -257,12 +337,15 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    relationships: tuple = ()) -> DemoDesign:
     walls, opens = _wall_segments(design)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
-                     y=d.center_m[1], orientation=d.orientation)
+                     y=d.center_m[1], orientation=d.orientation,
+                     swings_into=d.swings_into, hinge_x=d.hinge_m[0], hinge_y=d.hinge_m[1])
              for d in design.interior_doors]
     entrance = design.entrance_door
     doors.append(DoorOut(a=entrance.a, b=entrance.b, kind=entrance.kind, width_m=entrance.width_m,
                          x=entrance.center_m[0], y=entrance.center_m[1],
-                         orientation=entrance.orientation, is_entrance=True))
+                         orientation=entrance.orientation, is_entrance=True,
+                         swings_into=entrance.swings_into,
+                         hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1]))
     return DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),

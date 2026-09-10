@@ -1,5 +1,27 @@
 .workspace { display: flex; height: 100vh; direction: rtl; background: #eef1f4; }
-.workspace-plan { flex: 1; min-width: 0; padding: 16px; display: flex; align-items: center; justify-content: center; }
+.workspace-plan { flex: 1; min-width: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+/* The drawing takes whatever the option strip leaves, and keeps its own aspect ratio inside it. */
+.workspace-plan-main { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+
+/* THE OTHER PLANS. Small enough to stay secondary to the drawing, large enough that the layouts
+   are actually distinguishable — a thumbnail nobody can read is a thumbnail nobody can choose. */
+.workspace-options { flex-shrink: 0; }
+.workspace-options-title { margin: 0 0 6px; font-size: 12px; font-weight: 500; color: #6b7683; }
+.workspace-options-strip { display: flex; gap: 10px; list-style: none; margin: 0; padding: 0; overflow-x: auto; }
+.workspace-option {
+  width: 150px; padding: 6px; background: #fff; cursor: pointer;
+  border: 1px solid #dfe4ea; border-radius: 8px;
+  display: flex; flex-direction: column; gap: 4px; align-items: stretch;
+}
+.workspace-option:hover, .workspace-option:focus-visible { border-color: #8fa3b8; }
+.workspace-option svg { width: 100%; height: 96px; display: block; }
+/* At thumbnail size the room labels are smaller than they are readable, so they are noise that
+   hides the one thing a person is comparing here: the SHAPE of the layout. */
+.workspace-option .demo-room-name,
+.workspace-option .demo-room-area,
+.workspace-option .demo-parking-label { display: none; }
+.workspace-option-label { font-size: 11px; color: #5b6470; text-align: center; }
+.workspace-shown { margin: -10px 0 16px; font-size: 13px; color: #6b7683; }
 .workspace-side {
   width: 300px; flex-shrink: 0; background: #fff; border-inline-start: 1px solid #dfe4ea;
   padding: 20px; overflow-y: auto; text-align: right;

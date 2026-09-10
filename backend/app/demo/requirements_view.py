@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from app.projects.models import Project
 
-from . import site_geometry
+from . import scope, site_geometry
 from app.vertical_slice.concept_generator import build_room_program
 from app.vertical_slice.relationships import describe
 from app.vertical_slice.spec import (
@@ -97,6 +97,17 @@ class UnsupportedRequestNote(BaseModel):
     severity: str = "ambiguous"
 
 
+class ScopeLimits(BaseModel):
+    """What the demo can plan, straight from `app.demo.scope`."""
+
+    bedrooms_min: int
+    bedrooms_max: int
+    wet_rooms_min: int
+    wet_rooms_max: int
+    parking_max: int
+    floors: int
+
+
 class RequirementsReview(BaseModel):
     """What the REVIEW screen shows and lets the user correct."""
 
@@ -124,6 +135,10 @@ class RequirementsReview(BaseModel):
     planned_rooms: list[str] = Field(default_factory=list)
     #: The authoritative parcel and the assumptions applied to it. `None` before the site is known.
     site: SiteNote | None = None
+    #: The counts this stage can actually plan. Sent so the review screen can REFUSE a value that
+    #: generation would reject, instead of accepting it and failing after the loading screen. The
+    #: numbers live in `scope`; duplicating them in the client is how the two drift apart.
+    limits: ScopeLimits = Field(default_factory=lambda: _limits())
 
 
 class ReviewEdit(BaseModel):
@@ -149,6 +164,14 @@ def _field(tagged, default=None, default_source: str = "inferred") -> Requiremen
     return RequirementField(value=tagged.value, source=str(tagged.source.value))
 
 
+def _limits() -> ScopeLimits:
+    return ScopeLimits(
+        bedrooms_min=min(scope.SUPPORTED_BEDROOMS), bedrooms_max=max(scope.SUPPORTED_BEDROOMS),
+        wet_rooms_min=min(scope.SUPPORTED_WET_ROOMS), wet_rooms_max=max(scope.SUPPORTED_WET_ROOMS),
+        parking_max=scope.MAX_PARKING_SPACES, floors=scope.SUPPORTED_FLOORS,
+    )
+
+
 def review_of(project: Project) -> RequirementsReview:
     footprint = project.selected_footprint
     bedrooms = _field(project.bedrooms)
@@ -156,6 +179,7 @@ def review_of(project: Project) -> RequirementsReview:
     wet_rooms = _field(project.wet_rooms, default=1)
     open_plan = _field(project.open_plan, default=False)
     return RequirementsReview(
+        limits=_limits(),
         planned_rooms=_planned_rooms(bedrooms.value, safe_room.value,
                                      open_plan.value, wet_rooms.value),
         site=_site_note(project),

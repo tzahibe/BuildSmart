@@ -4,7 +4,7 @@ import {
   createProject,
   DemoPipelineError,
   fetchFootprintOptions,
-  generateDemoDesign,
+  generateDemoDesignStreaming,
   generateDesign,
   getRequirementsReview,
   parseRequirements,
@@ -12,11 +12,12 @@ import {
   reportFailure,
   updateRequirementsReview,
 } from './api'
+import type { DemoProgress } from './api'
 import Autocomplete from './Autocomplete'
 import DesignPage from './design/DesignPage'
 import ReviewPage from './design/ReviewPage'
 import DemoWorkspace from './design/DemoWorkspace'
-import type { DemoDesign, RequirementsReview, ReviewEdit } from './design/demoDesign'
+import type { DemoPlanSet, RequirementsReview, ReviewEdit } from './design/demoDesign'
 import FootprintSelection from './design/FootprintSelection'
 import {
   toSelectedFootprintPayload,
@@ -34,9 +35,12 @@ const initialForm: FormState = {
   plot_width_m: '',
   plot_depth_m: '',
   street_facing_side: 'NORTH',
-  front_setback_m: '5.5',
-  side_setback_m: '3',
-  rear_setback_m: '4',
+  // ZERO, matching the backend default (app/demo/site_geometry.py). Any non-zero default is a
+  // planning determination this project has not made — and 5.5/3/4 consumed 68% of a 300 m² plot,
+  // deciding what could be built from a number nobody verified.
+  front_setback_m: '0',
+  side_setback_m: '0',
+  rear_setback_m: '0',
   built_area_m2: '',
   description: '',
 }
@@ -53,8 +57,9 @@ function App() {
   // DEMO PATH state. The brief is parsed, REVIEWED and corrected, and only then generated through
   // the validated pipeline (POST /design/demo). Nothing here reuses the old solver route.
   const [review, setReview] = useState<RequirementsReview | null>(null)
-  const [demoDesign, setDemoDesign] = useState<DemoDesign | null>(null)
+  const [demoPlans, setDemoPlans] = useState<DemoPlanSet | null>(null)
   const [demoError, setDemoError] = useState<{ message: string; detail: string } | null>(null)
+  const [demoProgress, setDemoProgress] = useState<DemoProgress | null>(null)
   // The SELECTED BUILDING FOOTPRINT (FOOTPRINT SELECTION step) — a real, typed choice the user makes
   // explicitly, not just which card looks highlighted (see design/footprint.ts's module docstring).
   // `null` until a valid option is chosen; cleared whenever `built_area_m2` changes (see the input's
@@ -295,26 +300,35 @@ function App() {
   async function handleConfirmReview(edit: ReviewEdit) {
     if (project === null) return
     setDemoError(null)
+    setDemoProgress(null)
     setView('generating')
     try {
       const updated = await updateRequirementsReview(project.project_id, edit)
       setReview(updated)
-      const design = await generateDemoDesign(project.project_id)
-      setDemoDesign(design)
+      // The percentage on the loading screen comes from these callbacks — one per pipeline stage,
+      // as the backend enters it. No stream means no percentage, not a made-up one.
+      setDemoPlans(await generateDemoDesignStreaming(project.project_id, setDemoProgress))
       setView('plan')
     } catch (error) {
       // Product-level failure: an unsupported request or an unrealizable brief. The message is
       // shown as-is and the requirements are left exactly as the user set them — never silently
       // adjusted to something that would have worked.
+      //
+      // A SERVER THAT ISN'T THERE throws a bare TypeError from `fetch` itself ("Failed to fetch"),
+      // arriving here indistinguishable from a real pipeline crash unless named separately — the
+      // one case where the fix is "start the server", not "read the stack trace".
+      const unreachable = error instanceof TypeError
       const failure =
         error instanceof DemoPipelineError
           ? { message: error.message, detail: error.detail }
-          : { message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
+          : unreachable
+            ? { message: 'לא ניתן להתחבר לשרת. יש לוודא שהשרת פועל ולנסות שוב.', detail: '' }
+            : { message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
       // The moment somebody does not get a drawing. Recorded from the UI as well as the API,
       // because a network failure or a response the client could not use never reaches the server
       // log at all — and it ends the journey just the same.
       reportFailure(
-        error instanceof DemoPipelineError ? error.code : 'GENERATE_FAILED',
+        error instanceof DemoPipelineError ? error.code : unreachable ? 'SERVER_UNREACHABLE' : 'GENERATE_FAILED',
         failure.message, 'generate', failure.detail, { projectId: project.project_id })
       setDemoError(failure)
       setView('review')
@@ -336,13 +350,13 @@ function App() {
   }
 
   if (view === 'generating') {
-    return <LoadingScreen />
+    return <LoadingScreen progress={demoProgress} />
   }
 
-  if (view === 'plan' && demoDesign) {
+  if (view === 'plan' && demoPlans) {
     return (
       <DemoWorkspace
-        design={demoDesign}
+        plans={demoPlans}
         onChangeRequirements={() => {
           setDemoError(null)
           setView('review')
@@ -491,7 +505,7 @@ function App() {
                 <label key={key}>
                   {label} (מ')
                   <input
-                    type="number" min="0.1" step="0.1" required
+                    type="number" min="0" step="0.1" required
                     value={form[key]}
                     onChange={(event) => {
                       setForm({ ...form, [key]: event.target.value })

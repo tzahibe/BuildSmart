@@ -85,7 +85,9 @@ def _candidates(program: ProgramSpec, site=None):
 def test_generator_produces_a_bounded_candidate_set(name):
     result = _candidates(PROGRAMS[name])
     assert result.any, [r.detail for r in result.rejections]
-    assert 1 <= len(result.candidates) <= 6
+    # Bounded, not small: the generator now tries the brief as written AND one arrangement of the
+    # same rooms that needs less depth (`programme_variants`), so the ceiling is per-variant.
+    assert 1 <= len(result.candidates) <= 12
 
 
 def test_candidates_are_deterministic():

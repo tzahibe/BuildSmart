@@ -37,6 +37,16 @@ Special rule for `bedrooms` (sleeping rooms):
   (when described as a room to sleep in).
 - A room named for what is DONE in it is not: חדר עבודה, חדר משחקים, חדר כביסה, מחסן, ספרייה.
   Do not count those here — report them under `other_requests` (see the room-type rule there).
+- THE BARE WORD "חדרים" IS THE MOST COMMON WAY PEOPLE SAY THIS, and it has two meanings. Decide by
+  whether the public rooms are named separately in the same sentence:
+  * The sentence ALSO names סלון / מטבח / פינת אוכל separately — then the plain "N חדרים" are N
+    SLEEPING rooms, and any חדר הורים named beside them ADDS to that count.
+    "בית עם 4 חדרים, חדר הורים, מטבח וסלון" is 5 bedrooms, source "requested". It is NOT 1.
+    Dropping the "4 חדרים" and counting only the חדר הורים is the single worst error you can make
+    here — the person asked for five sleeping rooms and would be told their house is unsupported.
+  * The sentence says only "דירת/בית N חדרים" with NO other room named — that is the Israeli
+    real-estate convention where the count INCLUDES the living room, so bedrooms = N - 1, and the
+    source is "inferred" (it is a convention, not something the person said).
 - If the text does not state any sleeping rooms at all, output {"value": null, "source": "unknown"}.
   Never assume a bedroom count.
 

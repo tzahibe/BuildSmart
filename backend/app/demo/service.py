@@ -15,6 +15,7 @@ No canonical fixture is reachable from here: `concept.py`'s hand-authored concep
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 
 from app.geometry_domain.constraints import BuildableRegion
@@ -28,10 +29,10 @@ from app.vertical_slice.concept_generator import (
 )
 from app.vertical_slice.relationships import describe
 from app.vertical_slice.spec import RelationStrength
-from app.vertical_slice.general_pipeline import run_general
+from app.vertical_slice.general_pipeline import ALTERNATIVE_PLAN_LIMIT, run_general
 from app.vertical_slice.safe_adapter import AdapterOutcome
 
-from .contract import DemoDesign, to_demo_design
+from .contract import DemoDesign, DemoPlanSet, to_demo_design
 from .requirements_view import spec_for
 from . import site_geometry
 from .scope import ScopeRejection, check_supported
@@ -57,9 +58,19 @@ _FEASIBILITY_CODES = frozenset({
 
 
 class DemoGenerationError(Exception):
-    """A product-level failure. Carries a message meant for a person."""
+    """A product-level failure. Carries a message meant for a person — and, separately, what the
+    ENGINE actually did.
 
-    def __init__(self, code: str, message: str, detail: str = "") -> None:
+    `message` is written to be read by whoever asked for the house. It deliberately says nothing
+    about slicing candidates or check IDs, which means that on its own it is useless for fixing
+    anything: "we could not produce a valid plan" names no cause. `diagnostics` is the other half —
+    every candidate the generator produced and why each was rejected, which validation checks
+    failed, how many solver attempts it took. It never reaches the screen and always reaches the
+    failure log.
+    """
+
+    def __init__(self, code: str, message: str, detail: str = "",
+                 diagnostics: dict | None = None) -> None:
         if code in _FEASIBILITY_CODES:
             message = f"{message} {site_geometry.NOT_FEASIBLE_HE}"
             detail = f"{detail} [{site_geometry.NOT_FEASIBLE_PHRASE}]".strip()
@@ -67,11 +78,63 @@ class DemoGenerationError(Exception):
         self.code = code
         self.message = message
         self.detail = detail
+        self.diagnostics = diagnostics or {}
+
+
+def _diagnostics(result, spec=None) -> dict:
+    """Everything the engine knows about why this run did not produce a plan.
+
+    Written for whoever reads the log later, not for the person at the screen: the concept
+    candidates tried, the reason each was rejected, the validation checks that failed, and the
+    programme that was being solved for. Without this an entry says only that somebody was refused.
+    """
+    diagnostics: dict = {}
+    metrics = getattr(result, "metrics", None)
+    if metrics is not None:
+        diagnostics["engine"] = {
+            "outcome": getattr(getattr(result, "outcome", None), "value", None),
+            "concept_candidates_generated": metrics.concept_candidates_generated,
+            "candidates_rejected_pre_solver": metrics.candidates_rejected_pre_solver,
+            "solver_attempts": metrics.solver_attempts,
+            "first_valid_candidate_index": metrics.first_valid_candidate_index,
+            "latency_ms": metrics.latency_ms,
+            "room_count": metrics.room_count,
+            "residual_area_m2": metrics.residual_area_m2,
+            # THE ACTUAL CAUSE, one line per rejected candidate.
+            "rejection_reasons": list(metrics.rejection_reasons),
+        }
+    notes = getattr(result, "notes", None)
+    if notes:
+        diagnostics["notes"] = list(notes)
+    validation = getattr(result, "validation", None)
+    if validation is not None:
+        diagnostics["validation"] = {
+            "ok": validation.ok,
+            "failed_checks": [{"check": c.check_id, "name": c.name, "detail": c.detail}
+                              for c in validation.failures()],
+            "checks_run": [c.check_id for c in validation.checks],
+        }
+    safety = getattr(result, "safety", None)
+    if safety is not None and not safety.ok:
+        diagnostics["safety"] = {"offending_rooms": list(safety.offending_rooms)}
+    if spec is not None:
+        program = spec.program
+        diagnostics["programme"] = {
+            "bedrooms": program.bedrooms, "wet_rooms": program.wet_rooms,
+            "safe_room": program.safe_room, "open_plan_living": program.open_plan_living,
+            "parking_spaces": program.parking_spaces,
+            "target_built_area_m2": program.target_built_area_m2,
+            "corridor_m": getattr(program.corridor, "width_m", None) if program.corridor else None,
+        }
+    return diagnostics
 
 
 @dataclass(frozen=True)
 class DemoResult:
     design: DemoDesign
+    #: Other plans the engine could equally have chosen, each already past every gate `design`
+    #: passed. Empty when this brief and this land produce only one distinct plan.
+    alternatives: tuple[DemoDesign, ...] = ()
 
 
 def _set_aside(project: Project, spec, preference_dropped: bool) -> list[str]:
@@ -113,7 +176,8 @@ def _buildable_from(spec, project: Project) -> BuildableRegion:
     )
 
 
-def generate_demo_design(project: Project) -> DemoResult:
+def generate_demo_design(project: Project,
+                         on_stage: Callable[[str], None] | None = None) -> DemoResult:
     rejection: ScopeRejection | None = check_supported(project)
     if rejection is not None:
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
@@ -121,7 +185,7 @@ def generate_demo_design(project: Project) -> DemoResult:
     spec = spec_for(project)
     corridor = spec.program.corridor
 
-    result = _plan(spec, project)
+    result = _plan(spec, project, on_stage)
 
     # A PREFERRED width may be dropped when the programme cannot fit it; a required one may not.
     # The retry happens once, without the corridor, and the plan says plainly that the preference
@@ -130,7 +194,7 @@ def generate_demo_design(project: Project) -> DemoResult:
     if (result.outcome is not AdapterOutcome.SOLVED and corridor is not None
             and not corridor.is_binding):
         without = replace(spec, program=replace(spec.program, corridor=None))
-        retry = _plan(without, project)
+        retry = _plan(without, project, on_stage)
         if retry.outcome is AdapterOutcome.SOLVED:
             result, preference_dropped = retry, True
 
@@ -160,11 +224,15 @@ def realized_corridor_width_m_of(design) -> float:
     return round(min(widths), 2) if widths else 0.0
 
 
-def _plan(spec, project: Project):
+def _plan(spec, project: Project, on_stage=None):
+    # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
+    # Every other caller of the pipeline still gets one plan at one plan's cost.
     return run_general(
         _buildable_from(spec, project),
         plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
         program=spec.program,
+        max_alternatives=ALTERNATIVE_PLAN_LIMIT,
+        on_stage=on_stage,
     )
 
 
@@ -211,12 +279,13 @@ def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoRes
                 f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
                 f"והיעד שהוזן הוא {spec.program.target_built_area_m2:.0f} מ\"ר. "
                 f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
-                reasons)
+                reasons, diagnostics=_diagnostics(result, spec))
 
         raise DemoGenerationError(
             "PLAN_NOT_REALIZABLE",
             "לא הצלחנו לייצר תוכנית תקינה עבור הדרישות והמתאר שנבחרו.",
             reasons,
+            diagnostics=_diagnostics(result, spec),
         )
 
     # A plan that fails ONLY on the corridor width is a corridor problem, and saying so beats a
@@ -240,18 +309,26 @@ def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoRes
         raise DemoGenerationError(
             "PLAN_FAILED_VALIDATION",
             "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",
-            failures)
+            failures, diagnostics=_diagnostics(result, spec))
 
     if result.safety is not None and not result.safety.ok:
         raise DemoGenerationError(
             "PLAN_OUTSIDE_BUILDABLE",
             "התוכנית שנוצרה חרגה משטח הבנייה המותר ולכן לא הוצגה.",
-            ", ".join(result.safety.offending_rooms))
+            ", ".join(result.safety.offending_rooms),
+            diagnostics=_diagnostics(result, spec))
 
-    return DemoResult(design=to_demo_design(
-        result.design, result.validation,
-        # Only PREFERENCES can reach a plan: `check_supported` refuses outright on a hard
-        # requirement or an unclear one, so anything still here was explicitly optional.
-        unsupported=_set_aside(project, spec, preference_dropped),
-        corridor=spec.program.corridor,
-        relationships=result.relationships))
+    # Only PREFERENCES can reach a plan: `check_supported` refuses outright on a hard requirement
+    # or an unclear one, so anything still here was explicitly optional. It describes the BRIEF,
+    # not the drawing, so every alternative carries the same note.
+    unsupported = _set_aside(project, spec, preference_dropped)
+    return DemoResult(
+        design=to_demo_design(result.design, result.validation, unsupported=unsupported,
+                              corridor=spec.program.corridor,
+                              relationships=result.relationships),
+        # Each alternative reports its OWN validation statements and its OWN relationship
+        # outcomes, because the panel beside the drawing must describe the drawing on screen.
+        alternatives=tuple(
+            to_demo_design(plan.design, plan.validation, unsupported=unsupported,
+                           corridor=spec.program.corridor, relationships=plan.relationships)
+            for plan in result.alternatives))

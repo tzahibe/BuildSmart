@@ -22,7 +22,7 @@ BASELINE_WALL_ITERATIONS = 2
 BASELINE_ROOM_COUNT = 11
 BASELINE_INTERIOR_DOORS = 7
 BASELINE_WINDOWS = 7
-BASELINE_CHECK_COUNT = 13  # C13 added: realized-connectivity invariant
+BASELINE_CHECK_COUNT = 14  # C13 realized connectivity; C16 the entrance's own realization
 
 
 @pytest.fixture(scope="module")

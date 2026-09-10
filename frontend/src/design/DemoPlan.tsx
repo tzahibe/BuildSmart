@@ -60,6 +60,14 @@ export function wallStyle(construction: string, context: string) {
   return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
 }
 
+/** Which way the arc turns, so it sweeps the quarter the leaf actually travels through rather than
+ *  the opposite one. The cross product of (closed leaf) x (open leaf) about the hinge gives it. */
+function sweep(hx: number, hy: number, far: { x: number; y: number },
+               leaf: { x: number; y: number }): 0 | 1 {
+  const cross = (far.x - hx) * (leaf.y - hy) - (far.y - hy) * (leaf.x - hx)
+  return cross > 0 ? 1 : 0
+}
+
 function DemoPlan({ design }: { design: DemoDesign }) {
   const { plot, footprint } = design
   const viewBox = planViewBox(design)
@@ -113,18 +121,57 @@ function DemoPlan({ design }: { design: DemoDesign }) {
         )
       })}
 
-      {/* Doors: position, width and orientation all from the backend. */}
+      {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
+          90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —
+          "אין דבר כזה קיר פתוח לחדרים, אלא דלתות".
+
+          Every fact here comes from the backend: where the opening is, which room the leaf swings
+          into, and which jamb it hangs from. The renderer does the trigonometry and nothing else,
+          which is the same boundary that stopped it inventing doors in the first place. */}
       {design.doors.map((door, i) => {
         const half = door.width_m / 2
-        const [x1, y1, x2, y2] =
-          door.orientation === 'vertical'
-            ? [door.x, door.y - half, door.x, door.y + half]
-            : [door.x - half, door.y, door.x + half, door.y]
+        const vertical = door.orientation === 'vertical'
+        const [x1, y1, x2, y2] = vertical
+          ? [door.x, door.y - half, door.x, door.y + half]
+          : [door.x - half, door.y, door.x + half, door.y]
+
+        // The hinge is one end of the opening; the leaf swings from there into `swings_into`.
+        const hx = door.hinge_x ?? x1
+        const hy = door.hinge_y ?? y1
+        const room = design.rooms.find((r) => r.id === door.swings_into)
+
+        let leaf: { x: number; y: number } | null = null
+        if (room) {
+          // Perpendicular to the wall, toward the room's own side of it.
+          const inward = vertical
+            ? Math.sign(room.x + room.width_m / 2 - door.x)
+            : Math.sign(room.y + room.depth_m / 2 - door.y)
+          leaf = vertical
+            ? { x: hx + inward * door.width_m, y: hy }
+            : { x: hx, y: hy + inward * door.width_m }
+        }
+
+        // The far jamb — where the arc ends, and where the leaf would lie when closed.
+        const far = vertical
+          ? { x: door.x, y: hy === y1 ? y2 : y1 }
+          : { x: hx === x1 ? x2 : x1, y: door.y }
+
         return (
-          <line
-            key={`door-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
-            className={door.is_entrance ? 'demo-door demo-door--entrance' : 'demo-door'}
-          />
+          <g key={`door-${i}`}>
+            {/* the opening itself: the wall does not run through here */}
+            <line x1={x1} y1={y1} x2={x2} y2={y2}
+                  className={door.is_entrance ? 'demo-door demo-door--entrance' : 'demo-door'} />
+            {leaf ? (
+              <>
+                <path
+                  d={`M ${far.x} ${far.y} A ${door.width_m} ${door.width_m} 0 0 ${
+                    sweep(hx, hy, far, leaf)} ${leaf.x} ${leaf.y}`}
+                  className="demo-door-arc"
+                />
+                <line x1={hx} y1={hy} x2={leaf.x} y2={leaf.y} className="demo-door-leaf" />
+              </>
+            ) : null}
+          </g>
         )
       })}
 
@@ -135,7 +182,23 @@ function DemoPlan({ design }: { design: DemoDesign }) {
         const [x1, y1, x2, y2] = vertical
           ? [window.x, window.y - half, window.x, window.y + half]
           : [window.x - half, window.y, window.x + half, window.y]
-        return <line key={`window-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} className="demo-window" />
+        // The width, written alongside — a drawing that shows an opening without its size is a
+        // sketch. Offset outward from the wall so the number sits in the garden, not on a room.
+        const outward = window.side === 'N' ? -0.45 : window.side === 'S' ? 0.55 : 0
+        const sideways = window.side === 'W' ? -0.25 : window.side === 'E' ? 0.25 : 0
+        return (
+          <g key={`window-${i}`}>
+            <line x1={x1} y1={y1} x2={x2} y2={y2} className="demo-window" />
+            <text
+              x={window.x + sideways}
+              y={window.y + outward}
+              className="demo-window-label"
+              transform={vertical ? `rotate(-90 ${window.x + sideways} ${window.y + outward})` : undefined}
+            >
+              {window.width_m.toFixed(2)}
+            </text>
+          </g>
+        )
       })}
     </svg>
   )

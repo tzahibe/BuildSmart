@@ -14,13 +14,17 @@ canned outputs matching what the prompt asks the model to produce.
 """
 from __future__ import annotations
 
+import json
 import re
+
+import collections
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.projects.models import PoolField, SourceTag, TaggedBool, TaggedFloat, TaggedInt
+from app.vertical_slice import general_pipeline
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.routes import base_routes as project_base_routes
 from app.requirements import router as requirements_router
@@ -70,7 +74,11 @@ BRIEF_2BR_SAFE = (
 BRIEF_3BR_THREE_WET = (
     "שלושה חדרי שינה, ממ\"ד, שלושה חדרי רחצה — אחד צמוד לחדר ההורים, מטבח פתוח, שתי חניות."
 )
-BRIEF_4BR_UNSUPPORTED = "בית עם ארבעה חדרי שינה, ממ\"ד ושלושה חדרי רחצה."
+# Beyond the supported range. FOUR used to be here, then SIX — each became supported when the
+# engine was measured rather than assumed (`programme_variants`, then the 216-run sweep behind
+# `SUPPORTED_BEDROOMS`). Seven is outside it today; the test is about the envelope being ENFORCED
+# and the request being preserved, so it moves with the envelope.
+BRIEF_BEYOND_RANGE = "בית עם שבעה חדרי שינה, ממ\"ד ושלושה חדרי רחצה."
 
 CANNED = {
     BRIEF_3BR_SAFE_OPEN: _extraction(bedrooms=3, safe_room=True, wet_rooms=2,
@@ -82,7 +90,7 @@ CANNED = {
                                 open_plan=False, parking=2),
     BRIEF_3BR_THREE_WET: _extraction(bedrooms=3, safe_room=True, wet_rooms=3,
                                      open_plan=True, parking=2),
-    BRIEF_4BR_UNSUPPORTED: _extraction(bedrooms=4, safe_room=True, wet_rooms=3,
+    BRIEF_BEYOND_RANGE: _extraction(bedrooms=7, safe_room=True, wet_rooms=3,
                                        open_plan=False, parking=2),
 }
 
@@ -103,13 +111,16 @@ def client(tmp_path, monkeypatch):
     return TestClient(app)
 
 
-#: The demo setback assumptions these fixtures are sized against (app/demo/site_geometry.py).
+#: The setbacks these fixtures are sized against. The PRODUCT default is now 0 — it asserts no
+#: planning determination — so a test whose arithmetic depends on a particular set states it.
 _F, _S, _R = 5.5, 3.0, 4.0
+_DEMO_SETBACKS = {"front_m": _F, "side_m": _S, "rear_m": _R}
+_DEMO_SETBACKS_BODY = {"front_setback_m": _F, "side_setback_m": _S, "rear_setback_m": _R}
 
 
 def _create(client: TestClient, description: str, *, width=11.0, depth=13.5,
             plot_width_m: float | None = None, plot_depth_m: float | None = None,
-            street_facing_side: str = "NORTH") -> str:
+            street_facing_side: str = "NORTH", setbacks: dict | None = None) -> str:
     """Creates a project on a parcel that GENUINELY holds the house.
 
     These used to declare a flat `plot_area_m2: 500` and no dimensions at all, which the planner
@@ -127,6 +138,7 @@ def _create(client: TestClient, description: str, *, width=11.0, depth=13.5,
         "plot_area_m2": round(plot_w * plot_d, 2), "built_area_m2": area,
         "plot_width_m": plot_w, "plot_depth_m": plot_d,
         "street_facing_side": street_facing_side,
+        "setbacks": setbacks if setbacks is not None else _DEMO_SETBACKS,
         "description": description,
         "selected_footprint": {
             "source": "PRESET", "shape_type": "RECTANGLE",
@@ -179,7 +191,7 @@ def test_brief_reaches_the_validated_pipeline_and_returns_a_plan(client, case):
 @pytest.mark.parametrize("case", sorted(VALID_BRIEFS))
 def test_generated_plan_passes_every_hard_check(client, case):
     _, _, _, design = _run_case(client, case)
-    body = design.json()
+    body = design.json()["plan"]
     assert body["validation"]["passed"]
     assert all(body["validation"]["checks"].values())
     assert body["validation"]["checks"]["C13"], "realized connectivity must pass"
@@ -190,7 +202,7 @@ def test_generated_plan_passes_every_hard_check(client, case):
 @pytest.mark.parametrize("case", sorted(VALID_BRIEFS))
 def test_requested_rooms_all_exist(client, case):
     brief, expected, _, design = _run_case(client, case)
-    body = design.json()
+    body = design.json()["plan"]
     types = [r["type"] for r in body["rooms"]]
     bedrooms = types.count("BEDROOM") + types.count("MASTER_BEDROOM")
     assert bedrooms == expected["bedrooms"]
@@ -201,7 +213,7 @@ def test_requested_rooms_all_exist(client, case):
 @pytest.mark.parametrize("case", sorted(VALID_BRIEFS))
 def test_output_is_authoritative_enough_to_render(client, case):
     _, _, _, design = _run_case(client, case)
-    body = design.json()
+    body = design.json()["plan"]
     assert body["walls"], "wall segments must be derived by the backend"
     assert body["doors"], "doors must come from the backend"
     assert any(d["is_entrance"] for d in body["doors"])
@@ -221,7 +233,7 @@ def test_closed_kitchen_brief_does_not_become_open_plan(client):
     """The parser rule most easily got wrong: "מטבח סגור, לא מטבח פתוח"."""
     _, review, design = _run(client, BRIEF_2BR_SAFE, width=12.0, depth=13.0)
     assert review["open_plan"]["value"] is False
-    body = design.json()
+    body = design.json()["plan"]
     # A closed kitchen means no wall-less join anywhere between the public rooms.
     public = {r["id"] for r in body["rooms"] if r["type"] in ("LIVING", "KITCHEN", "DINING")}
     for interface in body["open_interfaces"]:
@@ -231,7 +243,7 @@ def test_closed_kitchen_brief_does_not_become_open_plan(client):
 def test_open_plan_brief_produces_physically_open_rooms(client):
     _, review, design = _run(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     assert review["open_plan"]["value"] is True
-    body = design.json()
+    body = design.json()["plan"]
     rooms = {r["id"]: r for r in body["rooms"]}
     assert rooms["LIVING"]["walls"]["S"]["construction"] == "NONE"
     shared = [i for i in body["open_interfaces"] if len(i["room_ids"]) > 1]
@@ -240,24 +252,24 @@ def test_open_plan_brief_produces_physically_open_rooms(client):
 
 # ------------------------------------------------------------------ E: explicit rejection
 
-def test_four_bedroom_brief_is_rejected_explicitly(client):
-    project_id = _create(client, BRIEF_4BR_UNSUPPORTED)
+def test_a_bedroom_count_beyond_the_supported_range_is_rejected_explicitly(client):
+    project_id = _create(client, BRIEF_BEYOND_RANGE)
     assert client.post(f"/projects/{project_id}/requirements").status_code == 200
     response = client.post(f"/projects/{project_id}/design/demo")
     assert response.status_code == 422
     detail = response.json()["detail"]
     assert detail["code"] == "BEDROOMS_UNSUPPORTED"
-    assert "4" in detail["detail"]
+    assert "7" in detail["detail"]
     assert detail["message"]
 
 
 def test_rejection_never_silently_downgrades_the_request(client):
     """A refused brief must produce NO plan at all, not a quietly smaller house."""
-    project_id = _create(client, BRIEF_4BR_UNSUPPORTED)
+    project_id = _create(client, BRIEF_BEYOND_RANGE)
     client.post(f"/projects/{project_id}/requirements")
     assert client.post(f"/projects/{project_id}/design/demo").status_code == 422
     review = client.get(f"/projects/{project_id}/review").json()
-    assert review["bedrooms"]["value"] == 4, "the request itself is preserved untouched"
+    assert review["bedrooms"]["value"] == 7, "the request itself is preserved untouched"
 
 
 def test_generation_before_parsing_is_refused(client):
@@ -283,7 +295,7 @@ def test_review_edits_are_what_generation_uses(client):
     """The corrected requirements — not the originally parsed ones — must drive the plan."""
     project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     client.post(f"/projects/{project_id}/requirements")
-    first = client.post(f"/projects/{project_id}/design/demo").json()
+    first = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
     assert sum(1 for r in first["rooms"] if r["type"] in ("BEDROOM", "MASTER_BEDROOM")) == 3
 
     # The user corrects "3 bedrooms" to 2 in the REVIEW screen.
@@ -301,7 +313,7 @@ def test_review_edits_are_what_generation_uses(client):
     )
     assert client.get(f"/projects/{project_id}/review").json()["bedrooms"]["value"] == 2
 
-    second = client.post(f"/projects/{project_id}/design/demo").json()
+    second = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
     assert sum(1 for r in second["rooms"] if r["type"] in ("BEDROOM", "MASTER_BEDROOM")) == 2
 
 
@@ -357,14 +369,14 @@ def test_user_correction_becomes_authoritative_and_drives_generation(client):
     project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     client.post(f"/projects/{project_id}/requirements")
 
-    before = client.post(f"/projects/{project_id}/design/demo").json()
+    before = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
     assert sum(1 for r in before["rooms"] if r["type"] in ("BEDROOM", "MASTER_BEDROOM")) == 3
 
     edited = client.put(f"/projects/{project_id}/review", json={"bedrooms": 2})
     assert edited.status_code == 200
     assert edited.json()["bedrooms"] == {"value": 2, "source": "requested"}
 
-    after = client.post(f"/projects/{project_id}/design/demo").json()
+    after = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
     assert sum(1 for r in after["rooms"] if r["type"] in ("BEDROOM", "MASTER_BEDROOM")) == 2
 
 
@@ -382,7 +394,7 @@ def test_review_edit_leaves_untouched_fields_alone(client):
 def test_correcting_into_unsupported_scope_is_refused_not_planned(client):
     project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     client.post(f"/projects/{project_id}/requirements")
-    client.put(f"/projects/{project_id}/review", json={"bedrooms": 4})
+    client.put(f"/projects/{project_id}/review", json={"bedrooms": 7})
     response = client.post(f"/projects/{project_id}/design/demo")
     assert response.status_code == 422
     assert response.json()["detail"]["code"] == "BEDROOMS_UNSUPPORTED"
@@ -391,11 +403,11 @@ def test_correcting_into_unsupported_scope_is_refused_not_planned(client):
 def test_turning_off_open_plan_in_review_changes_the_built_plan(client):
     project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     client.post(f"/projects/{project_id}/requirements")
-    open_plan = client.post(f"/projects/{project_id}/design/demo").json()
+    open_plan = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
     assert [i for i in open_plan["open_interfaces"] if len(i["room_ids"]) > 1]
 
     client.put(f"/projects/{project_id}/review", json={"open_plan": False})
-    closed = client.post(f"/projects/{project_id}/design/demo").json()
+    closed = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
     public = {r["id"] for r in closed["rooms"] if r["type"] in ("LIVING", "KITCHEN", "DINING")}
     assert not [i for i in closed["open_interfaces"]
                 if len(i["room_ids"]) > 1 and set(i["room_ids"]) <= public]
@@ -452,10 +464,10 @@ def test_a_preference_we_cannot_honour_warns_but_still_plans(tmp_path, monkeypat
 
     assert [r["severity"] for r in review["unsupported_requests"]] == ["preference"]
     assert design.status_code == 200, design.text
-    assert design.json()["validation"]["passed"] is True
-    assert any(PREFERENCE in w for w in design.json()["validation"]["warnings"])
+    assert design.json()["plan"]["validation"]["passed"] is True
+    assert any(PREFERENCE in w for w in design.json()["plan"]["validation"]["warnings"])
     # the checks that passed still describe only what WAS done
-    assert all("לא נכלל" not in st for st in design.json()["validation"]["statements"])
+    assert all("לא נכלל" not in st for st in design.json()["plan"]["validation"]["statements"])
 
 
 def test_a_hard_requirement_we_cannot_honour_stops_generation(tmp_path, monkeypatch):
@@ -552,7 +564,7 @@ def test_no_corridor_width_keeps_the_existing_default(tmp_path, monkeypatch):
     review, design = _corridor_run(tmp_path, monkeypatch, None, CorridorWidthMode.MINIMUM)
     assert review["corridor_width"] is None
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     # the default path is untouched: no requirement, no C14, and a corridor the planner derived
     assert body["corridor"]["requested_width_m"] is None
     assert "C14" not in body["validation"]["checks"]
@@ -567,7 +579,7 @@ def test_a_minimum_corridor_width_is_met_or_exceeded(tmp_path, monkeypatch, requ
     assert review["corridor_width"]["mode"] == "minimum"
 
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["validation"]["checks"]["C14"] is True
     # MINIMUM is one-sided: wider is a pass, narrower is not
     assert body["corridor"]["realized_width_m"] >= requested
@@ -578,7 +590,7 @@ def test_a_minimum_is_never_reinterpreted_as_an_exact_width(tmp_path, monkeypatc
     """"לפחות 1.6" must not become "exactly 1.6" — the mode survives the whole path."""
     review, design = _corridor_run(tmp_path, monkeypatch, 1.6, CorridorWidthMode.MINIMUM)
     assert review["corridor_width"]["mode"] == "minimum"
-    assert design.json()["corridor"]["requested_mode"] == "minimum"
+    assert design.json()["plan"]["corridor"]["requested_mode"] == "minimum"
 
 
 def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
@@ -588,7 +600,7 @@ def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
     _, design = _corridor_run(tmp_path, monkeypatch, 2.0, CorridorWidthMode.EXACT,
                               side_m=14.14, brief=BRIEF_2BR_COMPACT)
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["corridor"]["requested_mode"] == "exact"
     assert abs(body["corridor"]["realized_width_m"] - 2.0) <= 0.05
     assert body["validation"]["checks"]["C14"] is True
@@ -608,7 +620,7 @@ def test_a_preferred_width_gives_way_rather_than_blocking(tmp_path, monkeypatch)
     """A preference may be dropped — but never in silence."""
     _, design = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.PREFERENCE)
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["corridor"]["requested_mode"] == "preference"
     assert body["corridor"]["satisfied"] is False
     assert any("מסדרון" in w for w in body["validation"]["warnings"]), body["validation"]["warnings"]
@@ -676,7 +688,7 @@ def test_A_hard_adjacency_is_realized_in_the_geometry(tmp_path, monkeypatch):
                               _rel("MASTER_BEDROOM", "ENSUITE", "adjacent", "hard_requirement"))
     assert review["room_relationships"][0]["relation"] == "adjacent"
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["validation"]["checks"]["C15"] is True
     assert body["relationships"][0]["satisfied"] is True
     assert _shared_boundary_m(body, "MASTER_BEDROOM", "BATHROOM") >= 0.9
@@ -687,7 +699,7 @@ def test_B_a_separation_leaves_no_shared_wall(tmp_path, monkeypatch):
     _, design = _rel_run(tmp_path, monkeypatch,
                          _rel("BEDROOM", "KITCHEN", "not_adjacent", "hard_requirement"))
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["validation"]["checks"]["C15"] is True
     assert _shared_boundary_m(body, "BEDROOM", "KITCHEN") == 0.0
 
@@ -697,7 +709,7 @@ def test_C_a_preference_is_reported_either_way(tmp_path, monkeypatch):
     _, design = _rel_run(tmp_path, monkeypatch,
                          _rel("SAFE_ROOM", "BEDROOM", "near", "preference"))
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     outcome = body["relationships"][0]
     assert outcome["strength"] == "preference"
     if outcome["satisfied"]:
@@ -721,7 +733,7 @@ def test_E_the_same_relationship_as_a_preference_still_produces_a_plan(tmp_path,
     _, design = _rel_run(tmp_path, monkeypatch,
                          _rel("KITCHEN", "SAFE_ROOM", "adjacent", "preference"))
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["relationships"][0]["satisfied"] is False
     assert any("העדפה שלא התממשה" in w for w in body["validation"]["warnings"])
     assert body["validation"]["passed"] is True
@@ -745,7 +757,7 @@ def test_G_adjacency_alone_never_fabricates_a_door(tmp_path, monkeypatch):
     assert plain.status_code == 200 and adjacent.status_code == 200
 
     def door_pairs(response):
-        return {frozenset((d["a"], d["b"])) for d in response.json()["doors"]}
+        return {frozenset((d["a"], d["b"])) for d in response.json()["plan"]["doors"]}
 
     # the adjacency request adds no door that the same plan did not already have
     assert door_pairs(adjacent) - door_pairs(plain) == set()
@@ -756,7 +768,7 @@ def test_H_direct_access_uses_the_existing_topology(tmp_path, monkeypatch):
     _, design = _rel_run(tmp_path, monkeypatch,
                          _rel("MASTER_BEDROOM", "ENSUITE", "direct_access", "hard_requirement"))
     assert design.status_code == 200, design.text
-    body = design.json()
+    body = design.json()["plan"]
     assert body["relationships"][0]["satisfied"] is True
     master = next(r["id"] for r in body["rooms"] if r["type"] == "MASTER_BEDROOM")
     bath_ids = {r["id"] for r in body["rooms"] if r["type"] == "BATHROOM"}
@@ -769,7 +781,7 @@ def test_near_is_not_quietly_upgraded_to_adjacent(tmp_path, monkeypatch):
                               _rel("SAFE_ROOM", "BEDROOM", "near", "hard_requirement"))
     assert review["room_relationships"][0]["relation"] == "near"
     assert design.status_code == 200, design.text
-    assert design.json()["relationships"][0]["satisfied"] is True
+    assert design.json()["plan"]["relationships"][0]["satisfied"] is True
 
 
 # --------------------------------------------------- the review must account for the whole brief
@@ -808,7 +820,7 @@ def test_the_room_list_matches_the_plan_that_gets_built(client):
             out[base] = out.get(base, 0) + (int(mult) if mult else 1)
         return out
 
-    assert counted(listed) == counted(r["name"] for r in design.json()["rooms"])
+    assert counted(listed) == counted(r["name"] for r in design.json()["plan"]["rooms"])
 
 
 def test_the_room_list_follows_a_correction(client):
@@ -840,8 +852,7 @@ def _create_raw(client, *, footprint, plot, street="NORTH", setbacks=None):
                                "target_area_m2": area, "area_m2": area,
                                "width_m": footprint[0], "depth_m": footprint[1]},
     }
-    if setbacks:
-        body["setbacks"] = setbacks
+    body["setbacks"] = setbacks or _DEMO_SETBACKS
     return client.post("/projects", json=body)
 
 
@@ -888,7 +899,7 @@ def test_D_the_street_facing_side_changes_the_buildable_rectangle(client):
     """Setbacks are edge-relative, so the frontage decides which dimension loses 9.5 m."""
     def options(street):
         return client.post("/projects/site/footprint-options", json={
-            "plot_width_m": 25.0, "plot_depth_m": 16.0,
+            "plot_width_m": 25.0, "plot_depth_m": 16.0, **_DEMO_SETBACKS_BODY,
             "street_facing_side": street, "built_area_m2": 72.0}).json()
 
     north, east = options("NORTH"), options("EAST")
@@ -898,10 +909,10 @@ def test_D_the_street_facing_side_changes_the_buildable_rectangle(client):
     # a 9 x 8 outline is offered on the east frontage and cannot be on the north one
     assert not any(abs(o["width_m"] - 9.0) < 0.3 and abs(o["depth_m"] - 8.0) < 0.3
                    for o in north["options"])
-    assert _create_raw(client, footprint=(9.0, 8.0), plot=(25.0, 16.0),
-                       street="NORTH").status_code == 422
-    assert _create_raw(client, footprint=(9.0, 8.0), plot=(25.0, 16.0),
-                       street="EAST").status_code == 201
+    assert _create_raw(client, footprint=(9.0, 8.0), plot=(25.0, 16.0), street="NORTH",
+                       setbacks=_DEMO_SETBACKS).status_code == 422
+    assert _create_raw(client, footprint=(9.0, 8.0), plot=(25.0, 16.0), street="EAST",
+                       setbacks=_DEMO_SETBACKS).status_code == 201
 
 
 def test_E_a_plot_area_that_contradicts_the_dimensions_is_refused(client):
@@ -986,8 +997,7 @@ def test_setbacks_are_assumptions_that_decide_what_can_be_chosen(client):
 def _options(client, *, plot=(20.0, 24.0), area=120.0, street="NORTH", setbacks=None):
     body = {"plot_width_m": plot[0], "plot_depth_m": plot[1],
             "street_facing_side": street, "built_area_m2": area}
-    if setbacks:
-        body.update(setbacks)
+    body.update(setbacks or _DEMO_SETBACKS_BODY)
     response = client.post("/projects/site/footprint-options", json=body)
     assert response.status_code == 200, response.text
     return response.json()
@@ -1082,7 +1092,7 @@ _NEGATIVE_NUMBER = re.compile(r"(?<![0-9A-Za-zא-ת])-\s*\d")   # not "כ-0 מ״
 
 def test_setbacks_deeper_than_the_plot_leave_no_buildable_area(client):
     """(a) The reported case, end to end: 200 x 3 m with 5.5 + 4.0 of front and rear setback."""
-    site = _options(client, plot=(200.0, 3.0), area=250.0)
+    site = _options(client, plot=(200.0, 3.0), area=250.0, setbacks={"front_setback_m": 5.5, "side_setback_m": 3.0, "rear_setback_m": 4.0})
 
     assert site["has_buildable_area"] is False
     assert (site["buildable_width_m"], site["buildable_depth_m"]) == (194.0, 0.0)
@@ -1105,7 +1115,7 @@ def test_setbacks_deeper_than_the_plot_leave_no_buildable_area(client):
 
 def test_setbacks_wider_than_the_plot_name_the_width_not_the_depth(client):
     """(b) The other axis: the side setbacks alone use up a 4 m wide parcel."""
-    site = _options(client, plot=(4.0, 40.0), area=120.0)
+    site = _options(client, plot=(4.0, 40.0), area=120.0, setbacks={"front_setback_m": 5.5, "side_setback_m": 3.0, "rear_setback_m": 4.0})
 
     assert site["has_buildable_area"] is False
     assert (site["buildable_width_m"], site["buildable_depth_m"]) == (0.0, 30.5)
@@ -1121,14 +1131,14 @@ def test_the_named_dimension_is_the_one_the_person_entered(client):
 
     Naming the canonical axis here would send someone to correct a field that is already right.
     """
-    site = _options(client, plot=(3.0, 200.0), area=250.0, street="EAST")
+    site = _options(client, plot=(3.0, 200.0), area=250.0, street="EAST", setbacks={"front_setback_m": 5.5, "side_setback_m": 3.0, "rear_setback_m": 4.0})
     assert site["has_buildable_area"] is False
     assert "סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳, גדול מרוחב המגרש 3.00 מ׳" in (
         site["rejection"]["message"])
 
 
 def test_a_parcel_smaller_than_the_setbacks_on_both_axes_names_both(client):
-    site = _options(client, plot=(4.0, 5.0), area=20.0)
+    site = _options(client, plot=(4.0, 5.0), area=20.0, setbacks={"front_setback_m": 5.5, "side_setback_m": 3.0, "rear_setback_m": 4.0})
     message = site["rejection"]["message"]
     assert "סך הנסיגות הקדמית והאחורית הוא 9.50 מ׳, גדול מעומק המגרש 5.00 מ׳" in message
     assert "סך הנסיגות משני הצדדים הוא 6.00 מ׳, גדול מרוחב המגרש 4.00 מ׳" in message
@@ -1136,7 +1146,7 @@ def test_a_parcel_smaller_than_the_setbacks_on_both_axes_names_both(client):
 
 def test_setbacks_exactly_equal_to_the_plot_side_are_not_described_as_greater(client):
     """Exactly 9.5 m of depth leaves exactly nothing — true, and not "greater than"."""
-    site = _options(client, plot=(20.0, 9.5), area=100.0)
+    site = _options(client, plot=(20.0, 9.5), area=100.0, setbacks={"front_setback_m": 5.5, "side_setback_m": 3.0, "rear_setback_m": 4.0})
     assert site["has_buildable_area"] is False
     assert site["buildable_depth_m"] == 0.0
     assert "שווה לעומק המגרש 9.50 מ׳" in site["rejection"]["message"]
@@ -1159,7 +1169,7 @@ def test_no_negative_dimension_reaches_a_response_or_a_message(client):
         for street in ("NORTH", "EAST", "SOUTH", "WEST"):
             where = f"plot={plot} street={street}"
 
-            site = _options(client, plot=plot, area=250.0, street=street)
+            site = _options(client, plot=plot, area=250.0, street=street, setbacks={"front_setback_m": 5.5, "side_setback_m": 3.0, "rear_setback_m": 4.0})
             assert site["buildable_width_m"] >= 0.0, where
             assert site["buildable_depth_m"] >= 0.0, where
             assert site["one_storey_footprint_capacity_m2"] >= 0.0, where
@@ -1168,7 +1178,8 @@ def test_no_negative_dimension_reaches_a_response_or_a_message(client):
 
             # the same site refusing a chosen footprint at creation. The outline is kept tiny
             # because some of these parcels are smaller than a house — the point is the SITE.
-            refused = _create_raw(client, footprint=(1.0, 1.0), plot=plot, street=street)
+            refused = _create_raw(client, footprint=(1.0, 1.0), plot=plot, street=street,
+                                  setbacks=_DEMO_SETBACKS)
             assert refused.status_code == 422, where
             detail = refused.json()["detail"]
             assert detail["code"] == "NO_BUILDABLE_AREA", where
@@ -1179,7 +1190,8 @@ def test_no_negative_dimension_reaches_a_response_or_a_message(client):
                 "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
                 "plot_area_m2": round(plot[0] * plot[1], 2), "built_area_m2": 1.0,
                 "plot_width_m": plot[0], "plot_depth_m": plot[1],
-                "street_facing_side": street, "description": BRIEF_2BR_COMPACT,
+                "street_facing_side": street, "setbacks": _DEMO_SETBACKS,
+                "description": BRIEF_2BR_COMPACT,
             }).json()["project_id"]
             client.post(f"/projects/{project_id}/requirements")
             review_site = client.get(f"/projects/{project_id}/review").json()["site"]
@@ -1227,3 +1239,359 @@ def test_the_named_cause_never_disagrees_with_the_flag():
                 width, depth)
             assert site.presented_buildable_width_m >= 0.0
             assert site.presented_buildable_depth_m >= 0.0
+
+
+# ------------------------------------------------------------------ the front door opens somewhere
+#
+# Reported from the drawing: "הדלת יוצאת באמצע קיר". The entrance was placed at the footprint's
+# horizontal CENTRE and labelled HALL regardless of what was behind it. In the front-band parti the
+# hall sits behind the public band and never touches the street wall, so the door was drawn in the
+# dining room's exterior wall while the access graph recorded a connection to a hall 6.7 m away —
+# and C5 computed "every room is reachable from the entrance" from that non-existent connection.
+
+def _plan(client, *, width=12.5, depth=14.5):
+    project_id = _create(client, BRIEF_3BR_SAFE_OPEN, width=width, depth=depth)
+    client.post(f"/projects/{project_id}/requirements")
+    design = client.post(f"/projects/{project_id}/design/demo")
+    assert design.status_code == 200, design.text
+    return design.json()["plan"]
+
+
+def test_the_entrance_opens_into_the_room_it_names(client):
+    body = _plan(client)
+    entrance = next(d for d in body["doors"] if d["is_entrance"])
+    room = next(r for r in body["rooms"] if r["id"] == entrance["b"])
+
+    assert room["x"] <= entrance["x"] <= room["x"] + room["width_m"], (
+        f"the door names {entrance['b']} but is at x={entrance['x']}, "
+        f"outside its span {room['x']}..{room['x'] + room['width_m']}")
+    assert abs(room["y"] - entrance["y"]) < 1e-6, "the door is not on that room's street wall"
+
+
+def test_the_entrance_never_opens_into_a_bedroom_or_a_bathroom(client):
+    """A front door opens into circulation or a public room — never straight into a bedroom."""
+    body = _plan(client)
+    entrance = next(d for d in body["doors"] if d["is_entrance"])
+    room = next(r for r in body["rooms"] if r["id"] == entrance["b"])
+    assert room["type"] in {"HALL", "CIRCULATION", "LIVING", "DINING", "KITCHEN"}, room["type"]
+
+
+def test_the_realization_of_the_entrance_is_checked_not_assumed(client):
+    """C16 closes the hole C13 left: the entrance is not part of the fixture's interior topology,
+    so nothing verified the one connection the whole accessibility graph is rooted at."""
+    body = _plan(client)
+    assert body["validation"]["checks"]["C16"] is True
+    assert body["validation"]["checks"]["C5"] is True
+
+
+def test_the_entrance_walk_reaches_the_door_without_crossing_the_parking(client):
+    body = _plan(client)
+    entrance = next(d for d in body["doors"] if d["is_entrance"])
+    walk = body["entrance_walk"]
+    assert walk["x"] <= entrance["x"] <= walk["x"] + walk["width_m"] + 1e-6, (
+        "the walk must lead to the door it was built for")
+    for bay in body["parking"]:
+        overlap = (min(walk["x"] + walk["width_m"], bay["x"] + bay["width_m"])
+                   - max(walk["x"], bay["x"]))
+        assert overlap <= 1e-6, f"the walk crosses a parking bay by {overlap:.2f} m"
+    assert body["validation"]["checks"]["C11"] is True
+
+
+# ------------------------------------------------ the OTHER plans the same brief and land produce
+#
+# The generator ranks its candidates, but the ranking cannot settle taste: for most briefs several
+# layouts pass every check, and a person may simply prefer one of the others. Those are now offered
+# beside the drawing. They are not runners-up — an alternative is shown only if it would have been
+# accepted as THE plan, so nothing here lowers the bar a drawing has to clear to be seen.
+
+def _plan_set(client, brief, footprint, plot=None):
+    kwargs = {"width": footprint[0], "depth": footprint[1]}
+    if plot is not None:
+        kwargs.update(plot_width_m=plot[0], plot_depth_m=plot[1])
+    project_id = _create(client, brief, **kwargs)
+    client.post(f"/projects/{project_id}/requirements")
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _layout(plan):
+    """What makes two plans the same DRAWING: which rooms, where, and how big."""
+    return tuple(sorted((r["id"], round(r["x"], 3), round(r["y"], 3),
+                         round(r["width_m"], 3), round(r["depth_m"], 3)) for r in plan["rooms"]))
+
+
+def test_the_design_request_offers_the_other_plans_it_proved(client):
+    body = _plan_set(client, BRIEF_2BR_SAFE, (14.0, 12.0))
+    assert body["plan"]["rooms"], "the engine's own choice is still the headline plan"
+    assert body["alternatives"], "this brief has other layouts; they must be offered"
+    assert len(body["alternatives"]) <= general_pipeline.ALTERNATIVE_PLAN_LIMIT
+
+
+def test_every_alternative_passes_the_same_checks_the_plan_did(client):
+    """The bar is not lowered for an option. A plan that fails a check is not drawn — ever."""
+    body = _plan_set(client, BRIEF_2BR_SAFE, (14.0, 12.0))
+    for index, alternative in enumerate(body["alternatives"]):
+        assert alternative["validation"]["passed"] is True, index
+        assert alternative["rooms"], index
+        # and it describes ITSELF: the panel beside a drawing must be about that drawing
+        assert alternative["validation"]["statements"], index
+
+
+def test_no_two_plans_offered_are_the_same_drawing(client):
+    """Two generator strategies regularly realize to identical geometry under different names."""
+    body = _plan_set(client, BRIEF_2BR_SAFE, (14.0, 12.0))
+    layouts = [_layout(body["plan"])] + [_layout(a) for a in body["alternatives"]]
+    assert len(layouts) == len(set(layouts)), "the same drawing was offered twice"
+
+
+def test_a_brief_with_only_one_distinct_plan_offers_no_alternatives(client):
+    """Empty is a real answer, and better than padding the strip with the same picture again."""
+    body = _plan_set(client, BRIEF_3BR_SAFE_OPEN, (13.0, 13.0))
+    assert body["plan"]["rooms"]
+    assert body["alternatives"] == []
+
+
+def test_the_alternatives_never_change_which_plan_was_chosen(client):
+    """The engine's selection is untouched: alternatives are gathered AFTER it, never instead."""
+    body = _plan_set(client, BRIEF_2BR_COMPACT, (11.0, 13.5))
+    chosen = _layout(body["plan"])
+    assert chosen not in {_layout(a) for a in body["alternatives"]}
+    # the same project planned again reaches the same plan — collecting options is not a reroll
+    again = _plan_set(client, BRIEF_2BR_COMPACT, (11.0, 13.5))
+    assert _layout(again["plan"]) == chosen
+
+
+def test_an_alternative_is_a_complete_plan_not_a_sketch(client):
+    """Everything the drawing needs is on every option: walls, doors, a way in, and its areas."""
+    body = _plan_set(client, BRIEF_2BR_SAFE, (14.0, 12.0))
+    for alternative in body["alternatives"]:
+        assert alternative["walls"] and alternative["doors"]
+        assert any(d["is_entrance"] for d in alternative["doors"]), "no way into the house"
+        assert alternative["gross_area_m2"] > 0 and alternative["net_area_m2"] > 0
+        assert alternative["plot"] == body["plan"]["plot"], "same land, different building"
+
+
+# ------------------------------------------------------------------ three bedrooms and more
+#
+# A shared wet room used to cost a whole private row: the column stacks one room per row and only an
+# ensuite shares its bedroom's. Measurement put the smallest plannable 3BR/2wet footprint at 149 m²
+# against a 99.6 m² geometric floor, and 4 bedrooms were out of scope entirely. Offering the same
+# rooms with a bath off a bedroom removes a row — ~40 m² of footprint each — and 4 and 5 bedrooms
+# came into range: 3BR/2wet 135 m², 4BR/2wet 130 m², 5BR/2wet 165 m².
+
+_MANY_BEDROOM_BRIEFS = {
+    3: ("בית עם 3 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 10.6)),
+    4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.2)),
+    5: ("בית עם 5 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (11.6, 14.5)),
+}
+
+
+def _many_bedroom_client(tmp_path, monkeypatch, bedrooms):
+    brief, _ = _MANY_BEDROOM_BRIEFS[bedrooms]
+
+    class _P(RequirementParser):
+        def parse(self, description: str) -> RequirementExtraction:
+            return _extraction(bedrooms=bedrooms, safe_room=False, wet_rooms=2,
+                               open_plan=True, parking=2)
+
+    repo = JsonFileProjectRepository(tmp_path / "projects.json")
+    monkeypatch.setattr(project_base_routes, "repository", repo)
+    monkeypatch.setattr(requirements_router, "parser", _P())
+    return TestClient(app), brief
+
+
+@pytest.mark.parametrize("bedrooms", [3, 4, 5])
+def test_three_bedrooms_and_more_reach_a_drawing(tmp_path, monkeypatch, bedrooms):
+    client, brief = _many_bedroom_client(tmp_path, monkeypatch, bedrooms)
+    width, depth = _MANY_BEDROOM_BRIEFS[bedrooms][1]
+
+    project_id = _create(client, brief, width=width, depth=depth,
+                         plot_width_m=width + 4, plot_depth_m=depth + 4,
+                         setbacks={"front_m": 0.0, "side_m": 0.0, "rear_m": 0.0})
+    client.post(f"/projects/{project_id}/requirements")
+    design = client.post(f"/projects/{project_id}/design/demo")
+    assert design.status_code == 200, design.text
+
+    body = design.json()["plan"]
+    assert body["validation"]["passed"] is True
+    bedroom_rooms = [r for r in body["rooms"] if r["type"] in {"BEDROOM", "MASTER_BEDROOM"}]
+    assert len(bedroom_rooms) == bedrooms, [r["id"] for r in bedroom_rooms]
+
+
+@pytest.mark.parametrize("bedrooms", [3, 4, 5])
+def test_every_bedroom_is_reachable_and_has_a_window(tmp_path, monkeypatch, bedrooms):
+    """More bedrooms must not be bought by starving one of daylight or access."""
+    client, brief = _many_bedroom_client(tmp_path, monkeypatch, bedrooms)
+    width, depth = _MANY_BEDROOM_BRIEFS[bedrooms][1]
+    project_id = _create(client, brief, width=width, depth=depth,
+                         plot_width_m=width + 4, plot_depth_m=depth + 4,
+                         setbacks={"front_m": 0.0, "side_m": 0.0, "rear_m": 0.0})
+    client.post(f"/projects/{project_id}/requirements")
+    body = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
+
+    for check in ("C5", "C8", "C13", "C16"):
+        assert body["validation"]["checks"][check] is True, f"{check}: {body['validation']}"
+
+    windowed = {w["room_id"] for w in body["windows"]}
+    for room in body["rooms"]:
+        if room["type"] in {"BEDROOM", "MASTER_BEDROOM"}:
+            assert room["id"] in windowed, f"{room['id']} has no window"
+
+
+def test_a_rearranged_programme_keeps_every_room_the_brief_asked_for(tmp_path, monkeypatch):
+    """The extra candidate moves a bathroom's DOOR, never removes or adds a room."""
+    client, brief = _many_bedroom_client(tmp_path, monkeypatch, 4)
+    width, depth = _MANY_BEDROOM_BRIEFS[4][1]
+    project_id = _create(client, brief, width=width, depth=depth,
+                         plot_width_m=width + 4, plot_depth_m=depth + 4,
+                         setbacks={"front_m": 0.0, "side_m": 0.0, "rear_m": 0.0})
+    client.post(f"/projects/{project_id}/requirements")
+    body = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
+
+    types = collections.Counter(r["type"] for r in body["rooms"])
+    assert types["BEDROOM"] + types["MASTER_BEDROOM"] == 4
+    assert types["BATHROOM"] == 2
+    assert types["KITCHEN"] == 1 and types["LIVING"] == 1
+
+
+# --------------------------------------------------- the streaming route (loading percentage)
+
+def _sse_frames(client: TestClient, project_id: str) -> list[tuple[str, dict]]:
+    """Collect (event, payload) from the streaming route, in arrival order."""
+    frames: list[tuple[str, dict]] = []
+    with client.stream("POST", f"/projects/{project_id}/design/demo/stream") as response:
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        event = ""
+        for line in response.iter_lines():
+            if line.startswith("event:"):
+                event = line[6:].strip()
+            elif line.startswith("data:"):
+                frames.append((event, json.loads(line[5:].strip())))
+    return frames
+
+
+def _prepare(client: TestClient, brief: str, **kwargs) -> str:
+    project_id = _create(client, brief, **kwargs)
+    assert client.post(f"/projects/{project_id}/requirements").status_code == 200
+    return project_id
+
+
+def test_streaming_route_reports_every_stage_and_reaches_100_percent(client):
+    project_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+
+    frames = _sse_frames(client, project_id)
+
+    progress = [payload for event, payload in frames if event == "progress"]
+    assert [p["step"] for p in progress] == list(range(1, len(general_pipeline.PIPELINE_STAGES) + 1))
+    assert progress[-1]["percent"] == 100
+    # Monotonic, and every percentage is a real fraction of the stages — never a timer.
+    assert [p["percent"] for p in progress] == sorted(p["percent"] for p in progress)
+    for payload in progress:
+        assert payload["percent"] == round(payload["step"] * 100 / payload["total"])
+        assert payload["label"], "a stage without a label would show an empty caption"
+
+
+def test_streaming_route_ends_with_the_same_plan_the_plain_route_returns(client):
+    streamed_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    plain_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+
+    frames = _sse_frames(client, streamed_id)
+    plain = client.post(f"/projects/{plain_id}/design/demo")
+
+    assert plain.status_code == 200, plain.text
+    done = [payload for event, payload in frames if event == "done"]
+    assert len(done) == 1, "exactly one terminal event"
+    assert done[0]["plan"]["rooms"] == plain.json()["plan"]["rooms"]
+
+
+def test_streaming_route_reports_a_refusal_as_an_error_event_not_a_finished_plan(client):
+    # A footprint far too small for the brief: the pipeline refuses, and the stream must say so
+    # rather than ending on a partial percentage the screen would sit at forever.
+    project_id = _prepare(client, BRIEF_3BR_THREE_WET, width=7.0, depth=8.0)
+
+    frames = _sse_frames(client, project_id)
+
+    assert not any(event == "done" for event, _ in frames)
+    errors = [payload for event, payload in frames if event == "error"]
+    assert len(errors) == 1
+    assert errors[0]["code"]
+    assert errors[0]["message"]
+
+
+def test_a_refused_stream_is_logged_with_the_full_brief(client, tmp_path, monkeypatch):
+    from app.observability import failure_log
+    monkeypatch.setattr(failure_log, "_path", tmp_path / "failures.json")
+    project_id = _prepare(client, BRIEF_3BR_THREE_WET, width=7.0, depth=8.0)
+
+    _sse_frames(client, project_id)
+
+    entries = failure_log.read_all()
+    streamed = [e for e in entries if e["where"].endswith("/design/demo/stream")]
+    assert streamed, "a refusal on the stream must reach the failure log"
+    # The stream is what the UI calls now; its log entry must carry the same brief the plain route's
+    # did, or switching the UI over would quietly have thinned the diagnostics.
+    context = streamed[-1]["context"]
+    assert context["description"] == BRIEF_3BR_THREE_WET
+    assert context["bedrooms"] == 3
+    assert context["footprint_width_m"] == 7.0
+
+
+def test_a_refusal_records_what_the_ENGINE_did_not_only_what_the_person_was_told(client):
+    """The screen message names no cause. The log entry must.
+
+    A brief that cannot be realized used to produce a log entry whose only account of the failure
+    was the sentence shown to the person — "we could not produce a valid plan", which is true and
+    useless. The engine's own reasons are the half worth keeping.
+    """
+    from app.observability import failure_log
+    project_id = _prepare(client, BRIEF_3BR_THREE_WET, width=7.0, depth=8.0)
+
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 422
+
+    entry = failure_log.read_all()[-1]
+    diagnostics = entry["context"]["diagnostics"]
+    # The programme being solved for, so the entry can be reproduced without the project file.
+    assert diagnostics["programme"]["bedrooms"] == 3
+    assert diagnostics["programme"]["wet_rooms"] == 3
+    # And the engine's own account: candidates tried, and one reason per rejected candidate.
+    engine = diagnostics["engine"]
+    assert engine["rejection_reasons"], "the reasons the candidates were rejected must be kept"
+    assert engine["solver_attempts"] >= 0
+    assert engine["concept_candidates_generated"] >= 0
+    # None of that is the message the person saw.
+    assert entry["message"] not in str(engine["rejection_reasons"])
+
+
+def test_a_validation_failure_records_which_checks_failed(client):
+    """PLAN_FAILED_VALIDATION says 'did not pass the checks'. Which ones is the whole question."""
+    from app.demo import service
+    from app.observability import failure_log
+    project_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+
+    real = service.generate_demo_design
+
+    def failing(project, on_stage=None):
+        raise service.DemoGenerationError(
+            "PLAN_FAILED_VALIDATION", "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",
+            "C13: HALL-KITCHEN",
+            diagnostics={"validation": {"ok": False,
+                                        "failed_checks": [{"check": "C13", "name": "connectivity",
+                                                           "detail": "HALL-KITCHEN"}],
+                                        "checks_run": ["C1", "C13"]}})
+
+    import app.demo.router as demo_router
+    original = demo_router.generate_demo_design
+    demo_router.generate_demo_design = failing
+    try:
+        assert client.post(f"/projects/{project_id}/design/demo").status_code == 422
+    finally:
+        demo_router.generate_demo_design = original
+        service.generate_demo_design = real
+
+    entry = failure_log.read_all()[-1]
+    failed = entry["context"]["diagnostics"]["validation"]["failed_checks"]
+    assert [c["check"] for c in failed] == ["C13"]
+    assert failed[0]["detail"] == "HALL-KITCHEN"

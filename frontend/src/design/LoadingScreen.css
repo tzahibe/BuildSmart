@@ -141,3 +141,63 @@
   font-size: 0.9rem;
   color: #6b6b6b;
 }
+
+/* ---------------------------------------------------------------- real progress
+   The bar's width comes from stages the backend genuinely entered, so it advances in six steps
+   rather than sweeping smoothly. The transition softens each step; it never moves on its own. */
+
+.loading-screen__status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  width: min(90vw, 22rem);
+}
+
+.loading-screen__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.loading-screen__bar {
+  height: 0.5rem;
+  width: 100%;
+  border-radius: 999px;
+  background: #cfe3d6;
+  overflow: hidden;
+}
+
+.loading-screen__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6f9c72 0%, #3a5a40 100%);
+  transition: width 260ms ease-out;
+}
+
+.loading-screen__readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.loading-screen__percent {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #3a5a40;
+  unicode-bidi: isolate;
+}
+
+.loading-screen__steps {
+  font-size: 0.85rem;
+  color: #6b7d6e;
+  unicode-bidi: isolate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-screen__bar-fill {
+    transition: none;
+  }
+}

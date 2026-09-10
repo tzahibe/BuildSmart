@@ -10,7 +10,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .geometry_core.model import ConnectionKind, Fixture, Rect, Side, m_to_u, u_to_m
+from .geometry_core.model import (
+    ConnectionKind,
+    Fixture,
+    ProgramRole,
+    Rect,
+    Side,
+    m_to_u,
+    u_to_m,
+)
 from .site import EntranceWalk
 
 INTERIOR_DOOR_WIDTH_M = 0.9
@@ -28,6 +36,12 @@ class Door:
     orientation: str              # "vertical" (in an E/W-facing wall) or "horizontal" (N/S-facing)
     placeable: bool
     shared_length_m: float
+    #: WHICH ROOM THE LEAF SWINGS INTO, and which end of the opening it is hinged at. Both are
+    #: architectural decisions, so the ENGINE makes them and the renderer only draws them — the same
+    #: rule that stopped the drawing inferring where doors are in the first place. `swings_into` is
+    #: a zone id; `hinge_at` is the (x, y) grid point of the hinged jamb.
+    swings_into: str = ""
+    hinge_at: tuple[int, int] = (0, 0)
 
 
 def _side_between(a: Rect, b: Rect) -> Side | None:
@@ -40,6 +54,51 @@ def _side_between(a: Rect, b: Rect) -> Side | None:
     if b.y2 == a.y:
         return Side.N
     return None
+
+
+#: Roles a door should NOT swing into: you do not push a door open into a corridor people are
+#: walking down. Everything else takes the swing.
+_NEVER_SWING_INTO = (ProgramRole.HALL, ProgramRole.CIRCULATION)
+
+
+def _swing(fixture: Fixture, rects: dict[str, Rect], a: str, b: str,
+           center: tuple[int, int], orientation: str, width_u: int) -> tuple[str, tuple[int, int]]:
+    """Which room the leaf opens into, and which jamb it hangs from.
+
+    Two conventions, both ordinary and both deterministic:
+
+      * A door swings INTO the room being entered, never out into circulation — a leaf opening into
+        a corridor blocks the corridor. Between two ordinary rooms the smaller one takes it, which
+        is why a bathroom door opens inward.
+      * It hangs from the jamb NEARER the room's corner, so the open leaf lies back along a wall
+        instead of standing in the middle of the floor.
+    """
+    roles = {z.zone_id: z.roles for z in fixture.zones}
+
+    def is_circulation(zone_id: str) -> bool:
+        return any(r in _NEVER_SWING_INTO for r in roles.get(zone_id, ()))
+
+    if is_circulation(a) and not is_circulation(b):
+        into = b
+    elif is_circulation(b) and not is_circulation(a):
+        into = a
+    else:
+        ra, rb = rects.get(a), rects.get(b)
+        into = a if (ra and rb and ra.w * ra.h <= rb.w * rb.h) else b
+
+    room = rects.get(into)
+    cx, cy = center
+    half = width_u // 2
+    if room is None:
+        return into, (cx - half, cy) if orientation == "horizontal" else (cx, cy - half)
+
+    if orientation == "horizontal":                 # opening runs along x, in an N/S wall
+        low, high = (cx - half, cy), (cx + half, cy)
+        nearer_low = abs(cx - half - room.x) <= abs(room.x2 - (cx + half))
+    else:                                           # opening runs along y, in an E/W wall
+        low, high = (cx, cy - half), (cx, cy + half)
+        nearer_low = abs(cy - half - room.y) <= abs(room.y2 - (cy + half))
+    return into, (low if nearer_low else high)
 
 
 def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Door]:
@@ -70,9 +129,70 @@ def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Do
             mid_x = (lo + hi) // 2
             center = (mid_x, ra.y2 if side is Side.S else ra.y)
             orientation = "horizontal"
+        swings_into, hinge_at = _swing(fixture, rects, e.a, e.b, center, orientation, width_u)
         doors.append(Door(e.a, e.b, e.kind, INTERIOR_DOOR_WIDTH_M, center, orientation,
-                           placeable, u_to_m(shared_u)))
+                           placeable, u_to_m(shared_u), swings_into, hinge_at))
     return doors
+
+
+#: Which zones a front door may open into, best first. A person enters a house through its
+#: circulation or its public rooms — never straight into a bedroom, a bathroom or the safe room.
+ENTRANCE_ZONE_PRIORITY = (
+    ProgramRole.HALL, ProgramRole.CIRCULATION,
+    ProgramRole.LIVING, ProgramRole.DINING, ProgramRole.KITCHEN,
+)
+
+
+def resolve_entrance(fixture: Fixture, rects: dict[str, Rect],
+                     footprint: Rect) -> tuple[str, int, int] | None:
+    """Which zone the front door can actually open into, and where on the street wall it goes.
+
+    THE DEFECT THIS REPLACES. The entrance used to be placed at the footprint's horizontal centre
+    and labelled `HALL` regardless of what was behind it. In the front-band parti the hall sits
+    BEHIND the public band and never touches the street wall at all, so the front door was drawn in
+    the middle of the dining room's exterior wall while the access graph recorded a connection to a
+    hall 6.7 m away — and C5 then computed "every room is reachable from the entrance" from that
+    non-existent connection.
+
+    Read off the realized geometry instead: the zones that genuinely front the street, taken in
+    priority order. Returns the chosen zone and the SPAN of street wall the door may sit in — a
+    span rather than a point, because the caller also has to keep the walk clear of the parking
+    bays, and only it knows where those are. `None` when no acceptable zone fronts the street, so
+    the caller can refuse rather than invent a door.
+    """
+    roles = {z.zone_id: z.roles for z in fixture.zones}
+    width_u = m_to_u(ENTRANCE_DOOR_WIDTH_M)
+
+    fronting = []
+    for zone_id, rect in rects.items():
+        if rect.y != footprint.y:                     # not on the street wall
+            continue
+        span_start, span_end = max(rect.x, footprint.x), min(rect.x2, footprint.x2)
+        if span_end - span_start < width_u:           # too little frontage to hold a door
+            continue
+        best = None
+        for rank, role in enumerate(ENTRANCE_ZONE_PRIORITY):
+            if role in roles.get(zone_id, ()):
+                best = rank
+                break
+        if best is not None:
+            fronting.append((best, zone_id, span_start, span_end))
+
+    if not fronting:
+        return None
+
+    # Best role wins; a tie goes to the widest frontage, then to the leftmost, so the choice is
+    # deterministic rather than dependent on dict ordering.
+    fronting.sort(key=lambda f: (f[0], -(f[3] - f[2]), f[2]))
+    _, zone_id, span_start, span_end = fronting[0]
+
+    # The existing placeability rule still applies: a full door width of wall on each side, measured
+    # against the FOOTPRINT, so the door is not jammed into a corner of the building.
+    low = max(span_start, footprint.x + width_u)
+    high = min(span_end, footprint.x2 - width_u)
+    if low > high:
+        return None
+    return zone_id, low, high
 
 
 def build_entrance_door(entrance: EntranceWalk, footprint: Rect,
@@ -89,5 +209,8 @@ def build_entrance_door(entrance: EntranceWalk, footprint: Rect,
     x, y = entrance.door_point_u
     on_wall = footprint.x <= x <= footprint.x2 and y == footprint.y
     placeable = on_wall and (x - footprint.x) >= width_u and (footprint.x2 - x) >= width_u
+    # A front door opens INWARD, always — outward into the street is not a thing.
+    half = width_u // 2
     return Door("OUTSIDE", entrance_zone_id, ConnectionKind.DOOR, ENTRANCE_DOOR_WIDTH_M,
-                (x, y), "horizontal", placeable, footprint.w if on_wall else 0.0)
+                (x, y), "horizontal", placeable, footprint.w if on_wall else 0.0,
+                entrance_zone_id, (x - half, y))

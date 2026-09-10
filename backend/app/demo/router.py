@@ -6,22 +6,28 @@ then a one-line change, not a migration.
 """
 from __future__ import annotations
 
+import json
+import queue
+import threading
+
 from fastapi import APIRouter, HTTPException, Request
-
-from app.projects.routes import base_routes as project_routes
-
-from app.projects.models import SourceTag, TaggedBool, TaggedInt
-
-from .contract import DemoDesign
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.projects.models import SetbackAssumptions, StreetSide
-
 from app.observability import failure_log
+from app.projects.models import (SetbackAssumptions, SourceTag, StreetSide, TaggedBool,
+                                 TaggedInt)
+from app.projects.routes import base_routes as project_routes
+from app.vertical_slice.general_pipeline import PIPELINE_STAGES
 
 from . import site_geometry
+from .contract import DemoPlanSet
 from .requirements_view import RequirementsReview, ReviewEdit, review_of
 from .service import DemoGenerationError, generate_demo_design
+
+
+def _sse(event: str, payload: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
 router = APIRouter(prefix="/projects", tags=["demo"])
 
@@ -85,34 +91,120 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
     return review_of(updated)
 
 
-@router.post("/{project_id}/design/demo", response_model=DemoDesign)
-def generate_demo_plan(project_id: str, request: Request) -> DemoDesign:
+def _failure_context(project_id: str, project, error=None) -> dict:
+    """Everything needed to reproduce a refusal, from the one frame that still has it.
+
+    Shared by both generation routes on purpose: the streaming route is what the UI calls now, and a
+    failure log that grew thinner the moment the UI changed would be a diagnostic that quietly
+    stopped working.
+    """
+    footprint = project.selected_footprint
+    context: dict = {
+        "project_id": project_id,
+        "description": project.description,
+        "plot_width_m": project.plot_width_m,
+        "plot_depth_m": project.plot_depth_m,
+        "street_facing_side": (project.street_facing_side.value
+                               if project.street_facing_side else None),
+        "built_area_m2": project.built_area_m2,
+        "footprint_width_m": footprint.width_m if footprint else None,
+        "footprint_depth_m": footprint.depth_m if footprint else None,
+        "bedrooms": project.bedrooms.value if project.bedrooms else None,
+        "wet_rooms": project.wet_rooms.value if project.wet_rooms else None,
+        "safe_room": project.safe_room.value if project.safe_room else None,
+        "open_plan": project.open_plan.value if project.open_plan else None,
+    }
+    # WHAT THE ENGINE ACTUALLY DID, separate from what the person was told. The message on screen
+    # is written for them and names no cause; this is the half that can be acted on.
+    diagnostics = getattr(error, "diagnostics", None)
+    if diagnostics:
+        context["diagnostics"] = diagnostics
+    return context
+
+
+@router.post("/{project_id}/design/demo/stream")
+def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
+    """The same generation, reporting each stage AS IT HAPPENS.
+
+    The loading screen needs a percentage that means something. A timer would produce one with no
+    relationship to the work — the same class of invention as drawing a door nobody planned — so the
+    number comes from `PIPELINE_STAGES`, which the pipeline announces only for work it is about to
+    do. The plain `POST /design/demo` is untouched and stays the contract everything else uses.
+
+    Server-sent events: one `progress` per stage, then exactly one `done` or `error`.
+    """
+    project = _project_or_404(project_id)
+    total = len(PIPELINE_STAGES)
+    labels = dict(PIPELINE_STAGES)
+    order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
+
+    def events():
+        """Run the pipeline on a worker thread and forward each stage the moment it starts.
+
+        Collecting the stages and replaying them at the end would be a faithful record and a useless
+        indicator — the reader would see nothing, then everything. The queue is what makes the
+        percentage arrive while the work is still happening.
+        """
+        updates: queue.Queue = queue.Queue()
+        outcome: dict = {}
+
+        def run() -> None:
+            try:
+                result = generate_demo_design(project, on_stage=updates.put)
+                outcome["value"] = DemoPlanSet(plan=result.design,
+                                               alternatives=list(result.alternatives))
+            except DemoGenerationError as error:
+                outcome["error"] = error
+                failure_log.refusal(error.code, error.message, error.detail,
+                                    where="POST /projects/{id}/design/demo/stream",
+                                    context=_failure_context(project_id, project, error))
+            except Exception as error:            # noqa: BLE001 - reported, never swallowed
+                outcome["crash"] = error
+                failure_log.crash(error, where="POST /projects/{id}/design/demo/stream",
+                                  context=_failure_context(project_id, project))
+            finally:
+                updates.put(None)
+
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        while True:
+            name = updates.get()
+            if name is None:
+                break
+            step = order[name] + 1
+            yield _sse("progress", {"step": step, "total": total, "label": labels[name],
+                                    "percent": round(step * 100 / total)})
+        worker.join()
+
+        if "value" in outcome:
+            yield _sse("done", json.loads(outcome["value"].model_dump_json()))
+        elif "error" in outcome:
+            error = outcome["error"]
+            yield _sse("error", {"code": error.code, "message": error.message,
+                                 "detail": error.detail})
+        else:
+            yield _sse("error", {"code": "INTERNAL_ERROR",
+                                 "message": "אירעה שגיאה בלתי צפויה. הפרטים נרשמו ביומן התקלות.",
+                                 "detail": type(outcome.get("crash")).__name__})
+
+    return StreamingResponse(events(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/{project_id}/design/demo", response_model=DemoPlanSet)
+def generate_demo_plan(project_id: str, request: Request) -> DemoPlanSet:
     project = _project_or_404(project_id)
     try:
-        return generate_demo_design(project).design
+        result = generate_demo_design(project)
+        return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives))
     except DemoGenerationError as error:
         # Recorded HERE rather than only in the generic handler, because this is the failure that
         # matters most — somebody who described a house and did not get a drawing — and only this
         # frame still has the brief, the parcel and the footprint that produced it.
-        footprint = project.selected_footprint
         failure_log.refusal(
             error.code, error.message, error.detail,
             where="POST /projects/{id}/design/demo",
-            context={
-                "project_id": project_id,
-                "description": project.description,
-                "plot_width_m": project.plot_width_m,
-                "plot_depth_m": project.plot_depth_m,
-                "street_facing_side": (project.street_facing_side.value
-                                       if project.street_facing_side else None),
-                "built_area_m2": project.built_area_m2,
-                "footprint_width_m": footprint.width_m if footprint else None,
-                "footprint_depth_m": footprint.depth_m if footprint else None,
-                "bedrooms": project.bedrooms.value if project.bedrooms else None,
-                "wet_rooms": project.wet_rooms.value if project.wet_rooms else None,
-                "safe_room": project.safe_room.value if project.safe_room else None,
-                "open_plan": project.open_plan.value if project.open_plan else None,
-            })
+            context=_failure_context(project_id, project, error))
         # Tell the generic handler this one is already in the log WITH its context, so the same
         # failure is not counted twice — once richly here and once bare there.
         request.state.failure_recorded = True
@@ -131,9 +223,9 @@ class FootprintOptionsRequest(BaseModel):
     plot_depth_m: float = Field(gt=0)
     street_facing_side: StreetSide = StreetSide.north
     built_area_m2: float = Field(gt=0)
-    front_setback_m: float | None = Field(default=None, gt=0)
-    side_setback_m: float | None = Field(default=None, gt=0)
-    rear_setback_m: float | None = Field(default=None, gt=0)
+    front_setback_m: float | None = Field(default=None, ge=0)
+    side_setback_m: float | None = Field(default=None, ge=0)
+    rear_setback_m: float | None = Field(default=None, ge=0)
 
 
 class FootprintOption(BaseModel):
@@ -188,9 +280,13 @@ def footprint_options(body: FootprintOptionsRequest) -> FootprintOptionsResponse
         canonical_depth_m=(body.plot_width_m
                            if body.street_facing_side in (StreetSide.east, StreetSide.west)
                            else body.plot_depth_m),
-        front_setback_m=body.front_setback_m or site_geometry.FRONT_SETBACK_M,
-        side_setback_m=body.side_setback_m or site_geometry.SIDE_SETBACK_M,
-        rear_setback_m=body.rear_setback_m or site_geometry.REAR_SETBACK_M,
+        # `or` would swallow a legitimate 0 and silently restore the default.
+        front_setback_m=(site_geometry.FRONT_SETBACK_M if body.front_setback_m is None
+                         else body.front_setback_m),
+        side_setback_m=(site_geometry.SIDE_SETBACK_M if body.side_setback_m is None
+                        else body.side_setback_m),
+        rear_setback_m=(site_geometry.REAR_SETBACK_M if body.rear_setback_m is None
+                        else body.rear_setback_m),
     )
     pairs = site_geometry.feasible_options(site, body.built_area_m2)
     capacity = site_geometry.one_storey_capacity_m2(site)

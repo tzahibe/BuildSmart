@@ -245,10 +245,20 @@ function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, on
       <header className="page-header">
         <span className="eyebrow">BuildSmart</span>
         <h1>בחר/י את מתאר הבניין</h1>
-        <p>
-          שטח בנייה יעד: {targetAreaM2.toFixed(2)} מ&quot;ר. זהו המתאר הפיזי של הבניין על המגרש — הגבול החיצוני
-          בלבד. כל אפשרות שומרת בקירוב על אותו שטח בנייה ונבדלת רק ביחס המידות שלה.
-        </p>
+        {/* The single most common confusion at this step: the four cards below rarely share the
+            plot's own width/depth ratio, and nothing said why. The building is its OWN outline,
+            smaller than the plot (a 200 m² building on a 300 m² plot leaves a garden) and free to
+            take any proportion that preserves its target area — it is not the plot resized. */}
+        {site && !site.rejection ? (
+          <p className="footprint-selection__plot-note">
+            המגרש שלך: <Dim a={site.plot_width_m} b={site.plot_depth_m} /> מ&apos; ({site.one_storey_footprint_capacity_m2.toFixed(0)} מ&quot;ר קיבולת בנייה). הבניין המבוקש — {targetAreaM2.toFixed(0)} מ&quot;ר — קטן מהמגרש, ולכן יכול לקבל כל יחס רוחב-עומק שמשמר את שטחו; הוא אינו חייב להתאים ליחס המידות של המגרש עצמו. ארבע ההצעות למטה הן ארבע צורות שונות לאותו שטח בניין.
+          </p>
+        ) : (
+          <p>
+            שטח בנייה יעד: {targetAreaM2.toFixed(2)} מ&quot;ר. זהו המתאר הפיזי של הבניין על המגרש — הגבול החיצוני
+            בלבד. כל אפשרות שומרת בקירוב על אותו שטח בנייה ונבדלת רק ביחס המידות שלה.
+          </p>
+        )}
         <p className="footprint-selection__scope-note">
           החלוקה הפנימית — סידור החדרים, המסדרון והאזורים — נקבעת אוטומטית על ידי המערכת מתוך הדרישות שאישרת,
           ואינה נבחרת כאן.

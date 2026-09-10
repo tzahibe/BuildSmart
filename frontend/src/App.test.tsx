@@ -202,7 +202,8 @@ describe('App — project creation -> FOOTPRINT SELECTION -> plan generation', (
       plot_width_m: 30,
       plot_depth_m: 34,
       street_facing_side: 'NORTH',
-      setbacks: { front_m: 5.5, side_m: 3, rear_m: 4 },
+      // the form's own defaults, which assert nothing until somebody enters real ones
+      setbacks: { front_m: 0, side_m: 0, rear_m: 0 },
       built_area_m2: 120,
       description: 'בית עם 3 חדרי שינה',
       selected_footprint: {
@@ -345,13 +346,19 @@ describe('one-storey footprint semantics on the form', () => {
   })
 
   /** Fills only the site fields, which is all the capacity depends on. */
-  async function siteOnly(width = '15', depth = '20') {
+  /** The PRODUCT default is 0 — it asserts no planning determination. A test whose arithmetic
+   *  depends on particular setbacks types them in, the same way a person would. */
+  async function siteOnly(width = '15', depth = '20',
+                          setbacks: [string, string, string] = ['5.5', '3', '4']) {
     render(<App />)
     fireEvent.change(screen.getByLabelText('עיר / רשות מקומית'), { target: { value: 'תל אביב' } })
     await waitFor(() => expect(screen.getByLabelText('רחוב ומספר')).toBeEnabled())
     fireEvent.change(screen.getByLabelText('רחוב ומספר'), { target: { value: 'הרצל 1' } })
     fireEvent.change(screen.getByLabelText("רוחב מגרש (מ')"), { target: { value: width } })
     fireEvent.change(screen.getByLabelText("עומק מגרש (מ')"), { target: { value: depth } })
+    fireEvent.change(screen.getByLabelText("חזית (מ')"), { target: { value: setbacks[0] } })
+    fireEvent.change(screen.getByLabelText("צדדים (מ')"), { target: { value: setbacks[1] } })
+    fireEvent.change(screen.getByLabelText("אחורית (מ')"), { target: { value: setbacks[2] } })
   }
 
   const AREA_FIELD = 'שטח בנייה בקומה אחת (טביעת רגל) (מ"ר)'
@@ -395,6 +402,7 @@ describe('one-storey footprint semantics on the form', () => {
 
     fireEvent.change(screen.getByLabelText("חזית (מ')"), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText("אחורית (מ')"), { target: { value: '2' } })
+    // 15 - 2*3 = 9.00 wide still, 20 - 3 - 2 = 15.00 deep now
     // 20 - 3 - 2 = 15.00 deep now
     expect(screen.getByText('9.00 × 15.00')).toBeInTheDocument()
     expect(screen.getByText('135.00 מ"ר')).toBeInTheDocument()

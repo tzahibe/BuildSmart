@@ -31,9 +31,14 @@ from app.projects.models import Project, StreetSide
 
 #: DEMO PLANNING ASSUMPTIONS — not verified planning or legal figures, and not presented as such.
 #: They are applied by SUBTRACTION from the authoritative site; they never generate one.
-FRONT_SETBACK_M = 5.5
-SIDE_SETBACK_M = 3.0
-REAR_SETBACK_M = 4.0
+#:
+#: DEFAULT ZERO, deliberately. Any non-zero default is a planning determination this project has not
+#: made, and 5.5 / 3 / 4 consumed 68% of a 300 m² plot — a guess nobody verified was deciding what
+#: could be built. Zero asserts nothing: the buildable region is the parcel until somebody enters
+#: the setbacks that actually apply, and the field is right there on the form to enter them in.
+FRONT_SETBACK_M = 0.0
+SIDE_SETBACK_M = 0.0
+REAR_SETBACK_M = 0.0
 
 #: Shown with the numbers wherever they appear, so nobody mistakes them for a planning determination.
 SETBACK_DISCLAIMER = "הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת."
@@ -343,32 +348,59 @@ def feasible_width_range_m(site: SiteGeometry, area_m2: float) -> tuple[float, f
     return (low, min(high, max(low, high)))
 
 
+#: Proportions to offer, best first. NOT an even spread across what geometry allows — that is what
+#: the previous version did, and a 1440-scenario scan showed where it put people:
+#:
+#:     ratio 0.90-1.10   74.5% of plans succeed        ratio <0.60   16.1%
+#:     ratio 1.10-1.30   52.5%                         ratio >1.60   19.0%
+#:
+#: and 39% of everything offered landed in those two extremes. For a 3-bedroom house with a safe
+#: room, every single offer above ratio 1.3 failed — 66 of 66. The planner builds a west column |
+#: hall spine | east column, and that parti needs a roughly square rectangle; an even spread across
+#: a long parcel hands people outlines it cannot use.
+#:
+#: These four span 0.75-1.45 — real variety, all of it inside the bands that actually plan.
+PREFERRED_RATIOS = (0.95, 1.15, 0.75, 1.45)
+
+
 def feasible_options(site: SiteGeometry, area_m2: float,
                      count: int = OPTION_COUNT) -> list[tuple[float, float]]:
-    """Up to `count` (width, depth) outlines of the requested area, all of which FIT.
+    """Up to `count` (width, depth) outlines of the requested area, all of which FIT, best first.
 
-    Spread evenly across the feasible width interval so the offered set still spans genuinely
-    different proportions where the site allows it, and collapses to one option where it does not.
-    Widths are snapped to the 5 cm grid and then re-checked, because snapping can push an endpoint
-    a few millimetres outside the interval.
+    Two filters, in order. GEOMETRY decides what is possible: `feasible_width_range_m` gives the
+    widths at which this exact area fits inside the buildable rectangle. PLANNABILITY decides what
+    is worth offering: `PREFERRED_RATIOS` picks proportions the planner can actually use, clipped to
+    that interval. Where the site is generous all four come out at their preferred shapes; where it
+    is tight they collapse toward whatever fits, and the caller still gets the best available rather
+    than nothing.
+
+    The area is never adjusted. An option is a different SHAPE of the requested area, never a
+    smaller one.
     """
     interval = feasible_width_range_m(site, area_m2)
     if interval is None:
         return []
     low, high = interval
 
-    raw = [low] if high - low < 0.05 else [
-        low + (high - low) * i / (count - 1) for i in range(count)]
+    def clip(width: float) -> float:
+        return round(min(max(width, low), high) / 0.05) * 0.05
+
+    wanted = [clip((area_m2 * ratio) ** 0.5) for ratio in PREFERRED_RATIOS[:count]]
+
+    # Where the preferred shapes all clip to the same few widths — a tight site — fill the rest from
+    # the interval so the person still sees the choice the geometry genuinely offers.
+    if high - low >= 0.05:
+        wanted += [clip(low + (high - low) * i / max(count - 1, 1)) for i in range(count)]
 
     out: list[tuple[float, float]] = []
-    for width in raw:
-        w = round(width / 0.05) * 0.05
-        w = min(max(w, low), high)          # snapping must not leave the feasible interval
-        w = round(w, 2)
+    for width in wanted:
+        w = round(width, 2)
         d = round(area_m2 / w, 2)
         if w > site.buildable_width_m + 1e-9 or d > site.buildable_depth_m + 1e-9:
             continue
-        if any(abs(w - existing_w) < 0.05 for existing_w, _ in out):
+        if any(abs(w - existing) < 0.05 for existing, _ in out):
             continue
         out.append((w, d))
+        if len(out) == count:
+            break
     return out

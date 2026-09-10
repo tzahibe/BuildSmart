@@ -53,6 +53,11 @@ export interface DemoOpenInterface {
 }
 
 export interface DemoDoor {
+  /** The room the leaf opens into, and the hinged jamb — both decided by the engine. The drawing
+   *  renders the door symbol from these; it never decides a swing itself. */
+  swings_into?: string
+  hinge_x?: number
+  hinge_y?: number
   a: string
   b: string
   kind: string
@@ -113,6 +118,16 @@ export interface DemoDesign {
   validation: DemoValidation
 }
 
+/** What the design request answers with: a plan, and the other plans that were also possible.
+ *
+ * `alternatives` are not runners-up. Each one passed exactly the same checks `plan` did, so the
+ * person is choosing between plans, not between a plan and some lesser drawings. Empty is a real
+ * and common answer — for many briefs the engine produces only one distinct layout. */
+export interface DemoPlanSet {
+  plan: DemoDesign
+  alternatives: DemoDesign[]
+}
+
 /** "This is what I understood" — mirrors `RequirementsReview`. */
 export interface ReviewField {
   value: number | boolean | null
@@ -151,6 +166,17 @@ export interface RoomRelationshipNote {
 
 /** The parcel and the assumptions applied to it. Everything here is either entered or derived by
  *  subtraction — the buildable rectangle is never larger than the plot. */
+/** What the demo can plan, as the BACKEND reports it (app/demo/scope.py). Optional so a response
+ * from an older backend still parses; the screen then falls back to its own bounds. */
+export interface ScopeLimits {
+  bedrooms_min: number
+  bedrooms_max: number
+  wet_rooms_min: number
+  wet_rooms_max: number
+  parking_max: number
+  floors: number
+}
+
 export interface SiteNote {
   plot_width_m: number
   plot_depth_m: number
@@ -172,6 +198,7 @@ export interface SiteNote {
 }
 
 export interface RequirementsReview {
+  limits?: ScopeLimits
   bedrooms: ReviewField
   safe_room: ReviewField
   wet_rooms: ReviewField

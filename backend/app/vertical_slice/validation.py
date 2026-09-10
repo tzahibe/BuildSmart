@@ -280,6 +280,29 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     rep.add("C12", "outdoor regions explicitly classified", not unclassified,
             "; ".join(unclassified) or f"{len(site.garden)} garden region(s) explicitly classified")
 
+    # C16 — the front door is on the wall of the room it says it opens into.
+    #
+    # THE HOLE THIS CLOSES. C13 enforces "a declared connection must be physically realized" over
+    # the fixture's INTERIOR topology, and the entrance is deliberately not part of that graph — it
+    # is resolved at site level. So the one connection nothing checked was the one the whole
+    # accessibility graph is rooted at: C5 seeds reachability from `entrance_door.b` purely because
+    # the door is `placeable`, which only ever meant "there is wall either side of it". A door drawn
+    # in the dining room's exterior wall while claiming to open into a hall 6.7 m away satisfied
+    # that, and every room was then reported reachable from a connection that did not exist.
+    target = entrance_door.b
+    if target not in rects:
+        rep.add("C16", "the entrance opens into the room it names", False,
+                f"the entrance door names {target}, which is not a room in this plan")
+    else:
+        zone = rects[target]
+        x, y = entrance_door.center_u
+        on_zone_wall = (y == zone.y and zone.x <= x <= zone.x2)
+        rep.add("C16", "the entrance opens into the room it names",
+                entrance_door.placeable and on_zone_wall,
+                f"entrance at x={u_to_m(x):.2f} m on the street wall; {target} spans "
+                f"{u_to_m(zone.x):.2f}-{u_to_m(zone.x2):.2f} m"
+                + ("" if on_zone_wall else " — the door is not on that room's wall"))
+
     # C13 — every DECLARED access edge is physically realized.
     #
     # DesiredAccessTopology is preserved as design INTENT; this check is the comparison between

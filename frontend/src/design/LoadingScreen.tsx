@@ -1,15 +1,23 @@
+import type { DemoProgress } from '../api'
 import './LoadingScreen.css'
 
 interface LoadingScreenProps {
   /** When set, the build animation freezes and this message is shown instead (FR-004) — the loading
    * state never silently navigates to a broken/empty Design page. */
   error?: string | null
+  /** The stage generation is actually in, streamed from the backend. Absent while the pipeline
+   * reports nothing measurable (the parse step, or an older backend without the stream) — and then
+   * NO percentage is shown at all, because a number invented from elapsed time would be a
+   * progress indicator that indicates nothing. */
+  progress?: DemoProgress | null
 }
 
 /** Full-screen "house being built" loading state shown while the parse+design pipeline
- * (App.tsx's runPipeline) is in flight. Loops indefinitely — its duration has no relation to how long
- * the pipeline actually takes (FR-002). */
-function LoadingScreen({ error = null }: LoadingScreenProps) {
+ * (App.tsx's runPipeline) is in flight. The house animation loops indefinitely — its duration has no
+ * relation to how long the pipeline takes (FR-002); the percentage beneath it does. */
+function LoadingScreen({ error = null, progress = null }: LoadingScreenProps) {
+  const percent = progress ? Math.max(0, Math.min(100, Math.round(progress.percent))) : null
+
   return (
     <div className="loading-screen" role="status" aria-live="polite">
       <svg
@@ -89,7 +97,35 @@ function LoadingScreen({ error = null }: LoadingScreenProps) {
           <p className="loading-screen__error-hint">רענן/י את הדף כדי לנסות שוב</p>
         </div>
       ) : (
-        <p className="loading-screen__caption">בונים את הבית שלך...</p>
+        <div className="loading-screen__status">
+          <p className="loading-screen__caption">
+            {progress ? progress.label : 'בונים את הבית שלך...'}
+          </p>
+          {percent !== null && progress ? (
+            <div
+              className="loading-screen__progress"
+              role="progressbar"
+              aria-valuenow={percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="התקדמות יצירת התוכנית"
+            >
+              <div className="loading-screen__bar">
+                <div className="loading-screen__bar-fill" style={{ width: `${percent}%` }} />
+              </div>
+              <div className="loading-screen__readout">
+                {/* dir=ltr on the number itself: a bare percentage inside RTL text otherwise
+                    renders as %72 instead of 72%. */}
+                <span className="loading-screen__percent" dir="ltr">
+                  {percent}%
+                </span>
+                <span className="loading-screen__steps" dir="ltr">
+                  {progress.step}/{progress.total}
+                </span>
+              </div>
+            </div>
+          ) : null}
+        </div>
       )}
     </div>
   )

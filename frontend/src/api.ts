@@ -1,6 +1,6 @@
 import type { GeometricDesign } from './design/geometricDesign'
 import type { FootprintOptionsResponse } from './design/footprint'
-import type { DemoDesign, RequirementsReview, ReviewEdit } from './design/demoDesign'
+import type { DemoPlanSet, RequirementsReview, ReviewEdit } from './design/demoDesign'
 import type { SpatialEditRequest } from './design/spatialEdit'
 import type { ChatMutationResponse, Conversation, Project, ProjectCreatePayload, ProjectUpdateRequest } from './types'
 
@@ -366,8 +366,82 @@ export async function updateRequirementsReview(projectId: string, edit: ReviewEd
   return response.json()
 }
 
-export async function generateDemoDesign(projectId: string): Promise<DemoDesign> {
+export async function generateDemoDesign(projectId: string): Promise<DemoPlanSet> {
   const response = await fetch(`/projects/${projectId}/design/demo`, { method: 'POST' })
   if (!response.ok) throw await demoErrorFrom(response)
   return response.json()
+}
+
+/** One stage of generation, as reported by the backend while it is happening. `percent` is
+ * computed from stages the pipeline genuinely entered — never from elapsed time — so a number that
+ * stops moving means the work stopped moving, which is information rather than noise. */
+export interface DemoProgress {
+  step: number
+  total: number
+  label: string
+  percent: number
+}
+
+/** Generation over server-sent events, reporting each stage to `onProgress` as it starts.
+ *
+ * Falls back to the plain `POST /design/demo` whenever the stream is not usable — an older backend,
+ * a proxy that buffers the body away, jsdom in the tests. The fallback resolves the same
+ * `DemoPlanSet` and throws the same `DemoPipelineError`, so a caller only loses the percentage,
+ * never the plan. */
+export async function generateDemoDesignStreaming(
+  projectId: string,
+  onProgress: (progress: DemoProgress) => void,
+): Promise<DemoPlanSet> {
+  let response: Response
+  try {
+    response = await fetch(`/projects/${projectId}/design/demo/stream`, { method: 'POST' })
+  } catch {
+    return generateDemoDesign(projectId)
+  }
+  if (!response.ok || !response.body?.getReader) return generateDemoDesign(projectId)
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let plan: DemoPlanSet | null = null
+  let failure: DemoPipelineError | null = null
+
+  const handle = (frame: string) => {
+    let event = 'message'
+    const data: string[] = []
+    for (const line of frame.split('\n')) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      else if (line.startsWith('data:')) data.push(line.slice(5).trim())
+    }
+    if (data.length === 0) return
+    const payload = JSON.parse(data.join('\n'))
+    if (event === 'progress') onProgress(payload as DemoProgress)
+    else if (event === 'done') plan = payload as DemoPlanSet
+    else if (event === 'error') {
+      failure = new DemoPipelineError(payload.code ?? 'UNKNOWN',
+                                      payload.message ?? 'אירעה שגיאה בעת יצירת התוכנית.',
+                                      payload.detail ?? '')
+    }
+  }
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (value) buffer += decoder.decode(value, { stream: true })
+    // Frames are separated by a blank line; anything after the last one is a partial frame and
+    // stays in the buffer until the rest of it arrives.
+    let split = buffer.indexOf('\n\n')
+    while (split !== -1) {
+      handle(buffer.slice(0, split))
+      buffer = buffer.slice(split + 2)
+      split = buffer.indexOf('\n\n')
+    }
+    if (done) break
+  }
+
+  if (failure) throw failure
+  if (plan) return plan
+  // The stream ended without either outcome — a dropped connection mid-generation. Say so as a
+  // pipeline failure rather than resolving an empty plan the plan page cannot render.
+  throw new DemoPipelineError('STREAM_INCOMPLETE',
+                              'החיבור לשרת נקטע בזמן יצירת התוכנית.', '')
 }

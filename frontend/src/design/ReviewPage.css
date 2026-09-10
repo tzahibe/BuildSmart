@@ -201,3 +201,15 @@
   flex-direction: column;
   gap: 5px;
 }
+
+/* A bedroom count generation would refuse, said at the screen that can still change it. */
+.review-out-of-range {
+  grid-column: 1 / -1;
+  margin: 0.1rem 0 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  background: #fdecea;
+  border: 1px solid #f2c2ba;
+  color: #8a3b2a;
+  font-size: 0.9rem;
+}

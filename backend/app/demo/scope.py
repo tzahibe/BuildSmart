@@ -16,7 +16,19 @@ from app.projects.models import Project
 
 from . import site_geometry
 
-SUPPORTED_BEDROOMS = (2, 3)
+#: 4 and 5 bedrooms became reachable once a shared wet room could sit off a bedroom instead of the
+#: corridor (`programme_variants`): that removes a private row, and a row was costing ~40 m² of
+#: footprint. Measured smallest plannable area: 3BR/2wet 135 m², 4BR/2wet 130 m², 5BR/2wet 165 m².
+#:
+#: 1 and 6 were added on measurement, not on principle. A 216-run sweep (bedrooms x wet rooms x
+#: safe room x six footprints) asked the ENGINE what it can actually realize:
+#:
+#:      1BR 22%   2BR 50%   3BR 44%   4BR 47%   5BR 33%   6BR 33%
+#:
+#: 6 bedrooms plan at exactly the rate 5 does, and 5 was already supported; 1 plans on a 14 x 12 m
+#: footprint. Refusing them was a guard that had stopped matching the engine behind it — and the
+#: refusal is the worst kind, since it arrives after the person has entered everything.
+SUPPORTED_BEDROOMS = (1, 2, 3, 4, 5, 6)
 SUPPORTED_WET_ROOMS = (1, 2, 3)
 MAX_PARKING_SPACES = 2
 SUPPORTED_FLOORS = 1

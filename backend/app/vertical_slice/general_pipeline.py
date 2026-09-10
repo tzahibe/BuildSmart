@@ -18,6 +18,7 @@ The canonical `pipeline.run_demo` is untouched and still produces the frozen bas
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from app.geometry_domain.constraints import (
@@ -80,6 +81,60 @@ class RunMetrics:
     rejection_reasons: tuple[str, ...] = ()
 
 
+#: How many ALTERNATIVE plans a caller that wants them should ask for. The generator regularly
+#: produces three or four genuinely different layouts for the same brief and the same land; showing
+#: a few of them lets a person disagree with the engine's ranking, which is a matter of taste the
+#: engine cannot settle for them.
+#:
+#: Asked for, never assumed: `run_general` looks for none unless a caller passes
+#: `max_alternatives`, so every existing caller — the frozen baseline included — costs exactly what
+#: it did before, and the one screen that shows options is the one that pays for them.
+ALTERNATIVE_PLAN_LIMIT = 3
+
+#: How many candidates to try while looking for those alternatives.
+#:
+#: THE COST IS THE SOLVER, and only the solver. Measured over a 13-candidate brief: 2142 ms in
+#: `solve_fixture` against 17 ms for every stage after it (doors, windows, furniture, validation,
+#: assembly) — about 165 ms per candidate, paid whether or not the candidate turns out to be
+#: feasible, distinct, or valid. So there is nothing to skip cheaply: knowing what a candidate
+#: draws means solving it. This limit is therefore the only lever on what a design request costs,
+#: and 8 keeps the worst case near two seconds while still finding three alternatives on the
+#: briefs that have them.
+ALTERNATIVE_ATTEMPT_LIMIT = 8
+
+
+@dataclass(frozen=True)
+class RealizedPlan:
+    """One concept taken all the way to a drawable, checked design.
+
+    The chosen plan and every alternative are the same kind of object, produced by the same
+    function, so an alternative can never be a plan held to a lower standard than the one the
+    engine picked.
+    """
+
+    index: int
+    concept: generator.ConceptCandidate
+    design: GeometricDesign
+    validation: validation_stage.ValidationReport
+    safety: SafetyReport
+    relationships: tuple = ()
+
+    @property
+    def ok(self) -> bool:
+        return self.validation.ok and self.safety.ok
+
+    @property
+    def layout_signature(self) -> tuple:
+        """What makes two plans the SAME DRAWING: which rooms, where, and how big.
+
+        Different generator strategies regularly realize to IDENTICAL geometry — measured across
+        nine briefs, SPINE_SERVICE_CLUSTER matched SPINE_DOUBLE_LOADED exactly in most of them.
+        Offering both would be offering the same picture twice under two names.
+        """
+        return tuple(sorted((r.zone_id,) + tuple(round(v, 3) for v in r.rect_m)
+                            for r in self.design.rooms))
+
+
 @dataclass(frozen=True)
 class GeneralSliceResult:
     outcome: AdapterOutcome
@@ -94,6 +149,9 @@ class GeneralSliceResult:
     notes: tuple[str, ...] = ()
     #: Every requested room relationship, measured on the plan that was actually built.
     relationships: tuple = ()
+    #: Other plans this same brief and this same land produce, each one fully checked. Empty when
+    #: the generator has nothing else to offer, which is a real and common answer.
+    alternatives: tuple[RealizedPlan, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -111,12 +169,46 @@ def _place_footprint(candidate: Rect, w_m: float, h_m: float) -> tuple[int, int]
     return candidate.x + (candidate.w - w_u) // 2, candidate.y
 
 
-def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect) -> SitePlan:
+def _entrance_x_clear_of_parking(span: tuple[int, int], parking: tuple[Rect, ...],
+                                 fallback: int) -> int:
+    """A point in the acceptable span whose WALK does not cross a parking bay.
+
+    The walk runs straight from the street to the door, so a door chosen purely from the rooms can
+    still put the path through a bay — which is exactly what C11 caught the moment the entrance
+    stopped defaulting to the footprint's centre. Both constraints are real, so the point is chosen
+    against both: scan the span at 5 cm and take the first clear position, preferring the middle so
+    the walk stays central when nothing is in the way.
+    """
+    low, high = span
+    walk_half = round(1.2 / UNIT_M) // 2
+
+    def clear(x: int) -> bool:
+        walk = Rect(x - walk_half, 0, walk_half * 2, 1)
+        return not any(walk.overlap_area_u(Rect(bay.x, 0, bay.w, 1)) > 0 for bay in parking)
+
+    middle = (low + high) // 2
+    for offset in range(0, high - low + 1):
+        for x in (middle + offset, middle - offset):
+            if low <= x <= high and clear(x):
+                return x
+    return fallback
+
+
+def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect,
+                   entrance_span: tuple[int, int] | None = None) -> SitePlan:
     """Reuse the existing site stage's parking/entrance/garden logic with an externally chosen
-    footprint placement (the one piece `place_footprint` would otherwise decide)."""
+    footprint placement (the one piece `place_footprint` would otherwise decide).
+
+    `entrance_x_u` comes from `doors.resolve_entrance`, which reads the realized rooms. It used to
+    default to the footprint's centre unconditionally, which put the front door wherever the middle
+    of the building happened to be — see that function's docstring for what that produced.
+    """
     plot = Rect(0, 0, round(spec.plot.width_m / UNIT_M), round(spec.plot.depth_m / UNIT_M))
     parking = site_stage.build_parking(spec)
-    entrance = site_stage.build_entrance(footprint, footprint.x + footprint.w // 2)
+    default_x = footprint.x + footprint.w // 2
+    entrance_x_u = (default_x if entrance_span is None
+                    else _entrance_x_clear_of_parking(entrance_span, parking, default_x))
+    entrance = site_stage.build_entrance(footprint, entrance_x_u)
     garden = site_stage.classify_garden(spec, plot, footprint, parking)
     return SitePlan(plot, footprint, (footprint.x, footprint.y), parking, entrance, garden)
 
@@ -175,30 +267,56 @@ def _relationship_outcomes(concept_candidate, solve, relationships):
     return relationships_stage.evaluate(fixture, solve.rects, connections, relationships)
 
 
+#: The stages a run genuinely passes through, in order. A progress indicator built on these is
+#: reporting work that actually happened; one built on a timer is reporting nothing.
+PIPELINE_STAGES = (
+    ("site", "בודקים את שטח הבנייה"),
+    ("concepts", "מסדרים את החדרים"),
+    ("realize", "מייצרים את הגאומטריה"),
+    ("openings", "מוסיפים דלתות וחלונות"),
+    ("validate", "בודקים את התוכנית"),
+    ("assemble", "מכינים את השרטוט"),
+)
+
+
 def run_general(buildable: BuildableRegion, *,
                 render_path: str | None = None,
                 site_constraints: SiteConstraints | None = None,
                 plot_size_m: tuple[float, float] = (24.0, 28.0),
                 program: ProgramSpec | None = None,
-                fast_path: bool = True) -> GeneralSliceResult:
+                fast_path: bool = True,
+                max_alternatives: int = 0,
+                on_stage: Callable[[str], None] | None = None) -> GeneralSliceResult:
     """Run one authoritative buildable region all the way through the existing slice.
 
     The concept now comes from the GENERATOR, not from a hard-coded fixture: the adapter's safe
     candidates and the ArchitecturalSpec go in, a small bounded set of concepts comes out, and
     they are tried in order until Geometry Core realizes one. `fast_path` stops at the first
     valid candidate (the default); set it False to measure every candidate.
+
+    `max_alternatives` asks for OTHER plans beside the chosen one — see `_alternative_plans`. It
+    defaults to none because each one costs a solver run, and a caller that will not show them
+    should not pay for them.
     """
     started = time.perf_counter()
+
+    def stage(name: str) -> None:
+        """Announce a stage that is ABOUT to run. Never called for work that did not happen."""
+        if on_stage is not None:
+            on_stage(name)
+
     spec = ArchitecturalSpec(
         plot=PlotSpec(width_m=plot_size_m[0], depth_m=plot_size_m[1]),
         program=program or ProgramSpec(),
     )
 
+    stage("site")
     adapter_result = adapt(buildable)
     if adapter_result.outcome is not AdapterOutcome.SOLVED:
         return GeneralSliceResult(adapter_result.outcome, adapter_result,
                                   notes=adapter_result.notes)
 
+    stage("concepts")
     generated = generator.generate_concepts(spec, list(adapter_result.candidates))
     base_metrics = dict(
         concept_candidates_generated=len(generated.candidates),
@@ -229,6 +347,7 @@ def run_general(buildable: BuildableRegion, *,
     # loop behaves exactly as before, including the fast path.
     best_score: tuple[int, int] | None = None
     best_solve = None
+    stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         attempts += 1
         try:
@@ -277,29 +396,17 @@ def run_general(buildable: BuildableRegion, *,
                                **base_metrics),
             notes=tuple(failures))
 
-    concept = chosen.concept
-    wing = concept.fixture.wings[0]
-    footprint = Rect(wing.origin_x_u, wing.origin_y_u, wing.w_u, wing.h_u)
-    rects = solve.rects  # the generator positions the wing in plot coordinates already
-    site_plan = _site_plan_for(spec, footprint)
-
-    interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
-    entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
-                                                    concept.entrance_zone_id)
-    windows = windows_stage.generate_windows(concept.fixture, rects, footprint)
-    furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
-
-    validation = validation_stage.validate(
-        concept.fixture, rects, solve.walls, interior_doors, entrance_door,
-        windows, furniture, site_plan,
-        corridor=spec.program.corridor,
-        relationships=relationships,
-    )
-    design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
-                      interior_doors, entrance_door, windows, furniture, site_plan)
-
-    safety = _check_safety(design, buildable.require_known(), _exclusion_geometry(site_constraints))
+    plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve, relationships,
+                    on_stage=on_stage)
+    design, validation, safety = plan.design, plan.validation, plan.safety
     path = render(design, render_path) if render_path else None
+
+    # OTHER PLANS THE SAME BRIEF PRODUCES, when the caller asked for them. Computed here rather
+    # than on demand because whether any exist is itself the answer — a screen cannot offer options
+    # it has not proven are real.
+    alternatives = (_alternative_plans(spec, buildable, site_constraints, generated.candidates,
+                                       chosen_index, plan, relationships, max_alternatives)
+                    if max_alternatives > 0 else ())
 
     used_wings = {c.order for c in adapter_result.candidates
                   if c.order in chosen.wing_orders}
@@ -316,18 +423,107 @@ def run_general(buildable: BuildableRegion, *,
         AdapterOutcome.SOLVED, adapter_result, design, validation, safety, path,
         adapter_result.candidates[0], chosen, metrics, tuple(failures),
         # Measured on the CHOSEN plan, so the summary the person reads and the plan they see are
-        # the same thing.
+        # the same thing. Each alternative carries its own, for the same reason.
+        relationships=plan.relationships,
+        alternatives=alternatives)
+
+
+def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
+             site_constraints: SiteConstraints | None,
+             candidate: generator.ConceptCandidate, index: int, solve,
+             relationships: tuple,
+             on_stage: Callable[[str], None] | None = None) -> RealizedPlan:
+    """One concept candidate -> doors, windows, furniture, validation, safety: a plan or nothing.
+
+    Extracted so the CHOSEN plan and every alternative are produced by identical code. An
+    alternative built by a second, similar-looking block would be a plan checked by a copy of the
+    rules, and the copy is what eventually drifts.
+    """
+    def stage(name: str) -> None:
+        if on_stage is not None:
+            on_stage(name)
+
+    concept = candidate.concept
+    wing = concept.fixture.wings[0]
+    footprint = Rect(wing.origin_x_u, wing.origin_y_u, wing.w_u, wing.h_u)
+    rects = solve.rects  # the generator positions the wing in plot coordinates already
+    # WHERE THE FRONT DOOR GOES is read off the realized rooms, not assumed. `resolve_entrance`
+    # returns the zone that genuinely fronts the street and the point on its own span; the walk is
+    # then built to that point, so the path, the door and the room it opens into all agree.
+    resolved = doors_stage.resolve_entrance(concept.fixture, rects, footprint)
+    entrance_zone_id = resolved[0] if resolved else concept.entrance_zone_id
+    site_plan = _site_plan_for(spec, footprint, (resolved[1], resolved[2]) if resolved else None)
+
+    stage("openings")
+    interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
+    entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
+                                                    entrance_zone_id)
+    windows = windows_stage.generate_windows(concept.fixture, rects, footprint)
+    furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
+
+    stage("validate")
+    validation = validation_stage.validate(
+        concept.fixture, rects, solve.walls, interior_doors, entrance_door,
+        windows, furniture, site_plan,
+        corridor=spec.program.corridor,
+        relationships=relationships,
+    )
+    stage("assemble")
+    design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
+                      interior_doors, entrance_door, windows, furniture, site_plan)
+
+    return RealizedPlan(
+        index=index, concept=candidate, design=design, validation=validation,
+        safety=_check_safety(design, buildable.require_known(),
+                             _exclusion_geometry(site_constraints)),
         relationships=tuple(relationships_stage.evaluate(
             concept.fixture, rects,
             validation_stage.realized_connections(rects, solve.walls, interior_doors),
             relationships)) if relationships else ())
 
 
+def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
+                       site_constraints: SiteConstraints | None,
+                       candidates: tuple, chosen_index: int, chosen: RealizedPlan,
+                       relationships: tuple, limit: int) -> tuple[RealizedPlan, ...]:
+    """The other plans this brief and this land genuinely produce — never a lesser plan.
+
+    An alternative is offered ONLY if it would have been accepted as the chosen one: every
+    validation check passes and every room lies inside the buildable region. A candidate that
+    fails a check is not a weaker option to be shown with a caveat, it is a plan this product
+    does not draw — the same rule the chosen plan is held to in `demo/service.py`.
+
+    Duplicates are dropped by realized geometry, not by strategy name: two strategies that produce
+    the same rectangles produce the same drawing, whatever the generator called them.
+    """
+    found: list[RealizedPlan] = []
+    seen = {chosen.layout_signature}
+    attempts = 0
+    for index, candidate in enumerate(candidates):
+        if len(found) >= limit or attempts >= ALTERNATIVE_ATTEMPT_LIMIT:
+            break
+        if index == chosen_index:
+            continue
+        attempts += 1
+        try:
+            solve = solve_fixture(candidate.concept.fixture)
+        except GeometryInfeasible:
+            continue
+        plan = _realize(spec, buildable, site_constraints, candidate, index, solve, relationships)
+        if not plan.ok or plan.layout_signature in seen:
+            continue
+        seen.add(plan.layout_signature)
+        found.append(plan)
+    return tuple(found)
+
+
 def run_general_from_site(site: SiteConstraints, *, render_path: str | None = None,
                           plot_size_m: tuple[float, float] = (24.0, 28.0),
                           program: ProgramSpec | None = None,
-                          fast_path: bool = True) -> GeneralSliceResult:
+                          fast_path: bool = True,
+                          max_alternatives: int = 0) -> GeneralSliceResult:
     """parcel + constraints -> buildable region -> the full run."""
     buildable = build_buildable_region(site)
     return run_general(buildable, render_path=render_path, site_constraints=site,
-                       plot_size_m=plot_size_m, program=program, fast_path=fast_path)
+                       plot_size_m=plot_size_m, program=program, fast_path=fast_path,
+                       max_alternatives=max_alternatives)

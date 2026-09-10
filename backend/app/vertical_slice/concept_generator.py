@@ -27,7 +27,7 @@ and Geometry Core remains solely responsible for exact realization.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from .concept import Concept
@@ -73,8 +73,11 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     ProgramRole.LIVING: RoomTemplate(16.0, 22.0, 46.0, 3.0, 2.5, elasticity=3.0),
     ProgramRole.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5),
     ProgramRole.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0),
-    ProgramRole.MASTER_BEDROOM: RoomTemplate(12.0, 15.0, 26.0, 3.0, 2.5, elasticity=1.0),
-    ProgramRole.BEDROOM: RoomTemplate(9.5, 12.5, 22.0, 2.6, 2.5, elasticity=0.6),
+    # Caps set by the user directly: a standard bedroom is ~9 m2, a master 11-20 m2 — a
+    # generous house should get MORE rooms, or a bigger hall/living room (elasticity above),
+    # never one bedroom stretched to fill leftover footprint.
+    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.2, elasticity=0.3),
+    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.2, elasticity=0.1),
     # Regulated minimum: never scaled down, and not inflated just because the house is large.
     ProgramRole.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
     ProgramRole.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.2),
@@ -204,6 +207,39 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
             entered_from="MASTER" if ensuite else None)
 
     return rooms
+
+
+def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
+    """The room programme, plus arrangements of the SAME rooms that need less depth.
+
+    WHY THIS EXISTS. The private column stacks one room per row; only an ensuite shares its
+    bedroom's row. So 3 bedrooms + 2 wet rooms is four rows — 10.60 m of depth at the minimums —
+    and measurement showed the planner needs about 149 m² of footprint before any proportion works,
+    against a 99.6 m² geometric floor. One extra row costs roughly 40 m².
+
+    A shared bathroom placed OFF A BEDROOM instead of off the corridor is the same rooms in three
+    rows rather than four. That is an ordinary house — a second ensuite — not a compromise, and it
+    is not chosen for the person: it is offered as an ADDITIONAL candidate, tried after the literal
+    reading of the brief, so a plan that fits the corridor-entered version still wins.
+
+    Bounded by construction: at most one extra variant, and only when there is a shared wet room and
+    a secondary bedroom to attach it to.
+    """
+    base = build_room_program(spec)
+    variants = [base]
+
+    bedrooms = [r for r in base if r.role is ProgramRole.BEDROOM]
+    shared_wet = [r for r in base
+                  if r.role is ProgramRole.BATHROOM and r.entered_from is None]
+    if bedrooms and len(shared_wet) >= 1 and len(base) > 3:
+        # The LAST shared wet room joins the LAST secondary bedroom: taking the first would move the
+        # guest WC away from the entrance, which is the one wet room that wants to stay there.
+        attach_to, moved = bedrooms[-1], shared_wet[-1]
+        variants.append([
+            replace(room, entered_from=attach_to.zone_id) if room.zone_id == moved.zone_id else room
+            for room in base
+        ])
+    return variants
 
 
 def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
@@ -1171,7 +1207,8 @@ def _multi_wing_assessment(candidates: list[SolverGeometryCandidate],
 def generate_concepts(spec: ArchitecturalSpec,
                       candidates: list[SolverGeometryCandidate]) -> GenerationResult:
     """A small, bounded, deterministic set of plausible concepts, best first."""
-    rooms = build_room_program(spec)
+    variants = programme_variants(spec)
+    rooms = variants[0]                     # the literal reading of the brief, for the diagnostics
     accepted: list[ConceptCandidate] = []
     rejections: list[ConceptRejection] = []
 
@@ -1203,17 +1240,21 @@ def generate_concepts(spec: ArchitecturalSpec,
             tuple(rooms))
 
     primary = usable[0]
-    band, rejection = _front_band_concept(spec, rooms, primary.rect)
-    if band is not None:
-        accepted.append(band)
-    elif rejection is not None:
-        rejections.append(rejection)
-
-    for strategy, west, east, rationale in _allocations(rooms):
-        built, rejection = _build(spec, rooms, primary.rect, strategy, west, east, rationale)
-        accepted.extend(built)
-        if not built and rejection is not None:
+    # Every arrangement of the same rooms, in order: the brief as written first, then the ones that
+    # need less depth. A plan from the literal reading always outranks a rearranged one, because the
+    # candidates are tried in this order and the first realizable wins.
+    for variant in variants:
+        band, rejection = _front_band_concept(spec, variant, primary.rect)
+        if band is not None:
+            accepted.append(band)
+        elif rejection is not None and variant is rooms:
             rejections.append(rejection)
+
+        for strategy, west, east, rationale in _allocations(variant):
+            built, rejection = _build(spec, variant, primary.rect, strategy, west, east, rationale)
+            accepted.extend(built)
+            if not built and rejection is not None and variant is rooms:
+                rejections.append(rejection)
 
     multi = _multi_wing_assessment(candidates)
     if multi is not None:

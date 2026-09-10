@@ -115,7 +115,7 @@ describe('DemoPlan', () => {
 describe('DemoWorkspace', () => {
   it('states only validation claims the backend actually made', () => {
     const { getByText, queryByText } = render(
-      <DemoWorkspace design={design()} onChangeRequirements={() => {}} />,
+      <DemoWorkspace plans={{ plan: design(), alternatives: [] }} onChangeRequirements={() => {}} />,
     )
     expect(getByText('כל החדרים נגישים פיזית מהכניסה')).toBeTruthy()
     // Raw check codes must never reach the user.
@@ -127,8 +127,86 @@ describe('DemoWorkspace', () => {
     const failing = design({
       validation: { passed: false, statements: [], warnings: ['בעיה כלשהי'], checks: { C13: false } },
     })
-    const { getByText } = render(<DemoWorkspace design={failing} onChangeRequirements={() => {}} />)
+    const { getByText } = render(<DemoWorkspace plans={{ plan: failing, alternatives: [] }} onChangeRequirements={() => {}} />)
     expect(getByText('בעיה כלשהי')).toBeTruthy()
+  })
+
+  // ------------------------------------------------------------------- the other plans
+  //
+  // Several layouts pass every check, and which one is best is taste the engine cannot settle.
+  // The alternatives it proved are shown small; picking one SWAPS it with the large drawing, so
+  // the set on screen stays the same set and nothing is lost by looking around.
+
+  /** Three plans that differ in a way a test can see: the living room's area. */
+  const planSet = () => ({
+    plan: design({ gross_area_m2: 100 }),
+    alternatives: [design({ gross_area_m2: 200 }), design({ gross_area_m2: 300 })],
+  })
+
+  it('shows the engine\'s plan large and every alternative as a thumbnail', () => {
+    const { getByTestId, queryByTestId } = render(
+      <DemoWorkspace plans={planSet()} onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('plan-shown')).toHaveTextContent('הבחירה של המנוע')
+    // the two alternatives are offered; the plan already on the board is not among them
+    expect(getByTestId('plan-option-1')).toBeInTheDocument()
+    expect(getByTestId('plan-option-2')).toBeInTheDocument()
+    expect(queryByTestId('plan-option-0')).not.toBeInTheDocument()
+  })
+
+  it('clicking a thumbnail puts it on the board and sends the large plan to its slot', () => {
+    const { getByTestId, queryByTestId, getByText } = render(
+      <DemoWorkspace plans={planSet()} onChangeRequirements={() => {}} />,
+    )
+    expect(getByText('100.0 מ״ר')).toBeInTheDocument()      // the side panel describes plan 0
+
+    fireEvent.click(getByTestId('plan-option-2'))
+
+    expect(getByTestId('plan-shown')).toHaveTextContent('אפשרות 3')
+    expect(getByText('300.0 מ״ר')).toBeInTheDocument()      // ...and now describes plan 2
+    // a SWAP, not a removal: the engine's plan took the slot the clicked one left
+    expect(getByTestId('plan-option-0')).toBeInTheDocument()
+    expect(getByTestId('plan-option-1')).toBeInTheDocument()
+    expect(queryByTestId('plan-option-2')).not.toBeInTheDocument()
+  })
+
+  it('a plan keeps its own name wherever it is sitting', () => {
+    const { getByTestId } = render(<DemoWorkspace plans={planSet()} onChangeRequirements={() => {}} />)
+
+    fireEvent.click(getByTestId('plan-option-2'))
+    fireEvent.click(getByTestId('plan-option-1'))
+
+    // labels follow the PLAN, not the slot — "אפשרות 3" is the same drawing it always was
+    expect(getByTestId('plan-shown')).toHaveTextContent('אפשרות 2')
+    expect(getByTestId('plan-option-2')).toHaveTextContent('אפשרות 3')
+    expect(getByTestId('plan-option-0')).toHaveTextContent('הבחירה של המנוע')
+  })
+
+  it('offers nothing to switch to when the engine produced only one plan', () => {
+    const { queryByTestId, queryByText } = render(
+      <DemoWorkspace plans={{ plan: design(), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(queryByTestId('plan-shown')).not.toBeInTheDocument()
+    expect(queryByText(/אפשרויות נוספות/)).not.toBeInTheDocument()
+    expect(queryByTestId('plan-option-1')).not.toBeInTheDocument()
+  })
+
+  it('a regenerated plan set resets the board to the engine\'s new choice', () => {
+    const { getByTestId, rerender } = render(
+      <DemoWorkspace plans={planSet()} onChangeRequirements={() => {}} />,
+    )
+    fireEvent.click(getByTestId('plan-option-2'))
+    expect(getByTestId('plan-shown')).toHaveTextContent('אפשרות 3')
+
+    // a second generation with FEWER alternatives — a stale order would index past the end
+    rerender(
+      <DemoWorkspace
+        plans={{ plan: design({ gross_area_m2: 400 }), alternatives: [design({ gross_area_m2: 500 })] }}
+        onChangeRequirements={() => {}}
+      />,
+    )
+    expect(getByTestId('plan-shown')).toHaveTextContent('הבחירה של המנוע')
+    expect(getByTestId('plan-option-1')).toBeInTheDocument()
   })
 })
 
@@ -141,7 +219,7 @@ describe('PlanLegend', () => {
         { orientation: 'vertical', coord: 6, start: 5.5, end: 9, construction: 'STANDARD_PARTITION', boundary_context: 'INTERIOR', room_ids: ['LIVING', 'HALL'] },
       ],
     })
-    const { getByText } = render(<DemoWorkspace design={full} onChangeRequirements={() => {}} />)
+    const { getByText } = render(<DemoWorkspace plans={{ plan: full, alternatives: [] }} onChangeRequirements={() => {}} />)
     getByText('מקרא')
     getByText('קיר חוץ')
     getByText('מחיצה פנימית')
@@ -166,7 +244,7 @@ describe('PlanLegend', () => {
       doors: [],
     })
     const { queryByText, getByText } = render(
-      <DemoWorkspace design={plain} onChangeRequirements={() => {}} />,
+      <DemoWorkspace plans={{ plan: plain, alternatives: [] }} onChangeRequirements={() => {}} />,
     )
     getByText('קיר חוץ')
     // no safe room in this house, so no safe-room key — and likewise for the rest
@@ -180,7 +258,7 @@ describe('PlanLegend', () => {
   })
 
   it('draws its swatches from the renderer’s own styles, so it cannot drift from the plan', () => {
-    const { container } = render(<DemoWorkspace design={design()} onChangeRequirements={() => {}} />)
+    const { container } = render(<DemoWorkspace plans={{ plan: design(), alternatives: [] }} onChangeRequirements={() => {}} />)
     const swatches = container.querySelectorAll('.legend-swatch')
     expect(swatches.length).toBeGreaterThan(0)
     const strokes = Array.from(container.querySelectorAll('.legend-swatch line')).map((l) =>

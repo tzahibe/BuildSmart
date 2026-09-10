@@ -70,19 +70,33 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const site = review.site ?? null
   // Seeded from the site the backend derived, so the fields show the assumptions actually in force.
   const [setbacks, setSetbacks] = useState({
-    front_setback_m: site?.front_setback_m ?? 5.5,
-    rear_setback_m: site?.rear_setback_m ?? 4.0,
-    side_setback_m: site?.side_setback_m ?? 3.0,
+    front_setback_m: site?.front_setback_m ?? 0,
+    rear_setback_m: site?.rear_setback_m ?? 0,
+    side_setback_m: site?.side_setback_m ?? 0,
   })
   const unsupported = review.unsupported_requests ?? []
   // Anything not worded as a preference stops generation on the backend (scope.py). Saying so here,
   // before the button is pressed, beats letting the person press it and read a refusal.
   const blocking = unsupported.filter((r) => r.severity !== 'preference')
+  // THE COUNTS THIS STAGE CAN ACTUALLY PLAN, from the backend rather than typed in here. The
+  // bedroom input used to allow 1..6 while generation accepted 2..5, so a value the product itself
+  // offered was refused after the loading screen — the worst possible moment to say no.
+  const limits = review.limits
+  const bedroomsMin = limits?.bedrooms_min ?? 1
+  const bedroomsMax = limits?.bedrooms_max ?? 6
+  const wetMin = limits?.wet_rooms_min ?? 1
+  const wetMax = limits?.wet_rooms_max ?? 3
+  const parkingMax = limits?.parking_max ?? 2
+
   const [bedrooms, setBedrooms] = useState(Number(review.bedrooms.value ?? 3))
   const [wetRooms, setWetRooms] = useState(Number(review.wet_rooms.value ?? 1))
   const [parking, setParking] = useState(Number(review.parking_spaces.value ?? 0))
   const [safeRoom, setSafeRoom] = useState(Boolean(review.safe_room.value))
   const [openPlan, setOpenPlan] = useState(Boolean(review.open_plan.value))
+
+  // A count outside the envelope is refused at generation. Saying so HERE, where it can be
+  // corrected, is the whole difference between a two-second fix and a wasted journey.
+  const outOfRange = bedrooms < bedroomsMin || bedrooms > bedroomsMax
 
   return (
     <section className="review" aria-label="סקירת דרישות">
@@ -152,7 +166,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
                 <label key={key}>
                   {label} (מ׳)
                   <input
-                    type="number" min={0.1} step={0.1} value={setbacks[key]}
+                    type="number" min={0} step={0.1} value={setbacks[key]}
                     aria-label={`נסיגה ${label}`}
                     onChange={(event) =>
                       setSetbacks({ ...setbacks, [key]: Number(event.target.value) })
@@ -229,16 +243,22 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         <label className="review-row">
           <span className="review-label">חדרי שינה <Provenance source={review.bedrooms.source} /></span>
           <input
-            type="number" min={1} max={6} value={bedrooms}
+            type="number" min={bedroomsMin} max={bedroomsMax} value={bedrooms}
             aria-label="חדרי שינה"
             onChange={(event) => setBedrooms(Number(event.target.value))}
           />
         </label>
+        {outOfRange ? (
+          <p className="review-out-of-range" role="alert">
+            {`בשלב זה אפשר לתכנן ${bedroomsMin} עד ${bedroomsMax} חדרי שינה. `}
+            {`הערך ${bedrooms} לא ייווצר — יש לתקן אותו כאן.`}
+          </p>
+        ) : null}
 
         <label className="review-row">
           <span className="review-label">חדרי רחצה <Provenance source={review.wet_rooms.source} /></span>
           <input
-            type="number" min={1} max={4} value={wetRooms}
+            type="number" min={wetMin} max={wetMax} value={wetRooms}
             aria-label="חדרי רחצה"
             onChange={(event) => setWetRooms(Number(event.target.value))}
           />
@@ -247,7 +267,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         <label className="review-row">
           <span className="review-label">מקומות חניה <Provenance source={review.parking_spaces.source} /></span>
           <input
-            type="number" min={0} max={4} value={parking}
+            type="number" min={0} max={parkingMax} value={parking}
             aria-label="מקומות חניה"
             onChange={(event) => setParking(Number(event.target.value))}
           />
@@ -284,8 +304,14 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         <button
           type="button"
           className="review-generate"
-          disabled={busy || blocking.length > 0}
-          title={blocking.length > 0 ? 'יש בקשות שצריך להכריע בהן קודם' : undefined}
+          disabled={busy || blocking.length > 0 || outOfRange}
+          title={
+            outOfRange
+              ? `בשלב זה אפשר לתכנן ${bedroomsMin} עד ${bedroomsMax} חדרי שינה`
+              : blocking.length > 0
+                ? 'יש בקשות שצריך להכריע בהן קודם'
+                : undefined
+          }
           onClick={() =>
             onConfirm({
               ...setbacks,
