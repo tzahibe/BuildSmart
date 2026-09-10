@@ -23,7 +23,8 @@ _ROOM_NAMES = {
     "LIVING": "סלון", "DINING": "פינת אוכל", "KITCHEN": "מטבח",
     "HALL": "מסדרון", "HALL_MAIN": "מסדרון", "HALL_SPUR": "מסדרון",
     "MASTER_BEDROOM": "חדר הורים", "BEDROOM": "חדר שינה",
-    "SAFE_ROOM": 'ממ"ד', "BATHROOM": "חדר רחצה", "CIRCULATION": "מסדרון",
+    "SAFE_ROOM": 'ממ"ד', "BATHROOM": "חדר רחצה", "TOILET": "שירותים",
+    "CIRCULATION": "מסדרון",
     "FLEX": "שטח גמיש (לא מוקצה)",
 }
 

@@ -157,7 +157,13 @@ class ProgramRole(str, Enum):
     BEDROOM = "BEDROOM"
     MASTER_BEDROOM = "MASTER_BEDROOM"
     SAFE_ROOM = "SAFE_ROOM"
+    #: A FULL wet room — shower/bath, basin, WC. What "חדר רחצה" means on the drawing.
     BATHROOM = "BATHROOM"
+    #: A WC-only wet room ("שירותים"): pan and basin, NO bathing fixture. A distinct role rather
+    #: than a small BATHROOM because the difference is functional, not dimensional — it takes a
+    #: different name on the plan, a shallower row, and (unlike a bathroom) is the wet room a
+    #: guest is meant to use. Only `build_room_program` creates one.
+    TOILET = "TOILET"
     CIRCULATION = "CIRCULATION"
     #: Genuine unassigned interior area — the requested built area exceeds what the room programme
     #: can responsibly use, and rather than stretching a bedroom past its own cap (or refusing to
@@ -211,6 +217,9 @@ MIN_FURNITURE_ENVELOPE_M: dict[ProgramRole, tuple[float, float]] = {
     ProgramRole.MASTER_BEDROOM: (2.8, 2.8),
     ProgramRole.SAFE_ROOM: (2.0, 1.8),
     ProgramRole.BATHROOM: (1.6, 1.6),
+    # WC pan (0.75 deep) plus the clearance to stand in front of it, and a basin alongside. Well
+    # under a bathroom's envelope precisely because there is no shower or bath to fit.
+    ProgramRole.TOILET: (1.1, 1.4),
 }
 
 

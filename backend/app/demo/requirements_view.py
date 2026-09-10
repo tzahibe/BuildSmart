@@ -218,7 +218,7 @@ def review_of(project: Project) -> RequirementsReview:
 _ROOM_WORDS = {
     "LIVING": "סלון", "DINING": "פינת אוכל", "KITCHEN": "מטבח", "HALL": "מסדרון",
     "MASTER_BEDROOM": "חדר הורים", "BEDROOM": "חדר שינה", "SAFE_ROOM": 'ממ"ד',
-    "BATHROOM": "חדר רחצה",
+    "BATHROOM": "חדר רחצה", "TOILET": "שירותים",
 }
 
 

@@ -21,7 +21,10 @@ BASELINE_NET_M2 = 153.83
 BASELINE_WALL_ITERATIONS = 2
 BASELINE_ROOM_COUNT = 11
 BASELINE_INTERIOR_DOORS = 7
-BASELINE_WINDOWS = 7
+#: Deliberately moved from 7: ROOM_AREA_CAPS_AND_WET_ROOM_WINDOW_REPORT added a best-effort,
+#: non-required window attempt for wet rooms (BATHROOM) on top of the pre-existing
+#: DAYLIGHT_ROLES set — this baseline's 2 bathrooms both land on a real exterior wall.
+BASELINE_WINDOWS = 9
 BASELINE_CHECK_COUNT = 14  # C13 realized connectivity; C16 the entrance's own realization
 
 

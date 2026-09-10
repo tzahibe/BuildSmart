@@ -56,8 +56,16 @@ from .spec import ArchitecturalSpec, CorridorRequirement, CorridorWidthMode
 
 # --------------------------------------------------------------------------- product policy
 # PRODUCT POLICY placeholders, in the same sense as WALL_THICKNESS_M's safe-room entry: plausible
-# working values, not verified regulation. `elasticity` says how much of a larger house a role
-# should absorb: a living room grows with the house, a bathroom or a safe room does not.
+# working demo/architectural defaults, NOT verified regulation and NOT sourced from any external
+# tool's output — see EXCESS_AREA_ALLOCATION_AUDIT and ROOM_AREA_CAPS_AND_WET_ROOM_WINDOW_REPORT
+# for the review that produced these values. `elasticity` is this template's EXPANSION_PRIORITY:
+# how much of a larger house's surplus area a role should absorb. It is the one field that answers
+# "when there's extra room, who gets it" — everything below is ranked by it, deliberately:
+#   LIVING / DINING / KITCHEN  >  MASTER_BEDROOM / BEDROOM  >  BATHROOM  >  HALL (circulation)
+# HALL must never outrank BEDROOM, and neither must BATHROOM — circulation and wet rooms are the
+# LOWEST-priority claims on surplus, not the highest, even though row/rectangle geometry used to
+# let them win anyway (see `scale_program`'s `net_area_max_m2` and `_row_depths`' weight floor).
+# SAFE_ROOM stays a separate case: elasticity 0.0, a regulated floor, never part of this ranking.
 
 @dataclass(frozen=True)
 class RoomTemplate:
@@ -66,6 +74,10 @@ class RoomTemplate:
     max_area_m2: float
     min_short_side_m: float
     max_aspect_ratio: float = 2.5
+    #: EXPANSION_PRIORITY: this role's share of any surplus area, relative to the other roles in
+    #: the same programme. Also caps how much geometric headroom ABOVE target this role's
+    #: `net_area_max_m2` gets (see `scale_program`) — low priority means both "grows slowly" and
+    #: "the tiling solver has little room to drift upward," not just the first of those.
     elasticity: float = 0.0
 
 
@@ -75,13 +87,39 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     ProgramRole.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0),
     # Caps set by the user directly: a standard bedroom is ~9 m2, a master 11-20 m2 — a
     # generous house should get MORE rooms, or a bigger hall/living room (elasticity above),
-    # never one bedroom stretched to fill leftover footprint.
-    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=1.0),
-    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.6),
+    # never one bedroom stretched to fill leftover footprint. Below the public tier's floor
+    # (KITCHEN's 1.0), as the priority ranking requires.
+    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9),
+    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5),
     # Regulated minimum: never scaled down, and not inflated just because the house is large.
     ProgramRole.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
-    ProgramRole.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.2),
-    ProgramRole.HALL: RoomTemplate(5.0, 11.0, 30.0, 1.2, 8.0, elasticity=0.8),
+    # max_area_m2 (12.0) is a conservative DEMO PRODUCT POLICY ceiling for a generous full
+    # bathroom — not a verified regulatory or legal figure for any jurisdiction, and specifically
+    # NOT copied from any external tool's suggested dimensions (regulatory/architectural
+    # verification of this number is separate, future work). Left at its ORIGINAL 12.0 rather
+    # than lowered further: `program_capacity_gross_m2` sums every role's max_area_m2 to decide
+    # how big a footprint this room programme can responsibly fill, so a lower absolute cap here
+    # shrinks that ceiling for every scenario, not just the excess-allocation ones — measured
+    # regressions in otherwise-tight footprints when tried. The real tightening is `elasticity`
+    # (below BEDROOM's, as the ranking requires): the geometric band a room can actually DRIFT
+    # INTO above its target (`scale_program`'s `_expansion_headroom_mult`) is scaled by priority,
+    # so a low-priority room's EFFECTIVE ceiling sits well under 12.0 in practice without lowering
+    # the hard outer bound every footprint-capacity decision depends on.
+    ProgramRole.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15),
+    # A WC-only room ("שירותים"). Every number here is smaller than BATHROOM's on purpose — this
+    # room holds a pan and a basin, not a shower — and `min_short_side_m` is what actually makes
+    # it read as a different room on the plan: the private column's rows span the column's full
+    # width, so a wet room's SHORT side is its row depth, and 1.1 m against a bathroom's 1.6 m is
+    # the visible difference between the two. PRODUCT POLICY placeholders like every other row in
+    # this table, NOT verified regulation. `max_aspect_ratio` is looser than BATHROOM's (3.5 vs
+    # 3.0) because the same column width divided by a shallower row is a longer rectangle, and
+    # gating on 3.0 would reject the room for being exactly the shape this role asks for.
+    ProgramRole.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10),
+    # Circulation: the LOWEST expansion priority of any room type below, below even BATHROOM —
+    # a corridor is not a value-adding space, so it should be the last claim on surplus area, not
+    # (as it was) the third-highest. max_area_m2 is left generous (30.0) as a geometric safety
+    # ceiling for long double-loaded spines; `elasticity` is what actually restrains it now.
+    ProgramRole.HALL: RoomTemplate(5.0, 11.0, 30.0, 1.2, 8.0, elasticity=0.1),
     # Absorbs whatever area the real programme cannot responsibly use — see `generate_concepts`.
     # A small non-zero min/target (not 0) matters: the front-band parti prices every public room's
     # SHARE of the band's width from this same template before the real shortfall is known, and a
@@ -209,10 +247,30 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
 
     # Wet rooms: with two or more and a master present, the first is an ensuite entered from
     # the master; the rest are shared and entered from circulation.
+    #
+    # NOT every shared wet room is a full bathroom. A house asking for more than one SHARED wet
+    # room is asking for a family bathroom AND a guest WC — two rooms with different jobs — not
+    # for the same room twice, and drawing two identical "חדר רחצה" side by side was reported as
+    # exactly the defect it looks like. So the FIRST shared wet room becomes a TOILET
+    # ("שירותים"): pan and basin, a shallower row, its own name on the plan. The first, not the
+    # last, because the guest WC is the one wet room that wants to stay near the entrance, and
+    # `programme_variants` may move the LAST shared one off a bedroom (see there).
+    #
+    # The conversion needs TWO OR MORE shared wet rooms, never one: a house whose only shared wet
+    # room became a WC would have no bathroom anyone but the master could use. So 2 wet rooms with
+    # a master (ensuite + one shared) still produces two full bathrooms, unchanged.
+    shared_count = program.wet_rooms - (1 if program.wet_rooms >= 2 and program.bedrooms >= 1 else 0)
+    baths = toilets = 0
     for i in range(1, program.wet_rooms + 1):
         ensuite = (i == 1 and program.wet_rooms >= 2 and program.bedrooms >= 1)
-        add(f"BATH_{i}", ProgramRole.BATHROOM, ZoneGroup.SERVICE,
-            entered_from="MASTER" if ensuite else None)
+        first_shared = (not ensuite) and (i == program.wet_rooms - shared_count + 1)
+        if first_shared and shared_count >= 2:
+            toilets += 1
+            add(f"TOILET_{toilets}", ProgramRole.TOILET, ZoneGroup.SERVICE)
+        else:
+            baths += 1
+            add(f"BATH_{baths}", ProgramRole.BATHROOM, ZoneGroup.SERVICE,
+                entered_from="MASTER" if ensuite else None)
 
     return rooms
 
@@ -237,6 +295,8 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
     variants = [base]
 
     bedrooms = [r for r in base if r.role is ProgramRole.BEDROOM]
+    # BATHROOM only, never the TOILET: a guest WC hung off a child's bedroom is not "a second
+    # ensuite", it is a WC nobody else can reach.
     shared_wet = [r for r in base
                   if r.role is ProgramRole.BATHROOM and r.entered_from is None]
     if bedrooms and len(shared_wet) >= 1 and len(base) > 3:
@@ -250,14 +310,36 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
     return variants
 
 
+#: How much geometric headroom ABOVE target a room's `net_area_max_m2` gets, as a function of its
+#: own EXPANSION_PRIORITY (`elasticity`) — +45% at priority 1.0 (LIVING/DINING/KITCHEN-tier and
+#: up, unchanged from before), tapering down to +10% at priority 0.0. The +10% FLOOR — rather than
+#: zero headroom for a zero-priority room like SAFE_ROOM — is deliberately kept: Geometry Core's
+#: exact-tiling solver needs SOME slack in every zone's [min, max] band to find a feasible tiling
+#: at all, and collapsing a room's band to a single point (min == max) risks turning a policy
+#: preference into a geometric infeasibility the room programme did not actually have. This is
+#: what stops the solver from spending leftover residue on a low-value room just because its old,
+#: flat +45% band happened to have room for it — the band itself now reflects the same priority
+#: `scale_program` uses to set the target, instead of one multiplier applied to every room alike.
+_MAX_HEADROOM_FRACTION = 0.45
+_MIN_HEADROOM_FRACTION = 0.10
+
+
+def _expansion_headroom_mult(elasticity: float) -> float:
+    priority = min(1.0, max(0.0, elasticity))
+    return 1.0 + _MIN_HEADROOM_FRACTION + (_MAX_HEADROOM_FRACTION - _MIN_HEADROOM_FRACTION) * priority
+
+
 def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
                   area_floors: dict[str, float] | None = None) -> dict[str, ZoneSpec]:
     """Fit the programme's target areas to the area actually available.
 
     Geometry Core tiles the footprint EXACTLY, so the room areas must be able to absorb all of
     it — a fixed template list would either overflow a small wing or leave a large one
-    unsatisfiable. Surplus is distributed by `elasticity`, so a bigger house grows its living
-    space rather than its safe room or its bathrooms.
+    unsatisfiable. Surplus is distributed by `elasticity` (a room's EXPANSION_PRIORITY), so a
+    bigger house grows its living space rather than its safe room or its bathrooms — and
+    `net_area_max_m2` below caps that growth at the room's own `max_area_m2`, hard, so a
+    low-priority room cannot be inflated past its product-policy ceiling just to tile the
+    footprint exactly.
     """
     floors = area_floors or {}
 
@@ -280,11 +362,18 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
             shrink = (-surplus) * (start / base)
             targets[room.zone_id] = max(start - shrink, floor_of(room))
 
-    # Re-balance any residue onto the elastic rooms so the totals still add up.
+    # Re-balance any residue onto the elastic rooms so the totals still add up. A room already AT
+    # its own ceiling is dropped from the pool each pass — not just clamped — so a low-priority
+    # room that hit its max stops diluting the split and the residue actually REDIRECTS to
+    # whichever higher-priority rooms still have headroom, rather than being re-offered to (and
+    # wasted on) a room that cannot take any more.
     residue = net_available_m2 - sum(targets.values())
-    elastic = [r for r in rooms if r.template.elasticity > 0]
     for _ in range(4):
-        if abs(residue) < 0.05 or not elastic:
+        if abs(residue) < 0.05:
+            break
+        elastic = [r for r in rooms if r.template.elasticity > 0
+                   and targets[r.zone_id] < max(r.template.max_area_m2, floor_of(r)) - 1e-9]
+        if not elastic:
             break
         share = residue / sum(r.template.elasticity for r in elastic)
         for room in elastic:
@@ -307,14 +396,20 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
             roles=roles,
             net_area_min_m2=max(floor_of(room), target * 0.70),
             net_area_target_m2=target,
-            # Never above the template's own maximum. `targets` already respects that cap, but the
-            # solver tiles the footprint EXACTLY and may spend the residue anywhere inside
-            # [min, max] — which let a room drift past its cap purely to absorb space (DINING came
-            # out at 30.66 m2 against a 30.0 cap). The ceiling that `program_capacity_gross_m2`
-            # gates on is the sum of these same maxima, so a footprint that passed the gate can
-            # still be tiled with every room inside its own limit.
-            net_area_max_m2=min(max(target * 1.45, t.min_area_m2 * 1.5),
-                                max(t.max_area_m2, target)),
+            # HARD cap at the template's own max_area_m2 — never above it, full stop; the only
+            # exception is a `floor_of(room)` that itself exceeds max_area_m2 (an external
+            # regulatory floor overriding product policy), in which case max cannot legally sit
+            # below the floor either, so it tracks the floor instead. `target` already respects
+            # `max_area_m2` (see the loops above), but the solver tiles the footprint EXACTLY and
+            # may otherwise spend residue anywhere inside [min, max] — which used to let a room
+            # drift past its own cap purely to absorb space (DINING once came out at 30.66 m2
+            # against a 30.0 cap). The band's WIDTH above target is scaled by this room's own
+            # EXPANSION_PRIORITY (`_expansion_headroom_mult`), not a flat +45% for every room
+            # alike — a low-priority room gets little headroom to drift into even within its cap.
+            net_area_max_m2=max(
+                min(target * _expansion_headroom_mult(t.elasticity), t.max_area_m2),
+                target,
+            ),
             min_short_side_m=t.min_short_side_m,
             max_aspect_ratio=t.max_aspect_ratio,
         )
@@ -1273,6 +1368,21 @@ def generate_concepts(spec: ArchitecturalSpec,
             return [*variant, ProgramRoom("FLEX", ProgramRole.FLEX, ZoneGroup.PUBLIC, flex_template)]
         variants = [_with_flex(variant) for variant in variants]
         rooms = variants[0]                 # keep `variant is rooms` true for the literal reading
+
+        # KNOWN LIMIT, LEFT AS IS. FLEX still pays the row-based representation's per-row depth
+        # cost like any other room — the row's DEPTH must come from somewhere in the candidate
+        # rectangle regardless of how little area FLEX itself needs. On a near-square footprint
+        # with only a small excess, there is sometimes no spare depth for one more row, and every
+        # strategy below will report ROOM_BELOW_MINIMUM_DIMENSION and return no design. Measured at
+        # ~34% of a 288-scenario sweep (bedrooms x wet rooms x safe room x open plan x four excess
+        # levels): a real improvement over the unconditional refusal this replaced (0%), not a full
+        # fix. That failure is a genuine constraint of tiling the footprint into fixed-width rows —
+        # not a crash, and not evidence the house itself is impossible on a different footprint
+        # shape. Closing it needs the row representation itself to change (a room sharing width
+        # within an existing row without inheriting that row's full depth requirement), which is a
+        # Geometry Core change, deliberately not attempted here. Do not paper over it with another
+        # per-strategy heuristic — the last two attempts (sharing LIVING's row, above) each moved
+        # the failure rather than removing it.
 
     primary = usable[0]
     # Every arrangement of the same rooms, in order: the brief as written first, then the ones that

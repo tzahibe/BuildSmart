@@ -96,6 +96,11 @@ def resolve_reference(fixture: Fixture, token: str) -> set[str]:
     if token == "ENSUITE":
         return _ensuite_ids(fixture)
     if token == "GUEST_BATHROOM":
+        # "שירותי אורחים" is the guest WC when the plan actually has one — the room the programme
+        # created for exactly this job. Only a plan with no WC falls back to its shared bathrooms.
+        wcs = {z.zone_id for z in fixture.zones if ProgramRole.TOILET in z.roles}
+        if wcs:
+            return wcs
         baths = {z.zone_id for z in fixture.zones if ProgramRole.BATHROOM in z.roles}
         return baths - _ensuite_ids(fixture)
     roles = _ROLE_TOKENS.get(token)
@@ -204,7 +209,7 @@ _ROOM_WORDS = {
     "DINING": ("פינת האוכל", "לפינת האוכל", False),
     "BATHROOM": ("חדרי הרחצה", "לחדרי הרחצה", True),
     "ENSUITE": ("חדר הרחצה של ההורים", "לחדר הרחצה של ההורים", False),
-    "GUEST_BATHROOM": ("חדר הרחצה של האורחים", "לחדר הרחצה של האורחים", False),
+    "GUEST_BATHROOM": ("שירותי האורחים", "לשירותי האורחים", False),
     "ENTRANCE": ("הכניסה", "לכניסה", False),
 }
 

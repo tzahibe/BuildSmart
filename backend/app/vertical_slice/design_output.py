@@ -68,6 +68,10 @@ class WindowOut:
     width_m: float
     center_m: tuple[float, float]
     placeable: bool
+    #: Non-regulatory status — see `windows.py` module docstring. Reports whether THIS zone got a
+    #: real exterior window (`EXTERIOR_WINDOW`) or not (`MECHANICAL_VENTILATION_REQUIRED`),
+    #: chiefly meaningful for a wet room (BATHROOM), which is never required to have one.
+    ventilation_status: str
 
 
 @dataclass(frozen=True)
@@ -111,6 +115,7 @@ def _window_out(w: Window) -> WindowOut:
     return WindowOut(
         zone_id=w.zone_id, side=w.side.value, width_m=w.width_m,
         center_m=(u_to_m(w.center_u[0]), u_to_m(w.center_u[1])), placeable=w.placeable,
+        ventilation_status=w.ventilation_status,
     )
 
 

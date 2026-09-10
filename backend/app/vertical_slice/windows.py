@@ -7,8 +7,21 @@ min/max band. PARAMETER · UNVERIFIED: the fraction/min/max below are plausible 
 not sourced from a specific glazing-ratio code requirement (same disclosure discipline as
 `geometry_core.model.WALL_THICKNESS_M`'s RC_SAFE_ROOM entry).
 
-WET_ROOMS (bathrooms) and circulation are not required to have a window in this scope — real
-codes often allow mechanical ventilation instead; modeling that choice is future work.
+WET_ROOMS (bathrooms) are not REQUIRED to have a window in this scope, and stay OUT of
+`DAYLIGHT_ROLES` (validation's C8 gates only on that set, and must go on gating only that set —
+real codes often allow mechanical ventilation instead, and this slice does not attempt to model
+which one an authoritative rule would demand here). But a real exterior wall should not go to
+waste when a wet room happens to land on one — most already do, since a room at the outer edge
+of a west/east column borders the footprint's own exterior by construction. So `generate_windows`
+ALSO attempts a (smaller, PROVISIONAL — not sourced from any external tool or verified glazing
+code) window for `WET_ROOM_PREFERRED_ROLES`, best-effort: a real exterior wall and enough of it,
+or nothing, never fabricated, and never gating C8 either way. Circulation is not attempted at all
+— a corridor window is not this scope's concern.
+
+Every generated `Window` carries `ventilation_status`, a plain descriptive (non-regulatory) label
+— `EXTERIOR_WINDOW` when one was placed, `MECHANICAL_VENTILATION_REQUIRED` when it was not —
+useful for a caller to report which wet rooms got daylight and which did not, without asserting
+that either state is itself what any code requires.
 """
 from __future__ import annotations
 
@@ -26,6 +39,21 @@ WINDOW_WALL_FRACTION = 0.4
 WINDOW_MIN_WIDTH_M = 0.9
 WINDOW_MAX_WIDTH_M = 2.0
 
+#: Wet rooms that PREFER, but never require, an exterior window — see module docstring. Kept
+#: deliberately separate from `DAYLIGHT_ROLES` so C8 (`validation.py`) never gates on these.
+WET_ROOM_PREFERRED_ROLES = frozenset({ProgramRole.BATHROOM, ProgramRole.TOILET})
+
+#: Smaller than a habitable room's window on purpose (a bathroom customarily takes a narrower,
+#: often frosted, opening) — PRODUCT POLICY placeholders, PROVISIONAL and unverified, same
+#: disclosure as `WINDOW_WALL_FRACTION` above and NOT copied from any external tool's suggestion.
+WET_ROOM_WINDOW_WALL_FRACTION = 0.25
+WET_ROOM_WINDOW_MIN_WIDTH_M = 0.5
+WET_ROOM_WINDOW_MAX_WIDTH_M = 1.0
+
+#: Non-regulatory status labels for `Window.ventilation_status` — see module docstring.
+EXTERIOR_WINDOW = "EXTERIOR_WINDOW"
+MECHANICAL_VENTILATION_REQUIRED = "MECHANICAL_VENTILATION_REQUIRED"
+
 
 @dataclass(frozen=True)
 class Window:
@@ -34,6 +62,7 @@ class Window:
     width_m: float
     center_u: tuple[int, int]
     placeable: bool
+    ventilation_status: str = EXTERIOR_WINDOW
 
 
 def _wall_length_u(rect: Rect, side: Side) -> int:
@@ -53,19 +82,26 @@ def _widest_exterior_side(rect: Rect, footprint: Rect) -> Side | None:
 
 def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect) -> list[Window]:
     windows: list[Window] = []
-    min_u, max_u = m_to_u(WINDOW_MIN_WIDTH_M), m_to_u(WINDOW_MAX_WIDTH_M)
     for zone in fixture.zones:
-        if not (set(zone.roles) & DAYLIGHT_ROLES):
+        roles = set(zone.roles)
+        if roles & DAYLIGHT_ROLES:
+            min_m, max_m, fraction = WINDOW_MIN_WIDTH_M, WINDOW_MAX_WIDTH_M, WINDOW_WALL_FRACTION
+        elif roles & WET_ROOM_PREFERRED_ROLES:
+            min_m, max_m, fraction = (WET_ROOM_WINDOW_MIN_WIDTH_M, WET_ROOM_WINDOW_MAX_WIDTH_M,
+                                       WET_ROOM_WINDOW_WALL_FRACTION)
+        else:
             continue
         rect = rects.get(zone.zone_id)
         if rect is None:
             continue
+        min_u, max_u = m_to_u(min_m), m_to_u(max_m)
         side = _widest_exterior_side(rect, footprint)
         if side is None:
-            windows.append(Window(zone.zone_id, Side.N, 0.0, (rect.x, rect.y), placeable=False))
+            windows.append(Window(zone.zone_id, Side.N, 0.0, (rect.x, rect.y), placeable=False,
+                                   ventilation_status=MECHANICAL_VENTILATION_REQUIRED))
             continue
         wall_len_u = _wall_length_u(rect, side)
-        width_u = max(min_u, min(max_u, int(wall_len_u * WINDOW_WALL_FRACTION)))
+        width_u = max(min_u, min(max_u, int(wall_len_u * fraction)))
         placeable = width_u <= wall_len_u and width_u >= min_u
         width_u = min(width_u, wall_len_u)
         if side in (Side.N, Side.S):
@@ -74,5 +110,7 @@ def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect) 
         else:
             mid = rect.x + (0 if side is Side.W else rect.w)
             center = (mid, rect.y + rect.h // 2)
-        windows.append(Window(zone.zone_id, side, u_to_m(width_u), center, placeable))
+        status = EXTERIOR_WINDOW if placeable else MECHANICAL_VENTILATION_REQUIRED
+        windows.append(Window(zone.zone_id, side, u_to_m(width_u), center, placeable,
+                               ventilation_status=status))
     return windows
