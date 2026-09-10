@@ -751,7 +751,17 @@ def _build_access(rooms: list[ProgramRoom], hall_ids: list[str],
 
     Rules applied, all general: circulation reaches every private and service room directly;
     the safe room is reached from circulation, never through a bedroom; an ensuite is entered
-    from its bedroom; open-plan zones connect with OPEN_CONNECTION and therefore no doors.
+    from its bedroom; open-plan zones connect with OPEN_CONNECTION and therefore no doors; the
+    living room's own entrance from circulation is a CASED_OPENING — no door leaf there, ever.
+
+    CASED_OPENING rather than OPEN_CONNECTION: a wall-less join needs the two zones to share a
+    FULL matching edge (`_discover_open_interfaces`), which circulation and the living room never
+    do once any other room lines the same corridor — an empirical fact, checked by sweeping every
+    programme x geometry combination this generator produces (rectangle, L-shape, obstacle,
+    curved facade, disconnected site, open-plan on and off), and it was unrealized (C13) in all
+    of them. A cased opening only needs the ordinary door-placement clearance, which the HALL and
+    LIVING interface already has by construction — so the living room's entrance stays as open as
+    the geometry actually allows, just without the leaf.
 
     `hall_borders_only_first_public` states a PARTI fact, not a dimension: in the front-band
     parti the public zones lie side by side across the front and the hall runs south from under
@@ -772,14 +782,15 @@ def _build_access(rooms: list[ProgramRoom], hall_ids: list[str],
         groups.append(tuple(public_ids))
         for a, b in zip(public_ids, public_ids[1:]):
             edges.append(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION))
-        edges.append(DesiredAccessEdge(hall_ids[0], public_ids[0], ConnectionKind.DOOR))
+        edges.append(DesiredAccessEdge(hall_ids[0], public_ids[0], ConnectionKind.CASED_OPENING))
     elif hall_borders_only_first_public:
-        edges.append(DesiredAccessEdge(hall_ids[0], public_ids[0], ConnectionKind.DOOR))
+        edges.append(DesiredAccessEdge(hall_ids[0], public_ids[0], ConnectionKind.CASED_OPENING))
         for a, b in zip(public_ids, public_ids[1:]):
             edges.append(DesiredAccessEdge(a, b, ConnectionKind.DOOR))
     else:
         for public_id in public_ids:
-            edges.append(DesiredAccessEdge(hall_ids[0], public_id, ConnectionKind.DOOR))
+            kind = ConnectionKind.CASED_OPENING if public_id == public_ids[0] else ConnectionKind.DOOR
+            edges.append(DesiredAccessEdge(hall_ids[0], public_id, kind))
 
     if len(hall_ids) > 1:
         groups.append(tuple(hall_ids))

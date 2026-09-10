@@ -60,7 +60,8 @@ function PlanLegend({ design }: { design: DemoDesign }) {
   const hasPartition = design.walls.some(
     (w) => w.construction !== 'RC_SAFE_ROOM' && w.boundary_context !== 'EXTERIOR',
   )
-  const hasInteriorDoor = design.doors.some((d) => !d.is_entrance)
+  const hasInteriorDoor = design.doors.some((d) => !d.is_entrance && d.kind !== 'CASED_OPENING')
+  const hasCasedOpening = design.doors.some((d) => !d.is_entrance && d.kind === 'CASED_OPENING')
   const hasEntrance = design.doors.some((d) => d.is_entrance)
 
   const mid = SW.h / 2
@@ -97,6 +98,28 @@ function PlanLegend({ design }: { design: DemoDesign }) {
               </Swatch>
             }
             label="פתח דלת — קיר שנקטע"
+          />
+        ) : null}
+
+        {hasCasedOpening ? (
+          <LegendRow
+            swatch={
+              <Swatch>
+                {/* same interrupted wall as an ordinary door opening, but jamb ticks stand in for
+                    the door symbol instead of a leaf — there is no door here at all. */}
+                <line x1={2} y1={mid} x2={13} y2={mid}
+                      stroke={partition.color} strokeWidth={partition.width * WEIGHT} />
+                <line x1={21} y1={mid} x2={SW.w - 2} y2={mid}
+                      stroke={partition.color} strokeWidth={partition.width * WEIGHT} />
+                {/* the class sets its stroke-width in plan metres, invisible at swatch scale — see
+                    the entrance row above for why that has to be an inline override here too. */}
+                <line x1={13} y1={mid - 3} x2={13} y2={mid + 3} className="demo-door-jamb"
+                      style={{ strokeWidth: 0.05 * WEIGHT }} />
+                <line x1={21} y1={mid - 3} x2={21} y2={mid + 3} className="demo-door-jamb"
+                      style={{ strokeWidth: 0.05 * WEIGHT }} />
+              </Swatch>
+            }
+            label="מעבר פתוח לסלון — ללא דלת"
           />
         ) : null}
 

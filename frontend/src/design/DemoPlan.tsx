@@ -131,7 +131,11 @@ function DemoPlan({ design }: { design: DemoDesign }) {
 
       {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
           90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —
-          "אין דבר כזה קיר פתוח לחדרים, אלא דלתות".
+          "אין דבר כזה קיר פתוח לחדרים, אלא דלתות". A CASED_OPENING is the one exception: it is
+          still a real interruption in the wall (the door line below draws that), but there is no
+          leaf and no arc, because the backend declared this opening to have no door hardware at
+          all — see `_build_access` in concept_generator.py for why the living room's entrance is
+          always one of these.
 
           Every fact here comes from the backend: where the opening is, which room the leaf swings
           into, and which jamb it hangs from. The renderer does the trigonometry and nothing else,
@@ -147,9 +151,10 @@ function DemoPlan({ design }: { design: DemoDesign }) {
         const hx = door.hinge_x ?? x1
         const hy = door.hinge_y ?? y1
         const room = design.rooms.find((r) => r.id === door.swings_into)
+        const hasLeaf = door.kind !== 'CASED_OPENING'
 
         let leaf: { x: number; y: number } | null = null
-        if (room) {
+        if (room && hasLeaf) {
           // Perpendicular to the wall, toward the room's own side of it.
           const inward = vertical
             ? Math.sign(room.x + room.width_m / 2 - door.x)
@@ -164,11 +169,22 @@ function DemoPlan({ design }: { design: DemoDesign }) {
           ? { x: door.x, y: hy === y1 ? y2 : y1 }
           : { x: hx === x1 ? x2 : x1, y: door.y }
 
+        // A cased opening has no leaf to mark its bounds, so short jamb ticks — perpendicular to
+        // the opening, at each end — stand in for the door symbol an architect would otherwise
+        // draw there.
+        const jamb = 0.12
+        const jambDx = vertical ? jamb : 0
+        const jambDy = vertical ? 0 : jamb
+
         return (
           <g key={`door-${i}`}>
             {/* the opening itself: the wall does not run through here */}
             <line x1={x1} y1={y1} x2={x2} y2={y2}
-                  className={door.is_entrance ? 'demo-door demo-door--entrance' : 'demo-door'} />
+                  className={
+                    door.is_entrance ? 'demo-door demo-door--entrance'
+                      : hasLeaf ? 'demo-door'
+                      : 'demo-door demo-door--cased'
+                  } />
             {leaf ? (
               <>
                 <path
@@ -177,6 +193,13 @@ function DemoPlan({ design }: { design: DemoDesign }) {
                   className="demo-door-arc"
                 />
                 <line x1={hx} y1={hy} x2={leaf.x} y2={leaf.y} className="demo-door-leaf" />
+              </>
+            ) : !hasLeaf && !door.is_entrance ? (
+              <>
+                <line x1={x1 - jambDx} y1={y1 - jambDy} x2={x1 + jambDx} y2={y1 + jambDy}
+                      className="demo-door-jamb" />
+                <line x1={x2 - jambDx} y1={y2 - jambDy} x2={x2 + jambDx} y2={y2 + jambDy}
+                      className="demo-door-jamb" />
               </>
             ) : null}
           </g>

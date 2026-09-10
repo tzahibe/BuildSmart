@@ -110,6 +110,33 @@ describe('DemoPlan', () => {
     expect(getByText('סלון')).toBeTruthy()
     expect(getByText('27.4 מ״ר')).toBeTruthy()
   })
+
+  it('draws a cased opening as a gap with jamb ticks, never a leaf or a swing arc', () => {
+    const casedOpening = design({
+      doors: [
+        { a: 'HALL', b: 'LIVING', kind: 'CASED_OPENING', width_m: 0.9, x: 8, y: 8,
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+      ],
+    })
+    const { container } = render(<DemoPlan design={casedOpening} />)
+    expect(container.querySelectorAll('.demo-door-leaf')).toHaveLength(0)
+    expect(container.querySelectorAll('.demo-door-arc')).toHaveLength(0)
+    expect(container.querySelectorAll('.demo-door-jamb')).toHaveLength(2)
+    expect(container.querySelectorAll('.demo-door--cased')).toHaveLength(1)
+  })
+
+  it('still draws a leaf and arc for an ordinary door with the same shape of data', () => {
+    const ordinaryDoor = design({
+      doors: [
+        { a: 'HALL', b: 'LIVING', kind: 'DOOR', width_m: 0.9, x: 8, y: 8,
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+      ],
+    })
+    const { container } = render(<DemoPlan design={ordinaryDoor} />)
+    expect(container.querySelectorAll('.demo-door-leaf')).toHaveLength(1)
+    expect(container.querySelectorAll('.demo-door-arc')).toHaveLength(1)
+    expect(container.querySelectorAll('.demo-door-jamb')).toHaveLength(0)
+  })
 })
 
 describe('DemoWorkspace', () => {
@@ -253,8 +280,25 @@ describe('PlanLegend', () => {
     expect(queryByText('חלון')).toBeNull()
     expect(queryByText('דלת כניסה')).toBeNull()
     expect(queryByText('פתח דלת — קיר שנקטע')).toBeNull()
+    expect(queryByText('מעבר פתוח לסלון — ללא דלת')).toBeNull()
     expect(queryByText('גינה')).toBeNull()
     expect(queryByText('חניה')).toBeNull()
+  })
+
+  it('shows the cased-opening key only when the design has one, distinct from an ordinary door', () => {
+    const withCasedOpening = design({
+      doors: [
+        { a: 'HALL', b: 'LIVING', kind: 'CASED_OPENING', width_m: 0.9, x: 8, y: 8,
+          orientation: 'vertical', is_entrance: false },
+        { a: 'OUTSIDE', b: 'HALL', kind: 'DOOR', width_m: 1, x: 9, y: 5.5,
+          orientation: 'horizontal', is_entrance: true },
+      ],
+    })
+    const { getByText, queryByText } = render(
+      <DemoWorkspace plans={{ plan: withCasedOpening, alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    getByText('מעבר פתוח לסלון — ללא דלת')
+    expect(queryByText('פתח דלת — קיר שנקטע')).toBeNull()
   })
 
   it('draws its swatches from the renderer’s own styles, so it cannot drift from the plan', () => {

@@ -10,7 +10,9 @@
 .demo-room-area { font-size: 0.4px; fill: #66707a; text-anchor: middle; dominant-baseline: middle; }
 .demo-door { stroke: #ffffff; stroke-width: 0.16; }
 .demo-door--entrance { stroke: #2f6b34; stroke-width: 0.2; }
+.demo-door--cased { stroke: #ffffff; stroke-width: 0.2; }
 .demo-window { stroke: #2f7fd6; stroke-width: 0.18; }
 .demo-door-leaf { stroke: #3d4852; stroke-width: 0.05; fill: none; }
 .demo-door-arc { stroke: #9aa4ae; stroke-width: 0.035; fill: none; stroke-dasharray: 0.18 0.12; }
+.demo-door-jamb { stroke: #8b939c; stroke-width: 0.05; }
 .demo-window-label { font-size: 0.3px; fill: #2f7fd6; text-anchor: middle; dominant-baseline: middle; }
