@@ -219,6 +219,8 @@ _ROOM_WORDS = {
     "LIVING": "סלון", "DINING": "פינת אוכל", "KITCHEN": "מטבח", "HALL": "מסדרון",
     "MASTER_BEDROOM": "חדר הורים", "BEDROOM": "חדר שינה", "SAFE_ROOM": 'ממ"ד',
     "BATHROOM": "חדר רחצה", "TOILET": "שירותים",
+    "FAMILY_ROOM": "חדר טלוויזיה", "STUDY": "חדר עבודה", "DRESSING_ROOM": "חדר ארונות",
+    "LAUNDRY": "חדר כביסה", "STORAGE": "מחסן", "STAIRWELL": "חדר מדרגות",
 }
 
 

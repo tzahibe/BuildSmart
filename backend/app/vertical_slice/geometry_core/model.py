@@ -154,8 +154,20 @@ class ProgramRole(str, Enum):
     LIVING = "LIVING"
     DINING = "DINING"
     KITCHEN = "KITCHEN"
+    #: A second, informal sitting room — "חדר טלוויזיה"/den. Public tier like LIVING but secondary
+    #: to it: a distinct role rather than a second LIVING because exactly one room in a house is
+    #: THE living room, and an access graph that cannot tell them apart puts the front door in the
+    #: wrong one.
+    FAMILY_ROOM = "FAMILY_ROOM"
     BEDROOM = "BEDROOM"
     MASTER_BEDROOM = "MASTER_BEDROOM"
+    #: A habitable work room — "חדר עבודה"/"פינת עבודה". Bedroom-tier: the same class of room,
+    #: sized around a desk rather than a bed.
+    STUDY = "STUDY"
+    #: A walk-in closet — "חדר ארונות". NOT storage: it is entered and stood in, it wants to hang
+    #: off a bedroom rather than off circulation, and on the real plans it read as a room with a
+    #: name, not as a cupboard.
+    DRESSING_ROOM = "DRESSING_ROOM"
     SAFE_ROOM = "SAFE_ROOM"
     #: A FULL wet room — shower/bath, basin, WC. What "חדר רחצה" means on the drawing.
     BATHROOM = "BATHROOM"
@@ -164,7 +176,18 @@ class ProgramRole(str, Enum):
     #: different name on the plan, a shallower row, and (unlike a bathroom) is the wet room a
     #: guest is meant to use. Only `build_room_program` creates one.
     TOILET = "TOILET"
+    #: A utility room — "חדר כביסה". Plumbed like a wet room, but NOT one a person washes in, so
+    #: deliberately not a BATHROOM variant: no bathing fixture, no privacy requirement, and it may
+    #: sit off the kitchen or a service yard rather than off the bedroom corridor.
+    LAUNDRY = "LAUNDRY"
+    #: An unheated store — "מחסן". The one role here with no habitable requirement whatsoever.
+    STORAGE = "STORAGE"
     CIRCULATION = "CIRCULATION"
+    #: The stair enclosure — "חדר מדרגות" — on a plan that has one. Circulation rather than a room:
+    #: its size comes from the flight it must hold, never from leftover area. This role names the
+    #: FOOTPRINT the stair occupies on THIS storey; it does not model the stair, and nothing in this
+    #: spike reasons about a second storey.
+    STAIRWELL = "STAIRWELL"
     #: Genuine unassigned interior area — the requested built area exceeds what the room programme
     #: can responsibly use, and rather than stretching a bedroom past its own cap (or refusing to
     #: plan at all), the gap is a real, visible zone. Never requested by the person; added only by
@@ -220,6 +243,20 @@ MIN_FURNITURE_ENVELOPE_M: dict[ProgramRole, tuple[float, float]] = {
     # WC pan (0.75 deep) plus the clearance to stand in front of it, and a basin alongside. Well
     # under a bathroom's envelope precisely because there is no shower or bath to fit.
     ProgramRole.TOILET: (1.1, 1.4),
+    # Sofa plus the clearance to walk past it — under LIVING's (3.0, 3.0) because a den is the
+    # smaller of the two sitting rooms, not a second one of equal standing.
+    ProgramRole.FAMILY_ROOM: (2.4, 2.4),
+    # Desk 1.2 x 0.6 plus 0.9 to pull a chair out behind it.
+    ProgramRole.STUDY: (1.2, 1.5),
+    # A hanging rail 0.6 deep plus a 0.9 passage to stand in front of it. Same envelope as a study
+    # by coincidence of dimensions, not because the rooms are alike.
+    ProgramRole.DRESSING_ROOM: (1.2, 1.5),
+    # One 0.6 appliance plus the 0.9 needed to stand and open its door.
+    ProgramRole.LAUNDRY: (0.6, 1.5),
+    # Shelving plus reach. The smallest envelope in the table, as a store should be.
+    ProgramRole.STORAGE: (0.9, 0.9),
+    # STAIRWELL deliberately has NO entry, for the same reason HALL and CIRCULATION do not: it is
+    # not a furnished space. Its size is governed by its template's min_short_side_m instead.
 }
 
 

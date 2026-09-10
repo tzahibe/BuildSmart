@@ -115,6 +115,45 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # 3.0) because the same column width divided by a shallower row is a longer rectangle, and
     # gating on 3.0 would reject the room for being exactly the shape this role asks for.
     ProgramRole.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10),
+    # ---- VOCABULARY, not new behaviour -------------------------------------------------------
+    # The six rows below close the naming gap found by the real-plan realizability study: every
+    # sampled plan contained at least one room this table could not name, so the study had to draw
+    # a dressing room, a laundry, a store, a work nook and a stair core all as "שירותים". These are
+    # PRODUCT POLICY placeholders like every other row here, NOT verified regulation.
+    #
+    # NOTHING PRODUCES THESE YET. `build_room_program` derives its rooms from `ProgramSpec`, which
+    # has no field that asks for a store or a laundry, so no demo brief can currently reach them —
+    # by design: adding the request path is a Concept Generator change and was explicitly out of
+    # scope. What these rows buy today is that anything constructing a `ZoneSpec` directly (the
+    # realizability harness, a future concept builder) can name the room correctly instead of
+    # borrowing a wet room's identity.
+    #
+    # `elasticity` places each row in the ranking already documented at the top of this table
+    # (PUBLIC > habitable PRIVATE > service/wet > circulation > fixed); none of them disturbs the
+    # existing ordering, and in particular none outranks BEDROOM except the public-tier den.
+    #
+    # Public tier, below DINING and above KITCHEN: a den is a real sitting room and should take
+    # surplus like one, but never ahead of the dining area it is secondary to.
+    ProgramRole.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
+    # Habitable-private tier, deliberately EQUAL to BEDROOM rather than under it: a work room is
+    # the same class of habitable room, and there is no architectural case for starving it first.
+    ProgramRole.STUDY: RoomTemplate(6.0, 8.5, 14.0, 2.1, 2.5, elasticity=0.5),
+    # Service tier, just UNDER BATHROOM: a walk-in closet is not a better claim on surplus area
+    # than the bathroom next to it. min_short_side_m 1.5 = a 0.6 hanging rail plus a 0.9 passage,
+    # which is what separates a room you walk into from a cupboard.
+    ProgramRole.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),
+    # Service tier, level with TOILET. Same 1.5 m short side, arrived at independently: a 0.6
+    # appliance plus the 0.9 to stand in front of it and open its door.
+    ProgramRole.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.5, 3.0, elasticity=0.10),
+    # The lowest expansion priority of any FURNISHED role in this table. A store that grows because
+    # the house had area left over is the exact defect the caps work exists to prevent.
+    ProgramRole.STORAGE: RoomTemplate(1.5, 3.0, 6.0, 1.0, 4.0, elasticity=0.05),
+    # Elasticity 0.0, like SAFE_ROOM and for the same kind of reason: a stair's footprint is set by
+    # the flight it holds, so surplus area must never flow here. `max_aspect_ratio` 4.0 because a
+    # straight flight IS a long thin rectangle, and gating it at 2.5 would reject the room for
+    # being the shape the role requires.
+    ProgramRole.STAIRWELL: RoomTemplate(4.0, 6.0, 12.0, 1.1, 4.0, elasticity=0.0),
+    # ---- end vocabulary ----------------------------------------------------------------------
     # Circulation: the LOWEST expansion priority of any room type below, below even BATHROOM —
     # a corridor is not a value-adding space, so it should be the last claim on surplus area, not
     # (as it was) the third-highest. max_area_m2 is left generous (30.0) as a geometric safety
