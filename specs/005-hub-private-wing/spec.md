@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-11
 
-**Status**: Draft — specification only, no implementation
+**Status**: v1 implemented and measured 2026-09-11 — **not accepted** (2 of 8 quality gates failed; see [RESULTS.md](./RESULTS.md) §3). Spec stands for v2 with the scope note in §11.
 
 **Input**: Stage-0 measurement of the engine's 85 delivered plans against a visual census of 21 professional Israeli house plans (see `memory: architectural-quality-gaps-measured`). The one structural gap: the engine organises the private wing as a straight hall spine (hall long/short median 9.4, compact hubs 0%); the references organise it around a compact room lobby (~18/21 plans, 0 straight double-loaded corridors). This spec defines that hub as a new parti, in the engine's own representation, with the parameters the references measured.
 
@@ -99,7 +99,7 @@ Sharing a row saves only the floor term of a column's depth (measured: closes 19
 ### Functional
 
 - **FR-1** A new `ConceptStrategy.HUB_PRIVATE_WING` is offered by `_allocations` / `generate_concepts` **in addition to** the existing partis. Existing partis are byte-identical.
-- **FR-2** A new `ProgramRole.ROOM_LOBBY` with a `RoomTemplate` of `min_short_side_m = 2.4`, `min_area_m2 = 6.0`, `target_area_m2 = 8.5`, `max_area_m2 = 12.0`, `max_aspect_ratio = 1.5`, `elasticity = 0.1` (circulation tier — never outranks a bedroom for surplus, per the existing ranking comment at the top of `ROOM_TEMPLATES`). These are reference-derived working figures, flagged PRODUCT POLICY like every other row.
+- **FR-2** A hub `RoomTemplate` — `HUB_TEMPLATE` in `concept_generator.py` — of `min_short_side_m = 2.4`, `min_area_m2 = 6.0`, `target_area_m2 = 8.5`, `max_area_m2 = 12.0`, `max_aspect_ratio = 1.5`, `elasticity = 0.1` (circulation tier — never outranks a bedroom for surplus, per the existing ranking comment at the top of `ROOM_TEMPLATES`). The hub's `ProgramRoom` keeps `zone_id = "HALL"` and `role = ProgramRole.HALL` and carries this template instead of `ROOM_TEMPLATES[HALL]`; no new `ProgramRole` is added, so Geometry Core's `model.py` is untouched and every consumer keyed on the HALL role (C14, the twin's root→HALL rule, labels) works unchanged. The figures are reference-derived working values, flagged PRODUCT POLICY like every template row.
 - **FR-3** Allocation places rooms into the three bands under these rules, in priority order:
   1. Shared wet rooms and laundry → head band, adjacent to each other (wet cluster).
   2. Master (+ ensuite in its band, entered from it) → foot band.
@@ -187,6 +187,21 @@ Run the Stage-0 metrics over every plan the hub parti produces, and over the who
   **Rule adopted for v1**: offer the hub parti only for briefs with **≥ 3 bedrooms**; try it **before** the spine partis for those briefs so a hub plan is preferred when both exist; the sweep decides whether that ordering costs any scenario its plan (User Story 4). **Honest expectation**: the hub's rescue ceiling among today's generic refusals is ~14 scenarios; its main value is the quality of the 85 plans that already exist (hub aspect 9.4 → ≤ 1.5, wet adjacency 40 % → ≥ 80 %, master aspect 1.57 → ≤ 1.40), not the success rate.
 
 ---
+
+## 11. v1 outcome and v2 scope (2026-09-11)
+
+v1 — the "public band in front, lobby wing behind" tree with four lobby seats — was implemented
+additively (existing plans 112/112 byte-identical, 0 lost, +0.02 s) and measured. It is safe but
+not accepted: on the failure log it produces a hub candidate in 6/420 briefs and a realized hub
+plan in 2, because ≥ 3-bedroom briefs there carry a safe room and 2–3 wet rooms (5–7 lobby doors
+against 4 seats; 124 `ACCESS_DEGREE_EXCEEDED`); and on those 2 plans wet adjacency is 0 % and the
+master's aspect 1.59, both by construction of the foot band (RESULTS.md §3). The lobby itself met
+its targets (aspect 1.1, 5 doors, exposure 100 %, circulation 7 %, bedrooms 1.21).
+
+v2 scope, in order: (a) two-room flanks (bedroom over bathroom at lobby depth ≈ 4.4 m; re-derive
+`HUB_TEMPLATE.max_area_m2` from the census, since a near-square 3.0 × 4.4 lobby is 13 m²);
+(b) the side-by-side regime with a head band for the wet cluster; (c) only then the ordering
+question of when a hub plan should out-rank an area-closer spine plan.
 
 ## 10. Success definition
 
