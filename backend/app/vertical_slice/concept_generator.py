@@ -1157,6 +1157,69 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
     return built, None
 
 
+def _unforced(node: Node) -> Node:
+    """The same slicing tree with every forced cut position removed.
+
+    A forced cut is the concept stage's GUESS at where a boundary lands, computed from a flat wall
+    allowance (`_EDGE_INSET_ALLOWANCE_M`, exterior half + partition half). Geometry Core nets every
+    leaf by the wall it actually gets on each side — 0.05 for a partition, 0.15 for an exterior or
+    RC safe-room wall — and accepts a forced position only on exact equality. The two disagree by up
+    to 0.30 m per column whenever a safe room or an exterior side is involved, and that gap was the
+    single largest cause of refusal: 170 of 171 concept-stage successes that never became a design
+    died on "no split ... at forced position", 139 of them with the safe room in the failing leaves.
+
+    Without the forced positions the solver chooses each split itself, nearest the children's
+    target-area ratio (`assign`), so the proportions the concept asked for are still what it aims
+    at — it simply lands them where the walls allow. Measured over the 256 concept-stage successes:
+    85 designs with forced cuts, 219 without, and the rescued plans track the requested area
+    (median 90 %).
+
+    The unforced trees are offered only after EVERY forced candidate, never interleaved with them:
+    the pipeline takes the first candidate the solver realizes, so a plan that exists today is
+    still found at the same position in the list and comes out with exactly today's geometry. The
+    twins can only matter when no forced tree solved at all. Interleaving (each twin right behind
+    its own forced tree) was tried first and rejected: an early strategy's twin pre-empted a later
+    strategy's forced tree that used to win, and four site-driven baselines changed shape — one of
+    them lost the physical openness of its living/dining/kitchen group.
+
+    One family of cuts stays forced in the twin: every cut on the path from the root to the HALL
+    leaf — the cuts that together fix the corridor's rectangle. Those positions are not a guess:
+    the hall's width IS the corridor width, which `_hall_width_m` derives from the brief's corridor
+    requirement when there is one, and its depth is what the band/rear cut leaves it; C14 measures
+    the realized short side against the request. Releasing the two seams let the solver size a
+    requested 6.00 m corridor at 1.20 m (the area-ratio choice); keeping the seams but releasing the
+    band/rear cut let it give the front band almost everything and leave a 1.20 m deep hall — the
+    same C14 refusal from the other axis. Where the forced tree fails geometrically, the service's
+    retry-without-preference path used to produce a plan; a "solved" twin with a wrong corridor
+    would pre-empt that path, so the corridor's shape is exactly what the twin may not touch.
+    Everything that shapes a ROOM — row depths, ensuite and band widths — is a guess and is released.
+    """
+    if not isinstance(node, Split):
+        return node
+    keep = node.fixed_at_u if _contains_hall(node) else None
+    return Split(node.cut, _unforced(node.first), _unforced(node.second), keep)
+
+
+def _contains_hall(node: Node) -> bool:
+    if isinstance(node, Leaf):
+        return node.zone_id == "HALL"
+    return _contains_hall(node.first) or _contains_hall(node.second)
+
+
+def _free_twin(candidate: ConceptCandidate) -> ConceptCandidate:
+    """The same candidate with every forced cut removed — see `_unforced`."""
+    fixture = candidate.concept.fixture
+    wings = tuple(replace(w, tree=_unforced(w.tree)) for w in fixture.wings)
+    return replace(candidate,
+                   concept=replace(candidate.concept, fixture=replace(fixture, wings=wings)),
+                   rationale=f"{candidate.rationale}; {FREE_TWIN_RATIONALE}")
+
+
+#: Marker appended to an unforced twin's rationale, so logs and diagnostics show which variant the
+#: solver actually realized.
+FREE_TWIN_RATIONALE = "cut positions chosen by the solver"
+
+
 def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                   strategy: ConceptStrategy, rationale: str,
                   footprint: Rect, plan: LayoutPlan) -> ConceptCandidate:
@@ -1617,5 +1680,10 @@ def generate_concepts(spec: ArchitecturalSpec,
     if target_m2 is not None:
         accepted.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                      round(c.used_area_m2, 4), c.strategy.value))
+
+    # Every forced tree first, in the order just decided; then the same trees with their cut
+    # positions left to the solver, in the same order. See `_unforced` for why this ordering — and
+    # not one twin behind each forced tree — is the one that leaves every existing plan untouched.
+    accepted.extend([_free_twin(c) for c in accepted])
 
     return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms))

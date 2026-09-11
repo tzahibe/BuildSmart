@@ -8,6 +8,7 @@ from app.geometry_domain.primitives import MultiRegion, Region, Ring
 from app.geometry_domain.provenance import Authority, Provenance, Source
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_generator import (
+    FREE_TWIN_RATIONALE,
     ROOM_TEMPLATES,
     ConceptStrategy,
     RejectionReason,
@@ -113,8 +114,13 @@ def test_generator_produces_a_bounded_candidate_set(name):
     result = _candidates(PROGRAMS[name])
     assert result.any, [r.detail for r in result.rejections]
     # Bounded, not small: the generator now tries the brief as written AND one arrangement of the
-    # same rooms that needs less depth (`programme_variants`), so the ceiling is per-variant.
-    assert 1 <= len(result.candidates) <= 12
+    # same rooms that needs less depth (`programme_variants`), so the ceiling is per-variant — and
+    # every forced-cut tree is followed by its unforced twin (`_free_twin`), which doubles the list
+    # without adding a single solver attempt to a brief the forced trees already realize.
+    assert 1 <= len(result.candidates) <= 24
+    twins = [c for c in result.candidates if c.rationale.endswith(FREE_TWIN_RATIONALE)]
+    assert len(twins) * 2 == len(result.candidates)
+    assert result.candidates[len(twins):] == tuple(twins), "twins must come after every forced tree"
 
 
 def test_candidates_are_deterministic():
@@ -135,16 +141,23 @@ def test_rejections_carry_structured_reasons():
         assert rejection.detail
 
 
-def test_four_bedroom_programme_still_does_not_complete_end_to_end():
-    """The remaining headline limit, pinned so it cannot regress silently in either direction.
-    The front-band concept is generated and pre-checked, but Geometry Core cannot realize its
-    forced cuts, so the run ends without a design."""
+def test_four_bedroom_programme_completes_through_the_unforced_twin():
+    """What used to be the headline limit, pinned in its new direction.
+
+    The forced-cut trees for this brief are pre-checked by the concept stage and refused by
+    Geometry Core ("no split ... at forced position"): the concept budgets a flat 0.20 m of wall per
+    row while the solver nets the safe room's RC envelope at 0.15 m a side. The same trees with
+    their room cuts released solve, and the pipeline reaches them only after every forced tree has
+    failed — so the design that comes back must be the twin, and it must pass validation.
+    """
     result = run_general_from_site(
         F.exact_rectangle(), plot_size_m=(20.0, 24.0),
         program=ProgramSpec(bedrooms=4, safe_room=True, wet_rooms=3))
-    assert result.design is None
-    assert result.metrics.concept_candidates_generated >= 1
-    assert result.metrics.solver_attempts >= 1
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [c.detail for c in result.validation.failures()]
+    assert result.concept.rationale.endswith(FREE_TWIN_RATIONALE), result.concept.rationale
+    # the forced trees were genuinely tried and refused first
+    assert any("at forced position" in note for note in result.notes), result.notes
 
 
 def test_front_band_parti_is_generated_and_can_win():
