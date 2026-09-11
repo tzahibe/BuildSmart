@@ -411,6 +411,41 @@ def test_footprint_too_small_is_reported_not_silently_shrunk(client):
     assert client.get(f"/projects/{project_id}/review").json()["bedrooms"]["value"] == 3
 
 
+def test_a_refusal_names_an_outline_that_actually_plans(client):
+    """When the OUTLINE is the obstacle rather than the brief, the refusal says which shape works.
+
+    The promise is not "try something squarer" — it is a specific footprint of the SAME built area,
+    and it must be one the engine has already planned end to end. So this test takes the outline
+    the refusal names and builds it: if that second request is not a plan, the refusal sent the
+    person to a dead end, which is worse than the generic message it replaced.
+    """
+    project_id = _create(client, BRIEF_3BR_THREE_WET, width=10.0, depth=18.0)
+    client.post(f"/projects/{project_id}/requirements")
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "PLAN_NOT_REALIZABLE"
+
+    outlines = re.findall(r"(\d+\.\d+)×(\d+\.\d+)", detail["message"])
+    assert len(outlines) == 2, f"expected the chosen and the suggested outline: {detail['message']}"
+    (chosen_w, chosen_d), (suggested_w, suggested_d) = [
+        (float(w), float(d)) for w, d in outlines]
+    assert (chosen_w, chosen_d) == (10.0, 18.0)
+    assert (suggested_w, suggested_d) != (chosen_w, chosen_d), "suggesting the refused outline"
+    assert abs(suggested_w * suggested_d - chosen_w * chosen_d) <= 1.0, (
+        "the suggestion must be the same built area in a different shape, never a smaller house")
+
+    # The whole point: the named outline is one the engine can actually deliver. 200 and nothing
+    # less — a design that exists but fails validation is refused by this same endpoint, so
+    # checking only that concepts were generated would let the suggestion name a second dead end.
+    second_id = _create(client, BRIEF_3BR_THREE_WET, width=suggested_w, depth=suggested_d)
+    client.post(f"/projects/{second_id}/requirements")
+    second = client.post(f"/projects/{second_id}/design/demo")
+    assert second.status_code == 200, (
+        f"the refusal named {suggested_w}×{suggested_d}, which the service then refused: "
+        f"{second.text[:300]}")
+
+
 def test_no_canonical_fixture_is_reachable_from_the_demo_path():
     """The hand-authored canonical concept and the geometry test fixtures must not be importable
     from anything the demo service touches."""

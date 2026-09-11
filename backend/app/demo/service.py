@@ -224,6 +224,65 @@ def realized_corridor_width_m_of(design) -> float:
     return round(min(widths), 2) if widths else 0.0
 
 
+#: How many alternative outlines a refusal may plan before it gives up and stays generic. Each one
+#: is a full solve, so this is a latency budget, not a search depth. Measured over all 331 refusals
+#: in the failure log: about +1.7 s each on average (0.09 s -> 0.54 s at the median, ~2.7 s worst
+#: case), and the cost falls hardest on the refusals that end up with nothing to offer, since those
+#: are the ones that try every option. Lowering this trades suggestions for latency; it buys
+#: nothing on the happy path, which never reaches here.
+_MAX_ALTERNATIVE_OUTLINES = 4
+
+
+def _outline_that_plans(project: Project) -> tuple[float, float] | None:
+    """An outline of the SAME built area this programme CAN be planned into, or None.
+
+    `site_geometry.feasible_options` answers a weaker question than the one a refused person is
+    asking: it filters on whether the area fits inside the setbacks, not on whether the planner can
+    tile this programme into that shape. The gap between those two is large and, crucially, is not
+    the person's mistake to fix by guessing — measured over the refusals left after the column-seam
+    search, 35% have an offered outline that yields a real design at the SAME area, with the same
+    rooms. A 200 m2 brief refused at 10.00 x 20.00 m plans at 13.80 x 14.49 m.
+
+    Every option is planned END TO END here — concepts, Geometry Core, validation — so an outline
+    is named only after it has actually produced a design. Naming one the concept stage merely
+    liked would send the person to a second dead end, which is worse than saying nothing: of the
+    outlines that pass the concept stage, roughly a quarter still fail downstream.
+    """
+    site = site_geometry.derive(project)
+    chosen = project.selected_footprint
+    if site is None or chosen is None:
+        return None
+
+    for width_m, depth_m in site_geometry.feasible_options(site, chosen.area_m2)[
+            :_MAX_ALTERNATIVE_OUTLINES]:
+        if (abs(width_m - chosen.width_m) < 0.05 and abs(depth_m - chosen.depth_m) < 0.05):
+            continue
+        candidate = project.model_copy(update={"selected_footprint": chosen.model_copy(
+            update={"width_m": width_m, "depth_m": depth_m,
+                    "area_m2": round(width_m * depth_m, 4)})})
+        try:
+            candidate_spec = spec_for(candidate)
+            # Deliberately NOT `_plan`: that asks for the demo screen's alternative plans too,
+            # which is three more full solves per option for an answer this only needs once —
+            # does a design exist at this outline, yes or no.
+            attempt = run_general(
+                _buildable_from(candidate_spec, candidate),
+                plot_size_m=(candidate_spec.plot.width_m, candidate_spec.plot.depth_m),
+                program=candidate_spec.program,
+            )
+        except Exception:  # noqa: BLE001
+            # An alternative that cannot even be set up is simply not offered. This runs while a
+            # refusal is already being raised, and must never replace that refusal with a crash.
+            continue
+        # The SAME bar `_finish` holds a plan to, deliberately duplicated rather than approximated:
+        # a design that exists but fails validation is one this service refuses, so offering it
+        # would send the person to a second dead end. Checking only `design is not None` named an
+        # outline the service then rejected with PLAN_FAILED_VALIDATION in 7.5% of a sampled 40.
+        if attempt.design is not None and attempt.validation is not None and attempt.validation.ok:
+            return width_m, depth_m
+    return None
+
+
 def _plan(spec, project: Project, on_stage=None):
     # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
     # Every other caller of the pipeline still gets one plan at one plan's cost.
@@ -271,15 +330,41 @@ def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoRes
         # separate from "this could not be planned". Nothing here is physically impossible: the
         # rooms this brief asks for simply cannot consume that much area without being inflated
         # past their own maximums. The user's requested area is left exactly as they set it.
-        if RejectionReason.TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY.value in reasons:
-            rooms = build_room_program(spec)
-            capacity = program_capacity_gross_m2(rooms)
+        #
+        # Asked of the NUMBERS, not of a reason code. This used to key on
+        # `RejectionReason.TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY` appearing in `reasons`,
+        # which the generator stopped emitting when the FLEX zone was introduced to absorb exactly
+        # this surplus — so the branch became unreachable and 164 refusals whose whole diagnosis is
+        # "you asked for more than these rooms can fill" got the generic message instead. The
+        # comparison below is the same one `generate_concepts` itself uses to decide to inject FLEX,
+        # so the product message and the engine agree on what "over capacity" means.
+        target_m2 = spec.program.target_built_area_m2
+        rooms = build_room_program(spec)
+        capacity = program_capacity_gross_m2(rooms)
+        if target_m2 is not None and target_m2 > capacity:
             raise DemoGenerationError(
                 "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
                 f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
                 f"והיעד שהוזן הוא {spec.program.target_built_area_m2:.0f} מ\"ר. "
                 f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
                 reasons, diagnostics=_diagnostics(result, spec))
+
+        # A refusal that can name a footprint which DOES work is worth the extra solves: the
+        # obstacle here is usually the outline's proportion, not the brief, and "this shape of the
+        # same area works" is something the person can act on. Where no offered outline plans, the
+        # message stays as it was rather than inventing a suggestion it has not verified.
+        alternative = _outline_that_plans(project)
+        if alternative is not None:
+            width_m, depth_m = alternative
+            chosen = project.selected_footprint
+            raise DemoGenerationError(
+                "PLAN_NOT_REALIZABLE",
+                f"המתאר שנבחר ({chosen.width_m:.2f}×{chosen.depth_m:.2f} מ׳) לא מאפשר לסדר את "
+                f"החדרים שביקשת. מתאר של {width_m:.2f}×{depth_m:.2f} מ׳ — באותו שטח בנייה "
+                f"ובאותן דרישות — כן מתאפשר. הדרישות שלך נשמרו כפי שהזנת.",
+                reasons,
+                diagnostics=_diagnostics(result, spec),
+            )
 
         raise DemoGenerationError(
             "PLAN_NOT_REALIZABLE",

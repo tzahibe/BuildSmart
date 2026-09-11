@@ -257,9 +257,33 @@ class PlanFailure:
     The layout planners used to return a bare string, so the strategy loops above them had nothing
     to report but a hard-coded reason. Carrying the code out of the planner is what lets each
     failure keep its own name all the way into the log.
+
+    `shortfall_m` is how far THIS attempt was from fitting, where that is a measurable distance.
+    It exists so a strategy can report its NEAREST MISS instead of whichever proportion happened to
+    be tried last — see `_nearest_miss`.
     """
     reason: RejectionReason
     detail: str
+    shortfall_m: float | None = None
+
+
+def _nearest_miss(current: PlanFailure | None, candidate: PlanFailure) -> PlanFailure:
+    """The more informative of two failures: the one that came CLOSEST to fitting.
+
+    A strategy tries many footprint proportions and, when none plans, has to report one of them.
+    Reporting the last was close to meaningless: `_proportions` visits candidates nearest the
+    person's requested area FIRST, so the last attempt is the one furthest from what they asked for
+    — a 10 x 20 m request was being explained with numbers from a proportion it never wanted
+    ("west column needs 13.19 m but has 8.20 m"). Failures with no measurable distance rank behind
+    ones that have it, and ties keep the earlier attempt, which is the nearer to the target.
+    """
+    if current is None:
+        return candidate
+    if candidate.shortfall_m is None:
+        return current
+    if current.shortfall_m is None:
+        return candidate
+    return candidate if candidate.shortfall_m < current.shortfall_m else current
 
 
 @dataclass(frozen=True)
@@ -840,16 +864,16 @@ def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramR
                     RejectionReason.ROW_WIDTH_EXCEEDED,
                     f"{' + '.join(r.zone_id for r in row)} cannot share the {name} "
                     f"column's {net_w:.2f} m of net width at their minimums")
-        depths, why = _row_depths(rows, areas, net_w, footprint_h_m)
+        depths, why, short_m = _row_depths(rows, areas, net_w, footprint_h_m)
         if depths is None:
             return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
-                                     f"{name} column {why}")
+                                     f"{name} column {why}", short_m)
         plans.append(ColumnPlan(width, rows, depths))
     return plans, None
 
 
 def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_width: float,
-                column_depth: float) -> tuple[list[float] | None, str]:
+                column_depth: float) -> tuple[list[float] | None, str, float | None]:
     """Row depths, chosen DIRECTLY rather than inferred from areas.
 
     The first design drove depth from area (`depth = area / width`) and then tried to steer the
@@ -876,11 +900,12 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
     total = sum(wanted)
     if total > column_depth + 1e-9:  # exact on purpose — see the rejected-tolerance note above
         return None, (f"needs {total:.2f} m of depth but has {column_depth:.2f} m "
-                      f"[{'; '.join(terms)}]")
+                      f"[{'; '.join(terms)}]"), total - column_depth
     surplus = column_depth - total
     weights = [max(0.15, sum(r.template.elasticity for r in row)) for row in rows]
     wsum = sum(weights)
-    return [round((d + surplus * w / wsum) / 0.05) * 0.05 for d, w in zip(wanted, weights)], ""
+    return ([round((d + surplus * w / wsum) / 0.05) * 0.05
+             for d, w in zip(wanted, weights)], "", None)
 
 
 def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[ProgramRoom],
@@ -1122,7 +1147,7 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
             if len(found) >= wanted:
                 break
         else:
-            failure = reason
+            failure = _nearest_miss(failure, reason)
 
     if not found:
         return [], ConceptRejection(strategy, failure.reason, failure.detail)
@@ -1298,7 +1323,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                 footprint, plan = trial, attempt
                 west_rows, east_rows = west_try, east_try
                 break
-            failure = reason
+            failure = _nearest_miss(failure, reason)
         if plan is not None:
             break
 
@@ -1435,10 +1460,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     depths = []
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
-        d, why = _row_depths(rws, areas, net_w, rear_depth)
+        d, why, short_m = _row_depths(rws, areas, net_w, rear_depth)
         if d is None:
             return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
-                                     f"rear {name} column {why}")
+                                     f"rear {name} column {why}", short_m)
         depths.append(d)
 
     specs: dict[str, ZoneSpec] = {}
