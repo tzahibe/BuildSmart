@@ -173,6 +173,16 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
 ASSUMED_EFFICIENCY = 0.90
 #: Wall inset allowance used by the pre-check (exterior half 0.15 + partition half 0.05).
 _EDGE_INSET_ALLOWANCE_M = 0.20
+#: MEASURED AND REJECTED, left here so it is not retried: a tolerance on the row-depth comparison
+#: in `_row_depths` (3 cm, with the rows shaved proportionally to keep tiling the column exactly).
+#: The motivation was real — several scenarios' tightest attempt misses by single MILLIMETRES
+#: (14.507 m against 14.500 m). The effect was not: it rescued 19 scenarios of a 418-scenario
+#: sweep and 18 of those came back BELOW 80% of the area the person asked for (median 50%; a
+#: 440 m2 request answered with a 107.8 m2 house). `_proportions` visits candidates nearest the
+#: target first, so a near-target proportion that misses does so by far more than centimetres;
+#: the only proportion inside the tolerance is the programme's own minimum footprint. Relaxing
+#: the comparison therefore converts an honest refusal into a house half the requested size,
+#: which is the built-area defect `_proportions`' ordering exists to prevent.
 #: Floors are raised slightly above the bare minimum so the fixed point settles
 #: ABOVE the pre-check threshold instead of a few centimetres under it.
 _FLOOR_MARGIN = 1.06
@@ -206,7 +216,24 @@ class RejectionReason(str, Enum):
     INSUFFICIENT_TOTAL_AREA = "INSUFFICIENT_TOTAL_AREA"
     INSUFFICIENT_WING_AREA = "INSUFFICIENT_WING_AREA"
     WING_TOO_NARROW = "WING_TOO_NARROW"
-    ROOM_BELOW_MINIMUM_DIMENSION = "ROOM_BELOW_MINIMUM_DIMENSION"
+    # ---- layout-geometry refusals ------------------------------------------------------------
+    # These six replace a single `ROOM_BELOW_MINIMUM_DIMENSION`, which every layout failure was
+    # funnelled through regardless of what actually bound. It claimed a room minimum in cases where
+    # no room was ever sized (the footprint was narrower than the parti's own minimum width) and,
+    # worse, in cases that were the exact OPPOSITE — a room pushed past its MAXIMUM area. A reason
+    # code that names four unrelated causes cannot direct a fix, so each cause now says its own name.
+    #: A column's stacked rows need more depth than the column has.
+    COLUMN_DEPTH_EXCEEDED = "COLUMN_DEPTH_EXCEEDED"
+    #: The rooms sharing one row cannot sit side by side across the column's net width.
+    ROW_WIDTH_EXCEEDED = "ROW_WIDTH_EXCEEDED"
+    #: The columns themselves cannot sit side by side across the footprint beside the hall.
+    COLUMN_WIDTH_EXCEEDED = "COLUMN_WIDTH_EXCEEDED"
+    #: A front-band public zone would be narrower than its own minimum short side.
+    BAND_WIDTH_BELOW_MINIMUM = "BAND_WIDTH_BELOW_MINIMUM"
+    #: The geometry would push a room ABOVE its template maximum area.
+    ROOM_ABOVE_MAXIMUM_AREA = "ROOM_ABOVE_MAXIMUM_AREA"
+    #: No footprint proportion was even tried: the programme's minimum width exceeds the candidate's.
+    FOOTPRINT_BELOW_MINIMUM_WIDTH = "FOOTPRINT_BELOW_MINIMUM_WIDTH"
     SAFE_ROOM_CONSTRAINT = "SAFE_ROOM_CONSTRAINT"
     ACCESS_DEGREE_EXCEEDED = "ACCESS_DEGREE_EXCEEDED"
     OPEN_GROUP_INCOMPATIBLE = "OPEN_GROUP_INCOMPATIBLE"
@@ -221,6 +248,18 @@ class ConceptRejection:
     reason: RejectionReason
     detail: str
     wing_orders: tuple[int, ...] = ()
+
+
+@dataclass(frozen=True)
+class PlanFailure:
+    """Why one footprint proportion could not be planned — the reason CODE travels with the text.
+
+    The layout planners used to return a bare string, so the strategy loops above them had nothing
+    to report but a hard-coded reason. Carrying the code out of the planner is what lets each
+    failure keep its own name all the way into the log.
+    """
+    reason: RejectionReason
+    detail: str
 
 
 @dataclass(frozen=True)
@@ -740,8 +779,77 @@ def _column_width(rooms: list[ProgramRoom], specs_area: dict[str, float], net_de
     return sum(specs_area[r.zone_id] for r in rooms) / max(net_depth, 1e-6)
 
 
+#: How many column seams a single footprint proportion may try. Every one is a full re-plan of
+#: both columns, and a FAILING strategy pays for all of them, so this is the runtime knob.
+_MAX_SEAM_OPTIONS = 9
+#: Step between seam candidates. Coarser than the 0.05 m planning grid on purpose: the seam only
+#: has to land in the feasible WINDOW, and the row planner absorbs the remainder either way.
+_SEAM_STEP_M = 0.25
+
+
+def _seam_options(natural_m: float, lo_m: float, hi_m: float) -> list[float]:
+    """West-column widths to try, the area-share value FIRST and then outward in even steps.
+
+    Area share is the natural width only for the AREA term: a column runs the footprint's full
+    depth, so `area / width` is the depth its rows need, and splitting the usable width by area
+    equalises that quotient across both columns. It stops being natural the moment a row's
+    MINIMUM SHORT SIDE binds instead, because a floor does not shrink when its column is widened.
+    A column whose rows are floor-bound gains nothing from extra width, while the column opposite
+    may be starving for it — so the seam that fits is the one that moves width from the first to
+    the second. Which rows are floor-bound is itself a function of the width, so that point has no
+    closed form and is searched.
+
+    Nearest-first ordering is what makes this safe to add: the first candidate is exactly the seam
+    the planner used before, so every layout that already planned still plans the same way, and
+    only proportions that used to be REFUSED can reach the alternatives.
+    """
+    if hi_m < lo_m - 1e-9:
+        return []
+    natural = min(max(natural_m, lo_m), hi_m)
+
+    def snapped(value: float) -> float:
+        return round(min(max(value, lo_m), hi_m) / 0.05) * 0.05
+
+    out = [snapped(natural)]
+    offset = _SEAM_STEP_M
+    while len(out) < _MAX_SEAM_OPTIONS and offset <= (hi_m - lo_m) + _SEAM_STEP_M:
+        for candidate in (natural + offset, natural - offset):
+            if lo_m - 1e-9 <= candidate <= hi_m + 1e-9:
+                value = snapped(candidate)
+                if all(abs(value - seen) > 1e-9 for seen in out):
+                    out.append(value)
+                    if len(out) >= _MAX_SEAM_OPTIONS:
+                        break
+        offset += _SEAM_STEP_M
+    return out
+
+
+def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramRoom]],
+                     east_rows: list[list[ProgramRoom]], areas: dict[str, float],
+                     footprint_h_m: float) -> tuple[list[ColumnPlan] | None, PlanFailure | None]:
+    """Both columns planned at ONE seam position — the unit the seam search repeats."""
+    plans = []
+    for name, width, rows in (("west", west_w, west_rows), ("east", east_w, east_rows)):
+        net_w = width - _EDGE_INSET_ALLOWANCE_M
+        if net_w <= 0:
+            return None, PlanFailure(RejectionReason.COLUMN_WIDTH_EXCEEDED,
+                                     f"{name} column has no net width at {width:.2f} m")
+        for row in rows:
+            if _row_widths(row, net_w) is None:
+                return None, PlanFailure(
+                    RejectionReason.ROW_WIDTH_EXCEEDED,
+                    f"{' + '.join(r.zone_id for r in row)} cannot share the {name} "
+                    f"column's {net_w:.2f} m of net width at their minimums")
+        depths, why = _row_depths(rows, areas, net_w, footprint_h_m)
+        if depths is None:
+            return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
+                                     f"{name} column {why}")
+        plans.append(ColumnPlan(width, rows, depths))
+    return plans, None
+
+
 def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_width: float,
-                column_depth: float) -> list[float] | None:
+                column_depth: float) -> tuple[list[float] | None, str]:
     """Row depths, chosen DIRECTLY rather than inferred from areas.
 
     The first design drove depth from area (`depth = area / width`) and then tried to steer the
@@ -749,25 +857,36 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
     wide column is always too shallow, and nudging its area moves the column width too. Choosing
     the depth first — floored by each row's own minimum short side — and deriving the areas from
     `width x depth` afterwards makes the result feasible BY CONSTRUCTION.
+
+    On refusal the text names EVERY row and which of the two terms set its depth: the area
+    quotient, or the row's own minimum short side. That distinction is the whole diagnosis — a
+    column can overflow with no room minimum involved anywhere, and the old message asserted the
+    opposite ("at their minimum dimensions") in every case.
     """
     wanted = []
+    terms = []
     for row in rows:
         area = sum(areas[r.zone_id] for r in row)
         floor = max(r.template.min_short_side_m for r in row) + _EDGE_INSET_ALLOWANCE_M
-        wanted.append(max(area / max(net_width, 1e-6), floor))
+        by_area = area / max(net_width, 1e-6)
+        wanted.append(max(by_area, floor))
+        ids = "+".join(r.zone_id for r in row)
+        terms.append(f"{ids} {floor:.2f} (min side, area wanted {by_area:.2f})"
+                     if floor > by_area else f"{ids} {by_area:.2f} (area)")
     total = sum(wanted)
-    if total > column_depth + 1e-9:
-        return None  # the rows genuinely do not fit at their own minimum depths
+    if total > column_depth + 1e-9:  # exact on purpose — see the rejected-tolerance note above
+        return None, (f"needs {total:.2f} m of depth but has {column_depth:.2f} m "
+                      f"[{'; '.join(terms)}]")
     surplus = column_depth - total
     weights = [max(0.15, sum(r.template.elasticity for r in row)) for row in rows]
     wsum = sum(weights)
-    return [round((d + surplus * w / wsum) / 0.05) * 0.05 for d, w in zip(wanted, weights)]
+    return [round((d + surplus * w / wsum) / 0.05) * 0.05 for d, w in zip(wanted, weights)], ""
 
 
 def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[ProgramRoom],
                 hall_ids: list[str], footprint_w_m: float, footprint_h_m: float,
                 corridor: CorridorRequirement | None = None,
-                ) -> tuple[LayoutPlan | None, str]:
+                ) -> tuple[LayoutPlan | None, PlanFailure | None]:
     """Column widths, row depths and the resulting zone specs, all mutually consistent."""
     net_depth = max(footprint_h_m - _EDGE_INSET_ALLOWANCE_M, 1e-6)
     net_available = footprint_w_m * footprint_h_m * ASSUMED_EFFICIENCY
@@ -786,39 +905,37 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
     west_min = _column_min_width(west)
     east_min = _column_min_width(east)
     if west_min + east_min > usable + 1e-9:
-        return None, (f"columns need {west_min:.2f} + {east_min:.2f} m of width but only "
-                      f"{usable:.2f} m is available beside the {hall_w:.2f} m hall")
-    # Area share is the NATURAL width (a column runs the full depth, so width == area / depth).
-    # Only then is a column raised to its own minimum, taking the difference from its neighbour
-    # — allocating minimums first and sharing the surplus starved whichever column had the
-    # larger programme.
-    west_raw = _column_width(west, areas, net_depth)
-    east_raw = _column_width(east, areas, net_depth)
-    west_w = usable * west_raw / max(west_raw + east_raw, 1e-6)
-    west_w = min(max(west_w, west_min), usable - east_min)
-    west_w = round(west_w / 0.05) * 0.05
-    east_w = round((usable - west_w) / 0.05) * 0.05
-    west_w = footprint_w_m - hall_w - east_w  # absorb rounding
-
+        return None, PlanFailure(
+            RejectionReason.COLUMN_WIDTH_EXCEEDED,
+            f"columns need {west_min:.2f} + {east_min:.2f} m of width but only "
+            f"{usable:.2f} m is available beside the {hall_w:.2f} m hall")
     # The hall sits between the two columns, so it is EAST of the west column and WEST of the
     # east one. Orient every shared row accordingly, before widths, specs or the tree are built.
+    # Neither the rows nor their orientation depend on the seam, so both are settled once here.
     west_rows = [_orient_row(r, corridor_on_east=True) for r in _rows_of(west)]
     east_rows = [_orient_row(r, corridor_on_east=False) for r in _rows_of(east)]
 
-    plans = []
-    for name, width, rows in (("west", west_w, west_rows), ("east", east_w, east_rows)):
-        net_w = width - _EDGE_INSET_ALLOWANCE_M
-        if net_w <= 0:
-            return None, f"{name} column has no net width at {width:.2f} m"
-        for row in rows:
-            if _row_widths(row, net_w) is None:
-                return None, (f"{' + '.join(r.zone_id for r in row)} cannot share the {name} "
-                              f"column's {net_w:.2f} m of net width at their minimums")
-        depths = _row_depths(rows, areas, net_w, footprint_h_m)
-        if depths is None:
-            return None, (f"{name} column needs more than {footprint_h_m:.2f} m of depth for its "
-                          f"{len(rows)} rows at their minimum dimensions")
-        plans.append(ColumnPlan(width, rows, depths))
+    # Area share is the NATURAL width (a column runs the full depth, so width == area / depth).
+    # Only then is a column raised to its own minimum, taking the difference from its neighbour
+    # — allocating minimums first and sharing the surplus starved whichever column had the
+    # larger programme. That value is now the FIRST seam tried rather than the only one: see
+    # `_seam_options` for why area share stops being the right split once a row's floor binds.
+    west_raw = _column_width(west, areas, net_depth)
+    east_raw = _column_width(east, areas, net_depth)
+    natural_w = usable * west_raw / max(west_raw + east_raw, 1e-6)
+
+    plans: list[ColumnPlan] | None = None
+    failure: PlanFailure | None = None
+    for seam_w in _seam_options(natural_w, west_min, usable - east_min):
+        east_w = round((usable - seam_w) / 0.05) * 0.05
+        west_w = footprint_w_m - hall_w - east_w  # absorb rounding
+        plans, failure = _columns_at_seam(west_w, east_w, west_rows, east_rows,
+                                          areas, footprint_h_m)
+        if plans is not None:
+            break
+
+    if plans is None:
+        return None, failure
 
     # Areas now FOLLOW the geometry: each zone's band is centred on the rect it will occupy.
     specs: dict[str, ZoneSpec] = {}
@@ -975,7 +1092,7 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
     # the candidate's, at 0.25 m steps, and take the first proportion the planner accepts.
     footprint = None
     plan = None
-    why = "no footprint proportion satisfied the programme"
+    failure: PlanFailure | None = None
     max_width = u_to_m(candidate.w)
     max_depth = u_to_m(candidate.h)
 
@@ -986,7 +1103,15 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
     # target first when there is one (see its docstring).
     wanted = _MAX_PROPORTIONS_PER_STRATEGY if target_m2 is not None else 1
     found: list[tuple[Rect, LayoutPlan]] = []
-    for width, depth in _proportions(min_width, max_width, max_depth, gross, target_m2):
+    proportions = _proportions(min_width, max_width, max_depth, gross, target_m2)
+    if not proportions:
+        # No proportion was ever TRIED, so no room was ever sized. Reporting a room minimum here
+        # (as the single catch-all reason did) named a cause that had not been reached yet.
+        return [], ConceptRejection(
+            strategy, RejectionReason.FOOTPRINT_BELOW_MINIMUM_WIDTH,
+            f"the programme needs a footprint at least {min_width:.2f} m wide; this candidate "
+            f"offers {max_width:.2f} m")
+    for width, depth in proportions:
         trial = footprint_of(candidate, width, depth)
         tw, th = u_to_m(trial.w), u_to_m(trial.h)
         attempt, reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor)
@@ -997,10 +1122,10 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
             if len(found) >= wanted:
                 break
         else:
-            why = reason
+            failure = reason
 
     if not found:
-        return [], ConceptRejection(strategy, RejectionReason.ROOM_BELOW_MINIMUM_DIMENSION, why)
+        return [], ConceptRejection(strategy, failure.reason, failure.detail)
 
     built = [_concept_from(spec, rooms, candidate, strategy, rationale, footprint, plan)
              for footprint, plan in found]
@@ -1152,9 +1277,15 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
     footprint = None
     west_rows: list[list[ProgramRoom]] = []
     east_rows: list[list[ProgramRoom]] = []
-    why = "no footprint proportion satisfied the front-band parti"
-    for width, depth in _proportions(min_width, max_width, max_depth, gross,
-                                     spec.program.target_built_area_m2):
+    failure: PlanFailure | None = None
+    proportions = _proportions(min_width, max_width, max_depth, gross,
+                               spec.program.target_built_area_m2)
+    if not proportions:
+        return None, ConceptRejection(
+            strategy, RejectionReason.FOOTPRINT_BELOW_MINIMUM_WIDTH,
+            f"the programme needs a footprint at least {min_width:.2f} m wide; this candidate "
+            f"offers {max_width:.2f} m")
+    for width, depth in proportions:
         trial = footprint_of(candidate, width, depth)
         for split_at in split_options:
             west_try = [_orient_row(r, corridor_on_east=True)
@@ -1167,12 +1298,12 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                 footprint, plan = trial, attempt
                 west_rows, east_rows = west_try, east_try
                 break
-            why = reason
+            failure = reason
         if plan is not None:
             break
 
     if plan is None or footprint is None:
-        return None, ConceptRejection(strategy, RejectionReason.ROOM_BELOW_MINIMUM_DIMENSION, why)
+        return None, ConceptRejection(strategy, failure.reason, failure.detail)
 
     band_depth, public_widths, west_w, hall_w, east_w, west_depths, east_depths, specs = plan
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
@@ -1228,8 +1359,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     usable = fw - hall_w
     west_min, east_min = _column_min_width(west), _column_min_width(east)
     if west_min + east_min > usable + 1e-9:
-        return None, (f"rear columns need {west_min:.2f} + {east_min:.2f} m beside the "
-                      f"{hall_w:.2f} m hall but only {usable:.2f} m is available")
+        return None, PlanFailure(
+            RejectionReason.COLUMN_WIDTH_EXCEEDED,
+            f"rear columns need {west_min:.2f} + {east_min:.2f} m beside the "
+            f"{hall_w:.2f} m hall but only {usable:.2f} m is available")
 
     west_raw = sum(areas[r.zone_id] for r in west)
     east_raw = sum(areas[r.zone_id] for r in east)
@@ -1244,8 +1377,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
         net_w = width - _EDGE_INSET_ALLOWANCE_M
         for row in rws:
             if _row_widths(row, net_w) is None:
-                return None, (f"{' + '.join(r.zone_id for r in row)} cannot share the rear "
-                              f"{name} column's {net_w:.2f} m of net width at their minimums")
+                return None, PlanFailure(
+                    RejectionReason.ROW_WIDTH_EXCEEDED,
+                    f"{' + '.join(r.zone_id for r in row)} cannot share the rear "
+                    f"{name} column's {net_w:.2f} m of net width at their minimums")
         need = sum(max(sum(areas[r.zone_id] for r in row) / max(net_w, 1e-6),
                        max(r.template.min_short_side_m for r in row) + _EDGE_INSET_ALLOWANCE_M)
                    for row in rws)
@@ -1262,8 +1397,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     last_w = fw - sum(widths)
     for room, w in zip(public, widths + [last_w]):
         if w - _EDGE_INSET_ALLOWANCE_M + 1e-6 < room.template.min_short_side_m:
-            return None, (f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
-                          f"{room.template.min_short_side_m} m minimum")
+            return None, PlanFailure(
+                RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
+                f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
+                f"{room.template.min_short_side_m} m minimum")
 
     band_min = max(r.template.min_short_side_m for r in public) + _EDGE_INSET_ALLOWANCE_M
     # Round the rear UP: rounding to nearest could land a couple of centimetres BELOW the
@@ -1272,8 +1409,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     band_depth = round((fh - rear_depth) / 0.05) * 0.05
     rear_depth = fh - band_depth
     if rear_depth < 1.0 or band_depth < band_min - 1e-9:
-        return None, (f"rear needs {rear_need:.2f} m and the front band at least {band_min:.2f} m, "
-                      f"which does not fit {fh:.2f} m of depth")
+        return None, PlanFailure(
+            RejectionReason.COLUMN_DEPTH_EXCEEDED,
+            f"rear needs {rear_need:.2f} m and the front band at least {band_min:.2f} m, "
+            f"which does not fit {fh:.2f} m of depth")
 
     # The band takes whatever depth the rear does not need, and that is where surplus area used to
     # be dumped: at 220 m2 a 2-bedroom house came out with an 81.5 m2 living room against its own
@@ -1288,16 +1427,18 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
                    for r, w in zip(public, widths + [last_w])), key=lambda t: t[0])
     band_cap_depth = binding[0] + _EDGE_INSET_ALLOWANCE_M / 2
     if band_depth > band_cap_depth + 1e-9:
-        return None, (f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
-                      f"{binding[1].template.max_area_m2:.0f} m2 maximum")
+        return None, PlanFailure(
+            RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
+            f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
+            f"{binding[1].template.max_area_m2:.0f} m2 maximum")
 
     depths = []
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
-        d = _row_depths(rws, areas, net_w, rear_depth)
+        d, why = _row_depths(rws, areas, net_w, rear_depth)
         if d is None:
-            return None, (f"rear {name} column needs more than {rear_depth:.2f} m of depth for "
-                          f"its {len(rws)} rows at their minimum dimensions")
+            return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
+                                     f"rear {name} column {why}")
         depths.append(d)
 
     specs: dict[str, ZoneSpec] = {}
@@ -1412,7 +1553,7 @@ def generate_concepts(spec: ArchitecturalSpec,
         # cost like any other room — the row's DEPTH must come from somewhere in the candidate
         # rectangle regardless of how little area FLEX itself needs. On a near-square footprint
         # with only a small excess, there is sometimes no spare depth for one more row, and every
-        # strategy below will report ROOM_BELOW_MINIMUM_DIMENSION and return no design. Measured at
+        # strategy below will report COLUMN_DEPTH_EXCEEDED and return no design. Measured at
         # ~34% of a 288-scenario sweep (bedrooms x wet rooms x safe room x open plan x four excess
         # levels): a real improvement over the unconditional refusal this replaced (0%), not a full
         # fix. That failure is a genuine constraint of tiling the footprint into fixed-width rows —
