@@ -391,6 +391,19 @@ def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoRes
     if result.validation is None or not result.validation.ok:
         failures = "; ".join(f"{c.check_id}: {c.detail}"
                              for c in (result.validation.failures() if result.validation else []))
+        # A brief over its programme's capacity that also fails validation is refused for the
+        # capacity, which the person can act on, not for the check — the same diagnosis the
+        # not-realizable path gives. Without this, a candidate that solved and then failed C8
+        # replaced the capacity message with a raw check id in 8 of 420 logged scenarios.
+        target_m2 = spec.program.target_built_area_m2
+        capacity = program_capacity_gross_m2(build_room_program(spec))
+        if target_m2 is not None and target_m2 > capacity:
+            raise DemoGenerationError(
+                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
+                f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
+                f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
+                f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
+                failures, diagnostics=_diagnostics(result, spec))
         raise DemoGenerationError(
             "PLAN_FAILED_VALIDATION",
             "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",

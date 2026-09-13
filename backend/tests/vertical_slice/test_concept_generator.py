@@ -160,6 +160,40 @@ def test_four_bedroom_programme_completes_through_the_unforced_twin():
     assert any("at forced position" in note for note in result.notes), result.notes
 
 
+def test_a_candidate_refused_by_validation_does_not_end_the_search(monkeypatch):
+    """A solved candidate that fails validation is not a plan: the pipeline moves to the next one.
+
+    Committing to the first geometrically solved candidate let the unforced twins turn 13 useful
+    refusals into raw C8 failures. Here the first realized candidate is made to fail a check; the
+    delivered plan must come from a later candidate, validated, with the refusal on record.
+    """
+    from dataclasses import replace
+    from app.vertical_slice import general_pipeline as gp
+    from app.vertical_slice.validation import ValidationReport
+
+    orig = gp._realize
+    seen: list[int] = []
+
+    def realize_failing_first(spec, buildable, site_constraints, candidate, index, solve,
+                              relationships, on_stage=None):
+        plan = orig(spec, buildable, site_constraints, candidate, index, solve, relationships,
+                    on_stage=on_stage)
+        seen.append(index)
+        if len(seen) == 1:
+            report = ValidationReport()
+            report.add("C8", "daylight/window exposure present where required", False, "TEST")
+            return replace(plan, validation=report)
+        return plan
+
+    monkeypatch.setattr(gp, "_realize", realize_failing_first)
+    result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0),
+                                   program=PROGRAMS["2BR"])
+    assert result.design is not None and result.validation.ok
+    assert result.metrics.first_valid_candidate_index == seen[1]
+    assert seen[0] < seen[1]
+    assert any("failed validation: C8" in note for note in result.notes), result.notes
+
+
 def test_front_band_parti_is_generated_and_can_win():
     """The new parti is a real strategy, not dead code: it wins the 2BR programme outright."""
     result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0),
