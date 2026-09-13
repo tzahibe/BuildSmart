@@ -307,13 +307,11 @@ def _relationships_of(project: Project) -> tuple[RoomRelationshipRequirement, ..
 def spec_for(project: Project) -> ArchitecturalSpec:
     """The authoritative planning spec, built from the (possibly user-corrected) requirements.
 
-    The selected footprint becomes the buildable rectangle EXACTLY; the plot is that rectangle
-    plus setbacks, so the site stage has somewhere to put parking, the entrance walk and garden.
+    The spec describes the PARCEL and the PROGRAMME; it does not depend on the building outline.
+    The outline — the person's, or one the engine chooses (feature 006) — becomes the buildable
+    region in `service._buildable_from`, one level up.
     """
     review = review_of(project)
-    footprint = project.selected_footprint
-    if footprint is None:  # guarded by scope.check_supported before this is ever called
-        raise ValueError("spec_for requires a selected rectangular footprint")
 
     site = site_geometry.derive(project)
     if site is None:  # guarded by scope.check_supported before this is ever called

@@ -121,7 +121,7 @@ def main():
     args = ap.parse_args()
     contexts = json.load(open(args.contexts)) if args.contexts else distinct_contexts()
 
-    svc._outline_that_plans = lambda project: None  # measurement only: skip the refusal-path search
+    # (feature 006 retired `_outline_that_plans`; the refusal path no longer re-plans outlines)
     if args.hub_only:
         from app.vertical_slice import concept_generator as cg
         shipped = cg.generate_concepts

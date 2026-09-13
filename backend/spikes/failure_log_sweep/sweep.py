@@ -19,11 +19,19 @@ NEEDED = ("plot_width_m", "plot_depth_m", "street_facing_side", "built_area_m2",
           "safe_room", "open_plan")
 
 
-def project_from_context(ctx: dict) -> Project:
-    """A log context (the demo request payload) as the `Project` the service would have seen."""
+def project_from_context(ctx: dict, *, with_footprint: bool = True) -> Project:
+    """A log context (the demo request payload) as the `Project` the service would have seen.
+
+    `with_footprint=False` withholds the outline the person chose, which is how feature 006's main
+    flow — the engine picks the outline — is replayed against the same log.
+    """
     now = datetime.now(timezone.utc)
     fw, fd = ctx["footprint_width_m"], ctx["footprint_depth_m"]
     requested, unknown = SourceTag.requested, SourceTag.unknown
+    footprint = SelectedFootprint(
+        source="CUSTOM", shape_type="RECTANGLE", target_area_m2=ctx["built_area_m2"],
+        width_m=fw, depth_m=fd, area_m2=round(fw * fd, 4),
+    ) if with_footprint else None
     return Project(
         project_id=ctx.get("project_id", "SWEEP"),
         city="TLV", street="S", plot_area_m2=ctx["plot_width_m"] * ctx["plot_depth_m"],
@@ -32,10 +40,7 @@ def project_from_context(ctx: dict) -> Project:
         built_area_m2=ctx["built_area_m2"],
         description=ctx.get("description", ""),
         status="active", created_at=now, updated_at=now,
-        selected_footprint=SelectedFootprint(
-            source="CUSTOM", shape_type="RECTANGLE", target_area_m2=ctx["built_area_m2"],
-            width_m=fw, depth_m=fd, area_m2=round(fw * fd, 4),
-        ),
+        selected_footprint=footprint,
         floors=TaggedInt(value=1, source=SourceTag.inferred),
         bedrooms=TaggedInt(value=ctx["bedrooms"], source=requested),
         safe_room=TaggedBool(value=bool(ctx["safe_room"]),
@@ -66,6 +71,11 @@ def distinct_contexts(path: Path = FAILURES) -> list[dict]:
 def signature(design) -> tuple:
     """Everything a person would see of a plan's geometry: every room's type and rectangle."""
     return tuple(sorted((r.type, r.x, r.y, r.width_m, r.depth_m) for r in design.rooms))
+
+
+def plans_shown(result) -> list:
+    """The plan and its alternatives, in the order the screen shows them."""
+    return [result.design, *result.alternatives]
 
 
 class StrategyRecorder:
