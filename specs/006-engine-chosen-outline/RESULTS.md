@@ -76,3 +76,68 @@ Two effects, both structural and both honest to report rather than tune away her
 Recommended reading: SC-008 passes on the letter (3.5× overall) and fails the spirit for the person
 whose brief already planned (4.1×). Part C's preview addresses the perceived wait; the
 fast-path-then-alternatives change above addresses the real one and belongs to Phase 4.
+
+## 2. Phase 4 — plans shown are different houses (US2) + the latency fast-path
+
+Changes since §1 (owner instruction 2026-09-14): engine outlines are surveyed on the fast path
+(`max_alternatives=0`), the primary outline is chosen among the outlines' own primaries by the
+area-only rule, only that outline is re-run for alternatives; the shown alternatives are chosen from
+that outline's alternatives plus the other outlines' primaries — unseen family first, then unseen
+outline, never the same outline re-proportioned. `run_general` unchanged; family is a display key
+only (`test_a_rarer_family_nearer_the_target_still_does_not_become_primary`). `pytest`: **797
+passed, 6 skipped, 0 failed**.
+
+| Gate | Target | §1 (Phase 3) | **§2 (Phase 4)** | |
+|---|---|---|---|---|
+| SC-005 advanced primaries byte-identical | 117/117 | 117/117 | **117/117**, LOST 0 | ✓ |
+| SC-001 main flow plans | ≥ 250 | 257 | **257 / 426** | ✓ |
+| Main-flow non-regression | 0 + named | 2 named | **2**, the same two person-only briefs | ✓ |
+| SC-002 first-plan gross ÷ requested (planned before) | median ≥ 0.95 | 0.975 | **0.975** (≥ 0.95: 66/115) | ✓ |
+| SC-003 briefs with ≥ 2 families shown (of 117) | ≥ 60 | 31 | **50** (A: 20) | ✗ — see §2.1 |
+| SC-004 shown plans failing validation | 0 | 0 | **0** | ✓ |
+| SC-006 same-family + same-outline pairs | 0 | 456 | **0** | ✓ |
+| SC-007 refusals naming an outline · capacity diagnosis kept | 0 · all | 0 · 142/142 | **0 · 142/142** | ✓ |
+| Crashes | 0 | 0 | **0 / 0** | ✓ |
+
+Latency (medians, seconds; "before" from the frozen sweep ≈ 1.1 s planned / ≈ 0.5 s refused):
+
+| population | before | A advanced §1 → **§2** | B main flow §1 → **§2** |
+|---|---|---|---|
+| briefs that planned before (117) | ≈ 1.1 | 1.51 → **1.20** | 6.13 → **4.11** (p90 9.3, max 18.7) |
+| briefs refused before (309) | ≈ 0.5 | 4.04 → **3.05** | 3.08 → **2.80** |
+| all | ≈ 1.25 | 2.47 → **1.95** | 4.31 → **3.05** |
+| B, briefs that plan / that are refused | | | 4.39 / 0.60 |
+
+SC-008 (≤ 4× before, all briefs): B 3.05 s ≈ 2.4× ✓; for briefs that already planned, 4.11 s ≈ 3.4×
+of A's 1.20 s. The §1 A figures were inflated by a test suite running concurrently; §2 ran alone.
+
+What the shown alternatives now are (B, all 257 planned briefs, 359 alternatives): 111 other
+outline + other family · 81 same outline + other family · 167 other outline + same family
+(a different house size/shape of the same organisation) · **0** same outline + same family.
+
+### 2.1 SC-003 — 50, not 60: the target was set on a different base
+
+The spec's "69 of 127" (and the ≥ 60 target) was measured on the `005-hub-v2` tree, counting
+families among **five** outline primaries — the person's plus four engine shapes — with the hub
+parti present. Re-counting that same measurement under this feature's actual conditions:
+
+| condition | briefs with ≥ 2 families among outline primaries |
+|---|---|
+| 5 outlines incl. person's, hub present (spec figure) | 69 / 127 |
+| 4 engine outlines only, hub present | 59 / 127 |
+| 4 engine outlines only, **hub plans excluded** | **48 / 127** |
+| this branch (`main`, no hub), 4 engine outlines, measured | **50 / 117** |
+
+So 50/117 is at the ceiling this design has on `main`: the outline search cannot manufacture a
+second family where the generator offers one (spec §1 already said outline shape does not switch
+family). The remaining diversity comes from the concept vocabulary — the hub parti on `005-hub-v2`
+is worth ~+11 briefs here once merged, and the forced-cut experiment in the diagnosis is the other
+lever. Recommendation: keep SC-003's target but restate its base as "with the hub parti"; on
+`main` alone the pass line is ~48.
+
+### 2.2 Advanced path — fewer plans shown
+
+A (explicit outline) now shows 1 plan in 97/117 briefs, 2 in 16, 3 in 4 (before this phase most
+of those briefs showed three re-proportioned twins). The primary is byte-identical; the strip lost
+its duplicates. This is the spec's intent (FR-004) but it is a visible change for anyone using the
+advanced path, and it is the reason the alternatives list is not part of the byte-identical gate.

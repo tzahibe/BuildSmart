@@ -211,7 +211,8 @@ def generate_demo_design(project: Project,
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
-    results = _plan_outlines_until_one_plans(spec, project, outlines, on_stage)
+    target_m2 = spec.program.target_built_area_m2
+    results = _plan_outlines_until_one_plans(spec, project, outlines, target_m2, on_stage)
 
     # A PREFERRED width may be dropped when the programme cannot fit it; a required one may not.
     # The retry happens once, without the corridor, and the plan says plainly that the preference
@@ -219,7 +220,7 @@ def generate_demo_design(project: Project,
     preference_dropped = False
     if not _any_plan(results) and corridor is not None and not corridor.is_binding:
         without = replace(spec, program=replace(spec.program, corridor=None))
-        retry = _plan_outlines_until_one_plans(without, project, outlines, on_stage)
+        retry = _plan_outlines_until_one_plans(without, project, outlines, target_m2, on_stage)
         if _any_plan(retry):
             results, preference_dropped = retry, True
 
@@ -355,13 +356,14 @@ def _chosen_as_realized(result: GeneralSliceResult) -> RealizedPlan:
         safety=result.safety, relationships=result.relationships)
 
 
-def _plan_outlines(spec, project: Project, outlines: list[Outline],
-                   on_stage=None) -> list[OutlineResult]:
+def _plan_outlines(spec, project: Project, outlines: list[Outline], on_stage=None, *,
+                   max_alternatives: int = ALTERNATIVE_PLAN_LIMIT) -> list[OutlineResult]:
     """Plan each outline, in order, one after the other — never concurrently (research R4)."""
     out: list[OutlineResult] = []
     for outline in outlines:
         started = time.perf_counter()
-        result = _plan(spec, _with_outline(project, outline), on_stage)
+        result = _plan(spec, _with_outline(project, outline), on_stage,
+                       max_alternatives=max_alternatives)
         latency_ms = (time.perf_counter() - started) * 1000
         plans = (_chosen_as_realized(result), *result.alternatives) if result.ok else ()
         out.append(OutlineResult(outline, result, tuple(plans), latency_ms))
@@ -369,16 +371,48 @@ def _plan_outlines(spec, project: Project, outlines: list[Outline],
 
 
 def _plan_outlines_until_one_plans(spec, project: Project, outlines: list[Outline],
+                                   target_m2: float | None,
                                    on_stage=None) -> list[OutlineResult]:
     """The person's outline is authoritative: when they gave one and it plans, the engine's
     outlines are not run at all — the request costs exactly what it cost before this feature.
-    When it does not plan, or when no outline was given, every engine outline is planned."""
+
+    Otherwise the engine's outlines are SURVEYED on the fast path (no alternatives: each run stops
+    at the first plan that validates), the primary outline is chosen among their primaries by the
+    area-only rule, and ONLY that outline is planned again with alternatives. Measured before this
+    split, running every outline with alternatives cost the person whose brief already planned
+    ~6 s against ~1.5 s; the survey costs about a third of a full run per outline.
+    """
     person = [o for o in outlines if o.origin == "PERSON"]
     engine = [o for o in outlines if o.origin == "ENGINE"]
     results = _plan_outlines(spec, project, person, on_stage)
-    if not _any_plan(results):
-        results += _plan_outlines(spec, project, engine, on_stage)
-    return results
+    if _any_plan(results):
+        return results
+
+    surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0)
+    chosen = _nearest_primary(surveyed, target_m2)
+    if chosen is None:
+        return results + surveyed
+    chosen_result, chosen_plan = chosen
+    full = _plan_outlines(spec, project, [chosen_result.outline], on_stage)[0]
+    # The pipeline is deterministic: the re-run's primary IS the surveyed primary. Alternatives
+    # were gathered on top of it, never instead of it.
+    assert full.plans and full.plans[0].layout_signature == chosen_plan.layout_signature, (
+        "re-running the chosen outline changed its primary")
+    full = replace(full, latency_ms=full.latency_ms + chosen_result.latency_ms)
+    return results + [full if r.outline == chosen_result.outline else r for r in surveyed]
+
+
+def _nearest_primary(results: list[OutlineResult],
+                     target_m2: float | None) -> tuple[OutlineResult, RealizedPlan] | None:
+    """Among the outlines that planned, the one whose OWN primary is nearest the requested area;
+    ties fall to the earlier outline. Only primaries compete — an outline's alternatives never
+    displace its primary, exactly as within one outline today."""
+    target = target_m2 or 0.0
+    primaries = [(orr, orr.plans[0]) for orr in results if orr.plans]
+    if not primaries:
+        return None
+    return min(primaries, key=lambda item: (round(abs(item[1].concept.used_area_m2 - target), 4),
+                                            item[0].outline.order))
 
 
 def _any_plan(results: list[OutlineResult]) -> bool:
@@ -389,35 +423,59 @@ def _select_plans(results: list[OutlineResult],
                   requested_m2: float | None) -> PlanSelection | None:
     """Which plans the screen shows, chosen across every outline that produced any.
 
-    THE PRIMARY is the validated plan whose gross area is nearest the requested area — today's rule
-    (the generator sorts candidates by |area − target| and the pipeline takes the first that
-    validates), applied across outlines instead of within one. Ties fall to the earlier outline,
-    then the earlier candidate. When the person gave an outline and it planned, its own primary is
-    the primary, whatever the engine's outlines produced: their choice is authoritative.
+    THE PRIMARY is the outline primary whose gross area is nearest the requested area — today's
+    rule (the generator sorts candidates by |area − target| and the pipeline takes the first that
+    validates), applied across outlines instead of within one; ties fall to the earlier outline.
+    When the person gave an outline and it planned, its own primary is the primary, whatever the
+    engine's outlines produced: their choice is authoritative.
 
-    Family (`RealizedPlan.family_signature`) is NOT an input here and must not become one: it is a
-    display de-duplication key for the alternatives (feature 006 phase 4), never a ranking.
+    THE ALTERNATIVES are chosen from everything else that validated — the primary outline's own
+    alternatives and the other outlines' primaries — nearest the requested area first, but taking a
+    plan of a family not yet shown before any repeat, and a repeat only from an outline not yet
+    shown. Measured before this rule, 142 of the 178 alternatives the demo showed were the primary's
+    own family re-proportioned. Family (`RealizedPlan.family_signature`) is used HERE ONLY, as a
+    display de-duplication key; it is not an input to the primary and must not become one.
     """
     target = requested_m2 or 0.0
+    person = next((orr for orr in results if orr.outline.origin == "PERSON" and orr.plans), None)
+    primary = (person, person.plans[0]) if person is not None else _nearest_primary(results, target)
+    if primary is None:
+        return None
+    primary_orr, primary_plan = primary
+
     pool = sorted(
-        ((orr, plan) for orr in results for plan in orr.plans),
+        ((orr, plan) for orr in results for plan in orr.plans
+         if not (orr is primary_orr and plan is primary_plan)),
         key=lambda item: (round(abs(item[1].concept.used_area_m2 - target), 4),
                           item[0].outline.order, item[1].index))
-    if not pool:
-        return None
-    assert all(plan.ok for _, plan in pool), "an unvalidated plan reached the selection pool"
+    assert primary_plan.ok and all(plan.ok for _, plan in pool), (
+        "an unvalidated plan reached the selection pool")
 
-    person = next((orr for orr in results if orr.outline.origin == "PERSON" and orr.plans), None)
-    primary = (person, person.plans[0]) if person is not None else pool[0]
+    shown: list[tuple[OutlineResult, RealizedPlan]] = [primary]
+    drawings = {(primary_orr.outline.order, primary_plan.layout_signature)}
 
-    # Phase 3: the alternatives are the primary outline's own, exactly as `_alternative_plans`
-    # gathered them — distinct drawings from the same outline. Phase 4 selects across outlines by
-    # family instead.
-    primary_orr, primary_plan = primary
-    alternatives = tuple(
-        (primary_orr, plan) for plan in primary_orr.plans[1:]
-        if plan.layout_signature != primary_plan.layout_signature)[:_SHOWN_LIMIT - 1]
-    return PlanSelection(primary, alternatives)
+    def take(item: tuple[OutlineResult, RealizedPlan]) -> None:
+        shown.append(item)
+        drawings.add((item[0].outline.order, item[1].layout_signature))
+
+    def unseen_drawing(item: tuple[OutlineResult, RealizedPlan]) -> bool:
+        return (item[0].outline.order, item[1].layout_signature) not in drawings
+
+    # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
+    # shape of a family already on screen). Never the same outline re-proportioned.
+    for item in pool:
+        if len(shown) >= _SHOWN_LIMIT:
+            break
+        families = {plan.family_signature for _, plan in shown}
+        if unseen_drawing(item) and item[1].family_signature not in families:
+            take(item)
+    for item in pool:
+        if len(shown) >= _SHOWN_LIMIT:
+            break
+        outlines_shown = {orr.outline.order for orr, _ in shown}
+        if unseen_drawing(item) and item[0].outline.order not in outlines_shown:
+            take(item)
+    return PlanSelection(primary, tuple(shown[1:]))
 
 
 def _result_from(project: Project, spec, selection: PlanSelection,
@@ -454,14 +512,17 @@ def realized_corridor_width_m_of(design) -> float:
     return round(min(widths), 2) if widths else 0.0
 
 
-def _plan(spec, project: Project, on_stage=None):
+def _plan(spec, project: Project, on_stage=None, *,
+          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT):
     # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
-    # Every other caller of the pipeline still gets one plan at one plan's cost.
+    # Every other caller of the pipeline still gets one plan at one plan's cost. `max_alternatives`
+    # is `run_general`'s own argument: 0 is the fast path (stop at the first plan that validates),
+    # which is how the engine's outlines are surveyed before one is chosen (feature 006 phase 4).
     return run_general(
         _buildable_from(spec, project),
         plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
         program=spec.program,
-        max_alternatives=ALTERNATIVE_PLAN_LIMIT,
+        max_alternatives=max_alternatives,
         on_stage=on_stage,
     )
 

@@ -69,14 +69,17 @@ def test_primary_is_the_plan_nearest_the_requested_area_across_outlines():
     assert selection.primary[1].used_area_m2 == 178.0
 
 
-def test_ties_fall_to_the_earlier_outline_then_the_earlier_candidate():
+def test_only_outline_primaries_compete_and_ties_fall_to_the_earlier_outline():
+    """An outline's alternatives never displace its primary — the same invariant that holds
+    within one outline today (`test_the_alternatives_never_change_which_plan_was_chosen`)."""
     results = [
-        _OutlineResult(_outline(0), (_Plan(176.0, 3), _Plan(176.0, 1))),
+        _OutlineResult(_outline(0), (_Plan(170.0, 3), _Plan(176.0, 5))),   # alternative nearer
         _OutlineResult(_outline(1), (_Plan(176.0, 0),)),
+        _OutlineResult(_outline(2), (_Plan(176.0, 0),)),
     ]
     selection = svc._select_plans(results, 176.0)
-    assert selection.primary[0].outline.order == 0
-    assert selection.primary[1].index == 1
+    assert selection.primary[0].outline.order == 1
+    assert selection.primary[1].index == 0
 
 
 def test_an_unvalidated_plan_must_never_reach_the_pool():
@@ -165,3 +168,81 @@ def test_a_custom_footprint_precedes_the_engines_shapes_without_replacing_them()
     assert outlines[0].origin == "PERSON"
     assert [o.origin for o in outlines[1:]] == ["ENGINE"] * (len(outlines) - 1)
     assert all(abs(o.area_m2 - 132.0) < 1.0 for o in outlines)
+
+
+# ------------------------------------------------------------------ shown alternatives (US2)
+#
+# Family is a DISPLAY de-duplication key: it decides which of the validated plans are worth
+# showing beside the primary, and nothing else.
+
+def test_three_families_available_means_three_families_shown():
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F1"), _Plan(174.0, 2, "F2"))),
+        _OutlineResult(_outline(1), (_Plan(173.0, 0, "F3"),)),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    families = [selection.primary[1].family] + [p.family for _, p in selection.alternatives]
+    assert sorted(families) == ["F1", "F2", "F3"]
+
+
+def test_two_families_both_shown_and_the_third_slot_needs_a_different_outline():
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F2"), _Plan(174.0, 2, "F1"))),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    assert [p.family for _, p in selection.alternatives] == ["F2"], "no third slot: same outline only"
+
+    with_other_outline = results + [_OutlineResult(_outline(1), (_Plan(172.0, 0, "F1"),))]
+    selection = svc._select_plans(with_other_outline, 176.0)
+    assert [(o.outline.order, p.family) for o, p in selection.alternatives] == [(0, "F2"), (1, "F1")]
+
+
+def test_one_family_from_one_outline_shows_one_plan_and_is_not_padded():
+    results = [_OutlineResult(_outline(0), tuple(_Plan(176.0 - i, i, "F1") for i in range(5)))]
+    selection = svc._select_plans(results, 176.0)
+    assert selection.alternatives == ()
+
+
+def test_the_same_drawing_is_never_shown_twice():
+    same = _Plan(175.0, 1, "F2", layout="same")
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), same, _Plan(175.0, 2, "F2", layout="same"))),
+        _OutlineResult(_outline(1), (_Plan(174.0, 0, "F3"),)),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    drawings = [(o.outline.order, p.layout_signature) for o, p in [selection.primary, *selection.alternatives]]
+    assert len(drawings) == len(set(drawings))
+
+
+def test_no_two_shown_plans_share_family_and_outline():
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F1"), _Plan(174.0, 2, "F1"))),
+        _OutlineResult(_outline(1), (_Plan(173.0, 0, "F1"),)),
+        _OutlineResult(_outline(2), (_Plan(172.0, 0, "F1"),)),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    pairs = [(o.outline.order, p.family) for o, p in [selection.primary, *selection.alternatives]]
+    assert len(pairs) == len(set(pairs))
+    assert [o.outline.order for o, _ in selection.alternatives] == [1, 2]
+
+
+def test_a_rarer_family_nearer_the_target_still_does_not_become_primary():
+    """Family must never reach the primary choice: the primary is the area-nearest OUTLINE PRIMARY,
+    even when a different-family alternative sits nearer the target."""
+    results = [
+        _OutlineResult(_outline(0), (_Plan(170.0, 0, "F1"), _Plan(176.0, 4, "F2"))),
+        _OutlineResult(_outline(1), (_Plan(171.0, 0, "F1"),)),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    assert selection.primary[1].family == "F1" and selection.primary[1].used_area_m2 == 171.0
+    assert [p.family for _, p in selection.alternatives][0] == "F2"
+
+
+def test_the_persons_plan_stays_first_and_its_alternatives_follow_the_same_rules():
+    results = [
+        _OutlineResult(_outline(0, "PERSON"), (_Plan(160.0, 0, "F1"), _Plan(159.0, 1, "F1"), _Plan(158.0, 2, "F2"))),
+        _OutlineResult(_outline(1), (_Plan(176.0, 0, "F1"),)),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    assert selection.primary[0].outline.origin == "PERSON"
+    assert [(o.outline.order, p.family) for o, p in selection.alternatives] == [(0, "F2"), (1, "F1")]
