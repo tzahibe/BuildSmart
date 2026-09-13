@@ -38,6 +38,20 @@ share of room area · M4 doors on the hall and the hall's own long/short · M5 w
 interior wall with a wet room / kitchen / laundry · M6 living-dining-kitchen joined by open interfaces.
 Reference values from 21 professional plans are in `specs/005-hub-private-wing/spec.md` §1.
 
+## `hub_rooms.py [--hub-only]`
+
+Every realized hub plan's rooms with their rectangles and aspects, plus medians by room type. The
+Stage-0 medians say whether a §6 gate fails; the rectangles say which sizing decision put the strip
+where (the v2.1 diagnosis started here: a 6.4 × 2.8 m bedroom beside a 4.2 × 4.6 m one).
+
+## `hub_sizing_bound.py [W D ...]`
+
+Exhaustive search over every free sizing decision of the v2 hub tree on a footprint (lobby width
+and depth, flank split, foot boundary, foot depth), generous on purpose — the best reachable
+max-aspect of the four bedroom-class wing rooms. It is the exact bound behind the v2.1 verdict:
+on wide-shallow footprints (14.25 × 12.35 → 1.64, 18 × 12 → 2.29) no sizing passes the gates;
+only narrow-deep ones (12 × 18 → 1.22, 10 × 20 → 1.38) can.
+
 ## `BASELINE.md`
 
 Frozen output of `ab.py --toggle twins` at commit `2e19d89`, the "before" every later phase is

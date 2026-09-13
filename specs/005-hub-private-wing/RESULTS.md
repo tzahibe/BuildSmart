@@ -116,6 +116,88 @@ the requested area. Whether a hub plan should out-rank an area-closer spine plan
 now a live product question, because it happens in production: for those 7 briefs the delivered
 plan is a compact lobby with 83 % wet adjacency instead of a 9.3-aspect spine.
 
+## 6. v2.1 — sizing by shape, measured and NOT accepted (2026-09-13, branch `005-hub-v2.1-sizing`)
+
+**Question.** Can the two failing §6 gates (bedroom ≤ 1.35, master ≤ 1.40) be met by sizing alone —
+no topology change, no ranking bonus, no relaxation — with the six passing gates and LOST = 0 kept?
+
+**Diagnosis** (`spikes/failure_log_sweep/hub_rooms.py`, the 17 v2 hub plans' rectangles). Every
+v2 width is shared by *area* and every v2 depth is the *minimum* the areas need, the public band
+absorbing the rest. On the wide-shallow footprints (10 of 17) that gives the stacked flank 6.4 m
+of width — a 6.4 × 2.8 m bedroom (2.29) over a 6.4 × 1.8 m bathroom — beside a 4.2 × 4.6 m
+bedroom (1.10), and a 3.2 m-deep foot band holding a 5.65 × 3.2 m master (1.77). On the 10 × 20
+fronts the 0.7 m of surplus width goes to the stacked flank, not to the 2.8 × 4.6 m single bedroom
+(1.64).
+
+**Change** (`_plan_hub_wing`, additive, feasibility gates unchanged): the wing's own decisions —
+flank split, foot-band boundary inside its opening window, lobby depth inside its (net) aspect and
+area caps — are searched on the 0.05 m grid for the minimum of a number-free objective, the sum of
+ln(long/short)² over the wing's habitable rooms. v2's sizing is a member of every search, and the
+gates are evaluated at v2's sizing first, so the candidate set is identical (44/44 hub candidates).
+A first cut also searched the foot depth with the public band's zones in the objective; it drained
+the band to relieve the kitchen strip (living 1.47 → 1.81, 34 m² bedrooms under the lobby) and
+was dropped before the frozen measurement below.
+
+**Measurement discipline.** Another session was editing `programme_variants` in the same working
+tree during this work (a bathroom-access guard on the second-ensuite variant: plans 138 → 107 on
+today's 426-scenario log). All numbers below therefore come from two frozen worktrees at
+`75b31e8` with that edit applied to both: **R** = v2, **C** = v2.1. The R figures differ from §5
+(19 hub plans instead of 17; bedroom 1.57, wet adjacency 79 %) because the population changed,
+not the hub.
+
+| | R (v2) | **C (v2.1)** |
+|---|---|---|
+| Plans / hub candidates / hub delivered / other parti won | 107 / 44 / 19 / 7 | 107 / 44 / 19 / 7 |
+| Gained vs hub OFF (counted ≥ 80 %) / LOST / crashes | 10 (7) / 0 / 0 | 10 (7) / 0 / 0 |
+| Primaries byte-identical, C vs R | — | **93/107** (14 hub plans resized; non-hub plans identical) |
+| Refusal codes, validation refusals | 37 / 91 / 190 / 1 | identical |
+| Sweep, hub ON | 428 s, worst +0.00 s | 428 s, worst +0.08 s |
+| Test suite | 777 passed, **4 failed** (the concurrent edit's) | 776 passed, **5 failed** (+ `test_a_three_wet_room_brief_gets_a_guest_wc_not_twin_bathrooms`) |
+
+**§6 gates on the 19 production hub plans:**
+
+| Metric | Target | R (v2) | **C (v2.1)** |
+|---|---|---|---|
+| Hall long/short ≤ 1.5 | 100 % | 1.4 — 100 % ✓ | 1.4 — 100 % ✓ |
+| Doors on hall | 4–7 | 6 ✓ | 6 ✓ |
+| Habitable rooms on envelope | 100 % | 100 % ✓ | 100 % ✓ |
+| Circulation share | ≤ 14 % | 8 % ✓ | 9 % ✓ |
+| Wet-room adjacency | ≥ 80 % | 79 % | 79 % (unchanged — topology) |
+| **Bedroom aspect median** | ≤ 1.35 | 1.57 | **1.36 ✗** — and rooms above 1.35: 24/43 → **29/43** |
+| **Master aspect median** | ≤ 1.40 | 1.61 | **1.08 ✓** |
+| Safe room aspect median | (M1) | 1.66 | **1.76 ✗** |
+| Living / dining / kitchen | (M1) | 1.47 / 1.82 / 2.23 | 1.47 / 1.58 / 1.93 |
+
+**Reading — the gates moved, the strips did not go away.** The master passes because the foot
+boundary slides to the master's side of its window and the *other* foot room takes the width: on
+14.25 × 12.35 the master goes 5.65 × 3.2 → 3.8 × 4.0 and the safe room 5.3 × 3.2 → **8.0 × 4.0 m**
+(2.00); the deeper foot takes 0.95 m from the public band (living 7.5 × 4.5 → 7.5 × 3.55, 2.11).
+The bedroom median improves while *more* bedrooms exceed 1.35, and a guest WC stacked under a
+flank bedroom grows with the flank (7.9 × 1.5 m, larger than the ensuite — the failing test). On
+the 10 × 20 fronts nothing changes: the stacked flank's area-driven width consumes the surplus
+before any share is made.
+
+**Root cause — exact, not an impression** (`spikes/failure_log_sweep/hub_sizing_bound.py`): an
+exhaustive search over every free sizing decision of the v2 tree (lobby width and depth, flank
+split, foot boundary, foot depth), with every room only at its template minimum, gives the best
+reachable max-aspect of the four bedroom-class wing rooms per footprint —
+**14.25 × 12.35 → 1.64** (living 2.49 at that point), **18 × 12 → 2.29**, both-flanks-stacked
+**16.9 × 12 → 2.39**, **14 × 16 → 1.85**; only the narrow-deep footprints are reachable
+(12 × 18 → 1.22, 10 × 20 → 1.38). Cause: three full-width bands on a footprint ≤ 12.5 m deep
+leave ~4 m per band; the stacked flank fixes the lobby band at ≥ 4.6 m, the 3-room foot band spans
+the whole front at 3.2–4 m depth, and its boundary window is tied to the lobby's position, so the
+stacked-flank bedroom, the master and the far foot room are coupled — any objective only chooses
+which of them is the strip. Half the hub population is wide-shallow, so no sizing passes both
+medians without a regression elsewhere.
+
+**Decision.** v2.1 is not merged and not carried on `005-hub-v2`: it fails the bedroom gate,
+regresses the safe room and a product test, and the bound shows the miss is the topology's, not
+the numbers'. The code and this measurement are parked, reproducible, on `005-hub-v2.1-sizing`;
+the two diagnosis scripts are kept in the harness. Per the brief, no v3 and no ranking change
+were started. What would change the bound — and is therefore v3 material, not sizing: not
+stacking on wide-shallow footprints (the wet room elsewhere), or a foot band that does not span
+the whole front (side-by-side regime, spec §11 (b)).
+
 ## 4. Decision
 
 - `HUB_PRIVATE_WING` v1: **not committed**. Left in the working tree (`concept_generator.py`, `test_concept_generator.py`) for the owner to keep on a branch or drop; the harness, plan, research, data model, quickstart, tasks and this report are committed so v2 starts from measured ground.

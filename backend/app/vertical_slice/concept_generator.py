@@ -1738,53 +1738,101 @@ def _hub_min_width_m(alloc: HubAllocation, hub_w_m: float) -> float:
     return _flank_min_width_m(alloc.flank_west) + hub_w_m + _flank_min_width_m(alloc.flank_east)
 
 
+def _squareness_cost(dims: list[tuple[float, float]]) -> float:
+    """Least squares on log-aspect: sum of ln(long/short)^2 over rooms — zero for squares, one
+    equal term per room, no threshold and no weights.
+
+    The v2.1 sizing objective. Squared rather than linear so one room cannot be pushed to a strip
+    to make another exactly square (linear terms are indifferent to that trade); it has no target
+    aspect in it on purpose — the §6 gates are measured afterwards by the harness, not encoded
+    here, so nothing in this function can be tuned to pass them.
+    """
+    return sum(math.log(max(w, d) / max(min(w, d), 1e-6)) ** 2 for w, d in dims)
+
+
+def _habitable(room: ProgramRoom) -> bool:
+    """Rooms whose SHAPE people live with: public zones and bedroom-class rooms, not wet rooms."""
+    return room.group in (ZoneGroup.PUBLIC, ZoneGroup.PRIVATE)
+
+
+def _grid(lo: float, hi: float, must_include: float, max_points: int = 40) -> list[float]:
+    """Ascending 0.05 m grid over [lo, hi] (coarsened to at most `max_points`), always holding
+    `must_include` so the v2 reference sizing stays a member of every search."""
+    lo_i, hi_i = math.ceil(lo / 0.05 - 1e-9), math.floor(hi / 0.05 + 1e-9)
+    if hi_i < lo_i:
+        return [round(must_include, 2)]
+    stride = max(1, math.ceil((hi_i - lo_i + 1) / max_points))
+    points = {round(i * 0.05, 2) for i in range(lo_i, hi_i + 1, stride)}
+    points.update((round(hi_i * 0.05, 2), round(must_include, 2)))
+    return sorted(points)
+
+
 def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh: float,
                    hub_w: float) -> tuple[HubPlan | None, PlanFailure | None]:
     """Band depth, lobby rectangle, flank and foot widths, foot depth and every ZoneSpec — mutually
     consistent, in the same order of decisions `_plan_front_band` takes: the rear (here the lobby
     band and the foot band) is sized from the rooms' own programme and the public band absorbs
-    what is left, capped by the binding public room's maximum."""
+    what is left, capped by the binding public room's maximum.
+
+    v2.1 — sizing by shape, not by area share. v2 gave every surplus metre of width to the flank or
+    foot room with the larger area and every band its MINIMUM depth, the public band absorbing the
+    rest; measured on the 17 production hub plans that put a 6.4 x 2.8 m bedroom beside a
+    4.2 x 4.6 m one and a 5.65 x 3.2 m master under the lobby (bedroom median 1.42, master 1.50
+    against the ≤ 1.35 / ≤ 1.40 gates). Here the wing's SAME decisions — the flank split, the
+    foot-band boundary inside its opening window, the lobby depth inside its aspect/area caps —
+    are chosen to minimise `_squareness_cost` over the wing's habitable rooms. The depth policy is
+    v2's: the foot band takes the depth its areas need and the public band absorbs the rest, so
+    the band loses at most the few centimetres by which the lobby deepens. (A first cut also
+    searched the foot depth with the band's zones in the objective; measured, it drained the band
+    to relieve the kitchen strip — living 1.47 -> 1.81 — and was dropped.) The feasibility gates
+    are v2's, evaluated at v2's own sizing first: a footprint that had no hub plan still has none,
+    and one that had one keeps it (only its rectangles move), so the candidate set the sweep
+    measured is unchanged and the ordering rules are untouched.
+    """
     from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
     opening_m = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
     inset = _EDGE_INSET_ALLOWANCE_M
+    g = lambda x: round(x / 0.05) * 0.05  # noqa: E731
 
     modest = scale_program(rooms, sum(r.template.target_area_m2 for r in rooms))
     areas = {z: spec.net_area_target_m2 for z, spec in modest.items()}
 
     # Lobby depth: deep enough for the deeper flank (stacked rooms add up) and for itself, inside
-    # its own aspect band.
+    # its own aspect band. `hub_floor` is v2's lobby depth; v2.1 may deepen it up to `hub_cap`.
     flanks = [alloc.flank_west, alloc.flank_east]
     floors = [_flank_min_depth_m(f) for f in flanks] + [
         HUB_TEMPLATE.min_short_side_m + inset,
         areas[alloc.hub.zone_id] / max(hub_w - inset, 1e-6) + inset / 2]
-    hub_d = round(max(floors) / 0.05) * 0.05
-    hub_d = max(hub_d, round(hub_w / HUB_TEMPLATE.max_aspect_ratio / 0.05) * 0.05)
-    if hub_d > hub_w * HUB_TEMPLATE.max_aspect_ratio + 1e-9:
+    hub_floor = g(max(floors))
+    hub_floor = max(hub_floor, g(hub_w / HUB_TEMPLATE.max_aspect_ratio))
+    if hub_floor > hub_w * HUB_TEMPLATE.max_aspect_ratio + 1e-9:
         return None, PlanFailure(
             RejectionReason.COLUMN_DEPTH_EXCEEDED,
-            f"a {hub_w:.2f} m lobby would need {hub_d:.2f} m of depth for its flanks, past its "
-            f"{HUB_TEMPLATE.max_aspect_ratio} aspect", hub_d - hub_w * HUB_TEMPLATE.max_aspect_ratio)
-    if (hub_w - inset) * (hub_d - inset / 2) > HUB_TEMPLATE.max_area_m2 + 1e-9:
+            f"a {hub_w:.2f} m lobby would need {hub_floor:.2f} m of depth for its flanks, past its "
+            f"{HUB_TEMPLATE.max_aspect_ratio} aspect", hub_floor - hub_w * HUB_TEMPLATE.max_aspect_ratio)
+    if (hub_w - inset) * (hub_floor - inset / 2) > HUB_TEMPLATE.max_area_m2 + 1e-9:
         return None, PlanFailure(
             RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
-            f"a {hub_w:.2f} x {hub_d:.2f} m lobby exceeds its {HUB_TEMPLATE.max_area_m2:.0f} m2 maximum")
+            f"a {hub_w:.2f} x {hub_floor:.2f} m lobby exceeds its {HUB_TEMPLATE.max_area_m2:.0f} m2 maximum")
+    # The search may deepen the lobby only while its REALIZED (net) rectangle stays inside the
+    # aspect the §6 gate measures and under its area maximum — tighter than the gross floor check
+    # above, never looser.
+    hub_cap = min((hub_w - inset) * HUB_TEMPLATE.max_aspect_ratio + inset / 2,
+                  HUB_TEMPLATE.max_area_m2 / max(hub_w - inset, 1e-6) + inset / 2)
+    hub_cap = max(hub_floor, math.floor(hub_cap / 0.05 + 1e-9) * 0.05)
 
     # Depths within a stacked flank: each room its minimum, the surplus by area share.
-    def stacked(flank: list[ProgramRoom]) -> list[float]:
+    def stacked(flank: list[ProgramRoom], hub_d: float) -> list[float]:
         mins_d = [r.template.min_short_side_m + inset for r in flank]
         spare = hub_d - sum(mins_d)
         total = sum(areas[r.zone_id] for r in flank) or 1.0
         depths = [m + spare * areas[r.zone_id] / total for m, r in zip(mins_d, flank)]
-        depths = [round(d / 0.05) * 0.05 for d in depths[:-1]]
+        depths = [g(d) for d in depths[:-1]]
         return depths + [hub_d - sum(depths)]
-    west_depths, east_depths = stacked(alloc.flank_west), stacked(alloc.flank_east)
 
-    # Flank widths: minimums first, surplus by area — the `_row_widths` rule across the lobby band;
-    # a stacked flank is as wide as its widest member wants.
+    # Flank widths: minimums first, then each flank's area-driven width (`want`); what is left of
+    # the lobby band's width is the surplus. v2 split it by area; v2.1 searches the split.
     mins = [_flank_min_width_m(f) for f in flanks]
-    wants = [max(m, max(areas[r.zone_id] / max(d - inset / 2, 1e-6) + inset
-                        for r, d in zip(f, ds)))
-             for m, f, ds in zip(mins, flanks, (west_depths, east_depths))]
     usable = fw - hub_w
     if sum(mins) > usable + 1e-9:
         return None, PlanFailure(
@@ -1792,122 +1840,196 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
             f"flanks need {mins[0]:.2f} + {mins[1]:.2f} m beside a {hub_w:.2f} m lobby but the "
             f"footprint is {fw:.2f} m wide", sum(mins) + hub_w - fw)
     flank_area = [sum(areas[r.zone_id] for r in f) for f in flanks]
-    total_want = sum(wants)
-    if total_want <= usable:
-        share = [w + (usable - total_want) * a / max(sum(flank_area), 1e-6)
-                 for w, a in zip(wants, flank_area)]
-    else:
-        share = [m + (usable - sum(mins)) * (w - m) / max(total_want - sum(mins), 1e-6)
-                 for m, w in zip(mins, wants)]
-    west_w = round(share[0] / 0.05) * 0.05
-    east_w = fw - hub_w - west_w
+
+    def flank_options(hub_d: float) -> tuple[list[list[float]], float, float, float]:
+        """(stacked depths, v2's west width, lowest and highest west width) at this lobby depth."""
+        depths = [stacked(f, hub_d) for f in flanks]
+        wants = [max(m, max(areas[r.zone_id] / max(d - inset / 2, 1e-6) + inset
+                            for r, d in zip(f, ds)))
+                 for m, f, ds in zip(mins, flanks, depths)]
+        total_want = sum(wants)
+        if total_want <= usable:
+            share = [w + (usable - total_want) * a / max(sum(flank_area), 1e-6)
+                     for w, a in zip(wants, flank_area)]
+            lo, hi = wants[0], usable - wants[1]
+        else:
+            share = [m + (usable - sum(mins)) * (w - m) / max(total_want - sum(mins), 1e-6)
+                     for m, w in zip(mins, wants)]
+            lo = hi = share[0]
+        return depths, g(share[0]), lo, hi
+
+    def flank_cost(hub_d: float, depths: list[list[float]], west_w: float) -> float:
+        dims = []
+        for flank, w, ds in zip(flanks, (west_w, fw - hub_w - west_w), depths):
+            dims += [(w - inset, d - inset / 2) for r, d in zip(flank, ds) if _habitable(r)]
+        return _squareness_cost(dims)
 
     # Foot band: one row across the full width. The two members that need a lobby door meet under
-    # the lobby's centre line, so each overlaps the lobby by hub_w/2 >= 1.2 m > the 1.10 m an
-    # opening needs. An ensuite sits outside its bedroom and takes its own minimum plus a share of
-    # what its side has to spare; the bedroom keeps the rest up to the centre line.
+    # the lobby, each overlapping it by at least a full opening. An ensuite sits outside its
+    # bedroom and takes its own minimum plus a share of what its side has to spare.
     doored = [r for r in alloc.foot if not r.entered_from]
-    # The boundary between the two door-needing rooms may sit anywhere both still overlap the lobby
-    # by a full opening; inside that window it follows their area shares. (v1 pinned it to the
-    # lobby's centre line, which gave the master everything up to the centre and a 1.59 aspect.)
-    lo, hi = west_w + opening_m, west_w + hub_w - opening_m
-    if hi + 1e-6 < lo:
-        return None, PlanFailure(
-            RejectionReason.ROW_WIDTH_EXCEEDED,
-            f"a {hub_w:.2f} m lobby cannot give two foot-band rooms {opening_m:.2f} m of shared "
-            f"edge each", lo - hi)
     west_group = [r for r in alloc.foot[:alloc.foot.index(doored[1])]]
     east_group = [r for r in alloc.foot[alloc.foot.index(doored[1]):]]
     a_west = sum(areas[r.zone_id] for r in west_group)
     a_east = sum(areas[r.zone_id] for r in east_group)
     wanted_boundary = fw * a_west / max(a_west + a_east, 1e-6)
-    centre = round(min(max(wanted_boundary, lo), hi) / 0.05) * 0.05
-    widths: list[float] = []
-    for i, room in enumerate(alloc.foot):
-        if room.entered_from:
-            continue
-        side_w = centre if room is doored[0] else fw - centre
-        mate = next((e for e in alloc.foot if e.entered_from == room.zone_id), None)
-        if mate is None:
-            widths.append(side_w)
-            continue
-        mate_min = mate.template.min_short_side_m + inset
-        room_min = room.template.min_short_side_m + inset
-        if mate_min + room_min > side_w + 1e-9:
-            return None, PlanFailure(
-                RejectionReason.ROW_WIDTH_EXCEEDED,
-                f"{room.zone_id} + {mate.zone_id} need {room_min + mate_min:.2f} m on their side of "
-                f"the lobby but have {side_w:.2f} m", room_min + mate_min - side_w)
-        spare = side_w - mate_min - room_min
-        mate_w = mate_min + spare * areas[mate.zone_id] / max(areas[mate.zone_id] + areas[room.zone_id], 1e-6)
-        mate_w = round(mate_w / 0.05) * 0.05
-        # the ensuite is listed before its bedroom on the west side, after it on the east side
-        if alloc.foot.index(mate) < i:
-            widths.append(mate_w); widths.append(side_w - mate_w)
-        else:
-            widths.append(side_w - mate_w); widths.append(mate_w)
-    # widths now follow alloc.foot order; convert the first to a net figure like the others
-    for room, w in zip(alloc.foot, widths):
-        if w - inset + 1e-6 < room.template.min_short_side_m:
-            return None, PlanFailure(
-                RejectionReason.ROW_WIDTH_EXCEEDED,
-                f"{room.zone_id} would be {w:.2f} m wide in the foot band, below its "
-                f"{room.template.min_short_side_m} m minimum",
-                room.template.min_short_side_m + inset - w)
-    foot_depth = max(max(r.template.min_short_side_m for r in alloc.foot) + inset,
+
+    def foot_widths(centre: float) -> tuple[list[float] | None, PlanFailure | None]:
+        widths: list[float] = []
+        for i, room in enumerate(alloc.foot):
+            if room.entered_from:
+                continue
+            side_w = centre if room is doored[0] else fw - centre
+            mate = next((e for e in alloc.foot if e.entered_from == room.zone_id), None)
+            if mate is None:
+                widths.append(side_w)
+                continue
+            mate_min = mate.template.min_short_side_m + inset
+            room_min = room.template.min_short_side_m + inset
+            if mate_min + room_min > side_w + 1e-9:
+                return None, PlanFailure(
+                    RejectionReason.ROW_WIDTH_EXCEEDED,
+                    f"{room.zone_id} + {mate.zone_id} need {room_min + mate_min:.2f} m on their side of "
+                    f"the lobby but have {side_w:.2f} m", room_min + mate_min - side_w)
+            spare = side_w - mate_min - room_min
+            mate_w = mate_min + spare * areas[mate.zone_id] / max(areas[mate.zone_id] + areas[room.zone_id], 1e-6)
+            mate_w = g(mate_w)
+            # the ensuite is listed before its bedroom on the west side, after it on the east side
+            if alloc.foot.index(mate) < i:
+                widths.append(mate_w); widths.append(side_w - mate_w)
+            else:
+                widths.append(side_w - mate_w); widths.append(mate_w)
+        for room, w in zip(alloc.foot, widths):
+            if w - inset + 1e-6 < room.template.min_short_side_m:
+                return None, PlanFailure(
+                    RejectionReason.ROW_WIDTH_EXCEEDED,
+                    f"{room.zone_id} would be {w:.2f} m wide in the foot band, below its "
+                    f"{room.template.min_short_side_m} m minimum",
+                    room.template.min_short_side_m + inset - w)
+        return widths, None
+
+    def foot_min_depth(widths: list[float]) -> float:
+        return g(max(max(r.template.min_short_side_m for r in alloc.foot) + inset,
                      max(areas[r.zone_id] / max(w - inset, 1e-6) for r, w in zip(alloc.foot, widths))
-                     + inset / 2)
-    foot_depth = round(foot_depth / 0.05) * 0.05
+                     + inset / 2))
 
-    # Public band: takes the depth the wing leaves, floored by its own minimum and capped by the
-    # room that reaches its maximum first (the same rule as `_plan_front_band`).
-    band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
-    band_depth = round((fh - hub_d - foot_depth) / 0.05) * 0.05
-    if band_depth < band_min - 1e-9:
-        return None, PlanFailure(
-            RejectionReason.COLUMN_DEPTH_EXCEEDED,
-            f"lobby {hub_d:.2f} m + foot band {foot_depth:.2f} m leave {band_depth:.2f} m for the "
-            f"public band, below its {band_min:.2f} m minimum", band_min - band_depth)
-    hub_d = fh - band_depth - foot_depth  # absorb rounding into the lobby, not the band
+    def foot_cost(widths: list[float], foot_depth: float) -> float:
+        return _squareness_cost([(w - inset, foot_depth - inset / 2)
+                                 for r, w in zip(alloc.foot, widths) if _habitable(r)])
 
-    # The first public zone must overlap the lobby by a full opening (the cased opening's shared
-    # edge) — not span it entirely, as the front band does for its 1.4 m corridor: spanning a 3.3 m
-    # lobby plus a flank left 1.9 m for the dining zone on every proportion of a 12.4 m front.
-    # Inside that window the band follows the zones' area shares.
+    # Public band: the first public zone must overlap the lobby by a full opening (the cased
+    # opening's shared edge) — not span it entirely, as the front band does for its 1.4 m corridor
+    # — and it must reach past the footprint's centre: the entrance resolver prefers the middle of
+    # the street wall and names the first public zone as the room it opens into (C16), and with
+    # parking bays along the front the middle is often the only span clear of them (C11). Inside
+    # that window the band follows the zones' area shares.
     others = alloc.public[1:]
     other_area = sum(areas[r.zone_id] for r in others) or 1.0
     others_min = sum(r.template.min_short_side_m + inset for r in others)
-    # ...and it must reach past the footprint's centre: the entrance resolver prefers the middle of
-    # the street wall and names the first public zone as the room it opens into (C16), and with
-    # parking bays along the front the middle is often the only span clear of them (C11). A 4.45 m
-    # living zone at the west edge left the door at x=8.50 with the living room ending at 8.00.
-    lo_first = max(west_w + opening_m, fw / 2 + opening_m / 2)  # the door, centred, on its wall
-    hi_first = fw - others_min
-    wanted_first = fw * areas[alloc.public[0].zone_id] / max(areas[alloc.public[0].zone_id] + other_area, 1e-6)
-    if hi_first + 1e-6 < lo_first:
-        return None, PlanFailure(
-            RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
-            f"the front band cannot give {alloc.public[0].zone_id} {lo_first:.2f} m to reach the "
-            f"lobby and still seat the other public zones at their minimums", lo_first - hi_first)
-    first_w = round(min(max(wanted_first, lo_first), hi_first) / 0.05) * 0.05
-    public_widths = [first_w]
-    for room in others[:-1]:
-        public_widths.append(round((fw - first_w) * areas[room.zone_id] / other_area / 0.05) * 0.05)
-    if others:
-        public_widths.append(fw - sum(public_widths))
-    for room, w in zip(alloc.public, public_widths):
-        if w - inset + 1e-6 < room.template.min_short_side_m:
-            return None, PlanFailure(
+    band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
+    first_area = areas[alloc.public[0].zone_id]
+    wanted_first = fw * first_area / max(first_area + other_area, 1e-6)
+
+    def public_widths_for(west_w: float) -> tuple[list[float] | None, float, PlanFailure | None]:
+        """Band widths and the band depth at which the binding zone reaches its maximum."""
+        lo_first = max(west_w + opening_m, fw / 2 + opening_m / 2)  # the door, centred, on its wall
+        hi_first = fw - others_min
+        if hi_first + 1e-6 < lo_first:
+            return None, 0.0, PlanFailure(
                 RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
-                f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
-                f"{room.template.min_short_side_m} m minimum")
-    binding = min(((r.template.max_area_m2 / max(w - inset, 1e-6), r)
-                   for r, w in zip(alloc.public, public_widths)), key=lambda t: t[0])
-    if band_depth > binding[0] + inset / 2 + 1e-9:
+                f"the front band cannot give {alloc.public[0].zone_id} {lo_first:.2f} m to reach the "
+                f"lobby and still seat the other public zones at their minimums", lo_first - hi_first)
+        first_w = g(min(max(wanted_first, lo_first), hi_first))
+        widths = [first_w]
+        for room in others[:-1]:
+            widths.append(g((fw - first_w) * areas[room.zone_id] / other_area))
+        if others:
+            widths.append(fw - sum(widths))
+        for room, w in zip(alloc.public, widths):
+            if w - inset + 1e-6 < room.template.min_short_side_m:
+                return None, 0.0, PlanFailure(
+                    RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
+                    f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
+                    f"{room.template.min_short_side_m} m minimum")
+        band_cap = min(r.template.max_area_m2 / max(w - inset, 1e-6)
+                       for r, w in zip(alloc.public, widths)) + inset / 2
+        return widths, band_cap, None
+
+    # --- v2's sizing, and its feasibility gates, first: they decide whether a plan exists at all.
+    ref_depths, ref_west, west_lo, west_hi = flank_options(hub_floor)
+    lo, hi = ref_west + opening_m, ref_west + hub_w - opening_m
+    if hi + 1e-6 < lo:
+        return None, PlanFailure(
+            RejectionReason.ROW_WIDTH_EXCEEDED,
+            f"a {hub_w:.2f} m lobby cannot give two foot-band rooms {opening_m:.2f} m of shared "
+            f"edge each", lo - hi)
+    ref_centre = g(min(max(wanted_boundary, lo), hi))
+    ref_widths, why = foot_widths(ref_centre)
+    if ref_widths is None:
+        return None, why
+    ref_foot = foot_min_depth(ref_widths)
+    ref_band = g(fh - hub_floor - ref_foot)
+    if ref_band < band_min - 1e-9:
+        return None, PlanFailure(
+            RejectionReason.COLUMN_DEPTH_EXCEEDED,
+            f"lobby {hub_floor:.2f} m + foot band {ref_foot:.2f} m leave {ref_band:.2f} m for the "
+            f"public band, below its {band_min:.2f} m minimum", band_min - ref_band)
+    ref_public, ref_cap, why = public_widths_for(ref_west)
+    if ref_public is None:
+        return None, why
+    if ref_band > ref_cap + 1e-9:
+        binding = min(((r.template.max_area_m2 / max(w - inset, 1e-6), r)
+                       for r, w in zip(alloc.public, ref_public)), key=lambda t: t[0])[1]
         return None, PlanFailure(
             RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
-            f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
-            f"{binding[1].template.max_area_m2:.0f} m2 maximum")
+            f"a {ref_band:.2f} m front band would push {binding.zone_id} past its "
+            f"{binding.template.max_area_m2:.0f} m2 maximum")
+
+    # --- the shape search over the WING's own decisions. The band keeps v2's rule (it absorbs the
+    # depth the wing leaves): the foot band stays at the depth its areas need, so the band loses
+    # at most the few centimetres by which the lobby deepens. Every combination below passes the
+    # gates v2 applied above — the band only gets shallower, the lobby stays under its caps, the
+    # foot rooms keep their minimums.
+    foot_cache: dict[float, tuple[list[float], float] | None] = {}
+
+    def foot_at(centre: float):
+        if centre not in foot_cache:
+            widths, _ = foot_widths(centre)
+            foot_cache[centre] = None if widths is None else (widths, foot_min_depth(widths))
+        return foot_cache[centre]
+
+    best = None  # (cost, hub_d, west_w, centre, foot_depth)
+    for hub_d in _grid(hub_floor, hub_cap, hub_floor):
+        depths, v2_west, west_lo, west_hi = flank_options(hub_d)
+        for west_w in _grid(west_lo, west_hi, v2_west):
+            if west_w < mins[0] - 1e-9 or fw - hub_w - west_w < mins[1] - 1e-9:
+                continue
+            public, band_cap, why = public_widths_for(west_w)
+            if public is None:
+                continue
+            c_flank = flank_cost(hub_d, depths, west_w)
+            for centre in _grid(west_w + opening_m, west_w + hub_w - opening_m, ref_centre):
+                if not west_w + opening_m - 1e-9 <= centre <= west_w + hub_w - opening_m + 1e-9:
+                    continue
+                at = foot_at(centre)
+                if at is None:
+                    continue
+                widths, foot_depth = at
+                band_depth = g(fh - hub_d - foot_depth)
+                if band_depth < band_min - 1e-9 or band_depth > band_cap + 1e-9:
+                    continue
+                cost = c_flank + foot_cost(widths, foot_depth)
+                if best is None or cost < best[0] - 1e-9:
+                    best = (cost, hub_d, west_w, centre, foot_depth)
+    if best is None:  # cannot happen — v2's own sizing is in the grid — but never plan blind
+        best = (0.0, hub_floor, ref_west, ref_centre, ref_foot)
+    _, hub_d, west_w, centre, foot_depth = best
+    west_depths, east_depths = (stacked(f, hub_d) for f in flanks)
+    east_w = fw - hub_w - west_w
+    widths, _ = foot_widths(centre)
+    public_widths, _, _ = public_widths_for(west_w)
+    band_depth = g(fh - hub_d - foot_depth)
+    hub_d = fh - band_depth - foot_depth  # absorb rounding into the lobby, not the band
 
     specs: dict[str, ZoneSpec] = {}
 
