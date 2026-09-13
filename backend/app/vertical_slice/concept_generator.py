@@ -53,6 +53,7 @@ from .geometry_core.model import (
 )
 from .safe_adapter import SolverGeometryCandidate
 from .spec import ArchitecturalSpec, CorridorRequirement, CorridorWidthMode
+from .windows import DAYLIGHT_ROLES
 
 # --------------------------------------------------------------------------- product policy
 # PRODUCT POLICY placeholders, in the same sense as WALL_THICKNESS_M's safe-room entry: plausible
@@ -648,27 +649,56 @@ def _orient_row(row: list[ProgramRoom], corridor_on_east: bool) -> list[ProgramR
     return dependent + corridor_facing if corridor_on_east else corridor_facing + dependent
 
 
-def _daylight_order(rows: list[list[ProgramRoom]]) -> list[list[ProgramRoom]]:
-    """Order one REAR column's rows so a shared row keeps its inner member on the envelope.
+def _needs_column_end(row: list[ProgramRoom]) -> bool:
+    """Whether this row's daylight depends on sitting at one of its column's exterior ends.
 
     A full-width row spans its column, so it always reaches the column's outer long edge. A
     SHARED row is split again by a V-cut: the outer slot takes that edge and the inner slot —
     the corridor-facing one, by `_orient_row` — is left with only the row's own north and south
-    edges. In the COLUMN partis the column runs the full depth, so its first row's north edge is
-    the building envelope and the inner member still sees daylight. In the FRONT-BAND parti it
-    does not: the rear columns start under the public band, so a shared row placed first is
+    edges, which are building envelope only at the column's ends. So the row is at risk exactly
+    when a corridor-facing member of a shared row is a room C8 requires a window for.
+    """
+    return len(row) >= 2 and any(r.entered_from is None and r.role in DAYLIGHT_ROLES for r in row)
+
+
+def _daylight_order(rows: list[list[ProgramRoom]], *,
+                    north_is_envelope: bool) -> list[list[ProgramRoom]]:
+    """Order one column's rows so every shared row keeps its inner member on the envelope.
+
+    See `_needs_column_end` for why a shared row is at risk. Which ends are envelope depends on
+    the parti: in the COLUMN partis the column runs the full depth, so both its first row's
+    north edge and its last row's south edge are exterior. In the FRONT-BAND parti only the
+    south end is: the rear columns start under the public band, so a shared row placed first is
     enclosed on all four sides — north the band, south the next row, east the hall, west its own
     ensuite. That is exactly how a 3-bedroom closed-plan house put MASTER in a windowless box and
     failed C8, with an ensuite bathroom holding the only exterior wall of the pair.
 
-    Moving shared rows LAST gives their inner member the column's south edge, which is building
-    envelope in this parti. It is also the better arrangement architecturally — the master suite
-    lands at the quiet rear rather than against the living space.
+    The same enclosure arises in a column parti as soon as a column carries TWO shared rows —
+    which `programme_variants` produces by hanging the last shared bathroom off a secondary
+    bedroom — with a full-width row after them: the second suite is then boxed in between the
+    first suite, the full row, the hall and its own ensuite. Measured on a 15.00 x 11.73 m
+    two-bedroom open-plan house, where SPINE_PUBLIC_PRIVATE solved three candidates and every one
+    failed C8 on BEDROOM_1.
 
-    With more than one shared row in a column only the last would be fixed; the supported
-    programme has at most one ensuite (see `build_room_program`), so that case cannot arise here.
+    Rows already at an exterior end are left where they are, and a column with no stranded
+    shared row is returned untouched, so plans that were fine keep their drawing. When a shared
+    row IS stranded, the at-risk rows take the available ends — one at the north end where that
+    is envelope and the rest at the south, in their programme order — and the other rows keep
+    their relative order between them. Putting a lone suite at the rear rather than the front is
+    also the better arrangement architecturally: the master suite lands at the quiet rear rather
+    than against the living space. With more at-risk rows than exterior ends the surplus stays
+    internal; there is no arrangement of a single column that gives it a window, and C8 refuses
+    that candidate so the search moves on.
     """
-    return [row for row in rows if len(row) < 2] + [row for row in rows if len(row) >= 2]
+    last = len(rows) - 1
+    stranded = [i for i, row in enumerate(rows)
+                if _needs_column_end(row) and not (i == last or (north_is_envelope and i == 0))]
+    if not stranded:
+        return list(rows)
+    at_risk = [row for row in rows if _needs_column_end(row)]
+    others = [row for row in rows if not _needs_column_end(row)]
+    head = at_risk[:1] if north_is_envelope and len(at_risk) >= 2 else []
+    return head + others + at_risk[len(head):]
 
 
 #: The corridor width used when the brief asks for none. Unchanged default behaviour: the column
@@ -952,8 +982,10 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
     # The hall sits between the two columns, so it is EAST of the west column and WEST of the
     # east one. Orient every shared row accordingly, before widths, specs or the tree are built.
     # Neither the rows nor their orientation depend on the seam, so both are settled once here.
-    west_rows = [_orient_row(r, corridor_on_east=True) for r in _rows_of(west)]
-    east_rows = [_orient_row(r, corridor_on_east=False) for r in _rows_of(east)]
+    west_rows = [_orient_row(r, corridor_on_east=True)
+                 for r in _daylight_order(_rows_of(west), north_is_envelope=True)]
+    east_rows = [_orient_row(r, corridor_on_east=False)
+                 for r in _daylight_order(_rows_of(east), north_is_envelope=True)]
 
     # Area share is the NATURAL width (a column runs the full depth, so width == area / depth).
     # Only then is a column raised to its own minimum, taking the difference from its neighbour
@@ -1392,9 +1424,9 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
         trial = footprint_of(candidate, width, depth)
         for split_at in split_options:
             west_try = [_orient_row(r, corridor_on_east=True)
-                        for r in _daylight_order(rows[:split_at])]
+                        for r in _daylight_order(rows[:split_at], north_is_envelope=False)]
             east_try = [_orient_row(r, corridor_on_east=False)
-                        for r in _daylight_order(rows[split_at:])]
+                        for r in _daylight_order(rows[split_at:], north_is_envelope=False)]
             attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
                                                u_to_m(trial.w), u_to_m(trial.h))
             if attempt is not None:

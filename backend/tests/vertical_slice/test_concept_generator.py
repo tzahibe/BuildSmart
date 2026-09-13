@@ -566,6 +566,76 @@ def test_master_in_a_shared_row_still_reaches_the_envelope(width_m, depth_m):
     assert c8.passed, c8.detail
 
 
+# ------------------------------------------------------- second suite in a column parti
+#
+# Reported from the product (failures.json, 2026-09-13): 15 x 15 m site, a 15.00 x 11.73 m
+# footprint for 176 m², 2 bedrooms, 2 wet rooms, safe room, open plan. The literal programme did
+# not fit the depth, so the `programme_variants` reading — BATH_2 hung off BEDROOM_1 as a second
+# ensuite — was the only one that solved, and SPINE_PUBLIC_PRIVATE solved it three times. Each
+# time the private column came out MASTER+BATH_1 / BEDROOM_1+BATH_2 / SAFE_ROOM, and BEDROOM_1 was
+# boxed in on all four sides — MASTER, the safe room, the hall and its own ensuite — so every
+# candidate failed C8 and the person got PLAN_FAILED_VALIDATION for a brief that fits.
+
+SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
+                               target_built_area_m2=176.0)
+
+
+def _second_suite_run():
+    # The exact region the product handed the engine: the selected footprint, flush to the street
+    # edge of a parcel with no setbacks (app/demo/service.py::_buildable_from).
+    spec = ArchitecturalSpec(plot=PlotSpec(width_m=15.0, depth_m=15.0, front_setback_m=0.0,
+                                           side_setback_m=0.0, rear_setback_m=0.0),
+                             program=SECOND_SUITE_2BR)
+    buildable = BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(0.0, 0.0, 15.0, 11.73))),
+        Provenance(Source.USER, Authority.AUTHORITATIVE, ref="selected footprint"),
+    )
+    return run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
+                       program=spec.program)
+
+
+def test_second_suite_in_a_column_still_reaches_the_envelope():
+    """A column holding TWO shared rows puts one at each exterior end, so the second suite's
+    bedroom takes the column's rear edge instead of being enclosed between the first suite and a
+    full-width row. Full-width rows always hold the column's outer edge, so they can sit inside."""
+    result = _second_suite_run()
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
+    c8 = next(c for c in result.validation.checks if c.check_id == "C8")
+    assert c8.passed, c8.detail
+    bedroom = next(r for r in result.design.rooms if r.zone_id == "BEDROOM_1")
+    assert "EXTERIOR" in bedroom.walls.values(), bedroom.walls
+    # The variant that solved IS the second-suite reading, entered through its bedroom — the
+    # ordering fix changed where the rooms sit, not how they connect.
+    doors = {frozenset((d.a, d.b)) for d in result.design.interior_doors}
+    assert frozenset(("BEDROOM_1", "BATH_2")) in doors, doors
+    assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
+
+
+def test_daylight_order_leaves_a_column_with_no_stranded_suite_untouched():
+    """The ordering is a repair, not a preference: rows already safe keep their drawing."""
+    from app.vertical_slice.concept_generator import ProgramRoom, _daylight_order
+
+    def room(zone_id, role, entered_from=None):
+        return ProgramRoom(zone_id, role, ZoneGroup.PRIVATE, ROOM_TEMPLATES[role], entered_from)
+
+    master = [room("MASTER", ProgramRole.MASTER_BEDROOM),
+              room("BATH_1", ProgramRole.BATHROOM, "MASTER")]
+    second = [room("BEDROOM_1", ProgramRole.BEDROOM),
+              room("BATH_2", ProgramRole.BATHROOM, "BEDROOM_1")]
+    safe = [room("SAFE_ROOM", ProgramRole.SAFE_ROOM)]
+    bedroom = [room("BEDROOM_2", ProgramRole.BEDROOM)]
+
+    # One suite at either exterior end of a full-depth column: nothing to repair.
+    assert _daylight_order([master, bedroom, safe], north_is_envelope=True) == [master, bedroom, safe]
+    assert _daylight_order([bedroom, safe, master], north_is_envelope=True) == [bedroom, safe, master]
+    # The reported column: the second suite is stranded, so the suites take both ends.
+    assert _daylight_order([master, second, safe], north_is_envelope=True) == [master, safe, second]
+    # Under a front band only the south end is envelope, exactly as before: shared rows go last.
+    assert _daylight_order([master, bedroom, safe], north_is_envelope=False) == [bedroom, safe, master]
+    assert _daylight_order([master, second, safe], north_is_envelope=False) == [safe, master, second]
+
+
 # --------------------------------------------------------------- built area tracks the target
 #
 # The generated house used to be sized from the ROOM TEMPLATE TABLE and not from the area the user

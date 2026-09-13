@@ -203,6 +203,15 @@ v2 scope, in order: (a) two-room flanks (bedroom over bathroom at lobby depth �
 (b) the side-by-side regime with a head band for the wet cluster; (c) only then the ordering
 question of when a hub plan should out-rank an area-closer spine plan.
 
+**v2 (a) outcome, 2026-09-13 (branch `005-hub-v2`, RESULTS.md §5):** hub candidates 6 → 43,
+delivered as the primary plan 0 → 17, +10 plans (7 counted), 0 lost, +5 % sweep time,
+771 tests. On the 17 hub plans: lobby 1.4 / 100 %, 6 doors, exposure 100 %, circulation 8 %,
+**wet adjacency 83 %** (v1: 0 %) — six of eight targets; bedroom 1.42 and master 1.50 miss
+narrowly while beating the plans they replaced (1.50 / 1.60). Not merged: two targets short, and
+7 production primaries now change to hub plans through the area-proximity sort, which makes (c) a
+decision rather than a deferral. v2.1 lever for the two misses: a shape-aware share of surplus
+width in `_plan_hub_wing` (flanks and foot), measured with the harness, not tuned.
+
 ## 10. Success definition
 
 The hub parti is done when a 4-bedroom, 2-wet-room, safe-room brief on a 13 × 14 m footprint — which today plans as a 9.4-aspect spine with strip-shaped public rooms and 40 % wet adjacency — comes back with a 3 × 3.4 m room lobby, five doors on it, two wet rooms side by side at its head, a master suite at its foot, near-square bedrooms on its flanks, every habitable room on the envelope, all validation checks passing, and no scenario that planned before planning worse.
