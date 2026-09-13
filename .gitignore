@@ -6,3 +6,5 @@ dist/
 .env.local
 .claude/settings.local.json
 data/
+
+backend/spikes/failure_log_sweep/gained.json

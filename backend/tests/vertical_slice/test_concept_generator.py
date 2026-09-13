@@ -269,11 +269,46 @@ def test_hub_wing_is_a_compact_lobby_with_four_to_five_doors():
     assert short >= 2.4 - 1e-6, (hall.net_w_m, hall.net_h_m)
     assert long / short <= 1.5 + 1e-6, (hall.net_w_m, hall.net_h_m)
     doors = [d for d in result.design.interior_doors if "HALL" in (d.a, d.b) and d.placeable]
-    assert 4 <= len(doors) <= 5, [(d.a, d.b) for d in doors]
+    assert 4 <= len(doors) <= 6, [(d.a, d.b) for d in doors]
     # every habitable room still sits on the envelope (the 100% the engine already had)
     for r in result.design.rooms:
         if any(role in r.roles for role in ("BEDROOM", "MASTER_BEDROOM", "LIVING", "KITCHEN", "DINING")):
             assert "EXTERIOR" in set(r.walls.values()), (r.zone_id, r.walls)
+
+
+def test_hub_wet_rooms_are_back_to_back_at_the_foot():
+    """User story 2 (v2): the shared wet room stacks under a flank bedroom, directly above the
+    ensuite at the foot band's outer end — the two wet rooms share a wall, as in ~20/21 references.
+    """
+    from app.vertical_slice import concept_generator as cg
+    shipped = cg.generate_concepts
+
+    def hub_only(spec, candidates):
+        res = shipped(spec, candidates)
+        kept = tuple(c for c in res.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING)
+        return type(res)(kept, res.rejections, res.program)
+
+    cg.generate_concepts = hub_only
+    try:
+        result = run_general_from_site(
+            F.exact_rectangle(), plot_size_m=(20.0, 24.0),
+            program=ProgramSpec(bedrooms=3, safe_room=True, wet_rooms=2, open_plan_living=True,
+                                target_built_area_m2=180.0))
+    finally:
+        cg.generate_concepts = shipped
+    assert result.design is not None and result.validation.ok, result.metrics.rejection_reasons
+    rooms = {r.zone_id: r for r in result.design.rooms}
+    ensuite, shared = rooms["BATH_1"], rooms["BATH_2"]
+
+    def touching(a, b) -> bool:
+        ax, ay, aw, ah = a.rect_m
+        bx, by, bw, bh = b.rect_m
+        vertical = (abs(ay + ah - by) < 1e-6 or abs(by + bh - ay) < 1e-6) and min(ax + aw, bx + bw) - max(ax, bx) > 0.5
+        horizontal = (abs(ax + aw - bx) < 1e-6 or abs(bx + bw - ax) < 1e-6) and min(ay + ah, by + bh) - max(ay, by) > 0.5
+        return vertical or horizontal
+    assert touching(ensuite, shared), (ensuite.rect_m, shared.rect_m)
+    doors = [d for d in result.design.interior_doors if "HALL" in (d.a, d.b) and d.placeable]
+    assert any(shared.zone_id in (d.a, d.b) for d in doors), "the shared bath opens onto the lobby"
 
 
 def test_hub_is_offered_only_for_three_or_more_bedrooms():
