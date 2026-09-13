@@ -169,6 +169,15 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     ProgramRole.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
 }
 
+#: The room lobby of the hub parti (feature 005) — the compact circulation cell the private wing's
+#: rooms open onto. PRODUCT POLICY placeholders like every row above, derived from a visual census
+#: of 21 professional plans rather than from regulation: the lobby measures ~2.5-3.5 m a side, is
+#: near-square, and carries 4-7 doors. It is NOT a `ROOM_TEMPLATES` row: the hub keeps zone id
+#: "HALL" and role HALL (so C14, the twin's root->HALL rule and every label keyed on the hall are
+#: unchanged) and merely carries this template instead of HALL's. Elasticity equals HALL's — a hub
+#: is still circulation and never outranks a bedroom for surplus.
+HUB_TEMPLATE = RoomTemplate(6.0, 8.5, 12.0, 2.4, 1.5, elasticity=0.1)
+
 #: Net/gross ratio used to size a footprint from a programme. Measured 0.90-0.92 in the spike.
 ASSUMED_EFFICIENCY = 0.90
 #: Wall inset allowance used by the pre-check (exterior half 0.15 + partition half 0.05).
@@ -208,6 +217,9 @@ class ConceptStrategy(str, Enum):
     BRANCHED_TWO_STACK = "BRANCHED_TWO_STACK"
     #: public zones as a full-width band across the front, corridor and bedrooms behind it.
     FRONT_PUBLIC_BAND = "FRONT_PUBLIC_BAND"
+    #: public band across the front; behind it a private wing organised around a compact room
+    #: lobby that the bedrooms open onto from its flanks and from the band below it (feature 005).
+    HUB_PRIVATE_WING = "HUB_PRIVATE_WING"
     #: programme allocated across two safe wings.
     MULTI_WING_SPLIT = "MULTI_WING_SPLIT"
 
@@ -1556,6 +1568,360 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     return (band_depth, widths, west_w, hall_w, east_w, depths[0], depths[1], specs), ""
 
 
+# --------------------------------------------------------------------------- hub parti (005)
+
+#: Hub widths to try, nearest the census centre first. Five values on the 0.30 m grid — the search
+#: is bounded and deterministic like `_seam_options`.
+_HUB_WIDTHS_M = (3.0, 2.7, 3.3, 2.4, 3.6)
+#: A brief needs this many bedrooms before a room lobby is worth its area (spec Q5; references with
+#: two bedrooms use a small entrance lobby instead).
+_HUB_MIN_BEDROOMS = 3
+
+
+@dataclass(frozen=True)
+class HubAllocation:
+    """Which room sits where around the lobby — see specs/005 data-model.md."""
+    public: list[ProgramRoom]
+    hub: ProgramRoom
+    flank_west: ProgramRoom
+    flank_east: ProgramRoom
+    #: rooms along the band under the lobby, outer-west to outer-east; an ensuite sits next to its
+    #: bedroom on the OUTER side, so the bedroom is the member that reaches the lobby
+    foot: list[ProgramRoom]
+
+
+@dataclass(frozen=True)
+class HubPlan:
+    band_depth_m: float
+    public_widths_m: list[float]
+    west_w_m: float
+    hub_w_m: float
+    east_w_m: float
+    hub_d_m: float
+    foot_depth_m: float
+    foot_widths_m: list[float]
+    specs: dict[str, ZoneSpec]
+    doors_on_hub: int
+
+
+def _hub_allocation(rooms: list[ProgramRoom], hub_w_m: float,
+                    ) -> tuple[HubAllocation | None, ConceptRejection | None]:
+    """Rooms -> flanks and foot band. Rejects when more rooms need a lobby door than v1 can seat.
+
+    v1 seats FOUR rooms with a door on the lobby: one on each flank (full lobby depth, so any room
+    qualifies) and two in the foot band, which meet under the lobby's centre line so each overlaps
+    it by hub_w/2 — at least 1.2 m against the 1.10 m an opening needs
+    (`INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M`). A third foot-band room could only reach the lobby
+    at 1.1 m of overlap each under a 3.3 m lobby, i.e. as a 1.1 m wide toilet — deferred. An ensuite
+    needs no lobby door (it is entered from its bedroom) and travels with it.
+
+    Flanks take bedrooms first — a flank room comes out `hub_d` deep and its template's width, which
+    is the near-square room the references have — then the safe room, then a wet room. The master
+    suite goes to the foot band because its ensuite needs a slot beside it.
+    """
+    strategy = ConceptStrategy.HUB_PRIVATE_WING
+    public = [r for r in rooms if r.group is ZoneGroup.PUBLIC]
+    hub = next(r for r in rooms if r.group is ZoneGroup.CIRCULATION)
+    private = [r for r in rooms if r.group in (ZoneGroup.PRIVATE, ZoneGroup.SERVICE)]
+    rows = _rows_of(private)
+
+    single = [row[0] for row in rows if len(row) == 1]
+    suites = [row for row in rows if len(row) == 2]
+    if len(suites) > 1:
+        return None, ConceptRejection(strategy, RejectionReason.ACCESS_DEGREE_EXCEEDED,
+                                      "the lobby's foot band seats one suite (bedroom + ensuite)")
+
+    def rank(room: ProgramRoom) -> int:  # who gets a flank first
+        if room.role is ProgramRole.BEDROOM:
+            return 0
+        if room.role is ProgramRole.SAFE_ROOM:
+            return 1
+        return 2  # wet / service
+
+    ordered = sorted(single, key=rank)
+    seats = 4
+    needing = len(rows)
+    if needing > seats:
+        return None, ConceptRejection(
+            strategy, RejectionReason.ACCESS_DEGREE_EXCEEDED,
+            f"{needing} rooms need a door on the lobby but v1 seats {seats} "
+            f"(two flanks, two in the foot band)")
+    if needing < 3:
+        return None, ConceptRejection(strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+                                      f"{needing} private rows — too few to organise around a lobby")
+
+    flank_west, flank_east = ordered[0], ordered[1]
+    rest = ordered[2:]
+    # Foot band, outer-west to outer-east. The two door-needing members meet under the lobby's
+    # centre line (`_plan_hub_wing` fixes that boundary); an ensuite sits OUTSIDE its bedroom so the
+    # bedroom is the member that reaches the lobby.
+    foot: list[ProgramRoom] = []
+    if suites:
+        bedroom, ensuite = suites[0]
+        foot += [ensuite, bedroom]
+    foot += rest
+    if len([r for r in foot if not r.entered_from]) != 2:
+        return None, ConceptRejection(
+            strategy, RejectionReason.ACCESS_DEGREE_EXCEEDED,
+            f"the foot band seats exactly two rooms with a lobby door; this programme leaves "
+            f"{len([r for r in foot if not r.entered_from])}")
+    return HubAllocation(public, hub, flank_west, flank_east, foot), None
+
+
+def _hub_min_width_m(alloc: HubAllocation, hub_w_m: float) -> float:
+    return (alloc.flank_west.template.min_short_side_m + _EDGE_INSET_ALLOWANCE_M
+            + hub_w_m
+            + alloc.flank_east.template.min_short_side_m + _EDGE_INSET_ALLOWANCE_M)
+
+
+def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh: float,
+                   hub_w: float) -> tuple[HubPlan | None, PlanFailure | None]:
+    """Band depth, lobby rectangle, flank and foot widths, foot depth and every ZoneSpec — mutually
+    consistent, in the same order of decisions `_plan_front_band` takes: the rear (here the lobby
+    band and the foot band) is sized from the rooms' own programme and the public band absorbs
+    what is left, capped by the binding public room's maximum."""
+    from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
+    opening_m = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
+    inset = _EDGE_INSET_ALLOWANCE_M
+
+    modest = scale_program(rooms, sum(r.template.target_area_m2 for r in rooms))
+    areas = {z: spec.net_area_target_m2 for z, spec in modest.items()}
+
+    # Lobby depth: deep enough for its flanks and for itself, inside its own aspect band.
+    floors = [alloc.flank_west.template.min_short_side_m + inset,
+              alloc.flank_east.template.min_short_side_m + inset,
+              HUB_TEMPLATE.min_short_side_m + inset,
+              areas[alloc.hub.zone_id] / max(hub_w - inset, 1e-6) + inset / 2]
+    hub_d = round(max(floors) / 0.05) * 0.05
+    hub_d = max(hub_d, round(hub_w / HUB_TEMPLATE.max_aspect_ratio / 0.05) * 0.05)
+    if hub_d > hub_w * HUB_TEMPLATE.max_aspect_ratio + 1e-9:
+        return None, PlanFailure(
+            RejectionReason.COLUMN_DEPTH_EXCEEDED,
+            f"a {hub_w:.2f} m lobby would need {hub_d:.2f} m of depth for its flanks, past its "
+            f"{HUB_TEMPLATE.max_aspect_ratio} aspect", hub_d - hub_w * HUB_TEMPLATE.max_aspect_ratio)
+
+    # Flank widths: minimums first, surplus by area — the `_row_widths` rule across the lobby band.
+    net_d = hub_d - inset / 2
+    flanks = [alloc.flank_west, alloc.flank_east]
+    mins = [r.template.min_short_side_m + inset for r in flanks]
+    wants = [max(m, areas[r.zone_id] / net_d + inset) for m, r in zip(mins, flanks)]
+    usable = fw - hub_w
+    if sum(mins) > usable + 1e-9:
+        return None, PlanFailure(
+            RejectionReason.COLUMN_WIDTH_EXCEEDED,
+            f"flanks need {mins[0]:.2f} + {mins[1]:.2f} m beside a {hub_w:.2f} m lobby but the "
+            f"footprint is {fw:.2f} m wide", sum(mins) + hub_w - fw)
+    total_want = sum(wants)
+    if total_want <= usable:
+        share = [w + (usable - total_want) * areas[r.zone_id] / max(sum(areas[x.zone_id] for x in flanks), 1e-6)
+                 for w, r in zip(wants, flanks)]
+    else:
+        share = [m + (usable - sum(mins)) * (w - m) / max(total_want - sum(mins), 1e-6)
+                 for m, w in zip(mins, wants)]
+    west_w = round(share[0] / 0.05) * 0.05
+    east_w = fw - hub_w - west_w
+
+    # Foot band: one row across the full width. The two members that need a lobby door meet under
+    # the lobby's centre line, so each overlaps the lobby by hub_w/2 >= 1.2 m > the 1.10 m an
+    # opening needs. An ensuite sits outside its bedroom and takes its own minimum plus a share of
+    # what its side has to spare; the bedroom keeps the rest up to the centre line.
+    doored = [r for r in alloc.foot if not r.entered_from]
+    centre = west_w + hub_w / 2
+    if hub_w / 2 + 1e-6 < opening_m:
+        return None, PlanFailure(
+            RejectionReason.ROW_WIDTH_EXCEEDED,
+            f"a {hub_w:.2f} m lobby gives each foot-band room {hub_w / 2:.2f} m of shared edge, "
+            f"below the {opening_m:.2f} m an opening needs", opening_m - hub_w / 2)
+    widths: list[float] = []
+    for i, room in enumerate(alloc.foot):
+        if room.entered_from:
+            continue
+        side_w = centre if room is doored[0] else fw - centre
+        mate = next((e for e in alloc.foot if e.entered_from == room.zone_id), None)
+        if mate is None:
+            widths.append(side_w)
+            continue
+        mate_min = mate.template.min_short_side_m + inset
+        room_min = room.template.min_short_side_m + inset
+        if mate_min + room_min > side_w + 1e-9:
+            return None, PlanFailure(
+                RejectionReason.ROW_WIDTH_EXCEEDED,
+                f"{room.zone_id} + {mate.zone_id} need {room_min + mate_min:.2f} m on their side of "
+                f"the lobby but have {side_w:.2f} m", room_min + mate_min - side_w)
+        spare = side_w - mate_min - room_min
+        mate_w = mate_min + spare * areas[mate.zone_id] / max(areas[mate.zone_id] + areas[room.zone_id], 1e-6)
+        mate_w = round(mate_w / 0.05) * 0.05
+        # the ensuite is listed before its bedroom on the west side, after it on the east side
+        if alloc.foot.index(mate) < i:
+            widths.append(mate_w); widths.append(side_w - mate_w)
+        else:
+            widths.append(side_w - mate_w); widths.append(mate_w)
+    # widths now follow alloc.foot order; convert the first to a net figure like the others
+    for room, w in zip(alloc.foot, widths):
+        if w - inset + 1e-6 < room.template.min_short_side_m:
+            return None, PlanFailure(
+                RejectionReason.ROW_WIDTH_EXCEEDED,
+                f"{room.zone_id} would be {w:.2f} m wide in the foot band, below its "
+                f"{room.template.min_short_side_m} m minimum",
+                room.template.min_short_side_m + inset - w)
+    foot_depth = max(max(r.template.min_short_side_m for r in alloc.foot) + inset,
+                     max(areas[r.zone_id] / max(w - inset, 1e-6) for r, w in zip(alloc.foot, widths))
+                     + inset / 2)
+    foot_depth = round(foot_depth / 0.05) * 0.05
+
+    # Public band: takes the depth the wing leaves, floored by its own minimum and capped by the
+    # room that reaches its maximum first (the same rule as `_plan_front_band`).
+    band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
+    band_depth = round((fh - hub_d - foot_depth) / 0.05) * 0.05
+    if band_depth < band_min - 1e-9:
+        return None, PlanFailure(
+            RejectionReason.COLUMN_DEPTH_EXCEEDED,
+            f"lobby {hub_d:.2f} m + foot band {foot_depth:.2f} m leave {band_depth:.2f} m for the "
+            f"public band, below its {band_min:.2f} m minimum", band_min - band_depth)
+    hub_d = fh - band_depth - foot_depth  # absorb rounding into the lobby, not the band
+
+    first_w = west_w + hub_w  # the first public zone spans the lobby: the cased opening's shared edge
+    others = alloc.public[1:]
+    other_area = sum(areas[r.zone_id] for r in others) or 1.0
+    public_widths = [first_w]
+    for room in others[:-1]:
+        public_widths.append(round((fw - first_w) * areas[room.zone_id] / other_area / 0.05) * 0.05)
+    if others:
+        public_widths.append(fw - sum(public_widths))
+    for room, w in zip(alloc.public, public_widths):
+        if w - inset + 1e-6 < room.template.min_short_side_m:
+            return None, PlanFailure(
+                RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
+                f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
+                f"{room.template.min_short_side_m} m minimum")
+    binding = min(((r.template.max_area_m2 / max(w - inset, 1e-6), r)
+                   for r, w in zip(alloc.public, public_widths)), key=lambda t: t[0])
+    if band_depth > binding[0] + inset / 2 + 1e-9:
+        return None, PlanFailure(
+            RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
+            f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
+            f"{binding[1].template.max_area_m2:.0f} m2 maximum")
+
+    specs: dict[str, ZoneSpec] = {}
+
+    def spec_for(room: ProgramRoom, w: float, d: float, lo: float, hi: float) -> ZoneSpec:
+        target = w * d
+        aspect = max(w, d) / max(1e-6, min(w, d))
+        return ZoneSpec(room.zone_id, _roles_of(room), target * lo, target, target * hi,
+                        room.template.min_short_side_m,
+                        max(room.template.max_aspect_ratio, aspect + 0.3))
+
+    net_band = band_depth - inset
+    for room, w in zip(alloc.public, public_widths):
+        specs[room.zone_id] = spec_for(room, w - inset, net_band, 0.55, 1.70)
+    for room, w in ((alloc.flank_west, west_w), (alloc.flank_east, east_w)):
+        specs[room.zone_id] = spec_for(room, w - inset, hub_d - inset / 2, 0.55, 1.70)
+    for room, w in zip(alloc.foot, widths):
+        specs[room.zone_id] = spec_for(room, w - inset, foot_depth - inset / 2, 0.55, 1.70)
+    hub_target = (hub_w - inset) * (hub_d - inset / 2)
+    specs[alloc.hub.zone_id] = ZoneSpec(
+        alloc.hub.zone_id, (ProgramRole.HALL, ProgramRole.CIRCULATION),
+        hub_target * 0.5, hub_target, hub_target * 1.9, HUB_TEMPLATE.min_short_side_m,
+        max(HUB_TEMPLATE.max_aspect_ratio, max(hub_w, hub_d) / max(1e-6, min(hub_w, hub_d)) + 0.3))
+
+    doors = 2 + sum(1 for r in alloc.foot if not r.entered_from)
+    return HubPlan(band_depth, public_widths, west_w, hub_w, east_w, hub_d, foot_depth, widths,
+                   specs, doors), None
+
+
+def _hub_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
+                 ) -> tuple[ConceptCandidate | None, ConceptRejection | None]:
+    """The hub parti: public band across the front, a room lobby behind it with bedrooms on its
+    flanks and a band of rooms under it. Additive — nothing here touches the other partis.
+
+    Why a lobby and not a corridor: measured against 21 professional plans, the engine's private
+    wing was the one structural gap — a hall spine at long/short 9.4 where every reference has a
+    compact lobby (~18/21, none a straight double-loaded corridor) that rooms wrap on up to three
+    sides. The tree here is the same three-band, full-width slicing structure the front band already
+    builds; the lobby is simply the middle band's centre leaf, so every cut on the root->HALL path
+    stays forced in the unforced twin (`_contains_hall`) and the lobby's rectangle is never moved by
+    the solver, exactly as the corridor's is not.
+    """
+    strategy = ConceptStrategy.HUB_PRIVATE_WING
+    if spec.program.bedrooms < _HUB_MIN_BEDROOMS:
+        return None, ConceptRejection(
+            strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+            f"{spec.program.bedrooms} bedrooms — a room lobby is offered from {_HUB_MIN_BEDROOMS}")
+    if any(r.role is ProgramRole.FLEX for r in rooms):
+        return None, ConceptRejection(
+            strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+            "front band already absorbs surplus through its own elasticity; not combined with FLEX")
+    public = [r for r in rooms if r.group is ZoneGroup.PUBLIC]
+    if len(public) < 2:
+        return None, ConceptRejection(strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+                                      f"{len(public)} public rooms — too few for a front band")
+
+    # The lobby is the variant's HALL room carrying the hub template (research R1).
+    hub_rooms = [ProgramRoom("HALL", ProgramRole.HALL, ZoneGroup.CIRCULATION, HUB_TEMPLATE)
+                 if r.group is ZoneGroup.CIRCULATION else r for r in rooms]
+    max_width, max_depth = u_to_m(candidate.w), u_to_m(candidate.h)
+    gross = target_gross_area_m2(hub_rooms)
+
+    failure: PlanFailure | None = None
+    rejection: ConceptRejection | None = None
+    for hub_w in _HUB_WIDTHS_M:
+        alloc, rej = _hub_allocation(hub_rooms, hub_w)
+        if alloc is None:
+            rejection = rejection or rej
+            continue
+        proportions = _proportions(_hub_min_width_m(alloc, hub_w), max_width, max_depth, gross,
+                                   spec.program.target_built_area_m2)
+        if not proportions:
+            failure = _nearest_miss(failure, PlanFailure(
+                RejectionReason.FOOTPRINT_BELOW_MINIMUM_WIDTH,
+                f"the lobby wing needs at least {_hub_min_width_m(alloc, hub_w):.2f} m of width; "
+                f"this candidate offers {max_width:.2f} m"))
+            continue
+        for width, depth in proportions:
+            trial = footprint_of(candidate, width, depth)
+            fw, fh = u_to_m(trial.w), u_to_m(trial.h)
+            plan, why = _plan_hub_wing(hub_rooms, alloc, fw, fh, hub_w)
+            if plan is None:
+                failure = _nearest_miss(failure, why)
+                continue
+            return _hub_candidate(spec, hub_rooms, candidate, trial, alloc, plan), None
+
+    if failure is not None:
+        return None, ConceptRejection(strategy, failure.reason, failure.detail)
+    return None, rejection
+
+
+def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
+                   footprint: Rect, alloc: HubAllocation, plan: HubPlan) -> ConceptCandidate:
+    fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
+    band_tree = _forced_v_chain(alloc.public, plan.public_widths_m)
+    hub_band = Split(Cut.V, Leaf(alloc.flank_west.zone_id),
+                     Split(Cut.V, Leaf(alloc.hub.zone_id), Leaf(alloc.flank_east.zone_id),
+                           m_to_u(plan.hub_w_m)),
+                     m_to_u(plan.west_w_m))
+    foot_tree = _forced_v_chain(alloc.foot, plan.foot_widths_m)  # gross spans, summing to fw
+    wing = Split(Cut.H, hub_band, foot_tree, m_to_u(plan.hub_d_m))
+    tree = Split(Cut.H, band_tree, wing, m_to_u(plan.band_depth_m))
+
+    private = [r for r in rooms if r.group in (ZoneGroup.PRIVATE, ZoneGroup.SERVICE)]
+    hall_for = {r.zone_id: alloc.hub.zone_id for r in private}
+    access, groups = _build_access(rooms, [alloc.hub.zone_id], [r.zone_id for r in alloc.public],
+                                   spec.program.open_plan_living, hall_for,
+                                   hall_borders_only_first_public=True)
+    fixture = Fixture(f"GEN_{ConceptStrategy.HUB_PRIVATE_WING.value}",
+                      (Wing("W", footprint.x, footprint.y, footprint.w, footprint.h, tree),),
+                      tuple(plan.specs[r.zone_id] for r in rooms), access, open_groups=groups)
+    return ConceptCandidate(
+        Concept(fixture, alloc.hub.zone_id, Side.N, fw, fh), ConceptStrategy.HUB_PRIVATE_WING, (0,),
+        rationale=(f"room lobby {plan.hub_w_m:.2f} x {plan.hub_d_m:.2f} m with {plan.doors_on_hub} "
+                   f"doors; front band {plan.band_depth_m:.2f} m; flanks {plan.west_w_m:.2f} | "
+                   f"{plan.east_w_m:.2f} m; foot band {plan.foot_depth_m:.2f} m "
+                   f"({len(alloc.foot)} rooms)"),
+        used_area_m2=round(fw * fh, 2),
+        unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+    )
+
+
 def _multi_wing_assessment(candidates: list[SolverGeometryCandidate],
                            ) -> ConceptRejection | None:
     """Evaluate whether a second safe wing can host part of the programme.
@@ -1660,6 +2026,12 @@ def generate_concepts(spec: ArchitecturalSpec,
         band, rejection = _front_band_concept(spec, variant, primary.rect)
         if band is not None:
             accepted.append(band)
+        elif rejection is not None and variant is rooms:
+            rejections.append(rejection)
+
+        hub, rejection = _hub_concept(spec, variant, primary.rect)
+        if hub is not None:
+            accepted.append(hub)
         elif rejection is not None and variant is rooms:
             rejections.append(rejection)
 

@@ -9,6 +9,7 @@ from app.geometry_domain.provenance import Authority, Provenance, Source
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_generator import (
     FREE_TWIN_RATIONALE,
+    HUB_TEMPLATE,
     ROOM_TEMPLATES,
     ConceptStrategy,
     RejectionReason,
@@ -123,6 +124,39 @@ def test_generator_produces_a_bounded_candidate_set(name):
     assert result.candidates[len(twins):] == tuple(twins), "twins must come after every forced tree"
 
 
+def test_vocabulary_is_additive():
+    """Feature 005 adds a strategy and a hub template; it changes no existing template row.
+
+    The snapshot is deliberately literal: a change to any of these numbers moves every plan in the
+    418-scenario sweep (see `spikes/failure_log_sweep`), so it must never ride along silently.
+    """
+    from app.vertical_slice.concept_generator import RoomTemplate
+    from app.vertical_slice.geometry_core.model import ProgramRole as R
+
+    snapshot = {
+        R.LIVING: RoomTemplate(16.0, 22.0, 46.0, 3.0, 2.5, elasticity=3.0),
+        R.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5),
+        R.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0),
+        R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9),
+        R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5),
+        R.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
+        R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15),
+        R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10),
+        R.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
+        R.STUDY: RoomTemplate(6.0, 8.5, 14.0, 2.1, 2.5, elasticity=0.5),
+        R.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),
+        R.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.5, 3.0, elasticity=0.10),
+        R.STORAGE: RoomTemplate(1.5, 3.0, 6.0, 1.0, 4.0, elasticity=0.05),
+        R.STAIRWELL: RoomTemplate(4.0, 6.0, 12.0, 1.1, 4.0, elasticity=0.0),
+        R.HALL: RoomTemplate(5.0, 11.0, 30.0, 1.2, 8.0, elasticity=0.1),
+        R.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
+    }
+    assert ROOM_TEMPLATES == snapshot
+    assert ConceptStrategy.HUB_PRIVATE_WING.value == "HUB_PRIVATE_WING"
+    assert HUB_TEMPLATE.min_short_side_m == 2.4 and HUB_TEMPLATE.max_aspect_ratio == 1.5
+    assert HUB_TEMPLATE.elasticity == ROOM_TEMPLATES[R.HALL].elasticity
+
+
 def test_candidates_are_deterministic():
     a = _candidates(PROGRAMS["3BR_SAFE"])
     b = _candidates(PROGRAMS["3BR_SAFE"])
@@ -192,6 +226,95 @@ def test_a_candidate_refused_by_validation_does_not_end_the_search(monkeypatch):
     assert result.metrics.first_valid_candidate_index == seen[1]
     assert seen[0] < seen[1]
     assert any("failed validation: C8" in note for note in result.notes), result.notes
+
+
+HUB_BRIEF = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=True,
+                        target_built_area_m2=170.0)
+
+
+def _hub_result():
+    """The HUB_BRIEF realized from its hub candidates only.
+
+    Which parti WINS in production is decided by the area-proximity sort (research R2) and is
+    reported by the sweep, not pinned here; this proves the hub plan itself is realizable and valid.
+    """
+    from app.vertical_slice import concept_generator as cg
+    shipped = cg.generate_concepts
+
+    def hub_only(spec, candidates):
+        res = shipped(spec, candidates)
+        kept = tuple(c for c in res.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING)
+        return type(res)(kept, res.rejections, res.program)
+
+    cg.generate_concepts = hub_only
+    try:
+        return run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=HUB_BRIEF)
+    finally:
+        cg.generate_concepts = shipped
+
+
+def test_hub_wing_is_a_compact_lobby_with_four_to_five_doors():
+    """User story 1: the private wing is a room lobby, not a corridor.
+
+    Measured gap this closes: the engine's hall came out at long/short 9.4 in every plan; 18 of 21
+    professional plans organise bedrooms around a compact lobby with 4-7 doors and none uses a
+    straight double-loaded corridor.
+    """
+    result = _hub_result()
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [c.detail for c in result.validation.failures()]
+    assert result.concept.strategy is ConceptStrategy.HUB_PRIVATE_WING, result.concept.rationale
+    hall = next(r for r in result.design.rooms if r.zone_id == "HALL")
+    short, long = sorted((hall.net_w_m, hall.net_h_m))
+    assert short >= 2.4 - 1e-6, (hall.net_w_m, hall.net_h_m)
+    assert long / short <= 1.5 + 1e-6, (hall.net_w_m, hall.net_h_m)
+    doors = [d for d in result.design.interior_doors if "HALL" in (d.a, d.b) and d.placeable]
+    assert 4 <= len(doors) <= 5, [(d.a, d.b) for d in doors]
+    # every habitable room still sits on the envelope (the 100% the engine already had)
+    for r in result.design.rooms:
+        if any(role in r.roles for role in ("BEDROOM", "MASTER_BEDROOM", "LIVING", "KITCHEN", "DINING")):
+            assert "EXTERIOR" in set(r.walls.values()), (r.zone_id, r.walls)
+
+
+def test_hub_is_offered_only_for_three_or_more_bedrooms():
+    two = _candidates(PROGRAMS["2BR"])
+    assert all(c.strategy is not ConceptStrategy.HUB_PRIVATE_WING for c in two.candidates)
+    three = _candidates(HUB_BRIEF)
+    hubs = [c for c in three.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    assert hubs, [r.detail for r in three.rejections if r.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    twins = [c for c in hubs if c.rationale.endswith(FREE_TWIN_RATIONALE)]
+    assert twins and len(twins) * 2 == len(hubs)
+    first_twin = next(i for i, c in enumerate(three.candidates) if c.rationale.endswith(FREE_TWIN_RATIONALE))
+    last_forced = max(i for i, c in enumerate(three.candidates) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
+    assert last_forced < first_twin, "every forced tree must precede every twin"
+
+
+def test_hub_refuses_flex_like_the_front_band():
+    from app.vertical_slice.concept_generator import build_room_program, program_capacity_gross_m2
+    capacity = program_capacity_gross_m2(build_room_program(_spec(HUB_BRIEF)))
+    over = _candidates(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=True,
+                                   target_built_area_m2=capacity + 80.0))
+    assert all(c.strategy is not ConceptStrategy.HUB_PRIVATE_WING for c in over.candidates)
+    hub_rejections = [r for r in over.rejections if r.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    assert hub_rejections and hub_rejections[0].reason is RejectionReason.INSUFFICIENT_WING_AREA
+    assert "FLEX" in hub_rejections[0].detail
+
+
+def test_hub_root_to_hall_cuts_stay_forced_in_the_twin():
+    from app.vertical_slice.geometry_core.model import Leaf, Split
+    result = _candidates(HUB_BRIEF)
+    twin = next(c for c in result.candidates
+                if c.strategy is ConceptStrategy.HUB_PRIVATE_WING
+                and c.rationale.endswith(FREE_TWIN_RATIONALE))
+
+    def contains_hall(n):
+        return n.zone_id == "HALL" if isinstance(n, Leaf) else contains_hall(n.first) or contains_hall(n.second)
+
+    def check(n):
+        if isinstance(n, Split):
+            assert (n.fixed_at_u is not None) == contains_hall(n), n
+            check(n.first); check(n.second)
+    check(twin.concept.fixture.wings[0].tree)
 
 
 def test_front_band_parti_is_generated_and_can_win():
