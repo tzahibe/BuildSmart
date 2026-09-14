@@ -19,17 +19,19 @@ from app.vertical_slice.concept_generator import (
     build_room_program,
     generate_concepts,
     minimum_footprint_width_m,
-    WetRoomResolutionError,
-    default_wet_room_kinds,
     program_capacity_gross_m2,
     programme_variants,
-    resolve_wet_rooms,
     target_gross_area_m2,
     variant_keeps_bathroom_access,
 )
 from app.vertical_slice.general_pipeline import run_general, run_general_from_site
 from app.vertical_slice.geometry_core.model import ConnectionKind, ProgramRole
 from app.vertical_slice.safe_adapter import adapt, build_buildable_region
+from app.vertical_slice.wet_rooms import (
+    WetRoomResolutionError,
+    default_wet_room_kinds,
+    resolve_wet_rooms,
+)
 from app.vertical_slice.spec import (
     ENSUITE_HOST_BEDROOM,
     ENSUITE_HOST_MASTER,

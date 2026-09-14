@@ -13,6 +13,12 @@ from dataclasses import dataclass
 from enum import Enum
 
 from app.projects.models import Project
+from app.vertical_slice.spec import ProgramSpec
+from app.vertical_slice.wet_rooms import (
+    WetRoomResolutionError,
+    check_wet_room_invariants,
+    requirement_from_record,
+)
 
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M
 
@@ -53,6 +59,10 @@ class ScopeCode(str, Enum):
     CLARIFICATION_REQUIRED = "CLARIFICATION_REQUIRED"
     #: A room in a requested relationship could not be resolved to one room the plan has.
     AMBIGUOUS_ROOM_REFERENCE = "AMBIGUOUS_ROOM_REFERENCE"
+    #: The wet rooms as stated leave a bedroom with no bathroom it can reach, or cannot be built
+    #: as stated (specs/007, decision A). The refusal names what is missing; it does not pick an
+    #: answer — adding a bathroom, changing a kind, or meaning it are all the person's to say.
+    NEEDS_CLARIFICATION = "NEEDS_CLARIFICATION"
     #: The project carries no authoritative parcel geometry. The planner refuses rather than
     #: inventing one from the building, which is what it used to do.
     SITE_GEOMETRY_REQUIRED = "SITE_GEOMETRY_REQUIRED"
@@ -78,6 +88,51 @@ class ScopeRejection:
 
 def _value(tagged, default=None):
     return default if tagged is None or tagged.value is None else tagged.value
+
+
+_BEDROOM_NAMES = {"MASTER": "חדר ההורים"}
+
+
+def _bedroom_name(zone_id: str) -> str:
+    if zone_id in _BEDROOM_NAMES:
+        return _BEDROOM_NAMES[zone_id]
+    return f"חדר שינה {zone_id.rsplit('_', 1)[-1]}"
+
+
+def _wet_room_rejection(project: Project, bedrooms: int, wet_rooms: int) -> ScopeRejection | None:
+    """The wet-room invariants (`vertical_slice.wet_rooms`) as a refusal, or nothing.
+
+    The message REPORTS: which bedroom has no bathroom it can reach, and that a WC is not one. It
+    lists the ways the person can answer, and says in so many words that it will not choose.
+    """
+    try:
+        kinds = tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text)
+                      for r in project.wet_room_kinds)
+    except WetRoomResolutionError as exc:
+        return ScopeRejection(
+            ScopeCode.NEEDS_CLARIFICATION,
+            "לא הצלחנו לקרוא את מה שנאמר על חדרי הרחצה. אפשר לתקן זאת במסך הסקירה.",
+            str(exc))
+    program = ProgramSpec(bedrooms=bedrooms, wet_rooms=wet_rooms, wet_room_kinds=kinds)
+    problems = check_wet_room_invariants(program)
+    if not problems:
+        return None
+    detail = "; ".join(f"{p.invariant}: {p.detail}" for p in problems)
+    missing = [b for p in problems for b in p.bedrooms_without_bathroom]
+    if missing:
+        names = ", ".join(_bedroom_name(b) for b in missing)
+        message = (
+            f"לפי מה שנאמר על חדרי הרחצה, ל{names} אין חדר רחצה שאפשר להגיע אליו — "
+            f"שירותי אורחים אינם חדר רחצה, וחדר רחצה צמוד שייך לחדר שהוא צמוד אליו. "
+            f"כדי שנמשיך צריך להגיד לנו מה נכון: להוסיף חדר רחצה, או לשנות את הסוג של אחד "
+            f"מחדרי הרחצה שצוינו. לא נכריע בזה במקומך."
+        )
+    else:
+        message = (
+            "מה שנאמר על חדרי הרחצה אינו ניתן לבנייה כפי שהוא. "
+            "אפשר לתקן זאת במסך הסקירה — לא נשלים את החסר בניחוש."
+        )
+    return ScopeRejection(ScopeCode.NEEDS_CLARIFICATION, message, detail)
 
 
 def check_supported(project: Project) -> ScopeRejection | None:
@@ -165,6 +220,13 @@ def check_supported(project: Project) -> ScopeRejection | None:
             f"אפשר לנסח מחדש בתיאור — למשל \"עדיף ש...\" להעדפה או \"חייב להיות...\" לדרישה — "
             f"ואז ניצור את התוכנית.",
             "; ".join(f"{r.topic}: {r.text}" for r in unclear))
+
+    # WET-ROOM ACCESS. What the brief said about each wet room is resolved to rooms and checked
+    # against the access invariants BEFORE anything is planned — a programme in which a bedroom
+    # has no bathroom it can reach is a question for the person, not a plan (specs/007 §4 FR-6).
+    wet_room_refusal = _wet_room_rejection(project, bedrooms, wet_rooms)
+    if wet_room_refusal is not None:
+        return wet_room_refusal
 
     # AUTHORITATIVE SITE. Without real parcel dimensions there is nothing honest to plan inside, and
     # the old behaviour — deriving a plot from the footprint — could only ever invent land.

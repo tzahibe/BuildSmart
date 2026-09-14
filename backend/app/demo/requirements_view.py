@@ -29,7 +29,9 @@ from app.vertical_slice.spec import (
     CorridorWidthMode,
     PlotSpec,
     ProgramSpec,
+    WetRoomRequirement,
 )
+from app.vertical_slice.wet_rooms import requirement_from_record
 
 #: The setbacks now live with the site model that applies them (`site_geometry`), re-exported here
 #: only so existing importers keep working. They are DEMO ASSUMPTIONS, subtracted from the
@@ -286,6 +288,14 @@ def _corridor_of(project: Project) -> CorridorRequirement | None:
     return CorridorRequirement(width_m=float(field.value_m), mode=mode)
 
 
+def wet_room_kinds_of(project: Project) -> tuple[WetRoomRequirement, ...]:
+    """The stated wet-room kinds, as the engine reads them. Records this build cannot read raise
+    `WetRoomResolutionError`; `scope.check_supported` reports that before this is ever called for
+    planning, so here it simply propagates."""
+    return tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text)
+                 for r in project.wet_room_kinds)
+
+
 def _relationships_of(project: Project) -> tuple[RoomRelationshipRequirement, ...]:
     """The authoritative relationships. Ambiguous ones are excluded — they never reach the planner,
     because `scope.check_supported` refuses first and asks the person which room they meant."""
@@ -336,6 +346,7 @@ def spec_for(project: Project) -> ArchitecturalSpec:
             safe_room=bool(review.safe_room.value),
             open_plan_living=bool(review.open_plan.value),
             wet_rooms=int(review.wet_rooms.value or 1),
+            wet_room_kinds=wet_room_kinds_of(project),
             parking_spaces=int(review.parking_spaces.value or 0),
             # The TARGET BUILT AREA the person entered, carried through as a target the plan should
             # meet — not as a ceiling. The selected footprint is validated to be within 0.5% of it
