@@ -326,9 +326,14 @@ class ProgramRoom:
     template: RoomTemplate
     #: Entered from this room rather than from circulation (an ensuite).
     entered_from: str | None = None
-    #: Wet rooms only: the RESOLVED kind this room was built to (never `UNSPECIFIED` — see
-    #: `resolve_wet_rooms`). `None` for every other room.
-    wet_kind: WetRoomKind | None = None
+    #: Wet rooms only: the RESOLVED requirement this room was built to (kind never `UNSPECIFIED` —
+    #: see `resolve_wet_rooms`). `None` for every other room. Carried on the room so every concept
+    #: built from a programme can hand validation the requirements THAT programme was built to.
+    wet: ResolvedWetRoom | None = None
+
+    @property
+    def wet_kind(self) -> WetRoomKind | None:
+        return None if self.wet is None else self.wet.kind
 
 
 @dataclass(frozen=True)
@@ -339,6 +344,11 @@ class ConceptCandidate:
     rationale: str
     used_area_m2: float
     unused_wing_area_m2: float
+    #: The wet-room requirements of the programme THIS candidate was built from — the literal
+    #: brief's, or an eligible variant's — for C17 to hold the realized doors to. A candidate built
+    #: from a rearranged programme is validated against that arrangement, which is what makes the
+    #: rearrangement legitimate rather than a violation of the brief.
+    wet_rooms: tuple[ResolvedWetRoom, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -387,9 +397,14 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
     for wet in resolve_wet_rooms(program):
         role = ProgramRole.TOILET if wet.kind is WetRoomKind.GUEST_WC else ProgramRole.BATHROOM
         rooms.append(ProgramRoom(wet.zone_id, role, ZoneGroup.SERVICE, ROOM_TEMPLATES[role],
-                                 wet.host_zone, wet.kind))
+                                 wet.host_zone, wet))
 
     return rooms
+
+
+def wet_rooms_of(rooms: list[ProgramRoom]) -> tuple[ResolvedWetRoom, ...]:
+    """The wet-room requirements a programme was built to, in programme order."""
+    return tuple(r.wet for r in rooms if r.wet is not None)
 
 
 def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
@@ -1323,6 +1338,7 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
                    f"({len(plan.east.rows)} rows) over {fh:.2f} m"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+        wet_rooms=wet_rooms_of(rooms),
     )
 
 
@@ -1490,6 +1506,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                    f"({len(east_rows)} rows)"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+        wet_rooms=wet_rooms_of(rooms),
     ), None
 
 
@@ -2075,6 +2092,7 @@ def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate:
                    f"({len(alloc.foot)} rooms)"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+        wet_rooms=wet_rooms_of(rooms),
     )
 
 
