@@ -41,3 +41,11 @@ T001 → T002 → T003 → T004 → T005–T007; T008 (needs T004) → T009; T01
 ## MVP
 
 US1 + US2 together (T002–T009) — one without the other is either a regression (US1 alone refuses 7 rescues) or a no-op (US2 alone).
+
+## Phase 7: Follow-up — eligible hubs take the witness (approved 2026-09-14)
+
+- [x] T014 `HubSizing`; `hub_bound` returns the passing sizing as `HubBound.witness`; the bound honours the front band's width feasibility and depth cap (engine rules) so the witness is plannable
+- [x] T015 `_plan_hub_wing(…, witness=…)` → `_plan_hub_wing_from_witness` (same checks) and `_hub_plan_tail` shared with v2's path; `_hub_public_widths` factored out and shared with the bound
+- [x] T016 `generate_concepts`: ELIGIBLE hubs rebuilt from the witness via `_hub_from_witness` (same footprint/tree/access); LAST_RESORT untouched; failure reported in the rationale, never adjusted
+- [x] T017 Tests updated (narrow case on the planned footprint 12 × 14.4; witness plans; wide case has no witness)
+- [x] T018 Measured (RESULTS.md §9): 4/4 eligible pass all gates; 9/9 last resort and 95/95 non-hub byte-identical; LOST 0; rescues kept; 0 new test failures

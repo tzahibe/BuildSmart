@@ -41,8 +41,8 @@ runs through the engine's `hub_bound`.
 Expected against spec §Success Criteria (measured values in RESULTS.md §8):
 - SC-001 hub-OFF plans byte-identical; SC-002 LOST 0, plans 107 → 107, the 10 hub-only rescues
   still `HUB_PRIVATE_WING`;
-- SC-003 the ELIGIBLE hub primaries pass the eight §6 gates — **this is where the measurement
-  says no: the bound proves a passing sizing exists, `_plan_hub_wing` does not choose it**;
+- SC-003 the ELIGIBLE hub primaries pass the eight §6 gates — met once the eligible wing is
+  sized by the bound's witness (RESULTS.md §9: bedroom 1.16, master 1.27);
 - SC-004 the displaced primaries equal their hub-OFF plans (`snapshot --compare` lists exactly
   those as changed);
 - SC-006 sweep time within +5 %; full test suite: no failures beyond the baseline's.

@@ -880,16 +880,26 @@ SAFE_BRIEF = ProgramSpec(bedrooms=3, safe_room=True, wet_rooms=2, open_plan_livi
 
 
 def test_hub_bound_passes_narrow_deep_outlines_and_fails_wide_ones():
-    """Spec 008 US1 / Phase 0 table: the same numbers the harness tool reports."""
+    """Spec 008 US1 / Phase 0 table: the same numbers the harness tool reports — on the FOOTPRINT
+    the concept plans (12 x 14.4 m is what v2 builds for this brief on a 12 x 18 outline), because
+    the engine's bound also honours the front band's rules (its zones' minimum widths and the
+    binding zone's maximum area), which the outline-only Phase 0 tool did not."""
     from app.vertical_slice import concept_generator as cg
     rooms = _hub_rooms(SAFE_BRIEF)
-    narrow = cg.hub_bound(rooms, 12.0, 18.0, cg._HUB_WIDTHS_M)
+    narrow = cg.hub_bound(rooms, 12.0, 14.4, cg._HUB_WIDTHS_M)
     assert cg.hub_eligibility(narrow) is cg.HubEligibility.ELIGIBLE, narrow
+    assert narrow.witness is not None and narrow.witness.hub_d_m >= 4.6
+    alloc, _ = cg._hub_allocation(rooms, narrow.witness.hub_w_m)
+    plan, why = cg._plan_hub_wing(rooms, alloc, 12.0, 14.4, narrow.witness.hub_w_m, witness=narrow.witness)
+    assert plan is not None, why
+    assert plan.hub_d_m == narrow.witness.hub_d_m and plan.foot_depth_m == narrow.witness.foot_depth_m
+    assert list(plan.foot_widths_m) == list(narrow.witness.foot_widths_m)
     assert narrow.gated_bedroom_aspect <= cg.HUB_GATES.bedroom_aspect
     assert narrow.seated_doors == narrow.required_doors == 5
     assert narrow.best_wet_adjacency >= cg.HUB_GATES.wet_adjacency
     wide = cg.hub_bound(rooms, 14.25, 12.35, cg._HUB_WIDTHS_M)
     assert cg.hub_eligibility(wide) is cg.HubEligibility.LAST_RESORT, wide
+    assert wide.witness is None
     assert wide.seated_doors == wide.required_doors == 5 and wide.best_wet_adjacency == 1.0
     assert 1.6 <= wide.gated_bedroom_aspect <= 1.7, wide   # Phase 0: 1.65 — the strip is topological
     assert "gate 1.35" in wide.describe()
@@ -897,6 +907,7 @@ def test_hub_bound_passes_narrow_deep_outlines_and_fails_wide_ones():
 
 def test_hub_bound_never_reaches_the_wet_gate_with_three_wet_rooms():
     from app.vertical_slice import concept_generator as cg
+    from dataclasses import replace
     rooms = _hub_rooms(replace(SAFE_BRIEF, wet_rooms=3))
     for fw, fh in ((12.0, 18.0), (14.25, 12.35)):
         bound = cg.hub_bound(rooms, fw, fh, cg._HUB_WIDTHS_M)

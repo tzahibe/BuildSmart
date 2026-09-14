@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-14
 
-**Status**: implemented and measured 2026-09-14 — see specs/005-hub-private-wing/RESULTS.md §8; stopped for review
+**Status**: implemented and measured 2026-09-14 (RESULTS.md §8); follow-up — eligible hubs sized by the bound's witness — measured and meets SC-003 (RESULTS.md §9); stopped for review
 
 **Input**: "Offer the hub parti as the primary plan only where the lobby wing can meet the §6 quality gates on that outline — a feasibility computed from the outline and the brief, not a tuned width threshold — and keep it as a last resort elsewhere, so no rescued plan turns back into a refusal."
 
@@ -80,7 +80,7 @@ A developer reading a plan's rationale sees "hub last resort on this outline: be
 - **FR-002**: A hub candidate is **eligible** when that bound is ≤ the §6 bedroom gate (1.35) with master ≤ 1.40 and wet adjacency ≥ 80 % reachable. No new numbers: the gates are §6's.
 - **FR-003**: Eligible hub candidates MUST be ordered exactly as today (inserted last, then the area-proximity sort, twins after all forced trees).
 - **FR-004**: Ineligible hub candidates (forced tree, then its twin) MUST be appended after every other candidate, including the other partis' twins, so they are realized only when nothing else does.
-- **FR-005**: Non-hub candidates, `ROOM_TEMPLATES`, `HUB_TEMPLATE`, `_plan_hub_wing` and Geometry Core MUST be untouched.
+- **FR-005**: Non-hub candidates, `ROOM_TEMPLATES`, `HUB_TEMPLATE` and Geometry Core MUST be untouched. *(Follow-up: `_plan_hub_wing` gains a `witness` path used only for ELIGIBLE hubs; v2's area-share sizing is unchanged for everything else.)*
 - **FR-006**: The candidate's rationale MUST carry the bound value, the failing gate and the eligibility decision.
 - **FR-007**: The computation MUST be deterministic and bounded: a 0.25 m grid over the wing's decisions on one outline, ≤ 50 ms per brief in the sweep's median.
 

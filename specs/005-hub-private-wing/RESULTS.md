@@ -218,6 +218,45 @@ half-built: on `ELIGIBLE` outlines only, let `_plan_hub_wing` take the sizing `h
 (lobby depth, flank split, foot boundary, foot depth) instead of its area shares — measured with
 the same harness; last-resort outlines keep v2's sizing.
 
+## 9. 008 follow-up — eligible hubs sized by their bound's witness (2026-09-14, branch `008-hub-eligibility`)
+
+**What changed** (concept stage only; topology, ranking, thresholds, validators, templates and
+Geometry Core untouched): `hub_bound()` now returns the sizing it found to pass the gates — the
+witness (`HubSizing`: lobby width and depth, flank split, stack splits, foot widths, foot depth) —
+and for an `ELIGIBLE` candidate `generate_concepts` re-plans the wing through `_plan_hub_wing(…,
+witness=…)`, which takes the witness's rectangles instead of the area shares and runs the same
+minimum, band and cap checks; the candidate is rebuilt on the same footprint, tree and access.
+`LAST_RESORT` hubs keep v2's sizing to the byte. Two things the bound had to learn for the witness
+to be plannable at all, both engine rules it had ignored: the front band's zone-width feasibility
+beside the lobby and the binding public zone's maximum area (a witness with a 5.0 m foot on a
+12 × 18 outline left an 8.4 m band that pushed LIVING past 46 m²). With those in, every witness
+planned (`witness not planned` never appears in the sweep). One consequence worth knowing: the
+bound is evaluated on the footprint the concept plans (12 × 14.4 m for the 216 m² brief on the
+12 × 18 outline), not on the outline — the Phase 0 tables were outline-only.
+
+**Measured, same 431-scenario log** (the log gained one scenario that plans, 12.5 × 14.5 m, during
+the work; both sides of every comparison ran on the same file):
+
+| Acceptance | Result |
+|---|---|
+| ELIGIBLE hub primaries pass all 8 gates | **4/4** (`quality_metrics.py --contexts` on those four): bedroom **1.16** (0 of 9 above 1.35), master **1.27** (0/4), safe room 1.25, lobby 1.3 — 100 % ≤ 1.5, doors 6, exposure 100 %, circulation 9 % (max 10 %), **wet adjacency 100 %**, public zone contiguous 100 % |
+| LAST_RESORT plans byte-identical | **9/9** — `snapshot --compare` vs 008: 104/108 identical, the 4 changed are exactly the eligible hubs; their medians unchanged (1.57 / 1.61 / 1.84) |
+| Non-hub primaries unchanged | **95/95** (same compare; non-hub medians 1.30 / 1.55 / 1.26 as before) |
+| LOST / rescues | 0 / the 10 hub-only rescues still delivered (7 counted) |
+| Refusal codes | identical (38 / 94 / 190 / 1) |
+| Test suite | 3 failed — the baseline's own — 0 new; hub/eligibility tests 18/18 |
+| Sweep time (`ab.py`, hub OFF → ON, uncontended) | 540 s → 552 s (+2.2 %); medians +0.06 s / +0.05 s; worst +0.88 s; hub-OFF primaries changed 3/98 (the 4th eligible hub is the log's new 12.5 × 14.5 scenario) |
+
+**Before → after on the eligible plans** (`hub_rooms.py`, realized rectangles): bedroom 1.42 →
+**1.16**, master 1.50 → **1.27**, safe room 1.48 → **1.25**; 12 × 14.4 now plans as a 3.6 × 4.6 lobby
+with 3.25 | 5.15 m flanks, a 5.0 m-deep foot band [1.8 | 3.95 | 6.25] and a 4.8 m front band —
+the witness, realized within the wall insets.
+
+**Reading.** SC-003 of spec 008 is met by this follow-up: where the bound says a passing sizing
+exists, taking that sizing delivers it. The hub population as a whole is now 4 good plans plus
+9 last-resort rescues (their strips are the wide-shallow topology limit, §7). Not merged; stopped
+for review.
+
 ## 4. Decision
 
 - `HUB_PRIVATE_WING` v1: **not committed**. Left in the working tree (`concept_generator.py`, `test_concept_generator.py`) for the owner to keep on a branch or drop; the harness, plan, research, data model, quickstart, tasks and this report are committed so v2 starts from measured ground.
