@@ -146,7 +146,7 @@ Measured on the 424-brief production log, person's outline withheld (main flow),
 
 - **SC-001**: Briefs that receive at least one plan rise from 127 (30 %) to at least **250 (59 %)**.
 - **SC-002**: Among briefs that plan today, the first plan's gross area ÷ requested area has a median of at least **0.95** (today 0.79).
-- **SC-003**: Among briefs that plan today, at least **60** (today 28) show two or more distinct architectural families.
+- **SC-003**: Among briefs that plan today, at least **48** show two or more distinct architectural families (today 18–28 depending on the base). *Restated 2026-09-14 against the actual 006 baseline (`main` at `855a977`, no hub parti, four engine outlines): the original figure of 60 was measured with the hub parti present and the person's outline in the pool. The hub parti may raise this further when it lands; it is not a dependency of 006.*
 - **SC-004**: No plan shown fails any validation check: **0** of all plans shown across the log.
 - **SC-005**: With the person's outline supplied through the advanced path, **127 of 127** briefs that plan today produce a first plan byte-identical to today's (room types, positions and sizes).
 - **SC-006**: **0** shown plan sets contain two plans of the same family from the same outline.

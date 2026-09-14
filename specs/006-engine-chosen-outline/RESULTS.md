@@ -93,7 +93,7 @@ passed, 6 skipped, 0 failed**.
 | SC-001 main flow plans | ≥ 250 | 257 | **257 / 426** | ✓ |
 | Main-flow non-regression | 0 + named | 2 named | **2**, the same two person-only briefs | ✓ |
 | SC-002 first-plan gross ÷ requested (planned before) | median ≥ 0.95 | 0.975 | **0.975** (≥ 0.95: 66/115) | ✓ |
-| SC-003 briefs with ≥ 2 families shown (of 117) | ≥ 60 | 31 | **50** (A: 20) | ✗ — see §2.1 |
+| SC-003 briefs with ≥ 2 families shown (of 117) | ≥ 48 on `main` (restated, see §2.1) | 31 | **50** (A: 20) | ✓ |
 | SC-004 shown plans failing validation | 0 | 0 | **0** | ✓ |
 | SC-006 same-family + same-outline pairs | 0 | 456 | **0** | ✓ |
 | SC-007 refusals naming an outline · capacity diagnosis kept | 0 · all | 0 · 142/142 | **0 · 142/142** | ✓ |
@@ -132,8 +132,9 @@ So 50/117 is at the ceiling this design has on `main`: the outline search cannot
 second family where the generator offers one (spec §1 already said outline shape does not switch
 family). The remaining diversity comes from the concept vocabulary — the hub parti on `005-hub-v2`
 is worth ~+11 briefs here once merged, and the forced-cut experiment in the diagnosis is the other
-lever. Recommendation: keep SC-003's target but restate its base as "with the hub parti"; on
-`main` alone the pass line is ~48.
+lever. **Owner decision 2026-09-14**: SC-003 is restated against the actual 006 baseline — threshold
+**≥ 48 on `main`**; measured **50/117 → PASS**. The hub parti may raise this further when it lands;
+it is not a dependency of 006. Phase 4 accepted.
 
 ### 2.2 Advanced path — fewer plans shown
 
@@ -141,3 +142,5 @@ A (explicit outline) now shows 1 plan in 97/117 briefs, 2 in 16, 3 in 4 (before 
 of those briefs showed three re-proportioned twins). The primary is byte-identical; the strip lost
 its duplicates. This is the spec's intent (FR-004) but it is a visible change for anyone using the
 advanced path, and it is the reason the alternatives list is not part of the byte-identical gate.
+**Owner decision 2026-09-14**: accepted — the leaner strip stays; same-family re-proportioned twins
+are not reintroduced to raise the count; the explicit outline remains authoritative.
