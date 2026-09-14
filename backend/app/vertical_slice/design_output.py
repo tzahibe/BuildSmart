@@ -95,6 +95,12 @@ class GeometricDesign:
     gross_area_m2: float
     net_area_m2: float
     wall_iterations: int
+    #: The fixture's declared open-plan groups, carried through verbatim so a consumer can tell a
+    #: PUBLIC open-plan zone from any other neighbour without re-deriving it from wall types (an
+    #: `OPEN` side proves two zones share a group; the absence of one proves nothing — see
+    #: `_discover_open_interfaces`'s full-side precondition). Read by the demo contract's
+    #: corridor-opening post-process. Empty for a closed plan.
+    open_groups: tuple[tuple[str, ...], ...] = ()
 
 
 def _rect_m(r: Rect) -> RectM:
@@ -156,4 +162,5 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
         gross_area_m2=fixture.footprint_area_m2(),
         net_area_m2=round(net_total, 2),
         wall_iterations=wall_iterations,
+        open_groups=tuple(tuple(g) for g in fixture.open_groups),
     )
