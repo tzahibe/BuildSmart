@@ -17,8 +17,7 @@
 .workspace-option svg { width: 100%; height: 96px; display: block; }
 /* At thumbnail size the room labels are smaller than they are readable, so they are noise that
    hides the one thing a person is comparing here: the SHAPE of the layout. */
-.workspace-option .demo-room-name,
-.workspace-option .demo-room-area,
+.workspace-option .demo-room-label,
 .workspace-option .demo-parking-label { display: none; }
 .workspace-option-label { font-size: 11px; color: #5b6470; text-align: center; }
 .workspace-shown { margin: -10px 0 16px; font-size: 13px; color: #6b7683; }

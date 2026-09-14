@@ -111,6 +111,14 @@ describe('DemoPlan', () => {
     expect(getByText('27.4 מ״ר')).toBeTruthy()
   })
 
+  it('shows the realized rectangle as width × depth, isolated from the RTL plan', () => {
+    const { getByText } = render(<DemoPlan design={design()} />)
+    // 5 × 6 is the room's own rectangle; the pair keeps its reading order (see Dim.tsx).
+    const pair = getByText('5.00 × 6.00')
+    expect(pair.getAttribute('direction')).toBe('ltr')
+    expect(pair.parentElement?.textContent).toBe('5.00 × 6.00 מ׳')
+  })
+
   it('draws a cased opening as a gap with jamb ticks, never a leaf or a swing arc', () => {
     const casedOpening = design({
       doors: [

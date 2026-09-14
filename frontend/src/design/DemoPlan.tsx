@@ -1,5 +1,6 @@
 import type { DemoDesign, DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
+import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
 
 /** THE DEMO RENDERER — presentation only.
@@ -115,17 +116,40 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
               className="demo-room-flex" />
       ))}
 
-      {/* Rooms: label + authoritative area. */}
-      {design.rooms.map((room) => (
-        <g key={room.id}>
-          <text x={room.x + room.width_m / 2} y={room.y + room.depth_m / 2 - 0.25} className="demo-room-name">
-            {room.name}
+      {/* Rooms: name, realized dimensions, authoritative area. The dimensions are the room's own
+          rectangle as built — what the plan actually drew, not what the template asked for. */}
+      {design.rooms.map((room) => {
+        const cx = room.x + room.width_m / 2
+        const cy = room.y + room.depth_m / 2
+        const layout = roomLabelLayout(room)
+        return (
+          <text
+            key={room.id}
+            className="demo-room-label"
+            transform={layout.rotated ? `rotate(-90 ${cx} ${cy})` : undefined}
+          >
+            {layout.lines.map((line) => (
+              <tspan
+                key={line.kind}
+                x={cx}
+                y={cy + line.dy}
+                className={`demo-room-${line.kind}`}
+                style={{ fontSize: line.fontSize }}
+              >
+                {line.segments.map((segment, i) =>
+                  segment.isolate ? (
+                    <tspan key={i} className="demo-room-dim-pair" direction="ltr" unicodeBidi="isolate">
+                      {segment.text}
+                    </tspan>
+                  ) : (
+                    segment.text
+                  ),
+                )}
+              </tspan>
+            ))}
           </text>
-          <text x={room.x + room.width_m / 2} y={room.y + room.depth_m / 2 + 0.55} className="demo-room-area">
-            {room.area_m2.toFixed(1)} מ״ר
-          </text>
-        </g>
-      ))}
+        )
+      })}
 
       {/* Walls, weighted by the backend's construction/context facts. An OPEN interface has no
           wall segment at all, so open-plan reads as one continuous space by construction. */}
