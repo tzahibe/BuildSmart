@@ -31,6 +31,7 @@ from app.vertical_slice.relationships import describe
 from app.vertical_slice.spec import RelationStrength
 from app.vertical_slice.general_pipeline import ALTERNATIVE_PLAN_LIMIT, run_general
 from app.vertical_slice.safe_adapter import AdapterOutcome
+from app.vertical_slice.site import front_band_m
 
 from .contract import DemoDesign, DemoPlanSet, to_demo_design
 from .requirements_view import spec_for
@@ -49,6 +50,7 @@ _FEASIBILITY_CODES = frozenset({
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
+    "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
     "SITE_GEOMETRY_REQUIRED",
 })
 #: NO_BUILDABLE_AREA is deliberately NOT in that set. It is a feasibility refusal, but it already
@@ -158,8 +160,11 @@ def _buildable_from(spec, project: Project) -> BuildableRegion:
     footprint rectangle at an origin derived from a plot that had itself been computed from that
     same footprint, which made the containment vacuous.
 
-    Centred across the plot and flush to the street-side edge of the buildable rectangle, matching
-    the convention the site stage already uses for parking and the entrance walk.
+    Centred across the plot and flush to the street-side band — the front setback, or the
+    parking bays' depth when that is deeper (`site.front_band_m`). The bays are drawn in that
+    band by the site stage, so a house placed any nearer the street would be drawn over them;
+    that the band still leaves room for this footprint is `scope.check_supported`'s job, decided
+    before anything is planned.
     """
     site = site_geometry.derive(project)
     footprint = project.selected_footprint
@@ -168,6 +173,7 @@ def _buildable_from(spec, project: Project) -> BuildableRegion:
 
     origin_x, origin_y = site.buildable_origin_m()
     origin_x += max(0.0, (site.buildable_width_m - footprint.width_m) / 2)
+    origin_y = max(origin_y, front_band_m(spec))
     return BuildableRegion.known(
         MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y,
                                             footprint.width_m, footprint.depth_m))),
@@ -391,6 +397,19 @@ def _finish(project: Project, spec, result, preference_dropped: bool) -> DemoRes
     if result.validation is None or not result.validation.ok:
         failures = "; ".join(f"{c.check_id}: {c.detail}"
                              for c in (result.validation.failures() if result.validation else []))
+        # A brief over its programme's capacity that also fails validation is refused for the
+        # capacity, which the person can act on, not for the check — the same diagnosis the
+        # not-realizable path gives. Without this, a candidate that solved and then failed C8
+        # replaced the capacity message with a raw check id in 8 of 420 logged scenarios.
+        target_m2 = spec.program.target_built_area_m2
+        capacity = program_capacity_gross_m2(build_room_program(spec))
+        if target_m2 is not None and target_m2 > capacity:
+            raise DemoGenerationError(
+                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
+                f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
+                f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
+                f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
+                failures, diagnostics=_diagnostics(result, spec))
         raise DemoGenerationError(
             "PLAN_FAILED_VALIDATION",
             "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",

@@ -2,10 +2,18 @@
 
 Placement sequencing follows `PRIVATE_HOUSE_V1_ENGINE_DECISION.md`'s site ordering: parking is
 decided ALONGSIDE footprint placement (both driven by the plot + setbacks), not after the
-house is already drawn — parking lives entirely in the front setback band, so it never
-competes with the footprint for buildable area, and the footprint is simply centered in the
-remaining buildable envelope. Garden is an EXPLICIT classification of the plot's leftover
+house is already drawn — parking lives entirely in the street-side band (`front_band_m`), so
+it never competes with the footprint for buildable area, and the footprint is simply centered
+in the remaining buildable envelope. Garden is an EXPLICIT classification of the plot's leftover
 area (Correction 3 / geometry_core.model.OutdoorClassification), never an implicit remainder.
+
+THE BAND IS NOT THE SETBACK. It used to be: bays were drawn at y=0 and the house at the front
+setback, and "the bays are in front of the house" held only because the default setback (5.5 m)
+happened to be deeper than a bay (5.0 m). When the default setback became 0 — a planning
+determination this project does not make — the house moved to the street line and the bays were
+drawn UNDER it, invisible on every plan. `front_band_m` is the depth the house must actually
+leave, whichever of the two numbers is larger, and validation C18 refuses a plan where a bay and
+the house overlap so that this can never again fail silently.
 
 Everything here operates in the SAME grid-unit `Rect` type Geometry Core uses, in one shared
 plot-absolute coordinate frame (y=0 at the street edge) — the wing's own solved rects (which
@@ -47,16 +55,39 @@ class SitePlan:
     garden: tuple[OutdoorRegion, ...]
 
 
+def front_band_m(spec: ArchitecturalSpec) -> float:
+    """Depth of the street-side band the house must leave free, measured from y=0.
+
+    The front setback when there is no parking; otherwise the deeper of the setback and one
+    parking bay, because the bays stand perpendicular to the street in that band and a house
+    placed closer than a bay is deep would sit on top of them. The setback is a planning
+    assumption the person can lower to 0; the bay depth is what a car needs, and lowering the
+    setback does not shrink the car.
+    """
+    if spec.program.parking_spaces <= 0:
+        return spec.plot.front_setback_m
+    return max(spec.plot.front_setback_m, PARKING_BAY_DEPTH_M)
+
+
+def buildable_size_with_parking_m(spec: ArchitecturalSpec) -> tuple[float, float]:
+    """The buildable envelope once the parking band is taken out of the plot's depth."""
+    buildable_w_m, _ = spec.plot.buildable_size_m()
+    return buildable_w_m, spec.plot.depth_m - front_band_m(spec) - spec.plot.rear_setback_m
+
+
 def place_footprint(spec: ArchitecturalSpec, footprint_w_m: float, footprint_h_m: float) -> tuple[int, int]:
-    """Center the footprint in the plot's buildable envelope. Returns the (x_u, y_u) offset to
-    add to every wing-local rect to place it in plot-absolute coordinates."""
-    origin_x_m, origin_y_m = spec.plot.buildable_origin_m()
-    buildable_w_m, buildable_h_m = spec.plot.buildable_size_m()
+    """Center the footprint in the plot's buildable envelope, flush to the street-side band.
+    Returns the (x_u, y_u) offset to add to every wing-local rect to place it in plot-absolute
+    coordinates."""
+    origin_x_m, _ = spec.plot.buildable_origin_m()
+    origin_y_m = front_band_m(spec)
+    buildable_w_m, buildable_h_m = buildable_size_with_parking_m(spec)
     if footprint_w_m > buildable_w_m + 1e-6 or footprint_h_m > buildable_h_m + 1e-6:
         raise ValueError(
             f"footprint {footprint_w_m}x{footprint_h_m} m does not fit the buildable envelope "
             f"{buildable_w_m:.2f}x{buildable_h_m:.2f} m (plot {spec.plot.width_m}x{spec.plot.depth_m} "
-            f"m minus setbacks) — enlarge the plot or shrink the concept footprint."
+            f"m minus setbacks and the {front_band_m(spec):.2f} m street-side band for parking) — "
+            f"enlarge the plot or shrink the concept footprint."
         )
     offset_x_m = origin_x_m + (buildable_w_m - footprint_w_m) / 2.0
     offset_y_m = origin_y_m  # flush to the front building line; remaining depth slack goes to the rear garden

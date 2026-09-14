@@ -9,6 +9,7 @@ from app.geometry_domain.provenance import Authority, Provenance, Source
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_generator import (
     FREE_TWIN_RATIONALE,
+    HUB_TEMPLATE,
     ROOM_TEMPLATES,
     ConceptStrategy,
     RejectionReason,
@@ -123,6 +124,39 @@ def test_generator_produces_a_bounded_candidate_set(name):
     assert result.candidates[len(twins):] == tuple(twins), "twins must come after every forced tree"
 
 
+def test_vocabulary_is_additive():
+    """Feature 005 adds a strategy and a hub template; it changes no existing template row.
+
+    The snapshot is deliberately literal: a change to any of these numbers moves every plan in the
+    418-scenario sweep (see `spikes/failure_log_sweep`), so it must never ride along silently.
+    """
+    from app.vertical_slice.concept_generator import RoomTemplate
+    from app.vertical_slice.geometry_core.model import ProgramRole as R
+
+    snapshot = {
+        R.LIVING: RoomTemplate(16.0, 22.0, 46.0, 3.0, 2.5, elasticity=3.0),
+        R.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5),
+        R.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0),
+        R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9),
+        R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5),
+        R.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
+        R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15),
+        R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10),
+        R.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
+        R.STUDY: RoomTemplate(6.0, 8.5, 14.0, 2.1, 2.5, elasticity=0.5),
+        R.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),
+        R.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.5, 3.0, elasticity=0.10),
+        R.STORAGE: RoomTemplate(1.5, 3.0, 6.0, 1.0, 4.0, elasticity=0.05),
+        R.STAIRWELL: RoomTemplate(4.0, 6.0, 12.0, 1.1, 4.0, elasticity=0.0),
+        R.HALL: RoomTemplate(5.0, 11.0, 30.0, 1.2, 8.0, elasticity=0.1),
+        R.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
+    }
+    assert ROOM_TEMPLATES == snapshot
+    assert ConceptStrategy.HUB_PRIVATE_WING.value == "HUB_PRIVATE_WING"
+    assert HUB_TEMPLATE.min_short_side_m == 2.4 and HUB_TEMPLATE.max_aspect_ratio == 1.5
+    assert HUB_TEMPLATE.elasticity == ROOM_TEMPLATES[R.HALL].elasticity
+
+
 def test_candidates_are_deterministic():
     a = _candidates(PROGRAMS["3BR_SAFE"])
     b = _candidates(PROGRAMS["3BR_SAFE"])
@@ -158,6 +192,164 @@ def test_four_bedroom_programme_completes_through_the_unforced_twin():
     assert result.concept.rationale.endswith(FREE_TWIN_RATIONALE), result.concept.rationale
     # the forced trees were genuinely tried and refused first
     assert any("at forced position" in note for note in result.notes), result.notes
+
+
+def test_a_candidate_refused_by_validation_does_not_end_the_search(monkeypatch):
+    """A solved candidate that fails validation is not a plan: the pipeline moves to the next one.
+
+    Committing to the first geometrically solved candidate let the unforced twins turn 13 useful
+    refusals into raw C8 failures. Here the first realized candidate is made to fail a check; the
+    delivered plan must come from a later candidate, validated, with the refusal on record.
+    """
+    from dataclasses import replace
+    from app.vertical_slice import general_pipeline as gp
+    from app.vertical_slice.validation import ValidationReport
+
+    orig = gp._realize
+    seen: list[int] = []
+
+    def realize_failing_first(spec, buildable, site_constraints, candidate, index, solve,
+                              relationships, on_stage=None):
+        plan = orig(spec, buildable, site_constraints, candidate, index, solve, relationships,
+                    on_stage=on_stage)
+        seen.append(index)
+        if len(seen) == 1:
+            report = ValidationReport()
+            report.add("C8", "daylight/window exposure present where required", False, "TEST")
+            return replace(plan, validation=report)
+        return plan
+
+    monkeypatch.setattr(gp, "_realize", realize_failing_first)
+    result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0),
+                                   program=PROGRAMS["2BR"])
+    assert result.design is not None and result.validation.ok
+    assert result.metrics.first_valid_candidate_index == seen[1]
+    assert seen[0] < seen[1]
+    assert any("failed validation: C8" in note for note in result.notes), result.notes
+
+
+HUB_BRIEF = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=True,
+                        target_built_area_m2=170.0)
+
+
+def _hub_result():
+    """The HUB_BRIEF realized from its hub candidates only.
+
+    Which parti WINS in production is decided by the area-proximity sort (research R2) and is
+    reported by the sweep, not pinned here; this proves the hub plan itself is realizable and valid.
+    """
+    from app.vertical_slice import concept_generator as cg
+    shipped = cg.generate_concepts
+
+    def hub_only(spec, candidates):
+        res = shipped(spec, candidates)
+        kept = tuple(c for c in res.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING)
+        return type(res)(kept, res.rejections, res.program)
+
+    cg.generate_concepts = hub_only
+    try:
+        return run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=HUB_BRIEF)
+    finally:
+        cg.generate_concepts = shipped
+
+
+def test_hub_wing_is_a_compact_lobby_with_four_to_five_doors():
+    """User story 1: the private wing is a room lobby, not a corridor.
+
+    Measured gap this closes: the engine's hall came out at long/short 9.4 in every plan; 18 of 21
+    professional plans organise bedrooms around a compact lobby with 4-7 doors and none uses a
+    straight double-loaded corridor.
+    """
+    result = _hub_result()
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [c.detail for c in result.validation.failures()]
+    assert result.concept.strategy is ConceptStrategy.HUB_PRIVATE_WING, result.concept.rationale
+    hall = next(r for r in result.design.rooms if r.zone_id == "HALL")
+    short, long = sorted((hall.net_w_m, hall.net_h_m))
+    assert short >= 2.4 - 1e-6, (hall.net_w_m, hall.net_h_m)
+    assert long / short <= 1.5 + 1e-6, (hall.net_w_m, hall.net_h_m)
+    doors = [d for d in result.design.interior_doors if "HALL" in (d.a, d.b) and d.placeable]
+    assert 4 <= len(doors) <= 6, [(d.a, d.b) for d in doors]
+    # every habitable room still sits on the envelope (the 100% the engine already had)
+    for r in result.design.rooms:
+        if any(role in r.roles for role in ("BEDROOM", "MASTER_BEDROOM", "LIVING", "KITCHEN", "DINING")):
+            assert "EXTERIOR" in set(r.walls.values()), (r.zone_id, r.walls)
+
+
+def test_hub_wet_rooms_are_back_to_back_at_the_foot():
+    """User story 2 (v2): the shared wet room stacks under a flank bedroom, directly above the
+    ensuite at the foot band's outer end — the two wet rooms share a wall, as in ~20/21 references.
+    """
+    from app.vertical_slice import concept_generator as cg
+    shipped = cg.generate_concepts
+
+    def hub_only(spec, candidates):
+        res = shipped(spec, candidates)
+        kept = tuple(c for c in res.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING)
+        return type(res)(kept, res.rejections, res.program)
+
+    cg.generate_concepts = hub_only
+    try:
+        result = run_general_from_site(
+            F.exact_rectangle(), plot_size_m=(20.0, 24.0),
+            program=ProgramSpec(bedrooms=3, safe_room=True, wet_rooms=2, open_plan_living=True,
+                                target_built_area_m2=180.0))
+    finally:
+        cg.generate_concepts = shipped
+    assert result.design is not None and result.validation.ok, result.metrics.rejection_reasons
+    rooms = {r.zone_id: r for r in result.design.rooms}
+    ensuite, shared = rooms["BATH_1"], rooms["BATH_2"]
+
+    def touching(a, b) -> bool:
+        ax, ay, aw, ah = a.rect_m
+        bx, by, bw, bh = b.rect_m
+        vertical = (abs(ay + ah - by) < 1e-6 or abs(by + bh - ay) < 1e-6) and min(ax + aw, bx + bw) - max(ax, bx) > 0.5
+        horizontal = (abs(ax + aw - bx) < 1e-6 or abs(bx + bw - ax) < 1e-6) and min(ay + ah, by + bh) - max(ay, by) > 0.5
+        return vertical or horizontal
+    assert touching(ensuite, shared), (ensuite.rect_m, shared.rect_m)
+    doors = [d for d in result.design.interior_doors if "HALL" in (d.a, d.b) and d.placeable]
+    assert any(shared.zone_id in (d.a, d.b) for d in doors), "the shared bath opens onto the lobby"
+
+
+def test_hub_is_offered_only_for_three_or_more_bedrooms():
+    two = _candidates(PROGRAMS["2BR"])
+    assert all(c.strategy is not ConceptStrategy.HUB_PRIVATE_WING for c in two.candidates)
+    three = _candidates(HUB_BRIEF)
+    hubs = [c for c in three.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    assert hubs, [r.detail for r in three.rejections if r.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    twins = [c for c in hubs if c.rationale.endswith(FREE_TWIN_RATIONALE)]
+    assert twins and len(twins) * 2 == len(hubs)
+    first_twin = next(i for i, c in enumerate(three.candidates) if c.rationale.endswith(FREE_TWIN_RATIONALE))
+    last_forced = max(i for i, c in enumerate(three.candidates) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
+    assert last_forced < first_twin, "every forced tree must precede every twin"
+
+
+def test_hub_refuses_flex_like_the_front_band():
+    from app.vertical_slice.concept_generator import build_room_program, program_capacity_gross_m2
+    capacity = program_capacity_gross_m2(build_room_program(_spec(HUB_BRIEF)))
+    over = _candidates(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=True,
+                                   target_built_area_m2=capacity + 80.0))
+    assert all(c.strategy is not ConceptStrategy.HUB_PRIVATE_WING for c in over.candidates)
+    hub_rejections = [r for r in over.rejections if r.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    assert hub_rejections and hub_rejections[0].reason is RejectionReason.INSUFFICIENT_WING_AREA
+    assert "FLEX" in hub_rejections[0].detail
+
+
+def test_hub_root_to_hall_cuts_stay_forced_in_the_twin():
+    from app.vertical_slice.geometry_core.model import Leaf, Split
+    result = _candidates(HUB_BRIEF)
+    twin = next(c for c in result.candidates
+                if c.strategy is ConceptStrategy.HUB_PRIVATE_WING
+                and c.rationale.endswith(FREE_TWIN_RATIONALE))
+
+    def contains_hall(n):
+        return n.zone_id == "HALL" if isinstance(n, Leaf) else contains_hall(n.first) or contains_hall(n.second)
+
+    def check(n):
+        if isinstance(n, Split):
+            assert (n.fixed_at_u is not None) == contains_hall(n), n
+            check(n.first); check(n.second)
+    check(twin.concept.fixture.wings[0].tree)
 
 
 def test_front_band_parti_is_generated_and_can_win():
@@ -372,6 +564,76 @@ def test_master_in_a_shared_row_still_reaches_the_envelope(width_m, depth_m):
     assert "EXTERIOR" in master.walls.values(), master.walls
     c8 = next(c for c in result.validation.checks if c.check_id == "C8")
     assert c8.passed, c8.detail
+
+
+# ------------------------------------------------------- second suite in a column parti
+#
+# Reported from the product (failures.json, 2026-09-13): 15 x 15 m site, a 15.00 x 11.73 m
+# footprint for 176 m², 2 bedrooms, 2 wet rooms, safe room, open plan. The literal programme did
+# not fit the depth, so the `programme_variants` reading — BATH_2 hung off BEDROOM_1 as a second
+# ensuite — was the only one that solved, and SPINE_PUBLIC_PRIVATE solved it three times. Each
+# time the private column came out MASTER+BATH_1 / BEDROOM_1+BATH_2 / SAFE_ROOM, and BEDROOM_1 was
+# boxed in on all four sides — MASTER, the safe room, the hall and its own ensuite — so every
+# candidate failed C8 and the person got PLAN_FAILED_VALIDATION for a brief that fits.
+
+SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
+                               target_built_area_m2=176.0)
+
+
+def _second_suite_run():
+    # The exact region the product handed the engine: the selected footprint, flush to the street
+    # edge of a parcel with no setbacks (app/demo/service.py::_buildable_from).
+    spec = ArchitecturalSpec(plot=PlotSpec(width_m=15.0, depth_m=15.0, front_setback_m=0.0,
+                                           side_setback_m=0.0, rear_setback_m=0.0),
+                             program=SECOND_SUITE_2BR)
+    buildable = BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(0.0, 0.0, 15.0, 11.73))),
+        Provenance(Source.USER, Authority.AUTHORITATIVE, ref="selected footprint"),
+    )
+    return run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
+                       program=spec.program)
+
+
+def test_second_suite_in_a_column_still_reaches_the_envelope():
+    """A column holding TWO shared rows puts one at each exterior end, so the second suite's
+    bedroom takes the column's rear edge instead of being enclosed between the first suite and a
+    full-width row. Full-width rows always hold the column's outer edge, so they can sit inside."""
+    result = _second_suite_run()
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
+    c8 = next(c for c in result.validation.checks if c.check_id == "C8")
+    assert c8.passed, c8.detail
+    bedroom = next(r for r in result.design.rooms if r.zone_id == "BEDROOM_1")
+    assert "EXTERIOR" in bedroom.walls.values(), bedroom.walls
+    # The variant that solved IS the second-suite reading, entered through its bedroom — the
+    # ordering fix changed where the rooms sit, not how they connect.
+    doors = {frozenset((d.a, d.b)) for d in result.design.interior_doors}
+    assert frozenset(("BEDROOM_1", "BATH_2")) in doors, doors
+    assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
+
+
+def test_daylight_order_leaves_a_column_with_no_stranded_suite_untouched():
+    """The ordering is a repair, not a preference: rows already safe keep their drawing."""
+    from app.vertical_slice.concept_generator import ProgramRoom, _daylight_order
+
+    def room(zone_id, role, entered_from=None):
+        return ProgramRoom(zone_id, role, ZoneGroup.PRIVATE, ROOM_TEMPLATES[role], entered_from)
+
+    master = [room("MASTER", ProgramRole.MASTER_BEDROOM),
+              room("BATH_1", ProgramRole.BATHROOM, "MASTER")]
+    second = [room("BEDROOM_1", ProgramRole.BEDROOM),
+              room("BATH_2", ProgramRole.BATHROOM, "BEDROOM_1")]
+    safe = [room("SAFE_ROOM", ProgramRole.SAFE_ROOM)]
+    bedroom = [room("BEDROOM_2", ProgramRole.BEDROOM)]
+
+    # One suite at either exterior end of a full-depth column: nothing to repair.
+    assert _daylight_order([master, bedroom, safe], north_is_envelope=True) == [master, bedroom, safe]
+    assert _daylight_order([bedroom, safe, master], north_is_envelope=True) == [bedroom, safe, master]
+    # The reported column: the second suite is stranded, so the suites take both ends.
+    assert _daylight_order([master, second, safe], north_is_envelope=True) == [master, safe, second]
+    # Under a front band only the south end is envelope, exactly as before: shared rows go last.
+    assert _daylight_order([master, bedroom, safe], north_is_envelope=False) == [bedroom, safe, master]
+    assert _daylight_order([master, second, safe], north_is_envelope=False) == [safe, master, second]
 
 
 # --------------------------------------------------------------- built area tracks the target

@@ -14,6 +14,8 @@ from enum import Enum
 
 from app.projects.models import Project
 
+from app.vertical_slice.site import PARKING_BAY_DEPTH_M
+
 from . import site_geometry
 
 #: 4 and 5 bedrooms became reachable once a shared wet room could sit off a bedroom instead of the
@@ -56,6 +58,11 @@ class ScopeCode(str, Enum):
     SITE_GEOMETRY_REQUIRED = "SITE_GEOMETRY_REQUIRED"
     #: The chosen outline does not fit the land that is left after the demo setbacks.
     FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION = "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+    #: The outline fits the setbacks, but not once the parking bays take their band at the street.
+    #: Kept apart from the code above because the setbacks are not what failed: the person can
+    #: lower those to zero and the cars are still 5 m long. The numbers worth changing are the
+    #: parking count, the outline's depth, or the parcel.
+    FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING = "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING"
     #: There is no land left at all — the setbacks alone use up a whole side of the parcel. Kept
     #: apart from the code above because the outline is not what failed: no outline of any size
     #: would pass, and the numbers worth changing are the site's, not the building's.
@@ -203,5 +210,25 @@ def check_supported(project: Project) -> ScopeRejection | None:
             f"אפשר לבחור מתאר קטן יותר או לעדכן את מידות המגרש. "
             f"{site_geometry.SETBACK_DISCLAIMER}",
             fit.detail)
+
+    # PARKING TAKES LAND TOO. The bays stand in the street-side band and the house is placed
+    # behind them (`site.front_band_m`), so when the front setback is shallower than a bay the
+    # depth left for the house is less than the buildable rectangle promised. Decided here, before
+    # anything is planned, for the same reason the fit check above is: the person is told both sets
+    # of numbers and chooses which to change. Validation C18 then proves the delivered plan kept
+    # the bays clear of the house.
+    if parking > 0 and site.near_setback_m < PARKING_BAY_DEPTH_M:
+        depth_left = round(site.canonical_depth_m - PARKING_BAY_DEPTH_M - site.far_setback_m, 2)
+        if project.selected_footprint.depth_m > depth_left + 1e-9:
+            return ScopeRejection(
+                ScopeCode.FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING,
+                f"המתאר שנבחר ({project.selected_footprint.width_m:.2f} × "
+                f"{project.selected_footprint.depth_m:.2f} מ׳) נכנס במגרש, אבל לא נשאר מקום "
+                f"ל-{parking} מקומות חניה לפניו: חניה צריכה רצועה בעומק {PARKING_BAY_DEPTH_M:.1f} מ׳ "
+                f"מקו הרחוב, ואחריה נשאר לבית עומק של {max(depth_left, 0.0):.2f} מ׳ בלבד. "
+                f"אפשר לבחור מתאר פחות עמוק, להקטין את מספר החניות, או לעדכן את מידות המגרש.",
+                f"footprint depth {project.selected_footprint.depth_m} m > {depth_left} m left behind "
+                f"a {PARKING_BAY_DEPTH_M} m parking band (front setback {site.near_setback_m} m, "
+                f"rear {site.far_setback_m} m, plot depth {site.canonical_depth_m} m)")
 
     return None

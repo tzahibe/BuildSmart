@@ -261,6 +261,14 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
            for p in site.parking if p.y != site.plot.y]
     rep.add("C10", "parking connected to street", not bad, "; ".join(bad) or f"{len(site.parking)} bays front the street")
 
+    # C18 — parking bays clear of the house. C10 only proves a bay touches the street; a bay drawn
+    # INSIDE the footprint touches it too, and that is exactly what a zero front setback produced —
+    # the rooms were painted over the bays and every plan simply had no parking. Fails closed.
+    bad = [f"parking bay at x={p.x} overlaps the house by {p.overlap_area_u(site.footprint)} u²"
+           for p in site.parking if p.overlap_area_u(site.footprint) > 0]
+    rep.add("C18", "parking bays clear of the house", not bad,
+            "; ".join(bad) or f"{len(site.parking)} bays outside the footprint")
+
     # C11 — pedestrian entrance connected to house
     bad = []
     if not entrance_door.placeable:

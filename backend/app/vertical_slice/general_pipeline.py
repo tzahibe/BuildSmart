@@ -347,6 +347,14 @@ def run_general(buildable: BuildableRegion, *,
     # loop behaves exactly as before, including the fast path.
     best_score: tuple[int, int] | None = None
     best_solve = None
+    # A candidate the solver realizes but validation refuses is NOT a plan, so it does not end the
+    # search: the next candidate is tried, and only if none validates is the first refused one
+    # returned (with its report) so the refusal path can say why. Committing to the first solved
+    # candidate regardless of validation let the unforced twins turn 13 useful refusals into raw
+    # C8 failures — the twin solved, was chosen, failed C8, and the forced candidates behind it
+    # that would have validated were never reached.
+    plan: RealizedPlan | None = None
+    first_refused: RealizedPlan | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         attempts += 1
@@ -357,7 +365,15 @@ def run_general(buildable: BuildableRegion, *,
             continue
 
         if not relationships:
-            chosen, solve, chosen_index = concept_candidate, candidate_solve, index
+            candidate_plan = _realize(spec, buildable, site_constraints, concept_candidate, index,
+                                      candidate_solve, relationships, on_stage=on_stage)
+            if not candidate_plan.ok:
+                first_refused = first_refused or candidate_plan
+                failed = [c.check_id for c in candidate_plan.validation.failures()]
+                failures.append(f"candidate {index} ({concept_candidate.strategy.value}) realized "
+                                f"but failed validation: {', '.join(failed) or 'safety'}")
+                continue
+            chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
             if fast_path:
                 break
             continue
@@ -388,7 +404,13 @@ def run_general(buildable: BuildableRegion, *,
         # units. Set it once, here, from the candidate that actually won.
         solve = best_solve
 
-    if chosen is None or solve is None:
+    if chosen is None and first_refused is not None:
+        # Every solved candidate was refused by validation: hand back the first, with its report,
+        # exactly as a single refused candidate was handed back before the fall-through existed.
+        chosen, chosen_index, plan = first_refused.concept, first_refused.index, first_refused
+        solve = None
+
+    if chosen is None:
         return GeneralSliceResult(
             AdapterOutcome.NO_SAFE_SOLVER_GEOMETRY, adapter_result,
             metrics=RunMetrics(solver_attempts=attempts,
@@ -396,8 +418,9 @@ def run_general(buildable: BuildableRegion, *,
                                **base_metrics),
             notes=tuple(failures))
 
-    plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve, relationships,
-                    on_stage=on_stage)
+    if plan is None:  # the relationships path chose on score; realize the winner here
+        plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve,
+                        relationships, on_stage=on_stage)
     design, validation, safety = plan.design, plan.validation, plan.safety
     path = render(design, render_path) if render_path else None
 

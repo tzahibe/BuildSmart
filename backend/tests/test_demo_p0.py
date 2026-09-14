@@ -316,7 +316,11 @@ def test_open_plan_brief_produces_physically_open_rooms(client):
     assert review["open_plan"]["value"] is True
     body = design.json()["plan"]
     rooms = {r["id"]: r for r in body["rooms"]}
-    assert rooms["LIVING"]["walls"]["S"]["construction"] == "NONE"
+    # The living room is physically open toward the rest of the public zone on SOME side: the
+    # column partis open it to the south (dining stacked below), the hub parti to the east
+    # (dining beside it across the front band). The join, not its orientation, is the invariant.
+    assert "NONE" in {w["construction"] for w in rooms["LIVING"]["walls"].values()}, \
+        rooms["LIVING"]["walls"]
     shared = [i for i in body["open_interfaces"] if len(i["room_ids"]) > 1]
     assert shared, "an open-plan brief must yield real wall-less joins"
 
@@ -1482,7 +1486,13 @@ def test_a_brief_with_only_one_distinct_plan_offers_no_alternatives(client):
         pytest.skip(f"not realizable at {footprint}: {response.text}")
     body = response.json()
     assert body["plan"]["rooms"]
-    assert body["alternatives"] == []
+    # Empty stays a real answer; what is never allowed is the same drawing offered twice. The hub
+    # parti (feature 005) now gives this snug brief a genuinely different second layout — a room
+    # lobby instead of a spine — so "distinct" is the invariant, not "none".
+    layouts = [_layout(body["plan"])] + [_layout(a) for a in body["alternatives"]]
+    assert len(layouts) == len(set(layouts)), "an alternative repeated a picture already shown"
+    for alternative in body["alternatives"]:
+        assert alternative["rooms"] and alternative["validation"]["passed"]
 
 
 def test_the_alternatives_never_change_which_plan_was_chosen(client):

@@ -57,6 +57,65 @@ Two gates fail; per the acceptance rule the hub is **not committed**.
 
 The 112-plan population after the unforced-twin change is less square than the 85 before it (bedroom 1.41 vs 1.26, wet 36 % vs 40 %): the solver's area-ratio splits produce the rescued plans, and they are proportioned worse than the forced ones. A shape-aware objective for the released cuts is a candidate follow-up.
 
+## 5. v2 — two-room flanks, feasible-window boundaries (2026-09-13, branch `005-hub-v2`)
+
+**What changed** (all in `concept_generator.py`, additive): a flank may stack two rooms (a bedroom
+over a wet room, an H split off the root→HALL path, so the twin may re-balance it); the boundary
+between the two foot-band rooms, and the width of the first public zone, follow area shares inside
+the window where the opening's 1.10 m shared edge is guaranteed (v1 pinned both to the lobby's
+edges); the first public zone must reach past the footprint's centre so the entrance lands on its
+wall (C16) clear of parking (C11); the hub honours a requested corridor width as its own short side
+and declines requests outside 2.4–3.6 m; the hub is inserted LAST so no no-target baseline changes
+its plan; `HUB_TEMPLATE.max_area_m2` 12 → 16 (a 3.1 × 4.6 lobby is 14 m²; TV-room hubs in the
+references are that size). Tests: **771 passed, 6 skipped, 0 failed** — one former "known limit"
+skip (12.5 × 13 m, 3BR + safe room) now plans, through the hub.
+
+**Sweep, 421 scenarios, real service, hub OFF → ON:**
+
+| | v1 | **v2** |
+|---|---|---|
+| Hub candidate present | 6 | **43** |
+| Hub delivered as the primary plan | 0 | **17** |
+| Hub candidate present, another parti won | 1 | 10 |
+| Plans | 112 → 112 | 117 → **127** (+10; 7 counted at ≥ 80 % of ask) |
+| Lost / crashes | 0 / 0 | **0 / 0** |
+| Pre-existing primaries byte-identical | 112/112 | 110/117 — **7 replaced by a hub plan** via the area-proximity sort |
+| Hub rejections `ACCESS_DEGREE_EXCEEDED` / `COLUMN_DEPTH` / `INSUFFICIENT` | 124 / 3 / 287 | 68 / 20 / 290 |
+| Latency, plans that already existed | +0.02 s | median +0.04 s, worst +1.61 s; total +5 % |
+| Validation refusals | unchanged | unchanged (4 → 4) |
+
+**Acceptance (spec §6) on the 17 production hub plans, beside the 110 non-hub plans:**
+
+| Metric | Target | **Hub v2 (17)** | Non-hub (110) | Hub v1 (2) |
+|---|---|---|---|---|
+| Hall long/short ≤ 1.5 | 100 % | **1.4 — 100 %** ✓ | 9.3 — 0 % | 1.1 ✓ |
+| Doors on hall | 4–7 | **6 (6–7)** ✓ | 7 (4–9) | 5 ✓ |
+| Habitable rooms on envelope | 100 % | **100 %** ✓ | 100 % | 100 % ✓ |
+| Circulation share | ≤ 14 % | **8 % (max 10 %)** ✓ | 10 % | 7 % ✓ |
+| Wet-room adjacency | ≥ 80 % | **83 %** ✓ | 34 % | **0 %** ✗ |
+| Bedroom aspect median | ≤ 1.35 | **1.42** ✗ | 1.50 | 1.21 ✓ |
+| Master aspect median | ≤ 1.40 | **1.50** ✗ | 1.60 | 1.59 ✗ |
+| Public zone contiguous | (info) | 71 % | 35 % | 0 % |
+
+Hub-only mode (every scenario realized from its hub candidates alone, 24 plans): wet adjacency 74 %,
+bedroom 1.62, master 1.59, lobby 1.4 / 100 %, doors 6.
+
+**Reading.** Both v1 failures are structural fixes that worked: wet adjacency 0 % → 83 % (the shared
+bath stacks under a flank bedroom, above the ensuite) and the lobby is compact in 100 % of plans.
+Six of eight targets pass. Bedroom (1.42) and master (1.50) miss narrowly — and both are *better*
+than the plans the hub replaced (1.50 / 1.60), as is every other metric except the safe room
+(1.66 vs 1.33) and the kitchen, which stays a strip (2.23) because the public band is still a
+1-D chain. Cause of the two misses: flank and foot widths follow area shares; when the lobby is
+4.4–4.6 m deep for a stacked flank, a single-room flank beside it becomes 4.6 deep × ~3.2 wide, and
+the master's foot slot is wider than deep. A shape-aware share (surplus width toward the room
+whose aspect is worst) is the v2.1 lever; it is sizing, not topology, and it must be measured with
+the same harness — not tuned.
+
+**7 replaced primaries.** The area-proximity sort prefers the hub when its footprint lands nearer
+the requested area. Whether a hub plan should out-rank an area-closer spine plan (spec §11 (c)) is
+now a live product question, because it happens in production: for those 7 briefs the delivered
+plan is a compact lobby with 83 % wet adjacency instead of a 9.3-aspect spine.
+
 ## 4. Decision
 
 - `HUB_PRIVATE_WING` v1: **not committed**. Left in the working tree (`concept_generator.py`, `test_concept_generator.py`) for the owner to keep on a branch or drop; the harness, plan, research, data model, quickstart, tasks and this report are committed so v2 starts from measured ground.
