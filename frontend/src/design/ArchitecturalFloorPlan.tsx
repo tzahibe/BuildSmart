@@ -190,13 +190,10 @@ function ArchitecturalFloorPlan({ design }: ArchitecturalFloorPlanProps) {
           </text>
         </g>
 
-        <g transform={`translate(${maxX + RIGHT_PAD_M - 0.5} ${-TOP_PAD_M + 0.6})`}>
-          <circle r={0.5} className="sketch-svg-compass-ring" />
-          <path d="M 0 -0.32 L 0.12 0.08 L 0 -0.05 L -0.12 0.08 Z" className="sketch-svg-compass-needle" />
-          <text y={0.35} className="sketch-svg-compass-label" style={{ fontSize: 0.22 }}>
-            N
-          </text>
-        </g>
+        {/* No compass here. This drawing comes from the spatial-solver / parametric pipeline
+            (`app/design/pipeline.py`), which has no notion of a street and does not guarantee which
+            edge is up — so there is nothing a compass could truthfully say. The street-up demo plan
+            (`DemoPlan.tsx`) is where the rose is drawn. */}
       </svg>
     </div>
   )

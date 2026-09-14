@@ -389,6 +389,7 @@ function App() {
     return (
       <DemoWorkspace
         plans={demoPlans}
+        streetFacingSide={project?.street_facing_side}
         onChangeRequirements={() => {
           setDemoError(null)
           setView('review')

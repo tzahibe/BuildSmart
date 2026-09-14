@@ -24,18 +24,25 @@ from app.vertical_slice.site import PARKING_BAY_DEPTH_M
 
 from . import site_geometry
 
-#: 4 and 5 bedrooms became reachable once a shared wet room could sit off a bedroom instead of the
-#: corridor (`programme_variants`): that removes a private row, and a row was costing ~40 m² of
-#: footprint. Measured smallest plannable area: 3BR/2wet 135 m², 4BR/2wet 130 m², 5BR/2wet 165 m².
+#: Every number here is copied from `spikes/failure_log_sweep/ENVELOPE.md`, the output of
+#: `envelope.py` — a 216-cell grid (bedrooms 1-6 x wet rooms 1-3 x safe room x six log-typical
+#: footprints, 11x12 to 16x18 m) through the real service. Re-run it before changing a claim.
+#: Earlier figures ("4BR/2wet 130 m²", "5BR/2wet 165 m²") were measured while `programme_variants`
+#: could hang the last shared bathroom off a bedroom; that reading now needs the brief to say the
+#: placement is FLEXIBLE (feature 007), so those areas were reached by a plan the brief never asked
+#: for and are withdrawn.
 #:
-#: 1 and 6 were added on measurement, not on principle. A 216-run sweep (bedrooms x wet rooms x
-#: safe room x six footprints) asked the ENGINE what it can actually realize:
+#: Measured 2026-09-14, cells planned of 36 per bedroom count (every plan passes C17):
 #:
-#:      1BR 22%   2BR 50%   3BR 44%   4BR 47%   5BR 33%   6BR 33%
+#:      1BR 14%   2BR 56%   3BR 72%   4BR 69%   5BR 39%   6BR 50%
 #:
-#: 6 bedrooms plan at exactly the rate 5 does, and 5 was already supported; 1 plans on a 14 x 12 m
-#: footprint. Refusing them was a guard that had stopped matching the engine behind it — and the
-#: refusal is the worst kind, since it arrives after the person has entered everything.
+#: Smallest of the six footprints that plans, wet rooms = 2, no safe room / with one:
+#: 2BR 12.5x14.5 / 12.5x14.5; 3BR 11x12 / 12.5x14.5; 4BR 12.5x14.5 / 12.5x14.5;
+#: 5BR 12.5x14.5 / NONE of the six; 6BR 12.5x14.5 / 12x18. Finer probes (`test_demo_p0`):
+#: 4BR/2wet plans from 13.2x10.5 m (139 m²), 6BR/2wet from 13.0x13.5 m (176 m²).
+#: 1BR with 2 wet rooms plans on none of the six footprints; 1BR/1wet on 12.5x14.5 (11x12 with a
+#: safe room). Nothing in this table is a rule — a request is refused only when the engine fails
+#: it, never here by count.
 SUPPORTED_BEDROOMS = (1, 2, 3, 4, 5, 6)
 SUPPORTED_WET_ROOMS = (1, 2, 3)
 MAX_PARKING_SPACES = 2

@@ -1,4 +1,6 @@
 import type { DemoDesign, DemoRect } from './demoDesign'
+import { CompassRose } from './CompassRose'
+import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
 
 /** THE DEMO RENDERER — presentation only.
@@ -13,6 +15,12 @@ import './DemoPlan.css'
  * and an `OPEN` boundary is drawn as a deliberate absence. */
 
 const PAD_M = 1.5
+
+/** The compass rose is drawn about 1 m across at scale 1 — right for a building-sized frame, a speck
+ * on a site-sized one. It grows with the frame's shorter side, and sits inset from the top-right
+ * corner by its own half-size so it stays inside the frame at any scale. */
+const COMPASS_FRAME_SHARE = 1 / 14
+const COMPASS_HALF_SIZE_M = 0.85
 
 /** How much surrounding site to keep around the building, as a share of its longest side. */
 const CONTEXT_MARGIN_RATIO = 0.3
@@ -68,9 +76,16 @@ function sweep(hx: number, hy: number, far: { x: number; y: number },
   return cross > 0 ? 1 : 0
 }
 
-function DemoPlan({ design }: { design: DemoDesign }) {
+/** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
+ * construction — the backend puts the street, the parking bays and the entrance walk along `y = 0`
+ * (`vertical_slice/site.py`) — which is what makes a compass truthful here and nowhere else in the
+ * app. Omitted (a thumbnail, or a caller without the site): no compass is drawn. */
+function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFacingSide?: string | null }) {
   const { plot, footprint } = design
   const viewBox = planViewBox(design)
+  const [frameX, frameY, frameW, frameH] = viewBox.split(' ').map(Number)
+  const compassScale = Math.max(1, Math.min(frameW, frameH) * COMPASS_FRAME_SHARE)
+  const compassInset = COMPASS_HALF_SIZE_M * compassScale
 
   return (
     <svg className="demo-plan" viewBox={viewBox} role="img" aria-label="תוכנית אדריכלית">
@@ -101,17 +116,40 @@ function DemoPlan({ design }: { design: DemoDesign }) {
               className="demo-room-flex" />
       ))}
 
-      {/* Rooms: label + authoritative area. */}
-      {design.rooms.map((room) => (
-        <g key={room.id}>
-          <text x={room.x + room.width_m / 2} y={room.y + room.depth_m / 2 - 0.25} className="demo-room-name">
-            {room.name}
+      {/* Rooms: name, realized dimensions, authoritative area. The dimensions are the room's own
+          rectangle as built — what the plan actually drew, not what the template asked for. */}
+      {design.rooms.map((room) => {
+        const cx = room.x + room.width_m / 2
+        const cy = room.y + room.depth_m / 2
+        const layout = roomLabelLayout(room)
+        return (
+          <text
+            key={room.id}
+            className="demo-room-label"
+            transform={layout.rotated ? `rotate(-90 ${cx} ${cy})` : undefined}
+          >
+            {layout.lines.map((line) => (
+              <tspan
+                key={line.kind}
+                x={cx}
+                y={cy + line.dy}
+                className={`demo-room-${line.kind}`}
+                style={{ fontSize: line.fontSize }}
+              >
+                {line.segments.map((segment, i) =>
+                  segment.isolate ? (
+                    <tspan key={i} className="demo-room-dim-pair" direction="ltr" unicodeBidi="isolate">
+                      {segment.text}
+                    </tspan>
+                  ) : (
+                    segment.text
+                  ),
+                )}
+              </tspan>
+            ))}
           </text>
-          <text x={room.x + room.width_m / 2} y={room.y + room.depth_m / 2 + 0.55} className="demo-room-area">
-            {room.area_m2.toFixed(1)} מ״ר
-          </text>
-        </g>
-      ))}
+        )
+      })}
 
       {/* Walls, weighted by the backend's construction/context facts. An OPEN interface has no
           wall segment at all, so open-plan reads as one continuous space by construction. */}
@@ -231,6 +269,13 @@ function DemoPlan({ design }: { design: DemoDesign }) {
           </g>
         )
       })}
+
+      <CompassRose
+        streetFacingSide={streetFacingSide}
+        cx={frameX + frameW - compassInset}
+        cy={frameY + compassInset}
+        scale={compassScale}
+      />
     </svg>
   )
 }

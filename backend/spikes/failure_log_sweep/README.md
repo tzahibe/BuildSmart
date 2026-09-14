@@ -66,3 +66,12 @@ The exact bounds behind v2.1 (sizing cannot fix the wide-shallow outlines) and v
 
 Frozen output of `ab.py --toggle twins` at commit `2e19d89`, the "before" every later phase is
 compared against.
+
+## `envelope.py` (feature 007, decision D)
+
+The demo envelope as the engine actually meets it: a 216-cell grid — bedrooms 1–6 × wet rooms 1–3
+× safe room × six log-typical footprints (11×12, 12.5×14.5, 12×18, 14×16, 18×12, 16×18 m; target
+area = footprint area, open plan, no parking) — through `generate_demo_design`. Reports cells
+planned per bedroom count and per wet-room bucket, the smallest of the six footprints that plans
+each programme, every cell's result, and whether every plan passes C17 (must be 0 failures). Writes
+`ENVELOPE.md` beside this file; the numbers in `app/demo/scope.py` are copied from there. ~8.5 min.
