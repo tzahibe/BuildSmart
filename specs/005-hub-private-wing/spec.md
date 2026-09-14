@@ -212,6 +212,18 @@ narrowly while beating the plans they replaced (1.50 / 1.60). Not merged: two ta
 decision rather than a deferral. v2.1 lever for the two misses: a shape-aware share of surplus
 width in `_plan_hub_wing` (flanks and foot), measured with the harness, not tuned.
 
+**v2.1 outcome, 2026-09-13 (branch `005-hub-v2.1-sizing`, RESULTS.md §6): not accepted.** The
+wing sized by a number-free shape objective (least squares on log-aspect over the flank split,
+foot boundary and lobby depth; candidate set, ranking and gates untouched) moves the medians —
+master 1.61 → 1.08, bedroom 1.57 → 1.36 — but only by choosing which room is the strip: the
+safe room goes 1.66 → 1.76 (8.0 × 4.0 m on 14.25 × 12.35), more bedrooms exceed 1.35 (24 → 29
+of 43), and a guest WC under a flank bedroom grows past its ensuite (one product test fails).
+An exhaustive bound over every sizing decision of the v2 tree shows the wide-shallow footprints —
+half the hub population — cannot bring the four bedroom-class wing rooms under 1.6 (14.25 × 12.35
+→ 1.64, 18 × 12 → 2.29); the bedroom/master gates are therefore a topology limit of the
+three-full-width-band tree, to be addressed by (b) or by not stacking on shallow footprints, not
+by sizing. No v3 or ranking work was started.
+
 ## 10. Success definition
 
 The hub parti is done when a 4-bedroom, 2-wet-room, safe-room brief on a 13 × 14 m footprint — which today plans as a 9.4-aspect spine with strip-shaped public rooms and 40 % wet adjacency — comes back with a 3 × 3.4 m room lobby, five doors on it, two wet rooms side by side at its head, a master suite at its foot, near-square bedrooms on its flanks, every habitable room on the envelope, all validation checks passing, and no scenario that planned before planning worse.

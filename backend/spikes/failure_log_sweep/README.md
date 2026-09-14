@@ -38,6 +38,16 @@ share of room area · M4 doors on the hall and the hall's own long/short · M5 w
 interior wall with a wet room / kitchen / laundry · M6 living-dining-kitchen joined by open interfaces.
 Reference values from 21 professional plans are in `specs/005-hub-private-wing/spec.md` §1.
 
+## `hub_topology_bound.py [--wet 2|3] [--grid 0.5] [--only T1]`
+
+Hub v3 Phase 0. Per candidate hub tree and representative outline, enumerates every sizing
+decision and foot-band order, builds the rooms as rectangles and checks the three facts the §6
+gates measure — geometry, lobby door seats (≥ 1.10 m shared edge), wet adjacency — reporting the
+best bedroom-class aspect with and without the 80 % wet gate, seats seated vs required, and the
+failure reason. Result (RESULTS.md §7): T1 (v2) is the only three-band tree that seats five and
+clusters the wet rooms; it passes all gates on narrow-deep outlines and fails shape on every
+outline ≥ 14 m wide; every non-stacked/hybrid variant fails access by construction.
+
 ## `BASELINE.md`
 
 Frozen output of `ab.py --toggle twins` at commit `2e19d89`, the "before" every later phase is
