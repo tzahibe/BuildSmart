@@ -45,7 +45,7 @@ from app.vertical_slice.general_pipeline import (
     run_general,
 )
 from app.vertical_slice.safe_adapter import AdapterOutcome
-from app.vertical_slice.site import front_band_m
+from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
 
 from .contract import (
     DemoDesign,
@@ -347,9 +347,18 @@ def _outlines_for(project: Project) -> list[Outline]:
     chosen = project.selected_footprint
     if chosen is not None:
         add(chosen.width_m, chosen.depth_m, "PERSON")
-    for width_m, depth_m in site_geometry.feasible_options(site, project.built_area_m2):
+    # The engine's outlines are measured against the depth BEHIND the parking band — the person's
+    # outline was checked against it in `scope.check_supported`, and an engine outline gets no
+    # second look before it is planned.
+    behind_band = site_geometry.behind_parking_band(
+        site, _tagged_value(project.parking_spaces, 0), PARKING_BAY_DEPTH_M)
+    for width_m, depth_m in site_geometry.feasible_options(behind_band, project.built_area_m2):
         add(width_m, depth_m, "ENGINE")
     return out
+
+
+def _tagged_value(tagged, default):
+    return default if tagged is None or tagged.value is None else tagged.value
 
 
 def _with_outline(project: Project, outline: Outline) -> Project:

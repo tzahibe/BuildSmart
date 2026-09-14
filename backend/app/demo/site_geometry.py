@@ -25,7 +25,7 @@ corner lots, no angled frontage, no GIS, no regulation lookup. Anything outside 
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.projects.models import Project, StreetSide
 
@@ -135,6 +135,24 @@ class SiteGeometry:
         the other end, which is what puts the parking and the entrance on the correct side.
         """
         return (self.side_setback_m, self.near_setback_m)
+
+
+def behind_parking_band(site: SiteGeometry, parking_spaces: int, bay_depth_m: float) -> SiteGeometry:
+    """The same site with its street-side setback raised to one parking bay's depth.
+
+    The bays stand perpendicular to the street in the band the house must leave free
+    (`vertical_slice.site.front_band_m`), so an outline offered by the ENGINE has to fit the
+    depth BEHIND that band, not merely behind the setback. Without this the engine offers — and
+    plans — an outline that ends past the rear of the parcel on a plot the person's own outline
+    was refused on. No parking, or a setback already deeper than a bay: the site is returned
+    unchanged. Raised on whichever setback `near_setback_m` reads, so the rule follows the
+    frontage the same way the buildable origin does.
+    """
+    if parking_spaces <= 0 or site.near_setback_m >= bay_depth_m:
+        return site
+    if site.street_facing_side in (StreetSide.north, StreetSide.east):
+        return replace(site, front_setback_m=bay_depth_m)
+    return replace(site, rear_setback_m=bay_depth_m)
 
 
 def derive(project: Project) -> SiteGeometry | None:

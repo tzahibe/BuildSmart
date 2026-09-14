@@ -183,7 +183,9 @@ def check_supported(project: Project) -> ScopeRejection | None:
     # engine plans the feasible outlines itself — so the only thing to check here is that the
     # requested AREA fits the buildable rectangle in SOME shape.
     if project.selected_footprint is None:
-        if not site_geometry.feasible_options(site, project.built_area_m2):
+        # Behind the parking band, as `service._outlines_for` will measure them.
+        behind_band = site_geometry.behind_parking_band(site, parking, PARKING_BAY_DEPTH_M)
+        if not site_geometry.feasible_options(behind_band, project.built_area_m2):
             no_area = site_geometry.no_buildable_area_message(site)
             if no_area is not None:
                 return ScopeRejection(ScopeCode.NO_BUILDABLE_AREA, no_area,

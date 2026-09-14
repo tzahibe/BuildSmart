@@ -119,3 +119,45 @@ def test_the_same_house_with_no_parking_is_planned_on_that_parcel(client):
     project_id = _create(client, BRIEF_NO_PARKING, plot=(20.0, 18.0))
     response = client.post(f"/projects/{project_id}/design/demo")
     assert response.status_code == 200, response.text
+
+
+def _create_without_outline(client, brief, *, plot, area_m2):
+    """Feature 006: no outline chosen — the engine plans its own feasible shapes."""
+    response = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": round(plot[0] * plot[1], 2), "built_area_m2": area_m2,
+        "plot_width_m": plot[0], "plot_depth_m": plot[1],
+        "street_facing_side": "NORTH", "setbacks": ZERO,
+        "description": brief,
+    })
+    assert response.status_code == 201, response.text
+    project_id = response.json()["project_id"]
+    assert client.post(f"/projects/{project_id}/requirements").status_code == 200
+    return project_id
+
+
+def test_engine_outlines_stay_inside_the_parcel_behind_the_parking_band(client):
+    """An engine-chosen outline gets no scope check of its own, so the band must bound the
+    shapes it is offered. Before: on this parcel the engine planned a 13.8 m deep outline at
+    y=5 — ending 0.8 m past the rear boundary — while the person's 14.5 m outline was refused."""
+    project_id = _create_without_outline(client, BRIEF_3BR_SAFE_OPEN, plot=(20.0, 18.0),
+                                         area_m2=181.25)
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    for plan in [body["plan"], *body.get("alternatives", [])]:
+        fp = plan["footprint"]
+        assert fp["y"] == pytest.approx(PARKING_BAY_DEPTH_M)
+        assert fp["y"] + fp["depth_m"] <= 18.0 + 1e-9, f"outline ends outside the parcel: {fp}"
+        assert all(_overlap(bay, fp) == 0.0 for bay in plan["parking"])
+        assert plan["validation"]["checks"]["C18"] is True
+
+
+def test_a_parcel_with_room_for_the_house_or_the_cars_but_not_both_is_refused_without_an_outline(client):
+    """181 m² needs ≥ 9.1 m of depth at the widest engine shape; 13 m deep parcel minus the 5 m band
+    leaves 8 m. No outline exists, and the refusal says so before planning."""
+    project_id = _create_without_outline(client, BRIEF_3BR_SAFE_OPEN, plot=(20.0, 13.0),
+                                         area_m2=181.25)
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"]["code"] == "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
