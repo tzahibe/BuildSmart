@@ -19,15 +19,27 @@ from app.vertical_slice.concept_generator import (
     build_room_program,
     generate_concepts,
     minimum_footprint_width_m,
+    WetRoomResolutionError,
+    default_wet_room_kinds,
     program_capacity_gross_m2,
     programme_variants,
+    resolve_wet_rooms,
     target_gross_area_m2,
     variant_keeps_bathroom_access,
 )
 from app.vertical_slice.general_pipeline import run_general, run_general_from_site
 from app.vertical_slice.geometry_core.model import ConnectionKind, ProgramRole
 from app.vertical_slice.safe_adapter import adapt, build_buildable_region
-from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+from app.vertical_slice.spec import (
+    ENSUITE_HOST_BEDROOM,
+    ENSUITE_HOST_MASTER,
+    ArchitecturalSpec,
+    PlotSpec,
+    ProgramSpec,
+    WetRoomKind,
+    WetRoomRequirement,
+    WetRoomStrength,
+)
 
 PROGRAMS = {
     "2BR": ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=1),
@@ -104,6 +116,125 @@ def test_bigger_programmes_need_more_area_and_more_width():
     big = build_room_program(_spec(PROGRAMS["3BR_SAFE_3WET"]))
     assert target_gross_area_m2(big) > target_gross_area_m2(small)
     assert minimum_footprint_width_m(big) >= minimum_footprint_width_m(small)
+
+
+# ------------------------------------------------------------------ wet-room kinds (007, phase 1)
+
+def _legacy_wet_rooms(bedrooms: int, wet_rooms: int) -> list[tuple[str, str, str | None]]:
+    """The wet-room loop `build_room_program` had before kinds existed, verbatim, as the reference
+    the resolver's bare-count path is held to: (zone_id, role, entered_from) in order."""
+    out = []
+    shared_count = wet_rooms - (1 if wet_rooms >= 2 and bedrooms >= 1 else 0)
+    baths = toilets = 0
+    for i in range(1, wet_rooms + 1):
+        ensuite = (i == 1 and wet_rooms >= 2 and bedrooms >= 1)
+        first_shared = (not ensuite) and (i == wet_rooms - shared_count + 1)
+        if first_shared and shared_count >= 2:
+            toilets += 1
+            out.append((f"TOILET_{toilets}", "TOILET", None))
+        else:
+            baths += 1
+            out.append((f"BATH_{baths}", "BATHROOM", "MASTER" if ensuite else None))
+    return out
+
+
+@pytest.mark.parametrize("bedrooms", range(0, 7))
+@pytest.mark.parametrize("wet_rooms", range(1, 5))
+def test_a_bare_count_builds_exactly_the_rooms_it_always_did(bedrooms, wet_rooms):
+    """Legacy identity: with no kinds stated, the programme is byte-for-byte what the old loop
+    produced — same zone ids, same roles, same entry — for every count the demo and its sweeps use."""
+    rooms = build_room_program(_spec(ProgramSpec(bedrooms=bedrooms, wet_rooms=wet_rooms)))
+    wet = [(r.zone_id, r.role.name, r.entered_from) for r in rooms if r.wet_kind is not None]
+    assert wet == _legacy_wet_rooms(bedrooms, wet_rooms)
+    # And the resolved kinds are the ones the old loop implied, never UNSPECIFIED.
+    kinds = [r.wet_kind for r in rooms if r.wet_kind is not None]
+    assert WetRoomKind.UNSPECIFIED not in kinds
+    assert [k.kind for k in default_wet_room_kinds(wet_rooms, bedrooms >= 1)] == kinds
+
+
+def test_wet_rooms_keep_their_position_in_the_room_list():
+    """The resolver replaced a loop that appended wet rooms after the private rooms; the order of
+    the whole programme must not move, because column allocation reads it."""
+    ids = [r.zone_id for r in build_room_program(_spec(PROGRAMS["3BR_SAFE_3WET"]))]
+    assert ids == ["LIVING", "DINING", "KITCHEN", "HALL", "MASTER", "BEDROOM_1", "BEDROOM_2",
+                   "SAFE_ROOM", "BATH_1", "TOILET_1", "BATH_2"]
+
+
+def _kinds(*items):
+    return tuple(WetRoomRequirement(*it) if isinstance(it, tuple) else WetRoomRequirement(it)
+                 for it in items)
+
+
+def test_explicit_kinds_are_built_literally():
+    """"חדר הורים עם מקלחת, שירותי אורחים, חדר רחצה": ensuite off the master, WC and bathroom off
+    the hall — in the order stated, named as today's plans name them."""
+    program = ProgramSpec(bedrooms=3, wet_rooms=3, wet_room_kinds=_kinds(
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER), WetRoomKind.GUEST_WC, WetRoomKind.SHARED_BATHROOM))
+    resolved = resolve_wet_rooms(program)
+    assert [(w.zone_id, w.kind, w.host_zone, w.specified) for w in resolved] == [
+        ("BATH_1", WetRoomKind.ENSUITE, "MASTER", True),
+        ("TOILET_1", WetRoomKind.GUEST_WC, None, True),
+        ("BATH_2", WetRoomKind.SHARED_BATHROOM, None, True),
+    ]
+    rooms = build_room_program(_spec(program))
+    assert [(r.zone_id, r.role, r.entered_from) for r in rooms if r.wet_kind] == [
+        ("BATH_1", ProgramRole.BATHROOM, "MASTER"),
+        ("TOILET_1", ProgramRole.TOILET, None),
+        ("BATH_2", ProgramRole.BATHROOM, None),
+    ]
+
+
+def test_an_ensuite_with_no_host_is_the_masters():
+    resolved = resolve_wet_rooms(ProgramSpec(bedrooms=2, wet_rooms=1,
+                                             wet_room_kinds=_kinds(WetRoomKind.ENSUITE)))
+    assert resolved[0].host_zone == "MASTER"
+
+
+def test_a_bedroom_ensuite_takes_the_last_secondary_bedroom_first():
+    """Two explicit second suites in a 4-bedroom house: BEDROOM_3 then BEDROOM_2 — the far end of
+    the private wing, the same place `programme_variants` puts a suite."""
+    program = ProgramSpec(bedrooms=4, wet_rooms=3, wet_room_kinds=_kinds(
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER),
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM),
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM)))
+    assert [w.host_zone for w in resolve_wet_rooms(program)] == ["MASTER", "BEDROOM_3", "BEDROOM_2"]
+
+
+def test_unstated_items_beside_stated_ones_are_shared_bathrooms():
+    """"שירותי אורחים + חדר רחצה" as GUEST_WC + UNSPECIFIED: the unstated room must NOT become the
+    master's ensuite (the bare-count heuristic) or nobody but the master could wash."""
+    program = ProgramSpec(bedrooms=3, wet_rooms=2, wet_room_kinds=_kinds(WetRoomKind.GUEST_WC))
+    resolved = resolve_wet_rooms(program)
+    assert [(w.zone_id, w.kind, w.specified) for w in resolved] == [
+        ("TOILET_1", WetRoomKind.GUEST_WC, True),
+        ("BATH_1", WetRoomKind.SHARED_BATHROOM, False),
+    ]
+
+
+def test_kinds_shorter_than_the_count_are_padded_and_flexibility_survives():
+    program = ProgramSpec(bedrooms=3, wet_rooms=3, wet_room_kinds=_kinds(
+        (WetRoomKind.UNSPECIFIED, None, WetRoomStrength.FLEXIBLE)))
+    resolved = resolve_wet_rooms(program)
+    assert len(resolved) == 3
+    assert resolved[0].strength is WetRoomStrength.FLEXIBLE
+    assert all(w.strength is WetRoomStrength.REQUIRED for w in resolved[1:])
+    # All-unspecified: the padded programme is the legacy one.
+    assert [w.kind for w in resolved] == [k.kind for k in default_wet_room_kinds(3, True)]
+
+
+@pytest.mark.parametrize("program", [
+    ProgramSpec(bedrooms=3, wet_rooms=1, wet_room_kinds=_kinds(WetRoomKind.GUEST_WC, WetRoomKind.GUEST_WC)),
+    ProgramSpec(bedrooms=0, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER))),
+    ProgramSpec(bedrooms=1, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM))),
+    ProgramSpec(bedrooms=2, wet_rooms=2, wet_room_kinds=_kinds(
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM), (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM))),
+    ProgramSpec(bedrooms=2, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.ENSUITE, "STUDY"))),
+    ProgramSpec(bedrooms=2, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.SHARED_BATHROOM, ENSUITE_HOST_MASTER))),
+], ids=["more kinds than rooms", "master ensuite without a bedroom", "bedroom ensuite without a secondary",
+        "two bedroom ensuites, one secondary", "unknown host", "host on a shared bathroom"])
+def test_kinds_the_house_cannot_build_are_refused_not_guessed(program):
+    with pytest.raises(WetRoomResolutionError):
+        resolve_wet_rooms(program)
 
 
 # ------------------------------------------------------------------ candidate generation
