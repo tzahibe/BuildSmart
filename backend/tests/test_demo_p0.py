@@ -1588,17 +1588,24 @@ def test_an_alternative_is_a_complete_plan_not_a_sketch(client):
 
 # ------------------------------------------------------------------ three bedrooms and more
 #
-# A shared wet room used to cost a whole private row: the column stacks one room per row and only an
-# ensuite shares its bedroom's. Measurement put the smallest plannable 3BR/2wet footprint at 149 m²
-# against a 99.6 m² geometric floor, and 4 bedrooms were out of scope entirely. Offering the same
-# rooms with a bath off a bedroom removes a row — ~40 m² of footprint each — and 4 and 5 bedrooms
-# came into range: 3BR/2wet 135 m², 4BR/2wet 130 m², 5BR/2wet 165 m².
+# A shared wet room costs a private row: the column stacks one room per row and only an ensuite
+# shares its bedroom's. The 4BR footprint here was 13.2 x 10.2 m, reached only by hanging the last
+# shared bathroom off the last bedroom (`programme_variants`) — a plan with no full bathroom on the
+# hall. That reading is now allowed only for a brief that says the placement is FLEXIBLE (spec 007
+# decision C), so each fixture is a footprint on which the LITERAL programme — master ensuite plus
+# a shared bathroom reachable from circulation — plans, and C17 proves it. Measured 2026-09-14:
+# 4BR/2wet refuses at 13.2 x 10.2 and 13.2 x 10.4, plans from 13.2 x 10.5; the fixture stands one
+# step off that edge.
 
 _MANY_BEDROOM_BRIEFS = {
     3: ("בית עם 3 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 11.0)),
-    4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.2)),
+    4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.6)),
     5: ("בית עם 5 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (11.6, 14.5)),
 }
+
+#: The old 4BR/2wet footprint. The literal programme does not fit; the only plan that ever did
+#: violated the brief's bathroom access, so the correct answer is now a refusal.
+_FOUR_BEDROOM_TOO_SHALLOW = (13.2, 10.2)
 
 
 #: These parcels declare no setbacks, but the briefs ask for 2 parking spaces, and the bays take a
@@ -1650,7 +1657,7 @@ def test_every_bedroom_is_reachable_and_has_a_window(tmp_path, monkeypatch, bedr
     client.post(f"/projects/{project_id}/requirements")
     body = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
 
-    for check in ("C5", "C8", "C13", "C16"):
+    for check in ("C5", "C8", "C13", "C16", "C17"):
         assert body["validation"]["checks"][check] is True, f"{check}: {body['validation']}"
 
     windowed = {w["room_id"] for w in body["windows"]}
@@ -1659,8 +1666,9 @@ def test_every_bedroom_is_reachable_and_has_a_window(tmp_path, monkeypatch, bedr
             assert room["id"] in windowed, f"{room['id']} has no window"
 
 
-def test_a_rearranged_programme_keeps_every_room_the_brief_asked_for(tmp_path, monkeypatch):
-    """The extra candidate moves a bathroom's DOOR, never removes or adds a room."""
+def test_four_bedrooms_keep_every_room_the_brief_asked_for(tmp_path, monkeypatch):
+    """Fitting four bedrooms never drops or doubles a room, and the bathrooms sit where the brief's
+    kinds put them (C17), not wherever they happened to fit."""
     client, brief = _many_bedroom_client(tmp_path, monkeypatch, 4)
     width, depth = _MANY_BEDROOM_BRIEFS[4][1]
     project_id = _create(client, brief, width=width, depth=depth,
@@ -1673,6 +1681,24 @@ def test_a_rearranged_programme_keeps_every_room_the_brief_asked_for(tmp_path, m
     assert types["BEDROOM"] + types["MASTER_BEDROOM"] == 4
     assert types["BATHROOM"] == 2
     assert types["KITCHEN"] == 1 and types["LIVING"] == 1
+    assert body["validation"]["checks"]["C17"] is True, body["validation"]
+
+
+def test_four_bedrooms_on_a_too_shallow_footprint_are_refused(tmp_path, monkeypatch):
+    """The footprint that used to "fit" 4BR/2wet only did so by hanging the second bathroom off a
+    bedroom. The brief did not say that is fine, so the house is refused with the measured reason —
+    not drawn with a bathroom nobody but one bedroom can reach."""
+    client, brief = _many_bedroom_client(tmp_path, monkeypatch, 4)
+    width, depth = _FOUR_BEDROOM_TOO_SHALLOW
+    project_id = _create(client, brief, width=width, depth=depth,
+                         plot_width_m=width + 4, plot_depth_m=depth + _PARKING_BAND_SLACK,
+                         setbacks={"front_m": 0.0, "side_m": 0.0, "rear_m": 0.0})
+    client.post(f"/projects/{project_id}/requirements")
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 422, response.text
+    detail = response.json()["detail"]
+    assert detail["code"] == "PLAN_NOT_REALIZABLE"
+    assert detail["detail"], "the refusal must carry the measured reason, not just a code"
 
 
 # --------------------------------------------------- the streaming route (loading percentage)

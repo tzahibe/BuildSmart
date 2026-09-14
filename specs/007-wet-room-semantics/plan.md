@@ -185,6 +185,7 @@ Commits: `30e2312` baseline (interim guard + docs) → `eefc335` P1 → `eea755a
 | G-daylight (final state) | 107/107 identical incl. alternatives, LOST 0, GAINED 0, no failed checks, latency median 1.47 s → 1.47 s (planned), 0.48 → 0.47 s (refused), total 530 s both arms |
 | clarification | ensuite + guest WC + second bedroom → `NEEDS_CLARIFICATION` before planning, naming the bedroom, listing the answers, choosing none |
 | variant | `variant_keeps_bathroom_access` removed; FLEXIBLE-only rule reproduces the guard's sweep exactly; the FLEXIBLE reported brief plans at 174.3 m² with C17 passing |
+| G-fixtures (Phase 6, fixtures half — 2026-09-14) | 4BR/2wet fixture moved to 13.2×10.6 m (measured: refuses at 13.2×10.2 and 13.2×10.4, plans from 13.2×10.5); 13.2×10.2 m is now the refusal test; the many-bedroom tests assert C17. Full suite green. Still open: the envelope grid (`envelope.py`), the `scope.py` claims, and a 6BR fixture |
 
 Note on the plan's `--toggle wetkinds`: the cross-commit snapshot (`snapshot.py --compare`) is the
 instrument actually used — it is the same comparison without needing an in-process OFF arm.
