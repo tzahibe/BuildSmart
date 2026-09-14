@@ -18,6 +18,7 @@ from . import doors as doors_stage
 from . import furniture as furniture_stage
 from . import site as site_stage
 from . import validation as validation_stage
+from .wet_rooms import resolve_wet_rooms
 from . import windows as windows_stage
 from .design_output import GeometricDesign, assemble
 from .geometry_core.engine import solve_fixture
@@ -52,6 +53,7 @@ def run_once(spec: ArchitecturalSpec, render_path: str) -> VerticalSliceResult:
 
     report = validation_stage.validate(
         concept.fixture, rects, solve.walls, interior_doors, entrance_door, windows, furniture, site,
+        wet_rooms=resolve_wet_rooms(spec.program),
     )
 
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,

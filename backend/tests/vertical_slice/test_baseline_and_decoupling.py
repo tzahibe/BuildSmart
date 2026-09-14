@@ -25,7 +25,7 @@ BASELINE_INTERIOR_DOORS = 7
 #: non-required window attempt for wet rooms (BATHROOM) on top of the pre-existing
 #: DAYLIGHT_ROLES set — this baseline's 2 bathrooms both land on a real exterior wall.
 BASELINE_WINDOWS = 9
-BASELINE_CHECK_COUNT = 15  # C13 realized connectivity; C16 the entrance's own realization; C18 parking clear of the house
+BASELINE_CHECK_COUNT = 16  # C13 realized connectivity; C16 the entrance's own realization; C17 bathroom access; C18 parking clear of the house
 
 
 @pytest.fixture(scope="module")

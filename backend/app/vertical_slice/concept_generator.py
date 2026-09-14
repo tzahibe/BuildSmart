@@ -52,7 +52,23 @@ from .geometry_core.model import (
     u_to_m,
 )
 from .safe_adapter import SolverGeometryCandidate
-from .spec import ArchitecturalSpec, CorridorRequirement, CorridorWidthMode
+from .spec import (
+    ENSUITE_HOST_BEDROOM,
+    ENSUITE_HOST_MASTER,
+    ArchitecturalSpec,
+    CorridorRequirement,
+    CorridorWidthMode,
+    WetRoomKind,
+    WetRoomRequirement,
+    WetRoomStrength,
+)
+from .wet_rooms import (
+    ResolvedWetRoom,
+    WetRoomResolutionError,
+    check_wet_room_invariants,
+    default_wet_room_kinds,
+    resolve_wet_rooms,
+)
 from .windows import DAYLIGHT_ROLES
 
 # --------------------------------------------------------------------------- product policy
@@ -310,6 +326,14 @@ class ProgramRoom:
     template: RoomTemplate
     #: Entered from this room rather than from circulation (an ensuite).
     entered_from: str | None = None
+    #: Wet rooms only: the RESOLVED requirement this room was built to (kind never `UNSPECIFIED` —
+    #: see `resolve_wet_rooms`). `None` for every other room. Carried on the room so every concept
+    #: built from a programme can hand validation the requirements THAT programme was built to.
+    wet: ResolvedWetRoom | None = None
+
+    @property
+    def wet_kind(self) -> WetRoomKind | None:
+        return None if self.wet is None else self.wet.kind
 
 
 @dataclass(frozen=True)
@@ -320,6 +344,11 @@ class ConceptCandidate:
     rationale: str
     used_area_m2: float
     unused_wing_area_m2: float
+    #: The wet-room requirements of the programme THIS candidate was built from — the literal
+    #: brief's, or an eligible variant's — for C17 to hold the realized doors to. A candidate built
+    #: from a rearranged programme is validated against that arrangement, which is what makes the
+    #: rearrangement legitimate rather than a violation of the brief.
+    wet_rooms: tuple[ResolvedWetRoom, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -363,38 +392,23 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
     if program.safe_room:
         add("SAFE_ROOM", ProgramRole.SAFE_ROOM, ZoneGroup.PRIVATE)
 
-    # Wet rooms: with two or more and a master present, the first is an ensuite entered from
-    # the master; the rest are shared and entered from circulation.
-    #
-    # NOT every shared wet room is a full bathroom. A house asking for more than one SHARED wet
-    # room is asking for a family bathroom AND a guest WC — two rooms with different jobs — not
-    # for the same room twice, and drawing two identical "חדר רחצה" side by side was reported as
-    # exactly the defect it looks like. So the FIRST shared wet room becomes a TOILET
-    # ("שירותים"): pan and basin, a shallower row, its own name on the plan. The first, not the
-    # last, because the guest WC is the one wet room that wants to stay near the entrance, and
-    # `programme_variants` may move the LAST shared one off a bedroom (see there).
-    #
-    # The conversion needs TWO OR MORE shared wet rooms, never one: a house whose only shared wet
-    # room became a WC would have no bathroom anyone but the master could use. So 2 wet rooms with
-    # a master (ensuite + one shared) still produces two full bathrooms, unchanged.
-    shared_count = program.wet_rooms - (1 if program.wet_rooms >= 2 and program.bedrooms >= 1 else 0)
-    baths = toilets = 0
-    for i in range(1, program.wet_rooms + 1):
-        ensuite = (i == 1 and program.wet_rooms >= 2 and program.bedrooms >= 1)
-        first_shared = (not ensuite) and (i == program.wet_rooms - shared_count + 1)
-        if first_shared and shared_count >= 2:
-            toilets += 1
-            add(f"TOILET_{toilets}", ProgramRole.TOILET, ZoneGroup.SERVICE)
-        else:
-            baths += 1
-            add(f"BATH_{baths}", ProgramRole.BATHROOM, ZoneGroup.SERVICE,
-                entered_from="MASTER" if ensuite else None)
+    # Wet rooms come from the brief's kinds, resolved to zone ids and hosts by `resolve_wet_rooms`
+    # — which is also where the legacy default (a bare count) is turned into kinds.
+    for wet in resolve_wet_rooms(program):
+        role = ProgramRole.TOILET if wet.kind is WetRoomKind.GUEST_WC else ProgramRole.BATHROOM
+        rooms.append(ProgramRoom(wet.zone_id, role, ZoneGroup.SERVICE, ROOM_TEMPLATES[role],
+                                 wet.host_zone, wet))
 
     return rooms
 
 
+def wet_rooms_of(rooms: list[ProgramRoom]) -> tuple[ResolvedWetRoom, ...]:
+    """The wet-room requirements a programme was built to, in programme order."""
+    return tuple(r.wet for r in rooms if r.wet is not None)
+
+
 def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
-    """The room programme, plus arrangements of the SAME rooms that need less depth.
+    """The room programme, plus arrangements of the SAME requirements that need less depth.
 
     WHY THIS EXISTS. The private column stacks one room per row; only an ensuite shares its
     bedroom's row. So 3 bedrooms + 2 wet rooms is four rows — 10.60 m of depth at the minimums —
@@ -402,30 +416,54 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
     against a 99.6 m² geometric floor. One extra row costs roughly 40 m².
 
     A shared bathroom placed OFF A BEDROOM instead of off the corridor is the same rooms in three
-    rows rather than four. That is an ordinary house — a second ensuite — not a compromise, and it
-    is not chosen for the person: it is offered as an ADDITIONAL candidate, tried after the literal
-    reading of the brief, so a plan that fits the corridor-entered version still wins.
+    rows rather than four. That is an ordinary house — a second ensuite — but it is a DIFFERENT
+    HOUSE from the one described, so it is offered only when the person allowed it.
 
-    Bounded by construction: at most one extra variant, and only when there is a shared wet room and
-    a secondary bedroom to attach it to.
+    WHAT A VARIANT MAY DO (specs/007 FR-7). A variant is a rearrangement of the same requirements.
+    It may make a corridor-entered full bathroom private to a secondary bedroom only when that wet
+    room's requirement is FLEXIBLE — the person said its placement does not matter — and only if the
+    resulting programme still satisfies every access invariant (`check_wet_room_invariants`): in
+    practice, a shared full bathroom remains, or every bedroom ends up with its own. A brief with no
+    flexible wet room — every legacy brief, every bare count — gets the literal programme and
+    nothing else. Measured before this rule existed, the variant had put the house's ONLY shared
+    bathroom inside a child's bedroom in 45 delivered plans, for briefs that had asked for a guest
+    WC; none of them had asked for a second suite.
+
+    ORDER IS NOT A GUARANTEE. `generate_concepts` sorts candidates by closeness to the requested
+    area when there is one, so a variant can be tried BEFORE the literal reading and win the
+    primary. That is why eligibility is decided HERE, on semantics, and not left to ranking: an
+    ineligible variant never enters the pool, whatever the order.
+
+    Bounded by construction: at most one extra variant — the LAST flexible shared bathroom joins the
+    LAST secondary bedroom (taking the first would move the guest WC away from the entrance, which
+    is the one wet room that wants to stay there).
     """
     base = build_room_program(spec)
-    variants = [base]
+    program = spec.program
+    resolved = resolve_wet_rooms(program)  # `base` was built from it, so it resolves
+    flexible = [r for r in resolved
+                if r.kind is WetRoomKind.SHARED_BATHROOM and r.strength is WetRoomStrength.FLEXIBLE]
+    if not flexible or program.bedrooms < 2:
+        return [base]
 
-    bedrooms = [r for r in base if r.role is ProgramRole.BEDROOM]
-    # BATHROOM only, never the TOILET: a guest WC hung off a child's bedroom is not "a second
-    # ensuite", it is a WC nobody else can reach.
-    shared_wet = [r for r in base
-                  if r.role is ProgramRole.BATHROOM and r.entered_from is None]
-    if bedrooms and len(shared_wet) >= 1 and len(base) > 3:
-        # The LAST shared wet room joins the LAST secondary bedroom: taking the first would move the
-        # guest WC away from the entrance, which is the one wet room that wants to stay there.
-        attach_to, moved = bedrooms[-1], shared_wet[-1]
-        variants.append([
-            replace(room, entered_from=attach_to.zone_id) if room.zone_id == moved.zone_id else room
-            for room in base
-        ])
-    return variants
+    moved = flexible[-1]
+    # The variant is expressed as REQUIREMENTS, then resolved and checked like any brief. Every
+    # item is materialized from its resolved kind — not re-padded from the count — so an
+    # unstated item keeps the default it already had instead of shifting when one item changes.
+    def as_requirement(r: ResolvedWetRoom) -> WetRoomRequirement:
+        if r.zone_id == moved.zone_id:
+            return WetRoomRequirement(WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM, r.strength,
+                                      r.source_text)
+        host = None
+        if r.kind is WetRoomKind.ENSUITE:
+            host = ENSUITE_HOST_MASTER if r.host_zone == "MASTER" else ENSUITE_HOST_BEDROOM
+        return WetRoomRequirement(r.kind, host, r.strength, r.source_text)
+
+    variant_program = replace(program, wet_room_kinds=tuple(as_requirement(r) for r in resolved))
+    if check_wet_room_invariants(variant_program):
+        return [base]
+    variant = build_room_program(replace(spec, program=variant_program))
+    return [base, variant]
 
 
 #: How much geometric headroom ABOVE target a room's `net_area_max_m2` gets, as a function of its
@@ -1300,6 +1338,7 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
                    f"({len(plan.east.rows)} rows) over {fh:.2f} m"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+        wet_rooms=wet_rooms_of(rooms),
     )
 
 
@@ -1467,6 +1506,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                    f"({len(east_rows)} rows)"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+        wet_rooms=wet_rooms_of(rooms),
     ), None
 
 
@@ -2052,6 +2092,7 @@ def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate:
                    f"({len(alloc.foot)} rooms)"),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
+        wet_rooms=wet_rooms_of(rooms),
     )
 
 
@@ -2152,9 +2193,11 @@ def generate_concepts(spec: ArchitecturalSpec,
         # the failure rather than removing it.
 
     primary = usable[0]
-    # Every arrangement of the same rooms, in order: the brief as written first, then the ones that
-    # need less depth. A plan from the literal reading always outranks a rearranged one, because the
-    # candidates are tried in this order and the first realizable wins.
+    # Every arrangement of the same requirements, the brief as written first. Insertion order is
+    # NOT what keeps a rearranged programme from displacing the literal one — the area sort below
+    # may rank it first — so nothing about access semantics is decided here: `programme_variants`
+    # only returns arrangements the brief allows (specs/007 FR-7/FR-8), and the sort chooses among
+    # candidates that are all acceptable.
     for variant in variants:
         band, rejection = _front_band_concept(spec, variant, primary.rect)
         if band is not None:

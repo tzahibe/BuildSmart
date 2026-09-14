@@ -553,6 +553,10 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
         windows, furniture, site_plan,
         corridor=spec.program.corridor,
         relationships=relationships,
+        # The wet-room requirements of the programme THIS candidate was built from (the literal
+        # brief's, or an eligible rearrangement's) — resolved, padded and defaulted, so a legacy
+        # brief is held to its defaults and never skipped (C17 fails closed on absence).
+        wet_rooms=candidate.wet_rooms,
     )
     stage("assemble")
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,

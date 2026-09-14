@@ -1,6 +1,8 @@
 """General Concept Generator: programmes, allocation, topology and bounded candidates."""
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from app.geometry_domain.constraints import BuildableRegion
@@ -18,12 +20,27 @@ from app.vertical_slice.concept_generator import (
     generate_concepts,
     minimum_footprint_width_m,
     program_capacity_gross_m2,
+    programme_variants,
     target_gross_area_m2,
 )
 from app.vertical_slice.general_pipeline import run_general, run_general_from_site
 from app.vertical_slice.geometry_core.model import ConnectionKind, ProgramRole
 from app.vertical_slice.safe_adapter import adapt, build_buildable_region
-from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+from app.vertical_slice.wet_rooms import (
+    WetRoomResolutionError,
+    default_wet_room_kinds,
+    resolve_wet_rooms,
+)
+from app.vertical_slice.spec import (
+    ENSUITE_HOST_BEDROOM,
+    ENSUITE_HOST_MASTER,
+    ArchitecturalSpec,
+    PlotSpec,
+    ProgramSpec,
+    WetRoomKind,
+    WetRoomRequirement,
+    WetRoomStrength,
+)
 
 PROGRAMS = {
     "2BR": ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=1),
@@ -100,6 +117,125 @@ def test_bigger_programmes_need_more_area_and_more_width():
     big = build_room_program(_spec(PROGRAMS["3BR_SAFE_3WET"]))
     assert target_gross_area_m2(big) > target_gross_area_m2(small)
     assert minimum_footprint_width_m(big) >= minimum_footprint_width_m(small)
+
+
+# ------------------------------------------------------------------ wet-room kinds (007, phase 1)
+
+def _legacy_wet_rooms(bedrooms: int, wet_rooms: int) -> list[tuple[str, str, str | None]]:
+    """The wet-room loop `build_room_program` had before kinds existed, verbatim, as the reference
+    the resolver's bare-count path is held to: (zone_id, role, entered_from) in order."""
+    out = []
+    shared_count = wet_rooms - (1 if wet_rooms >= 2 and bedrooms >= 1 else 0)
+    baths = toilets = 0
+    for i in range(1, wet_rooms + 1):
+        ensuite = (i == 1 and wet_rooms >= 2 and bedrooms >= 1)
+        first_shared = (not ensuite) and (i == wet_rooms - shared_count + 1)
+        if first_shared and shared_count >= 2:
+            toilets += 1
+            out.append((f"TOILET_{toilets}", "TOILET", None))
+        else:
+            baths += 1
+            out.append((f"BATH_{baths}", "BATHROOM", "MASTER" if ensuite else None))
+    return out
+
+
+@pytest.mark.parametrize("bedrooms", range(0, 7))
+@pytest.mark.parametrize("wet_rooms", range(1, 5))
+def test_a_bare_count_builds_exactly_the_rooms_it_always_did(bedrooms, wet_rooms):
+    """Legacy identity: with no kinds stated, the programme is byte-for-byte what the old loop
+    produced — same zone ids, same roles, same entry — for every count the demo and its sweeps use."""
+    rooms = build_room_program(_spec(ProgramSpec(bedrooms=bedrooms, wet_rooms=wet_rooms)))
+    wet = [(r.zone_id, r.role.name, r.entered_from) for r in rooms if r.wet_kind is not None]
+    assert wet == _legacy_wet_rooms(bedrooms, wet_rooms)
+    # And the resolved kinds are the ones the old loop implied, never UNSPECIFIED.
+    kinds = [r.wet_kind for r in rooms if r.wet_kind is not None]
+    assert WetRoomKind.UNSPECIFIED not in kinds
+    assert [k.kind for k in default_wet_room_kinds(wet_rooms, bedrooms >= 1)] == kinds
+
+
+def test_wet_rooms_keep_their_position_in_the_room_list():
+    """The resolver replaced a loop that appended wet rooms after the private rooms; the order of
+    the whole programme must not move, because column allocation reads it."""
+    ids = [r.zone_id for r in build_room_program(_spec(PROGRAMS["3BR_SAFE_3WET"]))]
+    assert ids == ["LIVING", "DINING", "KITCHEN", "HALL", "MASTER", "BEDROOM_1", "BEDROOM_2",
+                   "SAFE_ROOM", "BATH_1", "TOILET_1", "BATH_2"]
+
+
+def _kinds(*items):
+    return tuple(WetRoomRequirement(*it) if isinstance(it, tuple) else WetRoomRequirement(it)
+                 for it in items)
+
+
+def test_explicit_kinds_are_built_literally():
+    """"חדר הורים עם מקלחת, שירותי אורחים, חדר רחצה": ensuite off the master, WC and bathroom off
+    the hall — in the order stated, named as today's plans name them."""
+    program = ProgramSpec(bedrooms=3, wet_rooms=3, wet_room_kinds=_kinds(
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER), WetRoomKind.GUEST_WC, WetRoomKind.SHARED_BATHROOM))
+    resolved = resolve_wet_rooms(program)
+    assert [(w.zone_id, w.kind, w.host_zone, w.specified) for w in resolved] == [
+        ("BATH_1", WetRoomKind.ENSUITE, "MASTER", True),
+        ("TOILET_1", WetRoomKind.GUEST_WC, None, True),
+        ("BATH_2", WetRoomKind.SHARED_BATHROOM, None, True),
+    ]
+    rooms = build_room_program(_spec(program))
+    assert [(r.zone_id, r.role, r.entered_from) for r in rooms if r.wet_kind] == [
+        ("BATH_1", ProgramRole.BATHROOM, "MASTER"),
+        ("TOILET_1", ProgramRole.TOILET, None),
+        ("BATH_2", ProgramRole.BATHROOM, None),
+    ]
+
+
+def test_an_ensuite_with_no_host_is_the_masters():
+    resolved = resolve_wet_rooms(ProgramSpec(bedrooms=2, wet_rooms=1,
+                                             wet_room_kinds=_kinds(WetRoomKind.ENSUITE)))
+    assert resolved[0].host_zone == "MASTER"
+
+
+def test_a_bedroom_ensuite_takes_the_last_secondary_bedroom_first():
+    """Two explicit second suites in a 4-bedroom house: BEDROOM_3 then BEDROOM_2 — the far end of
+    the private wing, the same place `programme_variants` puts a suite."""
+    program = ProgramSpec(bedrooms=4, wet_rooms=3, wet_room_kinds=_kinds(
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER),
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM),
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM)))
+    assert [w.host_zone for w in resolve_wet_rooms(program)] == ["MASTER", "BEDROOM_3", "BEDROOM_2"]
+
+
+def test_unstated_items_beside_stated_ones_are_shared_bathrooms():
+    """"שירותי אורחים + חדר רחצה" as GUEST_WC + UNSPECIFIED: the unstated room must NOT become the
+    master's ensuite (the bare-count heuristic) or nobody but the master could wash."""
+    program = ProgramSpec(bedrooms=3, wet_rooms=2, wet_room_kinds=_kinds(WetRoomKind.GUEST_WC))
+    resolved = resolve_wet_rooms(program)
+    assert [(w.zone_id, w.kind, w.specified) for w in resolved] == [
+        ("TOILET_1", WetRoomKind.GUEST_WC, True),
+        ("BATH_1", WetRoomKind.SHARED_BATHROOM, False),
+    ]
+
+
+def test_kinds_shorter_than_the_count_are_padded_and_flexibility_survives():
+    program = ProgramSpec(bedrooms=3, wet_rooms=3, wet_room_kinds=_kinds(
+        (WetRoomKind.UNSPECIFIED, None, WetRoomStrength.FLEXIBLE)))
+    resolved = resolve_wet_rooms(program)
+    assert len(resolved) == 3
+    assert resolved[0].strength is WetRoomStrength.FLEXIBLE
+    assert all(w.strength is WetRoomStrength.REQUIRED for w in resolved[1:])
+    # All-unspecified: the padded programme is the legacy one.
+    assert [w.kind for w in resolved] == [k.kind for k in default_wet_room_kinds(3, True)]
+
+
+@pytest.mark.parametrize("program", [
+    ProgramSpec(bedrooms=3, wet_rooms=1, wet_room_kinds=_kinds(WetRoomKind.GUEST_WC, WetRoomKind.GUEST_WC)),
+    ProgramSpec(bedrooms=0, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER))),
+    ProgramSpec(bedrooms=1, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM))),
+    ProgramSpec(bedrooms=2, wet_rooms=2, wet_room_kinds=_kinds(
+        (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM), (WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM))),
+    ProgramSpec(bedrooms=2, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.ENSUITE, "STUDY"))),
+    ProgramSpec(bedrooms=2, wet_rooms=1, wet_room_kinds=_kinds((WetRoomKind.SHARED_BATHROOM, ENSUITE_HOST_MASTER))),
+], ids=["more kinds than rooms", "master ensuite without a bedroom", "bedroom ensuite without a secondary",
+        "two bedroom ensuites, one secondary", "unknown host", "host on a shared bathroom"])
+def test_kinds_the_house_cannot_build_are_refused_not_guessed(program):
+    with pytest.raises(WetRoomResolutionError):
+        resolve_wet_rooms(program)
 
 
 # ------------------------------------------------------------------ candidate generation
@@ -570,17 +706,38 @@ def test_master_in_a_shared_row_still_reaches_the_envelope(width_m, depth_m):
 #
 # Reported from the product (failures.json, 2026-09-13): 15 x 15 m site, a 15.00 x 11.73 m
 # footprint for 176 m², 2 bedrooms, 2 wet rooms, safe room, open plan. The literal programme did
-# not fit the depth, so the `programme_variants` reading — BATH_2 hung off BEDROOM_1 as a second
-# ensuite — was the only one that solved, and SPINE_PUBLIC_PRIVATE solved it three times. Each
-# time the private column came out MASTER+BATH_1 / BEDROOM_1+BATH_2 / SAFE_ROOM, and BEDROOM_1 was
-# boxed in on all four sides — MASTER, the safe room, the hall and its own ensuite — so every
-# candidate failed C8 and the person got PLAN_FAILED_VALIDATION for a brief that fits.
+# not fit the depth, and the only reading that solved — BATH_2 hung off BEDROOM_1 as a second
+# ensuite — put the private column out as MASTER+BATH_1 / BEDROOM_1+BATH_2 / SAFE_ROOM, with
+# BEDROOM_1 boxed in on all four sides, so every candidate failed C8. Two defects, fixed apart:
+#
+#   1. ORDERING: a column with two shared rows must put one at each exterior end.
+#   2. POLICY: that reading should never have been offered — it took the house's only shared
+#      bathroom for a brief that asked for a guest WC. `programme_variants` offers it only when the
+#      wet room is FLEXIBLE and every bedroom still reaches a bathroom (specs/007 FR-7).
+#
+# The ordering is therefore exercised on programmes where the second suite IS legitimate.
 
-SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
-                               target_built_area_m2=176.0)
+ENSUITE_MASTER = WetRoomRequirement(WetRoomKind.ENSUITE, ENSUITE_HOST_MASTER)
+SHARED_REQUIRED = WetRoomRequirement(WetRoomKind.SHARED_BATHROOM)
+SHARED_FLEXIBLE = WetRoomRequirement(WetRoomKind.SHARED_BATHROOM, None, WetRoomStrength.FLEXIBLE)
+UNSPECIFIED_FLEXIBLE = WetRoomRequirement(WetRoomKind.UNSPECIFIED, None, WetRoomStrength.FLEXIBLE)
+
+# `parking_spaces=0` as in the reported project. With main's parking band in front of the footprint,
+# two bays would put the four-wet-room programme's entrance walk across a bay (C11) — a parking
+# question, not the daylight or access one these tests pin.
+REPORTED_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
+                           target_built_area_m2=176.0, parking_spaces=0,
+                           wet_room_kinds=(ENSUITE_MASTER, SHARED_REQUIRED))
+#: The same brief, with the person having said the second bathroom's placement does not matter.
+REPORTED_2BR_FLEXIBLE = replace(REPORTED_2BR, wet_room_kinds=(ENSUITE_MASTER, SHARED_FLEXIBLE))
+#: Four wet rooms, the last one flexible: a second suite still leaves BATH_2 on the hall.
+SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=4, open_plan_living=True,
+                               parking_spaces=0,
+                               wet_room_kinds=(WetRoomRequirement(), WetRoomRequirement(),
+                                               WetRoomRequirement(), UNSPECIFIED_FLEXIBLE))
 
 
-def _second_suite_run():
+def _reported_footprint_run(program: ProgramSpec):
     # The region the product hands the engine: the selected footprint, flush to the street-side
     # band of a parcel with no setbacks (app/demo/service.py::_buildable_from). The band is the
     # parking bays' 5 m — the two bays stand in it — so the footprint starts at y=5, and the
@@ -588,7 +745,7 @@ def _second_suite_run():
     # the product now refuses before planning (FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING).
     spec = ArchitecturalSpec(plot=PlotSpec(width_m=15.0, depth_m=17.0, front_setback_m=0.0,
                                            side_setback_m=0.0, rear_setback_m=0.0),
-                             program=SECOND_SUITE_2BR)
+                             program=program)
     buildable = BuildableRegion.known(
         MultiRegion.of(Region(Ring.rectangle(0.0, 5.0, 15.0, 11.73))),
         Provenance(Source.USER, Authority.AUTHORITATIVE, ref="selected footprint"),
@@ -597,22 +754,103 @@ def _second_suite_run():
                        program=spec.program)
 
 
+def _doors(result):
+    return {frozenset((d.a, d.b)) for d in result.design.interior_doors}
+
+
 def test_second_suite_in_a_column_still_reaches_the_envelope():
     """A column holding TWO shared rows puts one at each exterior end, so the second suite's
     bedroom takes the column's rear edge instead of being enclosed between the first suite and a
-    full-width row. Full-width rows always hold the column's outer edge, so they can sit inside."""
-    result = _second_suite_run()
+    full-width row. Full-width rows always hold the column's outer edge, so they can sit inside.
+    Before the ordering fix this programme solved and failed C8 on BEDROOM_1 at this footprint."""
+    result = _reported_footprint_run(SECOND_SUITE_2BR)
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
+    bedroom = next(r for r in result.design.rooms if r.zone_id == "BEDROOM_1")
+    assert "EXTERIOR" in bedroom.walls.values(), bedroom.walls
+    # The reading that solved IS the second suite, entered through its bedroom — and the house
+    # still has a full bathroom off the hall. The ordering changed where rooms sit, not access.
+    doors = _doors(result)
+    assert frozenset(("BEDROOM_1", "BATH_3")) in doors, doors
+    assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
+    assert frozenset(("HALL", "BATH_2")) in doors, doors
+
+
+def test_the_reported_brief_made_flexible_plans_through_the_second_suite():
+    """US3(b): with the second bathroom FLEXIBLE the variant is eligible — both bedrooms end up
+    with their own bathroom — and the daylight ordering lets it validate: the plan the product
+    could not deliver, delivered because the person allowed it."""
+    result = _reported_footprint_run(REPORTED_2BR_FLEXIBLE)
     assert result.design is not None, result.metrics.rejection_reasons
     assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
     c8 = next(c for c in result.validation.checks if c.check_id == "C8")
     assert c8.passed, c8.detail
-    bedroom = next(r for r in result.design.rooms if r.zone_id == "BEDROOM_1")
-    assert "EXTERIOR" in bedroom.walls.values(), bedroom.walls
-    # The variant that solved IS the second-suite reading, entered through its bedroom — the
-    # ordering fix changed where the rooms sit, not how they connect.
-    doors = {frozenset((d.a, d.b)) for d in result.design.interior_doors}
+    doors = _doors(result)
     assert frozenset(("BEDROOM_1", "BATH_2")) in doors, doors
-    assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
+    assert frozenset(("HALL", "BATH_2")) not in doors, doors
+
+
+def test_the_reported_brief_as_written_never_gives_away_its_shared_bathroom():
+    """US3(c): the same brief with the bathroom REQUIRED. The only reading that fits the depth is
+    not generated, so whatever the engine answers, it is never a house without a corridor-entered
+    bathroom."""
+    spec = ArchitecturalSpec(plot=PlotSpec(15.0, 15.0), program=REPORTED_2BR)
+    assert len(programme_variants(spec)) == 1
+    result = _reported_footprint_run(REPORTED_2BR)
+    if result.design is not None:
+        assert frozenset(("HALL", "BATH_2")) in _doors(result)
+
+
+@pytest.mark.parametrize("bedrooms,wet_rooms", [(2, 1), (3, 1), (2, 2), (3, 2), (2, 3), (4, 3)])
+def test_a_bare_count_is_never_rearranged(bedrooms, wet_rooms):
+    """US3(c) for legacy briefs: nothing in a bare count is flexible, so the literal reading of
+    the brief is the only programme offered — for every count the demo supports."""
+    spec = _spec(ProgramSpec(bedrooms=bedrooms, safe_room=True, wet_rooms=wet_rooms))
+    assert len(programme_variants(spec)) == 1
+
+
+def test_a_flexible_bathroom_is_not_rearranged_if_a_bedroom_would_lose_its_bathroom():
+    """Three bedrooms, ensuite + one FLEXIBLE shared bathroom: making it BEDROOM_2's would leave
+    BEDROOM_1 with nothing (I4), so the variant is not offered. Flexibility permits a rearrangement,
+    it does not permit a violation."""
+    spec = _spec(ProgramSpec(bedrooms=3, wet_rooms=2, wet_room_kinds=(ENSUITE_MASTER, SHARED_FLEXIBLE)))
+    assert len(programme_variants(spec)) == 1
+
+
+def test_a_flexible_bathroom_is_rearranged_when_every_bedroom_keeps_one():
+    """US3(b): two bedrooms, ensuite + FLEXIBLE shared bathroom -> a second variant in which BATH_2
+    is BEDROOM_1's. Same rooms, same zone ids; only the door moved."""
+    spec = _spec(ProgramSpec(bedrooms=2, wet_rooms=2, wet_room_kinds=(ENSUITE_MASTER, SHARED_FLEXIBLE)))
+    literal, variant = programme_variants(spec)
+    assert [r.zone_id for r in literal] == [r.zone_id for r in variant]
+    assert [(r.zone_id, r.entered_from) for r in variant if r.wet_kind] == [
+        ("BATH_1", "MASTER"), ("BATH_2", "BEDROOM_1")]
+    assert next(r for r in variant if r.zone_id == "BATH_2").wet_kind is WetRoomKind.ENSUITE
+
+
+def test_an_explicit_second_ensuite_is_the_literal_programme_not_a_variant():
+    """US3(a): "לכל חדר שינה חדר רחצה צמוד" — the second suite is what was asked for, so it is the
+    one and only programme, and it does not need a shared bathroom."""
+    spec = _spec(ProgramSpec(bedrooms=2, wet_rooms=2, wet_room_kinds=(
+        ENSUITE_MASTER, WetRoomRequirement(WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM))))
+    variants = programme_variants(spec)
+    assert len(variants) == 1
+    assert [(r.zone_id, r.entered_from) for r in variants[0] if r.wet_kind] == [
+        ("BATH_1", "MASTER"), ("BATH_2", "BEDROOM_1")]
+
+
+def test_ranking_never_sees_a_candidate_that_moves_a_required_bathroom():
+    """FR-8: eligibility is decided before `generate_concepts` sorts by area, so the candidate pool
+    of a REQUIRED brief contains no concept whose access graph enters a bathroom from a bedroom
+    that is not its host — whatever the sort would have preferred."""
+    program = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, target_built_area_m2=176.0,
+                          wet_room_kinds=(ENSUITE_MASTER, SHARED_REQUIRED))
+    result = _candidates(program)
+    assert result.any, [r.detail for r in result.rejections]
+    for candidate in result.candidates:
+        for edge in candidate.concept.fixture.access.edges:
+            if edge.b.startswith("BATH") and edge.a.startswith(("BEDROOM", "MASTER")):
+                assert (edge.a, edge.b) == ("MASTER", "BATH_1"), (candidate.strategy, edge)
 
 
 def test_daylight_order_leaves_a_column_with_no_stranded_suite_untouched():
