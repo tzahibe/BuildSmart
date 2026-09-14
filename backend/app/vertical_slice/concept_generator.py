@@ -264,6 +264,11 @@ class RejectionReason(str, Enum):
     BAND_WIDTH_BELOW_MINIMUM = "BAND_WIDTH_BELOW_MINIMUM"
     #: The geometry would push a room ABOVE its template maximum area.
     ROOM_ABOVE_MAXIMUM_AREA = "ROOM_ABOVE_MAXIMUM_AREA"
+    #: At the width the parti gives a room, NO depth satisfies both its template aspect ratio and
+    #: its maximum area — the room can only be a strip or oversized. Distinct from the two above
+    #: because neither dimension is short of anything: the room simply does not belong at that
+    #: width, and the seam/strategy search must move on. See `room_depth_band_m`.
+    ROOM_SHAPE_INFEASIBLE = "ROOM_SHAPE_INFEASIBLE"
     #: No footprint proportion was even tried: the programme's minimum width exceeds the candidate's.
     FOOTPRINT_BELOW_MINIMUM_WIDTH = "FOOTPRINT_BELOW_MINIMUM_WIDTH"
     SAFE_ROOM_CONSTRAINT = "SAFE_ROOM_CONSTRAINT"
@@ -850,20 +855,173 @@ class LayoutPlan:
     specs: dict[str, ZoneSpec]
 
 
-def _row_widths(row: list[ProgramRoom], net_width: float) -> list[float] | None:
+def room_depth_band_m(template: RoomTemplate, net_w_m: float) -> tuple[float, float] | None:
+    """The NET depths a room may take at NET width `net_w_m` under its template's ASPECT ratio —
+    at least `min_short_side` and `w / aspect`, at most `w * aspect` — or None when the aspect
+    floor cannot be reached under the template's area cap.
+
+    THE SHAPE RULE, in one place. Every sizing path in this module (`_row_depths`, the front band,
+    the hub's flanks and foot) floors its depths with the lower end and refuses on None, so the
+    planned rectangles already satisfy the template that `ZoneSpec` then hands to Geometry Core
+    unrelaxed. Before this, the depth was floored by the short side ALONE and the aspect ratio was
+    relaxed to whatever the plan produced (+0.3), which is how a 6.1 x 1.2 m WC passed every check
+    on the way to a drawing.
+
+    None is the strip-or-oversized dilemma and nothing else: the ASPECT floor is what binds (it
+    exceeds the short side) and it already exceeds `max_area / w` — a 5.2 m wide WC needs 1.49 m
+    for its 3.5 aspect and may have 1.15 m for its 6 m2 maximum. A room offered such a width can
+    only be a strip or oversized, so the parti that offered it is the thing to change, never the
+    room. Where the SHORT SIDE binds, the room is exactly what it was before this rule — possibly
+    over its area cap (a 6.8 m wide master at its 3.0 m minimum is 20.4 m2 against 20; a 6.1 m
+    bedroom at 2.6 m is 15.9 m2 against 14, at a 2.35 aspect) — and is deliberately NOT refused:
+    the planners do not yet hold rooms to their area maxima, and this rule is about shape.
+    """
+    aspect_floor = net_w_m / template.max_aspect_ratio
+    lo = max(template.min_short_side_m, aspect_floor)
+    if (aspect_floor > template.min_short_side_m + 1e-9
+            and aspect_floor > template.max_area_m2 / max(net_w_m, 1e-6) + 1e-9):
+        return None
+    return (lo, net_w_m * template.max_aspect_ratio)
+
+
+def _shape_failure(room: ProgramRoom, net_w_m: float, net_d_m: float,
+                   where: str) -> PlanFailure | None:
+    """Why a planned NET `net_w_m x net_d_m` rectangle breaks `room`'s shape rule, or None.
+
+    Two things are checked, and one deliberately is not. The depth band must exist at this width
+    (`room_depth_band_m`), and the depth must sit inside the template's ASPECT band both ways —
+    too shallow for its width is the classic strip, too deep for its width is the same strip stood
+    on end (an ensuite at its minimum width beside a deep bedroom). The template's MAXIMUM AREA is
+    only what makes the band empty; a depth above `max_area / w` is not refused here, because the
+    planners do not yet hold rooms to their area maxima and this rule is about shape.
+    """
+    t = room.template
+    band = room_depth_band_m(t, net_w_m)
+    if band is None:
+        return PlanFailure(
+            RejectionReason.ROOM_SHAPE_INFEASIBLE,
+            f"{room.zone_id} at {net_w_m:.2f} m wide in the {where} has no depth that keeps its "
+            f"{t.max_aspect_ratio} aspect ratio under its {t.max_area_m2:.0f} m2 maximum "
+            f"(needs {net_w_m / t.max_aspect_ratio:.2f} m, allowed {t.max_area_m2 / net_w_m:.2f} m)")
+    aspect_lo = net_w_m / t.max_aspect_ratio
+    aspect_hi = net_w_m * t.max_aspect_ratio
+    if net_d_m < aspect_lo - 1e-6:
+        return PlanFailure(
+            RejectionReason.ROOM_SHAPE_INFEASIBLE,
+            f"{room.zone_id} would be {net_w_m:.2f} x {net_d_m:.2f} m in the {where}, past its "
+            f"{t.max_aspect_ratio} aspect ratio", aspect_lo - net_d_m)
+    if net_d_m > aspect_hi + 1e-6:
+        return PlanFailure(
+            RejectionReason.ROOM_SHAPE_INFEASIBLE,
+            f"{room.zone_id} would be {net_w_m:.2f} x {net_d_m:.2f} m in the {where}, past its "
+            f"{t.max_aspect_ratio} aspect ratio the other way", net_d_m - aspect_hi)
+    return None
+
+
+def _row_widths(row: list[ProgramRoom], net_width: float,
+                net_depth: float | None = None) -> list[float] | None:
     """Widths for the members of a shared row, or None if they cannot all fit.
 
     Area share alone is not enough: an ensuite is ~30% of its bedroom by area, and 30% of a
     5 m column is 1.39 m — under a bathroom's 1.6 m minimum. Every member gets its minimum
     first; only the surplus is shared by area.
+
+    With `net_depth` known, a member's minimum is also its depth over its aspect ratio: a 1.6 m
+    ensuite beside a 5.6 m deep bedroom is a 1:3.5 strip, and the short side alone would never say
+    so. Callers that size the row's depth pass it; the depth planner itself calls this without one
+    to get the floor it then sizes against, and again with the chosen depth to verify.
     """
     minimums = [r.template.min_short_side_m for r in row]
+    if net_depth is not None:
+        minimums = [max(m, net_depth / r.template.max_aspect_ratio) for m, r in zip(minimums, row)]
     if sum(minimums) > net_width + 1e-9:
         return None
     surplus = net_width - sum(minimums)
     areas = [r.template.target_area_m2 for r in row]
     total = sum(areas) or 1.0
     return [m + surplus * a / total for m, a in zip(minimums, areas)]
+
+
+def _row_depth_floor_m(row: list[ProgramRoom], net_width: float,
+                       where: str) -> tuple[float, PlanFailure | None]:
+    """The CENTERLINE depth a row needs at this column width: every member's depth band lower
+    end at the width it gets, plus the wall allowance. The failure is the member whose band is
+    empty at that width — the row cannot be planned at this width at all."""
+    widths = _row_widths(row, net_width) or [net_width / len(row)] * len(row)
+    floor = 0.0
+    for room, w in zip(row, widths):
+        band = room_depth_band_m(room.template, w)
+        if band is None:
+            return 0.0, _shape_failure(room, w, 0.0, where)
+        floor = max(floor, band[0])
+    return floor + _EDGE_INSET_ALLOWANCE_M, None
+
+
+def _verify_row_shapes(rows: list[list[ProgramRoom]], depths: list[float], net_width: float,
+                       where: str) -> PlanFailure | None:
+    """Every member of every row inside its template's shape band at the depth finally chosen —
+    the check the surplus distribution and the 5 cm grid are held to, after the floors."""
+    for row, depth in zip(rows, depths):
+        net_d = depth - _EDGE_INSET_ALLOWANCE_M / 2
+        widths = _row_widths(row, net_width, net_d)
+        if widths is None:
+            return PlanFailure(
+                RejectionReason.ROW_WIDTH_EXCEEDED,
+                f"{' + '.join(r.zone_id for r in row)} cannot share the {where}'s {net_width:.2f} m "
+                f"of net width at {net_d:.2f} m deep without one of them becoming a strip")
+        for room, w in zip(row, widths):
+            failure = _shape_failure(room, w, net_d, where)
+            if failure is not None:
+                return failure
+    return None
+
+
+def _share_wc_row(rows: list[list[ProgramRoom]], wc_index: int) -> list[list[ProgramRoom]] | None:
+    """The same column with its lone WC row folded into an ensuite's row, or None if it has none.
+
+    THE ONE PAIRING THE ACCESS MODEL ADMITS. A shared row is a V-split beside the hall, so exactly
+    one of its members touches the corridor; the other must be entered from a neighbour, and the
+    only room in the programme that is, is an ensuite (from its bedroom). So `[BEDROOM, ENSUITE]`
+    + `[WC]` becomes `[BEDROOM]` + `[WC, ENSUITE]`, the new row directly beside the bedroom's: the
+    WC keeps the corridor-facing slot the bedroom had (same orientation, same side), the ensuite
+    keeps its slot and now meets its bedroom across the row boundary instead of beside it — a
+    door on that edge is the same door, and C17 reads the same access. The bedroom, full-width,
+    reaches the column's outer edge on its own. Two wet rooms sharing a wall is also the
+    adjacency the reference plans show (spec 005 §1 M5), which a WC alone in a row never gave.
+
+    Called only where the WC's own row has no shape band at the column's width (`_rows_for_width`)
+    — a column narrow enough for a proportioned WC keeps the rows it always had.
+    """
+    for j, row in enumerate(rows):
+        if len(row) != 2 or j == wc_index:
+            continue
+        dependent = [r for r in row if r.entered_from]
+        host = [r for r in row if not r.entered_from]
+        if len(dependent) != 1 or len(host) != 1:
+            continue
+        wc = rows[wc_index][0]
+        # the WC takes the bedroom's slot, so the row keeps the orientation `_orient_row` chose
+        paired = [wc if r is host[0] else r for r in row]
+        out = [list(r) for i, r in enumerate(rows) if i != wc_index]
+        at = out.index(list(row))
+        out[at] = [host[0]]
+        out.insert(at + 1, paired)
+        return out
+    return None
+
+
+def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float) -> list[list[ProgramRoom]]:
+    """The rows a column plans with at `net_width`: its own, unless a WC alone in a row cannot be
+    shaped at that width (`room_depth_band_m` is None — the WC would be a strip or oversized), in
+    which case the WC shares an ensuite's row (`_share_wc_row`). A column with no ensuite keeps
+    its rows and is refused downstream with its own reason, as before."""
+    for i, row in enumerate(rows):
+        if (len(row) == 1 and row[0].role is ProgramRole.TOILET and not row[0].entered_from
+                and room_depth_band_m(row[0].template, net_width) is None):
+            shared = _share_wc_row(rows, i)
+            if shared is not None:
+                return shared
+    return rows
 
 
 def _width_share(room: ProgramRoom, row: list[ProgramRoom]) -> float:
@@ -941,54 +1099,70 @@ def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramR
         if net_w <= 0:
             return None, PlanFailure(RejectionReason.COLUMN_WIDTH_EXCEEDED,
                                      f"{name} column has no net width at {width:.2f} m")
+        rows = _rows_for_width(rows, net_w)
         for row in rows:
             if _row_widths(row, net_w) is None:
                 return None, PlanFailure(
                     RejectionReason.ROW_WIDTH_EXCEEDED,
                     f"{' + '.join(r.zone_id for r in row)} cannot share the {name} "
                     f"column's {net_w:.2f} m of net width at their minimums")
-        depths, why, short_m = _row_depths(rows, areas, net_w, footprint_h_m)
+        depths, failure = _row_depths(rows, areas, net_w, footprint_h_m, f"{name} column")
         if depths is None:
-            return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
-                                     f"{name} column {why}", short_m)
+            return None, failure
         plans.append(ColumnPlan(width, rows, depths))
     return plans, None
 
 
 def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_width: float,
-                column_depth: float) -> tuple[list[float] | None, str, float | None]:
+                column_depth: float, where: str = "column",
+                ) -> tuple[list[float] | None, PlanFailure | None]:
     """Row depths, chosen DIRECTLY rather than inferred from areas.
 
     The first design drove depth from area (`depth = area / width`) and then tried to steer the
     areas until the depths came out legal. That is an unstable fixed point: a small room in a
     wide column is always too shallow, and nudging its area moves the column width too. Choosing
-    the depth first — floored by each row's own minimum short side — and deriving the areas from
+    the depth first — floored by each row's own shape band — and deriving the areas from
     `width x depth` afterwards makes the result feasible BY CONSTRUCTION.
 
-    On refusal the text names EVERY row and which of the two terms set its depth: the area
-    quotient, or the row's own minimum short side. That distinction is the whole diagnosis — a
-    column can overflow with no room minimum involved anywhere, and the old message asserted the
-    opposite ("at their minimum dimensions") in every case.
+    On refusal the failure names EVERY row and which of the two terms set its depth: the area
+    quotient, or the row's own shape floor. That distinction is the whole diagnosis — a column can
+    overflow with no room minimum involved anywhere, and the old message asserted the opposite
+    ("at their minimum dimensions") in every case. A row that cannot be shaped at this width at all
+    is a different refusal again (`ROOM_SHAPE_INFEASIBLE`), and carries its own code out.
+
+    `where` names the column in the failure text; the reason code is the planner's to keep.
     """
     wanted = []
     terms = []
     for row in rows:
         area = sum(areas[r.zone_id] for r in row)
-        floor = max(r.template.min_short_side_m for r in row) + _EDGE_INSET_ALLOWANCE_M
+        # The floor is the row's shape band, not its short side alone: a wet room alone in a wide
+        # column is floored by width / aspect, and refused outright where that floor would already
+        # exceed its maximum area (`room_depth_band_m`).
+        floor, failure = _row_depth_floor_m(row, net_width, where)
+        if failure is not None:
+            return None, failure
         by_area = area / max(net_width, 1e-6)
         wanted.append(max(by_area, floor))
         ids = "+".join(r.zone_id for r in row)
-        terms.append(f"{ids} {floor:.2f} (min side, area wanted {by_area:.2f})"
+        terms.append(f"{ids} {floor:.2f} (shape floor, area wanted {by_area:.2f})"
                      if floor > by_area else f"{ids} {by_area:.2f} (area)")
     total = sum(wanted)
     if total > column_depth + 1e-9:  # exact on purpose — see the rejected-tolerance note above
-        return None, (f"needs {total:.2f} m of depth but has {column_depth:.2f} m "
-                      f"[{'; '.join(terms)}]"), total - column_depth
+        return None, PlanFailure(
+            RejectionReason.COLUMN_DEPTH_EXCEEDED,
+            f"{where} needs {total:.2f} m of depth but has {column_depth:.2f} m "
+            f"[{'; '.join(terms)}]", total - column_depth)
     surplus = column_depth - total
     weights = [max(0.15, sum(r.template.elasticity for r in row)) for row in rows]
     wsum = sum(weights)
-    return ([round((d + surplus * w / wsum) / 0.05) * 0.05
-             for d, w in zip(wanted, weights)], "", None)
+    depths = [round((d + surplus * w / wsum) / 0.05) * 0.05 for d, w in zip(wanted, weights)]
+    # The surplus can deepen a shared row past what its narrow member's width allows (the ensuite
+    # stood on end); the widths are re-derived from the final depth and every member re-checked.
+    failure = _verify_row_shapes(rows, depths, net_width, where)
+    if failure is not None:
+        return None, failure
+    return depths, None
 
 
 def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[ProgramRoom],
@@ -1047,24 +1221,16 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
     if plans is None:
         return None, failure
 
-    # Areas now FOLLOW the geometry: each zone's band is centred on the rect it will occupy.
+    # Areas now FOLLOW the geometry: each zone's band is centred on the rect it will occupy. The
+    # ASPECT RATIO does not: it is the template's, unrelaxed — see `_zone_spec`.
     specs: dict[str, ZoneSpec] = {}
     for plan in plans:
         net_w = plan.width_m - _EDGE_INSET_ALLOWANCE_M
         for row, depth in zip(plan.rows, plan.row_depths_m):
             net_d = depth - _EDGE_INSET_ALLOWANCE_M / 2
-            widths_in_row = _row_widths(row, net_w) or [net_w / len(row)] * len(row)
+            widths_in_row = _row_widths(row, net_w, net_d) or [net_w / len(row)] * len(row)
             for room, w in zip(row, widths_in_row):
-                target = w * net_d
-                specs[room.zone_id] = ZoneSpec(
-                    room.zone_id, _roles_of(room),
-                    net_area_min_m2=target * 0.60,
-                    net_area_target_m2=target,
-                    net_area_max_m2=target * 1.60,
-                    min_short_side_m=room.template.min_short_side_m,
-                    max_aspect_ratio=max(room.template.max_aspect_ratio,
-                                         max(w, net_d) / max(1e-6, min(w, net_d)) + 0.3),
-                )
+                specs[room.zone_id] = _zone_spec(room, w, net_d, 0.60, 1.60)
     for hall_id in hall_ids:
         hall_depth = footprint_h_m / len(hall_ids)
         target = (hall_w - _EDGE_INSET_ALLOWANCE_M) * (hall_depth - _EDGE_INSET_ALLOWANCE_M / 2)
@@ -1082,21 +1248,41 @@ def _roles_of(room: ProgramRoom) -> tuple[ProgramRole, ...]:
     return (room.role,)
 
 
+def _zone_spec(room: ProgramRoom, net_w: float, net_d: float, lo: float, hi: float) -> ZoneSpec:
+    """The ZoneSpec for a room the planner has placed in a NET `net_w x net_d` rectangle.
+
+    The AREA band follows the planned rectangle (`lo`..`hi` times its area), because the wall
+    insets Geometry Core applies differ from the flat allowance the planner used and the solved
+    rect must be allowed to land near — not on — the plan. The ASPECT RATIO is the template's and
+    nothing else. It used to be `max(template, planned aspect + 0.3)`, which handed the solver and
+    validator C3 a limit derived from the very rectangle they were meant to judge: a 6.1 x 1.2 m WC
+    got a 5.38 ceiling and passed. The planner is now held to the template BEFORE this point
+    (`room_depth_band_m`), so a plan that reaches here already fits; if a future sizing path does
+    not, the solver refuses the forced tree and the unforced twin re-proportions it — and C20
+    measures the drawing against the template regardless of what any ZoneSpec says.
+    """
+    target = net_w * net_d
+    return ZoneSpec(room.zone_id, _roles_of(room), target * lo, target, target * hi,
+                    room.template.min_short_side_m, room.template.max_aspect_ratio)
+
+
 def _forced_chain(rows: list[list[ProgramRoom]], depths: list[float], net_width: float) -> Node:
     """Right-nested H chain with every cut forced to the depth chosen above; a shared row gets a
     forced V cut at its members' width share."""
-    def row_node(row: list[ProgramRoom]) -> Node:
+    def row_node(row: list[ProgramRoom], depth: float) -> Node:
         if len(row) == 1:
             return Leaf(row[0].zone_id)
-        widths = _row_widths(row, net_width) or [net_width / len(row)] * len(row)
+        net_d = depth - _EDGE_INSET_ALLOWANCE_M / 2
+        widths = _row_widths(row, net_width, net_d) or [net_width / len(row)] * len(row)
         first_w = widths[0] + _EDGE_INSET_ALLOWANCE_M / 2
         return Split(Cut.V, Leaf(row[0].zone_id), Leaf(row[1].zone_id),
                      m_to_u(round(first_w / 0.05) * 0.05))
 
     def build(index: int) -> Node:
         if index == len(rows) - 1:
-            return row_node(rows[index])
-        return Split(Cut.H, row_node(rows[index]), build(index + 1), m_to_u(depths[index]))
+            return row_node(rows[index], depths[index])
+        return Split(Cut.H, row_node(rows[index], depths[index]), build(index + 1),
+                     m_to_u(depths[index]))
 
     return build(0)
 
@@ -1470,7 +1656,8 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                                                u_to_m(trial.w), u_to_m(trial.h))
             if attempt is not None:
                 footprint, plan = trial, attempt
-                west_rows, east_rows = west_try, east_try
+                # the rows the plan was made with — a WC may have joined an ensuite's row
+                west_rows, east_rows = attempt[8], attempt[9]
                 break
             failure = _nearest_miss(failure, reason)
         if plan is not None:
@@ -1479,7 +1666,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
     if plan is None or footprint is None:
         return None, ConceptRejection(strategy, failure.reason, failure.detail)
 
-    band_depth, public_widths, west_w, hall_w, east_w, west_depths, east_depths, specs = plan
+    band_depth, public_widths, west_w, hall_w, east_w, west_depths, east_depths, specs, _, _ = plan
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
 
     band_tree = _forced_v_chain(public, public_widths)
@@ -1546,7 +1733,11 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     east_w = round((usable - west_w) / 0.05) * 0.05
     west_w = fw - hall_w - east_w
 
-    # How much depth the rear genuinely needs, from the bedrooms' own programme.
+    # How much depth the rear genuinely needs, from the bedrooms' own programme. The rows are
+    # settled here for the widths just chosen: a WC that cannot be shaped across its column shares
+    # an ensuite's row (`_rows_for_width`), and every later step plans the rows settled here.
+    west_rows = _rows_for_width(west_rows, west_w - _EDGE_INSET_ALLOWANCE_M)
+    east_rows = _rows_for_width(east_rows, east_w - _EDGE_INSET_ALLOWANCE_M)
     rear_need = 0.0
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
@@ -1556,9 +1747,12 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
                     RejectionReason.ROW_WIDTH_EXCEEDED,
                     f"{' + '.join(r.zone_id for r in row)} cannot share the rear "
                     f"{name} column's {net_w:.2f} m of net width at their minimums")
-        need = sum(max(sum(areas[r.zone_id] for r in row) / max(net_w, 1e-6),
-                       max(r.template.min_short_side_m for r in row) + _EDGE_INSET_ALLOWANCE_M)
-                   for row in rws)
+        need = 0.0
+        for row in rws:
+            floor, failure = _row_depth_floor_m(row, net_w, f"rear {name} column")
+            if failure is not None:
+                return None, failure
+            need += max(sum(areas[r.zone_id] for r in row) / max(net_w, 1e-6), floor)
         rear_need = max(rear_need, need)
 
     # The first public zone must span the hall's x-range, or the hall has no public neighbour.
@@ -1577,7 +1771,14 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
                 f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
                 f"{room.template.min_short_side_m} m minimum")
 
-    band_min = max(r.template.min_short_side_m for r in public) + _EDGE_INSET_ALLOWANCE_M
+    # The band's floor is each public room's shape band at the width it was just given — a 9 m
+    # living room needs 3.6 m of depth for its 2.5 aspect, not the 3.0 m of its short side.
+    band_min = 0.0
+    for room, w in zip(public, widths + [last_w]):
+        band = room_depth_band_m(room.template, w - _EDGE_INSET_ALLOWANCE_M)
+        if band is None:
+            return None, _shape_failure(room, w - _EDGE_INSET_ALLOWANCE_M, 0.0, "front band")
+        band_min = max(band_min, band[0] + _EDGE_INSET_ALLOWANCE_M)
     # Round the rear UP: rounding to nearest could land a couple of centimetres BELOW the
     # requirement this value was just derived from, and the row planner would then reject it.
     rear_depth = math.ceil(min(rear_need, fh - band_min) / 0.05 - 1e-9) * 0.05
@@ -1610,37 +1811,32 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     depths = []
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
-        d, why, short_m = _row_depths(rws, areas, net_w, rear_depth)
+        d, failure = _row_depths(rws, areas, net_w, rear_depth, f"rear {name} column")
         if d is None:
-            return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
-                                     f"rear {name} column {why}", short_m)
+            return None, failure
         depths.append(d)
 
     specs: dict[str, ZoneSpec] = {}
     net_band = band_depth - _EDGE_INSET_ALLOWANCE_M
     for room, w in zip(public, widths + [last_w]):
-        target = (w - _EDGE_INSET_ALLOWANCE_M) * net_band
-        specs[room.zone_id] = ZoneSpec(room.zone_id, _roles_of(room), target * 0.55, target,
-                                       target * 1.70, room.template.min_short_side_m,
-                                       max(room.template.max_aspect_ratio, 4.0))
+        failure = _shape_failure(room, w - _EDGE_INSET_ALLOWANCE_M, net_band, "front band")
+        if failure is not None:
+            return None, failure
+        specs[room.zone_id] = _zone_spec(room, w - _EDGE_INSET_ALLOWANCE_M, net_band, 0.55, 1.70)
     for width, rws, ds in ((west_w, west_rows, depths[0]), (east_w, east_rows, depths[1])):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
         for row, depth in zip(rws, ds):
             net_d = depth - _EDGE_INSET_ALLOWANCE_M / 2
-            widths_in_row = _row_widths(row, net_w) or [net_w / len(row)] * len(row)
+            widths_in_row = _row_widths(row, net_w, net_d) or [net_w / len(row)] * len(row)
             for room, w in zip(row, widths_in_row):
-                target = w * net_d
-                specs[room.zone_id] = ZoneSpec(
-                    room.zone_id, _roles_of(room), target * 0.55, target, target * 1.70,
-                    room.template.min_short_side_m,
-                    max(room.template.max_aspect_ratio,
-                        max(w, net_d) / max(1e-6, min(w, net_d)) + 0.3))
+                specs[room.zone_id] = _zone_spec(room, w, net_d, 0.55, 1.70)
     target_hall = (hall_w - _EDGE_INSET_ALLOWANCE_M) * (rear_depth - _EDGE_INSET_ALLOWANCE_M / 2)
     specs["HALL"] = ZoneSpec("HALL", (ProgramRole.HALL, ProgramRole.CIRCULATION),
                              target_hall * 0.5, target_hall, target_hall * 1.9,
                              ROOM_TEMPLATES[ProgramRole.HALL].min_short_side_m, 14.0)
 
-    return (band_depth, widths, west_w, hall_w, east_w, depths[0], depths[1], specs), ""
+    return (band_depth, widths, west_w, hall_w, east_w, depths[0], depths[1], specs,
+            west_rows, east_rows), ""
 
 
 # --------------------------------------------------------------------------- hub parti (005)
@@ -1769,11 +1965,6 @@ def _flank_min_width_m(flank: list[ProgramRoom]) -> float:
     return max(r.template.min_short_side_m for r in flank) + _EDGE_INSET_ALLOWANCE_M
 
 
-def _flank_min_depth_m(flank: list[ProgramRoom]) -> float:
-    """Stacked rooms each need their own minimum short side plus the wall they lose."""
-    return sum(r.template.min_short_side_m + _EDGE_INSET_ALLOWANCE_M for r in flank)
-
-
 def _hub_min_width_m(alloc: HubAllocation, hub_w_m: float) -> float:
     return _flank_min_width_m(alloc.flank_west) + hub_w_m + _flank_min_width_m(alloc.flank_east)
 
@@ -1794,34 +1985,61 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
     # Lobby depth: deep enough for the deeper flank (stacked rooms add up) and for itself, inside
     # its own aspect band.
     flanks = [alloc.flank_west, alloc.flank_east]
-    floors = [_flank_min_depth_m(f) for f in flanks] + [
-        HUB_TEMPLATE.min_short_side_m + inset,
-        areas[alloc.hub.zone_id] / max(hub_w - inset, 1e-6) + inset / 2]
-    hub_d = round(max(floors) / 0.05) * 0.05
-    hub_d = max(hub_d, round(hub_w / HUB_TEMPLATE.max_aspect_ratio / 0.05) * 0.05)
-    if hub_d > hub_w * HUB_TEMPLATE.max_aspect_ratio + 1e-9:
-        return None, PlanFailure(
-            RejectionReason.COLUMN_DEPTH_EXCEEDED,
-            f"a {hub_w:.2f} m lobby would need {hub_d:.2f} m of depth for its flanks, past its "
-            f"{HUB_TEMPLATE.max_aspect_ratio} aspect", hub_d - hub_w * HUB_TEMPLATE.max_aspect_ratio)
-    if (hub_w - inset) * (hub_d - inset / 2) > HUB_TEMPLATE.max_area_m2 + 1e-9:
-        return None, PlanFailure(
-            RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
-            f"a {hub_w:.2f} x {hub_d:.2f} m lobby exceeds its {HUB_TEMPLATE.max_area_m2:.0f} m2 maximum")
+    mins = [_flank_min_width_m(f) for f in flanks]
 
-    # Depths within a stacked flank: each room its minimum, the surplus by area share.
-    def stacked(flank: list[ProgramRoom]) -> list[float]:
-        mins_d = [r.template.min_short_side_m + inset for r in flank]
+    def flank_floors_m(flank: list[ProgramRoom], width: float,
+                       ) -> tuple[list[float] | None, PlanFailure | None]:
+        """Each stacked room's CENTERLINE depth floor at the flank width `width` — its shape band's
+        lower end (`room_depth_band_m`), not its short side alone — or the room that has no band."""
+        out = []
+        for room in flank:
+            band = room_depth_band_m(room.template, width - inset)
+            if band is None:
+                return None, _shape_failure(room, width - inset, 0.0, "lobby flank")
+            out.append(band[0] + inset)
+        return out, None
+
+    def lobby_depth(flank_needs: list[float]) -> tuple[float | None, PlanFailure | None]:
+        floors = flank_needs + [
+            HUB_TEMPLATE.min_short_side_m + inset,
+            areas[alloc.hub.zone_id] / max(hub_w - inset, 1e-6) + inset / 2]
+        d = round(max(floors) / 0.05) * 0.05
+        d = max(d, round(hub_w / HUB_TEMPLATE.max_aspect_ratio / 0.05) * 0.05)
+        if d > hub_w * HUB_TEMPLATE.max_aspect_ratio + 1e-9:
+            return None, PlanFailure(
+                RejectionReason.COLUMN_DEPTH_EXCEEDED,
+                f"a {hub_w:.2f} m lobby would need {d:.2f} m of depth for its flanks, past its "
+                f"{HUB_TEMPLATE.max_aspect_ratio} aspect", d - hub_w * HUB_TEMPLATE.max_aspect_ratio)
+        if (hub_w - inset) * (d - inset / 2) > HUB_TEMPLATE.max_area_m2 + 1e-9:
+            return None, PlanFailure(
+                RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
+                f"a {hub_w:.2f} x {d:.2f} m lobby exceeds its {HUB_TEMPLATE.max_area_m2:.0f} m2 maximum")
+        return d, None
+
+    # First pass at the flanks' own minimum widths — the narrowest they can be, so the shallowest
+    # they can be. The widths chosen below can only widen them, and a wider flank may need a
+    # deeper lobby; that is the second pass.
+    first_floors = []
+    for flank, width in zip(flanks, mins):
+        floors, failure = flank_floors_m(flank, width)
+        if failure is not None:
+            return None, failure
+        first_floors.append(floors)
+    hub_d, failure = lobby_depth([sum(f) for f in first_floors])
+    if hub_d is None:
+        return None, failure
+
+    # Depths within a stacked flank: each room its floor, the surplus by area share.
+    def stacked(flank: list[ProgramRoom], mins_d: list[float]) -> list[float]:
         spare = hub_d - sum(mins_d)
         total = sum(areas[r.zone_id] for r in flank) or 1.0
         depths = [m + spare * areas[r.zone_id] / total for m, r in zip(mins_d, flank)]
         depths = [round(d / 0.05) * 0.05 for d in depths[:-1]]
         return depths + [hub_d - sum(depths)]
-    west_depths, east_depths = stacked(alloc.flank_west), stacked(alloc.flank_east)
+    west_depths, east_depths = (stacked(f, m) for f, m in zip(flanks, first_floors))
 
     # Flank widths: minimums first, surplus by area — the `_row_widths` rule across the lobby band;
     # a stacked flank is as wide as its widest member wants.
-    mins = [_flank_min_width_m(f) for f in flanks]
     wants = [max(m, max(areas[r.zone_id] / max(d - inset / 2, 1e-6) + inset
                         for r, d in zip(f, ds)))
              for m, f, ds in zip(mins, flanks, (west_depths, east_depths))]
@@ -1841,6 +2059,27 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
                  for m, w in zip(mins, wants)]
     west_w = round(share[0] / 0.05) * 0.05
     east_w = fw - hub_w - west_w
+
+    # Second pass at the widths actually chosen: a bathroom under a 5 m bedroom flank needs 1.7 m
+    # of depth for its aspect, not its 1.6 m short side, and the lobby must be that deep. The
+    # widths stay; only the depths follow.
+    final_floors = []
+    for flank, width in zip(flanks, (west_w, east_w)):
+        floors, failure = flank_floors_m(flank, width)
+        if failure is not None:
+            return None, failure
+        final_floors.append(floors)
+    needed = max(sum(f) for f in final_floors)
+    if needed > hub_d + 1e-9:
+        hub_d, failure = lobby_depth([sum(f) for f in final_floors])
+        if hub_d is None:
+            return None, failure
+    west_depths, east_depths = (stacked(f, m) for f, m in zip(flanks, final_floors))
+    for flank, width, depths in zip(flanks, (west_w, east_w), (west_depths, east_depths)):
+        for room, d in zip(flank, depths):
+            failure = _shape_failure(room, width - inset, d - inset / 2, "lobby flank")
+            if failure is not None:
+                return None, failure
 
     # Foot band: one row across the full width. The two members that need a lobby door meet under
     # the lobby's centre line, so each overlaps the lobby by hub_w/2 >= 1.2 m > the 1.10 m an
@@ -1894,13 +2133,24 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
                 f"{room.zone_id} would be {w:.2f} m wide in the foot band, below its "
                 f"{room.template.min_short_side_m} m minimum",
                 room.template.min_short_side_m + inset - w)
-    foot_depth = max(max(r.template.min_short_side_m for r in alloc.foot) + inset,
+    foot_floor = 0.0
+    for room, w in zip(alloc.foot, widths):
+        band = room_depth_band_m(room.template, w - inset)
+        if band is None:
+            return None, _shape_failure(room, w - inset, 0.0, "foot band")
+        foot_floor = max(foot_floor, band[0] + inset)
+    foot_depth = max(foot_floor,
                      max(areas[r.zone_id] / max(w - inset, 1e-6) for r, w in zip(alloc.foot, widths))
                      + inset / 2)
     foot_depth = round(foot_depth / 0.05) * 0.05
+    for room, w in zip(alloc.foot, widths):
+        failure = _shape_failure(room, w - inset, foot_depth - inset / 2, "foot band")
+        if failure is not None:
+            return None, failure
 
     # Public band: takes the depth the wing leaves, floored by its own minimum and capped by the
-    # room that reaches its maximum first (the same rule as `_plan_front_band`).
+    # room that reaches its maximum first (the same rule as `_plan_front_band`). The widths are
+    # chosen below, so the floor here is the short side; the shape band is checked once they are.
     band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
     band_depth = round((fh - hub_d - foot_depth) / 0.05) * 0.05
     if band_depth < band_min - 1e-9:
@@ -1950,28 +2200,23 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
             f"{binding[1].template.max_area_m2:.0f} m2 maximum")
 
     specs: dict[str, ZoneSpec] = {}
-
-    def spec_for(room: ProgramRoom, w: float, d: float, lo: float, hi: float) -> ZoneSpec:
-        target = w * d
-        aspect = max(w, d) / max(1e-6, min(w, d))
-        return ZoneSpec(room.zone_id, _roles_of(room), target * lo, target, target * hi,
-                        room.template.min_short_side_m,
-                        max(room.template.max_aspect_ratio, aspect + 0.3))
-
     net_band = band_depth - inset
     for room, w in zip(alloc.public, public_widths):
-        specs[room.zone_id] = spec_for(room, w - inset, net_band, 0.55, 1.70)
+        failure = _shape_failure(room, w - inset, net_band, "front band")
+        if failure is not None:
+            return None, failure
+        specs[room.zone_id] = _zone_spec(room, w - inset, net_band, 0.55, 1.70)
     for flank, w, depths in ((alloc.flank_west, west_w, west_depths),
                              (alloc.flank_east, east_w, east_depths)):
         for room, d in zip(flank, depths):
-            specs[room.zone_id] = spec_for(room, w - inset, d - inset / 2, 0.55, 1.70)
+            specs[room.zone_id] = _zone_spec(room, w - inset, d - inset / 2, 0.55, 1.70)
     for room, w in zip(alloc.foot, widths):
-        specs[room.zone_id] = spec_for(room, w - inset, foot_depth - inset / 2, 0.55, 1.70)
+        specs[room.zone_id] = _zone_spec(room, w - inset, foot_depth - inset / 2, 0.55, 1.70)
     hub_target = (hub_w - inset) * (hub_d - inset / 2)
     specs[alloc.hub.zone_id] = ZoneSpec(
         alloc.hub.zone_id, (ProgramRole.HALL, ProgramRole.CIRCULATION),
         hub_target * 0.5, hub_target, hub_target * 1.9, HUB_TEMPLATE.min_short_side_m,
-        max(HUB_TEMPLATE.max_aspect_ratio, max(hub_w, hub_d) / max(1e-6, min(hub_w, hub_d)) + 0.3))
+        HUB_TEMPLATE.max_aspect_ratio)
 
     doors = (len(alloc.flank_west) + len(alloc.flank_east)
              + sum(1 for r in alloc.foot if not r.entered_from))

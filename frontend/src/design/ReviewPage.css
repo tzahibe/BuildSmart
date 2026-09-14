@@ -229,8 +229,54 @@
   border-inline-start: 3px solid var(--review-border, #d9d4c7);
 }
 
-.review-wet-room select {
+/* The wet-room-kind picker is a real choice on an otherwise read-only screen, so it carries the
+   same chrome as the project form's controls (`.review-setbacks input`) rather than the browser's
+   native select — which, unstyled, drew a mismatched border and put its arrow wherever this
+   browser's RTL default happened to put it. */
+.review-select-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.review-select {
   min-width: 14rem;
+  font: 400 15px/1.5 var(--sans);
+  padding: 8px 34px 8px 10px;
+  border-radius: calc(var(--radius) - 4px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.review-select:hover { border-color: var(--accent-border); }
+
+.review-select:focus-visible,
+.review-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+/* One consistent chevron instead of the native arrow — the page is fixed `direction: rtl`, so it
+   sits on the inline-end (physically left) side, same as the browser default it replaces. */
+.review-select-wrap::after {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -5px;
+  border-right: 2px solid var(--text);
+  border-bottom: 2px solid var(--text);
+  transform: rotate(45deg);
+  pointer-events: none;
 }
 
 .review-wet-room-note {

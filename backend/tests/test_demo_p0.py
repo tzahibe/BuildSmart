@@ -1597,10 +1597,14 @@ def test_an_alternative_is_a_complete_plan_not_a_sketch(client):
 # 4BR/2wet refuses at 13.2 x 10.2 and 13.2 x 10.4, plans from 13.2 x 10.5; 6BR/2wet refuses at
 # 13.2 x 13.0 and 12.5 x 14.0, plans from 13.0 x 13.5. Each fixture stands one step off its edge.
 # The six-footprint grid is `spikes/failure_log_sweep/envelope.py` (ENVELOPE.md beside it).
+# Re-measured 2026-09-14 after the strip-room rule (`concept_generator.room_depth_band_m`): the
+# 4BR plan's shared bathroom spans a 5.4 m rear column, so its row is now 1.95 m deep for its 3.0
+# aspect rather than the 1.80 m short side, and the edge moved: refuses at 13.2 x 10.6, plans from
+# 13.2 x 10.7. The fixture keeps its one step of slack.
 
 _MANY_BEDROOM_BRIEFS = {
     3: ("בית עם 3 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 11.0)),
-    4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.6)),
+    4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.8)),
     5: ("בית עם 5 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (11.6, 14.5)),
     6: ("בית עם 6 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 14.0)),
 }

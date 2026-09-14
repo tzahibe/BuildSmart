@@ -115,25 +115,28 @@ class SiteGeometry:
 
     @property
     def near_setback_m(self) -> float:
-        """The setback on the canonical y=0 edge — the street edge for NORTH/EAST frontage."""
-        return (self.front_setback_m
-                if self.street_facing_side in (StreetSide.north, StreetSide.east)
-                else self.rear_setback_m)
+        """The setback on the canonical y=0 edge — which is the STREET edge for every frontage.
+
+        The engine draws every parcel with the street along y=0: the parking bays stand there, the
+        entrance walk starts there, the front door sits on the footprint's y=min edge, and C10/C11
+        check exactly that. Nothing rotates the drawing for a SOUTH or WEST frontage — there is no
+        compass on the plan and no flip anywhere in the pipeline — so the setback at y=0 is the
+        FRONT setback for all four frontages. This used to return the REAR setback for SOUTH/WEST,
+        on the theory that the parcel was "presented flipped"; it was not, and the effect was a
+        house placed 4.0 m from the street instead of 5.5 m with the front yard at the back, and
+        (until `front_band_m`) the parking bays 1 m inside the house. The orientation support that
+        IS real is the width/depth swap for EAST/WEST in `derive`.
+        """
+        return self.front_setback_m
 
     @property
     def far_setback_m(self) -> float:
-        return (self.rear_setback_m
-                if self.street_facing_side in (StreetSide.north, StreetSide.east)
-                else self.front_setback_m)
+        """The setback on the far edge (canonical y=max) — the rear one, for every frontage."""
+        return self.rear_setback_m
 
     def buildable_origin_m(self) -> tuple[float, float]:
-        """Where the buildable rectangle starts inside the canonical plot.
-
-        For a NORTH or EAST frontage the street edge is the canonical y=0 one, so the front setback
-        is the offset. For SOUTH and WEST the parcel is presented flipped, and the offset is the
-        REAR setback instead — the buildable rectangle is the same size either way, but it sits at
-        the other end, which is what puts the parking and the entrance on the correct side.
-        """
+        """Where the buildable rectangle starts inside the canonical plot: one side setback in from
+        the west edge, one front setback in from the street edge at y=0."""
         return (self.side_setback_m, self.near_setback_m)
 
 
@@ -145,14 +148,11 @@ def behind_parking_band(site: SiteGeometry, parking_spaces: int, bay_depth_m: fl
     depth BEHIND that band, not merely behind the setback. Without this the engine offers — and
     plans — an outline that ends past the rear of the parcel on a plot the person's own outline
     was refused on. No parking, or a setback already deeper than a bay: the site is returned
-    unchanged. Raised on whichever setback `near_setback_m` reads, so the rule follows the
-    frontage the same way the buildable origin does.
+    unchanged.
     """
     if parking_spaces <= 0 or site.near_setback_m >= bay_depth_m:
         return site
-    if site.street_facing_side in (StreetSide.north, StreetSide.east):
-        return replace(site, front_setback_m=bay_depth_m)
-    return replace(site, rear_setback_m=bay_depth_m)
+    return replace(site, front_setback_m=bay_depth_m)
 
 
 def derive(project: Project) -> SiteGeometry | None:

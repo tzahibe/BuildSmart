@@ -161,3 +161,39 @@ def test_a_parcel_with_room_for_the_house_or_the_cars_but_not_both_is_refused_wi
     response = client.post(f"/projects/{project_id}/design/demo")
     assert response.status_code == 422, response.text
     assert response.json()["detail"]["code"] == "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+
+
+# ---------------------------------------------------------------------- the street is y=0, always
+
+@pytest.mark.parametrize("street", ["NORTH", "EAST", "SOUTH", "WEST"])
+def test_the_front_setback_is_at_the_street_for_every_frontage(client, street):
+    """The engine draws every parcel street-at-top (y=0): bays, walk and front door all sit there,
+    and the drawing carries no compass. `near_setback_m` used to hand SOUTH/WEST parcels the REAR
+    setback at that edge, so the house stood 4.0 m from the street instead of 5.5 m with the front
+    yard at the back — and, before `front_band_m`, the 5 m bays 1 m inside the house."""
+    w, d = FOOTPRINT
+    plot = (26.0, 20.0) if street in ("EAST", "WEST") else (20.0, 26.0)  # same parcel, rotated
+    response = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 520.0, "built_area_m2": round(w * d, 2),
+        "plot_width_m": plot[0], "plot_depth_m": plot[1],
+        "street_facing_side": street,
+        "setbacks": {"front_m": 5.5, "side_m": 3.0, "rear_m": 4.0},
+        "description": BRIEF_3BR_SAFE_OPEN,
+        "selected_footprint": {"source": "PRESET", "shape_type": "RECTANGLE",
+                               "target_area_m2": round(w * d, 2), "area_m2": round(w * d, 2),
+                               "width_m": w, "depth_m": d},
+    })
+    assert response.status_code == 201, response.text
+    project_id = response.json()["project_id"]
+    client.post(f"/projects/{project_id}/requirements")
+    plan = client.post(f"/projects/{project_id}/design/demo").json()["plan"]
+
+    fp = plan["footprint"]
+    assert fp["y"] == pytest.approx(5.5), f"{street}: house is {fp['y']} m from the street, not 5.5"
+    assert fp["y"] + fp["depth_m"] <= 26.0 - 4.0 + 1e-9, f"{street}: house enters the rear setback"
+    for bay in plan["parking"]:
+        assert bay["y"] == 0.0
+        assert _overlap(bay, fp) == 0.0, f"{street}: bay {bay} inside the house"
+    assert plan["entrance_walk"]["depth_m"] == pytest.approx(5.5)
+    assert plan["validation"]["checks"]["C18"] is True

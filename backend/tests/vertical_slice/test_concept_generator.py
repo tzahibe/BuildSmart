@@ -8,6 +8,7 @@ import pytest
 from app.geometry_domain.constraints import BuildableRegion
 from app.geometry_domain.primitives import MultiRegion, Region, Ring
 from app.geometry_domain.provenance import Authority, Provenance, Source
+from app.vertical_slice import concept_generator as generator
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_generator import (
     FREE_TWIN_RATIONALE,
@@ -25,7 +26,7 @@ from app.vertical_slice.concept_generator import (
 )
 from app.vertical_slice.general_pipeline import run_general, run_general_from_site
 from app.vertical_slice.geometry_core.model import ConnectionKind, ProgramRole
-from app.vertical_slice.safe_adapter import adapt, build_buildable_region
+from app.vertical_slice.safe_adapter import AdapterOutcome, adapt, build_buildable_region
 from app.vertical_slice.wet_rooms import (
     WetRoomResolutionError,
     default_wet_room_kinds,
@@ -311,23 +312,46 @@ def test_rejections_carry_structured_reasons():
         assert rejection.detail
 
 
-def test_four_bedroom_programme_completes_through_the_unforced_twin():
-    """What used to be the headline limit, pinned in its new direction.
+def _shape_refusals(monkeypatch) -> list[tuple[str, str]]:
+    """Every (zone, reason) the planner's shape rule refused during a run, in order. The strategies
+    report their NEAREST MISS by shortfall, so a shape refusal — which has none — is not always the
+    reason a strategy surfaces; this records it at the source."""
+    seen: list[tuple[str, str]] = []
+    real = generator._shape_failure
 
-    The forced-cut trees for this brief are pre-checked by the concept stage and refused by
-    Geometry Core ("no split ... at forced position"): the concept budgets a flat 0.20 m of wall per
-    row while the solver nets the safe room's RC envelope at 0.15 m a side. The same trees with
-    their room cuts released solve, and the pipeline reaches them only after every forced tree has
-    failed — so the design that comes back must be the twin, and it must pass validation.
+    def recording(room, net_w, net_d, where):
+        failure = real(room, net_w, net_d, where)
+        if failure is not None:
+            seen.append((room.zone_id, failure.reason.value))
+        return failure
+
+    monkeypatch.setattr(generator, "_shape_failure", recording)
+    return seen
+
+
+def test_four_bedroom_three_wet_programme_is_refused_as_shape_infeasible(monkeypatch):
+    """Current behaviour, pinned honestly. This programme used to be "the headline limit" that the
+    unforced twin rescued — and the only plan the twin ever found put TOILET_1 alone in a full-width
+    row of a 4.65 m column: a 4.65 x 1.15 m strip, with BATH_2 a 4.65 x 1.60 m one under it. The
+    strip-room rule refuses that row as ROOM_SHAPE_INFEASIBLE (`room_depth_band_m`); the WC
+    row-sharing catch-up (`_share_wc_row`) answers it wherever the column has an ensuite, but here
+    the seams that leave the WC a column also hand BEDROOM_1 a 6.75-7.75 m wide row, and a
+    bedroom that wide has no depth under its 2.5 aspect and 14 m2 maximum. That is a template
+    threshold this change does not touch, so the refusal stands and is the honest answer.
     """
+    refusals = _shape_refusals(monkeypatch)
     result = run_general_from_site(
         F.exact_rectangle(), plot_size_m=(20.0, 24.0),
         program=ProgramSpec(bedrooms=4, safe_room=True, wet_rooms=3))
-    assert result.design is not None, result.metrics.rejection_reasons
-    assert result.validation.ok, [c.detail for c in result.validation.failures()]
-    assert result.concept.rationale.endswith(FREE_TWIN_RATIONALE), result.concept.rationale
-    # the forced trees were genuinely tried and refused first
-    assert any("at forced position" in note for note in result.notes), result.notes
+    assert result.design is None
+    assert result.outcome is AdapterOutcome.INSUFFICIENT_RECTANGULAR_CAPACITY, result.outcome
+    assert ("BEDROOM_1", RejectionReason.ROOM_SHAPE_INFEASIBLE.value) in refusals
+    # every strategy was tried and gave its own reason; nothing was skipped
+    assert {r.strategy for r in generator.generate_concepts(
+        _spec(ProgramSpec(bedrooms=4, safe_room=True, wet_rooms=3)),
+        list(adapt(build_buildable_region(F.exact_rectangle())).candidates)).rejections} >= {
+        ConceptStrategy.SPINE_SERVICE_CLUSTER, ConceptStrategy.FRONT_PUBLIC_BAND,
+        ConceptStrategy.SPINE_DOUBLE_LOADED}
 
 
 def test_a_candidate_refused_by_validation_does_not_end_the_search(monkeypatch):
@@ -762,7 +786,13 @@ def test_second_suite_in_a_column_still_reaches_the_envelope():
     """A column holding TWO shared rows puts one at each exterior end, so the second suite's
     bedroom takes the column's rear edge instead of being enclosed between the first suite and a
     full-width row. Full-width rows always hold the column's outer edge, so they can sit inside.
-    Before the ordering fix this programme solved and failed C8 on BEDROOM_1 at this footprint."""
+    Before the ordering fix this programme solved and failed C8 on BEDROOM_1 at this footprint.
+
+    Between the strip-room rule and the WC row-sharing catch-up this programme was refused: its
+    only plan put TOILET_1 alone across a 5.65 m rear column. With the WC sharing an ensuite's
+    row (`_share_wc_row`) it plans again, and every assertion below reads as it always did — the
+    ordering and the access are the same, only the WC's row changed.
+    """
     result = _reported_footprint_run(SECOND_SUITE_2BR)
     assert result.design is not None, result.metrics.rejection_reasons
     assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
@@ -774,6 +804,7 @@ def test_second_suite_in_a_column_still_reaches_the_envelope():
     assert frozenset(("BEDROOM_1", "BATH_3")) in doors, doors
     assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
     assert frozenset(("HALL", "BATH_2")) in doors, doors
+    assert frozenset(("HALL", "TOILET_1")) in doors, doors
 
 
 def test_the_reported_brief_made_flexible_plans_through_the_second_suite():

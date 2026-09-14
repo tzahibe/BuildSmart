@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
 from .furniture import FurnitureCheck
 from .geometry_core.engine import WallMap, net_rect_m
@@ -186,6 +187,32 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         if aspect > z.max_aspect_ratio + 1e-6:
             bad.append(f"{z.zone_id} aspect {aspect:.2f} > {z.max_aspect_ratio}")
     rep.add("C3", "room areas and dimensions valid", not bad, "; ".join(bad) or "all zones within spec")
+
+    # C20 — realized rooms within their TEMPLATE's aspect ratio. (C19 is reserved for the guest-WC
+    # access semantics of specs/009; this is the next free code.)
+    #
+    # C3 holds every zone to its own ZoneSpec, and the ZoneSpec is authored by the same planner
+    # that drew the rectangle. For a long time the planner set `max_aspect_ratio` to whatever the
+    # rectangle it had just planned needed (+0.3), so C3 could not fail on shape BY CONSTRUCTION:
+    # a 6.1 x 1.2 m WC arrived with a 5.38 ceiling and passed. This check never reads the ZoneSpec.
+    # The ceiling is the role's `ROOM_TEMPLATES` entry, so a candidate that relaxes its own spec —
+    # now or in some future sizing path — still cannot put a strip in front of a person.
+    # Circulation is excluded on purpose: a corridor is a strip by definition, and its width is
+    # what C14 measures. A role with no template row (ENTRANCE) has no shape rule to hold it to.
+    bad = []
+    for z in fixture.zones:
+        if z.zone_id not in rects or {ProgramRole.HALL, ProgramRole.CIRCULATION} & set(z.roles):
+            continue
+        template = ROOM_TEMPLATES.get(z.primary_role)
+        if template is None:
+            continue
+        nw, nh, _ = net_rect_m(z.zone_id, rects[z.zone_id], walls)
+        aspect = max(nw, nh) / max(min(nw, nh), 1e-6)
+        if aspect > template.max_aspect_ratio + 1e-6:
+            bad.append(f"{z.zone_id} realized {nw:.2f} x {nh:.2f} m (aspect {aspect:.2f}) past its "
+                       f"{z.primary_role.value} template's {template.max_aspect_ratio}")
+    rep.add("C20", "realized rooms within their template's aspect ratio", not bad,
+            "; ".join(bad) or "no room is a strip")
 
     # C4 — safe room valid under current RuleSet parameters
     bad = []

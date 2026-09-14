@@ -336,22 +336,25 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
                     חדר רחצה {i + 1}
                     {note ? <Provenance source={note.specified ? 'requested' : 'inferred'} /> : null}
                   </span>
-                  <select
-                    aria-label={`סוג חדר רחצה ${i + 1}`}
-                    value={selectValue}
-                    onChange={(event) => {
-                      const option = WET_ROOM_KIND_OPTIONS.find((o) => optionKey(o.value, o.host) === event.target.value)!
-                      setWetRow(i, {
-                        kind: option.value as WetRoomKindEdit['kind'],
-                        host: option.host,
-                        strength: option.value === 'shared_bathroom' || option.value === 'unspecified' ? row.strength : 'required',
-                      })
-                    }}
-                  >
-                    {WET_ROOM_KIND_OPTIONS.map((o) => (
-                      <option key={optionKey(o.value, o.host)} value={optionKey(o.value, o.host)}>{o.label}</option>
-                    ))}
-                  </select>
+                  <span className="review-select-wrap">
+                    <select
+                      className="review-select"
+                      aria-label={`סוג חדר רחצה ${i + 1}`}
+                      value={selectValue}
+                      onChange={(event) => {
+                        const option = WET_ROOM_KIND_OPTIONS.find((o) => optionKey(o.value, o.host) === event.target.value)!
+                        setWetRow(i, {
+                          kind: option.value as WetRoomKindEdit['kind'],
+                          host: option.host,
+                          strength: option.value === 'shared_bathroom' || option.value === 'unspecified' ? row.strength : 'required',
+                        })
+                      }}
+                    >
+                      {WET_ROOM_KIND_OPTIONS.map((o) => (
+                        <option key={optionKey(o.value, o.host)} value={optionKey(o.value, o.host)}>{o.label}</option>
+                      ))}
+                    </select>
+                  </span>
                 </label>
                 <label className="review-row review-row--toggle">
                   <span className="review-label">גמיש — המתכנן רשאי להצמיד לחדר שינה</span>
