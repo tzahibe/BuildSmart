@@ -1,7 +1,7 @@
 # Implementation Plan: Wet-Room Semantics
 
 **Branch**: `007-wet-room-semantics` (worktree `../sddproject-007`, from `75b31e8`) | **Date**: 2026-09-14 | **Spec**: [spec.md](./spec.md)
-**Status**: Phases 1–4 implemented and gated (see §Results); Phase 5 not started; not merged
+**Status**: Phases 1–6 implemented and gated, rebased onto `main` (`70ea966`) — see §Results; Phases 1–5 and the fixtures merged in PR #2, the Phase 6 envelope in PR #4
 
 ## Summary
 
@@ -186,6 +186,40 @@ Commits: `30e2312` baseline (interim guard + docs) → `eefc335` P1 → `eea755a
 | clarification | ensuite + guest WC + second bedroom → `NEEDS_CLARIFICATION` before planning, naming the bedroom, listing the answers, choosing none |
 | variant | `variant_keeps_bathroom_access` removed; FLEXIBLE-only rule reproduces the guard's sweep exactly; the FLEXIBLE reported brief plans at 174.3 m² with C17 passing |
 | G-fixtures (Phase 6, fixtures half — 2026-09-14) | 4BR/2wet fixture moved to 13.2×10.6 m (measured: refuses at 13.2×10.2 and 13.2×10.4, plans from 13.2×10.5); 13.2×10.2 m is now the refusal test; the many-bedroom tests assert C17. Full suite green. Still open: the envelope grid (`envelope.py`), the `scope.py` claims, and a 6BR fixture |
+| G-envelope + G-fixtures (Phase 6, envelope half — 2026-09-14) | `envelope.py` run: 108/216 cells plan, C17 failures 0, crashes 0 (1BR 14 %, 2BR 56 %, 3BR 72 %, 4BR 69 %, 5BR 39 %, 6BR 50 %); `ENVELOPE.md` committed; `scope.py` claims rewritten from it (old 130/165 m² figures withdrawn); 6BR/2wet fixture at 13.0×14.0 m (refuses at 13.2×13.0 and 12.5×14.0, plans from 13.0×13.5). Notable: 5BR/2wet with a safe room and 1BR/2wet plan on none of the six footprints. Phase 6 complete |
 
 Note on the plan's `--toggle wetkinds`: the cross-commit snapshot (`snapshot.py --compare`) is the
 instrument actually used — it is the same comparison without needing an in-process OFF arm.
+
+## Results — rebase onto main and Phase 5 (2026-09-14)
+
+Rebased onto `main` `70ea966` (006 merged; main's `concept_generator.py` already equals the old
+base). Conflicts were integration only: main added C18 (check count 15→16, `_STATEMENTS`), and the
+second-suite test geometry gained main's parking band (the synthetic programmes now carry
+`parking_spaces=0`, as the reported project did). Commits `2540432`…`0766286`, then Phase 5 `9ba3f81`.
+
+Baseline for identity is **main itself** (`snapshot.py --save` at `70ea966`: 430 scenarios, 276
+planned — 006's outline survey plans far more than the old base's 107). Main still ships the old
+`programme_variants` policy, so the branch is expected to differ from main exactly where main
+delivers a house with no corridor-reachable full bathroom.
+
+| gate | 0766286 (rebase) | 9ba3f81 (Phase 5) |
+|---|---|---|
+| planned | 276 → 249 | 276 → 249 |
+| byte-identical primaries | 176/276 | 176/276 |
+| LOST / GAINED | 27 / 0 | 27 / 0 |
+| refusal codes | NOT_REALIZABLE 21→38, TARGET_AREA_EXCEEDS 132→142, WET_ROOMS_UNSUPPORTED 1→1 | same |
+| PLAN_FAILED_VALIDATION / C8 / C17 | 0 / 0 / 0 | 0 / 0 / 0 |
+
+Cross-check of every non-identical scenario against main's own plan (wet-room door entries):
+**27/27 lost and 73/73 changed had no corridor-reachable full bathroom in main; 0/176 identical had
+one missing; 0 plans on the branch violate.** Regression candidates: 0.
+
+Tests: backend 916 passed / 4 skipped, 3 failed (the 4BR/2wet 13.2×10.2 fixtures — Phase 6);
+frontend 124/124 (`tsc -b` errors are pre-existing on main: `App.tsx:281`, unused imports).
+
+End to end through main's service: ensuite + guest WC with 2 bedrooms → `NEEDS_CLARIFICATION`
+before planning; with 1 bedroom → not a wet-room refusal. Reported brief REQUIRED → 165.8 m²,
+`BATH_2 ← HALL`; FLEXIBLE → 174.3 m², `BATH_2 ← BEDROOM_1`; legacy → identical to REQUIRED; C17
+passes on all. Review keeps Generate blocked while the stored rows carry a problem; an edit is
+re-judged by the backend before anything is planned.
