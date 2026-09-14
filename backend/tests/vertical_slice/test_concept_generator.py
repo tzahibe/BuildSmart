@@ -258,7 +258,14 @@ def test_generator_produces_a_bounded_candidate_set(name):
     assert 1 <= len(result.candidates) <= 24
     twins = [c for c in result.candidates if c.rationale.endswith(FREE_TWIN_RATIONALE)]
     assert len(twins) * 2 == len(result.candidates)
-    assert result.candidates[len(twins):] == tuple(twins), "twins must come after every forced tree"
+    # 008: a hub the outline's bound demotes sits after every peer as the last resort (forced tree,
+    # then its twin); among the peers, twins still come after every forced tree.
+    peers = [c for c in result.candidates if "hub last resort" not in c.rationale]
+    peer_twins = [c for c in peers if c.rationale.endswith(FREE_TWIN_RATIONALE)]
+    assert peers[len(peer_twins):] == peer_twins, "twins must come after every forced tree"
+    demoted = [c for c in result.candidates if "hub last resort" in c.rationale]
+    assert result.candidates[len(peers):] == tuple(demoted)
+    assert [c.rationale.endswith(FREE_TWIN_RATIONALE) for c in demoted] in ([], [False, True])
 
 
 def test_vocabulary_is_additive():
@@ -479,8 +486,11 @@ def test_hub_is_offered_only_for_three_or_more_bedrooms():
     assert hubs, [r.detail for r in three.rejections if r.strategy is ConceptStrategy.HUB_PRIVATE_WING]
     twins = [c for c in hubs if c.rationale.endswith(FREE_TWIN_RATIONALE)]
     assert twins and len(twins) * 2 == len(hubs)
-    first_twin = next(i for i, c in enumerate(three.candidates) if c.rationale.endswith(FREE_TWIN_RATIONALE))
-    last_forced = max(i for i, c in enumerate(three.candidates) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
+    # 008: the forced-before-twin rule holds inside the peer block; a hub the outline's bound demotes
+    # sits after every peer (forced tree, then its twin) — see test_a_demoted_hub_is_the_last_resort.
+    peers = [c for c in three.candidates if "hub last resort" not in c.rationale]
+    first_twin = next(i for i, c in enumerate(peers) if c.rationale.endswith(FREE_TWIN_RATIONALE))
+    last_forced = max(i for i, c in enumerate(peers) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
     assert last_forced < first_twin, "every forced tree must precede every twin"
 
 
@@ -1123,3 +1133,101 @@ def test_without_a_target_the_original_programme_minimum_sizing_is_kept():
                          program=spec.program)
     assert result.design is not None, result.metrics.rejection_reasons
     assert abs(result.design.gross_area_m2 - _OLD_FIXED_POINT_M2) < 6.0, result.design.gross_area_m2
+
+
+# --------------------------------------------------------------------------- 008 hub eligibility
+
+def _hub_rooms(program: ProgramSpec):
+    from app.vertical_slice import concept_generator as cg
+    rooms = cg.build_room_program(_spec(program))
+    return [cg.ProgramRoom("HALL", cg.ProgramRole.HALL, cg.ZoneGroup.CIRCULATION, cg.HUB_TEMPLATE)
+            if r.group is cg.ZoneGroup.CIRCULATION else r for r in rooms]
+
+
+SAFE_BRIEF = ProgramSpec(bedrooms=3, safe_room=True, wet_rooms=2, open_plan_living=True,
+                         target_built_area_m2=180.0)
+
+
+def test_hub_bound_passes_narrow_deep_outlines_and_fails_wide_ones():
+    """Spec 008 US1 / Phase 0 table: the same numbers the harness tool reports — on the FOOTPRINT
+    the concept plans (12 x 14.4 m is what v2 builds for this brief on a 12 x 18 outline), because
+    the engine's bound also honours the front band's rules (its zones' minimum widths and the
+    binding zone's maximum area), which the outline-only Phase 0 tool did not."""
+    from app.vertical_slice import concept_generator as cg
+    rooms = _hub_rooms(SAFE_BRIEF)
+    narrow = cg.hub_bound(rooms, 12.0, 14.4, cg._HUB_WIDTHS_M)
+    assert cg.hub_eligibility(narrow) is cg.HubEligibility.ELIGIBLE, narrow
+    assert narrow.witness is not None and narrow.witness.hub_d_m >= 4.6
+    alloc, _ = cg._hub_allocation(rooms, narrow.witness.hub_w_m)
+    plan, why = cg._plan_hub_wing(rooms, alloc, 12.0, 14.4, narrow.witness.hub_w_m, witness=narrow.witness)
+    assert plan is not None, why
+    assert plan.hub_d_m == narrow.witness.hub_d_m and plan.foot_depth_m == narrow.witness.foot_depth_m
+    assert list(plan.foot_widths_m) == list(narrow.witness.foot_widths_m)
+    assert narrow.gated_bedroom_aspect <= cg.HUB_GATES.bedroom_aspect
+    assert narrow.seated_doors == narrow.required_doors == 5
+    assert narrow.best_wet_adjacency >= cg.HUB_GATES.wet_adjacency
+    wide = cg.hub_bound(rooms, 14.25, 12.35, cg._HUB_WIDTHS_M)
+    assert cg.hub_eligibility(wide) is cg.HubEligibility.LAST_RESORT, wide
+    assert wide.witness is None
+    assert wide.seated_doors == wide.required_doors == 5 and wide.best_wet_adjacency == 1.0
+    assert 1.6 <= wide.gated_bedroom_aspect <= 1.7, wide   # Phase 0: 1.65 — the strip is topological
+    assert "gate 1.35" in wide.describe()
+
+
+def test_hub_bound_never_reaches_the_wet_gate_with_three_wet_rooms():
+    from app.vertical_slice import concept_generator as cg
+    from dataclasses import replace
+    rooms = _hub_rooms(replace(SAFE_BRIEF, wet_rooms=3))
+    for fw, fh in ((12.0, 18.0), (14.25, 12.35)):
+        bound = cg.hub_bound(rooms, fw, fh, cg._HUB_WIDTHS_M)
+        assert bound.gated_bedroom_aspect is None and bound.seated_doors == 6, bound
+        assert abs(bound.best_wet_adjacency - 2 / 3) < 1e-6
+        assert cg.hub_eligibility(bound) is cg.HubEligibility.LAST_RESORT
+
+
+def test_hub_bound_is_cheap():
+    """FR-007: bounded, deterministic; the widest outline walks the whole grid (it fails late)."""
+    import time
+    from app.vertical_slice import concept_generator as cg
+    rooms = _hub_rooms(SAFE_BRIEF)
+    started = time.perf_counter()
+    a = cg.hub_bound(rooms, 18.0, 12.0, cg._HUB_WIDTHS_M)
+    b = cg.hub_bound(rooms, 18.0, 12.0, cg._HUB_WIDTHS_M)
+    assert a == b
+    assert a.evaluated < 40_000, a.evaluated
+    assert time.perf_counter() - started < 1.0
+
+
+def test_a_demoted_hub_is_the_last_resort():
+    """Spec 008 US2: a hub the bound demotes is tried after every other candidate — the other
+    partis' twins included — forced tree first, then its twin; nothing else moves."""
+    result = _candidates(HUB_BRIEF)   # 3BR + 2 wet, no safe room: foot [ENS | MASTER | BATH], wet 0 %
+    cands = list(result.candidates)
+    hubs = [c for c in cands if c.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    assert hubs and all("hub last resort on this outline" in c.rationale for c in hubs)
+    assert cands[-2:] == hubs, "forced hub then its twin, after everything"
+    assert not cands[-2].rationale.endswith(FREE_TWIN_RATIONALE)
+    assert cands[-1].rationale.endswith(FREE_TWIN_RATIONALE)
+    peers = cands[:-2]
+    first_twin = next(i for i, c in enumerate(peers) if c.rationale.endswith(FREE_TWIN_RATIONALE))
+    assert all(c.rationale.endswith(FREE_TWIN_RATIONALE) for c in peers[first_twin:])
+    assert "wet adjacency reaches 0%" in hubs[0].rationale
+
+
+def test_an_eligible_hub_keeps_its_v2_place():
+    """Spec 008 US1: where the bound passes, the candidate list is exactly v2's."""
+    from app.vertical_slice import concept_generator as cg
+    result = _candidates(SAFE_BRIEF)
+    hubs = [c for c in result.candidates if c.strategy is ConceptStrategy.HUB_PRIVATE_WING]
+    assert hubs
+    fw, fh = hubs[0].concept.footprint_width_m, hubs[0].concept.footprint_depth_m
+    bound = cg.hub_bound(_hub_rooms(SAFE_BRIEF), fw, fh, cg._HUB_WIDTHS_M)
+    if cg.hub_eligibility(bound) is cg.HubEligibility.ELIGIBLE:
+        assert all("hub eligible on this outline" in c.rationale for c in hubs)
+        cands = list(result.candidates)
+        first_twin = next(i for i, c in enumerate(cands) if c.rationale.endswith(FREE_TWIN_RATIONALE))
+        last_forced = max(i for i, c in enumerate(cands) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
+        assert last_forced < first_twin
+    else:
+        assert all("hub last resort on this outline" in c.rationale for c in hubs)
+    assert f"{bound.gated_bedroom_aspect:.2f}" in hubs[0].rationale or bound.gated_bedroom_aspect is None

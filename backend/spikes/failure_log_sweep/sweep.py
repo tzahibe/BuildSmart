@@ -97,6 +97,7 @@ class StrategyRecorder:
     def reset(self):
         self.chosen_strategy: str | None = None
         self.chosen_is_twin: bool = False
+        self.chosen_rationale: str = ""
         self.candidate_strategies: list[str] = []
         self.rejections: list[tuple[str, str]] = []
 
@@ -110,6 +111,7 @@ class StrategyRecorder:
             if rec.chosen_strategy is None:
                 rec.chosen_strategy = chosen.strategy.value
                 rec.chosen_is_twin = chosen.rationale.endswith(rec._cg.FREE_TWIN_RATIONALE)
+                rec.chosen_rationale = chosen.rationale
             return rec._orig_realize(spec, buildable, site_constraints, chosen, chosen_index, solve,
                                      relationships, on_stage=on_stage)
 

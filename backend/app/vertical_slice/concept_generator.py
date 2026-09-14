@@ -26,6 +26,7 @@ and Geometry Core remains solely responsible for exact realization.
 """
 from __future__ import annotations
 
+import bisect
 import math
 from dataclasses import dataclass, field, replace
 from enum import Enum
@@ -302,6 +303,11 @@ class PlanFailure:
     reason: RejectionReason
     detail: str
     shortfall_m: float | None = None
+    #: Some attempt behind this failure was refused for a room's SHAPE (`ROOM_SHAPE_INFEASIBLE`),
+    #: even if the nearest miss reported here is another reason. The planners report their
+    #: nearest miss by shortfall, and a shape refusal has none, so without this flag the one
+    #: signal that says "repartition would help" is exactly the one the diagnosis drops.
+    shape_seen: bool = False
 
 
 def _nearest_miss(current: PlanFailure | None, candidate: PlanFailure) -> PlanFailure:
@@ -354,6 +360,14 @@ class ConceptCandidate:
     #: from a rearranged programme is validated against that arrangement, which is what makes the
     #: rearrangement legitimate rather than a violation of the brief.
     wet_rooms: tuple[ResolvedWetRoom, ...] = ()
+    #: 008: this hub candidate was placed after every other candidate because its bound missed the
+    #: §6 gates on this outline. Carried on the candidate so the pipeline can still COMPARE it with
+    #: whatever took its place (`hub_guard`), rather than assume the replacement is better.
+    hub_last_resort: bool = False
+    #: Tier 2 (`Repartition`): this candidate was planned with rows re-partitioned after the normal
+    #: attempt at the same proportion failed for a room's shape. Ordered after every tier-1
+    #: candidate and its twin, so a brief that plans normally never receives one.
+    repartitioned: bool = False
 
 
 @dataclass(frozen=True)
@@ -976,49 +990,215 @@ def _verify_row_shapes(rows: list[list[ProgramRoom]], depths: list[float], net_w
     return None
 
 
-def _share_wc_row(rows: list[list[ProgramRoom]], wc_index: int) -> list[list[ProgramRoom]] | None:
-    """The same column with its lone WC row folded into an ensuite's row, or None if it has none.
+@dataclass(frozen=True)
+class Repartition:
+    """Tier-2 planning options — the generic fallback for a room that cannot be shaped alone.
 
-    THE ONE PAIRING THE ACCESS MODEL ADMITS. A shared row is a V-split beside the hall, so exactly
-    one of its members touches the corridor; the other must be entered from a neighbour, and the
-    only room in the programme that is, is an ensuite (from its bedroom). So `[BEDROOM, ENSUITE]`
-    + `[WC]` becomes `[BEDROOM]` + `[WC, ENSUITE]`, the new row directly beside the bedroom's: the
-    WC keeps the corridor-facing slot the bedroom had (same orientation, same side), the ensuite
-    keeps its slot and now meets its bedroom across the row boundary instead of beside it — a
-    door on that edge is the same door, and C17 reads the same access. The bedroom, full-width,
-    reaches the column's outer edge on its own. Two wet rooms sharing a wall is also the
-    adjacency the reference plans show (spec 005 §1 M5), which a WC alone in a row never gave.
+    The normal path plans each column with the rows `_rows_of` gives it and refuses a room that
+    has no shape band at the column's width (`room_depth_band_m` is None: a strip or oversized).
+    Tier 2 runs ONLY at a (strategy, proportion) where that normal attempt failed and a shape
+    refusal was among the reasons (`PlanFailure.shape_seen`), and does three things the normal path
+    does not: it lets such a room SHARE a row with any partner the access model permits
+    (`_repartition_rows`), it searches the column seam over its whole feasible range rather than
+    the nine steps around the area share (`_seam_options(limit=None)`), and in the front band it
+    searches the rear seam at all. Sizing is unchanged: minimums (short side and shape floor)
+    first, surplus by elasticity (`_row_depths`), widths by minimums then area share
+    (`_row_widths`). Nothing here is per role: a WC, a kitchen and a bedroom are handled by the
+    same rule, and the candidates it produces are ordered after every normal one.
 
-    Called only where the WC's own row has no shape band at the column's width (`_rows_for_width`)
-    — a column narrow enough for a proportioned WC keeps the rows it always had.
+    `open_chain` is the open-plan public zones in the order `_build_access` declares their OPEN
+    connections (consecutive members must share an edge; empty for a closed plan); `hall_public`
+    the public zone that carries the hall's opening and must therefore keep touching the corridor;
+    `never_shared` the zones that must keep a row of their own — the FLEX zone, which exists to
+    absorb the surplus a target above capacity leaves (`generate_concepts`), and a row it shared
+    would hand that surplus to its partner instead (measured: a kitchen at 41.6 m2 against 26).
     """
+    open_chain: tuple[str, ...]
+    hall_public: str | None
+    north_is_envelope: bool
+    never_shared: frozenset[str] = frozenset()
+
+    @property
+    def open_group(self) -> frozenset[str]:
+        return frozenset(self.open_chain)
+
+
+def _pair_with_dependent(rows: list[list[ProgramRoom]], index: int) -> list[list[ProgramRoom]] | None:
+    """Row `index`'s lone room folded into a dependent room's row, or None if the column has none.
+
+    THE ONE PAIRING A CORRIDOR-FACING ROOM ADMITS. A shared row is a V-split beside the hall, so
+    exactly one of its members touches the corridor; the other must be entered from a neighbour,
+    and the only rooms in the programme that are, are dependents — an ensuite, from its bedroom.
+    So `[BEDROOM, ENSUITE]` + `[ROOM]` becomes `[BEDROOM]` + `[ROOM, ENSUITE]`, the new row directly
+    beside the bedroom's: the room takes the corridor-facing slot the bedroom had (same
+    orientation, same side), the ensuite keeps its slot and now meets its bedroom across the row
+    boundary instead of beside it — a door on that edge is the same door, and C17 reads the same
+    access. The bedroom, full-width, reaches the column's outer edge on its own; if the room that
+    moved in needs daylight itself, `_daylight_order` puts the row at a column end afterwards. Two
+    wet rooms sharing a wall is also the adjacency the reference plans show (spec 005 §1 M5).
+    """
+    return next(iter(_dependent_pairings(rows, index)), None)
+
+
+def _dependent_pairings(rows: list[list[ProgramRoom]], index: int) -> list[list[list[ProgramRoom]]]:
+    """Every row list `_pair_with_dependent` could return, in-place placement first.
+
+    Only a row that still holds a dependent BESIDE ITS OWN HOST is a partner: once a room has
+    taken the host's slot, the row is spoken for, and letting the next room take it would leave
+    the first one alone again. The host must also stay beside the pair after the daylight
+    re-ordering (`_access_intact`), which moves a shared row whose corridor-facing member needs a
+    window to a column end — so beside the in-place placement the block [host, pair] is also
+    offered at each end of the column, where `_daylight_order` leaves it alone.
+    """
+    out_all = []
     for j, row in enumerate(rows):
-        if len(row) != 2 or j == wc_index:
+        if len(row) != 2 or j == index:
             continue
         dependent = [r for r in row if r.entered_from]
         host = [r for r in row if not r.entered_from]
-        if len(dependent) != 1 or len(host) != 1:
+        if len(dependent) != 1 or len(host) != 1 or dependent[0].entered_from != host[0].zone_id:
             continue
-        wc = rows[wc_index][0]
-        # the WC takes the bedroom's slot, so the row keeps the orientation `_orient_row` chose
-        paired = [wc if r is host[0] else r for r in row]
-        out = [list(r) for i, r in enumerate(rows) if i != wc_index]
-        at = out.index(list(row))
-        out[at] = [host[0]]
-        out.insert(at + 1, paired)
-        return out
-    return None
+        room = rows[index][0]
+        # the room takes the host's slot, so the row keeps the orientation `_orient_row` chose
+        paired = [room if r is host[0] else r for r in row]
+        rest = [list(r) for i, r in enumerate(rows) if i != index and i != j]
+        at = min(j, len(rest))
+        in_place = rest[:at] + [[host[0]], paired] + rest[at:]
+        south = rest + [[host[0]], paired]
+        north = [paired, [host[0]]] + rest
+        for candidate in (in_place, south, north):
+            if candidate not in out_all:
+                out_all.append(candidate)
+    return out_all
 
 
-def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float) -> list[list[ProgramRoom]]:
-    """The rows a column plans with at `net_width`: its own, unless a WC alone in a row cannot be
-    shaped at that width (`room_depth_band_m` is None — the WC would be a strip or oversized), in
-    which case the WC shares an ensuite's row (`_share_wc_row`). A column with no ensuite keeps
-    its rows and is refused downstream with its own reason, as before."""
+def _pair_with_open_member(rows: list[list[ProgramRoom]], index: int, options: Repartition,
+                           corridor_on_east: bool) -> list[list[list[ProgramRoom]]]:
+    """Row `index`'s lone room beside a lone NEIGHBOUR of its open chain — every such row list.
+
+    Two zones of one open group need no door between them and no corridor of their own — the
+    cut between them is wall-less by construction (`_mark_open_interfaces`) — so either may take
+    the far slot, with one exception: the zone that carries the hall's opening (`hall_public`)
+    must stay on the corridor side. Otherwise the room being re-partitioned takes the far slot
+    (the column's outer edge, where a window is). Only a chain NEIGHBOUR is a partner: the
+    declared OPEN edges run along the chain, and a pair of neighbours placed where the room's row
+    was keeps both of them touching the rows above and below. Whether the whole chain survives
+    the daylight re-ordering is checked afterwards (`_access_intact`).
+    """
+    room = rows[index][0]
+    chain = options.open_chain
+    if room.zone_id not in chain or room.zone_id in options.never_shared:
+        return []
+    at = chain.index(room.zone_id)
+    neighbours = [z for z in (chain[at - 1] if at > 0 else None,
+                              chain[at + 1] if at + 1 < len(chain) else None) if z]
+    # the partner that needs no daylight first: the corridor-facing member of a shared row only
+    # gets a window at a column end, and `_daylight_order` would move the row there
+    candidates = sorted(((j, row[0]) for j, row in enumerate(rows)
+                         if j != index and len(row) == 1 and row[0].zone_id in neighbours
+                         and row[0].zone_id not in options.never_shared),
+                        key=lambda jr: (jr[1].role in DAYLIGHT_ROLES, abs(jr[0] - index)))
+    out_all = []
+    for j, partner in candidates:
+        corridor_side = room if room.zone_id == options.hall_public else partner
+        far_side = partner if corridor_side is room else room
+        # a V-split places row[0] to the WEST and row[1] to the EAST (see `_orient_row`)
+        paired = [far_side, corridor_side] if corridor_on_east else [corridor_side, far_side]
+        out = [list(r) for i, r in enumerate(rows) if i != j]
+        out[out.index(list(rows[index]))] = paired
+        out_all.append(out)
+    return out_all
+
+
+def _repartition_rows(rows: list[list[ProgramRoom]], net_width: float, options: Repartition,
+                      corridor_on_east: bool) -> list[list[ProgramRoom]]:
+    """Tier 2: every lone room that has no shape band at `net_width` shares a row with a partner
+    the access model permits — an open-group member first (a kitchen beside its dining area), a
+    dependent's row otherwise (a WC or a bedroom taking the master's slot beside the ensuite).
+    A room with no legal partner keeps its row and is refused downstream, exactly as before. The
+    result is re-ordered for daylight and re-oriented for the corridor, because a shared row's
+    corridor-facing member may now be one that needs a window."""
+    def finished(candidate: list[list[ProgramRoom]]) -> list[list[ProgramRoom]]:
+        return [_orient_row(r, corridor_on_east) if any(m.entered_from for m in r) else r
+                for r in _daylight_order(candidate, north_is_envelope=options.north_is_envelope)]
+
+    out = [list(r) for r in rows]
+    changed = False
+    seen: set[str] = set()
+    while True:
+        index = next((i for i, row in enumerate(out)
+                      if len(row) == 1 and row[0].zone_id not in seen
+                      and room_depth_band_m(row[0].template, net_width) is None), None)
+        if index is None:
+            break
+        seen.add(out[index][0].zone_id)
+        if out[index][0].zone_id in options.never_shared:
+            continue
+        candidates = (_pair_with_open_member(out, index, options, corridor_on_east)
+                      + _dependent_pairings(out, index))
+        for candidate in candidates:
+            if _access_intact(finished(candidate), options, corridor_on_east):
+                out, changed = candidate, True
+                break
+    if not changed:
+        return rows
+    return finished(out)
+
+
+def _access_intact(rows: list[list[ProgramRoom]], options: Repartition,
+                   corridor_on_east: bool) -> bool:
+    """Every declared connection these rows must realize still has a physical interface: each
+    OPEN connection of the chain, each dependent room's door to its host, and the hall's opening
+    into the zone that carries it (which must therefore touch the corridor).
+
+    Two rooms share an edge when they are in one row (the V cut) or in ADJACENT rows where at
+    least one of them spans the column, or both sit in the same slot. Two shared rows with the
+    members in opposite slots only overlap by whatever their widths happen to leave, which is not
+    a connection to promise.
+    """
+    where: dict[str, tuple[int, int | None]] = {}
+    for i, row in enumerate(rows):
+        for slot, room in enumerate(row):
+            where[room.zone_id] = (i, slot if len(row) == 2 else None)
+
+    def touch(a: str, b: str) -> bool:
+        (ia, sa), (ib, sb) = where[a], where[b]
+        return ia == ib or (abs(ia - ib) == 1 and (sa is None or sb is None or sa == sb))
+
+    chain = [z for z in options.open_chain if z in where]
+    if not all(touch(a, b) for a, b in zip(chain, chain[1:])):
+        return False
+    for row in rows:
+        for room in row:
+            if room.entered_from and room.entered_from in where \
+                    and not touch(room.zone_id, room.entered_from):
+                return False
+    if options.hall_public in where:
+        i, slot = where[options.hall_public]
+        corridor_slot = 1 if corridor_on_east else 0
+        if slot is not None and slot != corridor_slot:
+            return False
+    return True
+
+
+def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
+                    fallback: Repartition | None = None,
+                    corridor_on_east: bool = True) -> list[list[ProgramRoom]]:
+    """The rows a column plans with at `net_width`.
+
+    The normal path (no `fallback`) keeps a column's rows, with one settled exception: a WC alone
+    in a row that cannot be shaped at that width (`room_depth_band_m` is None — the WC would be a
+    strip or oversized) shares an ensuite's row (`_pair_with_dependent`); a column with no ensuite
+    keeps its rows and is refused downstream with its own reason. Tier 2 (`fallback` given)
+    applies the same idea to ANY room, with every partner the access model permits
+    (`_repartition_rows`).
+    """
+    if fallback is not None:
+        return _repartition_rows(rows, net_width, fallback, corridor_on_east)
     for i, row in enumerate(rows):
         if (len(row) == 1 and row[0].role is ProgramRole.TOILET and not row[0].entered_from
                 and room_depth_band_m(row[0].template, net_width) is None):
-            shared = _share_wc_row(rows, i)
+            shared = _pair_with_dependent(rows, i)
             if shared is not None:
                 return shared
     return rows
@@ -1052,7 +1232,8 @@ _MAX_SEAM_OPTIONS = 9
 _SEAM_STEP_M = 0.25
 
 
-def _seam_options(natural_m: float, lo_m: float, hi_m: float) -> list[float]:
+def _seam_options(natural_m: float, lo_m: float, hi_m: float,
+                  limit: int | None = _MAX_SEAM_OPTIONS) -> list[float]:
     """West-column widths to try, the area-share value FIRST and then outward in even steps.
 
     Area share is the natural width only for the AREA term: a column runs the footprint's full
@@ -1067,6 +1248,10 @@ def _seam_options(natural_m: float, lo_m: float, hi_m: float) -> list[float]:
     Nearest-first ordering is what makes this safe to add: the first candidate is exactly the seam
     the planner used before, so every layout that already planned still plans the same way, and
     only proportions that used to be REFUSED can reach the alternatives.
+
+    `limit=None` (tier 2, `Repartition`) walks the whole feasible window in the same order: a
+    column that must narrow by more than the nine steps allow — a 7 m bedroom column that can be
+    at most 5.9 m — is reached only then.
     """
     if hi_m < lo_m - 1e-9:
         return []
@@ -1077,13 +1262,13 @@ def _seam_options(natural_m: float, lo_m: float, hi_m: float) -> list[float]:
 
     out = [snapped(natural)]
     offset = _SEAM_STEP_M
-    while len(out) < _MAX_SEAM_OPTIONS and offset <= (hi_m - lo_m) + _SEAM_STEP_M:
+    while (limit is None or len(out) < limit) and offset <= (hi_m - lo_m) + _SEAM_STEP_M:
         for candidate in (natural + offset, natural - offset):
             if lo_m - 1e-9 <= candidate <= hi_m + 1e-9:
                 value = snapped(candidate)
                 if all(abs(value - seen) > 1e-9 for seen in out):
                     out.append(value)
-                    if len(out) >= _MAX_SEAM_OPTIONS:
+                    if limit is not None and len(out) >= limit:
                         break
         offset += _SEAM_STEP_M
     return out
@@ -1091,15 +1276,17 @@ def _seam_options(natural_m: float, lo_m: float, hi_m: float) -> list[float]:
 
 def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramRoom]],
                      east_rows: list[list[ProgramRoom]], areas: dict[str, float],
-                     footprint_h_m: float) -> tuple[list[ColumnPlan] | None, PlanFailure | None]:
+                     footprint_h_m: float, fallback: Repartition | None = None,
+                     ) -> tuple[list[ColumnPlan] | None, PlanFailure | None]:
     """Both columns planned at ONE seam position — the unit the seam search repeats."""
     plans = []
-    for name, width, rows in (("west", west_w, west_rows), ("east", east_w, east_rows)):
+    for name, width, rows, corridor_on_east in (("west", west_w, west_rows, True),
+                                                ("east", east_w, east_rows, False)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
         if net_w <= 0:
             return None, PlanFailure(RejectionReason.COLUMN_WIDTH_EXCEEDED,
                                      f"{name} column has no net width at {width:.2f} m")
-        rows = _rows_for_width(rows, net_w)
+        rows = _rows_for_width(rows, net_w, fallback, corridor_on_east)
         for row in rows:
             if _row_widths(row, net_w) is None:
                 return None, PlanFailure(
@@ -1168,8 +1355,12 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
 def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[ProgramRoom],
                 hall_ids: list[str], footprint_w_m: float, footprint_h_m: float,
                 corridor: CorridorRequirement | None = None,
+                fallback: Repartition | None = None,
                 ) -> tuple[LayoutPlan | None, PlanFailure | None]:
-    """Column widths, row depths and the resulting zone specs, all mutually consistent."""
+    """Column widths, row depths and the resulting zone specs, all mutually consistent.
+
+    With `fallback` (tier 2) the seam search covers the whole feasible window and every column's
+    rows may be re-partitioned at each seam; without it this is the normal path, unchanged."""
     net_depth = max(footprint_h_m - _EDGE_INSET_ALLOWANCE_M, 1e-6)
     net_available = footprint_w_m * footprint_h_m * ASSUMED_EFFICIENCY
     base = scale_program(rooms, net_available)
@@ -1210,16 +1401,19 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
 
     plans: list[ColumnPlan] | None = None
     failure: PlanFailure | None = None
-    for seam_w in _seam_options(natural_w, west_min, usable - east_min):
+    shape_seen = False
+    for seam_w in _seam_options(natural_w, west_min, usable - east_min,
+                                limit=None if fallback is not None else _MAX_SEAM_OPTIONS):
         east_w = round((usable - seam_w) / 0.05) * 0.05
         west_w = footprint_w_m - hall_w - east_w  # absorb rounding
         plans, failure = _columns_at_seam(west_w, east_w, west_rows, east_rows,
-                                          areas, footprint_h_m)
+                                          areas, footprint_h_m, fallback)
         if plans is not None:
             break
+        shape_seen = shape_seen or failure.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
 
     if plans is None:
-        return None, failure
+        return None, replace(failure, shape_seen=shape_seen)
 
     # Areas now FOLLOW the geometry: each zone's band is centred on the rect it will occupy. The
     # ASPECT RATIO does not: it is the template's, unrelaxed — see `_zone_spec`.
@@ -1266,9 +1460,20 @@ def _zone_spec(room: ProgramRoom, net_w: float, net_d: float, lo: float, hi: flo
                     room.template.min_short_side_m, room.template.max_aspect_ratio)
 
 
-def _forced_chain(rows: list[list[ProgramRoom]], depths: list[float], net_width: float) -> Node:
+def _forced_chain(rows: list[list[ProgramRoom]], depths: list[float], net_width: float,
+                  open_block: frozenset[str] = frozenset()) -> Node:
     """Right-nested H chain with every cut forced to the depth chosen above; a shared row gets a
-    forced V cut at its members' width share."""
+    forced V cut at its members' width share.
+
+    `open_block` (tier 2 only) names zones joined by OPEN connections: a run of consecutive rows
+    whose rooms all belong to it is nested as its own sub-chain, so the cuts inside the run are
+    inside one subtree of the group and Geometry Core marks them wall-less structurally
+    (`_mark_open_interfaces`). A right-nested chain leaves the cut between the run's first row
+    and the rest of the column outside any such subtree, and the geometric discovery that saves
+    full-width rows (`_discover_open_interfaces`) needs FULL matching edges — which a shared row
+    under a full-width one does not have. Measured: LIVING over [KITCHEN | DINING] came out with
+    a partition between them and failed C13. Without `open_block` the tree is exactly as before.
+    """
     def row_node(row: list[ProgramRoom], depth: float) -> Node:
         if len(row) == 1:
             return Leaf(row[0].zone_id)
@@ -1278,9 +1483,29 @@ def _forced_chain(rows: list[list[ProgramRoom]], depths: list[float], net_width:
         return Split(Cut.V, Leaf(row[0].zone_id), Leaf(row[1].zone_id),
                      m_to_u(round(first_w / 0.05) * 0.05))
 
+    def in_block(row: list[ProgramRoom]) -> bool:
+        return bool(open_block) and all(r.zone_id in open_block for r in row)
+
+    def chain(start: int, stop: int) -> Node:
+        """Rows start..stop (inclusive), right-nested; every cut at its row's depth."""
+        if start == stop:
+            return row_node(rows[start], depths[start])
+        return Split(Cut.H, row_node(rows[start], depths[start]), chain(start + 1, stop),
+                     m_to_u(depths[start]))
+
     def build(index: int) -> Node:
         if index == len(rows) - 1:
             return row_node(rows[index], depths[index])
+        if in_block(rows[index]):
+            stop = index
+            while stop + 1 < len(rows) and in_block(rows[stop + 1]):
+                stop += 1
+            if stop > index:
+                block = chain(index, stop)
+                if stop == len(rows) - 1:
+                    return block
+                return Split(Cut.H, block, build(stop + 1),
+                             m_to_u(round(sum(depths[index:stop + 1]) / 0.05) * 0.05))
         return Split(Cut.H, row_node(rows[index], depths[index]), build(index + 1),
                      m_to_u(depths[index]))
 
@@ -1398,7 +1623,6 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
     # into the proven-safe candidate can. `_proportions` decides the ORDER — nearest the user's
     # target first when there is one (see its docstring).
     wanted = _MAX_PROPORTIONS_PER_STRATEGY if target_m2 is not None else 1
-    found: list[tuple[Rect, LayoutPlan]] = []
     proportions = _proportions(min_width, max_width, max_depth, gross, target_m2)
     if not proportions:
         # No proportion was ever TRIED, so no room was ever sized. Reporting a room minimum here
@@ -1407,25 +1631,72 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
             strategy, RejectionReason.FOOTPRINT_BELOW_MINIMUM_WIDTH,
             f"the programme needs a footprint at least {min_width:.2f} m wide; this candidate "
             f"offers {max_width:.2f} m")
+    repartition = _repartition_for(spec, rooms, north_is_envelope=True)
+    tier2_miss: PlanFailure | None = None
+    found: list[tuple[Rect, LayoutPlan, bool]] = []
     for width, depth in proportions:
         trial = footprint_of(candidate, width, depth)
         tw, th = u_to_m(trial.w), u_to_m(trial.h)
         attempt, reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor)
+        repartitioned = False
+        if attempt is None and _shape_refused(reason):
+            # Tier 2, at THIS proportion only: the normal attempt failed and a room's shape was
+            # among the reasons, so the same proportion is planned with rows re-partitioned. The
+            # normal diagnosis is kept; tier 2's own nearest miss is appended to it below.
+            attempt, tier2_reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor,
+                                                fallback=repartition)
+            repartitioned = attempt is not None
+            if attempt is None:
+                tier2_miss = _nearest_miss(tier2_miss, tier2_reason)
         if attempt is not None:
-            if any(f.w == trial.w and f.h == trial.h for f, _ in found):
+            if any(f.w == trial.w and f.h == trial.h and t2 == repartitioned
+                   for f, _, t2 in found):
                 continue  # `footprint_of` clamps, so distinct proportions can land on one rectangle
-            found.append((trial, attempt))
-            if len(found) >= wanted:
+            # Tier-2 plans never count toward the budget and never end the walk: the normal
+            # candidates this strategy offers — and their order — are exactly what they were.
+            if repartitioned:
+                if sum(t2 for _, _, t2 in found) < wanted:
+                    found.append((trial, attempt, True))
+                continue
+            found.append((trial, attempt, False))
+            if sum(not t2 for _, _, t2 in found) >= wanted:
                 break
         else:
             failure = _nearest_miss(failure, reason)
 
     if not found:
-        return [], ConceptRejection(strategy, failure.reason, failure.detail)
+        return [], ConceptRejection(strategy, failure.reason,
+                                    _with_tier2_miss(failure.detail, tier2_miss))
 
-    built = [_concept_from(spec, rooms, candidate, strategy, rationale, footprint, plan)
-             for footprint, plan in found]
+    built = [_concept_from(spec, rooms, candidate, strategy,
+                           rationale + (REPARTITIONED_RATIONALE if repartitioned else ""),
+                           footprint, plan, repartitioned=repartitioned)
+             for footprint, plan, repartitioned in found]
     return built, None
+
+
+#: Marker appended to a tier-2 candidate's rationale, so logs show the rows were re-partitioned.
+REPARTITIONED_RATIONALE = "; rows re-partitioned (tier 2)"
+
+
+def _shape_refused(failure: PlanFailure | None) -> bool:
+    return failure is not None and (failure.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
+                                    or failure.shape_seen)
+
+
+def _with_tier2_miss(detail: str, tier2_miss: PlanFailure | None) -> str:
+    return detail if tier2_miss is None else f"{detail}; re-partitioned: {tier2_miss.detail}"
+
+
+def _repartition_for(spec: ArchitecturalSpec, rooms: list[ProgramRoom], *,
+                     north_is_envelope: bool) -> Repartition:
+    """Tier-2 options for a programme: which zones are joined by OPEN connections and which one
+    carries the hall's opening — the same facts `_build_access` encodes, read off the programme."""
+    public_ids = [r.zone_id for r in rooms if r.group is ZoneGroup.PUBLIC]
+    chain = tuple(public_ids) if spec.program.open_plan_living and len(public_ids) > 1 else ()
+    return Repartition(chain, public_ids[0] if public_ids else None, north_is_envelope,
+                       never_shared=frozenset(r.zone_id for r in rooms
+                                              if r.role is ProgramRole.FLEX))
 
 
 def _unforced(node: Node) -> Node:
@@ -1493,17 +1764,24 @@ FREE_TWIN_RATIONALE = "cut positions chosen by the solver"
 
 def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                   strategy: ConceptStrategy, rationale: str,
-                  footprint: Rect, plan: LayoutPlan) -> ConceptCandidate:
+                  footprint: Rect, plan: LayoutPlan, *, repartitioned: bool = False,
+                  ) -> ConceptCandidate:
     """One realized proportion -> one `ConceptCandidate`. Split out of `_build` unchanged so that
     function can offer several proportions without duplicating any of this."""
     hall_ids = ["HALL"]
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
 
     specs = plan.specs
+    public_ids = [r.zone_id for r in rooms if r.group is ZoneGroup.PUBLIC]
+    # tier 2 may have put two open-plan zones in one row; the tree must then keep the open block
+    # together (see `_forced_chain`). The normal path passes nothing and its tree is unchanged.
+    open_block = (frozenset(public_ids)
+                  if repartitioned and spec.program.open_plan_living and len(public_ids) > 1
+                  else frozenset())
     west_tree = _forced_chain(plan.west.rows, plan.west.row_depths_m,
-                              plan.west.width_m - _EDGE_INSET_ALLOWANCE_M)
+                              plan.west.width_m - _EDGE_INSET_ALLOWANCE_M, open_block)
     east_tree = _forced_chain(plan.east.rows, plan.east.row_depths_m,
-                              plan.east.width_m - _EDGE_INSET_ALLOWANCE_M)
+                              plan.east.width_m - _EDGE_INSET_ALLOWANCE_M, open_block)
     tree = Split(Cut.V, west_tree,
                  Split(Cut.V, Leaf("HALL"), east_tree, m_to_u(plan.hall_w_m)),
                  m_to_u(plan.west.width_m))
@@ -1525,6 +1803,7 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
         wet_rooms=wet_rooms_of(rooms),
+        repartitioned=repartitioned,
     )
 
 
@@ -1584,7 +1863,7 @@ def _forced_v_chain(rooms: list[ProgramRoom], widths: list[float]) -> Node:
 
 
 def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
-                        ) -> tuple[ConceptCandidate | None, ConceptRejection | None]:
+                        ) -> tuple[list[ConceptCandidate], ConceptRejection | None]:
     """Public zones as a full-width band across the front; corridor and bedrooms behind it.
 
     This is the parti that unblocks large programmes. In the two-column spine the public zones
@@ -1610,18 +1889,18 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
         # `_plan_front_band`). Combining that with an explicit FLEX zone double-counts the same
         # surplus and produced both an inflated LIVING *and* a leftover FLEX zone in the same
         # plan. FLEX is for the SPINE partis, which have no such mechanism of their own.
-        return None, ConceptRejection(
+        return [], ConceptRejection(
             strategy, RejectionReason.INSUFFICIENT_WING_AREA,
             "front band already absorbs surplus through its own elasticity; not combined with FLEX")
     if len(public) < 2 or len(private) < 3:
-        return None, ConceptRejection(
+        return [], ConceptRejection(
             strategy, RejectionReason.INSUFFICIENT_WING_AREA,
             f"{len(public)} public / {len(private)} private rooms — too few to be worth a "
             f"separate front band")
 
     rows = _rows_of(private)
     if len(rows) < 3:
-        return None, ConceptRejection(strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+        return [], ConceptRejection(strategy, RejectionReason.INSUFFICIENT_WING_AREA,
                                       "too few private rows for two rear columns")
     # Try several rear splits, nearest-balanced first. Fixing the split at the midpoint made a
     # 4BR programme fail on a column that needed 11.6 m of depth where 9.95 m existed, while a
@@ -1641,32 +1920,65 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
     proportions = _proportions(min_width, max_width, max_depth, gross,
                                spec.program.target_built_area_m2)
     if not proportions:
-        return None, ConceptRejection(
+        return [], ConceptRejection(
             strategy, RejectionReason.FOOTPRINT_BELOW_MINIMUM_WIDTH,
             f"the programme needs a footprint at least {min_width:.2f} m wide; this candidate "
             f"offers {max_width:.2f} m")
+    repartition = _repartition_for(spec, rooms, north_is_envelope=False)
+    tier2_miss: PlanFailure | None = None
+    tier2: tuple[Rect, tuple] | None = None
     for width, depth in proportions:
         trial = footprint_of(candidate, width, depth)
-        for split_at in split_options:
-            west_try = [_orient_row(r, corridor_on_east=True)
-                        for r in _daylight_order(rows[:split_at], north_is_envelope=False)]
-            east_try = [_orient_row(r, corridor_on_east=False)
-                        for r in _daylight_order(rows[split_at:], north_is_envelope=False)]
+        splits = [([_orient_row(r, corridor_on_east=True)
+                    for r in _daylight_order(rows[:split_at], north_is_envelope=False)],
+                   [_orient_row(r, corridor_on_east=False)
+                    for r in _daylight_order(rows[split_at:], north_is_envelope=False)])
+                  for split_at in split_options]
+        shape_refused = False
+        for west_try, east_try in splits:
             attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
                                                u_to_m(trial.w), u_to_m(trial.h))
             if attempt is not None:
                 footprint, plan = trial, attempt
-                # the rows the plan was made with — a WC may have joined an ensuite's row
-                west_rows, east_rows = attempt[8], attempt[9]
                 break
             failure = _nearest_miss(failure, reason)
+            shape_refused = shape_refused or _shape_refused(reason)
+        if plan is None and shape_refused and tier2 is None:
+            # Tier 2 at this proportion: the same splits, rows re-partitioned and the rear seam
+            # searched (`Repartition`). The walk for a NORMAL plan continues regardless, so the
+            # candidate this parti offered before is offered still, and the tier-2 one beside it.
+            for west_try, east_try in splits:
+                attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
+                                                   u_to_m(trial.w), u_to_m(trial.h),
+                                                   fallback=repartition)
+                if attempt is not None:
+                    tier2 = (trial, attempt)
+                    break
+                tier2_miss = _nearest_miss(tier2_miss, reason)
         if plan is not None:
             break
 
-    if plan is None or footprint is None:
-        return None, ConceptRejection(strategy, failure.reason, failure.detail)
+    if plan is None and tier2 is None:
+        return [], ConceptRejection(strategy, failure.reason,
+                                    _with_tier2_miss(failure.detail, tier2_miss))
+    built = []
+    if plan is not None:
+        built.append(_front_band_candidate(spec, rooms, candidate, public, private, footprint,
+                                           plan, repartitioned=False))
+    if tier2 is not None:
+        built.append(_front_band_candidate(spec, rooms, candidate, public, private, tier2[0],
+                                           tier2[1], repartitioned=True))
+    return built, None
 
-    band_depth, public_widths, west_w, hall_w, east_w, west_depths, east_depths, specs, _, _ = plan
+
+def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
+                          public: list[ProgramRoom], private: list[ProgramRoom],
+                          footprint: Rect, plan: tuple, *, repartitioned: bool) -> ConceptCandidate:
+    """One planned front band -> one `ConceptCandidate`. The rows come with the plan: a WC may
+    have joined an ensuite's row, or (tier 2) any room a partner's."""
+    strategy = ConceptStrategy.FRONT_PUBLIC_BAND
+    (band_depth, public_widths, west_w, hall_w, east_w, west_depths, east_depths, specs,
+     west_rows, east_rows) = plan
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
 
     band_tree = _forced_v_chain(public, public_widths)
@@ -1690,14 +2002,16 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
         Concept(fixture, "HALL", Side.N, fw, fh), strategy, (0,),
         rationale=(f"front public band {band_depth:.2f} m deep; rear west {west_w:.2f} m "
                    f"({len(west_rows)} rows) | hall {hall_w:.2f} m | east {east_w:.2f} m "
-                   f"({len(east_rows)} rows)"),
+                   f"({len(east_rows)} rows)" + (REPARTITIONED_RATIONALE if repartitioned else "")),
         used_area_m2=round(fw * fh, 2),
         unused_wing_area_m2=round(candidate.area_m2() - fw * fh, 2),
         wet_rooms=wet_rooms_of(rooms),
-    ), None
+        repartitioned=repartitioned,
+    )
 
 
-def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None):
+def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None,
+                     fallback: Repartition | None = None):
     """Band depth, public widths, rear column widths and row depths — all mutually consistent.
 
     Order matters, and it is the opposite of the obvious one. Sizing the rooms from the whole
@@ -1705,6 +2019,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
     need more rear depth than exists. So the rear is sized from the bedrooms' own programme,
     takes exactly the depth it needs, and the PUBLIC BAND absorbs whatever depth is left over —
     which is what a living room's elasticity is for.
+
+    The rear seam is the area share of the two columns — one value, as it always was. With
+    `fallback` (tier 2) it is searched over its feasible window like the spine's, nearest the
+    area share first, and each column's rows may be re-partitioned at each seam.
     """
     private = [r for row in west_rows + east_rows for r in row]
     modest = scale_program(rooms, sum(r.template.target_area_m2 for r in rooms))
@@ -1728,16 +2046,34 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None)
 
     west_raw = sum(areas[r.zone_id] for r in west)
     east_raw = sum(areas[r.zone_id] for r in east)
-    west_w = usable * west_raw / max(west_raw + east_raw, 1e-6)
-    west_w = round(min(max(west_w, west_min), usable - east_min) / 0.05) * 0.05
-    east_w = round((usable - west_w) / 0.05) * 0.05
-    west_w = fw - hall_w - east_w
+    natural_w = usable * west_raw / max(west_raw + east_raw, 1e-6)
+    if fallback is None:
+        seams = [round(min(max(natural_w, west_min), usable - east_min) / 0.05) * 0.05]
+    else:
+        seams = _seam_options(natural_w, west_min, usable - east_min, limit=None)
 
+    failure: PlanFailure | None = None
+    shape_seen = False
+    for seam_w in seams:
+        east_w = round((usable - seam_w) / 0.05) * 0.05
+        west_w = fw - hall_w - east_w
+        plan, reason = _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas,
+                                           hall_w, west_w, east_w, fallback)
+        if plan is not None:
+            return plan, ""
+        failure = _nearest_miss(failure, reason)
+        shape_seen = shape_seen or reason.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
+    return None, replace(failure, shape_seen=shape_seen)
+
+
+def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall_w, west_w,
+                        east_w, fallback: Repartition | None):
+    """`_plan_front_band` at ONE rear seam — the unit its search repeats."""
     # How much depth the rear genuinely needs, from the bedrooms' own programme. The rows are
     # settled here for the widths just chosen: a WC that cannot be shaped across its column shares
     # an ensuite's row (`_rows_for_width`), and every later step plans the rows settled here.
-    west_rows = _rows_for_width(west_rows, west_w - _EDGE_INSET_ALLOWANCE_M)
-    east_rows = _rows_for_width(east_rows, east_w - _EDGE_INSET_ALLOWANCE_M)
+    west_rows = _rows_for_width(west_rows, west_w - _EDGE_INSET_ALLOWANCE_M, fallback, True)
+    east_rows = _rows_for_width(east_rows, east_w - _EDGE_INSET_ALLOWANCE_M, fallback, False)
     rear_need = 0.0
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
@@ -1965,12 +2301,152 @@ def _flank_min_width_m(flank: list[ProgramRoom]) -> float:
     return max(r.template.min_short_side_m for r in flank) + _EDGE_INSET_ALLOWANCE_M
 
 
+def _flank_min_depth_m(flank: list[ProgramRoom]) -> float:
+    """Stacked rooms each need their own minimum short side plus the wall they lose. `_plan_hub_wing`
+    itself floors each room by its shape band at the flank's width (`room_depth_band_m`); this
+    short-side sum is the weaker, width-free floor `hub_bound` uses as a necessary condition."""
+    return sum(r.template.min_short_side_m + _EDGE_INSET_ALLOWANCE_M for r in flank)
+
+
 def _hub_min_width_m(alloc: HubAllocation, hub_w_m: float) -> float:
     return _flank_min_width_m(alloc.flank_west) + hub_w_m + _flank_min_width_m(alloc.flank_east)
 
 
+def _hub_public_widths(alloc: HubAllocation, fw: float, west_w: float, areas: dict[str, float],
+                       opening_m: float, inset: float,
+                       ) -> tuple[list[float] | None, float, PlanFailure | None]:
+    """The front band's zone widths for a lobby whose west flank is `west_w` wide, and the band
+    depth at which the binding zone reaches its maximum area (`band_cap`).
+
+    The first public zone must overlap the lobby by a full opening (the cased opening's shared
+    edge) — not span it entirely, as the front band does for its 1.4 m corridor: spanning a 3.3 m
+    lobby plus a flank left 1.9 m for the dining zone on every proportion of a 12.4 m front.
+    Inside that window the band follows the zones' area shares. And it must reach past the
+    footprint's centre: the entrance resolver prefers the middle of the street wall and names the
+    first public zone as the room it opens into (C16), and with parking bays along the front the
+    middle is often the only span clear of them (C11). A 4.45 m living zone at the west edge left
+    the door at x=8.50 with the living room ending at 8.00.
+    """
+    others = alloc.public[1:]
+    other_area = sum(areas[r.zone_id] for r in others) or 1.0
+    others_min = sum(r.template.min_short_side_m + inset for r in others)
+    lo_first = max(west_w + opening_m, fw / 2 + opening_m / 2)  # the door, centred, on its wall
+    hi_first = fw - others_min
+    wanted_first = fw * areas[alloc.public[0].zone_id] / max(areas[alloc.public[0].zone_id] + other_area, 1e-6)
+    if hi_first + 1e-6 < lo_first:
+        return None, 0.0, PlanFailure(
+            RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
+            f"the front band cannot give {alloc.public[0].zone_id} {lo_first:.2f} m to reach the "
+            f"lobby and still seat the other public zones at their minimums", lo_first - hi_first)
+    first_w = round(min(max(wanted_first, lo_first), hi_first) / 0.05) * 0.05
+    public_widths = [first_w]
+    for room in others[:-1]:
+        public_widths.append(round((fw - first_w) * areas[room.zone_id] / other_area / 0.05) * 0.05)
+    if others:
+        public_widths.append(fw - sum(public_widths))
+    for room, w in zip(alloc.public, public_widths):
+        if w - inset + 1e-6 < room.template.min_short_side_m:
+            return None, 0.0, PlanFailure(
+                RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
+                f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
+                f"{room.template.min_short_side_m} m minimum")
+    band_cap = min(r.template.max_area_m2 / max(w - inset, 1e-6)
+                   for r, w in zip(alloc.public, public_widths)) + inset / 2
+    return public_widths, band_cap, None
+
+
+def _hub_plan_tail(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh: float,
+                   hub_w: float, hub_d: float, west_w: float, east_w: float,
+                   west_depths: list[float], east_depths: list[float], foot_depth: float,
+                   widths: list[float], areas: dict[str, float],
+                   ) -> tuple[HubPlan | None, PlanFailure | None]:
+    """The public band and every ZoneSpec, given the wing's sizing — shared by v2's area-share
+    sizing and the 008 witness path, so both are held to the same checks."""
+    from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
+    opening_m = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
+    inset = _EDGE_INSET_ALLOWANCE_M
+
+    # Public band: takes the depth the wing leaves, floored by its own minimum and capped by the
+    # room that reaches its maximum first (the same rule as `_plan_front_band`). The widths are
+    # chosen below, so the floor here is the short side; the shape band is checked once they are.
+    band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
+    band_depth = round((fh - hub_d - foot_depth) / 0.05) * 0.05
+    if band_depth < band_min - 1e-9:
+        return None, PlanFailure(
+            RejectionReason.COLUMN_DEPTH_EXCEEDED,
+            f"lobby {hub_d:.2f} m + foot band {foot_depth:.2f} m leave {band_depth:.2f} m for the "
+            f"public band, below its {band_min:.2f} m minimum", band_min - band_depth)
+    hub_d = fh - band_depth - foot_depth  # absorb rounding into the lobby, not the band
+
+    public_widths, band_cap, why = _hub_public_widths(alloc, fw, west_w, areas, opening_m, inset)
+    if public_widths is None:
+        return None, why
+    if band_depth > band_cap + 1e-9:
+        binding = min(((r.template.max_area_m2 / max(w - inset, 1e-6), r)
+                       for r, w in zip(alloc.public, public_widths)), key=lambda t: t[0])[1]
+        return None, PlanFailure(
+            RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
+            f"a {band_depth:.2f} m front band would push {binding.zone_id} past its "
+            f"{binding.template.max_area_m2:.0f} m2 maximum")
+
+    specs: dict[str, ZoneSpec] = {}
+    net_band = band_depth - inset
+    for room, w in zip(alloc.public, public_widths):
+        failure = _shape_failure(room, w - inset, net_band, "front band")
+        if failure is not None:
+            return None, failure
+        specs[room.zone_id] = _zone_spec(room, w - inset, net_band, 0.55, 1.70)
+    for flank, w, depths in ((alloc.flank_west, west_w, west_depths),
+                             (alloc.flank_east, east_w, east_depths)):
+        for room, d in zip(flank, depths):
+            specs[room.zone_id] = _zone_spec(room, w - inset, d - inset / 2, 0.55, 1.70)
+    for room, w in zip(alloc.foot, widths):
+        specs[room.zone_id] = _zone_spec(room, w - inset, foot_depth - inset / 2, 0.55, 1.70)
+    hub_target = (hub_w - inset) * (hub_d - inset / 2)
+    specs[alloc.hub.zone_id] = ZoneSpec(
+        alloc.hub.zone_id, (ProgramRole.HALL, ProgramRole.CIRCULATION),
+        hub_target * 0.5, hub_target, hub_target * 1.9, HUB_TEMPLATE.min_short_side_m,
+        HUB_TEMPLATE.max_aspect_ratio)
+
+    doors = (len(alloc.flank_west) + len(alloc.flank_east)
+             + sum(1 for r in alloc.foot if not r.entered_from))
+    return HubPlan(band_depth, public_widths, west_w, hub_w, east_w, hub_d,
+                   west_depths, east_depths, foot_depth, widths, specs, doors), None
+
+
+def _plan_hub_wing_from_witness(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float,
+                                fh: float, hub_w: float, witness: HubSizing,
+                                areas: dict[str, float]) -> tuple[HubPlan | None, PlanFailure | None]:
+    """The wing sized exactly as `hub_bound` found it; the same minimum checks v2 applies."""
+    inset = _EDGE_INSET_ALLOWANCE_M
+    if abs(witness.hub_w_m - hub_w) > 1e-9:
+        return None, PlanFailure(RejectionReason.COLUMN_WIDTH_EXCEEDED,
+                                 f"witness lobby width {witness.hub_w_m:.2f} m is not {hub_w:.2f} m")
+    hub_d = witness.hub_d_m
+    west_w, east_w = witness.west_w_m, fw - hub_w - witness.west_w_m
+    west_depths, east_depths = list(witness.west_depths_m), list(witness.east_depths_m)
+    widths, foot_depth = list(witness.foot_widths_m), witness.foot_depth_m
+    for flank, w, depths in ((alloc.flank_west, west_w, west_depths), (alloc.flank_east, east_w, east_depths)):
+        if len(depths) != len(flank) or abs(sum(depths) - hub_d) > 1e-6:
+            return None, PlanFailure(RejectionReason.COLUMN_DEPTH_EXCEEDED,
+                                     "witness flank depths do not tile the lobby band")
+        for room, d in zip(flank, depths):
+            if w - inset + 1e-6 < room.template.min_short_side_m or d - inset + 1e-6 < room.template.min_short_side_m:
+                return None, PlanFailure(RejectionReason.ROW_WIDTH_EXCEEDED,
+                                         f"witness leaves {room.zone_id} below its minimum ({w:.2f} x {d:.2f})")
+    if len(widths) != len(alloc.foot) or abs(sum(widths) - fw) > 1e-6:
+        return None, PlanFailure(RejectionReason.ROW_WIDTH_EXCEEDED, "witness foot widths do not span the front")
+    for room, w in zip(alloc.foot, widths):
+        if w - inset + 1e-6 < room.template.min_short_side_m or foot_depth - inset + 1e-6 < room.template.min_short_side_m:
+            return None, PlanFailure(RejectionReason.ROW_WIDTH_EXCEEDED,
+                                     f"witness leaves {room.zone_id} below its minimum in the foot band")
+    return _hub_plan_tail(rooms, alloc, fw, fh, hub_w, hub_d, west_w, east_w, west_depths, east_depths,
+                          foot_depth, widths, areas)
+
+
 def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh: float,
-                   hub_w: float) -> tuple[HubPlan | None, PlanFailure | None]:
+                   hub_w: float, witness: HubSizing | None = None,
+                   ) -> tuple[HubPlan | None, PlanFailure | None]:
     """Band depth, lobby rectangle, flank and foot widths, foot depth and every ZoneSpec — mutually
     consistent, in the same order of decisions `_plan_front_band` takes: the rear (here the lobby
     band and the foot band) is sized from the rooms' own programme and the public band absorbs
@@ -1981,6 +2457,12 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
 
     modest = scale_program(rooms, sum(r.template.target_area_m2 for r in rooms))
     areas = {z: spec.net_area_target_m2 for z, spec in modest.items()}
+
+    # 008 follow-up: an ELIGIBLE hub takes the sizing its bound found to pass the gates — the
+    # witness — instead of the area shares below; every check the band applies still applies, and
+    # a witness that fails one is reported, never adjusted. Last-resort hubs keep v2's sizing.
+    if witness is not None:
+        return _plan_hub_wing_from_witness(rooms, alloc, fw, fh, hub_w, witness, areas)
 
     # Lobby depth: deep enough for the deeper flank (stacked rooms add up) and for itself, inside
     # its own aspect band.
@@ -2148,80 +2630,8 @@ def _plan_hub_wing(rooms: list[ProgramRoom], alloc: HubAllocation, fw: float, fh
         if failure is not None:
             return None, failure
 
-    # Public band: takes the depth the wing leaves, floored by its own minimum and capped by the
-    # room that reaches its maximum first (the same rule as `_plan_front_band`). The widths are
-    # chosen below, so the floor here is the short side; the shape band is checked once they are.
-    band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
-    band_depth = round((fh - hub_d - foot_depth) / 0.05) * 0.05
-    if band_depth < band_min - 1e-9:
-        return None, PlanFailure(
-            RejectionReason.COLUMN_DEPTH_EXCEEDED,
-            f"lobby {hub_d:.2f} m + foot band {foot_depth:.2f} m leave {band_depth:.2f} m for the "
-            f"public band, below its {band_min:.2f} m minimum", band_min - band_depth)
-    hub_d = fh - band_depth - foot_depth  # absorb rounding into the lobby, not the band
-
-    # The first public zone must overlap the lobby by a full opening (the cased opening's shared
-    # edge) — not span it entirely, as the front band does for its 1.4 m corridor: spanning a 3.3 m
-    # lobby plus a flank left 1.9 m for the dining zone on every proportion of a 12.4 m front.
-    # Inside that window the band follows the zones' area shares.
-    others = alloc.public[1:]
-    other_area = sum(areas[r.zone_id] for r in others) or 1.0
-    others_min = sum(r.template.min_short_side_m + inset for r in others)
-    # ...and it must reach past the footprint's centre: the entrance resolver prefers the middle of
-    # the street wall and names the first public zone as the room it opens into (C16), and with
-    # parking bays along the front the middle is often the only span clear of them (C11). A 4.45 m
-    # living zone at the west edge left the door at x=8.50 with the living room ending at 8.00.
-    lo_first = max(west_w + opening_m, fw / 2 + opening_m / 2)  # the door, centred, on its wall
-    hi_first = fw - others_min
-    wanted_first = fw * areas[alloc.public[0].zone_id] / max(areas[alloc.public[0].zone_id] + other_area, 1e-6)
-    if hi_first + 1e-6 < lo_first:
-        return None, PlanFailure(
-            RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
-            f"the front band cannot give {alloc.public[0].zone_id} {lo_first:.2f} m to reach the "
-            f"lobby and still seat the other public zones at their minimums", lo_first - hi_first)
-    first_w = round(min(max(wanted_first, lo_first), hi_first) / 0.05) * 0.05
-    public_widths = [first_w]
-    for room in others[:-1]:
-        public_widths.append(round((fw - first_w) * areas[room.zone_id] / other_area / 0.05) * 0.05)
-    if others:
-        public_widths.append(fw - sum(public_widths))
-    for room, w in zip(alloc.public, public_widths):
-        if w - inset + 1e-6 < room.template.min_short_side_m:
-            return None, PlanFailure(
-                RejectionReason.BAND_WIDTH_BELOW_MINIMUM,
-                f"{room.zone_id} would be {w:.2f} m wide in the front band, below its "
-                f"{room.template.min_short_side_m} m minimum")
-    binding = min(((r.template.max_area_m2 / max(w - inset, 1e-6), r)
-                   for r, w in zip(alloc.public, public_widths)), key=lambda t: t[0])
-    if band_depth > binding[0] + inset / 2 + 1e-9:
-        return None, PlanFailure(
-            RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
-            f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
-            f"{binding[1].template.max_area_m2:.0f} m2 maximum")
-
-    specs: dict[str, ZoneSpec] = {}
-    net_band = band_depth - inset
-    for room, w in zip(alloc.public, public_widths):
-        failure = _shape_failure(room, w - inset, net_band, "front band")
-        if failure is not None:
-            return None, failure
-        specs[room.zone_id] = _zone_spec(room, w - inset, net_band, 0.55, 1.70)
-    for flank, w, depths in ((alloc.flank_west, west_w, west_depths),
-                             (alloc.flank_east, east_w, east_depths)):
-        for room, d in zip(flank, depths):
-            specs[room.zone_id] = _zone_spec(room, w - inset, d - inset / 2, 0.55, 1.70)
-    for room, w in zip(alloc.foot, widths):
-        specs[room.zone_id] = _zone_spec(room, w - inset, foot_depth - inset / 2, 0.55, 1.70)
-    hub_target = (hub_w - inset) * (hub_d - inset / 2)
-    specs[alloc.hub.zone_id] = ZoneSpec(
-        alloc.hub.zone_id, (ProgramRole.HALL, ProgramRole.CIRCULATION),
-        hub_target * 0.5, hub_target, hub_target * 1.9, HUB_TEMPLATE.min_short_side_m,
-        HUB_TEMPLATE.max_aspect_ratio)
-
-    doors = (len(alloc.flank_west) + len(alloc.flank_east)
-             + sum(1 for r in alloc.foot if not r.entered_from))
-    return HubPlan(band_depth, public_widths, west_w, hub_w, east_w, hub_d,
-                   west_depths, east_depths, foot_depth, widths, specs, doors), None
+    return _hub_plan_tail(rooms, alloc, fw, fh, hub_w, hub_d, west_w, east_w, west_depths, east_depths,
+                          foot_depth, widths, areas)
 
 
 def _hub_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
@@ -2262,16 +2672,12 @@ def _hub_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: R
     # their hall to it; a request beyond what a lobby can be is declined here so the brief falls
     # through to the partis — and, for a preference, to the service's retry without it.
     corridor = spec.program.corridor
-    widths = _HUB_WIDTHS_M
-    if corridor is not None:
-        wanted = _hall_width_m(corridor, HUB_TEMPLATE.target_area_m2 ** 0.5, cap_m=max(_HUB_WIDTHS_M),
-                               has_safe_room=any(r.role is ProgramRole.SAFE_ROOM for r in rooms))
-        if wanted > max(_HUB_WIDTHS_M) + 1e-9 or wanted < min(_HUB_WIDTHS_M) - 1e-9:
-            return None, ConceptRejection(
-                strategy, RejectionReason.INSUFFICIENT_WING_AREA,
-                f"a {corridor.width_m:.2f} m corridor request is outside what a room lobby can be "
-                f"({min(_HUB_WIDTHS_M):.1f}-{max(_HUB_WIDTHS_M):.1f} m)")
-        widths = (round(wanted / 0.05) * 0.05,)
+    widths = _hub_widths(spec, rooms)
+    if widths is None:
+        return None, ConceptRejection(
+            strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+            f"a {corridor.width_m:.2f} m corridor request is outside what a room lobby can be "
+            f"({min(_HUB_WIDTHS_M):.1f}-{max(_HUB_WIDTHS_M):.1f} m)")
 
     failure: PlanFailure | None = None
     rejection: ConceptRejection | None = None
@@ -2341,6 +2747,331 @@ def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate:
     )
 
 
+# --------------------------------------------------------------------------- hub eligibility (008)
+
+@dataclass(frozen=True)
+class HubGates:
+    """The §6 acceptance numbers a hub plan is held to — referenced, never re-derived."""
+    bedroom_aspect: float
+    master_aspect: float
+    wet_adjacency: float
+
+
+HUB_GATES = HubGates(bedroom_aspect=1.35, master_aspect=1.40, wet_adjacency=0.80)
+
+
+@dataclass(frozen=True)
+class HubSizing:
+    """A sizing of the v2 hub tree that the bound found to pass the gates — the witness. Gross
+    metres on the 0.05 m grid, in the terms `_plan_hub_wing` plans in."""
+    hub_w_m: float
+    hub_d_m: float
+    west_w_m: float
+    west_depths_m: tuple[float, ...]
+    east_depths_m: tuple[float, ...]
+    foot_widths_m: tuple[float, ...]
+    foot_depth_m: float
+
+
+@dataclass(frozen=True)
+class HubBound:
+    """The best the v2 hub tree can do on one outline for one programme, under the access and
+    wet-adjacency rules — specs/008 data-model.md. `gated_*` are None when no sizing reaches the
+    wet gate at all (the 3-wet case)."""
+    fw_m: float
+    fh_m: float
+    hub_widths_m: tuple[float, ...]
+    required_doors: int
+    seated_doors: int
+    best_wet_adjacency: float
+    gated_bedroom_aspect: float | None
+    gated_master_aspect: float | None
+    gated_safe_aspect: float | None
+    evaluated: int
+    #: the sizing that passed the gates, when one did (ELIGIBLE); None otherwise
+    witness: HubSizing | None = None
+
+    def describe(self) -> str:
+        if self.gated_bedroom_aspect is None:
+            return (f"wet adjacency reaches {100 * self.best_wet_adjacency:.0f}% at best "
+                    f"(gate {100 * HUB_GATES.wet_adjacency:.0f}%)")
+        return (f"best reachable bedroom-class aspect {self.gated_bedroom_aspect:.2f} "
+                f"(gate {HUB_GATES.bedroom_aspect}), master {self.gated_master_aspect:.2f} "
+                f"(gate {HUB_GATES.master_aspect}), wet {100 * self.best_wet_adjacency:.0f}%")
+
+
+class HubEligibility(str, Enum):
+    ELIGIBLE = "ELIGIBLE"
+    LAST_RESORT = "LAST_RESORT"
+
+
+def hub_eligibility(bound: HubBound) -> HubEligibility:
+    if (bound.gated_bedroom_aspect is not None
+            and bound.gated_bedroom_aspect <= HUB_GATES.bedroom_aspect + 1e-9
+            and bound.gated_master_aspect is not None
+            and bound.gated_master_aspect <= HUB_GATES.master_aspect + 1e-9):
+        return HubEligibility.ELIGIBLE
+    return HubEligibility.LAST_RESORT
+
+
+def _hub_widths(spec: ArchitecturalSpec, rooms: list[ProgramRoom]) -> tuple[float, ...] | None:
+    """The lobby widths `_hub_concept` tries: the census set, or the one a corridor request pins;
+    None when the request is outside what a lobby can be (the hub is declined)."""
+    corridor = spec.program.corridor
+    if corridor is None:
+        return _HUB_WIDTHS_M
+    wanted = _hall_width_m(corridor, HUB_TEMPLATE.target_area_m2 ** 0.5, cap_m=max(_HUB_WIDTHS_M),
+                           has_safe_room=any(r.role is ProgramRole.SAFE_ROOM for r in rooms))
+    if wanted > max(_HUB_WIDTHS_M) + 1e-9 or wanted < min(_HUB_WIDTHS_M) - 1e-9:
+        return None
+    return (round(wanted / 0.05) * 0.05,)
+
+
+_RectM = tuple[float, float, float, float]  # x, y, w, h — gross metres
+
+
+def _shared_edge_m(a: _RectM, b: _RectM) -> float:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    if abs(ax + aw - bx) < 1e-6 or abs(bx + bw - ax) < 1e-6:
+        return max(0.0, min(ay + ah, by + bh) - max(ay, by))
+    if abs(ay + ah - by) < 1e-6 or abs(by + bh - ay) < 1e-6:
+        return max(0.0, min(ax + aw, bx + bw) - max(ax, bx))
+    return 0.0
+
+
+def _bound_grid(lo: float, hi: float, step: float) -> list[float]:
+    """`lo` itself (a room's exact minimum), then the grid points above it, up to `hi`."""
+    if lo > hi + 1e-9:
+        return []
+    out = [round(lo, 2)]
+    x = math.floor(lo / step + 1e-9) * step + step
+    while x <= hi + 1e-9:
+        out.append(round(x, 2))
+        x += step
+    return out
+
+
+def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[float, ...],
+              grid: float = 0.25) -> HubBound:
+    """Phase 0's bound, on the engine's own allocation: for each lobby width, the tree
+    `_hub_allocation` would build is sized over a grid — lobby depth, flank split, stack splits,
+    foot boundary, ensuite share, foot depth — and checked as rectangles for door seats (>= 1.10 m
+    of shared edge with the lobby), the ensuite beside its master, and M5 wet adjacency (a wet room
+    touching a wet room; the kitchen is ignored, conservatively). Returns the best bedroom-class
+    aspect among sizings that seat every door AND reach the wet gate, exiting early once one passes
+    the §6 gates. Nothing here chooses a sizing: `_plan_hub_wing` is untouched and its own sizing is
+    a point in this space, so the bound is never stricter than the engine on feasibility — only on
+    quality (specs/008 research R1–R5).
+
+    Cost: the flank and foot parts only meet through the lobby's position and depth, so each is
+    tabulated once and combined — a few thousand cheap evaluations per lobby width.
+    """
+    from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
+    opening = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
+    inset = _EDGE_INSET_ALLOWANCE_M
+    wet_roles = (ProgramRole.BATHROOM, ProgramRole.TOILET)
+
+    def net_aspect(w: float, d: float) -> float:
+        w, d = w - inset, d - inset
+        return max(w, d) / max(min(w, d), 1e-6)
+
+    best_wet = 0.0
+    gated: tuple[float, float, float] | None = None   # (bedroom-class max, master, safe)
+    required = seated_max = evaluated = 0
+    modest = scale_program(rooms, sum(r.template.target_area_m2 for r in rooms))
+    areas = {z: spec.net_area_target_m2 for z, spec in modest.items()}
+
+    for hw in widths:
+        alloc, _ = _hub_allocation(rooms, hw)
+        if alloc is None:
+            continue
+        flanks = [alloc.flank_west, alloc.flank_east]
+        doored = [r for r in alloc.foot if not r.entered_from]
+        needs_door = [r for f in flanks for r in f] + doored
+        required = max(required, len(needs_door))
+        band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
+        hub_floor = max([_flank_min_depth_m(f) for f in flanks]
+                        + [HUB_TEMPLATE.min_short_side_m + inset,
+                           HUB_TEMPLATE.target_area_m2 / max(hw - inset, 1e-6) + inset / 2,
+                           hw / HUB_TEMPLATE.max_aspect_ratio])
+        hub_floor = math.ceil(hub_floor / 0.05 - 1e-9) * 0.05   # on the engine's cut grid (witness)
+        hub_cap = min(hw * HUB_TEMPLATE.max_aspect_ratio,
+                      HUB_TEMPLATE.max_area_m2 / max(hw - inset, 1e-6) + inset / 2)
+        mins_w = [_flank_min_width_m(f) for f in flanks]
+        foot_floor = max(r.template.min_short_side_m + inset for r in alloc.foot)
+        master = next((r for r in alloc.foot if r.role is ProgramRole.MASTER_BEDROOM), None)
+        safe = next((r for r in rooms if r.role is ProgramRole.SAFE_ROOM), None)
+        mate = next((r for r in alloc.foot if r.entered_from), None)
+        private_ids = {r.zone_id for r in rooms if r.group is ZoneGroup.PRIVATE}
+
+        # --- structural facts, once per allocation on a representative sizing: door seats and
+        # wet adjacency depend on which room is where, not on the grid (every flank room borders
+        # the lobby over its own depth; the foot boundary window guarantees the two doored rooms
+        # an opening; a wet room under a flank shares its column's bottom edge with the foot).
+        def rectangles(hd: float, w: float, west_d: list[float], east_d: list[float],
+                       fws: list[float], fd: float) -> dict[str, _RectM]:
+            band = fh - hd - fd
+            rects: dict[str, _RectM] = {}
+            y = band
+            for room, d in zip(alloc.flank_west, west_d):
+                rects[room.zone_id] = (0.0, y, w, d); y += d
+            rects[alloc.hub.zone_id] = (w, band, hw, hd)
+            y = band
+            for room, d in zip(alloc.flank_east, east_d):
+                rects[room.zone_id] = (w + hw, y, fw - hw - w, d); y += d
+            x = 0.0
+            for room, fw_ in zip(alloc.foot, fws):
+                rects[room.zone_id] = (x, band + hd, fw_, fd); x += fw_
+            return rects
+
+        def foot_widths(centre: float, ens_w: float) -> list[float] | None:
+            out: list[float] = []
+            for i, room in enumerate(alloc.foot):
+                if room.entered_from:
+                    continue
+                side_w = centre if room is doored[0] else fw - centre
+                m = next((e for e in alloc.foot if e.entered_from == room.zone_id), None)
+                if m is None:
+                    out.append(side_w)
+                    continue
+                if ens_w + room.template.min_short_side_m + inset > side_w + 1e-9:
+                    return None
+                out += [ens_w, side_w - ens_w] if alloc.foot.index(m) < i else [side_w - ens_w, ens_w]
+            for room, w_ in zip(alloc.foot, out):
+                if w_ < room.template.min_short_side_m + inset - 1e-9:
+                    return None
+            return out
+
+        # --- foot table: per boundary and ensuite share, the foot's worst private aspect at every
+        # depth on the grid, folded into prefix minima so a lobby depth (which caps the foot's depth)
+        # reads its best foot in one lookup.
+        ens_min = mate.template.min_short_side_m + inset if mate is not None else 0.0
+        fds_all = _bound_grid(foot_floor, fh - hub_floor - band_min, grid)
+        foot_table: list[tuple[float, list[tuple[float, float, float, float]], list[float]]] = []  # centre, per-fd (worst, master, safe, fd), widths
+        for centre in _bound_grid(mins_w[0] + opening, fw - hw - mins_w[1] + hw - opening, grid):
+            ens_opts = [ens_min]
+            if mate is not None:
+                side = centre if alloc.foot.index(mate) < alloc.foot.index(doored[1]) else fw - centre
+                room_min = next(r for r in alloc.foot if r.zone_id == mate.entered_from).template.min_short_side_m + inset
+                ens_opts = _bound_grid(ens_min, side - room_min, grid) or [ens_min]
+            for ens_w in ens_opts:
+                fws = foot_widths(centre, ens_w)
+                if fws is None:
+                    continue
+                priv = [(r, w_) for r, w_ in zip(alloc.foot, fws) if r.zone_id in private_ids]
+                per_fd: list[tuple[float, float, float, float]] = []
+                for fd in fds_all:
+                    evaluated += 1
+                    worst = max((net_aspect(w_, fd) for _, w_ in priv), default=1.0)
+                    m_asp = next((net_aspect(w_, fd) for r, w_ in priv if r is master), worst)
+                    s_asp = next((net_aspect(w_, fd) for r, w_ in priv if r is safe), 0.0)
+                    per_fd.append((worst, m_asp, s_asp, fd))
+                foot_table.append((centre, per_fd, fws))
+        if not foot_table:
+            continue
+
+        checked_structure = False
+        for hd in _bound_grid(hub_floor, hub_cap, grid):
+            fd_hi = fh - hd - band_min
+            if fd_hi < foot_floor - 1e-9:
+                continue
+
+            def splits(flank: list[ProgramRoom]) -> list[list[float]]:
+                if len(flank) == 1:
+                    return [[hd]]
+                top_min = flank[0].template.min_short_side_m + inset
+                bot_min = flank[1].template.min_short_side_m + inset
+                return [[d1, hd - d1] for d1 in _bound_grid(top_min, hd - bot_min, grid)]
+            west_splits, east_splits = splits(alloc.flank_west), splits(alloc.flank_east)
+
+            for w in _bound_grid(mins_w[0], fw - hw - mins_w[1], grid):
+                e = fw - hw - w
+                # the front band must be able to seat its zones beside this lobby position, and
+                # its depth may not push the binding zone past its maximum — the engine's checks
+                public, band_cap, _ = _hub_public_widths(alloc, fw, w, areas, opening, inset)
+                if public is None:
+                    continue
+                fd_lo = max(foot_floor, fh - hd - band_cap)
+                # best flank split for this (hd, w): the private rooms' worst aspect
+                flank_best: tuple[float, list[float], list[float], float] | None = None
+                for wd in west_splits:
+                    for ed in east_splits:
+                        evaluated += 1
+                        worst = max([net_aspect(w, d) for r, d in zip(alloc.flank_west, wd) if r.zone_id in private_ids]
+                                    + [net_aspect(e, d) for r, d in zip(alloc.flank_east, ed) if r.zone_id in private_ids]
+                                    or [1.0])
+                        s_asp = max([net_aspect(w, d) for r, d in zip(alloc.flank_west, wd) if r is safe]
+                                    + [net_aspect(e, d) for r, d in zip(alloc.flank_east, ed) if r is safe] or [0.0])
+                        if flank_best is None or worst < flank_best[0] - 1e-9:
+                            flank_best = (worst, wd, ed, s_asp)
+                if flank_best is None:
+                    continue
+                lo, hi = w + opening, w + hw - opening
+                i_lo = bisect.bisect_left(fds_all, fd_lo - 1e-9)
+                i_hi = bisect.bisect_right(fds_all, fd_hi + 1e-9)
+                if i_hi <= i_lo:
+                    continue
+                for centre, per_fd, fws in foot_table:
+                    if centre < lo - 1e-9 or centre > hi + 1e-9:
+                        continue
+                    f_worst, m_asp, s_asp_foot, fd_best = min(per_fd[i_lo:i_hi], key=lambda t: t[0])
+                    if not checked_structure:
+                        rects = rectangles(hd, w, flank_best[1], flank_best[2], fws, fds_all[0])
+                        hub_rect = rects[alloc.hub.zone_id]
+                        seated = sum(1 for r in needs_door
+                                     if _shared_edge_m(rects[r.zone_id], hub_rect) >= opening - 1e-6)
+                        seated_max = max(seated_max, seated)
+                        ens_ok = mate is None or _shared_edge_m(
+                            rects[mate.zone_id], rects[mate.entered_from]) >= opening - 1e-6
+                        wets = [r for r in rooms if r.role in wet_roles and r.zone_id in rects]
+                        adj = sum(1 for r in wets if any(
+                            _shared_edge_m(rects[r.zone_id], rects[o.zone_id]) > 0.3 for o in wets if o is not r))
+                        wet = adj / len(wets) if wets else 1.0
+                        best_wet = max(best_wet, wet)
+                        checked_structure = True
+                        structure_ok = seated == len(needs_door) and ens_ok and wet >= HUB_GATES.wet_adjacency - 1e-9
+                    if not structure_ok:
+                        break
+                    worst = max(flank_best[0], f_worst)
+                    s_asp = max(flank_best[3], s_asp_foot)
+                    if gated is None or worst < gated[0] - 1e-9:
+                        gated = (worst, m_asp, s_asp)
+                    if worst <= HUB_GATES.bedroom_aspect + 1e-9 and m_asp <= HUB_GATES.master_aspect + 1e-9:
+                        witness = HubSizing(hw, hd, w, tuple(flank_best[1]), tuple(flank_best[2]),
+                                            tuple(fws), fd_best)
+                        return HubBound(fw, fh, tuple(widths), len(needs_door), len(needs_door),
+                                        best_wet, worst, m_asp, s_asp, evaluated, witness)
+                if checked_structure and not structure_ok:
+                    break
+            if checked_structure and not structure_ok:
+                break
+    return HubBound(fw, fh, tuple(widths), required, seated_max, best_wet,
+                    gated[0] if gated else None, gated[1] if gated else None,
+                    gated[2] if gated else None, evaluated)
+
+
+def _hub_from_witness(spec: ArchitecturalSpec, hub_rooms: list[ProgramRoom], hub: ConceptCandidate,
+                      bound: HubBound, note: str) -> tuple[ConceptCandidate, str]:
+    """The eligible hub candidate rebuilt with its bound's witness sizing (same footprint, same
+    tree, same access); on any failure the v2 candidate is returned with the reason in the note."""
+    witness = bound.witness
+    assert witness is not None
+    alloc, rej = _hub_allocation(hub_rooms, witness.hub_w_m)
+    if alloc is None:
+        return hub, f"{note}; witness not planned: {rej.detail if rej else 'no allocation'}"
+    fw, fh = hub.concept.footprint_width_m, hub.concept.footprint_depth_m
+    plan, why = _plan_hub_wing(hub_rooms, alloc, fw, fh, witness.hub_w_m, witness=witness)
+    if plan is None:
+        return hub, f"{note}; witness not planned: {why.detail if why else '?'}"
+    wing = hub.concept.fixture.wings[0]
+    footprint = Rect(wing.origin_x_u, wing.origin_y_u, wing.w_u, wing.h_u)
+    rebuilt = _hub_candidate(spec, hub_rooms, footprint, footprint, alloc, plan)
+    rebuilt = replace(rebuilt, unused_wing_area_m2=hub.unused_wing_area_m2,
+                      rationale=f"{rebuilt.rationale} (sized by its bound's witness)")
+    return rebuilt, note
+
+
 def _multi_wing_assessment(candidates: list[SolverGeometryCandidate],
                            ) -> ConceptRejection | None:
     """Evaluate whether a second safe wing can host part of the programme.
@@ -2387,6 +3118,7 @@ def generate_concepts(spec: ArchitecturalSpec,
     rooms = variants[0]                     # the literal reading of the brief, for the diagnostics
     accepted: list[ConceptCandidate] = []
     rejections: list[ConceptRejection] = []
+    last_resort: set[int] = set()   # ids of hub candidates demoted by their outline's bound (008)
 
     if not candidates:
         return GenerationResult((), (ConceptRejection(
@@ -2444,10 +3176,9 @@ def generate_concepts(spec: ArchitecturalSpec,
     # only returns arrangements the brief allows (specs/007 FR-7/FR-8), and the sort chooses among
     # candidates that are all acceptable.
     for variant in variants:
-        band, rejection = _front_band_concept(spec, variant, primary.rect)
-        if band is not None:
-            accepted.append(band)
-        elif rejection is not None and variant is rooms:
+        bands, rejection = _front_band_concept(spec, variant, primary.rect)
+        accepted.extend(bands)
+        if not bands and rejection is not None and variant is rooms:
             rejections.append(rejection)
 
         for strategy, west, east, rationale in _allocations(variant):
@@ -2462,6 +3193,25 @@ def generate_concepts(spec: ArchitecturalSpec,
         # area-closer spine plan is an open product question (specs/005 §11), not a side effect.
         hub, rejection = _hub_concept(spec, variant, primary.rect)
         if hub is not None:
+            # 008: a hub is offered as a peer of the other partis only where its tree can meet the
+            # §6 gates on THIS outline (the Phase 0 bound, computed on the engine's own allocation);
+            # elsewhere it is kept as the last resort so no rescued brief becomes a refusal.
+            hub_rooms = [ProgramRoom("HALL", ProgramRole.HALL, ZoneGroup.CIRCULATION, HUB_TEMPLATE)
+                         if r.group is ZoneGroup.CIRCULATION else r for r in variant]
+            bound = hub_bound(hub_rooms, hub.concept.footprint_width_m, hub.concept.footprint_depth_m,
+                              _hub_widths(spec, variant) or _HUB_WIDTHS_M)
+            eligibility = hub_eligibility(bound)
+            note = ("hub eligible on this outline: " if eligibility is HubEligibility.ELIGIBLE
+                    else "hub last resort on this outline: ") + bound.describe()
+            if eligibility is HubEligibility.ELIGIBLE and bound.witness is not None:
+                # 008 follow-up: size the eligible wing as the bound's witness, re-planned through
+                # the same checks; if the witness cannot be planned the v2 candidate stands and the
+                # rationale says why (reported, never tuned around).
+                hub, note = _hub_from_witness(spec, hub_rooms, hub, bound, note)
+            hub = replace(hub, rationale=f"{hub.rationale}; {note}",
+                          hub_last_resort=eligibility is HubEligibility.LAST_RESORT)
+            if eligibility is HubEligibility.LAST_RESORT:
+                last_resort.add(id(hub))
             accepted.append(hub)
         elif rejection is not None and variant is rooms:
             rejections.append(rejection)
@@ -2474,13 +3224,34 @@ def generate_concepts(spec: ArchitecturalSpec,
     # strategies happen to be generated in — the pipeline takes the first concept Geometry Core can
     # realize, so this ordering is what actually decides the delivered house size. Without a target
     # the original strategy order is kept, so the site-driven baselines do not move.
+    # Tier 2 (`Repartition`) candidates are ranked among themselves the same way but AFTER every
+    # normal candidate and its twin: a brief that plans normally never receives one, and one is
+    # delivered only when nothing normal can be realized. Ordering only — no score, no bonus.
+    tier2 = [c for c in accepted if c.repartitioned]
+    accepted = [c for c in accepted if not c.repartitioned]
     if target_m2 is not None:
         accepted.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                      round(c.used_area_m2, 4), c.strategy.value))
+        tier2.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
+                                  round(c.used_area_m2, 4), c.strategy.value))
 
     # Every forced tree first, in the order just decided; then the same trees with their cut
     # positions left to the solver, in the same order. See `_unforced` for why this ordering — and
     # not one twin behind each forced tree — is the one that leaves every existing plan untouched.
-    accepted.extend([_free_twin(c) for c in accepted])
+    twins = [_free_twin(c) for c in accepted]
+    for forced, twin in zip(accepted, twins):
+        if id(forced) in last_resort:
+            last_resort.add(id(twin))
+    accepted.extend(twins)
+    # ...and only then tier 2, forced trees first and their twins after, the same way.
+    accepted.extend(tier2)
+    accepted.extend(_free_twin(c) for c in tier2)
+
+    # 008: last-resort hubs go after EVERY other candidate — the other partis' twins included — in
+    # the order they already had (forced tree before its twin), so the first-realizable pipeline
+    # reaches them only when nothing else plans. Ordering only: no score, no bonus.
+    if last_resort:
+        accepted = ([c for c in accepted if id(c) not in last_resort]
+                    + [c for c in accepted if id(c) in last_resort])
 
     return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms))

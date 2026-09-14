@@ -116,6 +116,147 @@ the requested area. Whether a hub plan should out-rank an area-closer spine plan
 now a live product question, because it happens in production: for those 7 briefs the delivered
 plan is a compact lobby with 83 % wet adjacency instead of a 9.3-aspect spine.
 
+## 6. v2.1 — sizing by shape, measured and NOT accepted (2026-09-13, branch `005-hub-v2.1-sizing`)
+
+Recorded in full on that branch's copy of this file. In one line: sizing the wing by a number-free
+shape objective (least squares on log-aspect over flank split, foot boundary, lobby depth) moved
+the medians (master 1.61 → 1.08, bedroom 1.57 → 1.36) only by choosing which room is the strip —
+safe room 1.66 → 1.76 (8.0 × 4.0 m), more bedrooms above 1.35 (24 → 29 of 43), a guest WC under a
+flank outgrowing its ensuite (one product test) — and `hub_sizing_bound.py` showed the wide-shallow
+outlines cannot reach < 1.6 by any sizing. The miss is topological.
+
+## 7. v3 Phase 0 — topology bound with access seats and wet adjacency (2026-09-14)
+
+**Tool:** `spikes/failure_log_sweep/hub_topology_bound.py [--wet 2|3] [--grid] [--only T1]`. For
+each candidate tree and each of six representative outlines it enumerates every sizing decision
+and every admissible foot-band order on a coarse grid, builds the rooms as rectangles and checks
+the three facts the gates measure: geometry (template minimums, lobby caps, habitable rooms on the
+envelope), access (≥ 1.10 m of shared edge with the lobby for every room that needs a door; ensuite
+beside its master) and wet adjacency (M5's rule). Candidates: T1 = v2 (stacked flank); T3 = no
+stacking, bath beside the lobby; T4/T4b = hybrid wet stack (bath over the ensuite beside the lobby,
+master under both) with two flank bedrooms / with the second bedroom at the foot; T5 = guest bath at
+the lobby's head in the front band; T2 = side-by-side, control only.
+
+**3 bedrooms + safe room + 2 wet rooms** (T1 on a 0.25 m grid, the rest 0.5 m):
+
+| | 14.25 × 12.35 | 18 × 12 | 13 × 15 | 12 × 18 | 10 × 20 | 14 × 16 |
+|---|---|---|---|---|---|---|
+| **T1** seats / wet max | 5/5 · 100 % | 5/5 · 100 % | 5/5 · 100 % | 5/5 · 100 % | 5/5 · 100 % | 5/5 · 100 % |
+| **T1** best bed-class aspect, wet ≥ 80 % | **1.65** ✗ | **2.38** ✗ | **1.32** ✓ | **1.28** ✓ | **1.27** ✓ | **1.42** ✗ |
+| T1 master / safe at that layout | 1.16 / 1.64 | 1.78 / 2.38 | 1.32 / 1.28 | 1.28 / 1.26 | 1.27 / 1.26 | 1.39 / 1.41 |
+| T3 no stacking | access 4/5 | access 4/5 | access 4/5 | access 4/5 | no layout | access 4/5 |
+| T4 hybrid wet stack | access 4/5 | access 4/5 | access 4/5 | access 4/5 | no layout | access 4/5 |
+| T4b hybrid, BED2 at foot | no layout | access 2/5 | access 2/5 | access 2/5 | access 2/5 | access 2/5 |
+| T5 head-band bath | no layout | 1.81, wet 0 % | no layout | no layout | no layout | no layout |
+| T2 side-by-side (control) | BED1 interior | BED1 interior | BED1 interior | BED1 interior | no layout | BED1 interior |
+
+**3 wet rooms**, T1: seats 6/6 everywhere but wet adjacency tops out at **67 %** (the third wet room
+stacks under the second flank bedroom with nothing wet beside it), and with both flanks stacked
+the shape bound is 2.00 / 2.71 / 1.75 / 1.56 / 1.17 / 1.94. T3 and T4 seat 5/6, T4b 3/6; T5 fits
+only 18 × 12 (1.81, wet 0 %); T2 fails exposure everywhere.
+
+**What the seats prove.** A band seats at most two door-needing rooms on the lobby's edge (each
+needs 1.10 m of a ≤ 3.6 m edge and a room between them would need ≥ 2.6 m), and a flank bedroom
+loses its door the moment a bath sits between it and the lobby. For the 5-door brief a three-band
+tree has exactly four seats — two flanks, two at the foot — unless it stacks (T1) or puts a room at
+the lobby's head (T5, an 18 m front only, bath isolated). Every "no stacking" / "wet cluster
+beside the lobby" variant fails access by construction. T1 is the unique three-band tree that
+seats five and clusters the wet rooms — and its stack is what costs the lobby band 4.6 m and breaks
+the bedroom shapes on the wide outlines.
+
+**Decision gate: no topology passes geometry + access + wet adjacency across the set.** T1 passes
+all three on the narrow-deep outlines and fails shape on every outline ≥ 14 m wide. Recommendation
+taken forward as feature 008: not a new tree but a *policy* — offer the hub as a peer only where
+the bound says the outline can pass, keep it as the last resort elsewhere.
+
+## 8. Feature 008 — hub eligibility by computed feasibility, measured (2026-09-14, branch `008-hub-eligibility`)
+
+**What changed** (concept stage only; `_plan_hub_wing`, templates, Geometry Core untouched):
+`hub_bound()` computes, on the engine's own `_hub_allocation` and the lobby widths `_hub_concept`
+would try, the Phase 0 bound with door seats and wet adjacency — 1–58 ms per brief, exiting as
+soon as a sizing passes the gates. A hub whose bound passes (`ELIGIBLE`) keeps v2's ordering; one
+that fails (`LAST_RESORT`) is moved, with its twin, after every other candidate. The rationale
+carries the figures. The Phase 0 tool's T1 row now runs through the same function.
+
+**Baseline `30e2312` vs 008, frozen worktrees, 430-scenario log** (the log grew by 4 refused
+scenarios during the work; both sides were re-run on the same file):
+
+| | baseline | **008** |
+|---|---|---|
+| Plans / LOST / GAINED (vs hub OFF, ≥ 80 %) | 107 / 0 / 10 (7) | 107 / 0 / 10 (7) |
+| Hub candidates / delivered / other parti won | 44 / 19 / 7 | 44 / **12** / **14** |
+| Hub-OFF primaries changed by the hub | 9/97 | **2/97** |
+| Primaries byte-identical, 008 vs baseline | — | **100/107** (the 7 displaced hub plans; nothing else) |
+| Refusal codes | 38 / 94 / 190 / 1 | identical |
+| Test suite | 4 failed (the baseline's own) | **3 failed, all the baseline's**; 0 new (the baseline's 4th, `zoning_pressure_4BR_saferoom`, now passes) |
+| Sweep time (`ab.py`, hub OFF → ON, same process) | — | **536 s → 536 s**; medians 1.43 → 1.43 s (planned) and 0.53 → 0.51 s (refused); worst +0.48 s (SC-006 ✓; a first run under five concurrent sweeps read +37 % and was discarded) |
+
+**The 12 remaining hub primaries**: 3 `ELIGIBLE` (13 × 15; 12 × 18 ×2) and 9 `LAST_RESORT` — every
+one of the 9 is a hub-only rescue (no other parti plans it), delivered as before. The 7 displaced
+primaries reverted to their hub-OFF plans (SC-004: non-hub bedroom median 1.30).
+
+**Quality, by eligibility (`hub_rooms.py`):**
+
+| | baseline hub (19) | 008 eligible (3) | 008 last resort (9) | non-hub (95) |
+|---|---|---|---|---|
+| Bedroom median | 1.57 | **1.42** ✗ | 1.57 | 1.30 |
+| Master median | 1.61 | **1.50** ✗ | 1.61 | 1.55 |
+| Safe room median | 1.66 | 1.48 | 1.84 | 1.26 |
+| Lobby ≤ 1.5 / doors / exposure / circulation | ✓ | ✓ 1.39 / 6 / 100 % / 8 % | ✓ | — |
+| Wet adjacency (hub population) | 79 % | 83 % (12 plans) | | 40 % |
+
+**Reading — the policy works as ordering; the eligible plans still miss the shape gates.** US1/US2
+hold exactly (SC-001, SC-002, SC-004, SC-005, SC-006 tests). SC-003 fails: the bound proves a
+sizing exists on 12 × 18 with all four bedroom-class rooms ≤ 1.28, but `_plan_hub_wing`'s
+area-share sizing delivers 5.15 × 2.8 / 3.45 × 4.6 bedrooms and a 4.8 × 3.2 master (1.42 / 1.50)
+on the same outline — the gap between "can be good" and "is good" is the sizing on *eligible*
+outlines, where (unlike the wide-shallow case v2.1 measured) a passing sizing demonstrably exists
+and the bound has already found it.
+
+**Not merged; stopped for review.** The candidate next step, if wanted, is narrow and already
+half-built: on `ELIGIBLE` outlines only, let `_plan_hub_wing` take the sizing `hub_bound` found
+(lobby depth, flank split, foot boundary, foot depth) instead of its area shares — measured with
+the same harness; last-resort outlines keep v2's sizing.
+
+## 9. 008 follow-up — eligible hubs sized by their bound's witness (2026-09-14, branch `008-hub-eligibility`)
+
+**What changed** (concept stage only; topology, ranking, thresholds, validators, templates and
+Geometry Core untouched): `hub_bound()` now returns the sizing it found to pass the gates — the
+witness (`HubSizing`: lobby width and depth, flank split, stack splits, foot widths, foot depth) —
+and for an `ELIGIBLE` candidate `generate_concepts` re-plans the wing through `_plan_hub_wing(…,
+witness=…)`, which takes the witness's rectangles instead of the area shares and runs the same
+minimum, band and cap checks; the candidate is rebuilt on the same footprint, tree and access.
+`LAST_RESORT` hubs keep v2's sizing to the byte. Two things the bound had to learn for the witness
+to be plannable at all, both engine rules it had ignored: the front band's zone-width feasibility
+beside the lobby and the binding public zone's maximum area (a witness with a 5.0 m foot on a
+12 × 18 outline left an 8.4 m band that pushed LIVING past 46 m²). With those in, every witness
+planned (`witness not planned` never appears in the sweep). One consequence worth knowing: the
+bound is evaluated on the footprint the concept plans (12 × 14.4 m for the 216 m² brief on the
+12 × 18 outline), not on the outline — the Phase 0 tables were outline-only.
+
+**Measured, same 431-scenario log** (the log gained one scenario that plans, 12.5 × 14.5 m, during
+the work; both sides of every comparison ran on the same file):
+
+| Acceptance | Result |
+|---|---|
+| ELIGIBLE hub primaries pass all 8 gates | **4/4** (`quality_metrics.py --contexts` on those four): bedroom **1.16** (0 of 9 above 1.35), master **1.27** (0/4), safe room 1.25, lobby 1.3 — 100 % ≤ 1.5, doors 6, exposure 100 %, circulation 9 % (max 10 %), **wet adjacency 100 %**, public zone contiguous 100 % |
+| LAST_RESORT plans byte-identical | **9/9** — `snapshot --compare` vs 008: 104/108 identical, the 4 changed are exactly the eligible hubs; their medians unchanged (1.57 / 1.61 / 1.84) |
+| Non-hub primaries unchanged | **95/95** (same compare; non-hub medians 1.30 / 1.55 / 1.26 as before) |
+| LOST / rescues | 0 / the 10 hub-only rescues still delivered (7 counted) |
+| Refusal codes | identical (38 / 94 / 190 / 1) |
+| Test suite | 3 failed — the baseline's own — 0 new; hub/eligibility tests 18/18 |
+| Sweep time (`ab.py`, hub OFF → ON, uncontended) | 540 s → 552 s (+2.2 %); medians +0.06 s / +0.05 s; worst +0.88 s; hub-OFF primaries changed 3/98 (the 4th eligible hub is the log's new 12.5 × 14.5 scenario) |
+
+**Before → after on the eligible plans** (`hub_rooms.py`, realized rectangles): bedroom 1.42 →
+**1.16**, master 1.50 → **1.27**, safe room 1.48 → **1.25**; 12 × 14.4 now plans as a 3.6 × 4.6 lobby
+with 3.25 | 5.15 m flanks, a 5.0 m-deep foot band [1.8 | 3.95 | 6.25] and a 4.8 m front band —
+the witness, realized within the wall insets.
+
+**Reading.** SC-003 of spec 008 is met by this follow-up: where the bound says a passing sizing
+exists, taking that sizing delivers it. The hub population as a whole is now 4 good plans plus
+9 last-resort rescues (their strips are the wide-shallow topology limit, §7). Not merged; stopped
+for review.
+
 ## 4. Decision
 
 - `HUB_PRIVATE_WING` v1: **not committed**. Left in the working tree (`concept_generator.py`, `test_concept_generator.py`) for the owner to keep on a branch or drop; the harness, plan, research, data model, quickstart, tasks and this report are committed so v2 starts from measured ground.
