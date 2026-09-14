@@ -1,7 +1,7 @@
 # Implementation Plan: Wet-Room Semantics
 
 **Branch**: `007-wet-room-semantics` (worktree `../sddproject-007`, from `75b31e8`) | **Date**: 2026-09-14 | **Spec**: [spec.md](./spec.md)
-**Status**: Phases 1–4 implemented and gated (see §Results); Phase 5 not started; not merged
+**Status**: Phases 1–6 implemented and gated (see §Results); Phases 1–5 and the fixtures merged in PR #2, Phase 6 envelope in a follow-up PR
 
 ## Summary
 
@@ -186,6 +186,7 @@ Commits: `30e2312` baseline (interim guard + docs) → `eefc335` P1 → `eea755a
 | clarification | ensuite + guest WC + second bedroom → `NEEDS_CLARIFICATION` before planning, naming the bedroom, listing the answers, choosing none |
 | variant | `variant_keeps_bathroom_access` removed; FLEXIBLE-only rule reproduces the guard's sweep exactly; the FLEXIBLE reported brief plans at 174.3 m² with C17 passing |
 | G-fixtures (Phase 6, fixtures half — 2026-09-14) | 4BR/2wet fixture moved to 13.2×10.6 m (measured: refuses at 13.2×10.2 and 13.2×10.4, plans from 13.2×10.5); 13.2×10.2 m is now the refusal test; the many-bedroom tests assert C17. Full suite green. Still open: the envelope grid (`envelope.py`), the `scope.py` claims, and a 6BR fixture |
+| G-envelope + G-fixtures (Phase 6, envelope half — 2026-09-14) | `envelope.py` run: 108/216 cells plan, C17 failures 0, crashes 0 (1BR 14 %, 2BR 56 %, 3BR 72 %, 4BR 69 %, 5BR 39 %, 6BR 50 %); `ENVELOPE.md` committed; `scope.py` claims rewritten from it (old 130/165 m² figures withdrawn); 6BR/2wet fixture at 13.0×14.0 m (refuses at 13.2×13.0 and 12.5×14.0, plans from 13.0×13.5). Notable: 5BR/2wet with a safe room and 1BR/2wet plan on none of the six footprints. Phase 6 complete |
 
 Note on the plan's `--toggle wetkinds`: the cross-commit snapshot (`snapshot.py --compare`) is the
 instrument actually used — it is the same comparison without needing an in-process OFF arm.
