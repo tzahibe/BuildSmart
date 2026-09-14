@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from app.observability import failure_log
 from app.projects.models import (SetbackAssumptions, SourceTag, StreetSide, TaggedBool,
-                                 TaggedInt)
+                                 TaggedInt, WetRoomKindRecord)
 from app.projects.routes import base_routes as project_routes
 from app.vertical_slice.general_pipeline import PIPELINE_STAGES
 
@@ -75,6 +75,34 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
         else (current.rear_m if current else site_geometry.REAR_SETBACK_M),
     )
 
+    wet_rooms = _int(body.wet_rooms, project.wet_rooms)
+    # WHAT THE WET ROOMS ARE. Supplied rows replace the stored ones whole and are the person's
+    # word (`requested`). Rows beyond the count are refused here, not silently dropped — the count
+    # is the authority, and a contradiction is theirs to settle. When only the COUNT changes, the
+    # stored rows are kept up to the new count; the rest are unstated.
+    if body.wet_room_kinds is not None:
+        if wet_rooms.value is not None and len(body.wet_room_kinds) > wet_rooms.value:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "WET_ROOM_KINDS_EXCEED_COUNT",
+                        "message": f"תוארו {len(body.wet_room_kinds)} חדרי רחצה אבל המספר הוא "
+                                   f"{wet_rooms.value}. יש להתאים את המספר או את הרשימה.",
+                        "detail": f"{len(body.wet_room_kinds)} kinds for wet_rooms={wet_rooms.value}"})
+        stored = project.wet_room_kinds
+        wet_room_kinds = [
+            WetRoomKindRecord(
+                kind=k.kind, host=k.host, strength=k.strength,
+                # The brief's own words for the room survive an edit that keeps its kind; a row
+                # the person changed no longer says what the brief said.
+                source_text=(stored[i].source_text if i < len(stored)
+                             and (stored[i].kind, stored[i].host) == (k.kind, k.host) else ""),
+                source=SourceTag.requested if k.kind != "unspecified" else SourceTag.unknown)
+            for i, k in enumerate(body.wet_room_kinds)]
+    elif wet_rooms.value is not None and len(project.wet_room_kinds) > wet_rooms.value:
+        wet_room_kinds = list(project.wet_room_kinds[:wet_rooms.value])
+    else:
+        wet_room_kinds = None  # keep what is stored
+
     updated = project_routes.repository.set_parsed_requirements(
         project_id,
         floors=_int(body.floors, project.floors),
@@ -82,9 +110,10 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
         safe_room=_bool(body.safe_room, project.safe_room),
         parking_spaces=_int(body.parking_spaces, project.parking_spaces),
         pool=project.pool,
-        wet_rooms=_int(body.wet_rooms, project.wet_rooms),
+        wet_rooms=wet_rooms,
         open_plan=_bool(body.open_plan, project.open_plan),
         setbacks=setbacks,
+        wet_room_kinds=wet_room_kinds,
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Project not found")

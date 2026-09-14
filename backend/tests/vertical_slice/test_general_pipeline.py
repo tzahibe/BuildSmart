@@ -55,8 +55,9 @@ def test_no_room_overlaps_an_exclusion_zone(cases, case_id):
 @pytest.mark.parametrize("case_id", CASE_IDS)
 def test_all_slice_checks_still_pass(cases, case_id):
     report = cases[case_id].validation
-    # C14/C15 only run when a corridor width or a relationship was requested; C16 and C18 always do.
-    assert len(report.checks) == 15
+    # C14/C15 only run when a corridor width or a relationship was requested; C16, C17 (bathroom
+    # access against the programme's requirements) and C18 always do.
+    assert len(report.checks) == 16
     assert report.ok, "; ".join(f"{c.check_id}: {c.detail}" for c in report.failures())
 
 

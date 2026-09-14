@@ -8,6 +8,7 @@ from enum import Enum
 
 class ProposalActionType(str, Enum):
     update_project_fields = "UPDATE_PROJECT_FIELDS"
+    update_wet_room_kind = "UPDATE_WET_ROOM_KIND"
     add_preference = "ADD_PREFERENCE"
     update_preference = "UPDATE_PREFERENCE"
     remove_preference = "REMOVE_PREFERENCE"

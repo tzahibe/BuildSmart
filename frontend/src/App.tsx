@@ -330,6 +330,13 @@ function App() {
     try {
       const updated = await updateRequirementsReview(project.project_id, edit)
       setReview(updated)
+      // THE WET ROOMS ARE THE BACKEND'S CALL. The edit is stored either way; if what was stored
+      // still leaves a bedroom without a bathroom, generation would refuse with the same words —
+      // so stay on the review screen and show them there, where they can be answered (specs/007).
+      if (updated.wet_room_problem) {
+        setView('review')
+        return
+      }
       // The percentage on the loading screen comes from these callbacks — one per pipeline stage,
       // as the backend enters it. No stream means no percentage, not a made-up one.
       setDemoPlans(await generateDemoDesignStreaming(project.project_id, setDemoProgress))

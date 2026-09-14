@@ -132,6 +132,21 @@ class CorridorWidthField(BaseModel):
     source: SourceTag = SourceTag.unknown
 
 
+class WetRoomKindRecord(BaseModel):
+    """Storage form of one wet room's stated kind (specs/007). Plain strings, like
+    `RoomRelationshipRecord`, so a value this build does not know still loads; USING an unknown
+    value fails closed in `scope.check_supported`, never here."""
+
+    #: "shared_bathroom" | "ensuite" | "guest_wc" | "unspecified" — see vertical_slice.spec.WetRoomKind
+    kind: str = "unspecified"
+    #: ensuite only: "MASTER_BEDROOM" | "BEDROOM"
+    host: str | None = None
+    #: "required" | "flexible"
+    strength: str = "required"
+    source_text: str = ""
+    source: SourceTag = SourceTag.unknown
+
+
 class RoomRelationshipRecord(BaseModel):
     """Storage form of a requested room relationship — role tokens, never zone ids, so the record
     stays valid whatever concept the planner later chooses."""
@@ -406,6 +421,10 @@ class Project(BaseModel):
     unsupported_requests: list[UnsupportedRequestRecord] = Field(default_factory=list)
     corridor_width: CorridorWidthField | None = None
     room_relationships: list[RoomRelationshipRecord] = Field(default_factory=list)
+    #: What the brief said about each wet room, in order (specs/007). Empty — every project stored
+    #: before the field existed — means every wet room is unspecified and the programme is exactly
+    #: what a bare count always produced. Never longer than `wet_rooms`.
+    wet_room_kinds: list[WetRoomKindRecord] = Field(default_factory=list)
     requirements_parsed_at: datetime | None = None
 
     # Parametric design model — generated deterministically (no LLM) from the fields above by

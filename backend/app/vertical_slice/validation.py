@@ -31,7 +31,8 @@ from .geometry_core.model import (
     u_to_m,
 )
 from .site import SitePlan
-from .spec import CorridorRequirement
+from .spec import CorridorRequirement, WetRoomKind
+from .wet_rooms import ResolvedWetRoom
 from .windows import DAYLIGHT_ROLES, Window
 
 TOL_M2 = 0.01
@@ -150,7 +151,8 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
              interior_doors: list[Door], entrance_door: Door, windows: list[Window],
              furniture: list[FurnitureCheck], site: SitePlan,
              corridor: CorridorRequirement | None = None,
-             relationships: tuple = ()) -> ValidationReport:
+             relationships: tuple = (),
+             wet_rooms: tuple[ResolvedWetRoom, ...] = ()) -> ValidationReport:
     rep = ValidationReport()
 
     # C1 — no overlap
@@ -377,5 +379,42 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     rep.add("C13", "declared access topology is physically realized", not unrealized,
             "; ".join(unrealized) or
             f"all {len(fixture.access.edges)} declared edges have a physical connection")
+
+    # C17 — realized bathroom access matches the AUTHORITATIVE requirements (specs/007 FR-9).
+    #
+    # `wet_rooms` are the brief's wet-room kinds as the programme resolved them: which zone, what
+    # kind, and — for an ensuite — which bedroom. This check compares the doors that were BUILT to
+    # that. It never reads intent off the geometry: a bathroom that happens to be entered from a
+    # bedroom is a failure against a SHARED_BATHROOM requirement, not evidence of an ensuite.
+    #
+    # FAILS CLOSED. A wet zone the requirements do not cover, a requirement naming a zone the plan
+    # does not have, or no requirements at all for a plan that has wet rooms — every one of these
+    # is a failure, never a pass by absence. Whatever candidate won and however ranking may change,
+    # a drawing cannot contradict what the person was told about their bathrooms.
+    bad = []
+    circulation = {z.zone_id for z in fixture.zones
+                   if {ProgramRole.HALL, ProgramRole.CIRCULATION} & set(z.roles)}
+    wet_zones = {z.zone_id for z in fixture.zones
+                 if {ProgramRole.BATHROOM, ProgramRole.TOILET} & set(z.roles)}
+    covered = {w.zone_id for w in wet_rooms}
+    for zone_id in sorted(wet_zones - covered):
+        bad.append(f"{zone_id}: kind unknown — no requirement covers it")
+    for w in wet_rooms:
+        if w.zone_id not in rects:
+            bad.append(f"{w.zone_id}: required but not in the plan")
+            continue
+        entered_from = sorted({d.a if d.b == w.zone_id else d.b for d in interior_doors
+                               if w.zone_id in (d.a, d.b)})
+        if w.kind is WetRoomKind.ENSUITE:
+            expected = f"only from {w.host_zone}"
+            ok = entered_from == [w.host_zone]
+        else:
+            expected = "only from circulation"
+            ok = len(entered_from) == 1 and entered_from[0] in circulation
+        if not ok:
+            bad.append(f"{w.zone_id} ({w.kind.value}): entered from "
+                       f"{', '.join(entered_from) or 'nothing'}, required {expected}")
+    rep.add("C17", "bathroom access matches the requirements", not bad,
+            "; ".join(bad) or f"all {len(wet_rooms)} wet rooms entered as required")
 
     return rep

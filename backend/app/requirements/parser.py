@@ -1,6 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Literal
 
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -60,6 +61,17 @@ with no stated bathroom count is assumed to have one.
   one, not two. Separate rooms are separate: a שירותי אורחים in addition to that master en-suite
   makes two.
 - An en-suite described as part of a bedroom still counts, and the count is the TOTAL for the house.
+
+`wet_room_kinds` — WHAT EACH WET ROOM IS, in the order the text names them (one item per wet room,
+never more than `wet_rooms`; fewer is fine — the rest are unstated):
+- "ensuite" with host "MASTER_BEDROOM": a bathroom/shower belonging to the master bedroom — "חדר הורים עם מקלחת", "חדר הורים עם שירותים", "אנסוויט", "חדר רחצה צמוד לחדר ההורים".
+- "ensuite" with host "BEDROOM": a bathroom belonging to a child's/secondary bedroom — "חדר רחצה לחדר הילדים", "לכל חדר שינה חדר רחצה צמוד" (one item PER such bedroom).
+- "guest_wc": שירותי אורחים / שירותים לאורחים / שירותים ליד הכניסה — a WC, not a full bathroom.
+- "shared_bathroom": a bathroom or shower room named without belonging to any bedroom — "חדר רחצה", "מקלחת", "חדר אמבטיה".
+- "unspecified": the text only COUNTS ("3 חדרי רחצה") and says nothing about a room's kind. Use it for every counted room the text does not describe. When in doubt, "unspecified" — never guess a kind.
+- `strength` is "flexible" ONLY when the person says the room's placement does not matter or may be attached to a bedroom ("לא משנה איפה", "יכול להיות צמוד לחדר", "גמיש"); otherwise "required".
+- `source_text` quotes the person's own words for that one room.
+- `host` is null for every kind but "ensuite".
 
 Special rule for `open_plan` (is the kitchen open to the living/dining area?):
 - READ NEGATION CAREFULLY. This is the field most easily got wrong.
@@ -221,6 +233,17 @@ class UnsupportedRequest(BaseModel):
     severity: RequestSeverity = RequestSeverity.AMBIGUOUS
 
 
+class WetRoomKindItem(BaseModel):
+    """What the brief said about one wet room (specs/007). `kind`/`host`/`strength` are the plain
+    strings `vertical_slice.spec.WetRoomKind` / `WetRoomStrength` accept; a value the vocabulary does
+    not know is a clarification at generation time, never a silent default."""
+
+    kind: Literal["shared_bathroom", "ensuite", "guest_wc", "unspecified"] = "unspecified"
+    host: Literal["MASTER_BEDROOM", "BEDROOM"] | None = None
+    strength: Literal["required", "flexible"] = "required"
+    source_text: str = ""
+
+
 class RequirementExtraction(BaseModel):
     floors: TaggedInt
     bedrooms: TaggedInt
@@ -237,6 +260,9 @@ class RequirementExtraction(BaseModel):
     other_requests: list[UnsupportedRequest] = Field(default_factory=list)
     #: Defaulted so extractions built before this field existed still validate.
     room_relationships: list[RoomRelationship] = Field(default_factory=list)
+    #: What the brief said about each wet room, in order (specs/007). Empty for extractions made
+    #: before the field existed — every wet room unspecified, the programme a bare count gives.
+    wet_room_kinds: list[WetRoomKindItem] = Field(default_factory=list)
     corridor_width: CorridorWidth = Field(
         default_factory=lambda: CorridorWidth(value_m=None, source=SourceTag.unknown))
 

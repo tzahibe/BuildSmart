@@ -16,6 +16,7 @@ from app.projects.models import (
     Room,
     TaggedBool,
     TaggedInt,
+    WetRoomKindRecord,
 )
 
 
@@ -54,6 +55,7 @@ class ProjectRepository(ABC):
         corridor_width: CorridorWidthField | None = None,
         room_relationships: list[RoomRelationshipRecord] | None = None,
         setbacks: SetbackAssumptions | None = None,
+        wet_room_kinds: list[WetRoomKindRecord] | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -187,6 +189,7 @@ class JsonFileProjectRepository(ProjectRepository):
         corridor_width: CorridorWidthField | None = None,
         room_relationships: list[RoomRelationshipRecord] | None = None,
         setbacks: SetbackAssumptions | None = None,
+        wet_room_kinds: list[WetRoomKindRecord] | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -206,6 +209,10 @@ class JsonFileProjectRepository(ProjectRepository):
                 "unsupported_requests": unsupported_requests or [],
                 "corridor_width": corridor_width,
                 "room_relationships": room_relationships or [],
+                # `None` keeps what is stored: a review edit of another field must not erase what
+                # the brief said about the wet rooms. An empty list is an explicit "nothing stated".
+                "wet_room_kinds": (wet_room_kinds if wet_room_kinds is not None
+                                   else existing.wet_room_kinds),
                 "setbacks": setbacks if setbacks is not None else existing.setbacks,
                 "requirements_parsed_at": datetime.now(UTC),
             }

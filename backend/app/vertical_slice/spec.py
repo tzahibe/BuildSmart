@@ -108,6 +108,46 @@ class RoomRelationshipRequirement:
     source_text: str = ""
 
 
+class WetRoomKind(str, Enum):
+    """What a wet room IS, in terms of who reaches it. Four distinct things, never collapsed.
+
+    A wet room used to be a count, and `build_room_program` re-invented the kinds from the number —
+    so "ensuite + guest WC" and "two shared bathrooms" arrived as the same brief. The kinds carry
+    what the person actually said; `UNSPECIFIED` is the honest value for what they did not.
+    """
+
+    SHARED_BATHROOM = "shared_bathroom"   # full bathroom, entered from circulation
+    ENSUITE = "ensuite"                   # full bathroom, entered ONLY from its host bedroom
+    GUEST_WC = "guest_wc"                 # WC + basin, entered from circulation
+    UNSPECIFIED = "unspecified"           # counted by the brief, kind not stated
+
+
+class WetRoomStrength(str, Enum):
+    """REQUIRED is the brief as written. FLEXIBLE means the person said the placement does not
+    matter — the only case in which the planner may hang a shared bathroom off a bedroom."""
+
+    REQUIRED = "required"
+    FLEXIBLE = "flexible"
+
+
+#: Host tokens an ENSUITE may name. Which secondary bedroom hosts a `BEDROOM` ensuite is the
+#: programme's choice (`concept_generator.resolve_wet_rooms`), never the brief's.
+ENSUITE_HOST_MASTER = "MASTER_BEDROOM"
+ENSUITE_HOST_BEDROOM = "BEDROOM"
+
+
+@dataclass(frozen=True)
+class WetRoomRequirement:
+    """One wet room the brief counted, with whatever the brief said about it."""
+
+    kind: WetRoomKind = WetRoomKind.UNSPECIFIED
+    #: ENSUITE only: `ENSUITE_HOST_MASTER` (the default when an ensuite names no host) or
+    #: `ENSUITE_HOST_BEDROOM`. `None` for every other kind.
+    host: str | None = None
+    strength: WetRoomStrength = WetRoomStrength.REQUIRED
+    source_text: str = ""
+
+
 @dataclass(frozen=True)
 class ProgramSpec:
     """What the house must contain. Counts, plus the size the user asked for.
@@ -130,6 +170,11 @@ class ProgramSpec:
     corridor: CorridorRequirement | None = None
     #: Room relationships the brief asked for. Hard ones gate the plan; preferences rank candidates.
     relationships: tuple[RoomRelationshipRequirement, ...] = ()
+    #: What the brief said about each wet room, in order. Empty (the legacy value) means every wet
+    #: room is `UNSPECIFIED`; shorter than `wet_rooms` is padded with `UNSPECIFIED`; longer is a
+    #: defect the engine refuses (`concept_generator.resolve_wet_rooms`). The COUNT stays the
+    #: authority on how many.
+    wet_room_kinds: tuple[WetRoomRequirement, ...] = ()
 
 
 @dataclass(frozen=True)

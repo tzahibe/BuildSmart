@@ -2,8 +2,11 @@
 
     .venv/bin/python3 spikes/failure_log_sweep/ab.py --toggle twins   # unforced-twin fallback
     .venv/bin/python3 spikes/failure_log_sweep/ab.py --toggle hub     # HUB_PRIVATE_WING parti
+    .venv/bin/python3 spikes/failure_log_sweep/ab.py --toggle daylight # shared rows at column ends
 
-OFF disables the mechanism by filtering the generator's candidate list; ON is the shipped code.
+OFF disables the mechanism — by filtering the generator's candidate list, or for `daylight` by
+restoring the previous row ordering (front band: shared rows last; column partis: none); ON is
+the shipped code.
 Gates reported: pre-existing primary designs byte-identical; LOST == 0; gains only at >= 80 % of the
 requested area; latency per scenario. Writes `gained.json` beside this file.
 """
@@ -26,6 +29,14 @@ from spikes.failure_log_sweep.sweep import (  # noqa: E402
 )
 
 SHIPPED = cg.generate_concepts
+SHIPPED_DAYLIGHT_ORDER = cg._daylight_order
+
+
+def previous_daylight_order(rows, *, north_is_envelope):
+    """The ordering before shared rows were sent to BOTH exterior ends of a column."""
+    if north_is_envelope:
+        return list(rows)
+    return [row for row in rows if len(row) < 2] + [row for row in rows if len(row) >= 2]
 
 
 def make_filter(toggle: str):
@@ -59,6 +70,8 @@ def run_all(contexts, label, recorder: StrategyRecorder):
                        rooms=len(res.design.rooms), code=None)
         except svc.DemoGenerationError as exc:
             rec = dict(status="REFUSED", code=exc.code + ("+outline" if "כן מתאפשר" in exc.message else ""))
+            failed = ((getattr(exc, "diagnostics", None) or {}).get("validation") or {}).get("failed_checks") or []
+            rec["checks"] = [f"{c['check']}: {c['detail']}" for c in failed]
         except Exception as exc:  # noqa: BLE001
             rec = dict(status="CRASH", code=f"{type(exc).__name__}: {exc}")
         rec["seconds"] = time.perf_counter() - t
@@ -75,18 +88,22 @@ def run_all(contexts, label, recorder: StrategyRecorder):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--toggle", choices=("twins", "hub"), required=True)
+    ap.add_argument("--toggle", choices=("twins", "hub", "daylight"), required=True)
     args = ap.parse_args()
     contexts = distinct_contexts()
     by_key = {key_of(c): c for c in contexts}
     print(f"scenarios: {len(contexts)}   toggle: {args.toggle}")
 
     recorder = StrategyRecorder()
-    cg.generate_concepts = make_filter(args.toggle)
+    if args.toggle == "daylight":
+        cg._daylight_order = previous_daylight_order
+    else:
+        cg.generate_concepts = make_filter(args.toggle)
     recorder.install()
     off = run_all(contexts, "OFF", recorder)
     recorder.remove()
     cg.generate_concepts = SHIPPED
+    cg._daylight_order = SHIPPED_DAYLIGHT_ORDER
     recorder.install()
     on = run_all(contexts, "ON ", recorder)
     recorder.remove()
@@ -122,6 +139,15 @@ def main():
     ca = Counter(v["code"] for v in on.values() if v["status"] == "REFUSED")
     for code in sorted(set(cb) | set(ca)):
         print(f"  {code:52s} OFF={cb.get(code,0):4d}  ON={ca.get(code,0):4d}")
+
+    print("\nPLAN_FAILED_VALIDATION checks:")
+    kb = Counter(c.split(":")[0] for v in off.values() for c in v.get("checks", ()))
+    ka = Counter(c.split(":")[0] for v in on.values() for c in v.get("checks", ()))
+    for check in sorted(set(kb) | set(ka)):
+        print(f"  {check:8s} OFF={kb.get(check,0):4d}  ON={ka.get(check,0):4d}")
+    for k, v in on.items():
+        if v["status"] == "REFUSED" and v.get("checks") and not off[k].get("checks"):
+            print("  NEWLY INVALID:", by_key[k], "->", v["checks"], "(was", off[k]["status"], off[k]["code"], ")")
 
     print("\nstrategy of delivered plans (ON):", dict(Counter(v["strategy"] for v in on.values() if v["status"] == "PLANNED")))
     if args.toggle == "hub":
