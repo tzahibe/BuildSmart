@@ -56,6 +56,12 @@ def _spec(program: ProgramSpec) -> ArchitecturalSpec:
     return ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=program)
 
 
+def _tiers(candidates):
+    """The normal candidates and the tier-2 (`Repartition`) ones, in their list order."""
+    return ([c for c in candidates if not c.repartitioned],
+            [c for c in candidates if c.repartitioned])
+
+
 # ------------------------------------------------------------------ programme generation
 
 @pytest.mark.parametrize("name", sorted(PROGRAMS))
@@ -255,14 +261,18 @@ def test_generator_produces_a_bounded_candidate_set(name):
     # same rooms that needs less depth (`programme_variants`), so the ceiling is per-variant — and
     # every forced-cut tree is followed by its unforced twin (`_free_twin`), which doubles the list
     # without adding a single solver attempt to a brief the forced trees already realize.
-    assert 1 <= len(result.candidates) <= 24
     twins = [c for c in result.candidates if c.rationale.endswith(FREE_TWIN_RATIONALE)]
     assert len(twins) * 2 == len(result.candidates)
     # 008: a hub the outline's bound demotes sits after every peer as the last resort (forced tree,
-    # then its twin); among the peers, twins still come after every forced tree.
+    # then its twin); among the peers, twins still come after every forced tree. Tier 2
+    # (`Repartition`) is its own block after every normal peer, ordered the same way inside.
     peers = [c for c in result.candidates if "hub last resort" not in c.rationale]
-    peer_twins = [c for c in peers if c.rationale.endswith(FREE_TWIN_RATIONALE)]
-    assert peers[len(peer_twins):] == peer_twins, "twins must come after every forced tree"
+    tier1, tier2 = _tiers(peers)
+    assert 1 <= len(tier1) <= 24
+    assert peers == tier1 + tier2, "tier 2 comes after every normal candidate and twin"
+    for block in (tier1, tier2):
+        block_twins = [c for c in block if c.rationale.endswith(FREE_TWIN_RATIONALE)]
+        assert block[len(block_twins):] == block_twins, "twins must come after every forced tree"
     demoted = [c for c in result.candidates if "hub last resort" in c.rationale]
     assert result.candidates[len(peers):] == tuple(demoted)
     assert [c.rationale.endswith(FREE_TWIN_RATIONALE) for c in demoted] in ([], [False, True])
@@ -488,7 +498,7 @@ def test_hub_is_offered_only_for_three_or_more_bedrooms():
     assert twins and len(twins) * 2 == len(hubs)
     # 008: the forced-before-twin rule holds inside the peer block; a hub the outline's bound demotes
     # sits after every peer (forced tree, then its twin) — see test_a_demoted_hub_is_the_last_resort.
-    peers = [c for c in three.candidates if "hub last resort" not in c.rationale]
+    peers, _ = _tiers([c for c in three.candidates if "hub last resort" not in c.rationale])
     first_twin = next(i for i, c in enumerate(peers) if c.rationale.endswith(FREE_TWIN_RATIONALE))
     last_forced = max(i for i, c in enumerate(peers) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
     assert last_forced < first_twin, "every forced tree must precede every twin"
@@ -1208,7 +1218,7 @@ def test_a_demoted_hub_is_the_last_resort():
     assert cands[-2:] == hubs, "forced hub then its twin, after everything"
     assert not cands[-2].rationale.endswith(FREE_TWIN_RATIONALE)
     assert cands[-1].rationale.endswith(FREE_TWIN_RATIONALE)
-    peers = cands[:-2]
+    peers, _ = _tiers(cands[:-2])
     first_twin = next(i for i, c in enumerate(peers) if c.rationale.endswith(FREE_TWIN_RATIONALE))
     assert all(c.rationale.endswith(FREE_TWIN_RATIONALE) for c in peers[first_twin:])
     assert "wet adjacency reaches 0%" in hubs[0].rationale
@@ -1224,7 +1234,7 @@ def test_an_eligible_hub_keeps_its_v2_place():
     bound = cg.hub_bound(_hub_rooms(SAFE_BRIEF), fw, fh, cg._HUB_WIDTHS_M)
     if cg.hub_eligibility(bound) is cg.HubEligibility.ELIGIBLE:
         assert all("hub eligible on this outline" in c.rationale for c in hubs)
-        cands = list(result.candidates)
+        cands, _ = _tiers(result.candidates)
         first_twin = next(i for i, c in enumerate(cands) if c.rationale.endswith(FREE_TWIN_RATIONALE))
         last_forced = max(i for i, c in enumerate(cands) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
         assert last_forced < first_twin

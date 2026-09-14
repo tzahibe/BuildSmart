@@ -46,6 +46,28 @@ def test_the_area_rule_is_a_threshold_not_a_preference_for_size():
     assert hub_keeps_primary(HUB, below) is not None
 
 
+def test_a_replacement_worse_on_the_gate_the_hub_was_demoted_for_never_takes_the_primary():
+    """Measured on the merged main (2026-09-14): 10 x 20 m, 3BR/3wet — the band plan has a better
+    master (1.48 -> 1.31) but a WORSE worst bedroom (1.64 -> 1.80), the gate the hub missed by the
+    most; and 20 x 10 m with a safe room, where the bedroom went 1.82 -> 2.38."""
+    hub = PlanProportions(154.0, bedroom_max=1.64, master=1.48, safe_room=None, wet_adjacent=2, wet_total=3)
+    band = PlanProportions(138.6, bedroom_max=1.80, master=1.31, safe_room=None, wet_adjacent=2, wet_total=3)
+    reason = hub_keeps_primary(hub, band)
+    assert reason is not None and "bedroom_max" in reason and "demoted for" in reason
+    hub = PlanProportions(169.6, bedroom_max=1.82, master=1.26, safe_room=1.80, wet_adjacent=2, wet_total=3)
+    band = PlanProportions(149.9, bedroom_max=2.38, master=1.36, safe_room=1.21, wet_adjacent=2, wet_total=3)
+    assert "bedroom_max" in (hub_keeps_primary(hub, band) or "")
+
+
+def test_only_the_worst_gate_is_protected():
+    """Measured: 20 x 10 m, 4BR/3wet, same area — bedroom 1.95 -> 1.05 and wet 2/3 -> 3/3 for a
+    master 1.38 -> 1.55. Demanding "worse on nothing" would keep a hub with a 1.95 bedroom."""
+    hub = PlanProportions(193.6, bedroom_max=1.95, master=1.38, safe_room=None, wet_adjacent=2, wet_total=3)
+    band = PlanProportions(193.6, bedroom_max=1.05, master=1.55, safe_room=None, wet_adjacent=3, wet_total=3)
+    assert hub.worst_gate == "bedroom_max"
+    assert hub_keeps_primary(hub, band) is None
+
+
 def test_a_missing_metric_is_not_compared():
     no_safe = PlanProportions(HUB.area_m2, bedroom_max=1.10, master=1.20, safe_room=None, wet_adjacent=2, wet_total=2)
     assert hub_keeps_primary(HUB, no_safe) is None
@@ -92,8 +114,12 @@ def _hall_is_a_lobby(design) -> bool:
 
 @pytest.mark.parametrize("ctx, hub_stays, why", [
     (WIDE_SQUARE, False, "same area, bedroom 2.29 -> 1.23: the replacement is better"),
-    (NARROW_DEEP, True, "154 m² -> 109 m²: a quarter smaller is not better"),
-    (SMALL_4BR, True, "band plan worse on every bedroom and the master"),
+    # Was "154 -> 109 m²: a quarter smaller" before main's strip-room fix; the band plan is now
+    # 138.6 m² (90 %) but takes the worst bedroom from 1.64 to 1.80 — the gate the hub was demoted for.
+    (NARROW_DEEP, True, "154 -> 139 m² and the worst bedroom 1.64 -> 1.80: worse on the demoted gate"),
+    # Measured again after main's strip-room fix (2026-09-14): the band plan's master went 1.64 -> 1.07
+    # with the worst bedroom equal (1.77) and the same area (130.8 -> 129.6 m²) — now the better plan.
+    (SMALL_4BR, False, "same area, bedrooms equal, master 1.64 -> 1.07: the replacement is better"),
     (NEVER_PRIMARY, False, "the hub would have trailed the winner without demotion: not the guard's call"),
 ])
 def test_demoted_hubs_are_replaced_only_by_better_plans(ctx, hub_stays, why):

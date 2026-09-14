@@ -421,6 +421,13 @@ def run_general(buildable: BuildableRegion, *,
     first_refused: RealizedPlan | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
+        # Tier 2 (`concept_generator.Repartition`) is strictly second: its candidates sit after
+        # every normal one, and once ANY normal candidate has been chosen — by validation, or by
+        # the relationship score — none of them is looked at. Without this, the relationship path
+        # (which scores every candidate) would let a re-partitioned plan that satisfies one more
+        # preference displace the plan the brief already had.
+        if concept_candidate.repartitioned and chosen is not None:
+            break
         attempts += 1
         try:
             candidate_solve = solve_fixture(concept_candidate.concept.fixture)

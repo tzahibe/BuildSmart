@@ -352,3 +352,126 @@ def test_the_paired_wc_plan_keeps_its_access_semantics():
         t = ROOM_TEMPLATES.get(ProgramRole(r.roles[0]))
         if t and not CIRCULATION & {ProgramRole(x) for x in r.roles}:
             assert max(r.net_w_m, r.net_h_m) / min(r.net_w_m, r.net_h_m) <= t.max_aspect_ratio + 1e-6, r.zone_id
+
+
+# ------------------------------------------------------------------ 5. tier 2: repartition
+
+def _public_rows(open_plan: bool = True):
+    from app.vertical_slice.concept_generator import _rows_of
+    rooms = build_room_program(_spec(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2,
+                                                 open_plan_living=open_plan)))
+    public = [r for r in rooms if r.group is cg.ZoneGroup.PUBLIC]
+    return rooms, public, _rows_of(public)
+
+
+def _options(rooms, spec=None, north_is_envelope=True):
+    return cg._repartition_for(spec or _spec(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2)),
+                               rooms, north_is_envelope=north_is_envelope)
+
+
+def test_tier2_pairs_a_room_with_its_open_chain_neighbour_and_keeps_the_chain():
+    """A 9 m public column: the kitchen alone has no shape band (sqrt(26 x 3) = 8.8 m), the
+    dining area still does. Tier 2 puts the kitchen in the dining area's row — far slot, outer
+    edge — and every declared OPEN connection still has a physical interface: LIVING–DINING
+    across the row boundary, DINING–KITCHEN across the V cut."""
+    from app.vertical_slice.concept_generator import _access_intact, _repartition_rows
+    rooms, public, rows = _public_rows()
+    options = _options(rooms)
+    assert options.open_chain == ("LIVING", "DINING", "KITCHEN")
+    out = _repartition_rows(rows, 9.0, options, corridor_on_east=True)
+    assert [[r.zone_id for r in row] for row in out] == [["LIVING"], ["KITCHEN", "DINING"]]
+    assert _access_intact(out, options, corridor_on_east=True)
+    assert all(room_depth_band_m(r.template, w) is not None
+               for row in out for r, w in zip(row, cg._row_widths(row, 9.0)))
+
+
+def test_tier2_keeps_the_hall_facing_zone_on_the_corridor_side():
+    """When the LIVING zone itself must share, it takes the corridor slot: it carries the hall's
+    cased opening (C13) and a far slot would wall it off from the corridor."""
+    from app.vertical_slice.concept_generator import _pair_with_open_member
+    rooms, public, rows = _public_rows()
+    options = _options(rooms)
+    living = next(i for i, row in enumerate(rows) if row[0].zone_id == "LIVING")
+    for corridor_on_east in (True, False):
+        for candidate in _pair_with_open_member(rows, living, options, corridor_on_east):
+            pair = next(row for row in candidate if len(row) == 2)
+            assert pair[1 if corridor_on_east else 0].zone_id == "LIVING"
+
+
+def test_tier2_never_pairs_in_a_closed_plan():
+    """Without open plan the public zones have doors, and a far slot has none to the corridor."""
+    from app.vertical_slice.concept_generator import _repartition_rows
+    rooms, public, rows = _public_rows(open_plan=False)
+    options = _options(rooms, _spec(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2,
+                                                open_plan_living=False)))
+    assert options.open_chain == ()
+    assert _repartition_rows(rows, 12.0, options, corridor_on_east=True) is rows
+
+
+def test_tier2_never_shares_the_flex_zone():
+    """FLEX exists to absorb the surplus; a partner in its row would absorb it too (measured: a
+    41.6 m2 kitchen against 26). It keeps its own row, whatever its width."""
+    from app.vertical_slice.concept_generator import _repartition_rows, _rows_of
+    rooms, public, _ = _public_rows()
+    flex = cg.ProgramRoom("FLEX", ProgramRole.FLEX, cg.ZoneGroup.PUBLIC, ROOM_TEMPLATES[ProgramRole.FLEX])
+    options = cg._repartition_for(_spec(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2)),
+                                  rooms + [flex], north_is_envelope=True)
+    assert "FLEX" in options.never_shared and "FLEX" in options.open_chain
+    rows = _rows_of(public + [flex])
+    kitchen = next(i for i, row in enumerate(rows) if row[0].zone_id == "KITCHEN")
+    from app.vertical_slice.concept_generator import _pair_with_open_member
+    for candidate in _pair_with_open_member(rows, kitchen, options, corridor_on_east=True):
+        assert all("FLEX" not in [r.zone_id for r in row] for row in candidate if len(row) == 2)
+    # ...and with FLEX in the chain no pairing survives at all here: [KITCHEN, DINING] would have
+    # to sit beside LIVING for the dining area AND beside FLEX for the kitchen, while its
+    # corridor-facing dining area needs a column end for its window. The rows stay as they are
+    # and the column is refused downstream — never a kitchen that swallowed the surplus.
+    out = _repartition_rows(rows, 9.0, options, corridor_on_east=True)
+    assert out is rows
+
+
+def test_tier2_pairs_a_bedroom_with_the_ensuite_row_and_puts_it_at_a_column_end():
+    """A 7 m private column: a bedroom alone has no shape band (sqrt(14 x 2.5) = 5.9 m). Tier 2
+    gives it the master's slot beside the ensuite; the master becomes a full-width row beside
+    them, and because the bedroom now faces the corridor from a shared row it needs a column end
+    for its window (`_daylight_order`)."""
+    from app.vertical_slice.concept_generator import _orient_row, _repartition_rows, _rows_of
+    rooms = build_room_program(_spec(ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2)))
+    private = [r for r in rooms if r.group in (cg.ZoneGroup.PRIVATE, cg.ZoneGroup.SERVICE)]
+    rows = [_orient_row(r, corridor_on_east=True) for r in _rows_of(private)]
+    options = _options(rooms)
+    out = _repartition_rows(rows, 7.0, options, corridor_on_east=True)
+    ids = [[r.zone_id for r in row] for row in out]
+    pair = next(row for row in ids if len(row) == 2 and "BATH_1" in row)
+    assert pair == ["BATH_1", "BEDROOM_1"], ids           # ensuite far, bedroom on the corridor
+    assert ["MASTER"] in ids
+    assert ids.index(pair) in (0, len(ids) - 1), ids     # a column end, for the window
+    assert abs(ids.index(pair) - ids.index(["MASTER"])) == 1   # the ensuite's door survives
+    # the ensuite's row is spoken for: the other rooms that cannot be shaped stay alone (and the
+    # column is refused at this width; the seam search narrows it)
+    assert ["BEDROOM_2"] in ids and ["BATH_2"] in ids
+
+
+def test_tier2_candidates_come_after_every_normal_one():
+    from app.vertical_slice.safe_adapter import adapt, build_buildable_region
+    spec = _spec(ProgramSpec(bedrooms=5, safe_room=True, wet_rooms=1))
+    g = cg.generate_concepts(spec, list(adapt(build_buildable_region(F.exact_rectangle())).candidates))
+    flags = [c.repartitioned for c in g.candidates if not c.hub_last_resort]
+    assert True in flags and flags == sorted(flags), flags   # all False first, then all True
+    assert all(cg.REPARTITIONED_RATIONALE in c.rationale for c in g.candidates if c.repartitioned)
+
+
+def test_tier2_recovers_a_programme_the_normal_path_refuses():
+    """End to end: 5 bedrooms + safe room on the 20 x 24 rectangle. Every normal attempt fails
+    for a bedroom's shape (7 m rear columns); tier 2 plans it, validates, and no room exceeds
+    its template aspect."""
+    result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0),
+                                   program=ProgramSpec(bedrooms=5, safe_room=True, wet_rooms=1))
+    assert result.outcome is AdapterOutcome.SOLVED, result.notes
+    assert result.concept.repartitioned
+    assert result.validation.ok, [(c.check_id, c.detail) for c in result.validation.failures()]
+    for r in result.design.rooms:
+        roles = {ProgramRole(x) for x in r.roles}
+        t = ROOM_TEMPLATES.get(ProgramRole(r.roles[0]))
+        if t and not CIRCULATION & roles:
+            assert max(r.net_w_m, r.net_h_m) / min(r.net_w_m, r.net_h_m) <= t.max_aspect_ratio + 1e-6, r.zone_id

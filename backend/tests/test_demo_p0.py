@@ -842,9 +842,12 @@ def test_C_a_preference_is_reported_either_way(tmp_path, monkeypatch):
 
 
 def test_D_a_hard_relationship_that_cannot_be_realized_fails_explicitly(tmp_path, monkeypatch):
-    """A kitchen against the safe room is not something this programme can arrange."""
+    """A door from the kitchen straight into the safe room is not something this programme can
+    arrange: the safe room is entered from circulation, in every parti. (A kitchen merely ADJACENT
+    to the safe room used to be this test's example; since the tier-2 re-partition fallback a
+    shared public row can put the two side by side, and the brief gets a plan.)"""
     _, design = _rel_run(tmp_path, monkeypatch,
-                         _rel("KITCHEN", "SAFE_ROOM", "adjacent", "hard_requirement"))
+                         _rel("SAFE_ROOM", "KITCHEN", "direct_access", "hard_requirement"))
     assert design.status_code == 422, design.text
     body = design.json()["detail"]
     assert body["code"] == "ROOM_RELATIONSHIP_NOT_FEASIBLE"
@@ -1609,9 +1612,11 @@ _MANY_BEDROOM_BRIEFS = {
     6: ("בית עם 6 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 14.0)),
 }
 
-#: The old 4BR/2wet footprint. The literal programme does not fit; the only plan that ever did
-#: violated the brief's bathroom access, so the correct answer is now a refusal.
-_FOUR_BEDROOM_TOO_SHALLOW = (13.2, 10.2)
+#: A 4BR/2wet footprint the literal programme does not fit. 13.2 x 10.2 was the old value — the
+#: only plan it ever had violated the brief's bathroom access — but the tier-2 re-partition
+#: fallback (`concept_generator.Repartition`) now plans the literal programme there and down to
+#: 13.2 x 9.8 (measured 2026-09-14; C17 holds), so the refusal case moved one step below its edge.
+_FOUR_BEDROOM_TOO_SHALLOW = (13.2, 9.6)
 
 
 #: These parcels declare no setbacks, but the briefs ask for 2 parking spaces, and the bays take a
