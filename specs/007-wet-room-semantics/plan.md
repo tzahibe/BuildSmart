@@ -1,7 +1,7 @@
 # Implementation Plan: Wet-Room Semantics
 
-**Branch**: to be created from `005-hub-v2` after review (none created yet) | **Date**: 2026-09-14 | **Spec**: [spec.md](./spec.md)
-**Status**: plan for review — no implementation
+**Branch**: `007-wet-room-semantics` (worktree `../sddproject-007`, from `75b31e8`) | **Date**: 2026-09-14 | **Spec**: [spec.md](./spec.md)
+**Status**: Phases 1–4 implemented and gated (see §Results); Phase 5 not started; not merged
 
 ## Summary
 
@@ -173,3 +173,18 @@ review. A phase that fails its gate is not "tuned"; it is reported.
 
 None of the constitution's simplicity rules is violated: one new enum family, one new validator, no
 new parti, no new solver behaviour.
+
+## Results — Phases 1–4 (2026-09-14, branch `007-wet-room-semantics`)
+
+Commits: `30e2312` baseline (interim guard + docs) → `eefc335` P1 → `eea755a` P2 → `db12ef3` P3 → `4ed9bf9` P4.
+
+| gate | result |
+|---|---|
+| G-unit | 855 passed, 6 skipped; the 3 failures are the `test_demo_p0` 4BR/2wet (13.2×10.2 m) fixtures that decision C replaces in Phase 6 — unchanged since the interim guard |
+| G-sweep (snapshot vs baseline, after each phase) | P1, P2, P3, P4: planned 107 → 107, byte-identical 107/107, LOST 0, GAINED 0, refusal codes equal (38 / 94 / 190 / 1), PLAN_FAILED_VALIDATION 0, C8 0, C17 0 |
+| G-daylight (final state) | 107/107 identical incl. alternatives, LOST 0, GAINED 0, no failed checks, latency median 1.47 s → 1.47 s (planned), 0.48 → 0.47 s (refused), total 530 s both arms |
+| clarification | ensuite + guest WC + second bedroom → `NEEDS_CLARIFICATION` before planning, naming the bedroom, listing the answers, choosing none |
+| variant | `variant_keeps_bathroom_access` removed; FLEXIBLE-only rule reproduces the guard's sweep exactly; the FLEXIBLE reported brief plans at 174.3 m² with C17 passing |
+
+Note on the plan's `--toggle wetkinds`: the cross-commit snapshot (`snapshot.py --compare`) is the
+instrument actually used — it is the same comparison without needing an in-process OFF arm.
