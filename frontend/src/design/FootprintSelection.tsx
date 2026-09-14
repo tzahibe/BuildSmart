@@ -27,9 +27,14 @@ interface FootprintSelectionProps {
    * means no valid selection yet (nothing chosen, or a stale one App.tsx already cleared). */
   value: BuildingFootprint | null
   onChange: (footprint: BuildingFootprint | null) => void
-  onConfirm: () => void
-  onBack: () => void
+  /** Present only when this is a screen of its own. Under the advanced disclosure (feature 006)
+   *  the form's own submit button continues, so there is nothing to confirm here. */
+  onConfirm?: () => void
+  onBack?: () => void
   submitting?: boolean
+  /** INLINE — rendered inside the brief form's advanced disclosure rather than as a step of its
+   *  own: no page title, no continue/back buttons; the cards and the site facts only. */
+  inline?: boolean
 }
 
 const VIEW_W = 132
@@ -210,8 +215,11 @@ function CustomCard({
   )
 }
 
-/** The FOOTPRINT SELECTION step — shown once the target built area is known (App.tsx's 'footprint'
- * view), before any architectural plan generation runs. Presents several PRESET rectangular options
+/** THE OUTLINE CARDS. Since feature 006 this is no longer a step of the main flow: the engine plans
+ * its own outlines (measured: the person's choice planned in 30 % of briefs, each of the engine's
+ * shapes in 35–45 %). It lives under the form's "advanced" disclosure (`inline`) for a person with a
+ * real constraint — a permit tied to a rectangle, a frontage to keep — and an outline chosen here is
+ * authoritative: it is planned first and, if it plans, shown first. Presents several PRESET rectangular options
  * (all preserving the same target built area, at genuinely different aspect ratios) plus a CUSTOM
  * option for the user's own exact width/depth. Selection is single (radiogroup semantics) and is
  * reported to the caller as a full `BuildingFootprint`, never as bare numbers.
@@ -224,7 +232,7 @@ function CustomCard({
  * the approved requirements plus this outline, and is never an input the user supplies or sees.
  * The preset names (COMPACT/BALANCED/WIDE/NARROW) are outline PROPORTIONS, not layout styles —
  * hence the explicit note in the header, which exists to keep the two from being read as one. */
-function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, onBack, submitting = false }: FootprintSelectionProps) {
+function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, onBack, submitting = false, inline = false }: FootprintSelectionProps) {
   const options = useMemo(
     () => (site?.options ?? []).map((option) => footprintFromOption(option, targetAreaM2)),
     [site, targetAreaM2],
@@ -244,10 +252,14 @@ function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, on
   const selectedIsCustom = value?.source === 'CUSTOM'
 
   return (
-    <section className="footprint-selection" dir="rtl">
-      <header className="page-header">
-        <span className="eyebrow">BuildSmart</span>
-        <h1>בחר/י את מתאר הבניין</h1>
+    <section className={inline ? 'footprint-selection footprint-selection--inline' : 'footprint-selection'} dir="rtl">
+      <header className={inline ? 'footprint-selection__inline-header' : 'page-header'}>
+        {inline ? null : (
+          <>
+            <span className="eyebrow">BuildSmart</span>
+            <h1>בחר/י את מתאר הבניין</h1>
+          </>
+        )}
         {/* The single most common confusion at this step: the four cards below rarely share the
             plot's own width/depth ratio, and nothing said why. The building is its OWN outline,
             smaller than the plot (a 200 m² building on a 300 m² plot leaves a garden) and free to
@@ -335,14 +347,16 @@ function FootprintSelection({ site, targetAreaM2, value, onChange, onConfirm, on
         />
       </div>
 
-      <div className="footprint-actions">
-        <button type="button" className="footprint-back" onClick={onBack} disabled={submitting}>
-          ‹ חזרה לעריכת שטח הבנייה
-        </button>
-        <button type="button" className="submit-button" disabled={value === null || submitting} onClick={onConfirm}>
-          {submitting ? 'יוצר פרויקט...' : 'המשך ליצירת התכנון'}
-        </button>
-      </div>
+      {inline ? null : (
+        <div className="footprint-actions">
+          <button type="button" className="footprint-back" onClick={onBack} disabled={submitting}>
+            ‹ חזרה לעריכת שטח הבנייה
+          </button>
+          <button type="button" className="submit-button" disabled={value === null || submitting} onClick={onConfirm}>
+            {submitting ? 'יוצר פרויקט...' : 'המשך ליצירת התכנון'}
+          </button>
+        </div>
+      )}
     </section>
   )
 }

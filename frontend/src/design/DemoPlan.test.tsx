@@ -237,6 +237,69 @@ describe('DemoWorkspace', () => {
   })
 })
 
+describe('DemoWorkspace — the outline each plan occupies (feature 006)', () => {
+  const engine = design({ outline: { width_m: 12.35, depth_m: 14.25, area_m2: 175.99, origin: 'ENGINE' } })
+  const person = design({ outline: { width_m: 15, depth_m: 11.75, area_m2: 176.25, origin: 'PERSON' } })
+
+  it('states the outline under the plan on the board, and who chose it', () => {
+    const { getByTestId } = render(<DemoWorkspace plans={{ plan: engine, alternatives: [] }} onChangeRequirements={() => {}} />)
+    const label = getByTestId('plan-outline')
+    expect(label.textContent).toContain('12.35 × 14.25')
+    expect(label.textContent).toContain('176 מ״ר')
+    expect(label.textContent).toContain('מתאר אוטומטי')
+  })
+
+  it('names the outline the person entered as theirs', () => {
+    const { getByTestId } = render(<DemoWorkspace plans={{ plan: person, alternatives: [] }} onChangeRequirements={() => {}} />)
+    expect(getByTestId('plan-outline').textContent).toContain('המתאר שהזנת')
+  })
+
+  it('labels every thumbnail with its own outline, so a different house size is visible', () => {
+    const other = design({ outline: { width_m: 13.6, depth_m: 12.95, area_m2: 176.12, origin: 'ENGINE' }, gross_area_m2: 176.1 })
+    const { getByTestId } = render(<DemoWorkspace plans={{ plan: engine, alternatives: [other] }} onChangeRequirements={() => {}} />)
+    expect(getByTestId('plan-option-1').textContent).toContain('13.60 × 12.95')
+  })
+
+  it('says nothing about an outline when the design carries none', () => {
+    const { queryByTestId } = render(<DemoWorkspace plans={{ plan: design(), alternatives: [] }} onChangeRequirements={() => {}} />)
+    expect(queryByTestId('plan-outline')).toBeNull()
+  })
+
+  it('tells the person when the outline they entered could not be planned and another was used', () => {
+    const { getByRole } = render(
+      <DemoWorkspace
+        plans={{
+          plan: engine, alternatives: [],
+          search: {
+            outlines: [
+              { width_m: 10, depth_m: 17.6, origin: 'PERSON', planned: false, plans_found: 0, latency_ms: 900 },
+              { width_m: 12.35, depth_m: 14.25, origin: 'ENGINE', planned: true, plans_found: 1, latency_ms: 1200 },
+            ],
+            total_latency_ms: 2100,
+          },
+        }}
+        onChangeRequirements={() => {}}
+      />,
+    )
+    const note = getByRole('note')
+    expect(note.textContent).toContain('10.00 × 17.60')
+    expect(note.textContent).toContain('לא אפשר לסדר את החדרים')
+  })
+
+  it('shows no such note when the person chose nothing or their outline planned', () => {
+    const { queryByRole } = render(
+      <DemoWorkspace
+        plans={{
+          plan: person, alternatives: [],
+          search: { outlines: [{ width_m: 15, depth_m: 11.75, origin: 'PERSON', planned: true, plans_found: 1, latency_ms: 1200 }], total_latency_ms: 1200 },
+        }}
+        onChangeRequirements={() => {}}
+      />,
+    )
+    expect(queryByRole('note')).toBeNull()
+  })
+})
+
 describe('PlanLegend', () => {
   it('names every colour the plan actually used', () => {
     const full = design({
@@ -562,6 +625,16 @@ describe('ReviewPage — the site and its assumptions', () => {
     getByRole('button', { name: 'יצירת תוכנית' }).click()
     expect(sent).toHaveLength(1)
     expect(sent[0]).toMatchObject({ front_setback_m: 3, rear_setback_m: 4, side_setback_m: 3 })
+  })
+
+  it('says the outline will be chosen automatically when the person entered none (feature 006)', () => {
+    const { getByLabelText } = render(
+      <ReviewPage
+        review={{ ...base, footprint_width_m: null, footprint_depth_m: null,
+                  site: { ...base.site!, footprint_width_m: null, footprint_depth_m: null, footprint_fits: null } }}
+        onConfirm={() => {}} onBack={() => {}} />,
+    )
+    within(getByLabelText('המגרש והנחות התכנון')).getByText(/ייקבע אוטומטית לפי השטח המבוקש/)
   })
 
   it('says plainly when the chosen outline does not fit the land that is left', () => {

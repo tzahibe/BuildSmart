@@ -14,7 +14,7 @@
 |---|---|
 | `snapshot.py --save before.json` | **426 scenarios, 117 planned** |
 | `pytest` | **764 passed, 7 skipped** |
-| `npm test` (frontend) | recorded at Part B |
+| `npm test` (frontend) | **109 passed** (8 files) |
 
 ## 1. Phase 3 — the engine chooses the outline (US1)
 
@@ -144,3 +144,36 @@ its duplicates. This is the spec's intent (FR-004) but it is a visible change fo
 advanced path, and it is the reason the alternatives list is not part of the byte-identical gate.
 **Owner decision 2026-09-14**: accepted — the leaner strip stays; same-family re-proportioned twins
 are not reintroduced to raise the count; the explicit outline remains authoritative.
+
+## 5. Part B — the frontend reflects the flow (Phase 8)
+
+Brief + site → the engine searches outlines → primary + diverse alternatives. Backend semantics
+frozen (no change to `service.py` in this phase).
+
+| | |
+|---|---|
+| Vitest | **118 passed** (8 files; `main`: 109) |
+| `vite build` | OK. `tsc -b` reports the same 6 pre-existing errors as `main` (unused symbols in `SketchSvg.tsx`, `App.tsx`, `FootprintSelection.tsx`; a stale `ProjectCreatePayload` field type) — not touched here |
+| Live UI smoke (`e2e/engine-outline.spec.ts`, real backend + Chrome) | **3 / 3**: main flow · advanced outline that plans · advanced outline that is replaced |
+
+What changed on screen:
+
+- The form creates the project directly (`selected_footprint: null`); the outline screen is gone
+  from the main sequence. The form states: "כברירת מחדל המערכת בוחרת את צורת הבניין בעצמה".
+- "מתקדם — קביעת מתאר ידנית" is a collapsed disclosure hosting the unchanged `FootprintSelection`
+  cards (`inline` mode). Options are fetched only when it is opened; closing it, or changing any
+  site input, drops the choice. A chosen outline is sent verbatim and is authoritative.
+- The review page says "מתאר הבניין: ייקבע אוטומטית לפי השטח המבוקש" when none was entered.
+- The workspace states each plan's outline — "12.95 × 13.59 מ׳ · 176 מ״ר · מתאר אוטומטי" or
+  "… · המתאר שהזנת" — under the title and under every thumbnail; when the person's outline could
+  not be planned, one note above the drawing says so and that the plans shown are the engine's
+  outline at the same area.
+
+Observed on the live smoke (3 bd, safe room, 2 wet, open plan, 176 m² on 21 × 24.5, setbacks
+5.5/4/3): the main flow returned the engine's 12.95 × 13.59 outline; of the four preset cards, only
+"קומפקטי" (the same rectangle) planned — "מאוזן" 14.25 × 12.35 and "צר ומוארך" 11.75 × 14.98 were
+both replaced by the engine's outline with the note shown. That is the feature's premise, seen on
+one brief.
+
+Not done here: the older Playwright specs (`footprint-selection.spec.ts`, `spatial-edit.spec.ts`)
+were already stale on `main` (they fill fields the form no longer has) and are left as they are.

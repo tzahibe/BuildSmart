@@ -197,7 +197,14 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
                   ) : null}
                 </dd>
               </div>
-            ) : null}
+            ) : (
+              // No outline was entered (feature 006): the engine plans the shapes that fit the
+              // buildable area and shows the ones that work. Said here so the review is complete.
+              <div>
+                <dt>מתאר הבניין</dt>
+                <dd>ייקבע אוטומטית לפי השטח המבוקש — המערכת תבדוק כמה צורות ותציג את אלה שמתוכננות</dd>
+              </div>
+            )}
           </dl>
         </section>
       ) : null}

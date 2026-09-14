@@ -176,10 +176,9 @@ export interface ProjectCreatePayload {
   plot_area_m2: number
   built_area_m2: number
   description: string
-  // Required in THIS app's own flow (App.tsx only calls createProject once FootprintSelection has a
-  // valid, confirmed choice — see its "continue" button) — the backend field itself stays optional
-  // (see backend/app/projects/models.py's ProjectCreate) for any other/legacy caller.
-  selected_footprint: SelectedFootprintPayload
+  // `null` is the main flow since feature 006 — the engine chooses the outline. A value is the
+  // person's own outline from the form's "advanced" disclosure, and is authoritative.
+  selected_footprint: SelectedFootprintPayload | null
 }
 
 export interface FormState {
