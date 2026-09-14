@@ -29,9 +29,14 @@ from app.vertical_slice.spec import (
     CorridorWidthMode,
     PlotSpec,
     ProgramSpec,
+    WetRoomKind,
     WetRoomRequirement,
 )
-from app.vertical_slice.wet_rooms import requirement_from_record
+from app.vertical_slice.wet_rooms import (
+    WetRoomResolutionError,
+    requirement_from_record,
+    resolve_wet_rooms,
+)
 
 #: The setbacks now live with the site model that applies them (`site_geometry`), re-exported here
 #: only so existing importers keep working. They are DEMO ASSUMPTIONS, subtracted from the
@@ -110,6 +115,32 @@ class ScopeLimits(BaseModel):
     floors: int
 
 
+class WetRoomKindNote(BaseModel):
+    """One wet room as the plan will build it, shown back before Generate (specs/007 FR-3).
+
+    `specified` says whether the person or the default decided the kind; the label says so in
+    words ("לא צוין — ברירת מחדל: …"), because a default shown as if it were read from the brief is
+    exactly the silence this screen exists to break.
+    """
+
+    index: int
+    kind: str                 # shared_bathroom | ensuite | guest_wc  (never unspecified: resolved)
+    host: str | None = None   # ensuite only: MASTER_BEDROOM | BEDROOM
+    strength: str = "required"
+    source_text: str = ""
+    specified: bool = False
+    label: str = ""
+    #: Only a shared (or unstated) bathroom can be made flexible — the one case in which the
+    #: planner may attach it to a bedroom. The screen greys the toggle out otherwise.
+    can_be_flexible: bool = False
+
+
+class WetRoomKindEdit(BaseModel):
+    kind: str = "unspecified"
+    host: str | None = None
+    strength: str = "required"
+
+
 class RequirementsReview(BaseModel):
     """What the REVIEW screen shows and lets the user correct."""
 
@@ -130,6 +161,13 @@ class RequirementsReview(BaseModel):
     #: asked for — the planner then keeps its own derived width.
     corridor_width: CorridorWidthNote | None = None
     room_relationships: list[RoomRelationshipNote] = Field(default_factory=list)
+    #: One row per wet room, as it will be built — kind, host, flexibility, and whether the brief
+    #: said so or a default did. Empty only when the count itself is unknown.
+    wet_room_kinds: list[WetRoomKindNote] = Field(default_factory=list)
+    #: Why the wet rooms as stated cannot be planned, in the person's terms — the same message
+    #: generation would refuse with (`scope.wet_room_rejection`). `None` when they can. The screen
+    #: keeps Generate blocked while this is set; the backend refuses regardless.
+    wet_room_problem: str | None = None
     #: The rooms the plan will ACTUALLY contain, in the person's words. Counts alone hid the gap
     #: that prompted this: a brief asking for a study came back as "3 bedrooms, 1 bathroom" and the
     #: study was nowhere — not planned, and not reported as unplanned either. A list of what will be
@@ -153,6 +191,9 @@ class ReviewEdit(BaseModel):
     open_plan: bool | None = None
     parking_spaces: int | None = None
     floors: int | None = None
+    #: The wet rooms' kinds, one per room in order. Absent keeps what is stored; supplied replaces
+    #: it whole (an edit is authoritative, `source="requested"`). Longer than the count is refused.
+    wet_room_kinds: list[WetRoomKindEdit] | None = None
     #: Demo setback assumptions, editable here precisely because they are assumptions. Supplying
     #: any of them replaces that one; the rest keep their current value.
     front_setback_m: float | None = None
@@ -180,10 +221,15 @@ def review_of(project: Project) -> RequirementsReview:
     safe_room = _field(project.safe_room, default=False)
     wet_rooms = _field(project.wet_rooms, default=1)
     open_plan = _field(project.open_plan, default=False)
+    problem = (scope.wet_room_rejection(project, int(bedrooms.value), int(wet_rooms.value or 1))
+               if bedrooms.value is not None else None)
     return RequirementsReview(
         limits=_limits(),
-        planned_rooms=_planned_rooms(bedrooms.value, safe_room.value,
-                                     open_plan.value, wet_rooms.value),
+        planned_rooms=([] if problem is not None else
+                       _planned_rooms(bedrooms.value, safe_room.value, open_plan.value,
+                                      wet_rooms.value, wet_room_kinds_of(project))),
+        wet_room_kinds=_wet_room_notes(project, bedrooms.value, wet_rooms.value),
+        wet_room_problem=problem.message if problem is not None else None,
         site=_site_note(project),
         bedrooms=bedrooms,
         safe_room=safe_room,
@@ -226,7 +272,44 @@ _ROOM_WORDS = {
 }
 
 
-def _planned_rooms(bedrooms, safe_room, open_plan, wet_rooms) -> list[str]:
+#: Wet-room kind -> what to call it on screen.
+_WET_ROOM_WORDS = {
+    ("shared_bathroom", None): "חדר רחצה משותף",
+    ("ensuite", "MASTER_BEDROOM"): "חדר רחצה צמוד לחדר ההורים",
+    ("ensuite", "BEDROOM"): "חדר רחצה צמוד לחדר שינה",
+    ("guest_wc", None): "שירותי אורחים",
+}
+
+
+def _wet_room_notes(project: Project, bedrooms, wet_rooms) -> list[WetRoomKindNote]:
+    """One row per wet room, from the programme the engine resolves — never from the records
+    alone, so a default is shown as the default it is. Unresolvable statements show the raw record
+    with its problem flagged by `wet_room_problem` beside it."""
+    if bedrooms is None:
+        return []
+    try:
+        resolved = resolve_wet_rooms(ProgramSpec(
+            bedrooms=int(bedrooms), wet_rooms=int(wet_rooms or 1),
+            wet_room_kinds=wet_room_kinds_of(project)))
+    except WetRoomResolutionError:
+        return [WetRoomKindNote(index=i, kind=r.kind, host=r.host, strength=r.strength,
+                                source_text=r.source_text, specified=r.kind != "unspecified",
+                                label=_WET_ROOM_WORDS.get((r.kind, r.host), r.kind))
+                for i, r in enumerate(project.wet_room_kinds)]
+    notes = []
+    for i, r in enumerate(resolved):
+        host = (("MASTER_BEDROOM" if r.host_zone == "MASTER" else "BEDROOM")
+                if r.kind is WetRoomKind.ENSUITE else None)
+        word = _WET_ROOM_WORDS[(r.kind.value, host)]
+        notes.append(WetRoomKindNote(
+            index=i, kind=r.kind.value, host=host, strength=r.strength.value,
+            source_text=r.source_text, specified=r.specified,
+            label=word if r.specified else f"לא צוין — ברירת מחדל: {word}",
+            can_be_flexible=r.kind is WetRoomKind.SHARED_BATHROOM))
+    return notes
+
+
+def _planned_rooms(bedrooms, safe_room, open_plan, wet_rooms, wet_room_kinds=()) -> list[str]:
     """The room programme this brief will actually produce, named and counted.
 
     Takes the ALREADY-RESOLVED review values rather than the project, because `spec_for` is built
@@ -238,7 +321,8 @@ def _planned_rooms(bedrooms, safe_room, open_plan, wet_rooms) -> list[str]:
         return []
     program = ProgramSpec(
         bedrooms=int(bedrooms), safe_room=bool(safe_room),
-        open_plan_living=bool(open_plan), wet_rooms=int(wet_rooms or 1))
+        open_plan_living=bool(open_plan), wet_rooms=int(wet_rooms or 1),
+        wet_room_kinds=tuple(wet_room_kinds))
     rooms = build_room_program(ArchitecturalSpec(plot=PlotSpec(20.0, 24.0), program=program))
 
     counts: dict[str, int] = {}

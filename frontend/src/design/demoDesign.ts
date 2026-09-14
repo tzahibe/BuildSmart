@@ -231,6 +231,25 @@ export interface SiteNote {
   footprint_fits: boolean | null
 }
 
+/** One wet room as the plan will build it (specs/007). `specified` tells a stated kind from a
+ * default; the label already says which. */
+export interface WetRoomKindNote {
+  index: number
+  kind: 'shared_bathroom' | 'ensuite' | 'guest_wc' | string
+  host: 'MASTER_BEDROOM' | 'BEDROOM' | null
+  strength: 'required' | 'flexible' | string
+  source_text: string
+  specified: boolean
+  label: string
+  can_be_flexible: boolean
+}
+
+export interface WetRoomKindEdit {
+  kind: 'shared_bathroom' | 'ensuite' | 'guest_wc' | 'unspecified'
+  host: 'MASTER_BEDROOM' | 'BEDROOM' | null
+  strength: 'required' | 'flexible'
+}
+
 export interface RequirementsReview {
   limits?: ScopeLimits
   bedrooms: ReviewField
@@ -249,6 +268,11 @@ export interface RequirementsReview {
   /** The rooms the plan will actually contain — what makes a missing room visible. */
   planned_rooms?: string[]
   site?: SiteNote | null
+  /** One row per wet room, as it will be built. */
+  wet_room_kinds?: WetRoomKindNote[]
+  /** Why the wet rooms as stored cannot be planned — the refusal generation would give. Null when
+   * they can. Generate stays blocked while this is set. */
+  wet_room_problem?: string | null
 }
 
 export interface ReviewEdit {
@@ -261,4 +285,6 @@ export interface ReviewEdit {
   open_plan?: boolean
   parking_spaces?: number
   floors?: number
+  /** The wet rooms' kinds, one per room, replacing the stored list whole. */
+  wet_room_kinds?: WetRoomKindEdit[]
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { RequirementsReview, ReviewEdit } from './demoDesign'
+import type { RequirementsReview, ReviewEdit, WetRoomKindEdit, WetRoomKindNote } from './demoDesign'
 import { Dim } from './Dim'
 import './ReviewPage.css'
 
@@ -52,6 +52,30 @@ const SEVERITY_LABEL: Record<string, string> = {
   ambiguous: 'לא ברור',
 }
 
+/** What a wet room can be, in the person's words. The value is what the backend stores. */
+const WET_ROOM_KIND_OPTIONS: { value: string; host: WetRoomKindEdit['host']; label: string }[] = [
+  { value: 'unspecified', host: null, label: 'לא צוין (ברירת מחדל)' },
+  { value: 'shared_bathroom', host: null, label: 'חדר רחצה משותף' },
+  { value: 'ensuite', host: 'MASTER_BEDROOM', label: 'חדר רחצה צמוד לחדר ההורים' },
+  { value: 'ensuite', host: 'BEDROOM', label: 'חדר רחצה צמוד לחדר שינה' },
+  { value: 'guest_wc', host: null, label: 'שירותי אורחים' },
+]
+
+const optionKey = (kind: string, host: string | null) => (kind === 'ensuite' ? `${kind}:${host ?? 'MASTER_BEDROOM'}` : kind)
+
+/** The rows the person edits, seeded from what the backend resolved. A row the backend marked as a
+ * default starts as "unspecified" — editing it is how the person STATES a kind; leaving it keeps the
+ * default, which the backend will still show as a default. */
+function seedWetRoomRows(notes: WetRoomKindNote[], count: number): WetRoomKindEdit[] {
+  const rows: WetRoomKindEdit[] = notes.map((n) =>
+    n.specified
+      ? { kind: n.kind as WetRoomKindEdit['kind'], host: n.kind === 'ensuite' ? n.host : null, strength: n.strength as WetRoomKindEdit['strength'] }
+      : { kind: 'unspecified', host: null, strength: n.strength === 'flexible' ? 'flexible' : 'required' },
+  )
+  while (rows.length < count) rows.push({ kind: 'unspecified', host: null, strength: 'required' })
+  return rows.slice(0, count)
+}
+
 const STREET_SIDE_LABEL: Record<string, string> = {
   NORTH: 'צפון', SOUTH: 'דרום', EAST: 'מזרח', WEST: 'מערב',
 }
@@ -89,7 +113,32 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const parkingMax = limits?.parking_max ?? 2
 
   const [bedrooms, setBedrooms] = useState(Number(review.bedrooms.value ?? 3))
-  const [wetRooms, setWetRooms] = useState(Number(review.wet_rooms.value ?? 1))
+  const [wetRooms, setWetRoomsState] = useState(Number(review.wet_rooms.value ?? 1))
+  // WHAT EACH WET ROOM IS (specs/007). One row per counted room; the count drives the row list.
+  const wetNotes = review.wet_room_kinds ?? []
+  const [wetRows, setWetRows] = useState<WetRoomKindEdit[]>(() => seedWetRoomRows(wetNotes, Number(review.wet_rooms.value ?? 1)))
+  // Whether the rows have moved since the backend last judged them. The backend's verdict on the
+  // STORED rows (`wet_room_problem`) blocks Generate until the person changes something; after that,
+  // the next Generate press sends the rows for a fresh verdict and is refused again if they still
+  // leave a bedroom without a bathroom — the judgement stays on the backend, never duplicated here.
+  const [wetRowsDirty, setWetRowsDirty] = useState(false)
+  const wetProblem = review.wet_room_problem ?? null
+  const wetBlocked = wetProblem !== null && !wetRowsDirty
+
+  function setWetRooms(count: number) {
+    setWetRoomsState(count)
+    setWetRows((rows) => {
+      const next = rows.slice(0, Math.max(0, count))
+      while (next.length < count) next.push({ kind: 'unspecified', host: null, strength: 'required' })
+      return next
+    })
+    setWetRowsDirty(true)
+  }
+
+  function setWetRow(index: number, patch: Partial<WetRoomKindEdit>) {
+    setWetRows((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)))
+    setWetRowsDirty(true)
+  }
   const [parking, setParking] = useState(Number(review.parking_spaces.value ?? 0))
   const [safeRoom, setSafeRoom] = useState(Boolean(review.safe_room.value))
   const [openPlan, setOpenPlan] = useState(Boolean(review.open_plan.value))
@@ -271,6 +320,63 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           />
         </label>
 
+        {/* WHO REACHES EACH WET ROOM. A count alone hid the difference between "ensuite + guest WC"
+            and "two shared bathrooms"; now each room is named as it will be built, a default is
+            called a default, and a shared bathroom can be marked flexible — the one case in which
+            the planner may attach it to a bedroom. */}
+        <section className="review-wet-rooms" aria-label="סוגי חדרי הרחצה">
+          {wetRows.map((row, i) => {
+            const note = wetNotes[i]
+            const selectValue = optionKey(row.kind, row.host)
+            const canBeFlexible = row.kind === 'shared_bathroom' || row.kind === 'unspecified'
+            return (
+              <div className="review-wet-room" key={i}>
+                <label className="review-row">
+                  <span className="review-label">
+                    חדר רחצה {i + 1}
+                    {note ? <Provenance source={note.specified ? 'requested' : 'inferred'} /> : null}
+                  </span>
+                  <select
+                    aria-label={`סוג חדר רחצה ${i + 1}`}
+                    value={selectValue}
+                    onChange={(event) => {
+                      const option = WET_ROOM_KIND_OPTIONS.find((o) => optionKey(o.value, o.host) === event.target.value)!
+                      setWetRow(i, {
+                        kind: option.value as WetRoomKindEdit['kind'],
+                        host: option.host,
+                        strength: option.value === 'shared_bathroom' || option.value === 'unspecified' ? row.strength : 'required',
+                      })
+                    }}
+                  >
+                    {WET_ROOM_KIND_OPTIONS.map((o) => (
+                      <option key={optionKey(o.value, o.host)} value={optionKey(o.value, o.host)}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="review-row review-row--toggle">
+                  <span className="review-label">גמיש — המתכנן רשאי להצמיד לחדר שינה</span>
+                  <input
+                    type="checkbox"
+                    aria-label={`חדר רחצה ${i + 1} גמיש`}
+                    checked={row.strength === 'flexible'}
+                    disabled={!canBeFlexible}
+                    onChange={(event) => setWetRow(i, { strength: event.target.checked ? 'flexible' : 'required' })}
+                  />
+                </label>
+                {note && !wetRowsDirty ? (
+                  <p className="review-wet-room-note">
+                    {note.label}
+                    {note.source_text ? <> — &ldquo;{note.source_text}&rdquo;</> : null}
+                  </p>
+                ) : null}
+              </div>
+            )
+          })}
+          {wetProblem ? (
+            <p className="review-out-of-range" role="alert">{wetProblem}</p>
+          ) : null}
+        </section>
+
         <label className="review-row">
           <span className="review-label">מקומות חניה <Provenance source={review.parking_spaces.source} /></span>
           <input
@@ -311,19 +417,22 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         <button
           type="button"
           className="review-generate"
-          disabled={busy || blocking.length > 0 || outOfRange}
+          disabled={busy || blocking.length > 0 || outOfRange || wetBlocked}
           title={
             outOfRange
               ? `בשלב זה אפשר לתכנן ${bedroomsMin} עד ${bedroomsMax} חדרי שינה`
               : blocking.length > 0
                 ? 'יש בקשות שצריך להכריע בהן קודם'
-                : undefined
+                : wetBlocked
+                  ? 'צריך להשלים את חדרי הרחצה קודם'
+                  : undefined
           }
           onClick={() =>
             onConfirm({
               ...setbacks,
               bedrooms,
               wet_rooms: wetRooms,
+              wet_room_kinds: wetRows,
               parking_spaces: parking,
               safe_room: safeRoom,
               open_plan: openPlan,

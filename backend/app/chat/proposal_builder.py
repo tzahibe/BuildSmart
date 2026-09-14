@@ -12,7 +12,7 @@ from datetime import datetime
 from app.chat.intent import ChatIntentExtraction, ProposalActionType
 from app.chat.proposals import Proposal
 from app.design.version import DesignVersion
-from app.projects.models import Project, TaggedBool, TaggedInt
+from app.projects.models import Project, SourceTag, TaggedBool, TaggedInt, WetRoomKindRecord
 from app.projects.preferences import PreferenceCreate, PreferenceUpdate
 from app.projects.update import ProjectUpdateDiff
 
@@ -21,6 +21,16 @@ _FIELD_LABELS_HE = {
     "bedrooms": "מספר חדרי שינה",
     "safe_room": 'ממ"ד',
     "parking_spaces": "מספר חניות",
+    "wet_rooms": "מספר חדרי רחצה",
+}
+
+#: Wet-room kind (and host) -> the words the review screen uses for it.
+_WET_ROOM_WORDS_HE = {
+    ("shared_bathroom", None): "חדר רחצה משותף",
+    ("ensuite", "MASTER_BEDROOM"): "חדר רחצה צמוד לחדר ההורים",
+    ("ensuite", "BEDROOM"): "חדר רחצה צמוד לחדר שינה",
+    ("guest_wc", None): "שירותי אורחים",
+    ("unspecified", None): "לא צוין",
 }
 
 # Only CHAT/SETTINGS preferences exist today (no Regulation Engine yet — see app/projects/preferences.py
@@ -78,6 +88,62 @@ def _build_field_update(project: Project, extraction: ChatIntentExtraction) -> P
             project_id=project.project_id,
             action=ProposalActionType.update_project_fields,
             diff=diff,
+            summary=summary,
+            created_at=datetime.now(),
+        ),
+        summary,
+    )
+
+
+def _wet_room_words(record: WetRoomKindRecord) -> str:
+    host = record.host if record.kind == "ensuite" else None
+    word = _WET_ROOM_WORDS_HE.get((record.kind, host), record.kind)
+    return f"{word} (גמיש)" if record.strength == "flexible" else word
+
+
+def _build_wet_room_kind_update(project: Project, extraction: ChatIntentExtraction) -> ProposalBuildResult:
+    """One wet room's kind or flexibility -> a proposal replacing the WHOLE list (specs/007 FR-4).
+
+    The list the person confirms is the list that gets stored, row by row, so the summary shows
+    every row — not just the one that moves. Rows beyond what the brief described are shown as
+    "לא צוין" and are the count's unstated rooms; changing one of them is how a person states it.
+    """
+    intent = extraction.wet_room_kind
+    count = project.wet_rooms.value if project.wet_rooms is not None else None
+    if intent is None or intent.index is None or count is None:
+        return ProposalBuildResult(None, "לא הצלחתי להבין לאיזה חדר רחצה הכוונה. אפשר לציין את מספרו?")
+    if not 1 <= intent.index <= count:
+        return ProposalBuildResult(None, f"יש {count} חדרי רחצה בפרויקט; אין חדר רחצה מספר {intent.index}.")
+    if intent.kind is None and intent.strength is None and intent.host is None:
+        return ProposalBuildResult(None, "לא הבנתי מה לשנות בחדר הרחצה הזה. אפשר לנסח מחדש?")
+
+    rows = list(project.wet_room_kinds) + [WetRoomKindRecord()] * (count - len(project.wet_room_kinds))
+    current = rows[intent.index - 1]
+    kind = intent.kind if intent.kind is not None else current.kind
+    host = intent.host if intent.host is not None else current.host
+    if kind == "ensuite":
+        host = host or "MASTER_BEDROOM"
+    else:
+        host = None
+    strength = intent.strength if intent.strength is not None else current.strength
+    if strength == "flexible" and kind not in ("shared_bathroom", "unspecified"):
+        return ProposalBuildResult(
+            None, f"{_WET_ROOM_WORDS_HE[(kind, host)]} אינו יכול להיות גמיש — רק חדר רחצה משותף יכול "
+                  f"להיות צמוד לחדר שינה לפי שיקול המתכנן.")
+    new_row = WetRoomKindRecord(kind=kind, host=host, strength=strength, source_text=current.source_text,
+                                source=SourceTag.requested if kind != "unspecified" else SourceTag.unknown)
+    if new_row.model_dump() == current.model_dump():
+        return ProposalBuildResult(None, f"חדר רחצה {intent.index} כבר מוגדר כך — אין צורך בשינוי.")
+    rows[intent.index - 1] = new_row
+
+    summary = (f"חדר רחצה {intent.index}: {_wet_room_words(current)} ← {_wet_room_words(new_row)}. "
+               f"חדרי הרחצה יהיו: " + "; ".join(f"{i}. {_wet_room_words(r)}" for i, r in enumerate(rows, start=1)))
+    return ProposalBuildResult(
+        Proposal(
+            proposal_id=str(uuid.uuid4()),
+            project_id=project.project_id,
+            action=ProposalActionType.update_wet_room_kind,
+            diff=ProjectUpdateDiff(wet_room_kinds=rows),
             summary=summary,
             created_at=datetime.now(),
         ),
@@ -209,6 +275,8 @@ def build_proposal(
 ) -> ProposalBuildResult:
     if extraction.action == ProposalActionType.update_project_fields:
         return _build_field_update(project, extraction)
+    if extraction.action == ProposalActionType.update_wet_room_kind:
+        return _build_wet_room_kind_update(project, extraction)
     if extraction.action == ProposalActionType.add_preference:
         return _build_add_preference(project, extraction)
     if extraction.action == ProposalActionType.update_preference:

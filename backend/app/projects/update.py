@@ -32,6 +32,7 @@ from app.projects.models import (
     Project,
     TaggedBool,
     TaggedInt,
+    WetRoomKindRecord,
     _check_built_area_fits_plot,
     _check_street_belongs_to_city,
     _known_city,
@@ -46,7 +47,8 @@ from app.projects.repository import ProjectRepository
 # the pipeline) — listing them here would trigger an expensive real-model regeneration that could not
 # possibly produce a different result, which is precisely the "do not regenerate for metadata-only
 # changes" the brief asked to avoid.
-_REGENERATION_TRIGGERING_FIELDS = frozenset({"floors", "bedrooms", "safe_room", "plot_area_m2", "built_area_m2"})
+_REGENERATION_TRIGGERING_FIELDS = frozenset({"floors", "bedrooms", "safe_room", "plot_area_m2", "built_area_m2",
+                                             "wet_rooms", "wet_room_kinds"})
 
 # Fields with plausible future Regulation Engine relevance (jurisdiction) but no design-pipeline effect
 # today — represented, never executed (see UpdateImpact.regulation_recheck).
@@ -81,6 +83,10 @@ class ProjectUpdateDiff(BaseModel):
     safe_room: TaggedBool | None = None
     parking_spaces: TaggedInt | None = None
     pool: PoolField | None = None
+    wet_rooms: TaggedInt | None = None
+    #: The wet rooms' kinds, replaced WHOLE (specs/007): a proposal shows the entire list it would
+    #: leave behind, so what is confirmed is what is stored. `None` leaves them alone.
+    wet_room_kinds: list[WetRoomKindRecord] | None = None
     add_preferences: list[PreferenceCreate] = Field(default_factory=list)
     update_preferences: list[PreferenceUpdate] = Field(default_factory=list)
     remove_preference_ids: list[str] = Field(default_factory=list)
@@ -119,6 +125,20 @@ def _validate_diff(existing: Project, diff: ProjectUpdateDiff) -> None:
 
     if diff.description is not None:
         _non_empty(diff.description, "description")
+
+    if diff.wet_room_kinds is not None:
+        # Readable by this build, and never more rows than wet rooms — the count is the authority.
+        # Access semantics (a bedroom with no bathroom) are NOT judged here: that is a question
+        # `scope.check_supported` asks at generation, not a reason to refuse recording the answer.
+        from app.vertical_slice.wet_rooms import WetRoomResolutionError, requirement_from_record
+        for record in diff.wet_room_kinds:
+            try:
+                requirement_from_record(record.kind, record.host, record.strength)
+            except WetRoomResolutionError as exc:
+                raise ValueError(str(exc)) from None
+        count = diff.wet_rooms if diff.wet_rooms is not None else existing.wet_rooms
+        if count is not None and count.value is not None and len(diff.wet_room_kinds) > count.value:
+            raise ValueError(f"{len(diff.wet_room_kinds)} wet-room kinds for wet_rooms={count.value}")
 
     known_preference_ids = {preference.preference_id for preference in existing.preferences}
     for update in diff.update_preferences:
@@ -160,7 +180,7 @@ def _apply_diff(existing: Project, diff: ProjectUpdateDiff, source: str, at: dat
             updates[field_name] = new_value
             changed_fields.add(field_name)
 
-    for field_name in ("floors", "bedrooms", "safe_room", "parking_spaces", "pool"):
+    for field_name in ("floors", "bedrooms", "safe_room", "parking_spaces", "pool", "wet_rooms"):
         new_value = getattr(diff, field_name)
         if new_value is not None and new_value != getattr(existing, field_name):
             old_value = getattr(existing, field_name)
@@ -174,6 +194,14 @@ def _apply_diff(existing: Project, diff: ProjectUpdateDiff, source: str, at: dat
             )
             updates[field_name] = new_value
             changed_fields.add(field_name)
+
+    if diff.wet_room_kinds is not None:
+        old_kinds = [r.model_dump(mode="json") for r in existing.wet_room_kinds]
+        new_kinds = [r.model_dump(mode="json") for r in diff.wet_room_kinds]
+        if old_kinds != new_kinds:
+            _record(change_log, "wet_room_kinds", old_kinds, new_kinds, source, at)
+            updates["wet_room_kinds"] = list(diff.wet_room_kinds)
+            changed_fields.add("wet_room_kinds")
 
     preferences = list(existing.preferences)
     for create in diff.add_preferences:

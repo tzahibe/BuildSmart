@@ -24,13 +24,14 @@ from app.design.version import DesignVersion
 from app.projects.models import Project, SourceTag
 
 
-# Deliberately the same 4 fields Settings itself exposes (see SettingsPage.tsx) — `pool`'s nested shape
-# is out of scope for chat this milestone, same as it was for Settings.
-_UPDATABLE_FIELDS = ("floors", "bedrooms", "safe_room", "parking_spaces")
+# The 4 fields Settings itself exposes (see SettingsPage.tsx) plus the wet-room count, which the
+# review screen exposes and which the wet-room kinds (specs/007) hang off. `pool`'s nested shape is
+# out of scope for chat this milestone, same as it was for Settings.
+_UPDATABLE_FIELDS = ("floors", "bedrooms", "safe_room", "parking_spaces", "wet_rooms")
 
 
 class FieldUpdateIntent(BaseModel):
-    field: Literal["floors", "bedrooms", "safe_room", "parking_spaces"] | None = None
+    field: Literal["floors", "bedrooms", "safe_room", "parking_spaces", "wet_rooms"] | None = None
     # Exactly one of these should be set, matching `field` (int fields vs. the bool safe_room field).
     int_value: int | None = None
     bool_value: bool | None = None
@@ -51,6 +52,21 @@ class PreferenceIntent(BaseModel):
     existing_preference_text: str | None = None
 
 
+class WetRoomKindIntent(BaseModel):
+    """What the user said about ONE wet room's kind or flexibility (specs/007 FR-4).
+
+    `index` is the 1-based position in the wet-room list shown in the prompt context. `kind` / `host`
+    / `strength` are set only when the user's words settle them; a field left `None` keeps its
+    current value. `app/chat/proposal_builder.py` turns this into a whole replacement list and
+    refuses anything it cannot resolve to exactly one row — it never guesses which room was meant.
+    """
+
+    index: int | None = None
+    kind: Literal["shared_bathroom", "ensuite", "guest_wc", "unspecified"] | None = None
+    host: Literal["MASTER_BEDROOM", "BEDROOM"] | None = None
+    strength: Literal["required", "flexible"] | None = None
+
+
 class RollbackIntent(BaseModel):
     # 1-indexed ordinal into the project's own design-version history, oldest first — the prompt below
     # enumerates them this way so the model can resolve "the previous version" / "version 2" itself
@@ -62,6 +78,7 @@ class RollbackIntent(BaseModel):
 class ChatIntentExtraction(BaseModel):
     action: ProposalActionType
     field_update: FieldUpdateIntent | None = None
+    wet_room_kind: WetRoomKindIntent | None = None
     preference: PreferenceIntent | None = None
     rollback: RollbackIntent | None = None
 
@@ -79,7 +96,17 @@ def _build_context(project: Project, design_versions: list[DesignVersion]) -> st
         _describe_tagged("bedrooms", project.bedrooms),
         _describe_tagged("safe_room", project.safe_room),
         _describe_tagged("parking_spaces", project.parking_spaces),
+        _describe_tagged("wet_rooms", project.wet_rooms),
     ]
+    if project.wet_room_kinds:
+        lines.append("Wet rooms as stated, in order (refer to one by its number for "
+                     "UPDATE_WET_ROOM_KIND):")
+        for index, record in enumerate(project.wet_room_kinds, start=1):
+            host = f" host={record.host}" if record.host else ""
+            lines.append(f"- wet room {index}: {record.kind}{host}, {record.strength}"
+                         + (f', "{record.source_text}"' if record.source_text else ""))
+    else:
+        lines.append("Wet rooms as stated: none described (every wet room is unspecified).")
 
     if project.preferences:
         lines.append("Existing preferences (refer to one of these EXACTLY by its text for "
@@ -105,8 +132,16 @@ You interpret one chat message from a user planning a home-building project in B
 whether it requests a concrete, actionable change to their PROJECT STATE.
 
 Output exactly one `action`:
-- UPDATE_PROJECT_FIELDS: the user wants to change floors, bedrooms, safe_room, or parking_spaces to a
-  specific new value, OR wants to explicitly say a field is now unknown/unsure. Fill `field_update`.
+- UPDATE_PROJECT_FIELDS: the user wants to change floors, bedrooms, safe_room, parking_spaces or
+  wet_rooms (the COUNT of bathrooms/WCs) to a specific new value, OR wants to explicitly say a field
+  is now unknown/unsure. Fill `field_update`.
+- UPDATE_WET_ROOM_KIND: the user says what ONE wet room is or how fixed its placement is — that a
+  bathroom belongs to the master bedroom ("ensuite", host MASTER_BEDROOM) or to a child's bedroom
+  (host BEDROOM), that one is the guest WC ("guest_wc"), that one is a shared bathroom off the hall
+  ("shared_bathroom"), or that its placement does not matter / may be attached to a bedroom
+  (strength "flexible": "לא משנה איפה", "יכול להיות צמוד לחדר", "גמיש") or must stay as stated
+  ("required"). Fill `wet_room_kind` with the wet room's number from the list below; if the message
+  does not make clear WHICH wet room, or there is no list, use NO_ACTION — never pick one.
 - ADD_PREFERENCE: the user expresses a new soft architectural wish not already in the existing
   preferences list below (e.g. "I want a big kitchen next to the living room"). Fill `preference` with
   `original_text` = a faithful, close paraphrase of what the user actually said (never invent details

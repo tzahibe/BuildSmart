@@ -99,7 +99,7 @@ def _bedroom_name(zone_id: str) -> str:
     return f"חדר שינה {zone_id.rsplit('_', 1)[-1]}"
 
 
-def _wet_room_rejection(project: Project, bedrooms: int, wet_rooms: int) -> ScopeRejection | None:
+def wet_room_rejection(project: Project, bedrooms: int, wet_rooms: int) -> ScopeRejection | None:
     """The wet-room invariants (`vertical_slice.wet_rooms`) as a refusal, or nothing.
 
     The message REPORTS: which bedroom has no bathroom it can reach, and that a WC is not one. It
@@ -224,7 +224,7 @@ def check_supported(project: Project) -> ScopeRejection | None:
     # WET-ROOM ACCESS. What the brief said about each wet room is resolved to rooms and checked
     # against the access invariants BEFORE anything is planned — a programme in which a bedroom
     # has no bathroom it can reach is a question for the person, not a plan (specs/007 §4 FR-6).
-    wet_room_refusal = _wet_room_rejection(project, bedrooms, wet_rooms)
+    wet_room_refusal = wet_room_rejection(project, bedrooms, wet_rooms)
     if wet_room_refusal is not None:
         return wet_room_refusal
 
