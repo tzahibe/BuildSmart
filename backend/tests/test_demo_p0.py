@@ -1594,13 +1594,15 @@ def test_an_alternative_is_a_complete_plan_not_a_sketch(client):
 # hall. That reading is now allowed only for a brief that says the placement is FLEXIBLE (spec 007
 # decision C), so each fixture is a footprint on which the LITERAL programme — master ensuite plus
 # a shared bathroom reachable from circulation — plans, and C17 proves it. Measured 2026-09-14:
-# 4BR/2wet refuses at 13.2 x 10.2 and 13.2 x 10.4, plans from 13.2 x 10.5; the fixture stands one
-# step off that edge.
+# 4BR/2wet refuses at 13.2 x 10.2 and 13.2 x 10.4, plans from 13.2 x 10.5; 6BR/2wet refuses at
+# 13.2 x 13.0 and 12.5 x 14.0, plans from 13.0 x 13.5. Each fixture stands one step off its edge.
+# The six-footprint grid is `spikes/failure_log_sweep/envelope.py` (ENVELOPE.md beside it).
 
 _MANY_BEDROOM_BRIEFS = {
     3: ("בית עם 3 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 11.0)),
     4: ("בית עם 4 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.2, 10.6)),
     5: ("בית עם 5 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (11.6, 14.5)),
+    6: ("בית עם 6 חדרי שינה, 2 חדרי רחצה, סלון ומטבח פתוחים.", (13.0, 14.0)),
 }
 
 #: The old 4BR/2wet footprint. The literal programme does not fit; the only plan that ever did
@@ -1628,7 +1630,7 @@ def _many_bedroom_client(tmp_path, monkeypatch, bedrooms):
     return TestClient(app), brief
 
 
-@pytest.mark.parametrize("bedrooms", [3, 4, 5])
+@pytest.mark.parametrize("bedrooms", [3, 4, 5, 6])
 def test_three_bedrooms_and_more_reach_a_drawing(tmp_path, monkeypatch, bedrooms):
     client, brief = _many_bedroom_client(tmp_path, monkeypatch, bedrooms)
     width, depth = _MANY_BEDROOM_BRIEFS[bedrooms][1]
@@ -1646,7 +1648,7 @@ def test_three_bedrooms_and_more_reach_a_drawing(tmp_path, monkeypatch, bedrooms
     assert len(bedroom_rooms) == bedrooms, [r["id"] for r in bedroom_rooms]
 
 
-@pytest.mark.parametrize("bedrooms", [3, 4, 5])
+@pytest.mark.parametrize("bedrooms", [3, 4, 5, 6])
 def test_every_bedroom_is_reachable_and_has_a_window(tmp_path, monkeypatch, bedrooms):
     """More bedrooms must not be bought by starving one of daylight or access."""
     client, brief = _many_bedroom_client(tmp_path, monkeypatch, bedrooms)
