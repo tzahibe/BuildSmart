@@ -513,9 +513,11 @@ def _result_from(project: Project, spec, selection: PlanSelection,
 
     def design_of(item: tuple[OutlineResult, RealizedPlan]) -> DemoDesign:
         orr, plan = item
+        note = capacity_note(spec, plan.design.gross_area_m2)
         return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
                               corridor=spec.program.corridor, relationships=plan.relationships,
-                              outline=orr.outline.as_out(), family=plan.family_signature)
+                              outline=orr.outline.as_out(), family=plan.family_signature,
+                              notes=[note] if note else None)
 
     return DemoResult(
         design=design_of(selection.primary),
@@ -525,6 +527,28 @@ def _result_from(project: Project, spec, selection: PlanSelection,
         search=SearchSummary(outlines=[r.as_tried() for r in results],
                              total_latency_ms=round(sum(r.latency_ms for r in results), 1)),
     )
+
+
+def capacity_note(spec, delivered_m2: float) -> str | None:
+    """The sentence a delivered plan carries when the request exceeds what its rooms can fill.
+
+    Measured on the failure log (431 briefs, 2026-09-14): 117 of 261 delivered plans come in under
+    80 % of the requested area, and 85+ of them are requests ABOVE the programme's own capacity —
+    the plans fill a median 96 % of that capacity. The house is right; the silence was wrong: the
+    person asked for 312 m², got 196, and nothing said why. This is the same diagnosis the refusal
+    path gives (`TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY`, same comparison as `generate_concepts`
+    uses to inject FLEX), said on the plan instead of in place of it. No plan is refused or ranked by
+    this; a floor on delivered area, if one is ever wanted, is a separate decision.
+    """
+    target_m2 = spec.program.target_built_area_m2
+    if target_m2 is None:
+        return None
+    capacity = program_capacity_gross_m2(build_room_program(spec))
+    if target_m2 <= capacity:
+        return None
+    return (f"התוכנית ממלאת {delivered_m2:.0f} מ\"ר מתוך כ-{capacity:.0f} מ\"ר שהחדרים שביקשת יכולים "
+            f"למלא בצורה סבירה; היעד שהוזן הוא {target_m2:.0f} מ\"ר. "
+            f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.")
 
 
 def realized_corridor_width_m_of(design) -> float:

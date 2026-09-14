@@ -5,9 +5,10 @@ this codebase (`app.geometry.geometric_design` for the old solver, and
 `app.vertical_slice.design_output` for the validated pipeline). A third would be a confusion
 hazard during wiring, so the API-facing type gets its own name.
 
-Everything here is READ off the validated pipeline's output. The only derivation is
+Everything here is READ off the validated pipeline's output. The only derivations are
 `_wall_segments`, which turns the engine's per-room-side wall types into drawable segments —
-because the renderer must never do that itself.
+because the renderer must never do that itself — and `_open_corridor_to_public`, the one
+architectural-quality rule applied to those segments after they exist.
 """
 from __future__ import annotations
 
@@ -334,6 +335,119 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
     return list(walls.values()), list(opens.values())
 
 
+_CIRCULATION_ROLES = frozenset({"HALL", "CIRCULATION"})
+_EPS = 1e-6
+
+
+def _is_circulation(room) -> bool:
+    return bool(_CIRCULATION_ROLES & {str(getattr(role, "value", role)) for role in room.roles})
+
+
+def _door_crosses(door, orientation: str, coord: float, start: float, end: float) -> bool:
+    """Whether a door's opening lies (even partly) on this piece of wall line."""
+    if door.orientation != orientation:
+        return False
+    along, across = (1, 0) if orientation == "vertical" else (0, 1)
+    if abs(door.center_m[across] - coord) > _EPS:
+        return False
+    half = door.width_m / 2
+    return door.center_m[along] - half < end - _EPS and door.center_m[along] + half > start + _EPS
+
+
+def _open_corridor_to_public(design: SolvedDesign, walls: list[WallSegment],
+                             opens: list[OpenInterface]) -> tuple[list[WallSegment], list[OpenInterface]]:
+    """A corridor wall that only separates circulation from the open public zone is not built.
+
+    THE WALL THIS REMOVES. In every spine parti the hall runs the full depth of the house beside
+    the public column, so its long side faces living, dining and kitchen for 10-12 m with nothing
+    on it but the 0.9 m cased opening `_build_access` declares — measured across every programme
+    and outline this generator produces (36-50 % of the hall's interior perimeter). The engine
+    types that side `PARTITION` for its whole length because a `WallMap` side carries ONE type and
+    an `OPEN` side needs a full-edge match on both zones (`_discover_open_interfaces`), which a
+    hall flanked by rooms never has. The result reads as ~17 m2 of enclosed corridor with the
+    open-plan space directly behind the wall. Neither the generator (no tree-sibling open group
+    can hold the hall) nor the topology (a declared OPEN_CONNECTION there fails C13) can express
+    the opening, so it is decided here, on the SEGMENTS, the same place a multi-neighbour side is
+    already cut and re-typed per pair (RC only against the safe room).
+
+    A segment is opened only when every one of these holds — each is a real requirement the
+    wall might otherwise be serving:
+      * it lies between a HALL/CIRCULATION zone and a member of a declared open group, and the
+        hall's declared way into that group is a CASED_OPENING — a closed plan has no open
+        group, so nothing opens there;
+      * it is STANDARD_PARTITION and INTERIOR — an EXTERIOR or RC_SAFE_ROOM segment is never a
+        candidate, whatever faces it;
+      * no DOOR lies on it — a door needs its wall, so a door-bearing piece stays, which is what
+        leaves the short wall beside a private room that shares the hall's side (the master
+        bedroom of a shared row). A cased opening does not count: an open segment subsumes it.
+
+    Nothing upstream changes: `WallMap`, room rectangles, net areas and every validation check
+    are untouched, so C14 still measures the corridor with its partition inset (conservative —
+    a really open side is wider) and C13 is still realized by the cased opening it was declared
+    with. This is a drawing-truth decision about construction, not a topology change.
+    """
+    rooms = {r.zone_id: r for r in design.rooms}
+    group_of = {zone: frozenset(group) for group in design.open_groups for zone in group}
+
+    # The hall's declared entrance into each public open group. Doors come only from the declared
+    # DesiredAccessTopology (P8), so a CASED_OPENING door IS the declared relationship.
+    opens_into: dict[str, set[frozenset[str]]] = {}
+    for door in design.interior_doors:
+        if door.kind != "CASED_OPENING":
+            continue
+        for hall, other in ((door.a, door.b), (door.b, door.a)):
+            if hall in rooms and _is_circulation(rooms[hall]) and other in group_of:
+                opens_into.setdefault(hall, set()).add(group_of[other])
+    if not opens_into:
+        return walls, opens
+
+    real_doors = [d for d in (*design.interior_doors, design.entrance_door) if d.kind == "DOOR"]
+    kept: list[WallSegment] = []
+    opened: list[OpenInterface] = []
+    for seg in walls:
+        if (seg.construction != "STANDARD_PARTITION" or seg.boundary_context != "INTERIOR"
+                or len(seg.room_ids) != 2):
+            kept.append(seg)
+            continue
+        a, b = seg.room_ids
+        hall, public = (a, b) if _is_circulation(rooms[a]) else (b, a)
+        if (not _is_circulation(rooms[hall]) or _is_circulation(rooms[public])
+                or group_of.get(public) not in opens_into.get(hall, set())):
+            kept.append(seg)
+            continue
+        if any(_door_crosses(d, seg.orientation, seg.coord, seg.start, seg.end) for d in real_doors):
+            kept.append(seg)
+            continue
+        opened.append(OpenInterface(orientation=seg.orientation, coord=seg.coord,
+                                    start=seg.start, end=seg.end, room_ids=list(seg.room_ids)))
+    return kept, opens + opened
+
+
+def _suppress_covered_cased_openings(doors: list[DoorOut],
+                                     opens: list[OpenInterface]) -> list[DoorOut]:
+    """Drop a CASED_OPENING whose whole span now lies in open interface — there is no wall left
+    for it to be an opening in, and drawing its jambs would put a 0.9 m frame in empty space. A
+    cased opening the open interfaces cover only partly keeps its symbol: some wall remains."""
+    def covered(door: DoorOut) -> bool:
+        if door.kind != "CASED_OPENING":
+            return False
+        vertical = door.orientation == "vertical"
+        coord, centre = (door.x, door.y) if vertical else (door.y, door.x)
+        lo, hi = centre - door.width_m / 2, centre + door.width_m / 2
+        spans = sorted((o.start, o.end) for o in opens
+                       if o.orientation == door.orientation and abs(o.coord - coord) < _EPS)
+        reached = lo
+        for start, end in spans:
+            if start > reached + _EPS:
+                break  # a gap of wall before the next open span
+            reached = max(reached, end)
+            if reached >= hi - _EPS:
+                return True
+        return False
+
+    return [d for d in doors if not covered(d)]
+
+
 def _corridor_out(design: SolvedDesign, corridor: CorridorRequirement | None) -> CorridorOut | None:
     """Measured from the realized rooms — the narrowest circulation zone is what a person walks."""
     widths = [min(r.net_w_m, r.net_h_m) for r in design.rooms
@@ -352,10 +466,16 @@ def _corridor_out(design: SolvedDesign, corridor: CorridorRequirement | None) ->
 
 def summarize(report: ValidationReport,
               unsupported: list[str] | None = None,
-              relationships: tuple = ()) -> ValidationSummary:
+              relationships: tuple = (),
+              notes: list[str] | None = None) -> ValidationSummary:
     statements = [_STATEMENTS[c.check_id] for c in report.checks
                   if c.passed and c.check_id in _STATEMENTS]
     warnings = [f"{_STATEMENTS.get(c.check_id, c.name)}: {c.detail}" for c in report.failures()]
+
+    # Something true about THIS plan that the person must read before the drawing — a house that
+    # fills what its rooms can and not what was asked (`service.capacity_note`). Carried verbatim,
+    # unlike `unsupported`, which quotes a request back to them.
+    warnings.extend(notes or [])
 
     # The plan must not read as though it honoured the whole brief. Anything the person asked for
     # that this stage cannot plan is carried onto the plan screen as a warning, in their own words —
@@ -383,12 +503,15 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    corridor: CorridorRequirement | None = None,
                    relationships: tuple = (),
                    outline: OutlineOut | None = None,
-                   family: str | None = None) -> DemoDesign:
+                   family: str | None = None,
+                   notes: list[str] | None = None) -> DemoDesign:
     walls, opens = _wall_segments(design)
+    walls, opens = _open_corridor_to_public(design, walls, opens)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
                      y=d.center_m[1], orientation=d.orientation,
                      swings_into=d.swings_into, hinge_x=d.hinge_m[0], hinge_y=d.hinge_m[1])
              for d in design.interior_doors]
+    doors = _suppress_covered_cased_openings(doors, opens)
     entrance = design.entrance_door
     doors.append(DoorOut(a=entrance.a, b=entrance.b, kind=entrance.kind, width_m=entrance.width_m,
                          x=entrance.center_m[0], y=entrance.center_m[1],
@@ -424,7 +547,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                             strength=o.requirement.strength.value,
                             source_text=o.requirement.source_text)
             for o in relationships],
-        validation=summarize(report, unsupported, relationships),
+        validation=summarize(report, unsupported, relationships, notes),
         outline=outline,
         family=family,
     )
