@@ -1,6 +1,8 @@
 """General Concept Generator: programmes, allocation, topology and bounded candidates."""
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from app.geometry_domain.constraints import BuildableRegion
@@ -18,7 +20,9 @@ from app.vertical_slice.concept_generator import (
     generate_concepts,
     minimum_footprint_width_m,
     program_capacity_gross_m2,
+    programme_variants,
     target_gross_area_m2,
+    variant_keeps_bathroom_access,
 )
 from app.vertical_slice.general_pipeline import run_general, run_general_from_site
 from app.vertical_slice.geometry_core.model import ConnectionKind, ProgramRole
@@ -570,22 +574,29 @@ def test_master_in_a_shared_row_still_reaches_the_envelope(width_m, depth_m):
 #
 # Reported from the product (failures.json, 2026-09-13): 15 x 15 m site, a 15.00 x 11.73 m
 # footprint for 176 m², 2 bedrooms, 2 wet rooms, safe room, open plan. The literal programme did
-# not fit the depth, so the `programme_variants` reading — BATH_2 hung off BEDROOM_1 as a second
-# ensuite — was the only one that solved, and SPINE_PUBLIC_PRIVATE solved it three times. Each
-# time the private column came out MASTER+BATH_1 / BEDROOM_1+BATH_2 / SAFE_ROOM, and BEDROOM_1 was
-# boxed in on all four sides — MASTER, the safe room, the hall and its own ensuite — so every
-# candidate failed C8 and the person got PLAN_FAILED_VALIDATION for a brief that fits.
+# not fit the depth, and the only reading that solved — BATH_2 hung off BEDROOM_1 as a second
+# ensuite — put the private column out as MASTER+BATH_1 / BEDROOM_1+BATH_2 / SAFE_ROOM, with
+# BEDROOM_1 boxed in on all four sides, so every candidate failed C8. Two defects, fixed apart:
+#
+#   1. ORDERING: a column with two shared rows must put one at each exterior end.
+#   2. POLICY: that reading should never have been offered — it took the house's only shared
+#      bathroom for a brief that asked for a guest WC. `programme_variants` now refuses a variant
+#      that consumes the last shared bathroom, so the reported brief is refused honestly instead.
+#
+# The ordering is therefore exercised on a programme where the second suite IS legitimate: four
+# wet rooms leave a shared bathroom behind after one moves off a bedroom.
 
-SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
-                               target_built_area_m2=176.0)
+REPORTED_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
+                           target_built_area_m2=176.0)
+SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=4, open_plan_living=True)
 
 
-def _second_suite_run():
+def _reported_footprint_run(program: ProgramSpec):
     # The exact region the product handed the engine: the selected footprint, flush to the street
     # edge of a parcel with no setbacks (app/demo/service.py::_buildable_from).
     spec = ArchitecturalSpec(plot=PlotSpec(width_m=15.0, depth_m=15.0, front_setback_m=0.0,
                                            side_setback_m=0.0, rear_setback_m=0.0),
-                             program=SECOND_SUITE_2BR)
+                             program=program)
     buildable = BuildableRegion.known(
         MultiRegion.of(Region(Ring.rectangle(0.0, 0.0, 15.0, 11.73))),
         Provenance(Source.USER, Authority.AUTHORITATIVE, ref="selected footprint"),
@@ -597,19 +608,64 @@ def _second_suite_run():
 def test_second_suite_in_a_column_still_reaches_the_envelope():
     """A column holding TWO shared rows puts one at each exterior end, so the second suite's
     bedroom takes the column's rear edge instead of being enclosed between the first suite and a
-    full-width row. Full-width rows always hold the column's outer edge, so they can sit inside."""
-    result = _second_suite_run()
+    full-width row. Full-width rows always hold the column's outer edge, so they can sit inside.
+    Before the ordering fix this brief solved and failed C8 on BEDROOM_1 at this footprint."""
+    result = _reported_footprint_run(SECOND_SUITE_2BR)
     assert result.design is not None, result.metrics.rejection_reasons
     assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
     c8 = next(c for c in result.validation.checks if c.check_id == "C8")
     assert c8.passed, c8.detail
     bedroom = next(r for r in result.design.rooms if r.zone_id == "BEDROOM_1")
     assert "EXTERIOR" in bedroom.walls.values(), bedroom.walls
-    # The variant that solved IS the second-suite reading, entered through its bedroom — the
-    # ordering fix changed where the rooms sit, not how they connect.
+    # The reading that solved IS the second suite, entered through its bedroom — and the house
+    # still has a full bathroom off the hall. The ordering changed where rooms sit, not access.
     doors = {frozenset((d.a, d.b)) for d in result.design.interior_doors}
-    assert frozenset(("BEDROOM_1", "BATH_2")) in doors, doors
+    assert frozenset(("BEDROOM_1", "BATH_3")) in doors, doors
     assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
+    assert frozenset(("HALL", "BATH_2")) in doors, doors
+
+
+def test_reported_brief_never_gives_away_its_only_shared_bathroom():
+    """The product scenario. Its brief asked for a guest WC; the only reading that fit the depth
+    made that room private to BEDROOM_1. That reading is no longer generated, so whatever the
+    engine answers here, it is never a house without a corridor-entered bathroom."""
+    spec = ArchitecturalSpec(plot=PlotSpec(15.0, 15.0), program=REPORTED_2BR)
+    variants = programme_variants(spec)
+    assert len(variants) == 1, [[(r.zone_id, r.entered_from) for r in v if r.entered_from]
+                                for v in variants]
+    result = _reported_footprint_run(REPORTED_2BR)
+    if result.design is not None:
+        doors = {frozenset((d.a, d.b)) for d in result.design.interior_doors}
+        assert frozenset(("HALL", "BATH_2")) in doors, doors
+
+
+@pytest.mark.parametrize("bedrooms,wet_rooms", [(2, 1), (3, 1), (2, 2), (3, 2), (2, 3), (4, 3)])
+def test_variant_never_consumes_the_last_shared_bathroom(bedrooms, wet_rooms):
+    """Every programme in the supported wet-room range has exactly one shared full bathroom (a
+    third wet room becomes a WC), so no second-suite variant is eligible: the literal reading of
+    the brief is the only programme offered."""
+    spec = _spec(ProgramSpec(bedrooms=bedrooms, safe_room=True, wet_rooms=wet_rooms))
+    variants = programme_variants(spec)
+    assert len(variants) == 1
+    literal = variants[0]
+    assert [r.zone_id for r in literal if r.role is ProgramRole.BATHROOM and r.entered_from is None]
+
+
+def test_variant_is_offered_when_a_shared_bathroom_remains():
+    """Four wet rooms: ensuite, WC, two shared bathrooms. Moving one off the last bedroom still
+    leaves a bathroom on the hall, so the variant is eligible and keeps the brief's semantics."""
+    spec = _spec(ProgramSpec(bedrooms=3, safe_room=True, wet_rooms=4))
+    variants = programme_variants(spec)
+    assert len(variants) == 2
+    literal, variant = variants
+    assert variant_keeps_bathroom_access(literal, variant)
+    moved = [r for r in variant if r.entered_from not in (None, "MASTER")]
+    assert [(r.zone_id, r.entered_from) for r in moved] == [("BATH_3", "BEDROOM_2")]
+    assert [r.zone_id for r in variant if r.role is ProgramRole.BATHROOM and r.entered_from is None] == ["BATH_2"]
+    # And the predicate itself refuses the move when nothing shared would remain.
+    only_one = [r for r in literal if r.zone_id != "BATH_3"]
+    taken = [replace(r, entered_from="BEDROOM_2") if r.zone_id == "BATH_2" else r for r in only_one]
+    assert not variant_keeps_bathroom_access(only_one, taken)
 
 
 def test_daylight_order_leaves_a_column_with_no_stranded_suite_untouched():

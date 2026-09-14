@@ -403,11 +403,24 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
 
     A shared bathroom placed OFF A BEDROOM instead of off the corridor is the same rooms in three
     rows rather than four. That is an ordinary house — a second ensuite — not a compromise, and it
-    is not chosen for the person: it is offered as an ADDITIONAL candidate, tried after the literal
-    reading of the brief, so a plan that fits the corridor-entered version still wins.
+    is not chosen for the person: it is offered as an ADDITIONAL candidate so that a plan that fits
+    the corridor-entered version still wins.
 
-    Bounded by construction: at most one extra variant, and only when there is a shared wet room and
-    a secondary bedroom to attach it to.
+    WHAT A VARIANT MAY NOT DO. The literal programme is the brief's authoritative reading of who
+    reaches which bathroom, and a variant exists to improve geometry, never to trade that away for
+    area. So a variant is eligible only while it keeps every bathroom-access fact the brief relies
+    on — see `variant_keeps_bathroom_access`. Without that rule the variant could hang the house's
+    ONLY shared bathroom off a child's bedroom: measured in the failure-log sweep, every one of 11
+    plans it "gained" and 4 production primaries it replaced had done exactly that, with a brief
+    that asked for a guest WC ending up with no wet room anyone but the two bedrooms could reach.
+
+    ORDER IS NOT A GUARANTEE. `generate_concepts` sorts candidates by closeness to the requested
+    area when there is one, so a variant can be tried BEFORE the literal reading and win the
+    primary. That is why eligibility is decided HERE, on semantics, and not left to ranking: an
+    ineligible variant never enters the pool, whatever the order.
+
+    Bounded by construction: at most one extra variant, and only when there is a shared bathroom
+    to move, a secondary bedroom to attach it to, and another shared bathroom left behind.
     """
     base = build_room_program(spec)
     variants = [base]
@@ -421,11 +434,34 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
         # The LAST shared wet room joins the LAST secondary bedroom: taking the first would move the
         # guest WC away from the entrance, which is the one wet room that wants to stay there.
         attach_to, moved = bedrooms[-1], shared_wet[-1]
-        variants.append([
+        variant = [
             replace(room, entered_from=attach_to.zone_id) if room.zone_id == moved.zone_id else room
             for room in base
-        ])
+        ]
+        if variant_keeps_bathroom_access(base, variant):
+            variants.append(variant)
     return variants
+
+
+def _shared_bathrooms(rooms: list[ProgramRoom]) -> list[ProgramRoom]:
+    """Full bathrooms entered from circulation — the ones anyone in the house can use."""
+    return [r for r in rooms if r.role is ProgramRole.BATHROOM and r.entered_from is None]
+
+
+def variant_keeps_bathroom_access(base: list[ProgramRoom], variant: list[ProgramRoom]) -> bool:
+    """Whether a programme variant preserves the brief's bathroom-access semantics.
+
+    The rule: a variant must never consume the LAST shared bathroom. If the literal programme has
+    a full bathroom reachable from circulation, the variant must still have one — a WC does not
+    count, because a house whose only corridor-entered wet room has no shower gives every bedroom
+    but the suites nowhere to wash. Making a shared bathroom private is a semantic change to the
+    brief, and a variant may only make it where the house keeps a shared bathroom regardless.
+
+    Written as the general predicate rather than a count on `wet_rooms` so it holds for any
+    programme `build_room_program` may produce, and so a future variant that moves a different room
+    is judged by the same fact.
+    """
+    return not _shared_bathrooms(base) or bool(_shared_bathrooms(variant))
 
 
 #: How much geometric headroom ABOVE target a room's `net_area_max_m2` gets, as a function of its
