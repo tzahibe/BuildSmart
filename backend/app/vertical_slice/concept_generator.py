@@ -350,6 +350,10 @@ class ConceptCandidate:
     #: from a rearranged programme is validated against that arrangement, which is what makes the
     #: rearrangement legitimate rather than a violation of the brief.
     wet_rooms: tuple[ResolvedWetRoom, ...] = ()
+    #: 008: this hub candidate was placed after every other candidate because its bound missed the
+    #: §6 gates on this outline. Carried on the candidate so the pipeline can still COMPARE it with
+    #: whatever took its place (`hub_guard`), rather than assume the replacement is better.
+    hub_last_resort: bool = False
 
 
 @dataclass(frozen=True)
@@ -2622,7 +2626,8 @@ def generate_concepts(spec: ArchitecturalSpec,
                 # the same checks; if the witness cannot be planned the v2 candidate stands and the
                 # rationale says why (reported, never tuned around).
                 hub, note = _hub_from_witness(spec, hub_rooms, hub, bound, note)
-            hub = replace(hub, rationale=f"{hub.rationale}; {note}")
+            hub = replace(hub, rationale=f"{hub.rationale}; {note}",
+                          hub_last_resort=eligibility is HubEligibility.LAST_RESORT)
             if eligibility is HubEligibility.LAST_RESORT:
                 last_resort.add(id(hub))
             accepted.append(hub)

@@ -30,6 +30,7 @@ from app.geometry_domain.constraints import (
 from app.geometry_domain.primitives import MultiRegion
 
 from . import concept_generator as generator
+from . import hub_guard
 from . import doors as doors_stage
 from . import relationships as relationships_stage
 from . import furniture as furniture_stage
@@ -484,6 +485,15 @@ def run_general(buildable: BuildableRegion, *,
     if plan is None:  # the relationships path chose on score; realize the winner here
         plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve,
                         relationships, on_stage=on_stage)
+
+    # 008 GUARD. When a demoted hub was passed over, the plan that won is compared with the hub
+    # it displaced — both realized, both validated — and the hub stays the primary unless the
+    # replacement is actually better (`hub_guard`). Without relationships only: the relationship
+    # path already chose on a score of its own, and a hub kept here would bypass it.
+    if not relationships and not chosen.hub_last_resort:
+        chosen, chosen_index, plan = _guard_demoted_hub(
+            spec, buildable, site_constraints, generated.candidates, chosen, chosen_index, plan,
+            failures, on_stage=on_stage)
     design, validation, safety = plan.design, plan.validation, plan.safety
     path = render(design, render_path) if render_path else None
 
@@ -512,6 +522,68 @@ def run_general(buildable: BuildableRegion, *,
         # the same thing. Each alternative carries its own, for the same reason.
         relationships=plan.relationships,
         alternatives=alternatives)
+
+
+def _guard_demoted_hub(spec: ArchitecturalSpec, buildable: BuildableRegion,
+                       site_constraints: SiteConstraints | None,
+                       candidates: tuple, chosen, chosen_index: int, plan: RealizedPlan,
+                       failures: list[str],
+                       on_stage: Callable[[str], None] | None = None):
+    """The chosen plan, or the demoted hub it displaced when that hub is the better plan.
+
+    Realizes the demoted hub (its forced tree first, then its twin — the first that solves and
+    validates) only when one exists, so a brief without a hub pays nothing. The decision and its
+    reason are written to the run's notes either way, so a kept or a demoted hub can be read off
+    the diagnostics.
+    """
+    if not plan.ok:
+        return chosen, chosen_index, plan
+    # Only a hub that demotion actually DISPLACED is compared: one that would have come before
+    # the winning plan in the pre-demotion order. A last-resort hub that would have trailed the
+    # winner anyway was never the primary, and whether it should out-rank a poorer plan of the
+    # same area is the open ranking question of specs/005 §11 — not this guard's.
+    target = spec.program.target_built_area_m2
+    demoted = [(index, c) for index, c in enumerate(candidates)
+               if c.hub_last_resort and _would_have_preceded(c, chosen, target)]
+    if not demoted:
+        return chosen, chosen_index, plan
+    for index, candidate in demoted:
+        try:
+            hub_solve = solve_fixture(candidate.concept.fixture)
+        except GeometryInfeasible as exc:
+            failures.append(f"hub guard: candidate {index} did not solve: {exc}")
+            continue
+        hub_plan = _realize(spec, buildable, site_constraints, candidate, index, hub_solve, (),
+                            on_stage=on_stage)
+        if not hub_plan.ok:
+            failed = [c.check_id for c in hub_plan.validation.failures()]
+            failures.append(f"hub guard: candidate {index} failed validation: "
+                            f"{', '.join(failed) or 'safety'}")
+            continue
+        reason = hub_guard.hub_keeps_primary(hub_guard.proportions_of(hub_plan.design),
+                                             hub_guard.proportions_of(plan.design))
+        if reason is not None:
+            failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
+                            f"{chosen_index} ({chosen.strategy.value}): {reason}")
+            return candidate, index, hub_plan
+        failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) replaces "
+                        f"the demoted hub (candidate {index}): replacement is better")
+        return chosen, chosen_index, plan
+    return chosen, chosen_index, plan
+
+
+def _would_have_preceded(hub, chosen, target_m2: float | None) -> bool:
+    """Whether `hub` came before `chosen` in the order `generate_concepts` had BEFORE 008 moved
+    last-resort hubs to the end: without a target, insertion order (the hub is inserted last, so
+    never); with one, forced trees by closeness to the target, then the twins by the same key."""
+    if target_m2 is None:
+        return False
+    hub_is_twin = hub.rationale.endswith(generator.FREE_TWIN_RATIONALE)
+    chosen_is_twin = chosen.rationale.endswith(generator.FREE_TWIN_RATIONALE)
+    if hub_is_twin != chosen_is_twin:
+        return chosen_is_twin  # every forced tree precedes every twin
+    key = lambda c: (round(abs(c.used_area_m2 - target_m2), 4), round(c.used_area_m2, 4), c.strategy.value)
+    return key(hub) < key(chosen)
 
 
 def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
