@@ -530,7 +530,7 @@ function App() {
         </label>
 
         {/* The capacity, right under the number it constrains — OUTSIDE the label, so it does not
-            become part of the field's accessible name. Refusing at the footprint step meant filling
+            become part of the field's accessible name. Refusing only on the server meant filling
             in the whole form to learn that the first number was impossible. */}
         {capacity !== null ? (
           <p

@@ -177,3 +177,30 @@ one brief.
 
 Not done here: the older Playwright specs (`footprint-selection.spec.ts`, `spatial-edit.spec.ts`)
 were already stale on `main` (they fill fields the form no longer has) and are left as they are.
+
+## 6. Final pre-merge gates (Phase 10, code at the PR head)
+
+| Gate | Result |
+|---|---|
+| Backend `pytest` | **797 passed, 6 skipped, 0 failed** (`main`: 764 / 7) |
+| Frontend `vitest` | **118 passed** (`main`: 109) |
+| `vite build` | OK |
+| Live E2E `frontend/e2e/engine-outline.spec.ts` (real backend, Chrome) | **3 / 3** |
+| Outline A/B sweep (§2, unchanged by Parts B and 10 — backend frozen since `b45d9e8`) | SC-001 257/426 · SC-002 0.975 · SC-003 50/117 (≥ 48) · SC-004 0 · SC-005 117/117, LOST 0 · SC-006 0 · SC-007 0, 142/142 · SC-008 B 3.05 s all / 4.11 s planned-before |
+
+## 7. Decision and scope of the merge
+
+- **Merged scope**: Phases 1–4 (backend), Part B (frontend), Phase 10 (docs). The backend and the
+  selection semantics are as accepted at Phase 4 — no change since `b45d9e8`.
+- **Deferred — Part C (SSE provisional preview, tasks T047–T053)**: owner decision 2026-09-14, not
+  in 006. It is optional UX behaviour and would widen the merge surface; it becomes a follow-up
+  feature with its own contract and tests. The stream today emits the existing per-stage
+  `progress` events for each outline in turn and one authoritative `done`; the percentage restarts
+  per outline, which is coarse but truthful.
+- **Known, left as is**: the older Playwright specs (`e2e/footprint-selection.spec.ts`,
+  `e2e/spatial-edit.spec.ts`, `e2e/city-autocomplete.spec.ts` where it fills site fields) were
+  already stale on `main` — they fill a "שטח מגרש (מ"ר)" field the form replaced with width/depth
+  before this feature. 006 did not change them and does not repair them. `tsc -b` reports the same
+  6 pre-existing errors as `main`.
+- **Not committed**: `outline_ab.json` (1.6 MB, regenerable by `outline_ab.py`); `before.json`
+  (172 KB) is committed as the SC-005 reference.

@@ -30,6 +30,19 @@ Runs all 418 scenarios twice — with the named mechanism disabled, then as ship
   already planned (must stay ~flat) and the rest.
 - `gained.json` next to this file, for `quality_metrics.py --contexts`.
 
+## `outline_ab.py --before before.json` (feature 006)
+
+Runs every context twice through `generate_demo_design`: **A** with the logged `selected_footprint`
+(the advanced path) and **B** without one (the main flow — the engine chooses the outline). Prints
+one line per success criterion of `specs/006-engine-chosen-outline/spec.md` §4: planned A/B; A
+primaries byte-identical to the frozen `snapshot.py --save` file (SC-005) and LOST; main-flow
+non-regression (briefs planned before that B does not plan, listed); first-plan gross ÷ requested
+(SC-002); briefs with ≥ 2 distinct families shown (SC-003); shown plans failing validation (SC-004);
+same-family + same-outline pairs (SC-006); refusals naming an outline and the capacity diagnosis
+(SC-007); latency medians for briefs planned / refused before (SC-008). Writes `outline_ab.json`
+(not committed — 1.6 MB, regenerable). `project_from_context(ctx, with_footprint=False)` is the
+main-flow replay; `plans_shown(result)` lists what the screen shows.
+
 ## `quality_metrics.py [--contexts gained.json] [--split-by-strategy]`
 
 The Stage-0 architectural-quality metrics, measured on delivered geometry:

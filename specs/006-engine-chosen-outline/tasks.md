@@ -159,8 +159,8 @@ description: "Task list for feature 006 — Engine-Chosen Building Outline"
 
 ## Phase 7: Gate A — measurements and results
 
-- [ ] T035 Run `outline_ab.py --before specs/006-engine-chosen-outline/before.json` on the final Part A code and write `specs/006-engine-chosen-outline/RESULTS.md` §1–§4 with the SC table: SC-001 (≥ 250), SC-002 (≥ 0.95), SC-003 (≥ 60), SC-004 (0), SC-005 (127/127), SC-006 (0), SC-007 (0 · 67/67), SC-008 (median A, median B, before; B ≤ 4× before; worst case listed). If any gate fails: STOP, diagnose the exact briefs, record, do not add a heuristic
-- [ ] T036 [P] Update `backend/spikes/failure_log_sweep/README.md` with `outline_ab.py` (modes, flags, what each printed line is the gate for)
+- [X] T035 Run `outline_ab.py --before specs/006-engine-chosen-outline/before.json` on the final Part A code and write `specs/006-engine-chosen-outline/RESULTS.md` §1–§4 with the SC table: SC-001 (≥ 250), SC-002 (≥ 0.95), SC-003 (≥ 60), SC-004 (0), SC-005 (127/127), SC-006 (0), SC-007 (0 · 67/67), SC-008 (median A, median B, before; B ≤ 4× before; worst case listed). If any gate fails: STOP, diagnose the exact briefs, record, do not add a heuristic
+- [X] T036 [P] Update `backend/spikes/failure_log_sweep/README.md` with `outline_ab.py` (modes, flags, what each printed line is the gate for)
 
 ---
 
@@ -194,7 +194,7 @@ description: "Task list for feature 006 — Engine-Chosen Building Outline"
 
 # Part C — SSE / preview UX (isolatable)
 
-## Phase 9: streaming progress and the labelled preview (Priority: P1 UX, technically optional)
+## Phase 9: streaming progress and the labelled preview — **DEFERRED, not in 006** (owner decision 2026-09-14: separate follow-up feature with its own contract and tests)
 
 **Goal**: outline-major progress and one provisional `plan` event so the person sees a first plan while the remaining outlines run. `done` remains the only authoritative result (R5).
 
@@ -219,9 +219,9 @@ description: "Task list for feature 006 — Engine-Chosen Building Outline"
 
 ## Phase 10: Polish & cross-cutting
 
-- [ ] T054 [P] Finalise `specs/006-engine-chosen-outline/RESULTS.md`: SC table with measured values, the 2 person-only briefs named, latency A/B/before, decision (accept / what failed), and the memory note update (`repetition-root-and-outline-sweep`)
-- [ ] T055 [P] Update `backend/app/demo/service.py` module docstring (the flow now lists "outlines → run_general per outline → cross-outline selection") and `backend/spikes/failure_log_sweep/README.md`; remove the now-stale sentence in `frontend/src/design/FootprintSelection.tsx`'s header comment describing it as a mandatory step
-- [ ] T056 Run quickstart.md §1–§5 end to end on the final code; commit `before.json`, `outline_ab.json`, RESULTS.md; open the PR with the SC table in its body
+- [X] T054 [P] Finalise `specs/006-engine-chosen-outline/RESULTS.md`: SC table with measured values, the 2 person-only briefs named, latency A/B/before, decision (accept / what failed), and the memory note update (`repetition-root-and-outline-sweep`)
+- [X] T055 [P] Update `backend/app/demo/service.py` module docstring (the flow now lists "outlines → run_general per outline → cross-outline selection") and `backend/spikes/failure_log_sweep/README.md`; remove the now-stale sentence in `frontend/src/design/FootprintSelection.tsx`'s header comment describing it as a mandatory step
+- [X] T056 Run quickstart.md §1–§5 end to end on the final code; commit `before.json`, `outline_ab.json`, RESULTS.md; open the PR with the SC table in its body
 
 ---
 

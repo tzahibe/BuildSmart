@@ -3,12 +3,19 @@
     Project (parsed, user-corrected requirements)
       -> scope.check_supported            explicit refusal, never a silent downgrade
       -> requirements_view.spec_for       Project -> vertical_slice.ArchitecturalSpec
-      -> concept_generator                DesiredAccessTopology + concept candidates
-      -> safe_adapter                     BuildableRegion -> safe solver rectangles
-      -> geometry_core                    realization
-      -> doors / windows / furniture
-      -> validation                       C1-C13, hard gate
-      -> contract.to_demo_design          authoritative API payload
+      -> _outlines_for                    the person's outline (if any), then the engine's shapes
+      -> run_general, once per outline    unchanged below this line:
+           -> concept_generator             DesiredAccessTopology + concept candidates
+           -> safe_adapter                  BuildableRegion -> safe solver rectangles
+           -> geometry_core                 realization
+           -> doors / windows / furniture
+           -> validation                    C1-C16, hard gate
+      -> _select_plans                    primary nearest the requested area; alternatives by family
+      -> contract.to_demo_design          authoritative API payload, each plan with its outline
+
+Feature 006: the outline is the engine's to choose unless the person fixed one under "advanced";
+see `_plan_outlines_until_one_plans` and `_select_plans` for the two rules, and
+specs/006-engine-chosen-outline/RESULTS.md for what they measured.
 
 No canonical fixture is reachable from here: `concept.py`'s hand-authored concept and
 `geometry_fixtures.py` are never imported. The old `app.geometry.solver` path is not used.
