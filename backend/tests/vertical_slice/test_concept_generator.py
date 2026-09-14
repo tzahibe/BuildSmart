@@ -722,13 +722,17 @@ SHARED_REQUIRED = WetRoomRequirement(WetRoomKind.SHARED_BATHROOM)
 SHARED_FLEXIBLE = WetRoomRequirement(WetRoomKind.SHARED_BATHROOM, None, WetRoomStrength.FLEXIBLE)
 UNSPECIFIED_FLEXIBLE = WetRoomRequirement(WetRoomKind.UNSPECIFIED, None, WetRoomStrength.FLEXIBLE)
 
+# `parking_spaces=0` as in the reported project. With main's parking band in front of the footprint,
+# two bays would put the four-wet-room programme's entrance walk across a bay (C11) — a parking
+# question, not the daylight or access one these tests pin.
 REPORTED_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_plan_living=True,
-                           target_built_area_m2=176.0,
+                           target_built_area_m2=176.0, parking_spaces=0,
                            wet_room_kinds=(ENSUITE_MASTER, SHARED_REQUIRED))
 #: The same brief, with the person having said the second bathroom's placement does not matter.
 REPORTED_2BR_FLEXIBLE = replace(REPORTED_2BR, wet_room_kinds=(ENSUITE_MASTER, SHARED_FLEXIBLE))
 #: Four wet rooms, the last one flexible: a second suite still leaves BATH_2 on the hall.
 SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=4, open_plan_living=True,
+                               parking_spaces=0,
                                wet_room_kinds=(WetRoomRequirement(), WetRoomRequirement(),
                                                WetRoomRequirement(), UNSPECIFIED_FLEXIBLE))
 
