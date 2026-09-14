@@ -393,7 +393,7 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
 
 
 def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
-    """The room programme, plus arrangements of the SAME rooms that need less depth.
+    """The room programme, plus arrangements of the SAME requirements that need less depth.
 
     WHY THIS EXISTS. The private column stacks one room per row; only an ensuite shares its
     bedroom's row. So 3 bedrooms + 2 wet rooms is four rows — 10.60 m of depth at the minimums —
@@ -401,66 +401,54 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
     against a 99.6 m² geometric floor. One extra row costs roughly 40 m².
 
     A shared bathroom placed OFF A BEDROOM instead of off the corridor is the same rooms in three
-    rows rather than four. That is an ordinary house — a second ensuite — not a compromise, and it
-    is not chosen for the person: it is offered as an ADDITIONAL candidate so that a plan that fits
-    the corridor-entered version still wins.
+    rows rather than four. That is an ordinary house — a second ensuite — but it is a DIFFERENT
+    HOUSE from the one described, so it is offered only when the person allowed it.
 
-    WHAT A VARIANT MAY NOT DO. The literal programme is the brief's authoritative reading of who
-    reaches which bathroom, and a variant exists to improve geometry, never to trade that away for
-    area. So a variant is eligible only while it keeps every bathroom-access fact the brief relies
-    on — see `variant_keeps_bathroom_access`. Without that rule the variant could hang the house's
-    ONLY shared bathroom off a child's bedroom: measured in the failure-log sweep, every one of 11
-    plans it "gained" and 4 production primaries it replaced had done exactly that, with a brief
-    that asked for a guest WC ending up with no wet room anyone but the two bedrooms could reach.
+    WHAT A VARIANT MAY DO (specs/007 FR-7). A variant is a rearrangement of the same requirements.
+    It may make a corridor-entered full bathroom private to a secondary bedroom only when that wet
+    room's requirement is FLEXIBLE — the person said its placement does not matter — and only if the
+    resulting programme still satisfies every access invariant (`check_wet_room_invariants`): in
+    practice, a shared full bathroom remains, or every bedroom ends up with its own. A brief with no
+    flexible wet room — every legacy brief, every bare count — gets the literal programme and
+    nothing else. Measured before this rule existed, the variant had put the house's ONLY shared
+    bathroom inside a child's bedroom in 45 delivered plans, for briefs that had asked for a guest
+    WC; none of them had asked for a second suite.
 
     ORDER IS NOT A GUARANTEE. `generate_concepts` sorts candidates by closeness to the requested
     area when there is one, so a variant can be tried BEFORE the literal reading and win the
     primary. That is why eligibility is decided HERE, on semantics, and not left to ranking: an
     ineligible variant never enters the pool, whatever the order.
 
-    Bounded by construction: at most one extra variant, and only when there is a shared bathroom
-    to move, a secondary bedroom to attach it to, and another shared bathroom left behind.
+    Bounded by construction: at most one extra variant — the LAST flexible shared bathroom joins the
+    LAST secondary bedroom (taking the first would move the guest WC away from the entrance, which
+    is the one wet room that wants to stay there).
     """
     base = build_room_program(spec)
-    variants = [base]
+    program = spec.program
+    resolved = resolve_wet_rooms(program)  # `base` was built from it, so it resolves
+    flexible = [r for r in resolved
+                if r.kind is WetRoomKind.SHARED_BATHROOM and r.strength is WetRoomStrength.FLEXIBLE]
+    if not flexible or program.bedrooms < 2:
+        return [base]
 
-    bedrooms = [r for r in base if r.role is ProgramRole.BEDROOM]
-    # BATHROOM only, never the TOILET: a guest WC hung off a child's bedroom is not "a second
-    # ensuite", it is a WC nobody else can reach.
-    shared_wet = [r for r in base
-                  if r.role is ProgramRole.BATHROOM and r.entered_from is None]
-    if bedrooms and len(shared_wet) >= 1 and len(base) > 3:
-        # The LAST shared wet room joins the LAST secondary bedroom: taking the first would move the
-        # guest WC away from the entrance, which is the one wet room that wants to stay there.
-        attach_to, moved = bedrooms[-1], shared_wet[-1]
-        variant = [
-            replace(room, entered_from=attach_to.zone_id) if room.zone_id == moved.zone_id else room
-            for room in base
-        ]
-        if variant_keeps_bathroom_access(base, variant):
-            variants.append(variant)
-    return variants
+    moved = flexible[-1]
+    # The variant is expressed as REQUIREMENTS, then resolved and checked like any brief. Every
+    # item is materialized from its resolved kind — not re-padded from the count — so an
+    # unstated item keeps the default it already had instead of shifting when one item changes.
+    def as_requirement(r: ResolvedWetRoom) -> WetRoomRequirement:
+        if r.zone_id == moved.zone_id:
+            return WetRoomRequirement(WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM, r.strength,
+                                      r.source_text)
+        host = None
+        if r.kind is WetRoomKind.ENSUITE:
+            host = ENSUITE_HOST_MASTER if r.host_zone == "MASTER" else ENSUITE_HOST_BEDROOM
+        return WetRoomRequirement(r.kind, host, r.strength, r.source_text)
 
-
-def _shared_bathrooms(rooms: list[ProgramRoom]) -> list[ProgramRoom]:
-    """Full bathrooms entered from circulation — the ones anyone in the house can use."""
-    return [r for r in rooms if r.role is ProgramRole.BATHROOM and r.entered_from is None]
-
-
-def variant_keeps_bathroom_access(base: list[ProgramRoom], variant: list[ProgramRoom]) -> bool:
-    """Whether a programme variant preserves the brief's bathroom-access semantics.
-
-    The rule: a variant must never consume the LAST shared bathroom. If the literal programme has
-    a full bathroom reachable from circulation, the variant must still have one — a WC does not
-    count, because a house whose only corridor-entered wet room has no shower gives every bedroom
-    but the suites nowhere to wash. Making a shared bathroom private is a semantic change to the
-    brief, and a variant may only make it where the house keeps a shared bathroom regardless.
-
-    Written as the general predicate rather than a count on `wet_rooms` so it holds for any
-    programme `build_room_program` may produce, and so a future variant that moves a different room
-    is judged by the same fact.
-    """
-    return not _shared_bathrooms(base) or bool(_shared_bathrooms(variant))
+    variant_program = replace(program, wet_room_kinds=tuple(as_requirement(r) for r in resolved))
+    if check_wet_room_invariants(variant_program):
+        return [base]
+    variant = build_room_program(replace(spec, program=variant_program))
+    return [base, variant]
 
 
 #: How much geometric headroom ABOVE target a room's `net_area_max_m2` gets, as a function of its
@@ -2187,9 +2175,11 @@ def generate_concepts(spec: ArchitecturalSpec,
         # the failure rather than removing it.
 
     primary = usable[0]
-    # Every arrangement of the same rooms, in order: the brief as written first, then the ones that
-    # need less depth. A plan from the literal reading always outranks a rearranged one, because the
-    # candidates are tried in this order and the first realizable wins.
+    # Every arrangement of the same requirements, the brief as written first. Insertion order is
+    # NOT what keeps a rearranged programme from displacing the literal one — the area sort below
+    # may rank it first — so nothing about access semantics is decided here: `programme_variants`
+    # only returns arrangements the brief allows (specs/007 FR-7/FR-8), and the sort chooses among
+    # candidates that are all acceptable.
     for variant in variants:
         band, rejection = _front_band_concept(spec, variant, primary.rect)
         if band is not None:
