@@ -38,6 +38,17 @@ share of room area · M4 doors on the hall and the hall's own long/short · M5 w
 interior wall with a wet room / kitchen / laundry · M6 living-dining-kitchen joined by open interfaces.
 Reference values from 21 professional plans are in `specs/005-hub-private-wing/spec.md` §1.
 
+## `hub_rooms.py [--hub-only]`
+
+Every realized hub plan's rooms with their rectangles and aspects, plus medians by room type and —
+since 008 — split by the hub's eligibility (`StrategyRecorder.chosen_rationale`).
+
+## `hub_sizing_bound.py [W D ...]` · `hub_topology_bound.py [--wet 2|3] [--grid] [--only T1]`
+
+The exact bounds behind v2.1 (sizing cannot fix the wide-shallow outlines) and v3 Phase 0
+(per topology: door seats, wet adjacency, shape). Since 008 the T1 row runs through the engine's
+`hub_bound`, so the tool and the eligibility decision share one model. RESULTS.md §6–§8.
+
 ## `BASELINE.md`
 
 Frozen output of `ab.py --toggle twins` at commit `2e19d89`, the "before" every later phase is

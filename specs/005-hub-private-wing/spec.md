@@ -212,6 +212,11 @@ narrowly while beating the plans they replaced (1.50 / 1.60). Not merged: two ta
 decision rather than a deferral. v2.1 lever for the two misses: a shape-aware share of surplus
 width in `_plan_hub_wing` (flanks and foot), measured with the harness, not tuned.
 
+**v2.1 (2026-09-13) — not accepted**; **v3 Phase 0 (2026-09-14)** — no topology passes geometry +
+access + wet adjacency across the representative outlines; **008 (2026-09-14)** — hub eligibility
+by computed feasibility, measured: ordering works, eligible plans still miss the shape gates
+because `_plan_hub_wing` does not take the sizing the bound finds. RESULTS.md §6–§8.
+
 ## 10. Success definition
 
 The hub parti is done when a 4-bedroom, 2-wet-room, safe-room brief on a 13 × 14 m footprint — which today plans as a 9.4-aspect spine with strip-shaped public rooms and 40 % wet adjacency — comes back with a 3 × 3.4 m room lobby, five doors on it, two wet rooms side by side at its head, a master suite at its foot, near-square bedrooms on its flanks, every habitable room on the envelope, all validation checks passing, and no scenario that planned before planning worse.

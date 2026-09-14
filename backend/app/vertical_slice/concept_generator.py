@@ -26,6 +26,7 @@ and Geometry Core remains solely responsible for exact realization.
 """
 from __future__ import annotations
 
+import bisect
 import math
 from dataclasses import dataclass, field, replace
 from enum import Enum
@@ -2013,16 +2014,12 @@ def _hub_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: R
     # their hall to it; a request beyond what a lobby can be is declined here so the brief falls
     # through to the partis — and, for a preference, to the service's retry without it.
     corridor = spec.program.corridor
-    widths = _HUB_WIDTHS_M
-    if corridor is not None:
-        wanted = _hall_width_m(corridor, HUB_TEMPLATE.target_area_m2 ** 0.5, cap_m=max(_HUB_WIDTHS_M),
-                               has_safe_room=any(r.role is ProgramRole.SAFE_ROOM for r in rooms))
-        if wanted > max(_HUB_WIDTHS_M) + 1e-9 or wanted < min(_HUB_WIDTHS_M) - 1e-9:
-            return None, ConceptRejection(
-                strategy, RejectionReason.INSUFFICIENT_WING_AREA,
-                f"a {corridor.width_m:.2f} m corridor request is outside what a room lobby can be "
-                f"({min(_HUB_WIDTHS_M):.1f}-{max(_HUB_WIDTHS_M):.1f} m)")
-        widths = (round(wanted / 0.05) * 0.05,)
+    widths = _hub_widths(spec, rooms)
+    if widths is None:
+        return None, ConceptRejection(
+            strategy, RejectionReason.INSUFFICIENT_WING_AREA,
+            f"a {corridor.width_m:.2f} m corridor request is outside what a room lobby can be "
+            f"({min(_HUB_WIDTHS_M):.1f}-{max(_HUB_WIDTHS_M):.1f} m)")
 
     failure: PlanFailure | None = None
     rejection: ConceptRejection | None = None
@@ -2091,6 +2088,284 @@ def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate:
     )
 
 
+# --------------------------------------------------------------------------- hub eligibility (008)
+
+@dataclass(frozen=True)
+class HubGates:
+    """The §6 acceptance numbers a hub plan is held to — referenced, never re-derived."""
+    bedroom_aspect: float
+    master_aspect: float
+    wet_adjacency: float
+
+
+HUB_GATES = HubGates(bedroom_aspect=1.35, master_aspect=1.40, wet_adjacency=0.80)
+
+
+@dataclass(frozen=True)
+class HubBound:
+    """The best the v2 hub tree can do on one outline for one programme, under the access and
+    wet-adjacency rules — specs/008 data-model.md. `gated_*` are None when no sizing reaches the
+    wet gate at all (the 3-wet case)."""
+    fw_m: float
+    fh_m: float
+    hub_widths_m: tuple[float, ...]
+    required_doors: int
+    seated_doors: int
+    best_wet_adjacency: float
+    gated_bedroom_aspect: float | None
+    gated_master_aspect: float | None
+    gated_safe_aspect: float | None
+    evaluated: int
+
+    def describe(self) -> str:
+        if self.gated_bedroom_aspect is None:
+            return (f"wet adjacency reaches {100 * self.best_wet_adjacency:.0f}% at best "
+                    f"(gate {100 * HUB_GATES.wet_adjacency:.0f}%)")
+        return (f"best reachable bedroom-class aspect {self.gated_bedroom_aspect:.2f} "
+                f"(gate {HUB_GATES.bedroom_aspect}), master {self.gated_master_aspect:.2f} "
+                f"(gate {HUB_GATES.master_aspect}), wet {100 * self.best_wet_adjacency:.0f}%")
+
+
+class HubEligibility(str, Enum):
+    ELIGIBLE = "ELIGIBLE"
+    LAST_RESORT = "LAST_RESORT"
+
+
+def hub_eligibility(bound: HubBound) -> HubEligibility:
+    if (bound.gated_bedroom_aspect is not None
+            and bound.gated_bedroom_aspect <= HUB_GATES.bedroom_aspect + 1e-9
+            and bound.gated_master_aspect is not None
+            and bound.gated_master_aspect <= HUB_GATES.master_aspect + 1e-9):
+        return HubEligibility.ELIGIBLE
+    return HubEligibility.LAST_RESORT
+
+
+def _hub_widths(spec: ArchitecturalSpec, rooms: list[ProgramRoom]) -> tuple[float, ...] | None:
+    """The lobby widths `_hub_concept` tries: the census set, or the one a corridor request pins;
+    None when the request is outside what a lobby can be (the hub is declined)."""
+    corridor = spec.program.corridor
+    if corridor is None:
+        return _HUB_WIDTHS_M
+    wanted = _hall_width_m(corridor, HUB_TEMPLATE.target_area_m2 ** 0.5, cap_m=max(_HUB_WIDTHS_M),
+                           has_safe_room=any(r.role is ProgramRole.SAFE_ROOM for r in rooms))
+    if wanted > max(_HUB_WIDTHS_M) + 1e-9 or wanted < min(_HUB_WIDTHS_M) - 1e-9:
+        return None
+    return (round(wanted / 0.05) * 0.05,)
+
+
+_RectM = tuple[float, float, float, float]  # x, y, w, h — gross metres
+
+
+def _shared_edge_m(a: _RectM, b: _RectM) -> float:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    if abs(ax + aw - bx) < 1e-6 or abs(bx + bw - ax) < 1e-6:
+        return max(0.0, min(ay + ah, by + bh) - max(ay, by))
+    if abs(ay + ah - by) < 1e-6 or abs(by + bh - ay) < 1e-6:
+        return max(0.0, min(ax + aw, bx + bw) - max(ax, bx))
+    return 0.0
+
+
+def _bound_grid(lo: float, hi: float, step: float) -> list[float]:
+    """`lo` itself (a room's exact minimum), then the grid points above it, up to `hi`."""
+    if lo > hi + 1e-9:
+        return []
+    out = [round(lo, 2)]
+    x = math.floor(lo / step + 1e-9) * step + step
+    while x <= hi + 1e-9:
+        out.append(round(x, 2))
+        x += step
+    return out
+
+
+def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[float, ...],
+              grid: float = 0.25) -> HubBound:
+    """Phase 0's bound, on the engine's own allocation: for each lobby width, the tree
+    `_hub_allocation` would build is sized over a grid — lobby depth, flank split, stack splits,
+    foot boundary, ensuite share, foot depth — and checked as rectangles for door seats (>= 1.10 m
+    of shared edge with the lobby), the ensuite beside its master, and M5 wet adjacency (a wet room
+    touching a wet room; the kitchen is ignored, conservatively). Returns the best bedroom-class
+    aspect among sizings that seat every door AND reach the wet gate, exiting early once one passes
+    the §6 gates. Nothing here chooses a sizing: `_plan_hub_wing` is untouched and its own sizing is
+    a point in this space, so the bound is never stricter than the engine on feasibility — only on
+    quality (specs/008 research R1–R5).
+
+    Cost: the flank and foot parts only meet through the lobby's position and depth, so each is
+    tabulated once and combined — a few thousand cheap evaluations per lobby width.
+    """
+    from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
+    opening = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
+    inset = _EDGE_INSET_ALLOWANCE_M
+    wet_roles = (ProgramRole.BATHROOM, ProgramRole.TOILET)
+
+    def net_aspect(w: float, d: float) -> float:
+        w, d = w - inset, d - inset
+        return max(w, d) / max(min(w, d), 1e-6)
+
+    best_wet = 0.0
+    gated: tuple[float, float, float] | None = None   # (bedroom-class max, master, safe)
+    required = seated_max = evaluated = 0
+
+    for hw in widths:
+        alloc, _ = _hub_allocation(rooms, hw)
+        if alloc is None:
+            continue
+        flanks = [alloc.flank_west, alloc.flank_east]
+        doored = [r for r in alloc.foot if not r.entered_from]
+        needs_door = [r for f in flanks for r in f] + doored
+        required = max(required, len(needs_door))
+        band_min = max(r.template.min_short_side_m for r in alloc.public) + inset
+        hub_floor = max([_flank_min_depth_m(f) for f in flanks]
+                        + [HUB_TEMPLATE.min_short_side_m + inset,
+                           HUB_TEMPLATE.target_area_m2 / max(hw - inset, 1e-6) + inset / 2,
+                           hw / HUB_TEMPLATE.max_aspect_ratio])
+        hub_cap = min(hw * HUB_TEMPLATE.max_aspect_ratio,
+                      HUB_TEMPLATE.max_area_m2 / max(hw - inset, 1e-6) + inset / 2)
+        mins_w = [_flank_min_width_m(f) for f in flanks]
+        foot_floor = max(r.template.min_short_side_m + inset for r in alloc.foot)
+        master = next((r for r in alloc.foot if r.role is ProgramRole.MASTER_BEDROOM), None)
+        safe = next((r for r in rooms if r.role is ProgramRole.SAFE_ROOM), None)
+        mate = next((r for r in alloc.foot if r.entered_from), None)
+        private_ids = {r.zone_id for r in rooms if r.group is ZoneGroup.PRIVATE}
+
+        # --- structural facts, once per allocation on a representative sizing: door seats and
+        # wet adjacency depend on which room is where, not on the grid (every flank room borders
+        # the lobby over its own depth; the foot boundary window guarantees the two doored rooms
+        # an opening; a wet room under a flank shares its column's bottom edge with the foot).
+        def rectangles(hd: float, w: float, west_d: list[float], east_d: list[float],
+                       fws: list[float], fd: float) -> dict[str, _RectM]:
+            band = fh - hd - fd
+            rects: dict[str, _RectM] = {}
+            y = band
+            for room, d in zip(alloc.flank_west, west_d):
+                rects[room.zone_id] = (0.0, y, w, d); y += d
+            rects[alloc.hub.zone_id] = (w, band, hw, hd)
+            y = band
+            for room, d in zip(alloc.flank_east, east_d):
+                rects[room.zone_id] = (w + hw, y, fw - hw - w, d); y += d
+            x = 0.0
+            for room, fw_ in zip(alloc.foot, fws):
+                rects[room.zone_id] = (x, band + hd, fw_, fd); x += fw_
+            return rects
+
+        def foot_widths(centre: float, ens_w: float) -> list[float] | None:
+            out: list[float] = []
+            for i, room in enumerate(alloc.foot):
+                if room.entered_from:
+                    continue
+                side_w = centre if room is doored[0] else fw - centre
+                m = next((e for e in alloc.foot if e.entered_from == room.zone_id), None)
+                if m is None:
+                    out.append(side_w)
+                    continue
+                if ens_w + room.template.min_short_side_m + inset > side_w + 1e-9:
+                    return None
+                out += [ens_w, side_w - ens_w] if alloc.foot.index(m) < i else [side_w - ens_w, ens_w]
+            for room, w_ in zip(alloc.foot, out):
+                if w_ < room.template.min_short_side_m + inset - 1e-9:
+                    return None
+            return out
+
+        # --- foot table: per boundary and ensuite share, the foot's worst private aspect at every
+        # depth on the grid, folded into prefix minima so a lobby depth (which caps the foot's depth)
+        # reads its best foot in one lookup.
+        ens_min = mate.template.min_short_side_m + inset if mate is not None else 0.0
+        fds_all = _bound_grid(foot_floor, fh - hub_floor - band_min, grid)
+        foot_table: list[tuple[float, list[tuple[float, float, float]], list[float]]] = []  # centre, prefix best (worst, master, safe), widths
+        for centre in _bound_grid(mins_w[0] + opening, fw - hw - mins_w[1] + hw - opening, grid):
+            ens_opts = [ens_min]
+            if mate is not None:
+                side = centre if alloc.foot.index(mate) < alloc.foot.index(doored[1]) else fw - centre
+                room_min = next(r for r in alloc.foot if r.zone_id == mate.entered_from).template.min_short_side_m + inset
+                ens_opts = _bound_grid(ens_min, side - room_min, grid) or [ens_min]
+            for ens_w in ens_opts:
+                fws = foot_widths(centre, ens_w)
+                if fws is None:
+                    continue
+                priv = [(r, w_) for r, w_ in zip(alloc.foot, fws) if r.zone_id in private_ids]
+                prefix: list[tuple[float, float, float]] = []
+                for fd in fds_all:
+                    evaluated += 1
+                    worst = max((net_aspect(w_, fd) for _, w_ in priv), default=1.0)
+                    m_asp = next((net_aspect(w_, fd) for r, w_ in priv if r is master), worst)
+                    s_asp = next((net_aspect(w_, fd) for r, w_ in priv if r is safe), 0.0)
+                    entry = (worst, m_asp, s_asp)
+                    prefix.append(entry if not prefix or worst < prefix[-1][0] - 1e-9 else prefix[-1])
+                foot_table.append((centre, prefix, fws))
+        if not foot_table:
+            continue
+
+        checked_structure = False
+        for hd in _bound_grid(hub_floor, hub_cap, grid):
+            fd_hi = fh - hd - band_min
+            if fd_hi < foot_floor - 1e-9:
+                continue
+
+            def splits(flank: list[ProgramRoom]) -> list[list[float]]:
+                if len(flank) == 1:
+                    return [[hd]]
+                top_min = flank[0].template.min_short_side_m + inset
+                bot_min = flank[1].template.min_short_side_m + inset
+                return [[d1, hd - d1] for d1 in _bound_grid(top_min, hd - bot_min, grid)]
+            west_splits, east_splits = splits(alloc.flank_west), splits(alloc.flank_east)
+
+            for w in _bound_grid(mins_w[0], fw - hw - mins_w[1], grid):
+                e = fw - hw - w
+                # best flank split for this (hd, w): the private rooms' worst aspect
+                flank_best: tuple[float, list[float], list[float], float] | None = None
+                for wd in west_splits:
+                    for ed in east_splits:
+                        evaluated += 1
+                        worst = max([net_aspect(w, d) for r, d in zip(alloc.flank_west, wd) if r.zone_id in private_ids]
+                                    + [net_aspect(e, d) for r, d in zip(alloc.flank_east, ed) if r.zone_id in private_ids]
+                                    or [1.0])
+                        s_asp = max([net_aspect(w, d) for r, d in zip(alloc.flank_west, wd) if r is safe]
+                                    + [net_aspect(e, d) for r, d in zip(alloc.flank_east, ed) if r is safe] or [0.0])
+                        if flank_best is None or worst < flank_best[0] - 1e-9:
+                            flank_best = (worst, wd, ed, s_asp)
+                if flank_best is None:
+                    continue
+                lo, hi = w + opening, w + hw - opening
+                n_fd = bisect.bisect_right(fds_all, fd_hi + 1e-9)
+                if n_fd == 0:
+                    continue
+                for centre, prefix, fws in foot_table:
+                    if centre < lo - 1e-9 or centre > hi + 1e-9:
+                        continue
+                    f_worst, m_asp, s_asp_foot = prefix[n_fd - 1]
+                    if not checked_structure:
+                        rects = rectangles(hd, w, flank_best[1], flank_best[2], fws, fds_all[0])
+                        hub_rect = rects[alloc.hub.zone_id]
+                        seated = sum(1 for r in needs_door
+                                     if _shared_edge_m(rects[r.zone_id], hub_rect) >= opening - 1e-6)
+                        seated_max = max(seated_max, seated)
+                        ens_ok = mate is None or _shared_edge_m(
+                            rects[mate.zone_id], rects[mate.entered_from]) >= opening - 1e-6
+                        wets = [r for r in rooms if r.role in wet_roles and r.zone_id in rects]
+                        adj = sum(1 for r in wets if any(
+                            _shared_edge_m(rects[r.zone_id], rects[o.zone_id]) > 0.3 for o in wets if o is not r))
+                        wet = adj / len(wets) if wets else 1.0
+                        best_wet = max(best_wet, wet)
+                        checked_structure = True
+                        structure_ok = seated == len(needs_door) and ens_ok and wet >= HUB_GATES.wet_adjacency - 1e-9
+                    if not structure_ok:
+                        break
+                    worst = max(flank_best[0], f_worst)
+                    s_asp = max(flank_best[3], s_asp_foot)
+                    if gated is None or worst < gated[0] - 1e-9:
+                        gated = (worst, m_asp, s_asp)
+                    if worst <= HUB_GATES.bedroom_aspect + 1e-9 and m_asp <= HUB_GATES.master_aspect + 1e-9:
+                        return HubBound(fw, fh, tuple(widths), len(needs_door), len(needs_door),
+                                        best_wet, worst, m_asp, s_asp, evaluated)
+                if checked_structure and not structure_ok:
+                    break
+            if checked_structure and not structure_ok:
+                break
+    return HubBound(fw, fh, tuple(widths), required, seated_max, best_wet,
+                    gated[0] if gated else None, gated[1] if gated else None,
+                    gated[2] if gated else None, evaluated)
+
+
 def _multi_wing_assessment(candidates: list[SolverGeometryCandidate],
                            ) -> ConceptRejection | None:
     """Evaluate whether a second safe wing can host part of the programme.
@@ -2137,6 +2412,7 @@ def generate_concepts(spec: ArchitecturalSpec,
     rooms = variants[0]                     # the literal reading of the brief, for the diagnostics
     accepted: list[ConceptCandidate] = []
     rejections: list[ConceptRejection] = []
+    last_resort: set[int] = set()   # ids of hub candidates demoted by their outline's bound (008)
 
     if not candidates:
         return GenerationResult((), (ConceptRejection(
@@ -2210,6 +2486,19 @@ def generate_concepts(spec: ArchitecturalSpec,
         # area-closer spine plan is an open product question (specs/005 §11), not a side effect.
         hub, rejection = _hub_concept(spec, variant, primary.rect)
         if hub is not None:
+            # 008: a hub is offered as a peer of the other partis only where its tree can meet the
+            # §6 gates on THIS outline (the Phase 0 bound, computed on the engine's own allocation);
+            # elsewhere it is kept as the last resort so no rescued brief becomes a refusal.
+            hub_rooms = [ProgramRoom("HALL", ProgramRole.HALL, ZoneGroup.CIRCULATION, HUB_TEMPLATE)
+                         if r.group is ZoneGroup.CIRCULATION else r for r in variant]
+            bound = hub_bound(hub_rooms, hub.concept.footprint_width_m, hub.concept.footprint_depth_m,
+                              _hub_widths(spec, variant) or _HUB_WIDTHS_M)
+            eligibility = hub_eligibility(bound)
+            note = ("hub eligible on this outline: " if eligibility is HubEligibility.ELIGIBLE
+                    else "hub last resort on this outline: ") + bound.describe()
+            hub = replace(hub, rationale=f"{hub.rationale}; {note}")
+            if eligibility is HubEligibility.LAST_RESORT:
+                last_resort.add(id(hub))
             accepted.append(hub)
         elif rejection is not None and variant is rooms:
             rejections.append(rejection)
@@ -2229,6 +2518,17 @@ def generate_concepts(spec: ArchitecturalSpec,
     # Every forced tree first, in the order just decided; then the same trees with their cut
     # positions left to the solver, in the same order. See `_unforced` for why this ordering — and
     # not one twin behind each forced tree — is the one that leaves every existing plan untouched.
-    accepted.extend([_free_twin(c) for c in accepted])
+    twins = [_free_twin(c) for c in accepted]
+    for forced, twin in zip(accepted, twins):
+        if id(forced) in last_resort:
+            last_resort.add(id(twin))
+    accepted.extend(twins)
+
+    # 008: last-resort hubs go after EVERY other candidate — the other partis' twins included — in
+    # the order they already had (forced tree before its twin), so the first-realizable pipeline
+    # reaches them only when nothing else plans. Ordering only: no score, no bonus.
+    if last_resort:
+        accepted = ([c for c in accepted if id(c) not in last_resort]
+                    + [c for c in accepted if id(c) in last_resort])
 
     return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms))
