@@ -258,3 +258,27 @@
 .project-form .form-capacity--over { color: var(--danger); font-weight: 500; }
 
 .project-form .dim { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+
+/* Feature 006: the outline is the engine's to choose; the cards live under this disclosure. */
+.project-form .form-advanced {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1px dashed #d7ccb4;
+  border-radius: 10px;
+  background: #fbf9f3;
+}
+.project-form .form-advanced__note { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #5f5a4e; }
+.project-form .form-advanced__toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c5a3f;
+  cursor: pointer;
+}
+.project-form .form-advanced__body { margin-top: 12px; }
+.project-form .form-advanced__loading,
+.project-form .form-advanced__error { margin: 0; font-size: 13px; }
+.project-form .form-advanced__error { color: #9b2c2c; }

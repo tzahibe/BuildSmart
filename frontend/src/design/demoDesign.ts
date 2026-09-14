@@ -100,6 +100,34 @@ export interface DemoRelationship {
   source_text: string
 }
 
+/** Who chose the rectangle a plan occupies (feature 006): the engine's own outline search, or the
+ * person, under "advanced". */
+export type OutlineOrigin = 'ENGINE' | 'PERSON'
+
+/** The person-facing label of a plan's outline — width, depth, area — and its origin. */
+export interface DemoOutline {
+  width_m: number
+  depth_m: number
+  area_m2: number
+  origin: OutlineOrigin
+}
+
+/** One outline the engine planned for this request, whether or not it produced a plan. */
+export interface OutlineTried {
+  width_m: number
+  depth_m: number
+  origin: OutlineOrigin
+  planned: boolean
+  plans_found: number
+  latency_ms: number
+}
+
+/** What the outline search did — every outline tried and what it cost. */
+export interface SearchSummary {
+  outlines: OutlineTried[]
+  total_latency_ms: number
+}
+
 export interface DemoDesign {
   plot: DemoRect
   footprint: DemoRect
@@ -116,6 +144,10 @@ export interface DemoDesign {
   corridor?: DemoCorridor | null
   relationships?: DemoRelationship[]
   validation: DemoValidation
+  /** Feature 006. Absent only for a design that did not come through the demo service. */
+  outline?: DemoOutline | null
+  /** Feature 006. Opaque family signature — never parsed or shown. */
+  family?: string | null
 }
 
 /** What the design request answers with: a plan, and the other plans that were also possible.
@@ -126,6 +158,8 @@ export interface DemoDesign {
 export interface DemoPlanSet {
   plan: DemoDesign
   alternatives: DemoDesign[]
+  /** Feature 006: the outlines tried and their cost. */
+  search?: SearchSummary | null
 }
 
 /** "This is what I understood" — mirrors `RequirementsReview`. */

@@ -581,13 +581,16 @@ SECOND_SUITE_2BR = ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2, open_pla
 
 
 def _second_suite_run():
-    # The exact region the product handed the engine: the selected footprint, flush to the street
-    # edge of a parcel with no setbacks (app/demo/service.py::_buildable_from).
-    spec = ArchitecturalSpec(plot=PlotSpec(width_m=15.0, depth_m=15.0, front_setback_m=0.0,
+    # The region the product hands the engine: the selected footprint, flush to the street-side
+    # band of a parcel with no setbacks (app/demo/service.py::_buildable_from). The band is the
+    # parking bays' 5 m — the two bays stand in it — so the footprint starts at y=5, and the
+    # parcel is deep enough to hold both; on the 15 m deep parcel the product reported this from,
+    # the product now refuses before planning (FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING).
+    spec = ArchitecturalSpec(plot=PlotSpec(width_m=15.0, depth_m=17.0, front_setback_m=0.0,
                                            side_setback_m=0.0, rear_setback_m=0.0),
                              program=SECOND_SUITE_2BR)
     buildable = BuildableRegion.known(
-        MultiRegion.of(Region(Ring.rectangle(0.0, 0.0, 15.0, 11.73))),
+        MultiRegion.of(Region(Ring.rectangle(0.0, 5.0, 15.0, 11.73))),
         Provenance(Source.USER, Authority.AUTHORITATIVE, ref="selected footprint"),
     )
     return run_general(buildable, plot_size_m=(spec.plot.width_m, spec.plot.depth_m),

@@ -229,3 +229,13 @@
   font-size: 0.92rem;
   line-height: 1.5;
 }
+
+/* Inline under the brief form's advanced disclosure (feature 006): no page chrome, tighter grid. */
+.footprint-selection--inline {
+  padding: 0;
+  margin: 0;
+}
+.footprint-selection__inline-header p {
+  font-size: 13px;
+  line-height: 1.5;
+}

@@ -27,7 +27,7 @@ import {
 import LoadingScreen from './design/LoadingScreen'
 import type { FormState, Project, ValidationErrorDetail } from './types'
 
-type View = 'form' | 'footprint' | 'loading' | 'review' | 'generating' | 'plan' | 'design'
+type View = 'form' | 'loading' | 'review' | 'generating' | 'plan' | 'design'
 
 const initialForm: FormState = {
   city: '',
@@ -60,16 +60,23 @@ function App() {
   const [demoPlans, setDemoPlans] = useState<DemoPlanSet | null>(null)
   const [demoError, setDemoError] = useState<{ message: string; detail: string } | null>(null)
   const [demoProgress, setDemoProgress] = useState<DemoProgress | null>(null)
-  // The SELECTED BUILDING FOOTPRINT (FOOTPRINT SELECTION step) — a real, typed choice the user makes
-  // explicitly, not just which card looks highlighted (see design/footprint.ts's module docstring).
-  // `null` until a valid option is chosen; cleared whenever `built_area_m2` changes (see the input's
-  // onChange below) so a stale selection made against a since-changed target area can never be
-  // carried forward — FootprintSelection itself defensively re-checks this too (see its own
-  // docstring), but App.tsx is the actual owner of this state and clears it at the source.
+  // THE OUTLINE IS THE ENGINE'S TO CHOOSE (feature 006). It used to be a screen of its own between
+  // this form and generation; measured over the production log, the person's choice planned in 30 %
+  // of briefs while each of the engine's own four shapes planned in 35–45 %. So the form now creates
+  // the project WITHOUT an outline and the engine plans the shapes that fit. The cards survive under
+  // an "advanced" disclosure for a person with a real constraint (a permit tied to a rectangle, a
+  // frontage to keep); an outline chosen there is authoritative — planned first, shown first.
+  //
+  // `footprint` is that advanced choice — a real, typed selection, not which card looks highlighted
+  // (see design/footprint.ts). `null` means "the engine chooses". Cleared whenever the built area or
+  // the setbacks change, so a stale selection made against a since-changed target can never be
+  // carried forward, and whenever the disclosure is closed.
   const [footprint, setFootprint] = useState<BuildingFootprint | null>(null)
-  // The buildable region and the outlines that fit it, computed by the BACKEND. Fetched before the
-  // footprint step so the screen can only ever offer options that are actually possible.
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  // The buildable region and the outlines that fit it, computed by the BACKEND — fetched only when
+  // the advanced disclosure is opened, never for the main flow.
   const [siteOptions, setSiteOptions] = useState<FootprintOptionsResponse | null>(null)
+  const [siteOptionsError, setSiteOptionsError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -168,12 +175,62 @@ function App() {
     setStreets([])
   }
 
-  // Validates the project-requirements form and, once the target built area is known, moves to the
-  // FOOTPRINT SELECTION step BEFORE any backend call — `createProject` itself only happens once a
-  // footprint is actually confirmed (see `handleConfirmFootprint`). This is what makes "changing the
-  // built area" simply a matter of coming back here: nothing has been persisted to the backend yet at
-  // this point, so there is no project to update, only the form to re-validate.
-  function handleContinueToFootprint(event: FormEvent<HTMLFormElement>) {
+  /** The site inputs the advanced outline options are computed from — the same ones the project is
+   *  created with. Incomplete means there is nothing honest to offer yet. */
+  function siteInputs() {
+    const body = {
+      plot_width_m: Number(form.plot_width_m),
+      plot_depth_m: Number(form.plot_depth_m),
+      street_facing_side: form.street_facing_side,
+      built_area_m2: Number(form.built_area_m2),
+      front_setback_m: Number(form.front_setback_m),
+      side_setback_m: Number(form.side_setback_m),
+      rear_setback_m: Number(form.rear_setback_m),
+    }
+    const complete = body.plot_width_m > 0 && body.plot_depth_m > 0 && body.built_area_m2 > 0
+    return { body, complete }
+  }
+
+  // Opening the advanced disclosure is what fetches the outline options — the main flow never
+  // pays for them. Closing it drops any outline chosen there: closed means "the engine chooses".
+  function handleToggleAdvanced() {
+    if (advancedOpen) {
+      setAdvancedOpen(false)
+      setFootprint(null)
+      return
+    }
+    setAdvancedOpen(true)
+    void loadSiteOptions()
+  }
+
+  async function loadSiteOptions() {
+    const { body, complete } = siteInputs()
+    setSiteOptions(null)
+    setSiteOptionsError(null)
+    if (!complete) {
+      setSiteOptionsError('כדי לבחור מתאר ידנית יש להזין קודם את מידות המגרש ואת שטח הבנייה.')
+      return
+    }
+    try {
+      setSiteOptions(await fetchFootprintOptions(body))
+    } catch (error) {
+      reportFailure('FOOTPRINT_OPTIONS_FAILED', String(error), 'footprint options')
+      setSiteOptionsError('לא ניתן היה לחשב את אפשרויות המתאר עבור המגרש')
+    }
+  }
+
+  /** A site input changed: any advanced outline was computed for the old site and is dropped, and
+   *  the options are refetched if the disclosure is open. */
+  function siteChanged(next: FormState) {
+    setForm(next)
+    setFootprint(null)
+    setSiteOptions(null)
+  }
+
+  // Validates the brief and CREATES THE PROJECT. There is no outline step in between any more: the
+  // request carries `selected_footprint: null` unless the person chose one under "advanced", and the
+  // engine plans the outlines that fit (backend/app/demo/service.py, feature 006).
+  async function handleSubmitBrief(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrors([])
 
@@ -198,9 +255,9 @@ function App() {
       ])
       return
     }
-    // Checked HERE, before the rest of the flow, rather than after the footprint step. The backend
-    // recomputes and enforces this independently — this only stops the person walking three screens
-    // to be told their first number was impossible.
+    // Checked HERE, before any backend call. The backend recomputes and enforces this
+    // independently — this only stops the person waiting on a request whose first number was
+    // impossible.
     const oneStoreyCapacity = buildableWidth * buildableDepth
     if (Number(form.built_area_m2) > oneStoreyCapacity) {
       setErrors([
@@ -213,36 +270,7 @@ function App() {
       return
     }
 
-    setSiteOptions(null)
-    void fetchFootprintOptions({
-      plot_width_m: Number(form.plot_width_m),
-      plot_depth_m: Number(form.plot_depth_m),
-      street_facing_side: form.street_facing_side,
-      built_area_m2: Number(form.built_area_m2),
-      front_setback_m: Number(form.front_setback_m),
-      side_setback_m: Number(form.side_setback_m),
-      rear_setback_m: Number(form.rear_setback_m),
-    })
-      .then(setSiteOptions)
-      .catch((error) => {
-        reportFailure('FOOTPRINT_OPTIONS_FAILED', String(error), 'footprint options')
-        setErrors(['לא ניתן היה לחשב את אפשרויות המתאר עבור המגרש'])
-      })
-    setView('footprint')
-  }
-
-  // Only fires with a confirmed, valid `footprint` (the "continue" button in FootprintSelection is
-  // disabled otherwise) — this is where the project is actually created, exactly as `handleSubmit`
-  // used to do directly from the form. The confirmed `footprint` — the ONE source of truth for what
-  // was actually selected — is sent verbatim via `toSelectedFootprintPayload`, never recomputed here
-  // from raw form numbers (see backend/app/projects/models.py's `SelectedFootprint` for the backend
-  // half of this contract, and app/design/pipeline.py's `_derive_footprint` for how it becomes
-  // authoritative planning geometry).
-  async function handleConfirmFootprint() {
-    if (footprint === null) return
     setSubmitting(true)
-    setErrors([])
-
     try {
       const response = await createProject({
         city: form.city,
@@ -260,18 +288,18 @@ function App() {
         },
         built_area_m2: Number(form.built_area_m2),
         description: form.description,
-        selected_footprint: toSelectedFootprintPayload(footprint),
+        // The advanced choice, sent verbatim via `toSelectedFootprintPayload` — never recomputed
+        // here from raw form numbers. `null` is the main flow: the engine chooses.
+        selected_footprint: footprint === null ? null : toSelectedFootprintPayload(footprint),
       })
 
       if (response.status === 201) {
         const data = (await response.json()) as Project
         setProject(data)
-        // The form and the confirmed footprint are deliberately NOT cleared here. Creating the
+        // The form and any advanced outline are deliberately NOT cleared here. Creating the
         // project is not the end of the flow — REVIEW's "חזרה לתיאור" comes straight back to this
         // form, and wiping it on the way out meant the user returned to an empty form and had to
-        // retype everything they had just entered. The entered data is the user's, so it survives
-        // until they change it themselves; the built-area field still clears `footprint` on its own
-        // (see its onChange) so a stale selection can never be carried forward.
+        // retype everything they had just entered.
         setPipelineError(null)
         setView('loading')
       } else if (response.status === 422) {
@@ -284,14 +312,11 @@ function App() {
           return field && field !== 'body' ? `${field}: ${message}` : message
         })
         setErrors(messages.length > 0 ? messages : ['הבקשה אינה תקינה'])
-        setView('form')
       } else {
         setErrors(['אירעה שגיאה בלתי צפויה, נסה/י שוב'])
-        setView('form')
       }
     } catch {
       setErrors(['לא ניתן להתחבר לשרת'])
-      setView('form')
     } finally {
       setSubmitting(false)
     }
@@ -373,41 +398,6 @@ function App() {
     return <DesignPage project={project} onProjectUpdated={setProject} />
   }
 
-  if (view === 'footprint') {
-    // `siteOptions` is fetched asynchronously (fired the moment this view is entered, in
-    // `handleContinueToFootprint`) and starts out null — without this, the screen appeared blank
-    // for however long that fetch took. `errors.length` excludes the fetch's own failure path,
-    // where `siteOptions` also stays null but FootprintSelection's existing empty state plus the
-    // error banner below already handle it; looping here forever would hide that error instead.
-    if (siteOptions === null && errors.length === 0) {
-      return <LoadingScreen caption="בודקים את אפשרויות המתאר עבור המגרש שלך..." />
-    }
-    return (
-      <section id="center" dir="rtl">
-        <FootprintSelection
-          site={siteOptions}
-          targetAreaM2={Number(form.built_area_m2)}
-          value={footprint}
-          onChange={setFootprint}
-          onConfirm={handleConfirmFootprint}
-          onBack={() => setView('form')}
-          submitting={submitting}
-        />
-
-        {errors.length > 0 && (
-          <div className="form-errors">
-            <p>לא ניתן היה ליצור את הפרויקט:</p>
-            <ul>
-              {errors.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </section>
-    )
-  }
-
   // The buildable rectangle, live. A subtraction, not an algorithm — the backend stays the
   // authority (it recomputes and enforces on the options call and again on create), but the person
   // should not have to submit a form to find out their first number cannot work.
@@ -431,7 +421,7 @@ function App() {
         <p>פתיחת פרויקט חדש — הזן/י את פרטי הבקשה הבסיסיים</p>
       </header>
 
-      <form className="project-form" onSubmit={handleContinueToFootprint}>
+      <form className="project-form" onSubmit={handleSubmitBrief}>
         <label>
           עיר / רשות מקומית
           {/* Custom autocomplete (Autocomplete.tsx), not the native <input list="..."> + <datalist>
@@ -467,7 +457,7 @@ function App() {
             <input
               type="number" min="0.01" step="any" required
               value={form.plot_width_m}
-              onChange={(event) => setForm({ ...form, plot_width_m: event.target.value })}
+              onChange={(event) => siteChanged({ ...form, plot_width_m: event.target.value })}
             />
           </label>
           <label>
@@ -475,7 +465,7 @@ function App() {
             <input
               type="number" min="0.01" step="any" required
               value={form.plot_depth_m}
-              onChange={(event) => setForm({ ...form, plot_depth_m: event.target.value })}
+              onChange={(event) => siteChanged({ ...form, plot_depth_m: event.target.value })}
             />
           </label>
         </div>
@@ -491,7 +481,7 @@ function App() {
           <select
             value={form.street_facing_side}
             onChange={(event) =>
-              setForm({ ...form, street_facing_side: event.target.value as FormState['street_facing_side'] })
+              siteChanged({ ...form, street_facing_side: event.target.value as FormState['street_facing_side'] })
             }
           >
             <option value="NORTH">צפון</option>
@@ -515,10 +505,7 @@ function App() {
                   <input
                     type="number" min="0" step="0.1" required
                     value={form[key]}
-                    onChange={(event) => {
-                      setForm({ ...form, [key]: event.target.value })
-                      setFootprint(null)
-                    }}
+                    onChange={(event) => siteChanged({ ...form, [key]: event.target.value })}
                   />
                 </label>
               ),
@@ -536,18 +523,14 @@ function App() {
             required
             aria-describedby="one-storey-capacity"
             value={form.built_area_m2}
-            onChange={(event) => {
-              setForm({ ...form, built_area_m2: event.target.value })
-              // TARGET BUILT AREA changed -> any previously selected footprint was computed for a
-              // now-stale area and must not be carried forward (see FootprintSelection's own
-              // defensive re-check for the same rule, kept independently for the same reason).
-              setFootprint(null)
-            }}
+            // TARGET BUILT AREA changed -> any advanced outline was computed for a now-stale area
+            // and must not be carried forward (FootprintSelection re-checks this independently).
+            onChange={(event) => siteChanged({ ...form, built_area_m2: event.target.value })}
           />
         </label>
 
         {/* The capacity, right under the number it constrains — OUTSIDE the label, so it does not
-            become part of the field's accessible name. Refusing at the footprint step meant filling
+            become part of the field's accessible name. Refusing only on the server meant filling
             in the whole form to learn that the first number was impossible. */}
         {capacity !== null ? (
           <p
@@ -572,8 +555,44 @@ function App() {
           />
         </label>
 
-        <button type="submit" className="submit-button">
-          המשך לבחירת מתאר הבניין
+        {/* THE OUTLINE, ADVANCED. Closed by default: the engine plans the shapes that fit and shows
+            the ones that work. Open it only to fix the rectangle yourself — the same cards the old
+            screen offered, and a choice made here is authoritative. */}
+        <section className="form-advanced" aria-label="מתאר הבניין">
+          <p className="form-advanced__note">
+            כברירת מחדל המערכת בוחרת את צורת הבניין בעצמה: היא בודקת כמה מתארים באותו שטח ומציגה
+            את התוכניות שמתקבלות.
+          </p>
+          <button
+            type="button"
+            className="form-advanced__toggle"
+            aria-expanded={advancedOpen}
+            aria-controls="advanced-outline"
+            onClick={handleToggleAdvanced}
+          >
+            {advancedOpen ? '▾' : '▸'} מתקדם — קביעת מתאר ידנית
+          </button>
+          {advancedOpen ? (
+            <div id="advanced-outline" className="form-advanced__body">
+              {siteOptionsError ? (
+                <p className="form-advanced__error" role="alert">{siteOptionsError}</p>
+              ) : siteOptions === null ? (
+                <p className="form-advanced__loading" role="status">בודקים את אפשרויות המתאר עבור המגרש שלך...</p>
+              ) : (
+                <FootprintSelection
+                  inline
+                  site={siteOptions}
+                  targetAreaM2={Number(form.built_area_m2)}
+                  value={footprint}
+                  onChange={setFootprint}
+                />
+              )}
+            </div>
+          ) : null}
+        </section>
+
+        <button type="submit" className="submit-button" disabled={submitting}>
+          {submitting ? 'יוצר פרויקט...' : 'המשך ליצירת התכנון'}
         </button>
       </form>
 

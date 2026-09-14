@@ -1,6 +1,7 @@
 /** BUILDING FOOTPRINT SELECTION — the user's chosen building outline, decided explicitly BEFORE
- * architectural plan generation ever runs (see App.tsx's 'footprint' view, inserted between project
- * creation and the parse+design pipeline).
+ * architectural plan generation ever runs. Since feature 006 this is the ADVANCED path only: the
+ * form's "מתקדם — קביעת מתאר ידנית" disclosure (App.tsx); the main flow sends no footprint and the
+ * engine chooses the outline itself.
  *
  * Kept deliberately distinct from three other, easily-confused quantities (never call this "plot
  * size", never derive it from the plot):
