@@ -139,6 +139,39 @@ describe('DemoPlan', () => {
   })
 })
 
+describe('DemoPlan compass', () => {
+  // The demo plan is drawn STREET-UP by the backend (street, parking and entrance walk along y = 0),
+  // so this is the one drawing where a compass is truthful. The letter at the top is the street side.
+  it.each([
+    ['NORTH', 'N', 'S', 'KNOWN'],
+    ['SOUTH', 'S', 'N', 'KNOWN'],
+    ['EAST', 'E', 'W', 'UNDEFINED'],
+    ['WEST', 'W', 'E', 'UNDEFINED'],
+  ])('street %s → top %s, bottom %s, handedness %s', (side, top, bottom, handedness) => {
+    const { container } = render(<DemoPlan design={design()} streetFacingSide={side} />)
+    const rose = container.querySelector('[data-testid="compass"]')!
+    expect(rose).not.toBeNull()
+    expect(rose.getAttribute('data-top')).toBe(top)
+    expect(rose.getAttribute('data-bottom')).toBe(bottom)
+    expect(rose.getAttribute('data-handedness')).toBe(handedness)
+  })
+
+  it('sits inside the drawing frame', () => {
+    const { container } = render(<DemoPlan design={design()} streetFacingSide="NORTH" />)
+    const [x0, y0, w] = planViewBox(design()).split(' ').map(Number)
+    const transform = container.querySelector('[data-testid="compass"]')!.getAttribute('transform')!
+    const [cx, cy] = transform.replace('translate(', '').replace(')', '').split(' ').map(Number)
+    expect(cx).toBeLessThan(x0 + w)
+    expect(cx).toBeGreaterThan(x0)
+    expect(cy).toBeGreaterThan(y0)
+  })
+
+  it('draws no compass without a street side (thumbnails, or no site)', () => {
+    const { container } = render(<DemoPlan design={design()} />)
+    expect(container.querySelector('[data-testid="compass"]')).toBeNull()
+  })
+})
+
 describe('DemoWorkspace', () => {
   it('states only validation claims the backend actually made', () => {
     const { getByText, queryByText } = render(

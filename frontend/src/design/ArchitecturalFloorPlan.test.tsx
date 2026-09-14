@@ -110,4 +110,13 @@ describe('ArchitecturalFloorPlan', () => {
     expect(design.circulation_area_m2).toBe(0)
     expect(() => render(<ArchitecturalFloorPlan design={design} />)).not.toThrow()
   })
+
+  describe('compass', () => {
+    it('draws none: this geometry has no street and no guaranteed up edge', () => {
+      const { container } = render(<ArchitecturalFloorPlan design={twoRoomDesign({ withDoor: false })} />)
+      expect(container.querySelector('[data-testid="compass"]')).toBeNull()
+      expect(container.querySelector('.sketch-svg-compass-needle')).toBeNull()
+      expect(container.textContent).not.toMatch(/\bN\b/)
+    })
+  })
 })

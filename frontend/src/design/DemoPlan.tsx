@@ -1,4 +1,5 @@
 import type { DemoDesign, DemoRect } from './demoDesign'
+import { CompassRose } from './CompassRose'
 import './DemoPlan.css'
 
 /** THE DEMO RENDERER — presentation only.
@@ -13,6 +14,12 @@ import './DemoPlan.css'
  * and an `OPEN` boundary is drawn as a deliberate absence. */
 
 const PAD_M = 1.5
+
+/** The compass rose is drawn about 1 m across at scale 1 — right for a building-sized frame, a speck
+ * on a site-sized one. It grows with the frame's shorter side, and sits inset from the top-right
+ * corner by its own half-size so it stays inside the frame at any scale. */
+const COMPASS_FRAME_SHARE = 1 / 14
+const COMPASS_HALF_SIZE_M = 0.85
 
 /** How much surrounding site to keep around the building, as a share of its longest side. */
 const CONTEXT_MARGIN_RATIO = 0.3
@@ -68,9 +75,16 @@ function sweep(hx: number, hy: number, far: { x: number; y: number },
   return cross > 0 ? 1 : 0
 }
 
-function DemoPlan({ design }: { design: DemoDesign }) {
+/** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
+ * construction — the backend puts the street, the parking bays and the entrance walk along `y = 0`
+ * (`vertical_slice/site.py`) — which is what makes a compass truthful here and nowhere else in the
+ * app. Omitted (a thumbnail, or a caller without the site): no compass is drawn. */
+function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFacingSide?: string | null }) {
   const { plot, footprint } = design
   const viewBox = planViewBox(design)
+  const [frameX, frameY, frameW, frameH] = viewBox.split(' ').map(Number)
+  const compassScale = Math.max(1, Math.min(frameW, frameH) * COMPASS_FRAME_SHARE)
+  const compassInset = COMPASS_HALF_SIZE_M * compassScale
 
   return (
     <svg className="demo-plan" viewBox={viewBox} role="img" aria-label="תוכנית אדריכלית">
@@ -231,6 +245,13 @@ function DemoPlan({ design }: { design: DemoDesign }) {
           </g>
         )
       })}
+
+      <CompassRose
+        streetFacingSide={streetFacingSide}
+        cx={frameX + frameW - compassInset}
+        cy={frameY + compassInset}
+        scale={compassScale}
+      />
     </svg>
   )
 }

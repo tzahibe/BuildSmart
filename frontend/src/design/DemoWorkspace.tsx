@@ -34,8 +34,11 @@ function labelFor(index: number): string {
  * the same set and nothing is lost by looking. Everything beside the drawing (areas, rooms,
  * legend, checks) is read off the plan CURRENTLY shown, so the panel always describes what the
  * person is looking at. */
-function DemoWorkspace({ plans, onChangeRequirements }: {
+function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
   plans: DemoPlanSet
+  /** The plot edge facing the street, from the project the plans were generated for — drawn as the
+   *  compass on the large plan only; thumbnails are too small for it. */
+  streetFacingSide?: string | null
   onChangeRequirements: () => void
 }) {
   const all = [plans.plan, ...plans.alternatives]
@@ -82,7 +85,7 @@ function DemoWorkspace({ plans, onChangeRequirements }: {
           </p>
         ) : null}
         <div className="workspace-plan-main">
-          <DemoPlan design={design} />
+          <DemoPlan design={design} streetFacingSide={streetFacingSide} />
         </div>
 
         {order.length > 1 ? (

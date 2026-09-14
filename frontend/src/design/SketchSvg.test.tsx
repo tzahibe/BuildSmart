@@ -58,4 +58,26 @@ describe('SketchSvg', () => {
     const { getByText } = render(<SketchSvg rooms={[]} geometricDesign={null} />)
     expect(getByText('אין עדיין נתוני תכנון להצגה')).toBeInTheDocument()
   })
+
+  describe('compass', () => {
+    // Neither drawing on the design page comes from the street-up demo pipeline: the legacy rooms
+    // and the GeometricDesign both come from the spatial-solver / parametric pipeline, which has no
+    // street and does not guarantee which edge is up. A compass there was the original bug (a
+    // hardcoded "N"), and no street side can make it truthful, so none is drawn.
+    it('legacy renderer draws no compass', () => {
+      const { container } = render(<SketchSvg rooms={legacyAdjacentRooms()} geometricDesign={null} />)
+      expect(container.querySelector('[data-testid="compass"]')).toBeNull()
+      expect(container.querySelector('.sketch-svg-compass-needle')).toBeNull()
+      expect(container.textContent).not.toMatch(/\bN\b/)
+    })
+
+    it('authoritative renderer draws no compass', () => {
+      const { container } = render(
+        <SketchSvg rooms={legacyAdjacentRooms()} geometricDesign={twoRoomDesign({ withDoor: false })} />,
+      )
+      expect(container.querySelector('.arch-plan')).not.toBeNull()
+      expect(container.querySelector('[data-testid="compass"]')).toBeNull()
+      expect(container.querySelector('.sketch-svg-compass-needle')).toBeNull()
+    })
+  })
 })
