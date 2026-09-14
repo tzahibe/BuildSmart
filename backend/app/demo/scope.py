@@ -170,11 +170,29 @@ def check_supported(project: Project) -> ScopeRejection | None:
             f"plot_width_m={project.plot_width_m}, plot_depth_m={project.plot_depth_m}, "
             f"street_facing_side={project.street_facing_side}")
 
+    # NO FOOTPRINT IS NOT A DEFECT (feature 006). The outline used to be a required input on its
+    # own screen; measured over the production refusal log, the person's choice planned in 30 % of
+    # briefs while each of the engine's own four shapes planned in 35–45 %. Without a footprint the
+    # engine plans the feasible outlines itself — so the only thing to check here is that the
+    # requested AREA fits the buildable rectangle in SOME shape.
     if project.selected_footprint is None:
-        return ScopeRejection(
-            ScopeCode.FOOTPRINT_REQUIRED,
-            "צריך לבחור מתאר בניין מלבני לפני יצירת התוכנית.",
-            "selected_footprint is None")
+        if not site_geometry.feasible_options(site, project.built_area_m2):
+            no_area = site_geometry.no_buildable_area_message(site)
+            if no_area is not None:
+                return ScopeRejection(ScopeCode.NO_BUILDABLE_AREA, no_area,
+                                      "no buildable area for any outline")
+            return ScopeRejection(
+                ScopeCode.FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION,
+                f"בניין של {project.built_area_m2:.0f} מ\"ר אינו נכנס בשטח שנותר לבנייה בשום "
+                f"צורה. המגרש הוא {site.plot_width_m:.2f} × {site.plot_depth_m:.2f} מ׳, ואחרי "
+                f"נסיגות הדמו (חזית {site.front_setback_m}, אחורית {site.rear_setback_m}, צדדים "
+                f"{site.side_setback_m}) נשאר שטח בנייה של "
+                f"{site_geometry.buildable_dimensions_he(site)}. "
+                f"אפשר להקטין את שטח הבנייה או לעדכן את מידות המגרש. "
+                f"{site_geometry.SETBACK_DISCLAIMER}",
+                f"built_area_m2={project.built_area_m2} fits no outline inside "
+                f"{site_geometry.buildable_dimensions_he(site)}")
+        return None
     if project.selected_footprint.shape_type != "RECTANGLE":
         return ScopeRejection(
             ScopeCode.FOOTPRINT_REQUIRED,

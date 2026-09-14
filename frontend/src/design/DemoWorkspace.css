@@ -43,3 +43,32 @@
   width: 100%; margin-top: 24px; padding: 12px; font-size: 15px;
   border: 1px solid #c9d2dd; border-radius: 8px; background: #fff; cursor: pointer;
 }
+
+/* Feature 006: which outline a plan sits on, and the note when the person's own could not be planned. */
+.workspace-outline {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4a4a4a;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-outline-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: #8a8a8a;
+}
+.workspace-option-outline {
+  display: block;
+  font-size: 11px;
+  color: #6b6b6b;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-outline-note {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-inline-start: 3px solid #b8a06a;
+  background: #faf6ea;
+  font-size: 14px;
+  line-height: 1.5;
+}

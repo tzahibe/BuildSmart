@@ -411,39 +411,36 @@ def test_footprint_too_small_is_reported_not_silently_shrunk(client):
     assert client.get(f"/projects/{project_id}/review").json()["bedrooms"]["value"] == 3
 
 
-def test_a_refusal_names_an_outline_that_actually_plans(client):
-    """When the OUTLINE is the obstacle rather than the brief, the refusal says which shape works.
+def test_an_outline_that_fails_is_replaced_by_one_that_plans_not_by_a_hint(client):
+    """When the OUTLINE is the obstacle rather than the brief, the person gets the house — not a
+    sentence telling them which shape to go and enter.
 
-    The promise is not "try something squarer" — it is a specific footprint of the SAME built area,
-    and it must be one the engine has already planned end to end. So this test takes the outline
-    the refusal names and builds it: if that second request is not a plan, the refusal sent the
-    person to a dead end, which is worse than the generic message it replaced.
+    This used to be a refusal that NAMED a working outline ("מתאר של X×Y … כן מתאפשר"), verified end
+    to end. Feature 006 plans every feasible outline itself, so the shape that works is a plan on
+    the screen: same built area, same rooms, labelled as an engine outline, with a note that the
+    entered outline could not be planned. The bar is unchanged — 200 only for a plan that passed
+    every check.
     """
     project_id = _create(client, BRIEF_3BR_THREE_WET, width=10.0, depth=18.0)
     client.post(f"/projects/{project_id}/requirements")
     response = client.post(f"/projects/{project_id}/design/demo")
-    assert response.status_code == 422
-    detail = response.json()["detail"]
-    assert detail["code"] == "PLAN_NOT_REALIZABLE"
+    assert response.status_code == 200, response.text
+    body = response.json()
 
-    outlines = re.findall(r"(\d+\.\d+)×(\d+\.\d+)", detail["message"])
-    assert len(outlines) == 2, f"expected the chosen and the suggested outline: {detail['message']}"
-    (chosen_w, chosen_d), (suggested_w, suggested_d) = [
-        (float(w), float(d)) for w, d in outlines]
-    assert (chosen_w, chosen_d) == (10.0, 18.0)
-    assert (suggested_w, suggested_d) != (chosen_w, chosen_d), "suggesting the refused outline"
-    assert abs(suggested_w * suggested_d - chosen_w * chosen_d) <= 1.0, (
-        "the suggestion must be the same built area in a different shape, never a smaller house")
+    outline = body["plan"]["outline"]
+    assert outline["origin"] == "ENGINE"
+    assert (outline["width_m"], outline["depth_m"]) != (10.0, 18.0), "the refused outline itself"
+    assert abs(outline["area_m2"] - 180.0) <= 1.0, (
+        "the engine's outline is the same built area in a different shape, never a smaller house")
+    assert body["plan"]["validation"]["passed"]
 
-    # The whole point: the named outline is one the engine can actually deliver. 200 and nothing
-    # less — a design that exists but fails validation is refused by this same endpoint, so
-    # checking only that concepts were generated would let the suggestion name a second dead end.
-    second_id = _create(client, BRIEF_3BR_THREE_WET, width=suggested_w, depth=suggested_d)
-    client.post(f"/projects/{second_id}/requirements")
-    second = client.post(f"/projects/{second_id}/design/demo")
-    assert second.status_code == 200, (
-        f"the refusal named {suggested_w}×{suggested_d}, which the service then refused: "
-        f"{second.text[:300]}")
+    tried = body["search"]["outlines"]
+    assert tried[0]["origin"] == "PERSON" and tried[0]["planned"] is False
+    assert (tried[0]["width_m"], tried[0]["depth_m"]) == (10.0, 18.0)
+    assert any(t["origin"] == "ENGINE" and t["planned"] for t in tried)
+    assert any("המתאר שהזנת" in w for w in body["plan"]["validation"]["warnings"]), (
+        body["plan"]["validation"]["warnings"])
+    assert "מתאר של" not in body["plan"]["validation"]["warnings"][0]
 
 
 def test_no_canonical_fixture_is_reachable_from_the_demo_path():
@@ -1332,15 +1329,84 @@ def test_the_planner_refuses_such_a_site_by_its_own_cause(client):
         "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
         "plot_area_m2": 600.0, "built_area_m2": 250.0,
         "plot_width_m": 200.0, "plot_depth_m": 3.0, "street_facing_side": "NORTH",
+        "setbacks": _DEMO_SETBACKS,
         "description": BRIEF_2BR_COMPACT,
         "selected_footprint": None,
     }).json()["project_id"]
     client.post(f"/projects/{project_id}/requirements")
     design = client.post(f"/projects/{project_id}/design/demo")
     assert design.status_code == 422
-    # no footprint was ever chosen here, so that is what it asks for first — and once one is,
-    # the site's own refusal is what comes back
-    assert design.json()["detail"]["code"] == "FOOTPRINT_REQUIRED"
+    # No footprint was chosen, so the ENGINE would choose one (feature 006) — and there is no
+    # buildable area for it to choose inside, which is the site's own refusal.
+    assert design.json()["detail"]["code"] == "NO_BUILDABLE_AREA"
+
+
+# ------------------------------------------------------------------ 006: the outline is optional
+#
+# The building outline used to be a required input the person had to enter on its own screen.
+# Measured over the production refusal log, their choice planned in 30 % of briefs while each of
+# the engine's own four shapes planned in 35–45 %. So a project WITHOUT `selected_footprint` is now
+# planned at the engine's outlines; one WITH a footprint is still checked for fit exactly as before.
+
+def _create_without_footprint(client, description, *, plot, built_area_m2, setbacks=None):
+    response = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": round(plot[0] * plot[1], 2), "built_area_m2": built_area_m2,
+        "plot_width_m": plot[0], "plot_depth_m": plot[1], "street_facing_side": "NORTH",
+        "setbacks": setbacks or _DEMO_SETBACKS,
+        "description": description,
+        "selected_footprint": None,
+    })
+    assert response.status_code == 201, response.text
+    project_id = response.json()["project_id"]
+    assert client.post(f"/projects/{project_id}/requirements").status_code == 200
+    return project_id
+
+
+def test_a_project_without_a_footprint_is_within_scope(client, monkeypatch):
+    """`check_supported` no longer refuses a missing outline — the engine will choose one."""
+    from app.demo import scope as scope_module
+
+    project_id = _create_without_footprint(client, BRIEF_2BR_COMPACT, plot=(20.0, 24.0),
+                                           built_area_m2=132.0)
+    project = project_base_routes.repository.get(project_id)
+    assert project.selected_footprint is None
+    assert scope_module.check_supported(project) is None
+
+
+def test_the_engine_chooses_an_outline_and_says_which(client):
+    """The quickstart brief with NO footprint: a plan comes back, labelled with the engine's outline,
+    at the requested area, past every check — and the search that found it is reported."""
+    project_id = _create_without_footprint(client, BRIEF_3BR_SAFE_OPEN, plot=(21.0, 24.5),
+                                           built_area_m2=176.0)
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    outline = body["plan"]["outline"]
+    assert outline["origin"] == "ENGINE"
+    assert abs(outline["area_m2"] - 176.0) <= 176.0 * 0.005
+    assert body["plan"]["validation"]["passed"]
+    assert all(body["plan"]["validation"]["checks"].values())
+    assert body["plan"]["family"], "every plan carries its family signature"
+    for alternative in body["alternatives"]:
+        assert alternative["outline"] and alternative["family"]
+        assert alternative["validation"]["passed"]
+    tried = body["search"]["outlines"]
+    assert tried and all(t["origin"] == "ENGINE" for t in tried)
+    assert any(t["planned"] for t in tried)
+    assert body["search"]["total_latency_ms"] >= sum(t["latency_ms"] for t in tried) - 1.0
+
+
+def test_an_area_that_fits_no_outline_is_refused_by_the_area_not_a_rectangle(client):
+    """20 × 20 with these setbacks leaves 14 × 10.5 = 147 m²; 250 m² fits in no shape of it."""
+    project_id = _create_without_footprint(client, BRIEF_2BR_COMPACT, plot=(20.0, 20.0),
+                                           built_area_m2=250.0)
+    design = client.post(f"/projects/{project_id}/design/demo")
+    assert design.status_code == 422, design.text
+    detail = design.json()["detail"]
+    assert detail["code"] == "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION"
+    assert "250" in detail["message"]
+    assert "×" not in detail["message"].split("אינו נכנס")[0], detail["message"]
 
 
 def test_the_named_cause_never_disagrees_with_the_flag():
@@ -1481,6 +1547,11 @@ def test_a_brief_with_only_one_distinct_plan_offers_no_alternatives(client):
         # not silence about the actual behaviour this test otherwise checks.
         pytest.skip(f"not realizable at {footprint}: {response.text}")
     body = response.json()
+    if body["plan"]["outline"]["origin"] != "PERSON":
+        # Same known limit, seen from the other side since feature 006: the person's outline did
+        # not plan and the engine's did. That plan legitimately has its own alternatives; the
+        # premise here — ONE distinct plan at THIS footprint — no longer holds.
+        pytest.skip(f"{footprint} did not plan; an engine outline was shown instead")
     assert body["plan"]["rooms"]
     assert body["alternatives"] == []
 

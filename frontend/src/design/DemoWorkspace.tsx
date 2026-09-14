@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react'
-import type { DemoPlanSet } from './demoDesign'
+import type { DemoOutline, DemoPlanSet } from './demoDesign'
 import DemoPlan from './DemoPlan'
 import PlanLegend from './PlanLegend'
 import './DemoWorkspace.css'
+
+/** THE OUTLINE A PLAN OCCUPIES, in the person's terms (feature 006). Width, depth and area come
+ * from the backend's own label; the origin says whether the engine chose this rectangle or the
+ * person entered it under "advanced". Different plans may sit on different outlines now, so the
+ * label is what makes a same-family alternative on another outline read as a different house. */
+function outlineText(outline: DemoOutline): string {
+  const who = outline.origin === 'PERSON' ? 'המתאר שהזנת' : 'מתאר אוטומטי'
+  return `${outline.width_m.toFixed(2)} × ${outline.depth_m.toFixed(2)} מ׳ · ${outline.area_m2.toFixed(0)} מ״ר · ${who}`
+}
 
 /** The plans in the order the backend produced them: the engine's own choice first.
  *
@@ -56,9 +65,22 @@ function DemoWorkspace({ plans, onChangeRequirements }: {
   const design = all[order[0]] ?? plans.plan
   const rooms = [...design.rooms].sort((a, b) => b.area_m2 - a.area_m2)
 
+  // The person entered an outline and it could not be planned; what is on screen sits on an
+  // outline the engine chose instead. Said once, above the drawing — never as a refusal, because a
+  // house of the requested area exists; and never silently, because it is not the rectangle they
+  // asked for. Read off the search summary, which is the backend's own record of what it tried.
+  const personOutline = plans.search?.outlines.find((tried) => tried.origin === 'PERSON')
+  const replaced = personOutline !== undefined && !personOutline.planned
+
   return (
     <div className="workspace">
       <main className="workspace-plan">
+        {replaced ? (
+          <p className="workspace-outline-note" role="note">
+            המתאר שהזנת ({personOutline.width_m.toFixed(2)} × {personOutline.depth_m.toFixed(2)} מ׳)
+            לא אפשר לסדר את החדרים שביקשת. התוכניות שלפניך הן באותו שטח בנייה, במתאר שהמערכת בחרה.
+          </p>
+        ) : null}
         <div className="workspace-plan-main">
           <DemoPlan design={design} />
         </div>
@@ -80,6 +102,11 @@ function DemoWorkspace({ plans, onChangeRequirements }: {
                   >
                     <DemoPlan design={all[planIndex]} />
                     <span className="workspace-option-label">{labelFor(planIndex)}</span>
+                    {all[planIndex].outline ? (
+                      <span className="workspace-option-outline">
+                        {all[planIndex].outline!.width_m.toFixed(2)} × {all[planIndex].outline!.depth_m.toFixed(2)} מ׳
+                      </span>
+                    ) : null}
                   </button>
                 </li>
               ))}
@@ -92,6 +119,12 @@ function DemoWorkspace({ plans, onChangeRequirements }: {
         <h2 className="workspace-title">התוכנית שלך</h2>
         {order.length > 1 ? (
           <p className="workspace-shown" data-testid="plan-shown">{labelFor(order[0])}</p>
+        ) : null}
+
+        {design.outline ? (
+          <p className="workspace-outline" data-testid="plan-outline">
+            <span className="workspace-outline-label">מתאר הבניין</span> {outlineText(design.outline)}
+          </p>
         ) : null}
 
         <dl className="workspace-areas">

@@ -318,3 +318,31 @@ describe('FootprintSelection', () => {
     expect(container.querySelectorAll('[dir="ltr"]').length).toBeGreaterThan(0)
   })
 })
+
+
+describe('FootprintSelection — inline under the advanced disclosure (feature 006)', () => {
+  it('shows the cards without the page title or the continue/back buttons', () => {
+    const site = {
+      plot_width_m: 20, plot_depth_m: 24, street_facing_side: 'NORTH' as const,
+      front_setback_m: 5.5, side_setback_m: 3, rear_setback_m: 4,
+      setback_disclaimer: 'הנחות תכנון לדמו — אינן מידע תכנוני או רגולטורי מאומת.',
+      buildable_width_m: 40, buildable_depth_m: 40, has_buildable_area: true,
+      one_storey_footprint_capacity_m2: 1600, requested_built_area_m2: 120,
+      options: generateFootprintOptions(120).map((o) => ({
+        shape_type: o.shape_type, width_m: o.width_m, depth_m: o.depth_m, area_m2: o.area_m2,
+      })),
+      rejection: null,
+    }
+    const chosen: unknown[] = []
+    render(
+      <FootprintSelection inline site={site} targetAreaM2={120} value={null} onChange={(f) => chosen.push(f)} />,
+    )
+    expect(screen.queryByText('בחר/י את מתאר הבניין')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'המשך ליצירת התכנון' })).not.toBeInTheDocument()
+    expect(screen.queryByText('‹ חזרה לעריכת שטח הבנייה')).not.toBeInTheDocument()
+    expect(screen.getByText('קומפקטי')).toBeInTheDocument()
+    expect(screen.getByText(/החלוקה הפנימית/)).toBeInTheDocument()
+    fireEvent.click(screen.getByText('רחב'))
+    expect(chosen).toHaveLength(1)
+  })
+})

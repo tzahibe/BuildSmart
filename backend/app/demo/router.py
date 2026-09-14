@@ -152,7 +152,8 @@ def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
             try:
                 result = generate_demo_design(project, on_stage=updates.put)
                 outcome["value"] = DemoPlanSet(plan=result.design,
-                                               alternatives=list(result.alternatives))
+                                               alternatives=list(result.alternatives),
+                                               search=result.search)
             except DemoGenerationError as error:
                 outcome["error"] = error
                 failure_log.refusal(error.code, error.message, error.detail,
@@ -196,7 +197,8 @@ def generate_demo_plan(project_id: str, request: Request) -> DemoPlanSet:
     project = _project_or_404(project_id)
     try:
         result = generate_demo_design(project)
-        return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives))
+        return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
+                           search=result.search)
     except DemoGenerationError as error:
         # Recorded HERE rather than only in the generic handler, because this is the failure that
         # matters most — somebody who described a house and did not get a drawing — and only this

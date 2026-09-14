@@ -11,6 +11,8 @@ because the renderer must never do that itself.
 """
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 from app.vertical_slice.spec import CorridorRequirement
@@ -126,6 +128,38 @@ class CorridorOut(BaseModel):
     satisfied: bool | None = None
 
 
+class OutlineOut(BaseModel):
+    """The rectangle a plan occupies and WHO chose it (feature 006).
+
+    `footprint` on the design already carries the rectangle in plot coordinates; this is the
+    person-facing label — width, depth, area — plus its origin: the engine's own outline search, or
+    the outline the person entered under "advanced".
+    """
+
+    width_m: float
+    depth_m: float
+    area_m2: float
+    origin: Literal["ENGINE", "PERSON"]
+
+
+class OutlineTried(BaseModel):
+    """One outline the engine planned for this request, whether or not it produced a plan."""
+
+    width_m: float
+    depth_m: float
+    origin: Literal["ENGINE", "PERSON"]
+    planned: bool
+    plans_found: int
+    latency_ms: float
+
+
+class SearchSummary(BaseModel):
+    """What the outline search did — every outline tried and what it cost (spec 006 FR-010)."""
+
+    outlines: list[OutlineTried]
+    total_latency_ms: float
+
+
 class DemoDesign(BaseModel):
     plot: RectOut
     footprint: RectOut
@@ -142,6 +176,10 @@ class DemoDesign(BaseModel):
     corridor: CorridorOut | None = None
     relationships: list[RelationshipOut] = []
     validation: ValidationSummary
+    #: Feature 006. `None` only for a design that did not come through the demo service.
+    outline: OutlineOut | None = None
+    #: Feature 006. Opaque family signature — diagnostics and tests only; never parsed or shown.
+    family: str | None = None
 
 
 class DemoPlanSet(BaseModel):
@@ -155,6 +193,8 @@ class DemoPlanSet(BaseModel):
 
     plan: DemoDesign
     alternatives: list[DemoDesign] = []
+    #: Feature 006: the outlines tried and their cost. `None` for callers outside the demo service.
+    search: SearchSummary | None = None
 
 
 #: C-code -> the product statement it justifies. Only claims backed by a real check appear.
@@ -338,7 +378,9 @@ def summarize(report: ValidationReport,
 def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    unsupported: list[str] | None = None,
                    corridor: CorridorRequirement | None = None,
-                   relationships: tuple = ()) -> DemoDesign:
+                   relationships: tuple = (),
+                   outline: OutlineOut | None = None,
+                   family: str | None = None) -> DemoDesign:
     walls, opens = _wall_segments(design)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
                      y=d.center_m[1], orientation=d.orientation,
@@ -380,4 +422,6 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                             source_text=o.requirement.source_text)
             for o in relationships],
         validation=summarize(report, unsupported, relationships),
+        outline=outline,
+        family=family,
     )

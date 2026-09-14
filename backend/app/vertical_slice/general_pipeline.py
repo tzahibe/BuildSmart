@@ -38,7 +38,7 @@ from . import validation as validation_stage
 from . import windows as windows_stage
 from .design_output import GeometricDesign, assemble
 from .geometry_core.engine import GeometryInfeasible, solve_fixture
-from .geometry_core.model import UNIT_M, Rect
+from .geometry_core.model import UNIT_M, ConnectionKind, Cut, Fixture, Leaf, Node, Rect, Split
 from .renderer import render
 from .safe_adapter import (
     AdapterOutcome,
@@ -133,6 +133,69 @@ class RealizedPlan:
         """
         return tuple(sorted((r.zone_id,) + tuple(round(v, 3) for v in r.rect_m)
                             for r in self.design.rooms))
+
+    @property
+    def family_signature(self) -> str:
+        """What makes two plans the SAME HOUSE: how the rooms are organised, dimensions aside.
+
+        `layout_signature` answers "same drawing?"; this answers "same arrangement?" — where the
+        public zone sits relative to the private wing, which rooms share a column or band, which
+        wet room is entered from a bedroom. Two plans of one family differ only in proportions;
+        measured over the failure log, 142 of the 178 alternatives the demo showed were the
+        primary's own family re-proportioned, which is why the service (feature 006) uses this to
+        decide which alternatives are worth SHOWING.
+
+        METADATA ONLY. Nothing in this module, in `_alternative_plans` or below reads it, and it is
+        never an input to which plan becomes primary — that stays the requested-area rule.
+        """
+        return _family_signature(self.concept.concept.fixture, self.concept.strategy)
+
+
+#: Zone role -> the letter it takes in a family signature. Wet rooms are resolved separately: a
+#: wet room with a door onto the hall is `W`, one entered from a bedroom (an ensuite) is `E`.
+_FAMILY_LETTERS = {
+    "HALL": "H", "LIVING": "P", "DINING": "P", "KITCHEN": "P", "FAMILY_ROOM": "P", "FLEX": "F",
+    "MASTER_BEDROOM": "M", "BEDROOM": "B", "STUDY": "B", "SAFE_ROOM": "S",
+}
+_WET_ROLES = frozenset({"BATHROOM", "TOILET", "LAUNDRY"})
+
+
+def _family_signature(fixture: Fixture, strategy) -> str:
+    """The wing's slicing tree with leaves reduced to group letters, same-direction chains
+    flattened, every V node mirror-normalised and every forced position dropped.
+
+    `HUB:` prefixes a hub parti (branch 005): its tree also has a public band at the root and would
+    otherwise be indistinguishable from the front-band family, which it is not.
+    """
+    doors: dict[str, set[str]] = {}
+    for edge in fixture.access.edges:
+        if edge.kind == ConnectionKind.DOOR:
+            doors.setdefault(edge.a, set()).add(edge.b)
+            doors.setdefault(edge.b, set()).add(edge.a)
+    letters: dict[str, str] = {}
+    for zone in fixture.zones:
+        role = zone.primary_role.value
+        if role in _WET_ROLES:
+            partners = doors.get(zone.zone_id, set())
+            letters[zone.zone_id] = "W" if ("HALL" in partners or not partners) else "E"
+        else:
+            letters[zone.zone_id] = _FAMILY_LETTERS.get(role, "?")
+
+    def flatten(node: Node, cut: Cut) -> list[Node]:
+        if isinstance(node, Split) and node.cut is cut:
+            return flatten(node.first, cut) + flatten(node.second, cut)
+        return [node]
+
+    def render(node: Node) -> str:
+        if isinstance(node, Leaf):
+            return letters.get(node.zone_id, "?")
+        kids = [render(k) for k in flatten(node, node.cut)]
+        if node.cut is Cut.V:
+            kids = min(kids, list(reversed(kids)))
+        return f"{node.cut.value}[{','.join(kids)}]"
+
+    prefix = "HUB:" if getattr(strategy, "value", strategy) == "HUB_PRIVATE_WING" else ""
+    return prefix + render(fixture.wings[0].tree)
 
 
 @dataclass(frozen=True)
@@ -347,6 +410,14 @@ def run_general(buildable: BuildableRegion, *,
     # loop behaves exactly as before, including the fast path.
     best_score: tuple[int, int] | None = None
     best_solve = None
+    # A candidate the solver realizes but validation refuses is NOT a plan, so it does not end the
+    # search: the next candidate is tried, and only if none validates is the first refused one
+    # returned (with its report) so the refusal path can say why. Committing to the first solved
+    # candidate regardless of validation let the unforced twins turn 13 useful refusals into raw
+    # C8 failures — the twin solved, was chosen, failed C8, and the forced candidates behind it
+    # that would have validated were never reached.
+    plan: RealizedPlan | None = None
+    first_refused: RealizedPlan | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         attempts += 1
@@ -357,7 +428,15 @@ def run_general(buildable: BuildableRegion, *,
             continue
 
         if not relationships:
-            chosen, solve, chosen_index = concept_candidate, candidate_solve, index
+            candidate_plan = _realize(spec, buildable, site_constraints, concept_candidate, index,
+                                      candidate_solve, relationships, on_stage=on_stage)
+            if not candidate_plan.ok:
+                first_refused = first_refused or candidate_plan
+                failed = [c.check_id for c in candidate_plan.validation.failures()]
+                failures.append(f"candidate {index} ({concept_candidate.strategy.value}) realized "
+                                f"but failed validation: {', '.join(failed) or 'safety'}")
+                continue
+            chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
             if fast_path:
                 break
             continue
@@ -388,7 +467,13 @@ def run_general(buildable: BuildableRegion, *,
         # units. Set it once, here, from the candidate that actually won.
         solve = best_solve
 
-    if chosen is None or solve is None:
+    if chosen is None and first_refused is not None:
+        # Every solved candidate was refused by validation: hand back the first, with its report,
+        # exactly as a single refused candidate was handed back before the fall-through existed.
+        chosen, chosen_index, plan = first_refused.concept, first_refused.index, first_refused
+        solve = None
+
+    if chosen is None:
         return GeneralSliceResult(
             AdapterOutcome.NO_SAFE_SOLVER_GEOMETRY, adapter_result,
             metrics=RunMetrics(solver_attempts=attempts,
@@ -396,8 +481,9 @@ def run_general(buildable: BuildableRegion, *,
                                **base_metrics),
             notes=tuple(failures))
 
-    plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve, relationships,
-                    on_stage=on_stage)
+    if plan is None:  # the relationships path chose on score; realize the winner here
+        plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve,
+                        relationships, on_stage=on_stage)
     design, validation, safety = plan.design, plan.validation, plan.safety
     path = render(design, render_path) if render_path else None
 
