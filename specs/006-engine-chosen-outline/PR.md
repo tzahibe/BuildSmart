@@ -1,6 +1,6 @@
 # PR: feat: Engine-chosen building outline (006)
 
-Open at: https://github.com/tzahibe/sddproject/compare/main...006-engine-chosen-outline?expand=1
+Open at: https://github.com/tzahibe/BuildSmart/compare/main...006-engine-chosen-outline?expand=1
 
 ## Summary
 
