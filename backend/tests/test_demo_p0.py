@@ -695,19 +695,13 @@ def test_no_corridor_width_keeps_the_existing_default(tmp_path, monkeypatch):
 
 
 
-#: Phase 1 of the room-size work (2026-09-15) made every template `max_area_m2` HARD (planner
-#: ceilings + validation C21). The briefs marked below planned before only by putting rooms past
-#: their maxima — measured on the baseline: 3BR on 13 x 11 had BEDROOM_2 at 23.4 m2 (max 14); 6BR on
-#: 13 x 14 had five bedrooms at 14.3-17.4; the 1.8 m corridor brief on 15.5 x 15.5 had LIVING 49 /
-#: KITCHEN 27.4 / MASTER 21; the 2.0 m one LIVING 46.5 / DINING 30.8. Within the maxima those
-#: outlines cannot be filled: `program_capacity_gross_m2` (unchanged in Phase 1) still counts a
-#: 30 m2 hall and 12 m2 bathrooms as absorbable, so no FLEX zone is offered, and the partis have
-#: no row sharing to narrow a 7 m bedroom (Phase 2). Strict: these come back the moment either
-#: lands, and the marks come off.
-LOST_TO_HARD_MAXIMA = pytest.mark.xfail(
-    strict=True, reason="outline cannot be filled within the hard template maxima (Phase 1)")
+#: Phase 1 of the room-size work (2026-09-15) made every template `max_area_m2` HARD and, on its
+#: own, lost the 1.8 m / 2.0 m corridor briefs and the 3BR / 6BR many-bedroom briefs below (their
+#: old plans had rooms 5-67 % past their maxima). Deficit distribution in `_row_depths` — rows
+#: shrink toward their floors when their wants exceed the column — plans every one of them again,
+#: inside the maxima, so they are ordinary tests once more.
 
-@pytest.mark.parametrize("requested", [1.6, pytest.param(1.8, marks=LOST_TO_HARD_MAXIMA)])
+@pytest.mark.parametrize("requested", [1.6, 1.8])
 def test_a_minimum_corridor_width_is_met_or_exceeded(tmp_path, monkeypatch, requested):
     review, design = _corridor_run(tmp_path, monkeypatch, requested, CorridorWidthMode.MINIMUM)
 
@@ -729,7 +723,6 @@ def test_a_minimum_is_never_reinterpreted_as_an_exact_width(tmp_path, monkeypatc
     assert design.json()["plan"]["corridor"]["requested_mode"] == "minimum"
 
 
-@LOST_TO_HARD_MAXIMA
 def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
     # A 2 m corridor needs room to exist: the 3-bedroom + safe-room programme cannot spare the
     # width at these sizes (see `test_a_width_the_geometry_cannot_hold_fails_explicitly`), so this
@@ -743,19 +736,27 @@ def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
     assert body["validation"]["checks"]["C14"] is True
 
 
+#: A corridor no column arrangement can leave room for on this brief's 15.5 m outline. It used to
+#: be 6.0 m; with deficit distribution (`_row_depths`) a 6 m hall PLANS — every room at its template
+#: minimum beside an 80 m2 corridor, which is exactly what "at least 6 m" asks for and passes every
+#: check, and the outline search finds room for 8 m too. At 12 m no outline on the plot leaves the
+#: columns their floors, C14 fails everywhere, and the refusal is real.
+IMPOSSIBLE_CORRIDOR_M = 12.0
+
+
 def test_a_width_the_geometry_cannot_hold_fails_explicitly(tmp_path, monkeypatch):
     """Not shrunk, not violated, and not called impossible — a structured planning outcome."""
-    _, design = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.MINIMUM)
+    _, design = _corridor_run(tmp_path, monkeypatch, IMPOSSIBLE_CORRIDOR_M, CorridorWidthMode.MINIMUM)
     assert design.status_code == 422, design.text
     body = design.json()["detail"]
     assert body["code"] == "CORRIDOR_WIDTH_NOT_FEASIBLE"
-    assert "6.00" in body["message"]
+    assert f"{IMPOSSIBLE_CORRIDOR_M:.2f}" in body["message"]
     assert "impossible" not in body["message"].lower()
 
 
 def test_a_preferred_width_gives_way_rather_than_blocking(tmp_path, monkeypatch):
     """A preference may be dropped — but never in silence."""
-    _, design = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.PREFERENCE)
+    _, design = _corridor_run(tmp_path, monkeypatch, IMPOSSIBLE_CORRIDOR_M, CorridorWidthMode.PREFERENCE)
     assert design.status_code == 200, design.text
     body = design.json()["plan"]
     assert body["corridor"]["requested_mode"] == "preference"
@@ -765,8 +766,8 @@ def test_a_preferred_width_gives_way_rather_than_blocking(tmp_path, monkeypatch)
 
 def test_a_hard_width_request_blocks_where_a_preference_would_not(tmp_path, monkeypatch):
     """The same impossible number, worded two ways, must end differently."""
-    _, hard = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.MINIMUM)
-    _, soft = _corridor_run(tmp_path, monkeypatch, 6.0, CorridorWidthMode.PREFERENCE)
+    _, hard = _corridor_run(tmp_path, monkeypatch, IMPOSSIBLE_CORRIDOR_M, CorridorWidthMode.MINIMUM)
+    _, soft = _corridor_run(tmp_path, monkeypatch, IMPOSSIBLE_CORRIDOR_M, CorridorWidthMode.PREFERENCE)
     assert hard.status_code == 422
     assert soft.status_code == 200
 
@@ -1653,8 +1654,7 @@ def _many_bedroom_client(tmp_path, monkeypatch, bedrooms):
     return TestClient(app), brief
 
 
-_MANY_BEDROOM_CASES = [pytest.param(3, marks=LOST_TO_HARD_MAXIMA), 4, 5,
-                       pytest.param(6, marks=LOST_TO_HARD_MAXIMA)]
+_MANY_BEDROOM_CASES = [3, 4, 5, 6]
 
 
 @pytest.mark.parametrize("bedrooms", _MANY_BEDROOM_CASES)

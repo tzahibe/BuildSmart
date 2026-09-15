@@ -84,7 +84,12 @@ def test_the_bar_is_the_effective_target_not_the_request():
     outlines = svc._outlines_for(project)
     person = [o for o in outlines if o.origin == "PERSON"]
     planned = svc._plan_outlines(spec, project, person)[0]
-    # a fake engine result that is 10 % larger than the person's but still short of 80 % of the bar
+    # The person's outline is made to deliver SHORT here rather than read off the planner: with
+    # deficit distribution (`_row_depths`) 10 x 20 delivers 84 % of the ask, which would make the
+    # test vacuous (a primary at or above the bar is never offered an alternative at all).
+    planned = replace(planned, plans=(replace(planned.plans[0], design=replace(
+        planned.plans[0].design, gross_area_m2=120.0)),))
+    # a fake engine result that is 20 % larger than the person's but still short of 80 % of the bar
     short = planned.plans[0].design.gross_area_m2 * 1.2
     assert short < svc.OUTLINE_SHORTFALL_RATIO * 200.0
     fake = replace(planned, outline=replace(planned.outline, origin="ENGINE", order=1))

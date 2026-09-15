@@ -346,29 +346,24 @@ def _shape_refusals(monkeypatch) -> list[tuple[str, str]]:
     return seen
 
 
-def test_four_bedroom_three_wet_programme_is_refused_as_shape_infeasible(monkeypatch):
-    """Current behaviour, pinned honestly. This programme used to be "the headline limit" that the
-    unforced twin rescued — and the only plan the twin ever found put TOILET_1 alone in a full-width
-    row of a 4.65 m column: a 4.65 x 1.15 m strip, with BATH_2 a 4.65 x 1.60 m one under it. The
-    strip-room rule refuses that row as ROOM_SHAPE_INFEASIBLE (`room_depth_band_m`); the WC
-    row-sharing catch-up (`_share_wc_row`) answers it wherever the column has an ensuite, but here
-    the seams that leave the WC a column also hand BEDROOM_1 a 6.75-7.75 m wide row, and a
-    bedroom that wide has no depth under its 2.5 aspect and 14 m2 maximum. That is a template
-    threshold this change does not touch, so the refusal stands and is the honest answer.
-    """
-    refusals = _shape_refusals(monkeypatch)
+def test_four_bedroom_three_wet_programme_plans_with_every_room_inside_its_template():
+    """The programme that used to be "the headline limit". It was refused honestly for a while:
+    the only plan the twin found put TOILET_1 alone across a 4.65 m column (a 4.65 x 1.15 strip),
+    and every seam that gave the WC a partner handed BEDROOM_1 a 6.75-7.75 m row. Deficit
+    distribution (`_row_depths`) plans it: a column whose rows' FLOORS fit is no longer refused
+    for the area its rows merely wanted, and the floors carry the template's minimum area, so
+    the plan that comes out has every room between its template's minimum and maximum."""
     result = run_general_from_site(
         F.exact_rectangle(), plot_size_m=(20.0, 24.0),
         program=ProgramSpec(bedrooms=4, safe_room=True, wet_rooms=3))
-    assert result.design is None
-    assert result.outcome is AdapterOutcome.INSUFFICIENT_RECTANGULAR_CAPACITY, result.outcome
-    assert ("BEDROOM_1", RejectionReason.ROOM_SHAPE_INFEASIBLE.value) in refusals
-    # every strategy was tried and gave its own reason; nothing was skipped
-    assert {r.strategy for r in generator.generate_concepts(
-        _spec(ProgramSpec(bedrooms=4, safe_room=True, wet_rooms=3)),
-        list(adapt(build_buildable_region(F.exact_rectangle())).candidates)).rejections} >= {
-        ConceptStrategy.SPINE_SERVICE_CLUSTER, ConceptStrategy.FRONT_PUBLIC_BAND,
-        ConceptStrategy.SPINE_DOUBLE_LOADED}
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
+    for room in result.design.rooms:
+        template = ROOM_TEMPLATES.get(ProgramRole(room.roles[0]))
+        if template is None or ProgramRole(room.roles[0]) in (ProgramRole.HALL, ProgramRole.FLEX):
+            continue
+        assert template.min_area_m2 - 0.01 <= room.net_area_m2 <= template.max_area_m2 + 0.01, (
+            room.zone_id, room.net_area_m2)
 
 
 def test_a_candidate_refused_by_validation_does_not_end_the_search(monkeypatch):
@@ -588,7 +583,8 @@ def test_shared_row_members_each_clear_their_minimum_width():
     assert widths is not None
     assert widths[0] >= master.template.min_short_side_m
     assert widths[1] >= ensuite.template.min_short_side_m
-    assert sum(widths) == pytest.approx(5.0)
+    # The members' widths are their TRUE nets: the partition between them (0.10) is paid for.
+    assert sum(widths) == pytest.approx(5.0 - 0.10)
     assert _row_widths([master, ensuite], 3.0) is None  # genuinely too narrow
 
 
@@ -856,7 +852,13 @@ def test_second_suite_in_a_column_still_reaches_the_envelope():
     # The reading that solved IS the second suite, entered through its bedroom — and the house
     # still has a full bathroom off the hall. The ordering changed where rooms sit, not access.
     doors = _doors(result)
-    assert frozenset(("BEDROOM_1", "BATH_3")) in doors, doors
+    # Which wet-room reading plans first is the variants' order: with deficit distribution the
+    # LITERAL programme (every bathroom off the hall) plans at this footprint, so BATH_3 is a
+    # hall bathroom; when only the second-suite reading planned it was entered from BEDROOM_1.
+    # Either is a legal reading of the brief — C17 holds both — and the ordering claim above is
+    # the same in both.
+    assert (frozenset(("BEDROOM_1", "BATH_3")) in doors
+            or frozenset(("HALL", "BATH_3")) in doors), doors
     assert frozenset(("HALL", "BEDROOM_1")) in doors, doors
     assert frozenset(("HALL", "BATH_2")) in doors, doors
     assert frozenset(("HALL", "TOILET_1")) in doors, doors

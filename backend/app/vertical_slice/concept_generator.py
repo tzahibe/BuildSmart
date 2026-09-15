@@ -1353,6 +1353,7 @@ def _seam_options(natural_m: float, lo_m: float, hi_m: float,
 def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramRoom]],
                      east_rows: list[list[ProgramRoom]], areas: dict[str, float],
                      footprint_h_m: float, fallback: Repartition | None = None,
+                     allow_deficit: bool = True,
                      ) -> tuple[list[ColumnPlan] | None, PlanFailure | None]:
     """Both columns planned at ONE seam position — the unit the seam search repeats."""
     plans = []
@@ -1369,7 +1370,8 @@ def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramR
                     RejectionReason.ROW_WIDTH_EXCEEDED,
                     f"{' + '.join(r.zone_id for r in row)} cannot share the {name} "
                     f"column's {net_w:.2f} m of net width at their minimums")
-        depths, failure = _row_depths(rows, areas, net_w, footprint_h_m, f"{name} column")
+        depths, failure = _row_depths(rows, areas, net_w, footprint_h_m, f"{name} column",
+                                      allow_deficit=allow_deficit)
         if depths is None:
             return None, failure
         plans.append(ColumnPlan(width, rows, depths))
@@ -1378,7 +1380,7 @@ def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramR
 
 def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_width: float,
                 column_depth: float, where: str = "column",
-                ends_exterior: tuple[bool, bool] = (True, True),
+                ends_exterior: tuple[bool, bool] = (True, True), allow_deficit: bool = True,
                 ) -> tuple[list[float] | None, PlanFailure | None]:
     """Row depths, chosen DIRECTLY rather than inferred from areas.
 
@@ -1408,6 +1410,13 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
     becomes feasible that its floors refuse; a proportion that fits only with its rooms at their
     floors was always a legal plan, just one this planner could not find.
 
+    `allow_deficit` is the seam searches' SECOND pass. A seam search stops at the first seam that
+    plans, so if shrinking were allowed on the first pass the area-share seam would "plan" with
+    its rooms shrunk and the seam where nothing shrinks would never be reached — measured: 255 of
+    261 primaries changed, the living room's median fell 37.5 -> 29.0 m2, delivered area 84 % ->
+    77 %. With shrinking refused on the first pass every plan that used to plan plans the same
+    way; shrinking rescues only what the first pass could not plan at all.
+
     `where` names the column in the failure text; the reason code is the planner's to keep.
     """
     wanted = []
@@ -1435,6 +1444,11 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
             f"{where} needs {need:.2f} m of depth for its rows' floors but has {column_depth:.2f} m "
             f"[{'; '.join(terms)}]", need - column_depth)
     if sum(wanted) > column_depth + 1e-9:
+        if not allow_deficit:
+            return None, PlanFailure(
+                RejectionReason.COLUMN_DEPTH_EXCEEDED,
+                f"{where} needs {sum(wanted):.2f} m of depth but has {column_depth:.2f} m "
+                f"[{'; '.join(terms)}]", sum(wanted) - column_depth)
         wanted = _shrink_to_column(wanted, floors, column_depth)
     depths, failure = _distribute_column_surplus(rows, wanted, net_width, column_depth, where,
                                                  floors=floors)
@@ -1678,15 +1692,21 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
     plans: list[ColumnPlan] | None = None
     failure: PlanFailure | None = None
     shape_seen = False
-    for seam_w in _seam_options(natural_w, west_min, usable - east_min,
-                                limit=None if fallback is not None else _MAX_SEAM_OPTIONS):
-        east_w = round((usable - seam_w) / 0.05) * 0.05
-        west_w = footprint_w_m - hall_w - east_w  # absorb rounding
-        plans, failure = _columns_at_seam(west_w, east_w, west_rows, east_rows,
-                                          areas, footprint_h_m, fallback)
+    seams = _seam_options(natural_w, west_min, usable - east_min,
+                          limit=None if fallback is not None else _MAX_SEAM_OPTIONS)
+    # Two passes: every seam with the rows at their wants first, and only if none plans, every
+    # seam again with the rows allowed to shrink toward their floors (`_row_depths`).
+    for allow_deficit in (False, True):
+        for seam_w in seams:
+            east_w = round((usable - seam_w) / 0.05) * 0.05
+            west_w = footprint_w_m - hall_w - east_w  # absorb rounding
+            plans, failure = _columns_at_seam(west_w, east_w, west_rows, east_rows,
+                                              areas, footprint_h_m, fallback, allow_deficit)
+            if plans is not None:
+                break
+            shape_seen = shape_seen or failure.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
         if plans is not None:
             break
-        shape_seen = shape_seen or failure.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
 
     if plans is None:
         return None, replace(failure, shape_seen=shape_seen)
@@ -2378,20 +2398,22 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None,
 
     failure: PlanFailure | None = None
     shape_seen = False
-    for seam_w in seams:
-        east_w = round((usable - seam_w) / 0.05) * 0.05
-        west_w = fw - hall_w - east_w
-        plan, reason = _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas,
-                                           hall_w, west_w, east_w, fallback)
-        if plan is not None:
-            return plan, ""
-        failure = _nearest_miss(failure, reason)
-        shape_seen = shape_seen or reason.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
+    # Two passes, as in `plan_layout`: the rear rows at their wants first, shrinking second.
+    for allow_deficit in (False, True):
+        for seam_w in seams:
+            east_w = round((usable - seam_w) / 0.05) * 0.05
+            west_w = fw - hall_w - east_w
+            plan, reason = _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas,
+                                               hall_w, west_w, east_w, fallback, allow_deficit)
+            if plan is not None:
+                return plan, ""
+            failure = _nearest_miss(failure, reason)
+            shape_seen = shape_seen or reason.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
     return None, replace(failure, shape_seen=shape_seen)
 
 
 def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall_w, west_w,
-                        east_w, fallback: Repartition | None):
+                        east_w, fallback: Repartition | None, allow_deficit: bool = True):
     """`_plan_front_band` at ONE rear seam — the unit its search repeats."""
     # How much depth the rear genuinely needs, from the bedrooms' own programme. The rows are
     # settled here for the widths just chosen: a WC that cannot be shaped across its column shares
@@ -2483,7 +2505,7 @@ def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
         net_w = width - _EDGE_INSET_ALLOWANCE_M
         d, failure = _row_depths(rws, areas, net_w, rear_depth, f"rear {name} column",
-                                 ends_exterior=(False, True))
+                                 ends_exterior=(False, True), allow_deficit=allow_deficit)
         if d is None:
             return None, failure
         depths.append(d)

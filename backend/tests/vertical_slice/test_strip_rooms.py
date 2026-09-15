@@ -172,7 +172,7 @@ def test_an_ensuite_beside_a_deep_bedroom_is_widened_by_the_depth():
     assert without[1] < 5.6 / ensuite.template.max_aspect_ratio  # 1.73 m: the old answer, a strip
     assert with_depth[1] >= 5.6 / ensuite.template.max_aspect_ratio
     assert with_depth[0] >= master.template.min_short_side_m
-    assert sum(with_depth) == pytest.approx(5.0)
+    assert sum(with_depth) == pytest.approx(5.0 - 0.10)   # the partition between them is paid for
 
 
 def test_a_shared_row_the_surplus_would_deepen_into_a_strip_is_refused_not_stretched():
@@ -360,9 +360,9 @@ def test_the_paired_wc_plan_keeps_its_access_semantics():
     ensuite = next(r for r in result.design.rooms if "BATHROOM" in r.roles
                    and any(d.a == "MASTER" or d.b == "MASTER"
                            for d in result.design.interior_doors if r.zone_id in (d.a, d.b)))
-    # a shared wall between the two wet rooms
-    wx, wy, ww, wh = wc.rect_m; ex, ey, ew, eh = ensuite.rect_m
-    assert abs(wy - ey) < 1e-6 and abs(wh - eh) < 1e-6 and (abs(wx + ww - ex) < 1e-6 or abs(ex + ew - wx) < 1e-6)
+    # The WC shares the ensuite's row only when tier 2 is what plans this brief; with deficit
+    # distribution a tier-1 candidate plans it with the WC in a row of its own. The ACCESS is the
+    # contract either way, and it is what C17 reads.
     entered = {z: sorted({d.a if d.b == z else d.b for d in result.design.interior_doors if z in (d.a, d.b)})
                for z in (wc.zone_id, ensuite.zone_id)}
     assert entered[wc.zone_id] == ["HALL"]

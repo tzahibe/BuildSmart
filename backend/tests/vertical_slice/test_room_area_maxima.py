@@ -242,3 +242,95 @@ def test_delivered_plans_have_no_room_above_its_template_maximum(bedrooms, wet, 
         if role in (ProgramRole.HALL, ProgramRole.CIRCULATION, ProgramRole.FLEX):
             continue
         assert room.net_area_m2 <= ROOM_TEMPLATES[role].max_area_m2 + 0.01, (room.zone_id, room.net_area_m2)
+
+
+# ------------------------------------------------------------------ 5. deficit distribution
+
+def test_wants_over_the_column_shrink_toward_floors_instead_of_refusing():
+    """The regression: a column whose rows' FLOORS fit with metres to spare was refused for
+    4 cm of area-want. Rows above their floor now give up the same share of their want, the
+    column tiles exactly, and no row goes under its floor."""
+    from app.vertical_slice.concept_generator import _row_depth_floor_m, _row_wall_allowances_m
+    master, bed1, bed2 = _room(ProgramRole.MASTER_BEDROOM), _room(ProgramRole.BEDROOM, "B1"), _room(ProgramRole.BEDROOM, "B2")
+    safe, bath = _room(ProgramRole.SAFE_ROOM), _room(ProgramRole.BATHROOM)
+    rows = [[master], [bed1], [bed2], [safe], [bath]]
+    net_w = 4.9
+    areas = {"MASTER_BEDROOM": 19.0, "B1": 13.0, "B2": 13.0, "SAFE_ROOM": 10.5, "BATHROOM": 8.0}
+    floors = [_row_depth_floor_m(r, net_w, "column", a)[0]
+              for r, a in zip(rows, _row_wall_allowances_m(rows, (True, True)))]
+    wanted = [max(areas[r[0].zone_id] / net_w, f) for r, f in zip(rows, floors)]
+    column = 14.0                      # floors sum to ~13.4, wants to ~15.6
+    assert sum(wanted) > column > sum(floors)
+    depths, failure = _row_depths(rows, areas, net_w, column)
+    assert failure is None, failure
+    assert sum(depths) == pytest.approx(column)
+    for d, f in zip(depths, floors):
+        assert d >= f - 0.03   # 5 cm grid rounding, never a real step under the floor
+    # The safe room (elasticity 0) sits at its floor; the deficit came out of the elastic rows.
+    assert depths[3] == pytest.approx(round(floors[3] / 0.05) * 0.05, abs=0.051)
+
+
+def test_a_column_whose_floors_do_not_fit_is_still_refused():
+    from app.vertical_slice.concept_generator import _row_depth_floor_m, _row_wall_allowances_m
+    rows = [[_room(ProgramRole.BEDROOM, "B1")], [_room(ProgramRole.BEDROOM, "B2")], [_room(ProgramRole.SAFE_ROOM)]]
+    floors = [_row_depth_floor_m(r, 4.0, "column", a)[0]
+              for r, a in zip(rows, _row_wall_allowances_m(rows, (True, True)))]
+    depths, failure = _row_depths(rows, {"B1": 10.5, "B2": 10.5, "SAFE_ROOM": 10.5}, 4.0, sum(floors) - 0.2)
+    assert depths is None
+    assert failure.reason is RejectionReason.COLUMN_DEPTH_EXCEEDED
+    assert "floors" in failure.detail
+
+
+def test_floors_carry_the_template_minimum_area():
+    """A row shrunk to its floor may not fall under its template's minimum area: a 2.75 m wide
+    bedroom at its 2.6 m short side would be 7.3 m2 against 9."""
+    from app.vertical_slice.concept_generator import room_depth_band_m
+    bed = ROOM_TEMPLATES[ProgramRole.BEDROOM]
+    lo, _ = room_depth_band_m(bed, 2.75)
+    assert lo == pytest.approx(bed.min_area_m2 / 2.75)
+    assert 2.75 * lo >= bed.min_area_m2 - 1e-9
+    spec = _zone_spec(_room(ProgramRole.BEDROOM), 2.75, lo, 0.60, 1.60)
+    assert spec.net_area_min_m2 >= bed.min_area_m2 - 1e-9
+
+
+def test_floor_allowance_follows_the_rows_real_walls():
+    """A row's floor carries the walls it actually has: exterior at a column end, RC beside the
+    safe room, a partition otherwise — never less than the flat allowance."""
+    from app.vertical_slice.concept_generator import _row_wall_allowances_m
+    rows = [[_room(ProgramRole.MASTER_BEDROOM)], [_room(ProgramRole.BEDROOM, "B1")],
+            [_room(ProgramRole.BEDROOM, "B2")], [_room(ProgramRole.SAFE_ROOM)], [_room(ProgramRole.BATHROOM)]]
+    spine = _row_wall_allowances_m(rows, (True, True))
+    assert spine == pytest.approx([0.20, 0.20, 0.20, 0.30, 0.30])   # B1: 0.10 real, floored at 0.20
+    rear = _row_wall_allowances_m(rows, (False, True))                 # the band above, not the envelope
+    assert rear == pytest.approx([0.20, 0.20, 0.20, 0.30, 0.30])
+
+
+def test_shared_row_widths_pay_for_the_partition_between_them():
+    from app.vertical_slice.concept_generator import _row_widths
+    master, bath = _room(ProgramRole.MASTER_BEDROOM), _room(ProgramRole.BATHROOM)
+    widths = _row_widths([master, bath], 5.0)
+    assert sum(widths) == pytest.approx(5.0 - 0.10)
+    assert widths[0] >= master.template.min_short_side_m and widths[1] >= bath.template.min_short_side_m
+    assert _row_widths([master, bath], 4.65) is None          # 3.0 + 1.6 + 0.10 > 4.65
+
+
+@pytest.mark.parametrize("w, d, bedrooms, wet, target, expect", [
+    (13.3, 14.0, 3, 1, 216.0, 186.2),   # the two regressions: closed plan, FLEX, all rooms within max
+    (11.9, 8.8, 1, 2, 181.25, 102.0),
+])
+def test_the_identified_regressions_plan_again(w, d, bedrooms, wet, target, expect):
+    from app.geometry_domain.primitives import Region, Ring
+    from app.vertical_slice.general_pipeline import run_general
+    program = ProgramSpec(bedrooms=bedrooms, safe_room=True, wet_rooms=wet, open_plan_living=False,
+                          parking_spaces=0, target_built_area_m2=target)
+    result = run_general(F._known(Region(Ring.rectangle(3.0, 0.0, w, d))), plot_size_m=(w + 6, d + 8),
+                         program=program, fast_path=True)
+    assert result.design is not None, result.metrics.rejection_reasons
+    assert result.validation.ok, [(c.check_id, c.detail) for c in result.validation.failures()]
+    assert result.design.gross_area_m2 >= expect - 0.5
+    for room in result.design.rooms:
+        role = ProgramRole(room.roles[0])
+        if role in (ProgramRole.HALL, ProgramRole.CIRCULATION, ProgramRole.FLEX):
+            continue
+        assert room.net_area_m2 <= ROOM_TEMPLATES[role].max_area_m2 + 0.01
+        assert room.net_area_m2 >= ROOM_TEMPLATES[role].min_area_m2 - 0.01
