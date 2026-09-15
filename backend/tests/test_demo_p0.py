@@ -694,7 +694,20 @@ def test_no_corridor_width_keeps_the_existing_default(tmp_path, monkeypatch):
     assert body["corridor"]["realized_width_m"] > 0
 
 
-@pytest.mark.parametrize("requested", [1.6, 1.8])
+
+#: Phase 1 of the room-size work (2026-09-15) made every template `max_area_m2` HARD (planner
+#: ceilings + validation C21). The briefs marked below planned before only by putting rooms past
+#: their maxima — measured on the baseline: 3BR on 13 x 11 had BEDROOM_2 at 23.4 m2 (max 14); 6BR on
+#: 13 x 14 had five bedrooms at 14.3-17.4; the 1.8 m corridor brief on 15.5 x 15.5 had LIVING 49 /
+#: KITCHEN 27.4 / MASTER 21; the 2.0 m one LIVING 46.5 / DINING 30.8. Within the maxima those
+#: outlines cannot be filled: `program_capacity_gross_m2` (unchanged in Phase 1) still counts a
+#: 30 m2 hall and 12 m2 bathrooms as absorbable, so no FLEX zone is offered, and the partis have
+#: no row sharing to narrow a 7 m bedroom (Phase 2). Strict: these come back the moment either
+#: lands, and the marks come off.
+LOST_TO_HARD_MAXIMA = pytest.mark.xfail(
+    strict=True, reason="outline cannot be filled within the hard template maxima (Phase 1)")
+
+@pytest.mark.parametrize("requested", [1.6, pytest.param(1.8, marks=LOST_TO_HARD_MAXIMA)])
 def test_a_minimum_corridor_width_is_met_or_exceeded(tmp_path, monkeypatch, requested):
     review, design = _corridor_run(tmp_path, monkeypatch, requested, CorridorWidthMode.MINIMUM)
 
@@ -716,6 +729,7 @@ def test_a_minimum_is_never_reinterpreted_as_an_exact_width(tmp_path, monkeypatc
     assert design.json()["plan"]["corridor"]["requested_mode"] == "minimum"
 
 
+@LOST_TO_HARD_MAXIMA
 def test_a_two_metre_request_is_planned_to_two_metres(tmp_path, monkeypatch):
     # A 2 m corridor needs room to exist: the 3-bedroom + safe-room programme cannot spare the
     # width at these sizes (see `test_a_width_the_geometry_cannot_hold_fails_explicitly`), so this
@@ -1639,7 +1653,11 @@ def _many_bedroom_client(tmp_path, monkeypatch, bedrooms):
     return TestClient(app), brief
 
 
-@pytest.mark.parametrize("bedrooms", [3, 4, 5, 6])
+_MANY_BEDROOM_CASES = [pytest.param(3, marks=LOST_TO_HARD_MAXIMA), 4, 5,
+                       pytest.param(6, marks=LOST_TO_HARD_MAXIMA)]
+
+
+@pytest.mark.parametrize("bedrooms", _MANY_BEDROOM_CASES)
 def test_three_bedrooms_and_more_reach_a_drawing(tmp_path, monkeypatch, bedrooms):
     client, brief = _many_bedroom_client(tmp_path, monkeypatch, bedrooms)
     width, depth = _MANY_BEDROOM_BRIEFS[bedrooms][1]
@@ -1657,7 +1675,7 @@ def test_three_bedrooms_and_more_reach_a_drawing(tmp_path, monkeypatch, bedrooms
     assert len(bedroom_rooms) == bedrooms, [r["id"] for r in bedroom_rooms]
 
 
-@pytest.mark.parametrize("bedrooms", [3, 4, 5, 6])
+@pytest.mark.parametrize("bedrooms", _MANY_BEDROOM_CASES)
 def test_every_bedroom_is_reachable_and_has_a_window(tmp_path, monkeypatch, bedrooms):
     """More bedrooms must not be bought by starving one of daylight or access."""
     client, brief = _many_bedroom_client(tmp_path, monkeypatch, bedrooms)

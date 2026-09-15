@@ -85,7 +85,9 @@ def test_band_floors_a_wide_room_by_its_aspect_not_its_short_side():
     lo, hi = room_depth_band_m(bath, 5.0)
     assert lo == pytest.approx(5.0 / bath.max_aspect_ratio)  # 1.67, not the 1.6 short side
     assert lo > bath.min_short_side_m
-    assert hi == pytest.approx(5.0 * bath.max_aspect_ratio)
+    # The top of the band is the AREA cap at this width (12 / 5.0 = 2.4 m), not the aspect's
+    # 15 m: since the maxima became hard the band is the room's whole legal depth range.
+    assert hi == pytest.approx(bath.max_area_m2 / 5.0)
     # Narrow enough and the short side is what binds, as before.
     lo, _ = room_depth_band_m(bath, 3.0)
     assert lo == bath.min_short_side_m
@@ -104,28 +106,44 @@ def test_band_is_empty_where_the_aspect_floor_exceeds_the_area_cap(role, width):
     (ProgramRole.MASTER_BEDROOM, 6.8),  # 3.0 m minimum x 6.8 = 20.4 m2 against 20; aspect 2.27
     (ProgramRole.BEDROOM, 6.1),         # 2.6 m minimum x 6.1 = 15.9 m2 against 14; aspect 2.35
 ])
-def test_band_does_not_refuse_the_short_side_against_the_area_cap(role, width):
-    """Out of scope on purpose. Where the SHORT SIDE binds, the room is not a strip — it is what
-    the planner drew before this rule, possibly over its area cap. That is the planners not holding
-    rooms to their area maxima, a separate defect; refusing it here cost programmes with no strip in
-    them at all (measured: 5 for the master case, and 643 seam attempts for the bedroom one)."""
+def test_band_refuses_the_short_side_against_the_area_cap(role, width):
+    """Reversed when the maxima became hard. Where the SHORT SIDE binds and already puts the room
+    over its maximum, there is no legal depth at this width: the old exemption ("the planners do
+    not yet hold rooms to their area maxima") is what let a 6.1 x 2.6 m bedroom reach the drawing
+    at 15.9 m2. Just under the critical width the band exists and the short side is its floor."""
     template = ROOM_TEMPLATES[role]
-    band = room_depth_band_m(template, width)
+    assert room_depth_band_m(template, width) is None
+    narrower = template.max_area_m2 / template.min_short_side_m - 0.05
+    band = room_depth_band_m(template, narrower)
     assert band is not None
     assert band[0] == template.min_short_side_m
-    assert width / band[0] <= template.max_aspect_ratio
+    assert narrower * band[0] <= template.max_area_m2
 
 
 # ------------------------------------------------------------------ 2. the planners
 
 def test_a_bathroom_alone_in_a_wide_column_is_floored_by_its_aspect():
     """The classic strip: a 5.2 m column, a bathroom row. Its depth used to be the 1.6 m short
-    side plus the wall allowance; it is now deep enough for the template's aspect ratio."""
+    side plus the wall allowance; it is now deep enough for the template's aspect ratio. The
+    column is as deep as the bathroom's own ceiling — a 14 m column with nothing else in it is
+    the oversized case, refused below."""
     bath = _room(ProgramRole.BATHROOM, "BATH_1")
-    depths, failure = _row_depths([[bath]], {"BATH_1": 6.5}, 5.2, 14.0)
-    assert failure is None
+    depths, failure = _row_depths([[bath]], {"BATH_1": 6.5}, 5.2, 2.2)
+    assert failure is None, failure
     net_d = depths[0] - cg._EDGE_INSET_ALLOWANCE_M / 2
     assert 5.2 / net_d <= bath.template.max_aspect_ratio + 1e-9
+    assert 5.2 * net_d <= bath.template.max_area_m2
+
+
+def test_a_lone_row_cannot_absorb_a_deep_column_past_its_maximum():
+    """The 62 m2 bathroom: a bathroom alone in a 5.35 m rear column 11.6 m deep took the whole
+    depth. The column cannot absorb that within the room's 12 m2, so the seam is refused with the
+    area reason — not stretched, and not a strip refusal either (the shape was legal)."""
+    bath = _room(ProgramRole.BATHROOM, "BATH_1")
+    depths, failure = _row_depths([[bath]], {"BATH_1": 6.5}, 5.2, 14.0, "east column")
+    assert depths is None
+    assert failure.reason is RejectionReason.ROOM_ABOVE_MAXIMUM_AREA
+    assert "no row can take" in failure.detail
 
 
 def test_a_wc_alone_in_a_column_it_cannot_be_shaped_in_is_refused_with_its_own_reason():
@@ -169,7 +187,8 @@ def test_a_shared_row_the_surplus_would_deepen_into_a_strip_is_refused_not_stret
                                   4.7, 14.0)
     assert depths is None
     assert failure.reason in (RejectionReason.ROOM_SHAPE_INFEASIBLE,
-                              RejectionReason.ROW_WIDTH_EXCEEDED)
+                              RejectionReason.ROW_WIDTH_EXCEEDED,
+                              RejectionReason.ROOM_ABOVE_MAXIMUM_AREA)
 
 
 def _all_candidates(program: ProgramSpec):

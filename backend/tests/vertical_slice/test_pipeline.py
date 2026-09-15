@@ -25,7 +25,10 @@ def result(tmp_path_factory):
 
 
 def test_pipeline_runs_end_to_end_and_validation_passes_overall(result):
-    assert result.validation.ok, "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures())
+    # Except C21: the hand-authored slice's 5.7 m rooms column cannot hold a bedroom under the
+    # template's 14 m2 — see FROZEN_SLICE_FAILS_C21 in test_baseline_and_decoupling.py.
+    failed = [c.check_id for c in result.validation.failures()]
+    assert failed == ["C21"], "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures())
 
 
 @pytest.mark.parametrize("check_id", ALL_CHECK_IDS)

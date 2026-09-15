@@ -116,7 +116,12 @@ def _hall_is_a_lobby(design) -> bool:
     (WIDE_SQUARE, False, "same area, bedroom 2.29 -> 1.23: the replacement is better"),
     # Was "154 -> 109 m²: a quarter smaller" before main's strip-room fix; the band plan is now
     # 138.6 m² (90 %) but takes the worst bedroom from 1.64 to 1.80 — the gate the hub was demoted for.
-    (NARROW_DEEP, True, "154 -> 139 m² and the worst bedroom 1.64 -> 1.80: worse on the demoted gate"),
+    pytest.param(NARROW_DEEP, True,
+                 "154 -> 139 m² and the worst bedroom 1.64 -> 1.80: worse on the demoted gate",
+                 # Phase 1 (hard template maxima, 2026-09-15): the demoted hub this case keeps had
+                 # rooms past their maxima and no longer sizes, so the band plan is all there is.
+                 # See HUB_VS_HARD_MAXIMA in test_concept_generator.py for the decision pending.
+                 marks=pytest.mark.xfail(strict=True, reason="hub cannot size within the hard maxima")),
     # Measured again after main's strip-room fix (2026-09-14): the band plan's master went 1.64 -> 1.07
     # with the worst bedroom equal (1.77) and the same area (130.8 -> 129.6 m²) — now the better plan.
     (SMALL_4BR, False, "same area, bedrooms equal, master 1.64 -> 1.07: the replacement is better"),

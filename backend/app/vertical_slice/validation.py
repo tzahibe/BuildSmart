@@ -214,6 +214,29 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     rep.add("C20", "realized rooms within their template's aspect ratio", not bad,
             "; ".join(bad) or "no room is a strip")
 
+    # C21 — realized rooms within their TEMPLATE's maximum area. The area twin of C20, for the
+    # same reason: C3 holds a room to a ZoneSpec the planner wrote around the rectangle it had
+    # just planned, so a planner that lets a bathroom reach 62 m2 (measured, front band, lone row
+    # in a rear column) also wrote it a 105 m2 ceiling and C3 passed. `_zone_spec` now caps the
+    # ZoneSpec at the template, but this check never reads the ZoneSpec — a future sizing path
+    # that relaxes its own spec still cannot put an oversized room in front of a person. Read on
+    # NET area, which is what the templates are written against. Circulation is excluded as in
+    # C20 (the hub carries `HUB_TEMPLATE`, not the HALL row, and C14 governs a corridor); FLEX is
+    # the zone that exists to absorb what the programme cannot, and its 500 m2 row says so.
+    bad = []
+    for z in fixture.zones:
+        if z.zone_id not in rects or {ProgramRole.HALL, ProgramRole.CIRCULATION} & set(z.roles):
+            continue
+        template = ROOM_TEMPLATES.get(z.primary_role)
+        if template is None:
+            continue
+        _, _, na = net_rect_m(z.zone_id, rects[z.zone_id], walls)
+        if na > template.max_area_m2 + TOL_M2:
+            bad.append(f"{z.zone_id} realized {na:.2f} m2 past its {z.primary_role.value} "
+                       f"template's {template.max_area_m2:.0f} m2 maximum")
+    rep.add("C21", "realized rooms within their template's maximum area", not bad,
+            "; ".join(bad) or "no room above its maximum")
+
     # C4 — safe room valid under current RuleSet parameters
     bad = []
     for z in fixture.zones:
