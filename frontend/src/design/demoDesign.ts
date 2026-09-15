@@ -142,6 +142,7 @@ export interface SearchSummary {
 
 export interface DemoDesign {
   plot: DemoRect
+  /** The building's bounding box — the footprint itself for a one-wing house. */
   footprint: DemoRect
   rooms: DemoRoom[]
   walls: DemoWallSegment[]
@@ -162,6 +163,15 @@ export interface DemoDesign {
   family?: string | null
   /** Room-size quality tiers. Absent only for a payload that predates it. */
   quality?: DemoQuality | null
+  /** The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for every
+   *  house the engine plans today; absent for a payload that predates the field. */
+  footprints?: DemoRect[]
+}
+
+/** The rectangles a design is made of: its wings, or the one footprint when the payload has no
+ *  wing list. The single place the fallback is decided. */
+export function footprintsOf(design: DemoDesign): DemoRect[] {
+  return design.footprints && design.footprints.length > 0 ? design.footprints : [design.footprint]
 }
 
 /** What the design request answers with: a plan, and the other plans that were also possible.
@@ -209,8 +219,11 @@ export interface DemoCore {
 
 export interface DemoMassing {
   plot: DemoRect
-  /** One outline per level, index-aligned with `levels`; only the first touches the site. */
+  /** One BOUNDING BOX per level, index-aligned with `levels`. */
   level_outlines: DemoRect[]
+  /** The rectangles each level is made of — one per wing — index-aligned with `levels`. Only the
+   *  ground level's touch the site. */
+  level_regions?: DemoRect[][]
   ground_coverage: number
   retreat_m2: number
 }

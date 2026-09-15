@@ -147,6 +147,29 @@ describe('DemoPlan', () => {
   })
 })
 
+describe('DemoPlan — the footprint as wings', () => {
+  it('draws a one-wing house exactly as it did without a wing list', () => {
+    const plain = design()
+    const withWings = design({ footprints: [plain.footprint] })
+    const a = render(<DemoPlan design={plain} />).container.innerHTML
+    const b = render(<DemoPlan design={withWings} />).container.innerHTML
+    expect(a).toBe(b)
+    expect(render(<DemoPlan design={plain} />).container.querySelectorAll('.demo-footprint')).toHaveLength(1)
+  })
+
+  it('draws every wing of an L and frames the drawing on the wings', () => {
+    const bar = { x: 3, y: 5.5, width_m: 8, depth_m: 12 }
+    const arm = { x: 11, y: 5.5, width_m: 4.5, depth_m: 8.5 }
+    const l = design({ footprint: { x: 3, y: 5.5, width_m: 12.5, depth_m: 12 }, footprints: [bar, arm] })
+    const wings = render(<DemoPlan design={l} />).container.querySelectorAll('.demo-footprint')
+    expect(wings).toHaveLength(2)
+    expect(wings[1].getAttribute('x')).toBe('11')
+    expect(wings[1].getAttribute('height')).toBe('8.5')
+    // The frame is the same as the bounding box's frame: the wings span the same extent.
+    expect(planViewBox(l)).toBe(planViewBox(design({ footprint: { x: 3, y: 5.5, width_m: 12.5, depth_m: 12 } })))
+  })
+})
+
 describe('DemoPlan compass', () => {
   // The demo plan is drawn STREET-UP by the backend (street, parking and entrance walk along y = 0),
   // so this is the one drawing where a compass is truthful. The letter at the top is the street side.

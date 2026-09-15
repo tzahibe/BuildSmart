@@ -19,6 +19,7 @@ from .geometry_core.model import (
     m_to_u,
     u_to_m,
 )
+from . import footprint as footprint_module
 from .site import EntranceWalk
 
 INTERIOR_DOOR_WIDTH_M = 0.9
@@ -144,7 +145,7 @@ ENTRANCE_ZONE_PRIORITY = (
 
 
 def resolve_entrance(fixture: Fixture, rects: dict[str, Rect],
-                     footprint: Rect) -> tuple[str, int, int] | None:
+                     footprint: Rect, wings: tuple[Rect, ...] = ()) -> tuple[str, int, int] | None:
     """Which zone the front door can actually open into, and where on the street wall it goes.
 
     THE DEFECT THIS REPLACES. The entrance used to be placed at the footprint's horizontal centre
@@ -159,15 +160,22 @@ def resolve_entrance(fixture: Fixture, rects: dict[str, Rect],
     span rather than a point, because the caller also has to keep the walk clear of the parking
     bays, and only it knows where those are. `None` when no acceptable zone fronts the street, so
     the caller can refuse rather than invent a door.
+
+    `footprint` is the building's bounding box and `wings` its rectangles; the street wall is the
+    bounding box's y = min line, and a zone fronts it when its own wing reaches that line. The
+    corner clearance below is measured against the zone's WING — the wall the door actually sits
+    in — which is the bounding box itself when there is one wing.
     """
     roles = {z.zone_id: z.roles for z in fixture.zones}
     width_u = m_to_u(ENTRANCE_DOOR_WIDTH_M)
+    wings = wings or (footprint,)
 
     fronting = []
     for zone_id, rect in rects.items():
         if rect.y != footprint.y:                     # not on the street wall
             continue
-        span_start, span_end = max(rect.x, footprint.x), min(rect.x2, footprint.x2)
+        wing = footprint_module.wing_of(wings, rect)
+        span_start, span_end = max(rect.x, wing.x), min(rect.x2, wing.x2)
         if span_end - span_start < width_u:           # too little frontage to hold a door
             continue
         best = None
@@ -187,16 +195,18 @@ def resolve_entrance(fixture: Fixture, rects: dict[str, Rect],
     _, zone_id, span_start, span_end = fronting[0]
 
     # The existing placeability rule still applies: a full door width of wall on each side, measured
-    # against the FOOTPRINT, so the door is not jammed into a corner of the building.
-    low = max(span_start, footprint.x + width_u)
-    high = min(span_end, footprint.x2 - width_u)
+    # against the WING's street wall, so the door is not jammed into a corner of the building.
+    wing = footprint_module.wing_of(wings, rects[zone_id])
+    low = max(span_start, wing.x + width_u)
+    high = min(span_end, wing.x2 - width_u)
     if low > high:
         return None
     return zone_id, low, high
 
 
 def build_entrance_door(entrance: EntranceWalk, footprint: Rect,
-                        entrance_zone_id: str = "HALL_MAIN") -> Door:
+                        entrance_zone_id: str = "HALL_MAIN",
+                        wings: tuple[Rect, ...] = ()) -> Door:
     """The one exterior-to-interior door: street -> entrance hall. Not part of the fixture's
     DesiredAccessTopology (that graph is interior-only, see concept.py's module docstring) —
     the entrance is a site-level concern, resolved here against the footprint's street wall.
@@ -207,10 +217,13 @@ def build_entrance_door(entrance: EntranceWalk, footprint: Rect,
     unreachable."""
     width_u = m_to_u(ENTRANCE_DOOR_WIDTH_M)
     x, y = entrance.door_point_u
-    on_wall = footprint.x <= x <= footprint.x2 and y == footprint.y
-    placeable = on_wall and (x - footprint.x) >= width_u and (footprint.x2 - x) >= width_u
+    # The wall the door sits in is the STREET WING's — the one wing when there is one; with
+    # several, the wing whose street-side wall holds the door point (None when none does).
+    wing = footprint_module.wing_on_street_line(wings or (footprint,), x, y)
+    on_wall = wing is not None and y == footprint.y
+    placeable = on_wall and (x - wing.x) >= width_u and (wing.x2 - x) >= width_u
     # A front door opens INWARD, always — outward into the street is not a thing.
     half = width_u // 2
     return Door("OUTSIDE", entrance_zone_id, ConnectionKind.DOOR, ENTRANCE_DOOR_WIDTH_M,
-                (x, y), "horizontal", placeable, footprint.w if on_wall else 0.0,
+                (x, y), "horizontal", placeable, wing.w if on_wall else 0.0,
                 entrance_zone_id, (x - half, y))

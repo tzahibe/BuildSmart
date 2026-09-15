@@ -109,7 +109,13 @@ class LevelPlan:
 
     @property
     def outline_m(self) -> RectM:
+        """The level's bounding box."""
         return self.design.footprint_m
+
+    @property
+    def regions_m(self) -> tuple[RectM, ...]:
+        """The level's footprint as its wings."""
+        return self.design.footprints_m
 
 
 def rect_area_m2(rect: RectM) -> float:
@@ -123,39 +129,89 @@ def rect_contains(outer: RectM, inner: RectM, tol: float = 1e-6) -> bool:
             and ix + iw <= ox + ow + tol and iy + ih <= oy + oh + tol)
 
 
+Regions = tuple[RectM, ...]
+
+
+def regions_bbox(regions: Regions) -> RectM:
+    """The bounding box of a level's regions — one rectangle per wing; the wing itself when one."""
+    if not regions:
+        raise ValueError("a level has at least one region")
+    x = min(r[0] for r in regions)
+    y = min(r[1] for r in regions)
+    x2 = max(r[0] + r[2] for r in regions)
+    y2 = max(r[1] + r[3] for r in regions)
+    return (x, y, round(x2 - x, 4), round(y2 - y, 4))
+
+
+def regions_area_m2(regions: Regions) -> float:
+    """Σ region areas — the regions of one level never overlap."""
+    return round(sum(rect_area_m2(r) for r in regions), 4)
+
+
+def regions_cover(cover: Regions, target: RectM) -> bool:
+    """Whether the union of `cover` contains `target`. Exact: `target` is cut along every edge the
+    cover introduces and each cell must lie inside some cover rectangle."""
+    tx, ty, tw, th = target
+    xs = sorted({tx, tx + tw} | {v for r in cover for v in (r[0], r[0] + r[2]) if tx < v < tx + tw})
+    ys = sorted({ty, ty + th} | {v for r in cover for v in (r[1], r[1] + r[3]) if ty < v < ty + th})
+    for y0, y1 in zip(ys, ys[1:]):
+        for x0, x1 in zip(xs, xs[1:]):
+            if not any(rect_contains(r, (x0, y0, x1 - x0, y1 - y0)) for r in cover):
+                return False
+    return True
+
+
 @dataclass(frozen=True)
 class Massing:
-    """The plot and one outline per level, index-aligned with `Building.levels`.
+    """The plot and, per level, the RECTANGLES that level is made of — one per wing — index-aligned
+    with `Building.levels`.
 
-    The SITE limits only `level_outlines_m[0]` — the footprint touching the land. Upper outlines
-    are limited by the outline below them (containment, checked by V2), never by the plot directly.
+    Regions rather than one outline per level because a wing and an upper level are the same
+    generalisation seen twice: an L is two regions on one level, a retreat is fewer or smaller
+    regions on the level above, and a stair sits in one region present on both. Rectangle lists,
+    not polygons: Geometry Core consumes rectangles and the adapter emits them. The SITE limits
+    only `level_regions_m[0]`; every upper region is limited by the union of the level below
+    (containment, checked by V2), never by the plot directly. `level_outlines_m` is the
+    bounding-box view — what a frame or a building line wants.
     """
 
     plot_m: RectM
-    level_outlines_m: tuple[RectM, ...]
+    level_regions_m: tuple[Regions, ...]
 
     def __post_init__(self) -> None:
-        if not self.level_outlines_m:
-            raise ValueError("a massing needs at least the ground outline")
+        if not self.level_regions_m:
+            raise ValueError("a massing needs at least the ground level")
+        for index, regions in enumerate(self.level_regions_m):
+            if not regions:
+                raise ValueError(f"level {index} has no regions")
+
+    @property
+    def level_outlines_m(self) -> tuple[RectM, ...]:
+        """One bounding box per level."""
+        return tuple(regions_bbox(regions) for regions in self.level_regions_m)
+
+    @property
+    def ground_regions_m(self) -> Regions:
+        return self.level_regions_m[0]
 
     @property
     def ground_outline_m(self) -> RectM:
-        return self.level_outlines_m[0]
+        return regions_bbox(self.ground_regions_m)
 
     @property
     def ground_coverage(self) -> float:
-        """Ground outline over plot — the one ratio a coverage rule would be checked against.
+        """Ground footprint over plot — the one ratio a coverage rule would be checked against.
         Reported, never used as geometry (a coverage limit is validation, not a shrunken region)."""
         plot = rect_area_m2(self.plot_m)
-        return round(rect_area_m2(self.ground_outline_m) / plot, 4) if plot > 0 else 0.0
+        return round(regions_area_m2(self.ground_regions_m) / plot, 4) if plot > 0 else 0.0
 
     @property
     def retreat_m2(self) -> float:
-        """Area of every level's outline NOT covered by the level above it — the roof an upper
-        retreat exposes (a terrace, once something classifies it). Zero on a single level."""
+        """Area of every level NOT covered by the level above it — the roof an upper retreat
+        exposes (a terrace, once something classifies it). Zero on a single level."""
         total = 0.0
-        for lower, upper in zip(self.level_outlines_m, self.level_outlines_m[1:]):
-            total += rect_area_m2(lower) - rect_area_m2(upper)
+        for lower, upper in zip(self.level_regions_m, self.level_regions_m[1:]):
+            total += regions_area_m2(lower) - regions_area_m2(upper)
         return round(total, 4)
 
 
@@ -174,8 +230,8 @@ class Building:
         ids = [plan.level.level_id for plan in self.levels]
         if len(set(ids)) != len(ids):
             raise ValueError(f"level ids must be unique, got {ids}")
-        if len(self.massing.level_outlines_m) != len(self.levels):
-            raise ValueError("massing carries one outline per level")
+        if len(self.massing.level_regions_m) != len(self.levels):
+            raise ValueError("massing carries one region list per level")
         for plan in self.levels:
             expected = (LevelEntryKind.STREET_DOOR if plan.level.index == 0
                         else LevelEntryKind.STAIR_ARRIVAL)
@@ -230,4 +286,4 @@ class Building:
         entry = LevelEntry(LevelEntryKind.STREET_DOOR, zone_id=design.entrance_door.b)
         plan = LevelPlan(level=level, entry=entry, design=design, validation=validation,
                          concept=concept, safety=safety)
-        return cls(levels=(plan,), massing=Massing(design.plot_m, (design.footprint_m,)))
+        return cls(levels=(plan,), massing=Massing(design.plot_m, (design.footprints_m,)))

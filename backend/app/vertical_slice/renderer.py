@@ -89,8 +89,8 @@ def render(design: GeometricDesign, out_path: str, title: str = "Private House V
     wx, wy, ww, wh = design.entrance_walk_m
     ax.add_patch(Rectangle((wx, wy), ww, wh, facecolor="#e8d9b5", edgecolor="none", zorder=2))
 
-    fx, fy, fw, fh = design.footprint_m
-    ax.add_patch(Rectangle((fx, fy), fw, fh, facecolor="#ffffff", edgecolor="none", zorder=2))
+    for fx, fy, fw, fh in design.footprints_m:
+        ax.add_patch(Rectangle((fx, fy), fw, fh, facecolor="#ffffff", edgecolor="none", zorder=2))
 
     for room in design.rooms:
         x, y, w, h = room.rect_m

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from . import footprint as footprint_module
 from .geometry_core.model import (
     OutdoorClassification,
     OutdoorRegion,
@@ -48,11 +49,21 @@ class EntranceWalk:
 @dataclass(frozen=True)
 class SitePlan:
     plot: Rect
+    #: The building's BOUNDING BOX. For a one-wing house this is the footprint itself; for a
+    #: multi-wing one it is the rectangle the wings span — what the building line, the frame and
+    #: the entrance walk are measured against. `wings` is the footprint proper.
     footprint: Rect
     footprint_offset_u: tuple[int, int]
     parking: tuple[Rect, ...]
     entrance: EntranceWalk
     garden: tuple[OutdoorRegion, ...]
+    #: The footprint as the wings that make it up (`footprint.py`). Defaults to the one rectangle
+    #: `footprint` names, so every existing constructor call describes the same site.
+    wings: tuple[Rect, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.wings:
+            object.__setattr__(self, "wings", (self.footprint,))
 
 
 def front_band_m(spec: ArchitecturalSpec) -> float:
@@ -123,13 +134,21 @@ def build_entrance(footprint: Rect, entrance_x_u: int) -> EntranceWalk:
 
 
 def classify_garden(spec: ArchitecturalSpec, plot: Rect, footprint: Rect,
-                     parking: tuple[Rect, ...]) -> tuple[OutdoorRegion, ...]:
+                     parking: tuple[Rect, ...],
+                     wings: tuple[Rect, ...] = ()) -> tuple[OutdoorRegion, ...]:
     """The plot's leftover area, EXPLICITLY classified GARDEN (Correction 3) — not because it
     is unclaimed, but because a deliberate site-planning decision was made that all leftover
     plot area in this vertical slice is garden (no driveway/terrace carve-outs beyond parking
     are in this scope). Represented as up to 3 non-overlapping bands (front-of-house strip
     beside parking, side yards, rear yard) rather than one bounding-box remainder, since a
-    single rectangle would overlap the footprint."""
+    single rectangle would overlap the footprint.
+
+    `footprint` is the building's bounding box; `wings` the rectangles that make it up. The bands
+    are drawn around the box exactly as before; whatever the box holds that no wing covers — the
+    crook of an L — is appended as garden too, so the plot is still accounted for to the last
+    cell. Classifying that crook as a terrace or an entry court is a site decision for the parti
+    that produces it; until then it is garden, said explicitly, never "left over".
+    """
     regions = []
     # Rear yard: full plot width, from the footprint's south edge to the plot's south edge.
     if plot.y2 > footprint.y2:
@@ -147,6 +166,8 @@ def classify_garden(spec: ArchitecturalSpec, plot: Rect, footprint: Rect,
         front_w = footprint.x2 - last_parking_x2
         if front_w > 0:
             regions.append(Rect(last_parking_x2, 0, front_w, footprint.y))
+    # The crook: inside the bounding box, outside every wing. Empty for one wing.
+    regions.extend(footprint_module.remainder_within_bbox(wings or (footprint,)))
 
     return tuple(
         OutdoorRegion(f"garden_{i}", (r,), OutdoorClassification.GARDEN)

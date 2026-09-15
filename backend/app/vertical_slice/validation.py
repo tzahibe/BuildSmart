@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
 from .furniture import FurnitureCheck
@@ -166,9 +167,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                 worst, pair = ov, f"{ids[i]}/{ids[j]}"
     rep.add("C1", "no overlap between rooms", worst == 0, "none" if worst == 0 else f"{pair} overlap")
 
-    # C2 — no residual interior area (the whole footprint is fully consumed by rooms)
+    # C2 — no residual interior area (the whole footprint is fully consumed by rooms). The
+    # footprint is its WINGS' area, not the bounding box's: the crook of an L is outside.
     covered = sum(r.w * r.h for r in rects.values())
-    footprint_area_u = site.footprint.w * site.footprint.h
+    footprint_area_u = footprint_module.area_u(site.wings)
     rep.add("C2", "no residual interior area", covered == footprint_area_u,
             "footprint fully consumed by rooms" if covered == footprint_area_u
             else f"{footprint_area_u - covered} unit^2 unassigned inside the footprint")
@@ -318,8 +320,9 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     # C18 — parking bays clear of the house. C10 only proves a bay touches the street; a bay drawn
     # INSIDE the footprint touches it too, and that is exactly what a zero front setback produced —
     # the rooms were painted over the bays and every plan simply had no parking. Fails closed.
-    bad = [f"parking bay at x={p.x} overlaps the house by {p.overlap_area_u(site.footprint)} u²"
-           for p in site.parking if p.overlap_area_u(site.footprint) > 0]
+    bad = [f"parking bay at x={p.x} overlaps the house by "
+           f"{sum(p.overlap_area_u(w) for w in site.wings)} u²"
+           for p in site.parking if any(p.overlap_area_u(w) > 0 for w in site.wings)]
     rep.add("C18", "parking bays clear of the house", not bad,
             "; ".join(bad) or f"{len(site.parking)} bays outside the footprint")
 

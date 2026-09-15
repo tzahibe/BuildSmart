@@ -30,6 +30,7 @@ from app.geometry_domain.constraints import (
 from app.geometry_domain.primitives import MultiRegion
 
 from . import concept_generator as generator
+from . import footprint as footprint_module
 from . import hub_guard
 from . import doors as doors_stage
 from . import relationships as relationships_stage
@@ -196,7 +197,8 @@ def _family_signature(fixture: Fixture, strategy) -> str:
         return f"{node.cut.value}[{','.join(kids)}]"
 
     prefix = "HUB:" if getattr(strategy, "value", strategy) == "HUB_PRIVATE_WING" else ""
-    return prefix + render(fixture.wings[0].tree)
+    # One tree per wing, joined; a one-wing fixture's signature is exactly what it was.
+    return prefix + "+".join(render(wing.tree) for wing in fixture.wings)
 
 
 @dataclass(frozen=True)
@@ -259,7 +261,8 @@ def _entrance_x_clear_of_parking(span: tuple[int, int], parking: tuple[Rect, ...
 
 
 def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect,
-                   entrance_span: tuple[int, int] | None = None) -> SitePlan:
+                   entrance_span: tuple[int, int] | None = None,
+                   wings: tuple[Rect, ...] = ()) -> SitePlan:
     """Reuse the existing site stage's parking/entrance/garden logic with an externally chosen
     footprint placement (the one piece `place_footprint` would otherwise decide).
 
@@ -273,8 +276,9 @@ def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect,
     entrance_x_u = (default_x if entrance_span is None
                     else _entrance_x_clear_of_parking(entrance_span, parking, default_x))
     entrance = site_stage.build_entrance(footprint, entrance_x_u)
-    garden = site_stage.classify_garden(spec, plot, footprint, parking)
-    return SitePlan(plot, footprint, (footprint.x, footprint.y), parking, entrance, garden)
+    garden = site_stage.classify_garden(spec, plot, footprint, parking, wings)
+    return SitePlan(plot, footprint, (footprint.x, footprint.y), parking, entrance, garden,
+                    wings=wings or (footprint,))
 
 
 def _exclusion_geometry(site: SiteConstraints | None) -> MultiRegion:
@@ -609,21 +613,25 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
             on_stage(name)
 
     concept = candidate.concept
-    wing = concept.fixture.wings[0]
-    footprint = Rect(wing.origin_x_u, wing.origin_y_u, wing.w_u, wing.h_u)
-    rects = solve.rects  # the generator positions the wing in plot coordinates already
+    # THE FOOTPRINT IS THE FIXTURE'S WINGS — one rectangle per wing, in plot coordinates (the
+    # generator positions them). `footprint` is their bounding box: the building line and the
+    # frame; every stage below that cares which wall is which takes the wings.
+    wings = tuple(w.rect() for w in concept.fixture.wings)
+    footprint = footprint_module.bounding_box(wings)
+    rects = solve.rects
     # WHERE THE FRONT DOOR GOES is read off the realized rooms, not assumed. `resolve_entrance`
     # returns the zone that genuinely fronts the street and the point on its own span; the walk is
     # then built to that point, so the path, the door and the room it opens into all agree.
-    resolved = doors_stage.resolve_entrance(concept.fixture, rects, footprint)
+    resolved = doors_stage.resolve_entrance(concept.fixture, rects, footprint, wings)
     entrance_zone_id = resolved[0] if resolved else concept.entrance_zone_id
-    site_plan = _site_plan_for(spec, footprint, (resolved[1], resolved[2]) if resolved else None)
+    site_plan = _site_plan_for(spec, footprint, (resolved[1], resolved[2]) if resolved else None,
+                               wings)
 
     stage("openings")
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
     entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
-                                                    entrance_zone_id)
-    windows = windows_stage.generate_windows(concept.fixture, rects, footprint)
+                                                    entrance_zone_id, wings)
+    windows = windows_stage.generate_windows(concept.fixture, rects, footprint, wings)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 
     stage("validate")

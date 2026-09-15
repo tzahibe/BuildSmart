@@ -203,6 +203,7 @@ class SearchSummary(BaseModel):
 
 class DemoDesign(BaseModel):
     plot: RectOut
+    #: The building's bounding box — the footprint itself for a one-wing house.
     footprint: RectOut
     rooms: list[RoomOut]
     walls: list[WallSegment]
@@ -223,6 +224,9 @@ class DemoDesign(BaseModel):
     family: str | None = None
     #: Room-size quality tiers (`QualityOut`). None only for a payload that predates it.
     quality: QualityOut | None = None
+    #: The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for
+    #: every house the engine plans today; empty only for a payload that predates the field.
+    footprints: list[RectOut] = []
 
 
 # --------------------------------------------------------------------------- the building
@@ -272,9 +276,12 @@ class CoreOut(BaseModel):
 
 class MassingOut(BaseModel):
     plot: RectOut
-    #: One outline per level, index-aligned with `DemoBuilding.levels`. Only the first touches the
-    #: site; each later one lies inside the one below it (building check V2).
+    #: One BOUNDING BOX per level, index-aligned with `DemoBuilding.levels`.
     level_outlines: list[RectOut]
+    #: The rectangles that make up each level — one per wing — index-aligned with the levels.
+    #: Only the ground level's touch the site; each upper region lies inside the union of the
+    #: level below (building check V2).
+    level_regions: list[list[RectOut]] = []
     #: Ground outline over plot. Reported for a coverage rule to read; never used as geometry.
     ground_coverage: float
     #: Roof exposed by upper retreats — a terrace once something classifies it. 0 on one level.
@@ -689,6 +696,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     return DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),
+        footprints=[_rect(f) for f in design.footprints_m],
         rooms=[RoomOut(
             id=r.zone_id, type=r.roles[0], name=_room_name(r),
             x=r.rect_m[0], y=r.rect_m[1], width_m=r.rect_m[2], depth_m=r.rect_m[3],
@@ -786,6 +794,8 @@ def to_demo_building(building: Building, level_designs: list[DemoDesign]) -> Dem
         massing=MassingOut(
             plot=_rect(building.massing.plot_m),
             level_outlines=[_rect(o) for o in building.massing.level_outlines_m],
+            level_regions=[[_rect(r) for r in regions]
+                           for regions in building.massing.level_regions_m],
             ground_coverage=building.massing.ground_coverage,
             retreat_m2=building.massing.retreat_m2,
         ),

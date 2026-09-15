@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .building import Building, rect_area_m2, rect_contains
+from .building import Building, rect_contains, regions_area_m2, regions_cover
 
 #: The tolerance a level's gross may differ from its outline's area by — float noise on figures
 #: that were both rounded from the same 5 cm grid, nothing more.
@@ -57,35 +57,38 @@ class BuildingValidationReport:
 
 def validate_building(building: Building) -> BuildingValidationReport:
     rep = BuildingValidationReport()
-    outlines = building.massing.level_outlines_m
+    levels = building.massing.level_regions_m
 
-    # V2 — containment. Cantilevers are deferred with it: an upper outline that leaves the outline
-    # below is a building this stage does not draw.
+    # V2 — containment. Every region of an upper level lies inside the UNION of the level below
+    # (a wing may be dropped or shrunk, never pushed out). Cantilevers are deferred with it: an
+    # upper region that leaves the level below is a building this stage does not draw.
     bad = []
     for lower_plan, upper_plan, lower, upper in zip(building.levels, building.levels[1:],
-                                                     outlines, outlines[1:]):
-        if not rect_contains(lower, upper):
-            bad.append(f"{upper_plan.level.level_id} outline {upper} leaves "
-                       f"{lower_plan.level.level_id} outline {lower}")
+                                                     levels, levels[1:]):
+        for region in upper:
+            if not regions_cover(lower, region):
+                bad.append(f"{upper_plan.level.level_id} region {region} leaves "
+                           f"{lower_plan.level.level_id} ({len(lower)} region(s))")
     rep.add("V2", "every upper outline lies inside the outline below", not bad,
             "; ".join(bad) or ("single level" if building.story_count == 1
-                               else f"{building.story_count - 1} upper outline(s) contained"))
+                               else f"{building.story_count - 1} upper level(s) contained"))
 
-    # V7 — accounting. Each level's gross is the area of ITS outline (not the ground's, not a
-    # total); the ground outline is on the plot; coverage is a ratio a rule could be checked
-    # against. The totals on `Building` are sums of these, so proving the parts proves the sums.
+    # V7 — accounting. Each level's gross is the area of ITS regions (not the ground's, not the
+    # bounding box's, not a total); the ground regions are on the plot; coverage is a ratio a rule
+    # could be checked against. The totals on `Building` are sums of these, so proving the parts
+    # proves the sums.
     bad = []
-    for plan, outline in zip(building.levels, outlines):
-        if plan.design.footprint_m != outline:
-            bad.append(f"{plan.level.level_id} design footprint {plan.design.footprint_m} is not "
-                       f"its massing outline {outline}")
-        expected = rect_area_m2(outline)
+    for plan, regions in zip(building.levels, levels):
+        if plan.design.footprints_m != regions:
+            bad.append(f"{plan.level.level_id} design footprints {plan.design.footprints_m} are "
+                       f"not its massing regions {regions}")
+        expected = regions_area_m2(regions)
         if abs(plan.design.gross_area_m2 - expected) > TOL_M2:
             bad.append(f"{plan.level.level_id} gross {plan.design.gross_area_m2} m2 is not its "
                        f"outline's {expected} m2")
-    if not rect_contains(building.massing.plot_m, building.massing.ground_outline_m):
-        bad.append(f"ground outline {building.massing.ground_outline_m} leaves the plot "
-                   f"{building.massing.plot_m}")
+    for region in building.massing.ground_regions_m:
+        if not rect_contains(building.massing.plot_m, region):
+            bad.append(f"ground region {region} leaves the plot {building.massing.plot_m}")
     coverage = building.massing.ground_coverage
     if not 0.0 < coverage <= 1.0 + 1e-9:
         bad.append(f"ground coverage {coverage} is not a ratio in (0, 1]")
