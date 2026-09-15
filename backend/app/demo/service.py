@@ -308,6 +308,10 @@ class OutlineResult:
     result: GeneralSliceResult
     plans: tuple[RealizedPlan, ...]
     latency_ms: float
+    #: This engine outline was surveyed because the person's own outline planned but delivered
+    #: under `OUTLINE_SHORTFALL_RATIO` of the request, and it delivers materially more — it is
+    #: offered as the FIRST alternative, with a note on the primary (`_better_engine_outline`).
+    offered_for_area: bool = False
 
     def as_tried(self) -> OutlineTried:
         return OutlineTried(width_m=self.outline.width_m, depth_m=self.outline.depth_m,
@@ -392,6 +396,37 @@ def _plan_outlines(spec, project: Project, outlines: list[Outline], on_stage=Non
     return out
 
 
+#: Delivery policy: a person's outline that plans is the primary, always — but when it delivers
+#: less than this share of the EFFECTIVE target, the engine's outlines are surveyed as well and the
+#: best of them is offered beside it. Measured on the failure log (431 briefs, 2026-09-14): the 16
+#: within-capacity plans delivered under 80 % were ALL a person's extreme outline (10 x 20, 20 x 10,
+#: 12 x 18, 18 x 12) planning at 56-80 %, while the engine's own outline for the same brief and
+#: plot delivered 87-100 % in every one of them — and was never tried, because the person's outline
+#: had planned. The person's choice stays authoritative; the alternative and the note are new.
+#:
+#: The effective target is `min(request, programme capacity)` (`effective_target_m2`): a request
+#: the rooms cannot fill is measured against what they CAN fill, so a brief already carrying the
+#: capacity note is not surveyed for an alternative that would fall equally short. Measured with
+#: the request as the bar: 88 briefs triggered, 38 of them were surveyed for nothing (over-capacity
+#: requests whose engine outlines deliver about the same), and 12 offers were 40 % -> 45 % of a
+#: request neither outline could approach.
+OUTLINE_SHORTFALL_RATIO = 0.80
+#: An engine outline is offered only when it delivers at least this much MORE than the person's
+#: outline did — an alternative that is a few m² larger is noise, not a way forward — AND itself
+#: reaches `OUTLINE_SHORTFALL_RATIO` of the effective target: an offer must be a way out of the
+#: shortfall, not a smaller shortfall.
+OUTLINE_ALTERNATIVE_MIN_GAIN = 0.10
+
+
+def effective_target_m2(spec) -> float | None:
+    """What a delivered plan is measured against: the request, or the programme's capacity when
+    the request exceeds it (the same figure `capacity_note` reports). None without a request."""
+    target_m2 = spec.program.target_built_area_m2
+    if target_m2 is None:
+        return None
+    return min(target_m2, program_capacity_gross_m2(build_room_program(spec)))
+
+
 def _plan_outlines_until_one_plans(spec, project: Project, outlines: list[Outline],
                                    target_m2: float | None,
                                    on_stage=None) -> list[OutlineResult]:
@@ -408,7 +443,8 @@ def _plan_outlines_until_one_plans(spec, project: Project, outlines: list[Outlin
     engine = [o for o in outlines if o.origin == "ENGINE"]
     results = _plan_outlines(spec, project, person, on_stage)
     if _any_plan(results):
-        return results
+        offer = _better_engine_outline(spec, project, engine, results[0], target_m2, on_stage)
+        return results + ([offer] if offer is not None else [])
 
     surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0)
     chosen = _nearest_primary(surveyed, target_m2)
@@ -422,6 +458,45 @@ def _plan_outlines_until_one_plans(spec, project: Project, outlines: list[Outlin
         "re-running the chosen outline changed its primary")
     full = replace(full, latency_ms=full.latency_ms + chosen_result.latency_ms)
     return results + [full if r.outline == chosen_result.outline else r for r in surveyed]
+
+
+def _better_engine_outline(spec, project: Project, engine: list[Outline], person: OutlineResult,
+                           target_m2: float | None, on_stage=None) -> OutlineResult | None:
+    """The engine outline to offer beside a person's outline that planned SHORT, or None.
+
+    Surveys the engine's outlines (fast path, exactly as the refusal path does) only when the
+    person's primary delivers under `OUTLINE_SHORTFALL_RATIO` of the EFFECTIVE target
+    (`effective_target_m2`), and returns the outline whose primary is nearest the request if it
+    delivers at least `OUTLINE_ALTERNATIVE_MIN_GAIN` more than the person's AND reaches that same
+    share of the effective target itself. The survey's cost is carried on the offered result so
+    the search summary stays honest. Nothing here touches which plan is the primary: that is the
+    person's, as `_select_plans` has always held.
+    """
+    effective = effective_target_m2(spec)
+    if effective is None or not person.plans or not engine:
+        return None
+    delivered = person.plans[0].design.gross_area_m2
+    if delivered >= OUTLINE_SHORTFALL_RATIO * effective:
+        return None
+    surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0)
+    chosen = _nearest_primary(surveyed, target_m2)
+    if chosen is None:
+        return None
+    chosen_result, chosen_plan = chosen
+    offered_m2 = chosen_plan.design.gross_area_m2
+    if (offered_m2 < delivered * (1.0 + OUTLINE_ALTERNATIVE_MIN_GAIN)
+            or offered_m2 < OUTLINE_SHORTFALL_RATIO * effective):
+        return None
+    return replace(chosen_result, offered_for_area=True,
+                   latency_ms=sum(r.latency_ms for r in surveyed))
+
+
+def outline_note(person: OutlineResult, offered: OutlineResult) -> str:
+    """The sentence on the primary when a better engine outline is offered beside it."""
+    return (f"המתאר שבחרת ({person.outline.width_m:.2f}×{person.outline.depth_m:.2f}) מאפשר "
+            f"{person.plans[0].design.gross_area_m2:.0f} מ\"ר; במתאר "
+            f"{offered.outline.width_m:.2f}×{offered.outline.depth_m:.2f} באותו מגרש ניתן להגיע "
+            f"ל-{offered.plans[0].design.gross_area_m2:.0f} מ\"ר.")
 
 
 def _nearest_primary(results: list[OutlineResult],
@@ -483,6 +558,12 @@ def _select_plans(results: list[OutlineResult],
     def unseen_drawing(item: tuple[OutlineResult, RealizedPlan]) -> bool:
         return (item[0].outline.order, item[1].layout_signature) not in drawings
 
+    # An engine outline offered because the person's own planned short is the FIRST alternative
+    # (`_better_engine_outline`); the passes below fill the remaining places as they always did.
+    for orr in results:
+        if orr.offered_for_area and orr.plans and orr is not primary_orr:
+            take((orr, orr.plans[0]))
+
     # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
     # shape of a family already on screen). Never the same outline re-proportioned.
     for item in pool:
@@ -510,14 +591,17 @@ def _result_from(project: Project, spec, selection: PlanSelection,
         unsupported.append(
             f"המתאר שהזנת ({person.outline.width_m:.2f}×{person.outline.depth_m:.2f} מ׳) לא אפשר "
             f"לסדר את החדרים; מוצג מתאר אחר באותו שטח")
+    offered = next((orr for orr in results if orr.offered_for_area and orr.plans), None)
 
     def design_of(item: tuple[OutlineResult, RealizedPlan]) -> DemoDesign:
         orr, plan = item
-        note = capacity_note(spec, plan.design.gross_area_m2)
+        notes = [n for n in (capacity_note(spec, plan.design.gross_area_m2),) if n]
+        if item is selection.primary and offered is not None and person is not None:
+            notes.append(outline_note(person, offered))
         return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
                               corridor=spec.program.corridor, relationships=plan.relationships,
                               outline=orr.outline.as_out(), family=plan.family_signature,
-                              notes=[note] if note else None)
+                              notes=notes or None)
 
     return DemoResult(
         design=design_of(selection.primary),

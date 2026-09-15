@@ -51,6 +51,8 @@ class _OutlineResult:
     plans: tuple = ()
     result: object = None
     latency_ms: float = 0.0
+    #: an engine outline offered beside a person's outline that planned short (delivery policy)
+    offered_for_area: bool = False
 
 
 def _outline(order: int, origin: str = "ENGINE", w: float = 12.0, d: float = 15.0) -> svc.Outline:
