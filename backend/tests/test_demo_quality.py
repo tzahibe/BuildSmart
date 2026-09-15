@@ -1,0 +1,72 @@
+"""`DemoDesign.quality` — the room-size tiers the contract exposes (policy C, 2026-09-15).
+
+Measured on the 431-context log with the two-level maxima: 440 rooms above their preferred
+maximum in 395 plans, 306 of them under 1.10x (a 14.5 m2 bedroom), 86 at 1.10-1.20x, 48 above
+1.20x — all bedrooms. Warning on every one would have marked 46 % of plans; the notice tier marks
+8 %. So: every room's standing is data on its `RoomOut`, the middle tier is a signal, only the
+top tier speaks — and never through `validation.warnings`, because it is not validation.
+"""
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+from app.demo.contract import quality_of
+from app.vertical_slice.concept_generator import (
+    OVER_PREFERRED_NOTICE_RATIO,
+    OVER_PREFERRED_SIGNAL_RATIO,
+    ROOM_TEMPLATES,
+)
+from app.vertical_slice.geometry_core.model import ProgramRole
+
+
+def _room(zone_id: str, role: str, area: float):
+    return SimpleNamespace(zone_id=zone_id, roles=(role,), net_area_m2=area)
+
+
+def _design(*rooms, over_preferred=False):
+    return SimpleNamespace(rooms=list(rooms), over_preferred=over_preferred)
+
+
+BED = ROOM_TEMPLATES[ProgramRole.BEDROOM].max_area_m2       # 14
+MASTER = ROOM_TEMPLATES[ProgramRole.MASTER_BEDROOM].max_area_m2   # 20
+
+
+def test_thresholds_are_the_calibrated_ones():
+    assert OVER_PREFERRED_SIGNAL_RATIO == 1.10 and OVER_PREFERRED_NOTICE_RATIO == 1.20
+
+
+def test_a_room_just_above_preferred_is_metadata_only():
+    q = quality_of(_design(_room("B1", "BEDROOM", BED * 1.05), _room("M", "MASTER_BEDROOM", MASTER * 1.09)))
+    assert q.signal == [] and q.notices == []
+
+
+def test_the_middle_tier_is_a_signal_and_not_a_notice():
+    q = quality_of(_design(_room("B1", "BEDROOM", BED * 1.15)))
+    assert [(s.room_id, s.ratio) for s in q.signal] == [("B1", 1.15)]
+    assert q.notices == []
+
+
+def test_the_top_tier_is_one_aggregated_notice_per_plan():
+    q = quality_of(_design(_room("B1", "BEDROOM", 17.6), _room("B2", "BEDROOM", 17.2),
+                           _room("B3", "BEDROOM", 14.8), _room("L", "LIVING", 47.0)))
+    assert len(q.notices) == 1
+    notice = q.notices[0]
+    assert notice.startswith("2 חדרים גדולים מהמומלץ בצורה ניכרת")
+    assert "חדר שינה 17.6, 17.2" in notice and "(מומלץ עד 14)" in notice
+    assert "14.8" not in notice and "סלון" not in notice      # the 1.06x and 1.02x rooms stay quiet
+    assert q.signal == []                                      # 14.8 is under the signal threshold too
+
+
+def test_a_single_room_notice_reads_in_the_singular():
+    q = quality_of(_design(_room("B1", "BEDROOM", 17.5)))
+    assert q.notices[0].startswith("חדר אחד גדול מהמומלץ בצורה ניכרת: חדר שינה 17.5")
+
+
+def test_circulation_and_flex_have_no_tier():
+    q = quality_of(_design(_room("HALL", "HALL", 40.0), _room("FLEX", "FLEX", 90.0)))
+    assert q.signal == [] and q.notices == []
+
+
+def test_the_planners_flag_is_carried_but_is_not_a_notice():
+    q = quality_of(_design(_room("B1", "BEDROOM", BED * 1.02), over_preferred=True))
+    assert q.over_preferred and q.notices == [] and q.signal == []

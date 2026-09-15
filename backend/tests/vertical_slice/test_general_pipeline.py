@@ -140,6 +140,6 @@ def test_canonical_run_demo_is_untouched_by_all_of_this(tmp_path):
     assert result.design.gross_area_m2 == pytest.approx(BASELINE_GROSS_M2)
     assert result.design.net_area_m2 == pytest.approx(BASELINE_NET_M2)
     assert result.design.wall_iterations == BASELINE_WALL_ITERATIONS
-    # C21 is the one check the hand-authored slice fails — see FROZEN_SLICE_FAILS_C21 in
-    # test_baseline_and_decoupling.py. Everything else must still hold.
-    assert [c.check_id for c in result.validation.failures()] == ["C21"]
+    # See FROZEN_SLICE_FAILS_C21 in test_baseline_and_decoupling.py: under the two-level maxima
+    # the slice's 15.4 m2 bedrooms are inside the hard gate, so every check holds.
+    assert result.validation.ok, "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures())

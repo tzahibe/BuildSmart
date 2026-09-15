@@ -231,11 +231,13 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         if template is None:
             continue
         _, _, na = net_rect_m(z.zone_id, rects[z.zone_id], walls)
-        if na > template.max_area_m2 + TOL_M2:
+        # The HARD maximum (`RoomTemplate.hard_max`): the preferred one is a quality target the
+        # planner sizes to and the contract reports on, not a gate.
+        if na > template.hard_max + TOL_M2:
             bad.append(f"{z.zone_id} realized {na:.2f} m2 past its {z.primary_role.value} "
-                       f"template's {template.max_area_m2:.0f} m2 maximum")
-    rep.add("C21", "realized rooms within their template's maximum area", not bad,
-            "; ".join(bad) or "no room above its maximum")
+                       f"template's {template.hard_max:.0f} m2 hard maximum")
+    rep.add("C21", "realized rooms within their template's hard maximum area", not bad,
+            "; ".join(bad) or "no room above its hard maximum")
 
     # C4 — safe room valid under current RuleSet parameters
     bad = []

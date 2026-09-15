@@ -471,23 +471,33 @@ def test_tier2_pairs_a_bedroom_with_the_ensuite_row_and_puts_it_at_a_column_end(
     assert ["BEDROOM_2"] in ids and ["BATH_2"] in ids
 
 
-def test_tier2_candidates_come_after_every_normal_one():
+def test_fallback_candidates_come_after_every_normal_one():
+    """Without a target the strategy order is kept and every fallback — tier 2, shrunk, over
+    preferred — follows the normal candidates. (With a target they rank by area proximity and a
+    fallback only loses a tie; see `generate_concepts`.) Tier 2 itself is rarely reached since
+    shrinking inside the preferred maxima rescues most briefs first; this brief yields shrunk
+    candidates beside its normal ones."""
     from app.vertical_slice.safe_adapter import adapt, build_buildable_region
-    spec = _spec(ProgramSpec(bedrooms=5, safe_room=True, wet_rooms=1))
+    spec = _spec(ProgramSpec(bedrooms=4, safe_room=False, wet_rooms=3))
     g = cg.generate_concepts(spec, list(adapt(build_buildable_region(F.exact_rectangle())).candidates))
-    flags = [c.repartitioned for c in g.candidates if not c.hub_last_resort]
-    assert True in flags and flags == sorted(flags), flags   # all False first, then all True
+    forced = [c for c in g.candidates if not c.hub_last_resort and cg.FREE_TWIN_RATIONALE not in c.rationale]
+    flags = [c.repartitioned or c.shrunk or c.over_preferred for c in forced]
+    assert True in flags and False in flags and flags == sorted(flags), flags   # normal first, then fallbacks
     assert all(cg.REPARTITIONED_RATIONALE in c.rationale for c in g.candidates if c.repartitioned)
+    assert all(cg.SHRUNK_RATIONALE in c.rationale for c in g.candidates if c.shrunk)
+    assert all(cg.OVER_PREFERRED_RATIONALE in c.rationale for c in g.candidates if c.over_preferred)
 
 
 def test_tier2_recovers_a_programme_the_normal_path_refuses():
     """End to end: 5 bedrooms + safe room on the 20 x 24 rectangle. Every normal attempt fails
-    for a bedroom's shape (7 m rear columns); tier 2 plans it, validates, and no room exceeds
-    its template aspect."""
+    for a bedroom's shape (7 m rear columns); a fallback plans it — tier 2 (rows re-partitioned),
+    the rows shrunk toward their floors, or the rooms past their preferred maxima (a bedroom at
+    its floor in a 5.4 m column is 14.2 m2, so no arrangement stays inside 14 here) — it
+    validates, and no room exceeds its template aspect or its hard maximum."""
     result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0),
                                    program=ProgramSpec(bedrooms=5, safe_room=True, wet_rooms=1))
     assert result.outcome is AdapterOutcome.SOLVED, result.notes
-    assert result.concept.repartitioned
+    assert result.concept.repartitioned or result.concept.shrunk or result.concept.over_preferred
     assert result.validation.ok, [(c.check_id, c.detail) for c in result.validation.failures()]
     for r in result.design.rooms:
         roles = {ProgramRole(x) for x in r.roles}

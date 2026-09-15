@@ -84,6 +84,18 @@ export interface DemoValidation {
   checks: Record<string, boolean>
 }
 
+/**
+ * Room-size quality, kept apart from validation: the preferred maximum is a soft target, the hard
+ * one is the gate (C21). Every room above preferred is on its room as `over_preferred_ratio`;
+ * `signal` is the middle tier (ranking/diagnostics, not shown); `notices` is the only user-facing
+ * text — one aggregated sentence per plan for rooms far past preferred. Never in `warnings`.
+ */
+export interface DemoQuality {
+  over_preferred: boolean
+  signal: { room_id: string; ratio: number }[]
+  notices: string[]
+}
+
 /** Requested vs REALIZED corridor width — `realized_width_m` is measured off the plan. */
 export interface DemoCorridor {
   requested_width_m: number | null
@@ -148,6 +160,8 @@ export interface DemoDesign {
   outline?: DemoOutline | null
   /** Feature 006. Opaque family signature — never parsed or shown. */
   family?: string | null
+  /** Room-size quality tiers. Absent only for a payload that predates it. */
+  quality?: DemoQuality | null
 }
 
 /** What the design request answers with: a plan, and the other plans that were also possible.

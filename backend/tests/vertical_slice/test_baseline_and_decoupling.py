@@ -26,14 +26,12 @@ BASELINE_INTERIOR_DOORS = 7
 #: DAYLIGHT_ROLES set — this baseline's 2 bathrooms both land on a real exterior wall.
 BASELINE_WINDOWS = 9
 BASELINE_CHECK_COUNT = 18  # C13 realized connectivity; C16 the entrance's own realization; C17 bathroom access; C18 parking clear of the house; C20 template aspect; C21 template maximum area
-#: The one check the frozen slice does NOT pass, by construction. Its rooms column is
-#: hand-authored 5.7 m wide (`concept.py`, `rest = _v(hall_col, rooms_col, 1.6)`), and a bedroom
-#: 5.5 m wide cannot be both >= 2.8 m deep and <= the BEDROOM template's 14 m2: the two bedrooms
-#: realize at 15.40 m2. Holding their ZoneSpecs to 14 makes the back chain untileable (measured:
-#: "H-cut composed to EMPTY"), so the fixture would have to be re-authored — a change to a frozen
-#: artefact that Phase 1 of the room-size work (hard maxima, 2026-09-15) deliberately did not
-#: make. The geometry stays byte-identical; the failure is expected and named.
-FROZEN_SLICE_FAILS_C21 = ["C21"]
+#: Between Phase 1 of the room-size work (hard maxima at the template values, 2026-09-15) and the
+#: two-level model the frozen slice failed C21: its hand-authored 5.7 m rooms column realizes two
+#: bedrooms at 15.40 m2 against the 14 m2 maximum. Under the two-level model 14 is the PREFERRED
+#: maximum and the gate is the HARD one (18), so the slice validates in full again — with the
+#: two bedrooms reported above preferred by the demo contract, not refused.
+FROZEN_SLICE_FAILS_C21: list[str] = []
 
 
 @pytest.fixture(scope="module")

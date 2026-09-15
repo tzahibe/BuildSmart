@@ -639,7 +639,8 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
     )
     stage("assemble")
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
-                      interior_doors, entrance_door, windows, furniture, site_plan)
+                      interior_doors, entrance_door, windows, furniture, site_plan,
+                      over_preferred=candidate.over_preferred)
 
     return RealizedPlan(
         index=index, concept=candidate, design=design, validation=validation,

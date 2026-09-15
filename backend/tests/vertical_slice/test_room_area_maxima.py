@@ -204,7 +204,27 @@ def test_c21_fails_an_oversized_room_whose_own_zone_spec_was_relaxed_to_allow_it
     assert checks["C20"][0], checks["C20"][1]        # and the shape is legal: C20 has no case
     assert not checks["C21"][0]
     assert "BATH_1" in checks["C21"][1]
-    assert f"{ROOM_TEMPLATES[ProgramRole.BATHROOM].max_area_m2:.0f} m2" in checks["C21"][1]
+    assert f"{ROOM_TEMPLATES[ProgramRole.BATHROOM].hard_max:.0f} m2 hard" in checks["C21"][1]
+
+
+def test_c21_gates_on_the_hard_maximum_not_the_preferred_one():
+    """A bathroom between the preferred (12) and hard (14) maxima passes C21: the preferred
+    figure is a quality target the contract reports on, the hard one is the gate."""
+    # 12 x 3.4 wing, BATH_1 forced 4.35 m wide: ~4.15 x 3.1 = 12.9 m2 net.
+    tree = Split(Cut.V, Leaf("HALL"),
+                 Split(Cut.V, Leaf("MASTER"), Leaf("BATH_1"), m_to_u(6.25)), m_to_u(1.4))
+    wing = Wing("W", 0, 0, m_to_u(12.0), m_to_u(3.4), tree)
+    access = DesiredAccessTopology((
+        DesiredAccessEdge("HALL", "MASTER", ConnectionKind.DOOR),
+        DesiredAccessEdge("HALL", "BATH_1", ConnectionKind.DOOR),
+    ))
+    zones = (
+        ZoneSpec("HALL", (ProgramRole.HALL, ProgramRole.CIRCULATION), 1, 3, 8, 1.2, 8.0),
+        ZoneSpec("MASTER", (ProgramRole.MASTER_BEDROOM,), 11, 14, 23, 3.0, 2.5),
+        ZoneSpec("BATH_1", (ProgramRole.BATHROOM,), 4, 8, 14, 1.6, 3.0),
+    )
+    checks = _checks(Fixture("C21-hard", (wing,), zones, access))
+    assert checks["C21"][0], checks["C21"][1]
 
 
 def test_c21_never_reads_the_zone_spec():
@@ -230,8 +250,9 @@ def test_c21_leaves_circulation_alone():
 @pytest.mark.parametrize("bedrooms, wet, target", [(4, 2, 200), (3, 2, 170), (2, 3, 230)])
 def test_delivered_plans_have_no_room_above_its_template_maximum(bedrooms, wet, target):
     """The programmes that produced the worst rooms in the investigation sweep — a 62 m2
-    bathroom, a 30 m2 safe room, a 23 m2 bedroom — now deliver with every room inside its
-    maximum, or not at all."""
+    bathroom, a 30 m2 safe room, a 23 m2 bedroom — now deliver with every room inside its HARD
+    maximum, and inside its PREFERRED one unless the candidate had to exceed it
+    (`ConceptCandidate.over_preferred`), or not at all."""
     program = ProgramSpec(bedrooms=bedrooms, safe_room=True, open_plan_living=True, wet_rooms=wet,
                           parking_spaces=2, target_built_area_m2=float(target))
     result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=program)
@@ -241,7 +262,9 @@ def test_delivered_plans_have_no_room_above_its_template_maximum(bedrooms, wet, 
         role = ProgramRole(room.roles[0])
         if role in (ProgramRole.HALL, ProgramRole.CIRCULATION, ProgramRole.FLEX):
             continue
-        assert room.net_area_m2 <= ROOM_TEMPLATES[role].max_area_m2 + 0.01, (room.zone_id, room.net_area_m2)
+        assert room.net_area_m2 <= ROOM_TEMPLATES[role].hard_max + 0.01, (room.zone_id, room.net_area_m2)
+        if not result.concept.over_preferred:
+            assert room.net_area_m2 <= ROOM_TEMPLATES[role].max_area_m2 + 0.01, (room.zone_id, room.net_area_m2)
 
 
 # ------------------------------------------------------------------ 5. deficit distribution
@@ -261,7 +284,7 @@ def test_wants_over_the_column_shrink_toward_floors_instead_of_refusing():
     wanted = [max(areas[r[0].zone_id] / net_w, f) for r, f in zip(rows, floors)]
     column = 14.0                      # floors sum to ~13.4, wants to ~15.6
     assert sum(wanted) > column > sum(floors)
-    depths, failure = _row_depths(rows, areas, net_w, column)
+    depths, failure = _row_depths(rows, areas, net_w, column, allow_deficit=True)  # the second pass
     assert failure is None, failure
     assert sum(depths) == pytest.approx(column)
     for d, f in zip(depths, floors):
@@ -334,3 +357,126 @@ def test_the_identified_regressions_plan_again(w, d, bedrooms, wet, target, expe
             continue
         assert room.net_area_m2 <= ROOM_TEMPLATES[role].max_area_m2 + 0.01
         assert room.net_area_m2 >= ROOM_TEMPLATES[role].min_area_m2 - 0.01
+
+
+def test_shrinking_is_the_second_pass_never_the_first_answer():
+    """A seam search stops at the first seam that plans, so shrinking must be refused on the
+    first pass or the area-share seam "plans" with its rooms shrunk and the seam where nothing
+    shrinks is never reached (measured: 255 of 261 primaries changed, living rooms 37.5 -> 29 m2).
+    With the wants fitting, both passes give the same depths; with the wants over the column the
+    first pass refuses and only the second shrinks."""
+    master, bed, bath = _room(ProgramRole.MASTER_BEDROOM), _room(ProgramRole.BEDROOM), _room(ProgramRole.BATHROOM)
+    rows = [[master], [bed], [bath]]
+    fits = {"MASTER_BEDROOM": 14.0, "BEDROOM": 10.5, "BATHROOM": 6.5}
+    a, _ = _row_depths(rows, fits, 4.0, 10.0, allow_deficit=False)
+    b, _ = _row_depths(rows, fits, 4.0, 10.0, allow_deficit=True)
+    assert a == b
+    wants_over = {"MASTER_BEDROOM": 19.0, "BEDROOM": 13.5, "BATHROOM": 10.0}
+    refused, failure = _row_depths(rows, wants_over, 4.0, 9.0, allow_deficit=False)
+    assert refused is None and failure.reason is RejectionReason.COLUMN_DEPTH_EXCEEDED
+    shrunk, failure = _row_depths(rows, wants_over, 4.0, 9.0, allow_deficit=True)
+    assert shrunk is not None, failure
+    assert sum(shrunk) == pytest.approx(9.0)
+
+
+# ------------------------------------------------------------------ 6. two-level maxima
+
+def test_templates_carry_a_preferred_and_a_hard_maximum():
+    bed = ROOM_TEMPLATES[ProgramRole.BEDROOM]
+    assert bed.preferred_max_area_m2 == 14.0 and bed.hard_max == 18.0
+    assert bed.ceiling_m2(False) == 14.0 and bed.ceiling_m2(True) == 18.0
+    safe = ROOM_TEMPLATES[ProgramRole.SAFE_ROOM]
+    assert safe.hard_max_area_m2 is None and safe.hard_max == safe.max_area_m2 == 14.0
+    for role, hard in ((ProgramRole.MASTER_BEDROOM, 23.0), (ProgramRole.BATHROOM, 14.0),
+                       (ProgramRole.TOILET, 7.0), (ProgramRole.LIVING, 50.0),
+                       (ProgramRole.DINING, 33.0), (ProgramRole.KITCHEN, 28.0)):
+        assert ROOM_TEMPLATES[role].hard_max == hard, role
+
+
+def test_the_band_exists_under_the_hard_maximum_where_the_preferred_one_refuses():
+    """A 6.1 m wide bedroom at its 2.6 m short side is 15.9 m2: no band under 14, a band under 18."""
+    from app.vertical_slice.concept_generator import room_depth_band_m
+    bed = ROOM_TEMPLATES[ProgramRole.BEDROOM]
+    assert room_depth_band_m(bed, 6.1) is None
+    lo, hi = room_depth_band_m(bed, 6.1, hard=True)
+    assert lo == 2.6 and hi == pytest.approx(18.0 / 6.1)
+
+
+def test_surplus_fills_to_preferred_first_and_hard_only_for_the_residue():
+    """Two bedrooms and a bathroom in a 4.0 m column: at 9.4 m the preferred ceilings hold
+    everything; at 10.4 m they cannot, and only then do the elastic rows grow past preferred."""
+    b1, b2, bath = _room(ProgramRole.BEDROOM, "B1"), _room(ProgramRole.BEDROOM, "B2"), _room(ProgramRole.BATHROOM)
+    rows = [[b1], [b2], [bath]]
+    areas = {"B1": 10.5, "B2": 10.5, "BATHROOM": 6.5}
+    fits, failure = _row_depths(rows, areas, 4.0, 9.4, allow_hard=True)
+    assert failure is None, failure
+    for row, d in zip(rows, fits):
+        assert _net_area(row[0], 4.0, d) <= row[0].template.max_area_m2 + 0.3   # inside preferred (+ grid)
+    refused, failure = _row_depths(rows, areas, 4.0, 10.4, allow_hard=False)
+    assert refused is None and failure.reason is RejectionReason.ROOM_ABOVE_MAXIMUM_AREA
+    grown, failure = _row_depths(rows, areas, 4.0, 10.4, allow_hard=True)
+    assert failure is None, failure
+    assert sum(grown) == pytest.approx(10.4)
+    for row, d in zip(rows, grown):
+        assert _net_area(row[0], 4.0, d) <= row[0].template.hard_max + 1e-6
+    assert any(_net_area(row[0], 4.0, d) > row[0].template.max_area_m2 for row, d in zip(rows, grown))
+
+
+def test_the_safe_room_never_grows_past_its_want_even_when_hard_is_allowed():
+    bed, safe = _room(ProgramRole.BEDROOM), _room(ProgramRole.SAFE_ROOM)
+    depths, failure = _distribute_column_surplus([[bed], [safe]], [3.0, 3.0], 3.5, 7.4, "column",
+                                                 allow_hard=True)
+    assert failure is None, failure
+    assert depths[1] == pytest.approx(3.0)          # the safe room stays at its want
+    assert depths[0] == pytest.approx(4.4)          # the bedroom took it all, past preferred (14/3.4=4.1)
+    # and a column even the hard ceilings cannot absorb is still refused
+    depths, failure = _distribute_column_surplus([[bed], [safe]], [3.0, 3.0], 3.5, 8.6, "column",
+                                                 allow_hard=True)
+    assert depths is None and failure.reason is RejectionReason.ROOM_ABOVE_MAXIMUM_AREA
+    assert "hard" in failure.detail
+
+
+def test_zone_spec_caps_at_preferred_unless_the_candidate_may_exceed_it():
+    bed = _room(ProgramRole.BEDROOM)
+    assert _zone_spec(bed, 4.0, 3.5, 0.60, 1.60).net_area_max_m2 == 14.0
+    assert _zone_spec(bed, 4.0, 3.5, 0.60, 1.60, hard=True).net_area_max_m2 == 18.0
+    specs = {"BEDROOM": _zone_spec(bed, 5.0, 3.2, 0.60, 1.60, hard=True)}   # 16 m2
+    assert _specs_within_maxima([bed], specs, "columns") is not None
+    assert _specs_within_maxima([bed], specs, "columns", hard=True) is None
+
+
+def test_a_candidate_past_preferred_is_marked_and_the_contract_warns():
+    """The 2BR/3wet 230 m2 brief cannot be planned inside the preferred maxima on the canonical
+    rectangle; it plans past them, is flagged, every room stays inside its hard maximum, and the
+    contract names the rooms above preferred."""
+    from app.demo.contract import quality_of, to_demo_design
+    program = ProgramSpec(bedrooms=2, safe_room=True, open_plan_living=True, wet_rooms=3,
+                          parking_spaces=2, target_built_area_m2=230.0)
+    result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=program)
+    assert result.outcome is AdapterOutcome.SOLVED, result.notes
+    assert result.concept.over_preferred
+    assert result.validation.ok, [(c.check_id, c.detail) for c in result.validation.failures()]
+    over = [r for r in result.design.rooms if r.roles[0] not in ("HALL", "FLEX")
+            and r.net_area_m2 > ROOM_TEMPLATES[ProgramRole(r.roles[0])].max_area_m2 + 0.01]
+    assert over, "the flag means at least one room is past its preferred maximum"
+    for r in over:
+        assert r.net_area_m2 <= ROOM_TEMPLATES[ProgramRole(r.roles[0])].hard_max + 0.01
+    quality = quality_of(result.design)
+    assert quality.over_preferred
+    # Every room above preferred is on its RoomOut as a ratio; nothing here is a validation warning.
+    demo = to_demo_design(result.design, result.validation)
+    rooms = {r.id: r for r in demo.rooms}
+    assert {r.zone_id for r in over} == {i for i, r in rooms.items() if r.over_preferred_ratio}
+    assert all(rooms[r.zone_id].hard_max_m2 == ROOM_TEMPLATES[ProgramRole(r.roles[0])].hard_max for r in over)
+    assert not [w for w in demo.validation.warnings if "מהמומלץ" in w]
+
+
+def test_a_brief_that_fits_inside_preferred_is_not_flagged():
+    program = ProgramSpec(bedrooms=3, safe_room=True, open_plan_living=True, wet_rooms=2,
+                          parking_spaces=2, target_built_area_m2=170.0)
+    result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=program)
+    assert result.outcome is AdapterOutcome.SOLVED
+    assert not result.concept.over_preferred
+    from app.demo.contract import quality_of
+    quality = quality_of(result.design)
+    assert not quality.over_preferred and quality.signal == [] and quality.notices == []

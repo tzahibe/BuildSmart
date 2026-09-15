@@ -17,7 +17,13 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.vertical_slice.spec import CorridorRequirement
+from app.vertical_slice.concept_generator import (
+    OVER_PREFERRED_NOTICE_RATIO,
+    OVER_PREFERRED_SIGNAL_RATIO,
+    ROOM_TEMPLATES,
+)
 from app.vertical_slice.design_output import GeometricDesign as SolvedDesign
+from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.validation import ValidationReport
 
 #: Hebrew display names. Presentation lives in the contract so the renderer never has to map
@@ -45,6 +51,13 @@ class RoomOut(BaseModel):
     area_m2: float
     #: side -> {"construction": ..., "boundary_context": ..., "can_take_a_window": ...}
     walls: dict[str, dict]
+    #: The role's two size ceilings (`RoomTemplate`): the PREFERRED maximum the planner sizes to
+    #: and the HARD one validation C21 gates on. None for a role without a template (circulation,
+    #: FLEX). `over_preferred_ratio` is area / preferred when the room is above preferred, else
+    #: None — data for the drawing and for diagnostics, not a warning (see `QualityOut`).
+    preferred_max_m2: float | None = None
+    hard_max_m2: float | None = None
+    over_preferred_ratio: float | None = None
 
 
 class WallSegment(BaseModel):
@@ -81,6 +94,31 @@ class DoorOut(BaseModel):
     swings_into: str = ""
     hinge_x: float = 0.0
     hinge_y: float = 0.0
+
+
+class QualitySignal(BaseModel):
+    room_id: str
+    ratio: float
+
+
+class QualityOut(BaseModel):
+    """Room-size quality, kept apart from validation on purpose: the preferred maximum is a soft
+    target, the hard one is the gate (C21). Three tiers, thresholds beside the templates
+    (`OVER_PREFERRED_SIGNAL_RATIO`, `OVER_PREFERRED_NOTICE_RATIO`):
+
+      * every room above preferred is on its `RoomOut` as `over_preferred_ratio` — metadata;
+      * `signal`: rooms between the two thresholds — for ranking and diagnostics, not shown;
+      * `notices`: ONE aggregated sentence per plan naming the rooms past the notice threshold —
+        the only user-facing output, in a quality style, never in `validation.warnings`.
+
+    `over_preferred` is the planner's own flag: this plan was planned with the hard tier because
+    the outline could not be planned inside the preferred maxima. Normal use of that tier is
+    not a problem to report; the rooms speak for themselves through the tiers above.
+    """
+
+    over_preferred: bool = False
+    signal: list[QualitySignal] = []
+    notices: list[str] = []
 
 
 class WindowOut(BaseModel):
@@ -181,6 +219,8 @@ class DemoDesign(BaseModel):
     outline: OutlineOut | None = None
     #: Feature 006. Opaque family signature — diagnostics and tests only; never parsed or shown.
     family: str | None = None
+    #: Room-size quality tiers (`QualityOut`). None only for a payload that predates it.
+    quality: QualityOut | None = None
 
 
 class DemoPlanSet(BaseModel):
@@ -465,6 +505,50 @@ def _corridor_out(design: SolvedDesign, corridor: CorridorRequirement | None) ->
     )
 
 
+def _template_of(room):
+    role = room.roles[0]
+    if role in ("HALL", "CIRCULATION", "FLEX") or role not in ProgramRole.__members__:
+        return None
+    return ROOM_TEMPLATES.get(ProgramRole(role))
+
+
+def _room_size_facts(room) -> dict:
+    """`RoomOut`'s size ceilings and the room's standing against the preferred one."""
+    template = _template_of(room)
+    if template is None:
+        return {}
+    ratio = room.net_area_m2 / template.max_area_m2
+    return dict(preferred_max_m2=template.max_area_m2, hard_max_m2=template.hard_max,
+                over_preferred_ratio=round(ratio, 3) if ratio > 1.0 + 1e-6 else None)
+
+
+def quality_of(design: SolvedDesign) -> QualityOut:
+    """The three tiers of `QualityOut` from the realized rooms — see the class for the policy."""
+    signal: list[QualitySignal] = []
+    notice_rooms: list[tuple[object, float, float]] = []
+    for room in design.rooms:
+        template = _template_of(room)
+        if template is None:
+            continue
+        ratio = room.net_area_m2 / template.max_area_m2
+        if ratio > OVER_PREFERRED_NOTICE_RATIO:
+            notice_rooms.append((room, ratio, template.max_area_m2))
+        elif ratio > OVER_PREFERRED_SIGNAL_RATIO:
+            signal.append(QualitySignal(room_id=room.zone_id, ratio=round(ratio, 3)))
+    notices: list[str] = []
+    if notice_rooms:
+        # One sentence for the plan, rooms grouped by their display name.
+        groups: dict[str, list[tuple[float, float]]] = {}
+        for room, ratio, preferred in notice_rooms:
+            groups.setdefault(_room_name(room), []).append((room.net_area_m2, preferred))
+        parts = [f"{name} {', '.join(f'{a:.1f}' for a, _ in items)} מ\"ר (מומלץ עד {items[0][1]:.0f})"
+                 for name, items in groups.items()]
+        count = len(notice_rooms)
+        head = "חדר אחד גדול מהמומלץ בצורה ניכרת" if count == 1 else f"{count} חדרים גדולים מהמומלץ בצורה ניכרת"
+        notices.append(f"{head}: {'; '.join(parts)}")
+    return QualityOut(over_preferred=design.over_preferred, signal=signal, notices=notices)
+
+
 def summarize(report: ValidationReport,
               unsupported: list[str] | None = None,
               relationships: tuple = (),
@@ -530,6 +614,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                           "boundary_context": f.boundary_context.value,
                           "can_take_a_window": f.can_take_a_window}
                    for side, f in r.wall_facts.items()},
+            **_room_size_facts(r),
         ) for r in design.rooms],
         walls=walls,
         open_interfaces=opens,
@@ -549,6 +634,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                             source_text=o.requirement.source_text)
             for o in relationships],
         validation=summarize(report, unsupported, relationships, notes),
+        quality=quality_of(design),
         outline=outline,
         family=family,
     )

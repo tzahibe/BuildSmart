@@ -101,6 +101,10 @@ class GeometricDesign:
     #: `_discover_open_interfaces`'s full-side precondition). Read by the demo contract's
     #: corridor-opening post-process. Empty for a closed plan.
     open_groups: tuple[tuple[str, ...], ...] = ()
+    #: The concept this design realized was planned with rooms allowed past their PREFERRED
+    #: maxima up to the HARD ones (`ConceptCandidate.over_preferred`). Carried for the demo
+    #: contract's quality metadata; never a validation fact.
+    over_preferred: bool = False
 
 
 def _rect_m(r: Rect) -> RectM:
@@ -131,7 +135,8 @@ def _outdoor_out(o: OutdoorRegion) -> OutdoorOut:
 
 def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iterations: int,
              interior_doors: list[Door], entrance_door: Door, windows: list[Window],
-             furniture: list[FurnitureCheck], site: SitePlan) -> GeometricDesign:
+             furniture: list[FurnitureCheck], site: SitePlan,
+             over_preferred: bool = False) -> GeometricDesign:
     rooms = []
     net_total = 0.0
     for z in fixture.zones:
@@ -163,4 +168,5 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
         net_area_m2=round(net_total, 2),
         wall_iterations=wall_iterations,
         open_groups=tuple(tuple(g) for g in fixture.open_groups),
+        over_preferred=over_preferred,
     )

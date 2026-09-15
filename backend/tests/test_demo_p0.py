@@ -197,6 +197,9 @@ def test_generated_plan_passes_every_hard_check(client, case):
     assert body["validation"]["checks"]["C13"], "realized connectivity must pass"
     assert body["validation"]["checks"]["C5"], "physical reachability must pass"
     assert not body["validation"]["warnings"]
+    # Room-size quality is not validation: a room above its PREFERRED maximum (inside the hard
+    # one) lives in `quality`, and only a room far past it becomes a notice.
+    assert "quality" in body and set(body["quality"]) == {"over_preferred", "signal", "notices"}
 
 
 @pytest.mark.parametrize("case", sorted(VALID_BRIEFS))

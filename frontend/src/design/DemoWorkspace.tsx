@@ -172,6 +172,16 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
           </ul>
         ) : null}
 
+        {/* Room-size quality notices: not validation, not an alert — a note that some rooms came
+            out well past their recommended size (the backend decides which; see DemoQuality). */}
+        {design.quality && design.quality.notices.length > 0 ? (
+          <ul className="workspace-quality" role="note">
+            {design.quality.notices.map((notice) => (
+              <li key={notice}>{notice}</li>
+            ))}
+          </ul>
+        ) : null}
+
         <button type="button" className="workspace-action" onClick={onChangeRequirements}>
           שינוי דרישות
         </button>

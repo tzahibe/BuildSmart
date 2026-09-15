@@ -288,14 +288,15 @@ def test_vocabulary_is_additive():
     from app.vertical_slice.geometry_core.model import ProgramRole as R
 
     snapshot = {
-        R.LIVING: RoomTemplate(16.0, 22.0, 46.0, 3.0, 2.5, elasticity=3.0),
-        R.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5),
-        R.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0),
-        R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9),
-        R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5),
+        # `hard_max_area_m2` (two-level maxima, 2026-09-15) — calibrated, see `RoomTemplate`.
+        R.LIVING: RoomTemplate(16.0, 22.0, 46.0, 3.0, 2.5, elasticity=3.0, hard_max_area_m2=50.0),
+        R.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5, hard_max_area_m2=33.0),
+        R.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0, hard_max_area_m2=28.0),
+        R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9, hard_max_area_m2=23.0),
+        R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5, hard_max_area_m2=18.0),
         R.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
-        R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15),
-        R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10),
+        R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15, hard_max_area_m2=14.0),
+        R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10, hard_max_area_m2=7.0),
         R.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
         R.STUDY: RoomTemplate(6.0, 8.5, 14.0, 2.1, 2.5, elasticity=0.5),
         R.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),
@@ -865,17 +866,19 @@ def test_second_suite_in_a_column_still_reaches_the_envelope():
 
 
 def test_the_reported_brief_made_flexible_plans_through_the_second_suite():
-    """US3(b): with the second bathroom FLEXIBLE the variant is eligible — both bedrooms end up
-    with their own bathroom — and the daylight ordering lets it validate: the plan the product
-    could not deliver, delivered because the person allowed it."""
+    """US3(b): with the second bathroom FLEXIBLE the brief plans and validates at the reported
+    footprint. Which reading plans is the variants' order: the literal one (BATH_2 off the hall)
+    is tried first and, since deficit distribution (`_row_depths`), plans here; when it could not,
+    the second-suite variant (BATH_2 off BEDROOM_1) was the plan the person's flexibility bought.
+    Both are what "flexible" allows; a FLEXIBLE bathroom is entered from exactly one of the two."""
     result = _reported_footprint_run(REPORTED_2BR_FLEXIBLE)
     assert result.design is not None, result.metrics.rejection_reasons
     assert result.validation.ok, [f"{c.check_id}: {c.detail}" for c in result.validation.failures()]
     c8 = next(c for c in result.validation.checks if c.check_id == "C8")
     assert c8.passed, c8.detail
     doors = _doors(result)
-    assert frozenset(("BEDROOM_1", "BATH_2")) in doors, doors
-    assert frozenset(("HALL", "BATH_2")) not in doors, doors
+    suite, hall = frozenset(("BEDROOM_1", "BATH_2")), frozenset(("HALL", "BATH_2"))
+    assert (suite in doors) != (hall in doors), doors
 
 
 def test_the_reported_brief_as_written_never_gives_away_its_shared_bathroom():
