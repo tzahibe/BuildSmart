@@ -3,7 +3,7 @@ import { fireEvent, render, within } from '@testing-library/react'
 import DemoPlan, { planViewBox } from './DemoPlan'
 import DemoWorkspace from './DemoWorkspace'
 import ReviewPage from './ReviewPage'
-import type { DemoDesign, RequirementsReview } from './demoDesign'
+import type { DemoBuilding, DemoDesign, RequirementsReview } from './demoDesign'
 
 /** The renderer boundary: DemoPlan draws exactly what the backend supplied, and nothing else. */
 function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
@@ -197,6 +197,33 @@ describe('DemoWorkspace', () => {
     })
     const { getByText } = render(<DemoWorkspace plans={{ plan: failing, alternatives: [] }} onChangeRequirements={() => {}} />)
     expect(getByText('בעיה כלשהי')).toBeTruthy()
+  })
+
+  it('renders a plan set that also carries the plan as a one-level building (multi-level Phase 0)', () => {
+    // `building` is additive: the same plan, as the ground level of a building with no stair. The
+    // workspace must accept it and draw exactly what it drew without it — the level list has one
+    // entry and nothing about the screen changes until a second level can exist.
+    const plan = design()
+    const building: DemoBuilding = {
+      story_count: 1,
+      levels: [{
+        level_id: 'L0', index: 0, kind: 'GROUND', name: 'קומת קרקע', elevation_m: 0, floor_to_floor_m: 3,
+        entry: { kind: 'STREET_DOOR', zone_id: 'HALL', core_id: null },
+        design: plan,
+      }],
+      cores: [],
+      massing: { plot: plan.plot, level_outlines: [plan.footprint], ground_coverage: 0.35, retreat_m2: 0 },
+      total_gross_area_m2: plan.gross_area_m2,
+      total_net_area_m2: plan.net_area_m2,
+      validation: { passed: true, statements: [], warnings: [], checks: { V2: true, V7: true } },
+    }
+    const withBuilding = render(
+      <DemoWorkspace plans={{ plan, alternatives: [], building }} onChangeRequirements={() => {}} />,
+    )
+    const without = render(
+      <DemoWorkspace plans={{ plan, alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(withBuilding.container.innerHTML).toBe(without.container.innerHTML)
   })
 
   // ------------------------------------------------------------------- the other plans

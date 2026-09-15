@@ -9,7 +9,7 @@ input, and is named to match the pipeline the review approved
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -176,11 +176,164 @@ class ProgramSpec:
     #: authority on how many.
     wet_room_kinds: tuple[WetRoomRequirement, ...] = ()
 
+    @property
+    def total_built_area_m2(self) -> float | None:
+        """The requested built area as the TOTAL over every level of the house.
+
+        One number has been doing four jobs — total requested area, storey count, per-storey area
+        and footprint — because the demo plans one storey and the four coincide. This is the name
+        for the first of them. It is an alias of `target_built_area_m2` today and reads the same
+        field; when a second level exists the per-level targets are derived FROM this total by the
+        allocation stage, and nothing below that stage should read the total directly.
+        """
+        return self.target_built_area_m2
+
+
+# --------------------------------------------------------------------------- house concept
+#
+# HOW the house is organised, as distinct from WHAT it contains (`ProgramSpec`). Every field here
+# is either a PROGRAM-ALLOCATION fact (which level a room class lives on) or a SEARCH-ORDERING
+# preference (which parti to try first). None of them is a dimension: no footprint, no ratio, no
+# stair size. That is the whole point — a concept says "a plan with these qualities", never "this
+# geometry" — and it is what keeps the principle that the person chooses plans, not footprints.
+#
+# Nothing in the geometry stack reads `HouseConcept`. It reaches the engine only through the
+# level programs the allocation stage derives from it and through a strategy sort key.
+
+
+class LevelRef(str, Enum):
+    """Which level a room class is asked to live on. `ENGINE` = the allocation stage decides."""
+
+    GROUND = "ground"
+    UPPER = "upper"
+    ENGINE = "engine"
+
+
+class PublicPrivateStrategy(str, Enum):
+    """How the public and private zones are split between two levels."""
+
+    #: LDK, guest WC, entrance on the ground; every bedroom and its bathrooms above.
+    PUBLIC_BELOW_PRIVATE_ABOVE = "public_below_private_above"
+    #: As above, but the master suite stays on the ground.
+    MASTER_SUITE_BELOW = "master_suite_below"
+    #: Public plus one ordinary bedroom on the ground; the rest above.
+    PUBLIC_PLUS_ONE_BEDROOM_BELOW = "public_plus_one_bedroom_below"
+    #: The allocation stage chooses. The ONLY legal value on a single-storey house.
+    ENGINE = "engine"
+
+
+class BedroomGrouping(str, Enum):
+    TOGETHER = "together"
+    ENGINE = "engine"
+
+
+class CirculationStyle(str, Enum):
+    """The circulation parti to try FIRST. Ordering only — never a gate, never a dimension."""
+
+    SPINE = "spine"
+    FRONT_BAND = "front_band"
+    HUB = "hub"
+    ENGINE = "engine"
+
+
+class PublicOpenSide(str, Enum):
+    """Which side the public rooms should open to. `GARDEN` names a parti the generator does not
+    have yet (every parti puts the public zone west or on the street front); a concept that BINDS
+    it is refused as an unsupported hard requirement rather than quietly honoured as `STREET`."""
+
+    STREET = "street"
+    GARDEN = "garden"
+    ENGINE = "engine"
+
+
+class ConceptSource(str, Enum):
+    USER_EXAMPLE = "user_example"
+    CHAT = "chat"
+    ENGINE = "engine"
+
+
+@dataclass(frozen=True)
+class LevelAreaPreference:
+    """"About this much on this level" — a PREFERENCE the per-level proportion search aims at.
+    Never a constraint: the total is the request; the split is the engine's unless said."""
+
+    level_index: int
+    area_m2: float
+
+
+@dataclass(frozen=True)
+class HouseConcept:
+    """The architectural concept a house is organised around. See the module comment above.
+
+    STRENGTH. `stories` is always binding — a person who chose two storeys is not handed one with a
+    note. Every other field is a preference unless its name is in `hard_fields`, in which case a
+    plan that cannot honour it is refused rather than returned with a warning. This is the same
+    grammar `CorridorRequirement.mode` and `RelationStrength` use: binding gates, preference orders.
+
+    DEFAULT = "the engine decides everything, one storey" — which is exactly the house the demo
+    plans today, so an `ArchitecturalSpec` built without a concept behaves as it always has.
+    """
+
+    stories: int = 1
+    public_private_strategy: PublicPrivateStrategy = PublicPrivateStrategy.ENGINE
+    entrance_level: LevelRef = LevelRef.GROUND
+    master_level: LevelRef = LevelRef.ENGINE
+    bedroom_grouping: BedroomGrouping = BedroomGrouping.ENGINE
+    circulation_style: CirculationStyle = CirculationStyle.ENGINE
+    public_open_side: PublicOpenSide = PublicOpenSide.ENGINE
+    level_area_preferences: tuple[LevelAreaPreference, ...] = ()
+    #: An optional concept-card id, for diagnostics and display grouping only — like
+    #: `DemoDesign.family`, never parsed for meaning.
+    family: str | None = None
+    source: ConceptSource = ConceptSource.ENGINE
+    #: Preference fields the person made BINDING, by field name. `stories` need not be listed.
+    hard_fields: frozenset[str] = frozenset()
+
+    #: Fields that may be bound. `stories` is always bound; `source`, `family` and the area
+    #: preferences carry no strength of their own.
+    BINDABLE = frozenset({"public_private_strategy", "entrance_level", "master_level",
+                          "bedroom_grouping", "circulation_style", "public_open_side"})
+
+    def __post_init__(self) -> None:
+        if self.stories < 1:
+            raise ValueError(f"stories must be at least 1, got {self.stories}")
+        if self.stories == 1:
+            # A one-level house has no "below" and "above" to split anything between. Refusing
+            # the combination here keeps a stale two-storey field from silently surviving a
+            # switch back to one storey and being read by whatever looks at it next.
+            if self.public_private_strategy is not PublicPrivateStrategy.ENGINE:
+                raise ValueError("public_private_strategy applies only when stories > 1")
+            if self.master_level is LevelRef.UPPER:
+                raise ValueError("master_level=UPPER needs a second storey")
+        if self.entrance_level is not LevelRef.GROUND:
+            raise ValueError("entrance_level: only GROUND is modelled (no basement or split level)")
+        for pref in self.level_area_preferences:
+            if not 0 <= pref.level_index < self.stories:
+                raise ValueError(f"level_area_preferences names level {pref.level_index}; the "
+                                 f"house has {self.stories} storey(s)")
+            if pref.area_m2 <= 0:
+                raise ValueError("a level area preference must be positive")
+        unknown = self.hard_fields - self.BINDABLE
+        if unknown:
+            raise ValueError(f"hard_fields names fields that cannot be bound: {sorted(unknown)}; "
+                             f"bindable: {sorted(self.BINDABLE)}")
+
+    def is_binding(self, field_name: str) -> bool:
+        """Whether a plan that cannot honour `field_name` must be REFUSED (else: warned)."""
+        return field_name == "stories" or field_name in self.hard_fields
+
+    @property
+    def is_single_storey(self) -> bool:
+        return self.stories == 1
+
 
 @dataclass(frozen=True)
 class ArchitecturalSpec:
     plot: PlotSpec
     program: ProgramSpec
+    #: How the house is organised. Defaults to the engine's own one-storey house, so the two-field
+    #: constructor every caller uses today builds exactly the spec it always did.
+    concept: HouseConcept = field(default_factory=HouseConcept)
 
 
 def demo_spec() -> ArchitecturalSpec:

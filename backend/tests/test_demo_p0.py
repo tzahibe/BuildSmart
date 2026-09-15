@@ -79,6 +79,8 @@ BRIEF_3BR_THREE_WET = (
 # `SUPPORTED_BEDROOMS`). Seven is outside it today; the test is about the envelope being ENFORCED
 # and the request being preserved, so it moves with the envelope.
 BRIEF_BEYOND_RANGE = "בית עם שבעה חדרי שינה, ממ\"ד ושלושה חדרי רחצה."
+# A second storey, stated. Refused today; the refusal must say so and the log must count it.
+BRIEF_TWO_STOREY = "בית דו-קומתי: סלון ומטבח למטה, שלושה חדרי שינה למעלה, ממ\"ד, שני חדרי רחצה, שתי חניות."
 
 CANNED = {
     BRIEF_3BR_SAFE_OPEN: _extraction(bedrooms=3, safe_room=True, wet_rooms=2,
@@ -92,6 +94,8 @@ CANNED = {
                                      open_plan=True, parking=2),
     BRIEF_BEYOND_RANGE: _extraction(bedrooms=7, safe_room=True, wet_rooms=3,
                                        open_plan=False, parking=2),
+    BRIEF_TWO_STOREY: _extraction(bedrooms=3, safe_room=True, wet_rooms=2,
+                                  open_plan=True, parking=2, floors=2),
 }
 
 
@@ -1539,6 +1543,46 @@ def test_the_design_request_offers_the_other_plans_it_proved(client):
     assert body["plan"]["rooms"], "the engine's own choice is still the headline plan"
     assert body["alternatives"], "this brief has other layouts; they must be offered"
     assert len(body["alternatives"]) <= general_pipeline.ALTERNATIVE_PLAN_LIMIT
+
+
+def test_the_plan_is_also_the_ground_level_of_a_one_level_building(client):
+    """Multi-level Phase 0. The plan set carries the primary as a BUILDING with one level and no
+    stair, whose ground-level design is the plan itself — the same payload, not a re-rendering —
+    and whose totals are that plan's own gross and net. The between-level checks that ran (V2,
+    V7) pass; the ones that need a second level are not claimed."""
+    body = _plan_set(client, BRIEF_3BR_SAFE_OPEN, (12.5, 14.5))
+    building = body["building"]
+    assert building["story_count"] == 1
+    assert building["cores"] == []
+    [level] = building["levels"]
+    assert level["index"] == 0 and level["kind"] == "GROUND" and level["name"] == "קומת קרקע"
+    assert level["entry"]["kind"] == "STREET_DOOR"
+    assert level["entry"]["zone_id"] == next(d["b"] for d in body["plan"]["doors"] if d["is_entrance"])
+    assert level["design"] == body["plan"]
+    assert building["total_gross_area_m2"] == body["plan"]["gross_area_m2"]
+    assert building["total_net_area_m2"] == body["plan"]["net_area_m2"]
+    assert building["massing"]["level_outlines"] == [body["plan"]["footprint"]]
+    assert building["massing"]["plot"] == body["plan"]["plot"]
+    assert 0 < building["massing"]["ground_coverage"] <= 1
+    assert building["massing"]["retreat_m2"] == 0
+    assert building["validation"]["passed"]
+    assert building["validation"]["checks"] == {"V2": True, "V7": True}
+
+
+def test_a_two_storey_brief_is_refused_as_such_and_the_storey_count_reaches_the_log(client):
+    """The parser defaults to one storey when the brief says nothing, so the failure log is the
+    only place the demand for a second one can be read. A refusal must therefore carry it."""
+    from app.observability import failure_log
+    project_id = _prepare(client, BRIEF_TWO_STOREY, width=12.5, depth=14.5)
+
+    response = client.post(f"/projects/{project_id}/design/demo")
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "FLOORS_UNSUPPORTED"
+
+    entry = failure_log.read_all()[-1]
+    assert entry["code"] == "FLOORS_UNSUPPORTED"
+    assert entry["context"]["floors"] == 2
+    assert entry["context"]["description"] == BRIEF_TWO_STOREY
 
 
 def test_every_alternative_passes_the_same_checks_the_plan_did(client):

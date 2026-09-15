@@ -66,3 +66,42 @@ describe('ReviewPage scope limits', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 })
+
+
+/** The storey count is a requirement like the others and is shown with its provenance. Until the
+ * engine plans a second level, a count above the backend's limit is refused HERE, where it can be
+ * corrected — not after the loading screen. */
+describe('ReviewPage storey count', () => {
+  function reviewWithFloors(floors: number, source = 'requested'): RequirementsReview {
+    const review = reviewWith(LIMITS, 3)
+    return { ...review, floors: { value: floors, source } as never }
+  }
+
+  it('shows the storey count the parser read, with its provenance, bounded by the backend limit', () => {
+    render(<ReviewPage review={reviewWithFloors(1, 'inferred')} onConfirm={() => {}} onBack={() => {}} />)
+    const input = screen.getByLabelText('קומות')
+    expect(input).toHaveValue(1)
+    expect(input).toHaveAttribute('min', '1')
+    expect(input).toHaveAttribute('max', '1')
+    expect(screen.getByText('קומות').parentElement).toHaveTextContent('הנחנו')
+  })
+
+  it('refuses to generate a two-storey house while only one storey is supported, and says so here', () => {
+    const onConfirm = vi.fn()
+    render(<ReviewPage review={reviewWithFloors(2)} onConfirm={onConfirm} onBack={() => {}} />)
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/בקומה אחת בלבד/)
+    const generate = screen.getByRole('button', { name: /יצירת תוכנית/ })
+    expect(generate).toBeDisabled()
+    fireEvent.click(generate)
+    expect(onConfirm).not.toHaveBeenCalled()
+  })
+
+  it('sends the storey count with the other corrections', () => {
+    const onConfirm = vi.fn()
+    render(<ReviewPage review={reviewWithFloors(1)} onConfirm={onConfirm} onBack={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /יצירת תוכנית/ }))
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({ floors: 1 }))
+  })
+})
+

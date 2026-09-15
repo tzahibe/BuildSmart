@@ -136,6 +136,10 @@ def _failure_context(project_id: str, project, error=None) -> dict:
         "street_facing_side": (project.street_facing_side.value
                                if project.street_facing_side else None),
         "built_area_m2": project.built_area_m2,
+        # The storey count, so a FLOORS_UNSUPPORTED refusal is countable later: the parser
+        # defaults to one storey when the brief says nothing, so the log is the only place the
+        # demand for a second one can be read.
+        "floors": project.floors.value if project.floors else None,
         "footprint_width_m": footprint.width_m if footprint else None,
         "footprint_depth_m": footprint.depth_m if footprint else None,
         "bedrooms": project.bedrooms.value if project.bedrooms else None,
@@ -182,7 +186,8 @@ def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
                 result = generate_demo_design(project, on_stage=updates.put)
                 outcome["value"] = DemoPlanSet(plan=result.design,
                                                alternatives=list(result.alternatives),
-                                               search=result.search)
+                                               search=result.search,
+                                               building=result.building)
             except DemoGenerationError as error:
                 outcome["error"] = error
                 failure_log.refusal(error.code, error.message, error.detail,
@@ -227,7 +232,7 @@ def generate_demo_plan(project_id: str, request: Request) -> DemoPlanSet:
     try:
         result = generate_demo_design(project)
         return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
-                           search=result.search)
+                           search=result.search, building=result.building)
     except DemoGenerationError as error:
         # Recorded HERE rather than only in the generic handler, because this is the failure that
         # matters most — somebody who described a house and did not get a drawing — and only this

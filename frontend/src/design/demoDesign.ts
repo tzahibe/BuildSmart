@@ -169,11 +169,78 @@ export interface DemoDesign {
  * `alternatives` are not runners-up. Each one passed exactly the same checks `plan` did, so the
  * person is choosing between plans, not between a plan and some lesser drawings. Empty is a real
  * and common answer — for many briefs the engine produces only one distinct layout. */
+/** THE BUILDING — multi-level Phase 0. Mirrors `backend/app/demo/contract.py`'s `DemoBuilding`.
+ *
+ * A list of levels, each carrying a `DemoDesign` exactly as the single-storey demo produces it:
+ * `levels[0].design` is the same payload as `DemoPlanSet.plan`. A two-storey building, when the
+ * engine can plan one, is the same shape with two levels and one core — never a new payload. Every
+ * level name and check statement is supplied by the backend; nothing here maps an index to a word. */
+export interface DemoLevelEntry {
+  kind: 'STREET_DOOR' | 'STAIR_ARRIVAL'
+  zone_id: string
+  core_id?: string | null
+}
+
+export interface DemoLevel {
+  level_id: string
+  index: number
+  kind: 'GROUND' | 'UPPER'
+  /** Display name from the backend ("קומת קרקע", "קומה א׳"). */
+  name: string
+  elevation_m: number
+  floor_to_floor_m: number
+  entry: DemoLevelEntry
+  design: DemoDesign
+}
+
+/** A stair — real area on both levels it connects. Empty on a one-storey house. */
+export interface DemoCore {
+  core_id: string
+  kind: 'STAIR'
+  archetype: 'STRAIGHT' | 'L_SHAPED' | 'U_HALF_LANDING'
+  lower_level_id: string
+  upper_level_id: string
+  zone_id: string
+  footprint: DemoRect
+  entry_edge: string
+  arrival_edge: string
+  direction: string
+}
+
+export interface DemoMassing {
+  plot: DemoRect
+  /** One outline per level, index-aligned with `levels`; only the first touches the site. */
+  level_outlines: DemoRect[]
+  ground_coverage: number
+  retreat_m2: number
+}
+
+/** The between-level checks (V-codes), in product language. Only checks that ran appear. */
+export interface DemoBuildingValidation {
+  passed: boolean
+  statements: string[]
+  warnings: string[]
+  checks: Record<string, boolean>
+}
+
+export interface DemoBuilding {
+  story_count: number
+  levels: DemoLevel[]
+  cores: DemoCore[]
+  massing: DemoMassing
+  total_gross_area_m2: number
+  total_net_area_m2: number
+  validation: DemoBuildingValidation
+}
+
 export interface DemoPlanSet {
   plan: DemoDesign
   alternatives: DemoDesign[]
   /** Feature 006: the outlines tried and their cost. */
   search?: SearchSummary | null
+  /** Multi-level Phase 0: `plan` as the ground level of a building. Absent for a payload that
+   *  predates it; `building.levels[0].design` equals `plan` when present. */
+  building?: DemoBuilding | null
 }
 
 /** "This is what I understood" — mirrors `RequirementsReview`. */

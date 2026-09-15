@@ -111,8 +111,15 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const wetMin = limits?.wet_rooms_min ?? 1
   const wetMax = limits?.wet_rooms_max ?? 3
   const parkingMax = limits?.parking_max ?? 2
+  const floorsMax = limits?.floors ?? 1
 
   const [bedrooms, setBedrooms] = useState(Number(review.bedrooms.value ?? 3))
+  // THE STOREY COUNT, shown with its provenance like every other requirement. The parser reads it
+  // from the brief and defaults to one when nothing is said; until now the review screen was the
+  // one place it was NOT shown, so a person who wrote "בית דו-קומתי" saw every other requirement
+  // echoed back and this one silently dropped — and learned of it only from the refusal after the
+  // loading screen. Same rule as bedrooms: a count generation would refuse is said here.
+  const [floors, setFloors] = useState(Number(review.floors?.value ?? 1))
   const [wetRooms, setWetRoomsState] = useState(Number(review.wet_rooms.value ?? 1))
   // WHAT EACH WET ROOM IS (specs/007). One row per counted room; the count drives the row list.
   const wetNotes = review.wet_room_kinds ?? []
@@ -146,6 +153,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   // A count outside the envelope is refused at generation. Saying so HERE, where it can be
   // corrected, is the whole difference between a two-second fix and a wasted journey.
   const outOfRange = bedrooms < bedroomsMin || bedrooms > bedroomsMax
+  const floorsOutOfRange = floors < 1 || floors > floorsMax
 
   return (
     <section className="review" aria-label="סקירת דרישות">
@@ -312,6 +320,23 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         ) : null}
 
         <label className="review-row">
+          <span className="review-label">קומות <Provenance source={review.floors?.source ?? 'inferred'} /></span>
+          <input
+            type="number" min={1} max={floorsMax} value={floors}
+            aria-label="קומות"
+            onChange={(event) => setFloors(Number(event.target.value))}
+          />
+        </label>
+        {floorsOutOfRange ? (
+          <p className="review-out-of-range" role="alert">
+            {floorsMax === 1
+              ? 'בשלב זה אפשר לתכנן בית בקומה אחת בלבד. '
+              : `בשלב זה אפשר לתכנן עד ${floorsMax} קומות. `}
+            {`הערך ${floors} לא ייווצר — יש לתקן אותו כאן.`}
+          </p>
+        ) : null}
+
+        <label className="review-row">
           <span className="review-label">חדרי רחצה <Provenance source={review.wet_rooms.source} /></span>
           <input
             type="number" min={wetMin} max={wetMax} value={wetRooms}
@@ -420,10 +445,12 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
         <button
           type="button"
           className="review-generate"
-          disabled={busy || blocking.length > 0 || outOfRange || wetBlocked}
+          disabled={busy || blocking.length > 0 || outOfRange || floorsOutOfRange || wetBlocked}
           title={
             outOfRange
               ? `בשלב זה אפשר לתכנן ${bedroomsMin} עד ${bedroomsMax} חדרי שינה`
+              : floorsOutOfRange
+                ? (floorsMax === 1 ? 'בשלב זה אפשר לתכנן בית בקומה אחת בלבד' : `בשלב זה אפשר לתכנן עד ${floorsMax} קומות`)
               : blocking.length > 0
                 ? 'יש בקשות שצריך להכריע בהן קודם'
                 : wetBlocked
@@ -434,6 +461,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
             onConfirm({
               ...setbacks,
               bedrooms,
+              floors,
               wet_rooms: wetRooms,
               wet_room_kinds: wetRows,
               parking_spaces: parking,

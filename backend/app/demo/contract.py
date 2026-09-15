@@ -23,8 +23,10 @@ from app.vertical_slice.concept_generator import (
     ROOM_TEMPLATES,
 )
 from app.vertical_slice.design_output import GeometricDesign as SolvedDesign
-from app.vertical_slice.geometry_core.model import ProgramRole
+from app.vertical_slice.geometry_core.model import ProgramRole, u_to_m
 from app.vertical_slice.validation import ValidationReport
+from app.vertical_slice.building import Building
+from app.vertical_slice.building_validation import BuildingValidationReport, validate_building
 
 #: Hebrew display names. Presentation lives in the contract so the renderer never has to map
 #: architectural roles to words itself.
@@ -223,6 +225,83 @@ class DemoDesign(BaseModel):
     quality: QualityOut | None = None
 
 
+# --------------------------------------------------------------------------- the building
+#
+# Multi-level Phase 0. The building is a LIST OF LEVELS, each carrying a `DemoDesign` exactly as
+# the single-storey demo produces it — `levels[0].design` is the same payload as `DemoPlanSet.plan`,
+# byte for byte. Everything here is additive and defaulted: a client that reads only
+# `plan`/`alternatives` sees exactly what it saw before. A two-storey building, when the engine can
+# plan one, is the same type with two entries in `levels` and one in `cores` — not a new payload.
+
+
+class LevelEntryOut(BaseModel):
+    """How a person arrives on this level: the front door (ground) or a stair's arrival (above)."""
+
+    kind: Literal["STREET_DOOR", "STAIR_ARRIVAL"]
+    zone_id: str
+    core_id: str | None = None
+
+
+class LevelOut(BaseModel):
+    level_id: str
+    index: int
+    kind: Literal["GROUND", "UPPER"]
+    #: Hebrew display name, so the renderer's level tabs never map an index to a word themselves.
+    name: str
+    elevation_m: float
+    #: PARAMETER · UNVERIFIED — see `building.FLOOR_TO_FLOOR_M`.
+    floor_to_floor_m: float
+    entry: LevelEntryOut
+    design: DemoDesign
+
+
+class CoreOut(BaseModel):
+    """A stair, on the plan as REAL AREA on both levels. Empty list on a one-storey house."""
+
+    core_id: str
+    kind: Literal["STAIR"]
+    archetype: Literal["STRAIGHT", "L_SHAPED", "U_HALF_LANDING"]
+    lower_level_id: str
+    upper_level_id: str
+    zone_id: str
+    footprint: RectOut
+    entry_edge: str
+    arrival_edge: str
+    direction: str
+
+
+class MassingOut(BaseModel):
+    plot: RectOut
+    #: One outline per level, index-aligned with `DemoBuilding.levels`. Only the first touches the
+    #: site; each later one lies inside the one below it (building check V2).
+    level_outlines: list[RectOut]
+    #: Ground outline over plot. Reported for a coverage rule to read; never used as geometry.
+    ground_coverage: float
+    #: Roof exposed by upper retreats — a terrace once something classifies it. 0 on one level.
+    retreat_m2: float
+
+
+class BuildingValidationOut(BaseModel):
+    """The between-level checks (V-codes), in product language like `ValidationSummary`. Only
+    checks that actually ran appear — see `building_validation`'s module docstring."""
+
+    passed: bool
+    statements: list[str]
+    warnings: list[str]
+    checks: dict[str, bool]
+
+
+class DemoBuilding(BaseModel):
+    story_count: int
+    levels: list[LevelOut]
+    cores: list[CoreOut] = []
+    massing: MassingOut
+    #: Σ over levels. On one level these equal `plan.gross_area_m2` / `plan.net_area_m2`.
+    total_gross_area_m2: float
+    total_net_area_m2: float
+    validation: BuildingValidationOut
+
+
 class DemoPlanSet(BaseModel):
     """What the design request answers with: a plan, and the other plans that were also possible.
 
@@ -236,6 +315,10 @@ class DemoPlanSet(BaseModel):
     alternatives: list[DemoDesign] = []
     #: Feature 006: the outlines tried and their cost. `None` for callers outside the demo service.
     search: SearchSummary | None = None
+    #: Multi-level Phase 0: `plan` as the ground level of a building. `building.levels[0].design`
+    #: is `plan`. `None` for callers outside the demo service. Alternatives stay single designs
+    #: until the engine can plan a second level for them.
+    building: DemoBuilding | None = None
 
 
 #: C-code -> the product statement it justifies. Only claims backed by a real check appear.
@@ -638,3 +721,76 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         outline=outline,
         family=family,
     )
+
+
+# --------------------------------------------------------------------------- building payload
+
+_LEVEL_NAMES = {0: "קומת קרקע", 1: "קומה א׳", 2: "קומה ב׳", 3: "קומה ג׳"}
+
+#: V-code -> the product statement it justifies. Only claims backed by a check that ran appear.
+_BUILDING_STATEMENTS = {
+    "V1": "המדרגות תופסות את אותו מלבן בכל הקומות",
+    "V2": "כל קומה עליונה נמצאת בתוך המתאר של הקומה שמתחתיה",
+    "V3": "אף חדר אינו חופף למדרגות",
+    "V4": "כל החדרים בכל הקומות נגישים פיזית מהכניסה",
+    "V5": "המדרגות נפתחות אל שטח תנועה בשתי הקומות",
+    "V6": 'ממ"דים בקומות שונות מיושרים זה מעל זה',
+    "V7": "חשבון השטחים תקין: שטח כל קומה שווה למתאר שלה",
+}
+
+
+def _level_name(index: int) -> str:
+    return _LEVEL_NAMES.get(index, f"קומה {index}")
+
+
+def summarize_building(report: BuildingValidationReport) -> BuildingValidationOut:
+    return BuildingValidationOut(
+        passed=report.ok,
+        statements=[_BUILDING_STATEMENTS[c.check_id] for c in report.checks
+                    if c.passed and c.check_id in _BUILDING_STATEMENTS],
+        warnings=[f"{_BUILDING_STATEMENTS.get(c.check_id, c.name)}: {c.detail}"
+                  for c in report.failures()],
+        checks={c.check_id: c.passed for c in report.checks},
+    )
+
+
+def to_demo_building(building: Building, level_designs: list[DemoDesign]) -> DemoBuilding:
+    """The building payload, given each level's ALREADY-BUILT `DemoDesign`.
+
+    The designs are passed in rather than rebuilt so that `levels[0].design` is the very object
+    `DemoPlanSet.plan` carries — the same corridor opening, notes and quality metadata — and not a
+    second rendering of the same geometry that could drift from it.
+    """
+    if len(level_designs) != building.story_count:
+        raise ValueError(f"{len(level_designs)} level designs for {building.story_count} level(s)")
+    report = validate_building(building)
+    return DemoBuilding(
+        story_count=building.story_count,
+        levels=[LevelOut(
+            level_id=plan.level.level_id, index=plan.level.index, kind=plan.level.kind.value,
+            name=_level_name(plan.level.index),
+            elevation_m=plan.level.elevation_m, floor_to_floor_m=plan.level.floor_to_floor_m,
+            entry=LevelEntryOut(kind=plan.entry.kind.value, zone_id=plan.entry.zone_id,
+                                core_id=plan.entry.core_id),
+            design=design,
+        ) for plan, design in zip(building.levels, level_designs)],
+        cores=[CoreOut(
+            core_id=c.core_id, kind=c.kind.value, archetype=c.archetype.value,
+            lower_level_id=c.lower_level_id, upper_level_id=c.upper_level_id,
+            zone_id=c.zone_id or c.core_id,
+            footprint=RectOut(x=u_to_m(c.footprint_u.x), y=u_to_m(c.footprint_u.y),
+                              width_m=u_to_m(c.footprint_u.w), depth_m=u_to_m(c.footprint_u.h)),
+            entry_edge=c.entry_edge.value, arrival_edge=c.arrival_edge.value,
+            direction=c.direction.value,
+        ) for c in building.cores],
+        massing=MassingOut(
+            plot=_rect(building.massing.plot_m),
+            level_outlines=[_rect(o) for o in building.massing.level_outlines_m],
+            ground_coverage=building.massing.ground_coverage,
+            retreat_m2=building.massing.retreat_m2,
+        ),
+        total_gross_area_m2=building.total_gross_m2,
+        total_net_area_m2=building.total_net_m2,
+        validation=summarize_building(report),
+    )
+
