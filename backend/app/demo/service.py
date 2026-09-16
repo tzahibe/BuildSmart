@@ -328,7 +328,9 @@ class OutlineResult:
 
 
 #: How many plans the screen shows at most — the primary and two others (spec 006 FR-004). Fewer
-#: is a real answer; the set is never padded.
+#: is a real answer; the set is never padded. The POOL the screen chooses from is larger
+#: (`ALTERNATIVE_PLAN_LIMIT` alternatives per outline, plus one when a second massing — an L — is
+#: among them); this is how many of it are shown.
 _SHOWN_LIMIT = 3
 
 

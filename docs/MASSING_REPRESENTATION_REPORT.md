@@ -59,6 +59,12 @@ rectangle     all five               unchanged                    1W …        
 - **432-context demo snapshot** against branch `012` (full `DemoPlanSet` payloads, primary + alternatives, 431 contexts in the worktree's log copy): **planned before = after = 404; 404/404 payloads byte-identical; 0 status changes; 0 missing.** As expected — the pass is gated on a second massing existing among the candidates, which the demo path (one rectangle) never has.
 - Frontend unchanged on this branch.
 
+## Follow-up (2026-09-16, branch `014-alternative-limit`): the L takes a slot of its own
+
+The representation pass replaced the area-farthest alternative when the list was full — on the deep-primary 3BR-noMMD brief that was a 162 m² spine, the only plan of its family in the pool. Raising `ALTERNATIVE_PLAN_LIMIT` to four did **not** fix it (measured): the normal walk fills every slot it is given and the L then displaces the fourth. So the pass now **appends** beyond the walk's budget instead: `ALTERNATIVE_PLAN_LIMIT` stays 3 for the normal walk, and a pool with a second massing holds `3 + 1`. One-wing briefs are untouched by construction; the screen still shows three (`_SHOWN_LIMIT`).
+
+Measured: every L-site brief with a valid L now carries 3 one-wing alternatives + the L (pools of five) with nothing displaced; one-wing site identical. Sample of every 4th failure-log context against merged `main` on the same log copy: **98/98 planned payloads byte-identical, 0 status changes.** Backend suite 1221 passed (test `test_the_l_never_displaces_a_one_wing_alternative` added).
+
 ## Not done here (by scope)
 
 Anything that changes the primary — a grouped primary rule, quality metrics in ranking (exposure, circulation share, two-sided rooms), or the person's massing preference ordering candidates (shapes report §3.1). UI labels for the massing (`footprints` already carries the wings). Row sharing in wide arms.

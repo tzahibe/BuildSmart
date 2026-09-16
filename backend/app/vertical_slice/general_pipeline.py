@@ -91,6 +91,15 @@ class RunMetrics:
 #: Asked for, never assumed: `run_general` looks for none unless a caller passes
 #: `max_alternatives`, so every existing caller — the frozen baseline included — costs exactly what
 #: it did before, and the one screen that shows options is the one that pays for them.
+#:
+#: This is the budget of the NORMAL walk. The massing representation pass below may add one plan
+#: of a second massing (an L) ON TOP of it — so a pool can hold `ALTERNATIVE_PLAN_LIMIT + 1` plans
+#: where two massings exist, and exactly this many where one does. It used to replace the
+#: area-farthest alternative instead: measured on the deep-primary L site with a 3-bedroom
+#: open-plan brief, the L displaced a 162 m2 spine plan that was the only one of its family in the
+#: pool; and raising the budget to four did not help, because the walk simply fills every slot it
+#: is given and the L then displaces the fourth. The SCREEN still shows three
+#: (`demo/service._SHOWN_LIMIT`); this is the pool it chooses from.
 ALTERNATIVE_PLAN_LIMIT = 3
 
 #: How many candidates of an UNREPRESENTED massing family to try so that one plan of it can be
@@ -731,9 +740,9 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
     # one-wing planned. So one plan of every massing family the
     # candidates contain is guaranteed a look: for each family not yet represented, its candidates
     # are tried in the generator's order (bounded) and the first valid, distinct one joins the
-    # alternatives — replacing the area-farthest alternative when the list is full, so the pool
-    # stays within `limit`. The primary is untouched, and a brief whose candidates are all one
-    # massing pays nothing here.
+    # alternatives — in a slot of its own, beyond `limit`, so no one-wing alternative the walk
+    # found is displaced (`ALTERNATIVE_PLAN_LIMIT` says why). The primary is untouched, and a
+    # brief whose candidates are all one massing pays nothing here and stays within `limit`.
     represented = {chosen.massing_signature} | {plan.massing_signature for plan in found}
     for massing in dict.fromkeys(massing_of(c) for c in candidates):
         if massing in represented:
@@ -763,8 +772,6 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
             if not plan.ok or plan.layout_signature in seen:
                 continue
             seen.add(plan.layout_signature)
-            if len(found) >= limit:
-                found.pop()
             found.append(plan)
             represented.add(massing)
             break
