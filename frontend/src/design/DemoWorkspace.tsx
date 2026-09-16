@@ -10,6 +10,11 @@ import './DemoWorkspace.css'
  * label is what makes a same-family alternative on another outline read as a different house. */
 function outlineText(outline: DemoOutline): string {
   const who = outline.origin === 'PERSON' ? 'המתאר שהזנת' : 'מתאר אוטומטי'
+  if (outline.shape === 'L' && outline.wing_dims_m && outline.wing_dims_m.length === 2) {
+    // Two wings: the label names both, so an L of 143 m² does not read as a 200 m² rectangle.
+    const [[pw, pd], [aw, ad]] = outline.wing_dims_m
+    return `בית L: ${pw.toFixed(2)} × ${pd.toFixed(2)} + ${aw.toFixed(2)} × ${ad.toFixed(2)} מ׳ · ${outline.area_m2.toFixed(0)} מ״ר · ${who}`
+  }
   return `${outline.width_m.toFixed(2)} × ${outline.depth_m.toFixed(2)} מ׳ · ${outline.area_m2.toFixed(0)} מ״ר · ${who}`
 }
 

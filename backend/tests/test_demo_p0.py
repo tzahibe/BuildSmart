@@ -1917,3 +1917,35 @@ def test_a_validation_failure_records_which_checks_failed(client):
     failed = entry["context"]["diagnostics"]["validation"]["failed_checks"]
     assert [c["check"] for c in failed] == ["C13"]
     assert failed[0]["detail"] == "HALL-KITCHEN"
+
+
+def test_an_l_massing_is_surveyed_on_a_rectangular_plot_and_shown_when_it_plans(client):
+    """The engine's outline search carves two L massings (arm at the rear, arm at the front) from
+    the buildable rectangle at the requested area and surveys them beside its rectangles. A valid
+    two-wing plan is shown as an alternative — never instead of the rectangle that won on area —
+    labelled as an L with its two wings, every check including C22 passing."""
+    # The main flow: no outline chosen — the engine plans its own, on a 24 x 28 m plot.
+    project_id = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 672.0, "built_area_m2": 200.0,
+        "plot_width_m": 24.0, "plot_depth_m": 28.0, "street_facing_side": "NORTH",
+        "setbacks": _DEMO_SETBACKS,
+        "description": BRIEF_3BR_SAFE_OPEN,
+        "selected_footprint": None,
+    }).json()["project_id"]
+    assert client.post(f"/projects/{project_id}/requirements").status_code == 200
+    body = client.post(f"/projects/{project_id}/design/demo").json()
+
+    tried = body["search"]["outlines"]
+    assert [o["shape"] for o in tried].count("L") == 2, "both L massings are surveyed"
+    assert [o["shape"] for o in tried][:4] == ["RECTANGLE"] * 4, "after the rectangles"
+    assert body["plan"]["outline"]["shape"] == "RECTANGLE", "the primary stays the area-nearest rectangle"
+    l_plans = [d for d in body["alternatives"] if d["outline"]["shape"] == "L"]
+    assert l_plans, "this brief plans an L on this plot (measured); it must be shown"
+    l = l_plans[0]
+    assert len(l["footprints"]) == 2 and len(l["outline"]["wing_dims_m"]) == 2
+    assert l["gross_area_m2"] == pytest.approx(sum(f["width_m"] * f["depth_m"] for f in l["footprints"]), abs=0.05)
+    assert l["validation"]["passed"] and l["validation"]["checks"]["C22"] is True
+    assert "C22" not in body["plan"]["validation"]["checks"], "a one-wing plan makes no seam claim"
+    # Never two L's of the same family in place of a rectangle alternative.
+    assert len(l_plans) == 1

@@ -116,12 +116,16 @@ export interface DemoRelationship {
  * person, under "advanced". */
 export type OutlineOrigin = 'ENGINE' | 'PERSON'
 
-/** The person-facing label of a plan's outline — width, depth, area — and its origin. */
+/** The person-facing label of a plan's outline — width, depth, area — and its origin. A rectangle,
+ * or an L of two wings whose bounding box `width_m x depth_m` is (`wing_dims_m` lists the primary's
+ * and the arm's width and depth). Absent `shape` means a rectangle (a payload that predates it). */
 export interface DemoOutline {
   width_m: number
   depth_m: number
   area_m2: number
   origin: OutlineOrigin
+  shape?: 'RECTANGLE' | 'L'
+  wing_dims_m?: [number, number][]
 }
 
 /** One outline the engine planned for this request, whether or not it produced a plan. */
@@ -129,6 +133,7 @@ export interface OutlineTried {
   width_m: number
   depth_m: number
   origin: OutlineOrigin
+  shape?: 'RECTANGLE' | 'L'
   planned: boolean
   plans_found: number
   latency_ms: number

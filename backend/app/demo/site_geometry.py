@@ -422,3 +422,105 @@ def feasible_options(site: SiteGeometry, area_m2: float,
         if len(out) == count:
             break
     return out
+
+
+# --------------------------------------------------------- L massings on a rectangular plot
+
+#: The arm the L parti plans a private wing in: 5 m wide — the width at which single-room rows
+#: (a bedroom, a bath) sit inside their shape bands; a 6 m arm makes every lone row oversized and
+#: needs row sharing (measured, `docs/L_PARTI_REPORT.md`). The parti trims the arm's LENGTH itself;
+#: 9.5 m is what three private rows (master suite, two bedrooms) need at their floors.
+L_ARM_WIDTH_M = 5.0
+L_ARM_DEPTH_M = 9.5
+#: The primary wing is offered as deep as the site allows up to this, so the public band has room
+#: beyond the seam: an open-plan LDK stacked needs ~9.5 m past the arm.
+L_PRIMARY_MAX_DEPTH_M = 20.0
+#: The primary must be at least this wide for a band of public rooms (column beside the hall plus
+#: the hall, with the living room's minimum short side).
+L_PRIMARY_MIN_WIDTH_M = 6.0
+
+
+@dataclass(frozen=True)
+class LMassing:
+    """Two wings carved from the buildable rectangle at the requested area: a primary
+    `primary_w x primary_d` and an arm `arm_w x arm_d` east of it, flush with the primary's rear
+    (`arm_end = "rear"`: the public band takes the street) or its street end (`"front"`: the band
+    faces the garden). Not a shape a person picks — a massing the engine tries beside its
+    rectangles, and shows only when a two-wing plan validates."""
+
+    primary_w_m: float
+    primary_d_m: float
+    arm_w_m: float
+    arm_d_m: float
+    arm_end: str   # "rear" | "front"
+
+    @property
+    def bbox_w_m(self) -> float:
+        return round(self.primary_w_m + self.arm_w_m, 2)
+
+    @property
+    def bbox_d_m(self) -> float:
+        return self.primary_d_m
+
+    @property
+    def area_m2(self) -> float:
+        return round(self.primary_w_m * self.primary_d_m + self.arm_w_m * self.arm_d_m, 2)
+
+    def ring_points(self, x0: float, y0: float) -> list[tuple[float, float]]:
+        """The L's outline, counter-clockwise, with the primary's north-west corner at (x0, y0)
+        and the street at y = min. The notch is the corner the arm does not reach."""
+        pw, ph, sw, sh = self.primary_w_m, self.primary_d_m, self.arm_w_m, self.arm_d_m
+        if self.arm_end == "rear":      # arm along the rear part of the east side
+            return [(x0, y0), (x0 + pw, y0), (x0 + pw, y0 + ph - sh), (x0 + pw + sw, y0 + ph - sh),
+                    (x0 + pw + sw, y0 + ph), (x0, y0 + ph)]
+        return [(x0, y0), (x0 + pw + sw, y0), (x0 + pw + sw, y0 + sh), (x0 + pw, y0 + sh),
+                (x0 + pw, y0 + ph), (x0, y0 + ph)]
+
+
+def _grid(value_m: float) -> float:
+    return round(round(value_m / 0.05) * 0.05, 2)
+
+
+def l_massings(site: SiteGeometry, area_m2: float) -> list[LMassing]:
+    """The L massings of the requested area that fit the buildable rectangle — arm at the rear and
+    arm at the front — or none.
+
+    The arm is fixed (`L_ARM_WIDTH_M x L_ARM_DEPTH_M`, shortened to the site's depth); the primary
+    takes the remaining area, as deep as the site allows up to `L_PRIMARY_MAX_DEPTH_M`, and must
+    still be at least `L_PRIMARY_MIN_WIDTH_M` wide. One more condition is geometric, not
+    architectural: the adapter decomposes the L into its largest inscribed rectangle first, so the
+    primary column must be larger than the full-width strip along the arm's length — otherwise the
+    adapter's primary is that strip, the "arm" sits north or south of it, and the parti refuses.
+    The area is never reduced: an L that cannot hold the request is not offered.
+    """
+    if not site.has_buildable_area or area_m2 <= 0:
+        return []
+    bw, bd = site.buildable_width_m, site.buildable_depth_m
+    sw = L_ARM_WIDTH_M
+    if sw >= bw:
+        return []
+    # A smaller house gets a shorter arm (two private rows rather than three) before it gets no L
+    # at all; the parti trims the arm further on its own.
+    for arm_len in (L_ARM_DEPTH_M, 8.5, 7.5):
+        sh = _grid(min(arm_len, bd))
+        primary_area = area_m2 - sw * sh
+        if primary_area <= 0:
+            continue
+        ph = _grid(min(bd, L_PRIMARY_MAX_DEPTH_M))
+        pw = _grid(primary_area / ph)
+        if pw + sw > bw + 1e-9:
+            # Too wide at that depth: only a deeper primary could hold the area, and the site has
+            # none — a shorter arm would only make the primary wider still.
+            return []
+        if pw < L_PRIMARY_MIN_WIDTH_M:
+            # Too narrow for a public band: a shallower primary — never shallower than the arm plus
+            # the band's own need.
+            ph = _grid(max(sh + 6.5, primary_area / L_PRIMARY_MIN_WIDTH_M))
+            pw = _grid(primary_area / ph)
+            if ph > bd + 1e-9 or pw + sw > bw + 1e-9 or pw < L_PRIMARY_MIN_WIDTH_M - 1e-9:
+                continue
+        if pw * ph <= (pw + sw) * sh + 1e-9:
+            continue
+        return [LMassing(pw, ph, sw, sh, "rear"), LMassing(pw, ph, sw, sh, "front")]
+    return []
+
