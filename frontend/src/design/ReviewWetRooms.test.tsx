@@ -74,6 +74,11 @@ describe('ReviewPage wet rooms', () => {
     // rows travel with the edit for the backend to judge.
     fireEvent.change(screen.getByLabelText('סוג חדר רחצה 2'), { target: { value: 'shared_bathroom' } })
     expect(generate).toBeEnabled()
+    // The backend has not re-judged these rows yet, so its original verdict — which would still
+    // read "צריך להגיד לנו מה נכון" to someone who just answered — is replaced by a neutral note
+    // saying the edit will be checked, not repeated as if nothing had changed.
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('השינוי בחדרי הרחצה ייבדק בלחיצה על יצירת תוכנית')).toBeInTheDocument()
     fireEvent.click(generate)
     expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({
       wet_rooms: 2,
@@ -145,5 +150,74 @@ describe('ReviewPage wet rooms', () => {
 
     expect(screen.getByLabelText('סוג חדר רחצה 1')).toHaveValue('unspecified')
     expect(screen.getByRole('button', { name: /יצירת תוכנית/ })).toBeEnabled()
+  })
+})
+
+/** Why Generate is disabled used to live only in the button's `title` — invisible until hovered,
+ * on a screen the person had already scrolled past. It is now also said as text under the
+ * button, in the same words, so the reason is on the page without a hover. */
+describe('ReviewPage disabled-Generate reason', () => {
+  it('names the concrete blocking request under the button, matching the tooltip', () => {
+    const review = {
+      ...reviewWith([ENSUITE, GUEST_WC], null),
+      unsupported_requests: [{ text: 'חדר כביסה', topic: 'room_type', severity: 'hard_requirement' }],
+    } as RequirementsReview
+    const { container } = render(<ReviewPage review={review} onConfirm={() => {}} onBack={() => {}} />)
+
+    const generate = screen.getByRole('button', { name: /יצירת תוכנית/ })
+    expect(generate).toBeDisabled()
+    const reason = 'לא ניתן ליצור תוכנית: ״חדר כביסה״ הוא דרישה מחייבת שהמתכנן לא יודע לכבד. אפשר לנסח אותה כהעדפה או להסיר מהתיאור.'
+    expect(generate).toHaveAttribute('title', reason)
+    const shown = container.querySelector('.review-generate-reason')
+    expect(shown).not.toBeNull()
+    expect(shown).toHaveTextContent(reason)
+  })
+
+  it('names every blocking request when there is more than one', () => {
+    const review = {
+      ...reviewWith([ENSUITE, GUEST_WC], null),
+      unsupported_requests: [
+        { text: 'חדר כביסה', topic: 'room_type', severity: 'hard_requirement' },
+        { text: 'מרתף', topic: 'room_type', severity: 'hard_requirement' },
+      ],
+    } as RequirementsReview
+    const { container } = render(<ReviewPage review={review} onConfirm={() => {}} onBack={() => {}} />)
+
+    const shown = container.querySelector('.review-generate-reason')
+    expect(shown).toHaveTextContent('חדר כביסה')
+    expect(shown).toHaveTextContent('מרתף')
+  })
+
+  it('keeps the existing priority: a blocking request outranks an unanswered wet-room question', () => {
+    const review = {
+      ...reviewWith([ENSUITE, GUEST_WC], PROBLEM),
+      unsupported_requests: [{ text: 'חדר כביסה', topic: 'room_type', severity: 'hard_requirement' }],
+    } as RequirementsReview
+    const { container } = render(<ReviewPage review={review} onConfirm={() => {}} onBack={() => {}} />)
+
+    const generate = screen.getByRole('button', { name: /יצירת תוכנית/ })
+    expect(generate.getAttribute('title')).toMatch(/חדר כביסה/)
+    const shown = container.querySelector('.review-generate-reason')
+    expect(shown).toHaveTextContent(/חדר כביסה/)
+    expect(shown).not.toHaveTextContent('חדרי הרחצה')
+  })
+
+  it('falls back to the wet-room reason once no blocking request remains', () => {
+    const { container } = render(
+      <ReviewPage review={reviewWith([ENSUITE, GUEST_WC], PROBLEM)} onConfirm={() => {}} onBack={() => {}} />,
+    )
+
+    const generate = screen.getByRole('button', { name: /יצירת תוכנית/ })
+    expect(generate).toHaveAttribute('title', 'צריך להשלים את חדרי הרחצה קודם')
+    expect(container.querySelector('.review-generate-reason')).toHaveTextContent('צריך להשלים את חדרי הרחצה קודם')
+  })
+
+  it('shows no reason at all once nothing blocks Generate', () => {
+    const { container } = render(
+      <ReviewPage review={reviewWith([ENSUITE, GUEST_WC], null)} onConfirm={() => {}} onBack={() => {}} />,
+    )
+
+    expect(screen.getByRole('button', { name: /יצירת תוכנית/ })).toBeEnabled()
+    expect(container.querySelector('.review-generate-reason')).toBeNull()
   })
 })

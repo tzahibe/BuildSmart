@@ -165,6 +165,26 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const outOfRange = bedrooms < bedroomsMin || bedrooms > bedroomsMax
   const floorsOutOfRange = floors < 1 || floors > floorsMax
 
+  // WHY GENERATE IS DISABLED, in the same priority order the button already used for its
+  // tooltip — computed once so the tooltip and the text under the button never say two
+  // different things. A hard requirement names itself: "יש בקשות" told the person something was
+  // wrong without saying what, so they had to scroll up to find it.
+  const blockingReason =
+    blocking.length === 1
+      ? `לא ניתן ליצור תוכנית: ״${blocking[0].text}״ הוא דרישה מחייבת שהמתכנן לא יודע לכבד. ` +
+        'אפשר לנסח אותה כהעדפה או להסיר מהתיאור.'
+      : blocking.length > 1
+        ? `לא ניתן ליצור תוכנית: ${blocking.map((r) => `״${r.text}״`).join(', ')} הן דרישות ` +
+          'מחייבות שהמתכנן לא יודע לכבד. אפשר לנסח אותן כהעדפה או להסיר מהתיאור.'
+        : null
+  const disabledReason: string | undefined =
+    outOfRange
+      ? `בשלב זה אפשר לתכנן ${bedroomsMin} עד ${bedroomsMax} חדרי שינה`
+      : floorsOutOfRange
+        ? (floorsMax === 1 ? 'בשלב זה אפשר לתכנן בית בקומה אחת בלבד' : `בשלב זה אפשר לתכנן עד ${floorsMax} קומות`)
+        : (blockingReason ??
+          (wetBlocked ? 'צריך להשלים את חדרי הרחצה קודם' : undefined))
+
   return (
     <section className="review" aria-label="סקירת דרישות">
       <h1 className="review-title">זה מה שהבנתי</h1>
@@ -410,8 +430,15 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
               </div>
             )
           })}
-          {wetProblem ? (
+          {wetProblem && !wetRowsDirty ? (
             <p className="review-out-of-range" role="alert">{wetProblem}</p>
+          ) : null}
+          {/* The backend has not re-judged these rows yet — that only happens on the next
+              Generate — so the ORIGINAL verdict ("צריך להגיד לנו מה נכון") would keep telling the
+              person to answer a question they already answered. This says the truer thing: the
+              edit is noted and will be checked, not accepted or rejected yet. */}
+          {wetProblem && wetRowsDirty ? (
+            <p className="review-wet-room-pending">השינוי בחדרי הרחצה ייבדק בלחיצה על יצירת תוכנית</p>
           ) : null}
           {wetProblem && wetProposal && !wetRowsDirty ? (
             <button type="button" className="review-back review-wet-proposal" onClick={applyWetProposal}>
@@ -461,17 +488,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           type="button"
           className="review-generate"
           disabled={busy || blocking.length > 0 || outOfRange || floorsOutOfRange || wetBlocked}
-          title={
-            outOfRange
-              ? `בשלב זה אפשר לתכנן ${bedroomsMin} עד ${bedroomsMax} חדרי שינה`
-              : floorsOutOfRange
-                ? (floorsMax === 1 ? 'בשלב זה אפשר לתכנן בית בקומה אחת בלבד' : `בשלב זה אפשר לתכנן עד ${floorsMax} קומות`)
-              : blocking.length > 0
-                ? 'יש בקשות שצריך להכריע בהן קודם'
-                : wetBlocked
-                  ? 'צריך להשלים את חדרי הרחצה קודם'
-                  : undefined
-          }
+          title={disabledReason}
           onClick={() =>
             onConfirm({
               ...setbacks,
@@ -488,6 +505,13 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           {busy ? 'מייצר תוכנית…' : 'יצירת תוכנית'}
         </button>
       </div>
+      {/* The tooltip alone hid the reason above the fold, on a screen that already scrolls: the
+          person saw a disabled button and a generic wet-room alert higher up, with nothing tying
+          the two together. The same reason the title carries is said again here, in the place the
+          eye actually lands after Generate does nothing. */}
+      {disabledReason ? (
+        <p className="review-generate-reason">{disabledReason}</p>
+      ) : null}
     </section>
   )
 }

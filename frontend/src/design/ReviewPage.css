@@ -285,5 +285,27 @@
   color: var(--review-muted, #6b6b6b);
 }
 
+/* Rows changed since the backend's last verdict on them (`wetRowsDirty`): a neutral placeholder
+   for the alert it replaces, not a new verdict — the real one arrives only on the next Generate. */
+.review-wet-room-pending {
+  grid-column: 1 / -1;
+  margin: 0.1rem 0 0.4rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  background: var(--review-bg-subtle, #f4f2ec);
+  border: 1px solid var(--review-border, #d9d4c7);
+  color: var(--review-muted, #6b6b6b);
+  font-size: 0.9rem;
+}
+
 /* The backend's proposed answer to a wet-room question: one click puts its rows in the editor. */
 .review-wet-proposal { margin-top: 8px; text-align: right; line-height: 1.5; }
+
+/* Why Generate is disabled, said again where the eye lands after the button does nothing — the
+   same reason the tooltip (`title`) already carries. */
+.review-generate-reason {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  color: #8a3b2a;
+  text-align: center;
+}
