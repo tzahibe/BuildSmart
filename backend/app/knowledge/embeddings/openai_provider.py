@@ -22,6 +22,7 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         self.model_name = model
         self.dim = _DIM_BY_MODEL.get(model, 1536)
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], *, is_query: bool = False) -> list[list[float]]:
+        del is_query  # text-embedding-3-* has no query/document prefix convention
         resp = self._client.embeddings.create(model=self.model_name, input=texts)
         return [d.embedding for d in resp.data]

@@ -109,9 +109,13 @@ alone. Last refreshed: 2026-09-16.
   27/36 hand-built briefs and 0/76 independently-generated briefs currently align on a shared stair
   seat — this is the open problem Phase 1's follow-up work targets.
 - **Knowledge RAG embeddings**: neither installed Ollama model (`llama3.2`, `gemma4:26b`) declares
-  `embedding` capability (confirmed live via `/api/tags`/`/api/show`) — the index currently runs on
-  the deterministic hash embedder, not real semantic vectors. Hybrid keyword search (FTS5) still
-  retrieves exact technical terms reliably; see `docs/PROJECT_KNOWLEDGE_RAG.md`.
+  `embedding` capability (confirmed live via `/api/tags`/`/api/show`) — the auto-detected default
+  index still runs on the deterministic hash embedder, not real semantic vectors. A real
+  multilingual semantic option now exists (`KNOWLEDGE_EMBEDDING_PROVIDER=huggingface`,
+  `KNOWLEDGE_EMBEDDING_MODEL=BAAI/bge-m3` — evaluated best-of-3 candidates on this corpus,
+  improves both Hebrew and English retrieval) but is **opt-in only**, never auto-selected; needs
+  `uv sync --extra knowledge-embeddings`. Hybrid keyword search (FTS5) still retrieves exact
+  technical terms reliably either way; see `docs/PROJECT_KNOWLEDGE_RAG.md`.
 
 ## Guardrails / do-not-change rules
 

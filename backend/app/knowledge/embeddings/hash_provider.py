@@ -39,7 +39,9 @@ class HashEmbeddingProvider(EmbeddingProvider):
         self.model_name = "hashed-ngram-v1"
         self.dim = dim
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], *, is_query: bool = False) -> list[list[float]]:
+        # A bag-of-words/n-gram hash has no query/document asymmetry to exploit — ignored.
+        del is_query
         vectors = []
         for text in texts:
             vector = [0.0] * self.dim

@@ -1,17 +1,25 @@
 """Runtime configuration for the Project Knowledge RAG index — read from environment variables
 only; nothing here is hardcoded or committed to source control.
 
-KNOWLEDGE_EMBEDDING_PROVIDER=ollama|hash|openai   (default: auto-detect, see embeddings/factory.py)
+KNOWLEDGE_EMBEDDING_PROVIDER=ollama|hash|openai|huggingface   (default: auto-detect, see
+                                                                embeddings/factory.py)
 
     Left unset, the factory asks `app.local_models.discovery` for an installed Ollama model whose
     `/api/show` response actually lists "embedding" in its capabilities, and uses it if found.
     Today neither installed model (`llama3.2`, `gemma4:26b`) declares that capability, so the
     factory falls back to `hash` and logs that semantic embeddings are not enabled — it never
-    silently repurposes a completion model as an embedder.
+    silently repurposes a completion model as an embedder. `huggingface` is never auto-selected —
+    it only activates when explicitly requested, and any initialization failure raises rather than
+    silently falling back (see embeddings/huggingface_provider.py).
 
-KNOWLEDGE_EMBEDDING_MODEL     — which Ollama model to embed with (only read if the resolved
-                                 provider is "ollama"; no default — must name a capability-verified
-                                 model)
+KNOWLEDGE_EMBEDDING_MODEL     — which model to embed with. Read for "ollama" (must name a
+                                 capability-verified model, no default) and "huggingface" (a
+                                 sentence-transformers model id, no default — see
+                                 docs/PROJECT_KNOWLEDGE_RAG.md for the evaluated candidates and the
+                                 selected default)
+KNOWLEDGE_EMBEDDING_DEVICE    — "cpu" (default) or "mps" for the huggingface provider only. CPU is
+                                 the safe default everywhere; MPS is opt-in acceleration on Apple
+                                 Silicon, never required.
 KNOWLEDGE_SQLITE_PATH         — path to the SQLite index file (default: app/knowledge/data/index.db)
 KNOWLEDGE_SOURCE_GLOBS        — comma-separated glob list, relative to the repo root (default below)
 OLLAMA_BASE_URL               — shared with the AI test harness (default: http://localhost:11434)
@@ -45,6 +53,7 @@ class KnowledgeConfig:
     sqlite_path: str
     source_globs: tuple[str, ...] = field(default_factory=lambda: DEFAULT_SOURCE_GLOBS)
     ollama_base_url: str = "http://localhost:11434"
+    embedding_device: str = "cpu"
 
 
 def config_from_env(repo_root: str) -> KnowledgeConfig:
@@ -58,4 +67,5 @@ def config_from_env(repo_root: str) -> KnowledgeConfig:
         sqlite_path=os.environ.get("KNOWLEDGE_SQLITE_PATH", default_db),
         source_globs=globs,
         ollama_base_url=os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
+        embedding_device=os.environ.get("KNOWLEDGE_EMBEDDING_DEVICE", "cpu").strip().lower() or "cpu",
     )

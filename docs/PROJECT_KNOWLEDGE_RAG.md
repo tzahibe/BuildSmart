@@ -83,7 +83,7 @@ changes.
 
 ## Embeddings
 
-Three providers behind one `EmbeddingProvider` ABC (`embeddings/base.py`), selected by
+Four providers behind one `EmbeddingProvider` ABC (`embeddings/base.py`), selected by
 `embeddings/factory.py`:
 
 1. **`ollama`** — only usable for a model whose capabilities were *verified* (via
@@ -92,19 +92,72 @@ Three providers behind one `EmbeddingProvider` ABC (`embeddings/base.py`), selec
    immediately — it never silently repurposes a completion model as an embedder.
 2. **`hash`** — a dependency-free deterministic hashed n-gram vectorizer. The safe fallback.
 3. **`openai`** — `text-embedding-3-small`, gated by `OPENAI_API_KEY`.
+4. **`huggingface`** — local `sentence-transformers` inference (CPU by default, MPS opt-in on
+   Apple Silicon, never required). **Never part of auto-detect** — only activates when
+   `KNOWLEDGE_EMBEDDING_PROVIDER=huggingface` is explicitly set, and any failure (missing the
+   `knowledge-embeddings` extra, a model that fails to load) raises immediately rather than
+   silently falling back to `hash` — a silent fallback would make an evaluation run look semantic
+   when it actually wasn't. Requires `uv sync --extra knowledge-embeddings`
+   (`sentence-transformers` + `torch`, not installed by default).
 
 **Measured fact about this machine**: neither installed Ollama model declares embedding
 capability (`llama3.2:latest` → `[completion, tools]`; `gemma4:26b` → `[completion, vision, tools,
 thinking]`). So today, `KNOWLEDGE_EMBEDDING_PROVIDER` auto-detects to **`hash`**, and the CLI logs
-this plainly on every index/search. To get real semantic embeddings: `ollama pull
-nomic-embed-text` (not done automatically by anything in this repo), then either leave
-`KNOWLEDGE_EMBEDDING_PROVIDER` unset (auto-detect will pick it up) or set it explicitly with
-`KNOWLEDGE_EMBEDDING_MODEL=nomic-embed-text`.
+this plainly on every index/search. Three ways to get real semantic embeddings, in order of
+recommendation: (1) `KNOWLEDGE_EMBEDDING_PROVIDER=huggingface` + `KNOWLEDGE_EMBEDDING_MODEL=
+BAAI/bge-m3` (evaluated below — the strongest option measured), (2) `ollama pull
+nomic-embed-text` then leave `KNOWLEDGE_EMBEDDING_PROVIDER` unset, (3) `KNOWLEDGE_EMBEDDING_
+PROVIDER=openai`. None of these happen automatically.
+
+### Embedding-model evaluation (2026-09-17)
+
+Compared 3 Hugging Face multilingual candidates against the existing hash+FTS5 baseline, on this
+repo's real doc corpus (72 tracked files, ~1,100 chunks) and a 30-query bilingual (20 EN / 10 HE)
+evaluation set manually grounded via `git grep` on tracked content
+(`backend/tests/knowledge/eval/queries.json` — never generated from a model's own output).
+Methodology and raw per-model reports: `backend/tests/knowledge/eval/run_eval.py` +
+`baseline_hash.json`/`e5_base.json`/`bge_m3.json`/`mpnet.json` in the same directory.
+
+| model | dim | index time (72 files) | peak RSS | hybrid Top-1 | Recall@3 | Recall@5 | MRR | HE Top-1 | EN Top-1 | query latency |
+|---|---|---|---|---|---|---|---|---|---|---|
+| hash (baseline) | 512 | 1.3s | 34 MB | 43.3% | 53.3% | 63.3% | 0.513 | 20% | 55% | 167 ms |
+| paraphrase-multilingual-mpnet-base-v2 | 768 | 26s | 1.73 GB | 43.3% | 70.0% | 83.3% | 0.587 | 40% | 45% | 373 ms |
+| intfloat/multilingual-e5-base | 768 | 105s | 2.53 GB | 46.7% | 70.0% | 83.3% | 0.601 | 40% | 50% | 390 ms |
+| **BAAI/bge-m3** | 1024 | 618s | 3.67 GB | **56.7%** | **86.7%** | **90.0%** | **0.703** | **50%** | **60%** | 572 ms |
+
+**Semantic-only vs. FTS-only vs. hybrid** (proving the semantic channel adds value rather than
+replacing keyword search — full breakdown in the per-model JSON reports): FTS-only alone already
+gets 26.7% Top-1 / 0.444 MRR (driven by literal term overlap — exact terms like `C22` retrieve via
+this channel regardless of embedding quality). `bge-m3` semantic-only alone reaches 46.7% Top-1 /
+0.627 MRR — genuinely strong standalone semantic performance, unlike `e5-base` and `mpnet`, whose
+semantic-only channels underperformed FTS-only on English (their value only appeared once
+combined with FTS in the hybrid score). **Hybrid consistently beats both channels alone for every
+model** — FTS5 was not removed, and should not be: `bge-m3`'s hybrid MRR (0.703) beats its own
+semantic-only MRR (0.627) and FTS-only's (0.444).
+
+**Selected: `BAAI/bge-m3`.** It is not the fastest or the lightest — it is the only candidate that
+improved **both** languages simultaneously (`e5-base` traded English Top-1 for Hebrew gains;
+`mpnet` matched baseline English at best) and won on every single retrieval-quality metric
+measured, not one cherry-picked number. The cost is real (618s to fully reindex vs. 1.3s for hash;
+3.67 GB peak RSS vs. 34 MB) but bounded and one-time-ish: `knowledge index --changed` only
+re-embeds changed files, so the 618s is a full-rebuild cost, not a per-edit one, and 3.67 GB is
+comfortable headroom on the 32 GB target machine. Per-query latency (572ms) stays sub-second for
+an interactive CLI tool. This is an evidence-based choice, not a "pick the biggest" default —
+`mpnet` (26s indexing, 1.73 GB) remains a documented lighter-weight alternative for anyone who
+wants faster reindexing at a real quality cost, and `e5-base` sits in between.
+**`huggingface` remains opt-in** — the auto-detected default (`hash`, or `ollama` once a
+capability-verified model is pulled) is unchanged; nothing switches automatically.
+
+Not measured this round (explicitly, not fabricated): `KNOWLEDGE_EMBEDDING_DEVICE=mps`
+acceleration (available, untested); a 4th/5th HF candidate; production-scale corpora larger than
+this repo's ~1,100 chunks.
 
 **Index versioning**: the store's `index_meta` row records `(embedding_provider, embedding_model,
 embedding_dim)`. `index_changed()` refuses to run incrementally if the active config no longer
-matches what's recorded — it raises `EmbeddingConfigMismatch` telling you to run `knowledge clear
-&& knowledge index`, rather than silently mixing vectors from two different models.
+matches what's recorded on **any** of those three fields — it raises `EmbeddingConfigMismatch`
+telling you to run `knowledge clear && knowledge index`, rather than silently mixing vectors from
+two different models (or two versions of the same model that changed dimensionality without a
+name change).
 
 ## Retrieval
 

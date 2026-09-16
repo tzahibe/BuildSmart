@@ -67,12 +67,16 @@ class KnowledgeIndexer:
         meta = self.store.get_index_meta()
         if meta is None:
             return
-        if (meta.embedding_provider, meta.embedding_model) != (self.embedder.provider_name, self.embedder.model_name):
+        recorded = (meta.embedding_provider, meta.embedding_model, meta.embedding_dim)
+        active = (self.embedder.provider_name, self.embedder.model_name, self.embedder.dim)
+        if recorded != active:
             raise EmbeddingConfigMismatch(
                 f"The index was built with provider={meta.embedding_provider!r} "
-                f"model={meta.embedding_model!r}, but the active config resolves to "
-                f"provider={self.embedder.provider_name!r} model={self.embedder.model_name!r}. "
-                f"Mixing embeddings from different models would silently corrupt vector search. "
+                f"model={meta.embedding_model!r} dim={meta.embedding_dim}, but the active config "
+                f"resolves to provider={self.embedder.provider_name!r} "
+                f"model={self.embedder.model_name!r} dim={self.embedder.dim}. "
+                f"Mixing embeddings from different models (or model versions that changed "
+                f"dimensionality) would silently corrupt vector search. "
                 f"Run `knowledge clear && knowledge index` to rebuild with the new config."
             )
 

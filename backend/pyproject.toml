@@ -30,6 +30,16 @@ local-model = [
     "peft>=0.13.0",
 ]
 
+# Only needed for KNOWLEDGE_EMBEDDING_PROVIDER=huggingface (app/knowledge/embeddings/
+# huggingface_provider.py) — local sentence-transformers inference, CPU by default. Not required
+# for the default hash/ollama/openai embedding providers, or for the hermetic knowledge test suite
+# (which never constructs this provider without the extra installed — see
+# tests/knowledge/test_huggingface_provider.py's skip guard).
+knowledge-embeddings = [
+    "sentence-transformers>=3.0.0",
+    "torch>=2.2.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",

@@ -31,7 +31,8 @@ class OllamaEmbeddingProvider(EmbeddingProvider):
         self.dim = 0  # discovered on first real call
         self._base_url = base_url
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: list[str], *, is_query: bool = False) -> list[list[float]]:
+        del is_query  # no installed Ollama model here uses a query/document-prefixed protocol
         with httpx.Client() as client:
             resp = client.post(
                 f"{self._base_url}/api/embed",

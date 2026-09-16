@@ -36,8 +36,21 @@ def get_embedding_provider(cfg: KnowledgeConfig) -> EmbeddingProvider:
         if not cfg.embedding_model:
             raise RuntimeError("KNOWLEDGE_EMBEDDING_PROVIDER=ollama requires KNOWLEDGE_EMBEDDING_MODEL")
         return OllamaEmbeddingProvider(cfg.embedding_model, cfg.ollama_base_url)
+    if override == "huggingface":
+        # Explicit request only — never part of auto-detect below. Any failure here (missing
+        # 'knowledge-embeddings' extra, a model that fails to load) raises immediately rather than
+        # silently degrading to the hash fallback, so an evaluation run can never look semantic
+        # when it actually used hash embeddings.
+        from app.knowledge.embeddings.huggingface_provider import HuggingFaceEmbeddingProvider
+
+        if not cfg.embedding_model:
+            raise RuntimeError("KNOWLEDGE_EMBEDDING_PROVIDER=huggingface requires KNOWLEDGE_EMBEDDING_MODEL")
+        provider = HuggingFaceEmbeddingProvider(cfg.embedding_model, device=cfg.embedding_device)
+        logger.info("knowledge: using Hugging Face embedding model %r on device %r (dim=%d)",
+                    provider.model_name, cfg.embedding_device, provider.dim)
+        return provider
     if override is not None:
-        raise RuntimeError(f"Unknown KNOWLEDGE_EMBEDDING_PROVIDER: {override!r} (expected 'ollama', 'hash', or 'openai')")
+        raise RuntimeError(f"Unknown KNOWLEDGE_EMBEDDING_PROVIDER: {override!r} (expected 'ollama', 'hash', 'openai', or 'huggingface')")
 
     from app.local_models.discovery import discover_ollama
 

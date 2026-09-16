@@ -59,7 +59,7 @@ def search(
     """`status`, when given, FILTERS to those doc_status values (e.g. `("HISTORICAL",
     "SUPERSEDED")` to explicitly ask for historical material) rather than reranking — so
     historical/superseded content is always reachable on request, never hidden outright."""
-    query_vector = embedder.embed([query])[0]
+    query_vector = embedder.embed([query], is_query=True)[0]
     vector_hits = store.search_vector(query_vector, _CANDIDATE_POOL)
     keyword_hits = store.search_keyword(query, _CANDIDATE_POOL)
 
