@@ -1,8 +1,8 @@
 """Feature 006 — the outline list and the cross-outline selection, tested on stand-ins.
 
-`_select_plans` reads four things off a plan: `concept.used_area_m2`, `index`, `layout_signature`
-and `ok` (and, from phase 4 on, `family_signature`). The stubs below provide exactly those, so the
-selection rules are pinned without solving a single fixture.
+`_select_plans` reads five things off a plan: `concept.used_area_m2`, `index`, `layout_signature`,
+`ok`, `family_signature` (phase 4 on) and `massing_signature` (one wing or two). The stubs below
+provide exactly those, so the selection rules are pinned without solving a single fixture.
 """
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ class _Plan:
     family: str = "V[H[B,B],H,H[P,P,M]]"
     layout: str = ""
     ok: bool = True
+    #: one wing ("1W") or two ("2W", an L) — `RealizedPlan.massing_signature`
+    massing: str = "1W"
 
     @property
     def concept(self) -> _Concept:
@@ -39,6 +41,10 @@ class _Plan:
     @property
     def family_signature(self) -> str:
         return self.family
+
+    @property
+    def massing_signature(self) -> str:
+        return self.massing
 
     @property
     def layout_signature(self) -> str:
@@ -248,3 +254,44 @@ def test_the_persons_plan_stays_first_and_its_alternatives_follow_the_same_rules
     selection = svc._select_plans(results, 176.0)
     assert selection.primary[0].outline.origin == "PERSON"
     assert [(o.outline.order, p.family) for o, p in selection.alternatives] == [(0, "F2"), (1, "F1")]
+
+
+# ------------------------------------------------------------------ massing representation
+def test_a_plan_of_another_massing_is_shown_before_a_second_organisation_of_the_same():
+    """An L (two wings) that lands farther from the request than every one-wing plan is still
+    shown: a massing is the coarsest difference a person sees, so it takes a slot before a second
+    one-wing organisation does. The primary is untouched — still the area-nearest plan."""
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F2"), _Plan(174.0, 2, "F3"),
+                                     _Plan(150.0, 3, "V[...]+H[...]", massing="2W"))),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    assert selection.primary[1].family == "F1" and selection.primary[1].massing == "1W"
+    shown = [(p.family, p.massing) for _, p in selection.alternatives]
+    assert shown[0] == ("V[...]+H[...]", "2W"), "the other massing takes the first alternative slot"
+    assert shown[1] == ("F2", "1W")
+    assert len(shown) == 2
+
+
+def test_the_massing_pass_changes_nothing_when_every_plan_is_one_wing():
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F1"), _Plan(174.0, 2, "F2"))),
+        _OutlineResult(_outline(1), (_Plan(173.0, 0, "F3"),)),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    families = [selection.primary[1].family] + [p.family for _, p in selection.alternatives]
+    assert sorted(families) == ["F1", "F2", "F3"]
+
+
+def test_a_two_wing_primary_gets_a_one_wing_alternative_first():
+    """The rule is symmetric: when the area-nearest plan is the L, a one-wing plan is guaranteed
+    a slot — the person sees both massings whichever won on area."""
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "V[...]+H[...]", massing="2W"),
+                                     _Plan(175.0, 1, "V[...]+H[...]", massing="2W"),
+                                     _Plan(160.0, 2, "F1"))),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    assert selection.primary[1].massing == "2W"
+    assert [p.massing for _, p in selection.alternatives][0] == "1W"
+

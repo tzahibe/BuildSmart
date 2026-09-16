@@ -362,3 +362,35 @@ def test_c22_is_not_emitted_for_a_one_wing_fixture():
     import tempfile, os
     result = run_demo(os.path.join(tempfile.mkdtemp(), "h.png"))
     assert "C22" not in {c.check_id for c in result.validation.checks}
+
+
+# ------------------------------------------------------------------ massing representation
+
+def test_a_valid_l_reaches_the_alternatives_and_the_primary_is_unchanged():
+    """Before the representation pass a valid L existed for 17 of the 25 measured briefs and was
+    shown for one. The pool now carries one plan of every massing the candidates contain; the
+    primary is still the area-nearest plan."""
+    result = run_general_from_site(F.l_shaped_site_deep_primary(), plot_size_m=(24.0, 32.0),
+                                   program=OPEN_3BR, max_alternatives=3)
+    assert result.ok
+    assert result.concept.strategy is not L, "the area-nearest one-wing plan stays the primary"
+    massings = {plan.massing_signature for plan in result.alternatives}
+    assert "2W" in massings, [a.concept.rationale[:60] for a in result.alternatives]
+    l_plans = [a for a in result.alternatives if a.massing_signature == "2W"]
+    assert all(a.ok and len(a.design.footprints_m) == 2 for a in l_plans)
+    assert len(result.alternatives) <= 3
+
+
+def test_a_one_wing_site_is_untouched_by_the_representation_pass():
+    """Every candidate is one wing: no second massing, no extra solve, the same alternatives."""
+    result = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0),
+                                   program=OPEN_3BR, max_alternatives=3)
+    assert result.ok
+    assert {plan.massing_signature for plan in (result.alternatives)} <= {"1W"}
+    assert result.concept.concept.fixture.wings and len(result.concept.concept.fixture.wings) == 1
+
+
+def test_massing_signature_counts_the_wings(deep_open):
+    _, plans = deep_open
+    from app.vertical_slice.general_pipeline import massing_of
+    assert all(massing_of(c) == "2W" and p.massing_signature == "2W" for c, p in plans)

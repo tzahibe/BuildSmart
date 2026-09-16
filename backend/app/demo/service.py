@@ -539,7 +539,9 @@ def _select_plans(results: list[OutlineResult],
     plan of a family not yet shown before any repeat, and a repeat only from an outline not yet
     shown. Measured before this rule, 142 of the 178 alternatives the demo showed were the primary's
     own family re-proportioned. Family (`RealizedPlan.family_signature`) is used HERE ONLY, as a
-    display de-duplication key; it is not an input to the primary and must not become one.
+    display de-duplication key; it is not an input to the primary and must not become one. The
+    same holds for massing (`RealizedPlan.massing_signature`, one wing or two), which is taken
+    before family: a plan of another massing is shown before a second organisation of the same.
     """
     target = requested_m2 or 0.0
     person = next((orr for orr in results if orr.outline.origin == "PERSON" and orr.plans), None)
@@ -572,6 +574,16 @@ def _select_plans(results: list[OutlineResult],
         if orr.offered_for_area and orr.plans and orr is not primary_orr:
             take((orr, orr.plans[0]))
 
+    # Pass 0: MASSINGS not yet shown — a two-wing (L) plan beside one-wing ones, or the reverse.
+    # A massing is a coarser difference than an organisation family, and the one a person sees
+    # first; a valid plan of another massing is shown before a second organisation of the same
+    # one. Display de-duplication only, like family: never an input to the primary.
+    for item in pool:
+        if len(shown) >= _SHOWN_LIMIT:
+            break
+        massings = {plan.massing_signature for _, plan in shown}
+        if unseen_drawing(item) and item[1].massing_signature not in massings:
+            take(item)
     # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
     # shape of a family already on screen). Never the same outline re-proportioned.
     for item in pool:

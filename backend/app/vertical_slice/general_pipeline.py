@@ -93,6 +93,12 @@ class RunMetrics:
 #: it did before, and the one screen that shows options is the one that pays for them.
 ALTERNATIVE_PLAN_LIMIT = 3
 
+#: How many candidates of an UNREPRESENTED massing family to try so that one plan of it can be
+#: shown beside the rest (`_alternative_plans`). Bounded separately from the attempt limit above
+#: because it only ever runs when a second massing family exists among the candidates — an L site —
+#: and a one-wing brief must cost exactly what it did.
+MASSING_ATTEMPT_LIMIT = 4
+
 #: How many candidates to try while looking for those alternatives.
 #:
 #: THE COST IS THE SOLVER, and only the solver. Measured over a 13-candidate brief: 2142 ms in
@@ -137,6 +143,16 @@ class RealizedPlan:
                             for r in self.design.rooms))
 
     @property
+    def massing_signature(self) -> str:
+        """What makes two plans the SAME MASSING: how many wings the footprint is made of — one
+        rectangle, or an L of two. Coarser than `family_signature` (which tells one organisation
+        of a rectangle from another) and read only where a plan set is chosen for DISPLAY, so a
+        valid two-wing plan is guaranteed a look beside the one-wing ones instead of sitting
+        behind every re-proportioning that lands nearer the requested area. Never an input to
+        which plan becomes primary — that stays the requested-area rule."""
+        return massing_of(self.concept)
+
+    @property
     def family_signature(self) -> str:
         """What makes two plans the SAME HOUSE: how the rooms are organised, dimensions aside.
 
@@ -151,6 +167,11 @@ class RealizedPlan:
         never an input to which plan becomes primary — that stays the requested-area rule.
         """
         return _family_signature(self.concept.concept.fixture, self.concept.strategy)
+
+
+def massing_of(candidate) -> str:
+    """A concept candidate's massing family: `1W` for one rectangle, `2W` for two wings (an L)."""
+    return f"{len(candidate.concept.fixture.wings)}W"
 
 
 #: Zone role -> the letter it takes in a family signature. Wet rooms are resolved separately: a
@@ -692,6 +713,51 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
             continue
         seen.add(plan.layout_signature)
         found.append(plan)
+
+    # MASSING REPRESENTATION. The walk above takes candidates in the generator's order, and a
+    # two-wing plan ranks by area like every other — behind the one-wing re-proportionings that
+    # land nearer the request, and past the attempt cap. Measured on the five L sites: a valid L
+    # existed for 17 of 25 briefs and reached the screen for one — as the primary, where nothing
+    # one-wing planned. So one plan of every massing family the
+    # candidates contain is guaranteed a look: for each family not yet represented, its candidates
+    # are tried in the generator's order (bounded) and the first valid, distinct one joins the
+    # alternatives — replacing the area-farthest alternative when the list is full, so the pool
+    # stays within `limit`. The primary is untouched, and a brief whose candidates are all one
+    # massing pays nothing here.
+    represented = {chosen.massing_signature} | {plan.massing_signature for plan in found}
+    for massing in dict.fromkeys(massing_of(c) for c in candidates):
+        if massing in represented:
+            continue
+        # Forced trees interleaved with their unforced twins: the generator lists every forced
+        # tree before every twin (the primary must be found at today's position), but here the
+        # question is only whether ANY valid plan of this massing exists within a few solves, and
+        # the twin is what rescues a forced tree the solver refuses. Measured on the long-arm L
+        # site: the 15 area-nearest L forced trees all failed in the solver and every twin solved,
+        # so a walk in list order found nothing within the limit.
+        family = [(i, c) for i, c in enumerate(candidates)
+                  if i != chosen_index and massing_of(c) == massing]
+        forced = [x for x in family if not x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
+        twins = [x for x in family if x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
+        interleaved = [x for pair in zip(forced, twins) for x in pair]
+        interleaved += forced[len(twins):] + twins[len(forced):]
+        tries = 0
+        for index, candidate in interleaved:
+            if tries >= MASSING_ATTEMPT_LIMIT:
+                break
+            tries += 1
+            try:
+                solve = solve_fixture(candidate.concept.fixture)
+            except GeometryInfeasible:
+                continue
+            plan = _realize(spec, buildable, site_constraints, candidate, index, solve, relationships)
+            if not plan.ok or plan.layout_signature in seen:
+                continue
+            seen.add(plan.layout_signature)
+            if len(found) >= limit:
+                found.pop()
+            found.append(plan)
+            represented.add(massing)
+            break
     return tuple(found)
 
 
