@@ -56,7 +56,7 @@ rectangle     all five               unchanged                    1W …        
 ## Regression
 
 - **Backend suite**: 1101 passed, 9 xfailed, 2 failed — the same two that fail on `main` @ `2a00c0f`, untouched.
-- **432-context demo snapshot** against branch `012`: appended below when the run finishes (the pass is gated on a second massing existing among the candidates, which the demo path — one rectangle — never has; expected byte-identical).
+- **432-context demo snapshot** against branch `012` (full `DemoPlanSet` payloads, primary + alternatives, 431 contexts in the worktree's log copy): **planned before = after = 404; 404/404 payloads byte-identical; 0 status changes; 0 missing.** As expected — the pass is gated on a second massing existing among the candidates, which the demo path (one rectangle) never has.
 - Frontend unchanged on this branch.
 
 ## Not done here (by scope)
