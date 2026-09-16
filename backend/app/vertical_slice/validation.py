@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
 from .furniture import FurnitureCheck
@@ -29,6 +30,7 @@ from .geometry_core.model import (
     Rect,
     Side,
     WallType,
+    leaves_of,
     u_to_m,
 )
 from .site import SitePlan
@@ -166,9 +168,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                 worst, pair = ov, f"{ids[i]}/{ids[j]}"
     rep.add("C1", "no overlap between rooms", worst == 0, "none" if worst == 0 else f"{pair} overlap")
 
-    # C2 — no residual interior area (the whole footprint is fully consumed by rooms)
+    # C2 — no residual interior area (the whole footprint is fully consumed by rooms). The
+    # footprint is its WINGS' area, not the bounding box's: the crook of an L is outside.
     covered = sum(r.w * r.h for r in rects.values())
-    footprint_area_u = site.footprint.w * site.footprint.h
+    footprint_area_u = footprint_module.area_u(site.wings)
     rep.add("C2", "no residual interior area", covered == footprint_area_u,
             "footprint fully consumed by rooms" if covered == footprint_area_u
             else f"{footprint_area_u - covered} unit^2 unassigned inside the footprint")
@@ -318,8 +321,9 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     # C18 — parking bays clear of the house. C10 only proves a bay touches the street; a bay drawn
     # INSIDE the footprint touches it too, and that is exactly what a zero front setback produced —
     # the rooms were painted over the bays and every plan simply had no parking. Fails closed.
-    bad = [f"parking bay at x={p.x} overlaps the house by {p.overlap_area_u(site.footprint)} u²"
-           for p in site.parking if p.overlap_area_u(site.footprint) > 0]
+    bad = [f"parking bay at x={p.x} overlaps the house by "
+           f"{sum(p.overlap_area_u(w) for w in site.wings)} u²"
+           for p in site.parking if any(p.overlap_area_u(w) > 0 for w in site.wings)]
     rep.add("C18", "parking bays clear of the house", not bad,
             "; ".join(bad) or f"{len(site.parking)} bays outside the footprint")
 
@@ -469,4 +473,80 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     rep.add("C17", "bathroom access matches the requirements", not bad,
             "; ".join(bad) or f"all {len(wet_rooms)} wet rooms entered as required")
 
+    # C22 — declared wing seams are real (the spike's proof P9, ported). Multi-wing fixtures only:
+    # a one-wing house has no seam to prove, and a check that did not run makes no claim — which
+    # is also what keeps every one-wing report and payload exactly as it was.
+    if len(fixture.wings) > 1:
+        bad = _seam_defects(fixture, rects, walls, windows, realized)
+        seams = sum(len(w.seam_leaf_sides) for w in fixture.wings)
+        rep.add("C22", "declared wing seams are real (P9)", not bad,
+                "; ".join(bad) or f"{seams} declared seam sides abut the other wing in full, none "
+                                  f"exterior or glazed; {len(fixture.wings)} wings joined by a "
+                                  f"realized connection; every room inside its wing")
+
     return rep
+
+
+def _seam_defects(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
+                  windows: list[Window], realized: list[RealizedConnection]) -> list[str]:
+    """Every way a two-wing fixture's seam can be a lie, as a list of defects (empty = P9 holds).
+
+    A DECLARED seam side must be geometrically real: the leaf's side lies on its own wing's
+    boundary, and leaves of ANOTHER wing abut it along its WHOLE length — a partial abutment is
+    the spike's L2 defect, a side that is part exterior and part seam with no single wall type.
+    The solver typed it as a partition, so it may carry no exterior semantics: not `EXTERIOR`, and
+    no window. An UNDECLARED abutment — a leaf side on its wing's boundary that touches another
+    wing without being declared — would be typed exterior against a room, so it is a defect too.
+    The wings must be one house: at least one realized connection joins zones of different wings
+    (an access edge that merely crosses the seam on paper is not that). And every room lies
+    inside the wing whose tree placed it.
+    """
+    wing_of_zone: dict[str, int] = {}
+    for index, wing in enumerate(fixture.wings):
+        for zone_id in leaves_of(wing.tree):
+            wing_of_zone[zone_id] = index
+    wing_rects = [w.rect() for w in fixture.wings]
+    declared = {(zone_id, side) for wing in fixture.wings for zone_id, side in wing.seam_leaf_sides}
+    glazed = {(w.zone_id, w.side) for w in windows if w.width_m > 0 and w.placeable}
+    defects: list[str] = []
+
+    def on_wing_boundary(rect: Rect, wing: Rect, side: Side) -> bool:
+        return {Side.W: rect.x == wing.x, Side.E: rect.x2 == wing.x2,
+                Side.N: rect.y == wing.y, Side.S: rect.y2 == wing.y2}[side]
+
+    def other_wing_abutment_u(zone_id: str, rect: Rect, side: Side) -> int:
+        return sum(rect.shared_edge_len_u(other) for other_id, other in rects.items()
+                   if other_id != zone_id and wing_of_zone.get(other_id) != wing_of_zone[zone_id]
+                   and _side_between(rect, other) is side)
+
+    for zone_id, rect in rects.items():
+        if zone_id not in wing_of_zone:
+            defects.append(f"{zone_id} belongs to no wing's tree")
+            continue
+        wing = wing_rects[wing_of_zone[zone_id]]
+        if not (wing.x <= rect.x and rect.x2 <= wing.x2 and wing.y <= rect.y and rect.y2 <= wing.y2):
+            defects.append(f"{zone_id} {rect} lies outside its wing {wing}")
+            continue
+        for side in Side:
+            side_len = rect.h if side in (Side.E, Side.W) else rect.w
+            abutting = other_wing_abutment_u(zone_id, rect, side)
+            if (zone_id, side) in declared:
+                if not on_wing_boundary(rect, wing, side):
+                    defects.append(f"{zone_id}.{side.value} declared a seam but not on its wing's boundary")
+                if abutting != side_len:
+                    defects.append(f"{zone_id}.{side.value}: {u_to_m(abutting)}/{u_to_m(side_len)} m "
+                                   f"abutted by the other wing — PARTIAL seam, wall type ambiguous")
+                if walls[(zone_id, side)] is WallType.EXTERIOR:
+                    defects.append(f"{zone_id}.{side.value} is a seam typed EXTERIOR")
+                if (zone_id, side) in glazed:
+                    defects.append(f"{zone_id}.{side.value} is a seam carrying a window")
+            elif abutting > 0 and on_wing_boundary(rect, wing, side):
+                defects.append(f"{zone_id}.{side.value} abuts the other wing for {u_to_m(abutting)} m "
+                               f"but is not declared a seam")
+
+    crossings = [c for c in realized
+                 if c.a in wing_of_zone and c.b in wing_of_zone
+                 and wing_of_zone[c.a] != wing_of_zone[c.b]]
+    if not crossings:
+        defects.append("no realized connection joins the wings — two buildings, not one house")
+    return defects

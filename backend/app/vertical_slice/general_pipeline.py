@@ -30,6 +30,7 @@ from app.geometry_domain.constraints import (
 from app.geometry_domain.primitives import MultiRegion
 
 from . import concept_generator as generator
+from . import footprint as footprint_module
 from . import hub_guard
 from . import doors as doors_stage
 from . import relationships as relationships_stage
@@ -92,6 +93,12 @@ class RunMetrics:
 #: it did before, and the one screen that shows options is the one that pays for them.
 ALTERNATIVE_PLAN_LIMIT = 3
 
+#: How many candidates of an UNREPRESENTED massing family to try so that one plan of it can be
+#: shown beside the rest (`_alternative_plans`). Bounded separately from the attempt limit above
+#: because it only ever runs when a second massing family exists among the candidates — an L site —
+#: and a one-wing brief must cost exactly what it did.
+MASSING_ATTEMPT_LIMIT = 4
+
 #: How many candidates to try while looking for those alternatives.
 #:
 #: THE COST IS THE SOLVER, and only the solver. Measured over a 13-candidate brief: 2142 ms in
@@ -136,6 +143,16 @@ class RealizedPlan:
                             for r in self.design.rooms))
 
     @property
+    def massing_signature(self) -> str:
+        """What makes two plans the SAME MASSING: how many wings the footprint is made of — one
+        rectangle, or an L of two. Coarser than `family_signature` (which tells one organisation
+        of a rectangle from another) and read only where a plan set is chosen for DISPLAY, so a
+        valid two-wing plan is guaranteed a look beside the one-wing ones instead of sitting
+        behind every re-proportioning that lands nearer the requested area. Never an input to
+        which plan becomes primary — that stays the requested-area rule."""
+        return massing_of(self.concept)
+
+    @property
     def family_signature(self) -> str:
         """What makes two plans the SAME HOUSE: how the rooms are organised, dimensions aside.
 
@@ -150,6 +167,11 @@ class RealizedPlan:
         never an input to which plan becomes primary — that stays the requested-area rule.
         """
         return _family_signature(self.concept.concept.fixture, self.concept.strategy)
+
+
+def massing_of(candidate) -> str:
+    """A concept candidate's massing family: `1W` for one rectangle, `2W` for two wings (an L)."""
+    return f"{len(candidate.concept.fixture.wings)}W"
 
 
 #: Zone role -> the letter it takes in a family signature. Wet rooms are resolved separately: a
@@ -196,7 +218,8 @@ def _family_signature(fixture: Fixture, strategy) -> str:
         return f"{node.cut.value}[{','.join(kids)}]"
 
     prefix = "HUB:" if getattr(strategy, "value", strategy) == "HUB_PRIVATE_WING" else ""
-    return prefix + render(fixture.wings[0].tree)
+    # One tree per wing, joined; a one-wing fixture's signature is exactly what it was.
+    return prefix + "+".join(render(wing.tree) for wing in fixture.wings)
 
 
 @dataclass(frozen=True)
@@ -259,7 +282,8 @@ def _entrance_x_clear_of_parking(span: tuple[int, int], parking: tuple[Rect, ...
 
 
 def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect,
-                   entrance_span: tuple[int, int] | None = None) -> SitePlan:
+                   entrance_span: tuple[int, int] | None = None,
+                   wings: tuple[Rect, ...] = ()) -> SitePlan:
     """Reuse the existing site stage's parking/entrance/garden logic with an externally chosen
     footprint placement (the one piece `place_footprint` would otherwise decide).
 
@@ -273,8 +297,9 @@ def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect,
     entrance_x_u = (default_x if entrance_span is None
                     else _entrance_x_clear_of_parking(entrance_span, parking, default_x))
     entrance = site_stage.build_entrance(footprint, entrance_x_u)
-    garden = site_stage.classify_garden(spec, plot, footprint, parking)
-    return SitePlan(plot, footprint, (footprint.x, footprint.y), parking, entrance, garden)
+    garden = site_stage.classify_garden(spec, plot, footprint, parking, wings)
+    return SitePlan(plot, footprint, (footprint.x, footprint.y), parking, entrance, garden,
+                    wings=wings or (footprint,))
 
 
 def _exclusion_geometry(site: SiteConstraints | None) -> MultiRegion:
@@ -609,21 +634,25 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
             on_stage(name)
 
     concept = candidate.concept
-    wing = concept.fixture.wings[0]
-    footprint = Rect(wing.origin_x_u, wing.origin_y_u, wing.w_u, wing.h_u)
-    rects = solve.rects  # the generator positions the wing in plot coordinates already
+    # THE FOOTPRINT IS THE FIXTURE'S WINGS — one rectangle per wing, in plot coordinates (the
+    # generator positions them). `footprint` is their bounding box: the building line and the
+    # frame; every stage below that cares which wall is which takes the wings.
+    wings = tuple(w.rect() for w in concept.fixture.wings)
+    footprint = footprint_module.bounding_box(wings)
+    rects = solve.rects
     # WHERE THE FRONT DOOR GOES is read off the realized rooms, not assumed. `resolve_entrance`
     # returns the zone that genuinely fronts the street and the point on its own span; the walk is
     # then built to that point, so the path, the door and the room it opens into all agree.
-    resolved = doors_stage.resolve_entrance(concept.fixture, rects, footprint)
+    resolved = doors_stage.resolve_entrance(concept.fixture, rects, footprint, wings)
     entrance_zone_id = resolved[0] if resolved else concept.entrance_zone_id
-    site_plan = _site_plan_for(spec, footprint, (resolved[1], resolved[2]) if resolved else None)
+    site_plan = _site_plan_for(spec, footprint, (resolved[1], resolved[2]) if resolved else None,
+                               wings)
 
     stage("openings")
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
     entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
-                                                    entrance_zone_id)
-    windows = windows_stage.generate_windows(concept.fixture, rects, footprint)
+                                                    entrance_zone_id, wings)
+    windows = windows_stage.generate_windows(concept.fixture, rects, footprint, wings)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 
     stage("validate")
@@ -694,6 +723,51 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
         seen.add(plan.layout_signature)
         families.add(plan.family_signature)
         found.append(plan)
+
+    # MASSING REPRESENTATION. The walk above takes candidates in the generator's order, and a
+    # two-wing plan ranks by area like every other — behind the one-wing re-proportionings that
+    # land nearer the request, and past the attempt cap. Measured on the five L sites: a valid L
+    # existed for 17 of 25 briefs and reached the screen for one — as the primary, where nothing
+    # one-wing planned. So one plan of every massing family the
+    # candidates contain is guaranteed a look: for each family not yet represented, its candidates
+    # are tried in the generator's order (bounded) and the first valid, distinct one joins the
+    # alternatives — replacing the area-farthest alternative when the list is full, so the pool
+    # stays within `limit`. The primary is untouched, and a brief whose candidates are all one
+    # massing pays nothing here.
+    represented = {chosen.massing_signature} | {plan.massing_signature for plan in found}
+    for massing in dict.fromkeys(massing_of(c) for c in candidates):
+        if massing in represented:
+            continue
+        # Forced trees interleaved with their unforced twins: the generator lists every forced
+        # tree before every twin (the primary must be found at today's position), but here the
+        # question is only whether ANY valid plan of this massing exists within a few solves, and
+        # the twin is what rescues a forced tree the solver refuses. Measured on the long-arm L
+        # site: the 15 area-nearest L forced trees all failed in the solver and every twin solved,
+        # so a walk in list order found nothing within the limit.
+        family = [(i, c) for i, c in enumerate(candidates)
+                  if i != chosen_index and massing_of(c) == massing]
+        forced = [x for x in family if not x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
+        twins = [x for x in family if x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
+        interleaved = [x for pair in zip(forced, twins) for x in pair]
+        interleaved += forced[len(twins):] + twins[len(forced):]
+        tries = 0
+        for index, candidate in interleaved:
+            if tries >= MASSING_ATTEMPT_LIMIT:
+                break
+            tries += 1
+            try:
+                solve = solve_fixture(candidate.concept.fixture)
+            except GeometryInfeasible:
+                continue
+            plan = _realize(spec, buildable, site_constraints, candidate, index, solve, relationships)
+            if not plan.ok or plan.layout_signature in seen:
+                continue
+            seen.add(plan.layout_signature)
+            if len(found) >= limit:
+                found.pop()
+            found.append(plan)
+            represented.add(massing)
+            break
     return tuple(found)
 
 

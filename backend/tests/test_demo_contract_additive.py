@@ -61,3 +61,29 @@ def test_a_design_carries_its_outline_and_family_when_given():
         family="V[H[B,B,S,W],H,H[P,P,M]]")
     assert design.outline.origin == "PERSON"
     assert design.family.startswith("V[")
+
+
+# ------------------------------------------------------------------ multi-level Phase 0
+
+def test_a_plan_set_without_a_building_still_validates():
+    """`building` is additive. A payload that predates it, and a client that reads only
+    `plan`/`alternatives`, are unaffected."""
+    plan_set = DemoPlanSet(plan=_minimal_design(), alternatives=[])
+    assert plan_set.building is None
+    assert plan_set.model_dump()["building"] is None
+
+
+def test_a_building_payload_lists_only_the_checks_that_ran():
+    from app.demo.contract import BuildingValidationOut, summarize_building
+    from app.vertical_slice.building_validation import BuildingValidationReport
+
+    report = BuildingValidationReport()
+    report.add("V2", "containment", True, "single level")
+    report.add("V7", "accounting", False, "L1 gross 126.0 m2 is not its outline's 115.5 m2")
+    out = summarize_building(report)
+    assert isinstance(out, BuildingValidationOut)
+    assert not out.passed
+    assert out.statements == ["כל קומה עליונה נמצאת בתוך המתאר של הקומה שמתחתיה"]
+    assert out.warnings == ["חשבון השטחים תקין: שטח כל קומה שווה למתאר שלה: "
+                            "L1 gross 126.0 m2 is not its outline's 115.5 m2"]
+    assert out.checks == {"V2": True, "V7": False}

@@ -3826,18 +3826,17 @@ def _hub_from_witness(spec: ArchitecturalSpec, hub_rooms: list[ProgramRoom], hub
     return rebuilt, note
 
 
-def _multi_wing_assessment(candidates: list[SolverGeometryCandidate],
-                           ) -> ConceptRejection | None:
-    """Evaluate whether a second safe wing can host part of the programme.
+def _two_wing_pair(candidates: list[SolverGeometryCandidate],
+                   ) -> tuple[SolverGeometryCandidate, SolverGeometryCandidate] | ConceptRejection | None:
+    """The two adjacent safe wings the L parti may plan across, the reason there are none, or
+    None when the adapter offered one wing.
 
-    A secondary wing is usable only if circulation in the primary wing can reach it directly,
-    which means the hall column must sit against the seam. But the hall must also border the
-    room stacks, and in an L decomposition the seam covers only PART of the primary wing's side
-    — so a hall placed against it would be partly exterior and partly seam, and a single leaf
-    side cannot be both (the spike's L2 finding). Reaching the wing would therefore require
-    routing circulation through a private room, which the architectural priorities forbid.
-
-    The wing is CONSIDERED and declined with the reason, never silently ignored.
+    This used to be `_multi_wing_assessment`, which declined EVERY second wing: where the seam
+    covered only part of the primary's side it concluded a hall against it would be part
+    exterior and part seam (the spike's L2 finding) and refused. L2's own resolution — a forced
+    cut so the hall spans exactly the seam and a room takes the rest of the depth — is what the
+    spike's F2 fixture did and what `l_parti` now authors, so the partial-seam case is planned
+    rather than refused. A wing that shares no boundary is still declined here with its reason.
     """
     if len(candidates) < 2:
         return None
@@ -3848,19 +3847,7 @@ def _multi_wing_assessment(candidates: list[SolverGeometryCandidate],
             f"wing {secondary.order} ({secondary.area_m2:.1f} m2) shares no boundary with the "
             f"primary wing, so no access topology can span them",
             (primary.order, secondary.order))
-
-    seam_u = primary.rect.shared_edge_len_u(secondary.rect)
-    vertical_seam = (primary.rect.x2 == secondary.rect.x or secondary.rect.x2 == primary.rect.x)
-    primary_side_u = primary.rect.h if vertical_seam else primary.rect.w
-    if seam_u < primary_side_u:
-        return ConceptRejection(
-            ConceptStrategy.MULTI_WING_SPLIT, RejectionReason.CIRCULATION_WOULD_CROSS_PRIVATE,
-            f"seam covers {u_to_m(seam_u):.1f} m of the primary wing's "
-            f"{u_to_m(primary_side_u):.1f} m side, so a hall column against it would be part "
-            f"exterior and part seam; reaching wing {secondary.order} "
-            f"({secondary.area_m2:.1f} m2) would route circulation through a private room",
-            (primary.order, secondary.order))
-    return None
+    return primary, secondary
 
 
 # --------------------------------------------------------------------------- 7. entry point
@@ -3924,6 +3911,7 @@ def generate_concepts(spec: ArchitecturalSpec,
         # the failure rather than removing it.
 
     primary = usable[0]
+    pair = _two_wing_pair(candidates)
     # Every arrangement of the same requirements, the brief as written first. Insertion order is
     # NOT what keeps a rearranged programme from displacing the literal one — the area sort below
     # may rank it first — so nothing about access semantics is decided here: `programme_variants`
@@ -3970,9 +3958,20 @@ def generate_concepts(spec: ArchitecturalSpec,
         elif rejection is not None and variant is rooms:
             rejections.append(rejection)
 
-    multi = _multi_wing_assessment(candidates)
-    if multi is not None:
-        rejections.append(multi)
+        # THE L, last in insertion order like the hub and for the same reason: without a target the
+        # order is the ranking, and a two-wing plan must not displace the plan a brief already had.
+        # With a target the area sort decides among all of them alike — nothing ranks the L up or
+        # down. Only two ADJACENT safe wings reach the parti; a single wing never does, so every
+        # one-wing brief costs exactly what it cost before.
+        if isinstance(pair, tuple):
+            from . import l_parti  # local: l_parti builds on this module's helpers
+            l_built, rejection = l_parti.l_concepts(spec, variant, *pair)
+            accepted.extend(l_built)
+            if not l_built and rejection is not None and variant is rooms:
+                rejections.append(rejection)
+
+    if isinstance(pair, ConceptRejection):
+        rejections.append(pair)
 
     # "Best first" now means CLOSEST TO THE REQUESTED AREA first, not simply the order the
     # strategies happen to be generated in — the pipeline takes the first concept Geometry Core can
@@ -4014,5 +4013,15 @@ def generate_concepts(spec: ArchitecturalSpec,
     if last_resort:
         accepted = ([c for c in accepted if id(c) not in last_resort]
                     + [c for c in accepted if id(c) in last_resort])
+
+    # THE L LAST OF ALL without a target — after every one-wing candidate, its twin, tier 2 and the
+    # last-resort hubs, in the order they already had. Without a target the order IS the ranking,
+    # and a two-wing plan must not displace the plan a brief already had (the hub's rule, applied
+    # to the whole list because an L normal candidate would otherwise precede a one-wing fallback
+    # that used to be the primary). With a target the area sort above decided, and the L competes
+    # under exactly the rules every other candidate does.
+    if target_m2 is None:
+        accepted = ([c for c in accepted if c.strategy is not ConceptStrategy.MULTI_WING_SPLIT]
+                    + [c for c in accepted if c.strategy is ConceptStrategy.MULTI_WING_SPLIT])
 
     return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms))

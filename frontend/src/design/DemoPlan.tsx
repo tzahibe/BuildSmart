@@ -1,4 +1,4 @@
-import type { DemoDesign, DemoRect } from './demoDesign'
+import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
 import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
@@ -34,8 +34,9 @@ const CONTEXT_MARGIN_RATIO = 0.3
  * the parcel, so a plot barely larger than the house still shows the whole site. Everything
  * outside the frame — the rest of the garden — simply falls off the edges of the SVG. */
 export function planViewBox(design: DemoDesign): string {
-  const { plot, footprint } = design
-  const subjects: DemoRect[] = [footprint, design.entrance_walk, ...design.parking]
+  const { plot } = design
+  // The wings, not the bounding box — the same frame for one wing; for an L the crook stays inside.
+  const subjects: DemoRect[] = [...footprintsOf(design), design.entrance_walk, ...design.parking]
 
   const minX = Math.min(...subjects.map((r) => r.x))
   const minY = Math.min(...subjects.map((r) => r.y))
@@ -81,7 +82,7 @@ function sweep(hx: number, hy: number, far: { x: number; y: number },
  * (`vertical_slice/site.py`) — which is what makes a compass truthful here and nowhere else in the
  * app. Omitted (a thumbnail, or a caller without the site): no compass is drawn. */
 function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFacingSide?: string | null }) {
-  const { plot, footprint } = design
+  const { plot } = design
   const viewBox = planViewBox(design)
   const [frameX, frameY, frameW, frameH] = viewBox.split(' ').map(Number)
   const compassScale = Math.max(1, Math.min(frameW, frameH) * COMPASS_FRAME_SHARE)
@@ -106,7 +107,11 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
         </g>
       ))}
 
-      <rect x={footprint.x} y={footprint.y} width={footprint.width_m} height={footprint.depth_m} className="demo-footprint" />
+      {/* The footprint is its WINGS — one rectangle each. A one-wing house draws exactly the one
+          rectangle it always did; an L draws two and leaves the crook to the garden. */}
+      {footprintsOf(design).map((wing, i) => (
+        <rect key={`footprint-${i}`} x={wing.x} y={wing.y} width={wing.width_m} height={wing.depth_m} className="demo-footprint" />
+      ))}
 
       {/* FLEX is not a room anyone asked for — it is the honest remainder when the requested
           built area exceeds what the room programme can responsibly use. Filled distinctly so it

@@ -12,6 +12,7 @@
            -> validation                    C1-C16, hard gate
       -> _select_plans                    primary nearest the requested area; alternatives by family
       -> contract.to_demo_design          authoritative API payload, each plan with its outline
+      -> contract.to_demo_building        the primary as a one-level Building, V-checks run (Phase 0)
 
 Feature 006: the outline is the engine's to choose unless the person fixed one under "advanced";
 see `_plan_outlines_until_one_plans` and `_select_plans` for the two rules, and
@@ -47,12 +48,16 @@ from app.vertical_slice.general_pipeline import (
 from app.vertical_slice.safe_adapter import AdapterOutcome
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
 
+from app.vertical_slice.building import Building
+
 from .contract import (
+    DemoBuilding,
     DemoDesign,
     DemoPlanSet,
     OutlineOut,
     OutlineTried,
     SearchSummary,
+    to_demo_building,
     to_demo_design,
 )
 from .requirements_view import spec_for
@@ -169,6 +174,9 @@ class DemoResult:
     alternatives: tuple[DemoDesign, ...] = ()
     #: Feature 006: every outline the engine planned for this request and what it cost.
     search: SearchSummary | None = None
+    #: Multi-level Phase 0: `design` as the ground level of a one-level building, with the
+    #: building-level checks (V2, V7) already run. `levels[0].design` is `design`.
+    building: DemoBuilding | None = None
 
 
 def _set_aside(project: Project, spec, preference_dropped: bool) -> list[str]:
@@ -531,7 +539,9 @@ def _select_plans(results: list[OutlineResult],
     plan of a family not yet shown before any repeat, and a repeat only from an outline not yet
     shown. Measured before this rule, 142 of the 178 alternatives the demo showed were the primary's
     own family re-proportioned. Family (`RealizedPlan.family_signature`) is used HERE ONLY, as a
-    display de-duplication key; it is not an input to the primary and must not become one.
+    display de-duplication key; it is not an input to the primary and must not become one. The
+    same holds for massing (`RealizedPlan.massing_signature`, one wing or two), which is taken
+    before family: a plan of another massing is shown before a second organisation of the same.
     """
     target = requested_m2 or 0.0
     person = next((orr for orr in results if orr.outline.origin == "PERSON" and orr.plans), None)
@@ -564,6 +574,16 @@ def _select_plans(results: list[OutlineResult],
         if orr.offered_for_area and orr.plans and orr is not primary_orr:
             take((orr, orr.plans[0]))
 
+    # Pass 0: MASSINGS not yet shown — a two-wing (L) plan beside one-wing ones, or the reverse.
+    # A massing is a coarser difference than an organisation family, and the one a person sees
+    # first; a valid plan of another massing is shown before a second organisation of the same
+    # one. Display de-duplication only, like family: never an input to the primary.
+    for item in pool:
+        if len(shown) >= _SHOWN_LIMIT:
+            break
+        massings = {plan.massing_signature for _, plan in shown}
+        if unseen_drawing(item) and item[1].massing_signature not in massings:
+            take(item)
     # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
     # shape of a family already on screen). Never the same outline re-proportioned.
     for item in pool:
@@ -603,13 +623,23 @@ def _result_from(project: Project, spec, selection: PlanSelection,
                               outline=orr.outline.as_out(), family=plan.family_signature,
                               notes=notes or None)
 
+    primary = design_of(selection.primary)
+    _, primary_plan = selection.primary
+    # THE BUILDING is the primary as its own ground level — one level, no stair — carrying the
+    # SAME `DemoDesign` object the screen draws, so the two cannot disagree. Building it here,
+    # after every gate, means the V-checks run on a plan that already passed C1–C21.
+    building = to_demo_building(
+        Building.single_level(primary_plan.design, primary_plan.validation,
+                              concept=primary_plan.concept, safety=primary_plan.safety),
+        [primary])
     return DemoResult(
-        design=design_of(selection.primary),
+        design=primary,
         # Each alternative reports its OWN validation statements and its OWN relationship
         # outcomes, because the panel beside the drawing must describe the drawing on screen.
         alternatives=tuple(design_of(item) for item in selection.alternatives),
         search=SearchSummary(outlines=[r.as_tried() for r in results],
                              total_latency_ms=round(sum(r.latency_ms for r in results), 1)),
+        building=building,
     )
 
 

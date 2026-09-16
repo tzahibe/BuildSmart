@@ -20,6 +20,7 @@ from app.geometry_domain.units import UNIT_M as DOMAIN_UNIT_M
 from app.geometry_domain.walls import BoundaryContext, Construction, WallFacts
 
 from .geometry_core.model import UNIT_M as SOLVER_UNIT_M
+from . import footprint as footprint_module
 from .geometry_core.model import Rect, Side, WallType, u_to_m
 
 _EPS = 1e-9
@@ -87,22 +88,29 @@ def _exact_units(value_m: float) -> int | None:
     return int(nearest) if abs(raw - nearest) <= 1e-6 else None
 
 
-def envelope_sides(rect: Rect, footprint: Rect) -> list[Side]:
+def envelope_sides(rect: Rect, footprint: Rect, *, wings: tuple[Rect, ...] = (),
+                   seam_sides: frozenset[Side] = frozenset()) -> list[Side]:
     """Which of `rect`'s sides lie on the building envelope — a GEOMETRIC fact.
 
     Moved here from `windows.py` unchanged (same comparisons, same result) because it is a
     Rect-dependent geometric computation and this module is where those now live. It is the
     working half of the fix for the safe-room window defect: exposure must be derived from
     geometry, never read off a `WallType` whose precedence rule may have overwritten it.
+
+    With several wings, a side is on the envelope when it lies on the edge of the WING the room
+    is in and that edge is not a declared seam to another wing (`Wing.seam_leaf_sides`, the
+    same declaration the solver types as a partition). `footprint` is the bounding box and is
+    the wing when `wings` is empty — the one-wing case, unchanged.
     """
+    wing = footprint_module.wing_of(wings, rect) if wings else footprint
     sides = []
-    if rect.x == footprint.x:
+    if rect.x == wing.x and Side.W not in seam_sides:
         sides.append(Side.W)
-    if rect.x2 == footprint.x2:
+    if rect.x2 == wing.x2 and Side.E not in seam_sides:
         sides.append(Side.E)
-    if rect.y == footprint.y:
+    if rect.y == wing.y and Side.N not in seam_sides:
         sides.append(Side.N)
-    if rect.y2 == footprint.y2:
+    if rect.y2 == wing.y2 and Side.S not in seam_sides:
         sides.append(Side.S)
     return sides
 
@@ -122,8 +130,10 @@ def wall_facts_for_side(wall_type: WallType, on_envelope: bool) -> WallFacts:
 
 
 def wall_facts_for_room(zone_id: str, rect: Rect, footprint: Rect,
-                        walls: dict[tuple[str, Side], WallType]) -> dict[Side, WallFacts]:
-    exposed = set(envelope_sides(rect, footprint))
+                        walls: dict[tuple[str, Side], WallType], *,
+                        wings: tuple[Rect, ...] = (),
+                        seam_sides: frozenset[Side] = frozenset()) -> dict[Side, WallFacts]:
+    exposed = set(envelope_sides(rect, footprint, wings=wings, seam_sides=seam_sides))
     return {
         side: wall_facts_for_side(walls[(zone_id, side)], side in exposed)
         for side in Side

@@ -78,6 +78,52 @@ def l_shaped_site() -> SiteConstraints:
     )
 
 
+def _l_site(name: str, keep: tuple[float, float, float, float],
+            notch: tuple[float, float, float, float], plot: tuple[float, float] = (24.0, 28.0)) -> SiteConstraints:
+    """An L-shaped buildable region: `keep` (x, y, w, h) inside the parcel, minus one `notch`
+    (x, y, w, h) at a corner. The adapter then offers two adjacent rectangles — the primary and
+    the arm — which is what the L parti plans across."""
+    parcel = Ring.rectangle(0, 0, plot[0], plot[1], prefix="p")
+    keep_ring = Ring.rectangle(*keep, prefix="k")
+    cut = GeometricConstraint(
+        "notch", ConstraintRole.NO_BUILD_REGION,
+        MultiRegion.of(Region(Ring.rectangle(*notch, prefix="n"))),
+        PLANNED, note="unbuildable corner",
+    )
+    return SiteConstraints(
+        parcel=Parcel(name, MultiRegion.of(Region(parcel)), SURVEYED),
+        constraints=(_frame_setback(parcel, keep_ring), cut),
+    )
+
+
+def l_shaped_site_front_arm() -> SiteConstraints:
+    """An L whose arm is flush with the STREET end: the notch is the rear-east corner, so the arm
+    (5 x 10 m) runs from the building line and the primary's free depth faces the garden — the
+    'public rooms to the garden' case."""
+    return _l_site("fixture-L-front-arm", (3.0, 5.5, 18.0, 16.0), (16.0, 15.5, 5.0, 6.0))
+
+
+def l_shaped_site_long_arm() -> SiteConstraints:
+    """An L with a longer, wider arm (6 x 12 m) at the rear-east of a 13 x 18 m primary — room for a
+    three-bedroom private wing, which the 9.5 m arm of `l_shaped_site` does not have."""
+    return _l_site("fixture-L-long-arm", (3.0, 5.5, 19.0, 18.0), (16.0, 5.5, 6.0, 6.0),
+                   plot=(25.0, 30.0))
+
+
+def l_shaped_site_deep_primary() -> SiteConstraints:
+    """An L whose primary is DEEP (13 x 20 m) beside a 5 x 9.5 m arm at the rear: the primary's
+    free depth beyond the seam (10.5 m) can take the public rooms stacked, which is what an
+    open-plan group needs when the column beside the hall keeps the band narrow."""
+    return _l_site("fixture-L-deep-primary", (3.0, 5.5, 18.0, 20.0), (16.0, 5.5, 5.0, 10.5),
+                   plot=(24.0, 32.0))
+
+
+def l_shaped_site_west_arm() -> SiteConstraints:
+    """`l_shaped_site` mirrored: the notch at the north-WEST corner, so the arm sits west of the
+    primary and the hall's seam wall is its west side."""
+    return _l_site("fixture-L-west-arm", (3.0, 5.5, 18.0, 16.0), (3.0, 5.5, 5.0, 6.5))
+
+
 # --------------------------------------------------------------------------- 4-6: curved facades
 
 def convex_facade() -> BuildableRegion:

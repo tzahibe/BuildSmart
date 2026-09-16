@@ -3,7 +3,7 @@ import { fireEvent, render, within } from '@testing-library/react'
 import DemoPlan, { planViewBox } from './DemoPlan'
 import DemoWorkspace from './DemoWorkspace'
 import ReviewPage from './ReviewPage'
-import type { DemoDesign, RequirementsReview } from './demoDesign'
+import type { DemoBuilding, DemoDesign, RequirementsReview } from './demoDesign'
 
 /** The renderer boundary: DemoPlan draws exactly what the backend supplied, and nothing else. */
 function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
@@ -147,6 +147,29 @@ describe('DemoPlan', () => {
   })
 })
 
+describe('DemoPlan — the footprint as wings', () => {
+  it('draws a one-wing house exactly as it did without a wing list', () => {
+    const plain = design()
+    const withWings = design({ footprints: [plain.footprint] })
+    const a = render(<DemoPlan design={plain} />).container.innerHTML
+    const b = render(<DemoPlan design={withWings} />).container.innerHTML
+    expect(a).toBe(b)
+    expect(render(<DemoPlan design={plain} />).container.querySelectorAll('.demo-footprint')).toHaveLength(1)
+  })
+
+  it('draws every wing of an L and frames the drawing on the wings', () => {
+    const bar = { x: 3, y: 5.5, width_m: 8, depth_m: 12 }
+    const arm = { x: 11, y: 5.5, width_m: 4.5, depth_m: 8.5 }
+    const l = design({ footprint: { x: 3, y: 5.5, width_m: 12.5, depth_m: 12 }, footprints: [bar, arm] })
+    const wings = render(<DemoPlan design={l} />).container.querySelectorAll('.demo-footprint')
+    expect(wings).toHaveLength(2)
+    expect(wings[1].getAttribute('x')).toBe('11')
+    expect(wings[1].getAttribute('height')).toBe('8.5')
+    // The frame is the same as the bounding box's frame: the wings span the same extent.
+    expect(planViewBox(l)).toBe(planViewBox(design({ footprint: { x: 3, y: 5.5, width_m: 12.5, depth_m: 12 } })))
+  })
+})
+
 describe('DemoPlan compass', () => {
   // The demo plan is drawn STREET-UP by the backend (street, parking and entrance walk along y = 0),
   // so this is the one drawing where a compass is truthful. The letter at the top is the street side.
@@ -197,6 +220,33 @@ describe('DemoWorkspace', () => {
     })
     const { getByText } = render(<DemoWorkspace plans={{ plan: failing, alternatives: [] }} onChangeRequirements={() => {}} />)
     expect(getByText('בעיה כלשהי')).toBeTruthy()
+  })
+
+  it('renders a plan set that also carries the plan as a one-level building (multi-level Phase 0)', () => {
+    // `building` is additive: the same plan, as the ground level of a building with no stair. The
+    // workspace must accept it and draw exactly what it drew without it — the level list has one
+    // entry and nothing about the screen changes until a second level can exist.
+    const plan = design()
+    const building: DemoBuilding = {
+      story_count: 1,
+      levels: [{
+        level_id: 'L0', index: 0, kind: 'GROUND', name: 'קומת קרקע', elevation_m: 0, floor_to_floor_m: 3,
+        entry: { kind: 'STREET_DOOR', zone_id: 'HALL', core_id: null },
+        design: plan,
+      }],
+      cores: [],
+      massing: { plot: plan.plot, level_outlines: [plan.footprint], ground_coverage: 0.35, retreat_m2: 0 },
+      total_gross_area_m2: plan.gross_area_m2,
+      total_net_area_m2: plan.net_area_m2,
+      validation: { passed: true, statements: [], warnings: [], checks: { V2: true, V7: true } },
+    }
+    const withBuilding = render(
+      <DemoWorkspace plans={{ plan, alternatives: [], building }} onChangeRequirements={() => {}} />,
+    )
+    const without = render(
+      <DemoWorkspace plans={{ plan, alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(withBuilding.container.innerHTML).toBe(without.container.innerHTML)
   })
 
   // ------------------------------------------------------------------- the other plans

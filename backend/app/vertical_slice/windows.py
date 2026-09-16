@@ -69,18 +69,33 @@ def _wall_length_u(rect: Rect, side: Side) -> int:
     return rect.h if side in (Side.N, Side.S) else rect.w
 
 
-def _widest_exterior_side(rect: Rect, footprint: Rect) -> Side | None:
+def _widest_exterior_side(rect: Rect, footprint: Rect, wings: tuple[Rect, ...] = (),
+                          seam_sides: frozenset[Side] = frozenset()) -> Side | None:
     # `envelope_sides` now lives in geometry_adapter (unchanged behaviour) — it is a
     # Rect-dependent geometric computation, and that dependency is isolated there. It remains
     # the fix for the safe-room window defect: exposure is a GEOMETRIC fact and must never be
     # read off a `WallType` whose RC precedence may have overwritten it.
-    sides = envelope_sides(rect, footprint)
+    sides = envelope_sides(rect, footprint, wings=wings, seam_sides=seam_sides)
     if not sides:
         return None
     return max(sides, key=lambda s: _wall_length_u(rect, s))
 
 
-def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect) -> list[Window]:
+def seam_sides_of(fixture: Fixture) -> dict[str, frozenset[Side]]:
+    """Per zone, the sides the fixture declares as seams to another wing — never exterior, however
+    the geometry looks. Empty for every zone of a one-wing fixture."""
+    out: dict[str, set[Side]] = {}
+    for wing in fixture.wings:
+        for zone_id, side in wing.seam_leaf_sides:
+            out.setdefault(zone_id, set()).add(side)
+    return {zone_id: frozenset(sides) for zone_id, sides in out.items()}
+
+
+def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect,
+                     wings: tuple[Rect, ...] = ()) -> list[Window]:
+    """`footprint` is the building's bounding box; `wings` its rectangles (one, today). A window
+    goes on the widest side of the room that is on its OWN wing's envelope and not a seam."""
+    seams = seam_sides_of(fixture)
     windows: list[Window] = []
     for zone in fixture.zones:
         roles = set(zone.roles)
@@ -95,7 +110,7 @@ def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect) 
         if rect is None:
             continue
         min_u, max_u = m_to_u(min_m), m_to_u(max_m)
-        side = _widest_exterior_side(rect, footprint)
+        side = _widest_exterior_side(rect, footprint, wings, seams.get(zone.zone_id, frozenset()))
         if side is None:
             windows.append(Window(zone.zone_id, Side.N, 0.0, (rect.x, rect.y), placeable=False,
                                    ventilation_status=MECHANICAL_VENTILATION_REQUIRED))

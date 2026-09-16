@@ -28,7 +28,7 @@ from .geometry_adapter import wall_facts_for_room
 from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import Fixture, OutdoorRegion, Rect, Side, u_to_m
 from .site import SitePlan
-from .windows import Window
+from .windows import Window, seam_sides_of
 
 #: (x, y, w, h) in metres.
 RectM = tuple[float, float, float, float]
@@ -84,6 +84,9 @@ class OutdoorOut:
 @dataclass(frozen=True)
 class GeometricDesign:
     plot_m: RectM
+    #: The building's BOUNDING BOX in metres — the footprint itself for a one-wing house. Kept
+    #: under its old name because a frame, a building line and every existing reader want the
+    #: box; `footprints_m` is the footprint proper.
     footprint_m: RectM
     rooms: tuple[RoomOut, ...]
     interior_doors: tuple[DoorOut, ...]
@@ -105,6 +108,13 @@ class GeometricDesign:
     #: maxima up to the HARD ones (`ConceptCandidate.over_preferred`). Carried for the demo
     #: contract's quality metadata; never a validation fact.
     over_preferred: bool = False
+    #: The footprint as its wings, one rectangle each, in metres (`footprint.py`). One entry —
+    #: equal to `footprint_m` — for every house the engine plans today.
+    footprints_m: tuple[RectM, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.footprints_m:
+            object.__setattr__(self, "footprints_m", (self.footprint_m,))
 
 
 def _rect_m(r: Rect) -> RectM:
@@ -139,13 +149,15 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
              over_preferred: bool = False) -> GeometricDesign:
     rooms = []
     net_total = 0.0
+    seams = seam_sides_of(fixture)
     for z in fixture.zones:
         r = rects.get(z.zone_id)
         if r is None:
             continue
         nw, nh, na = net_rect_m(z.zone_id, r, walls)
         net_total += na
-        facts = wall_facts_for_room(z.zone_id, r, site.footprint, walls)
+        facts = wall_facts_for_room(z.zone_id, r, site.footprint, walls, wings=site.wings,
+                                    seam_sides=seams.get(z.zone_id, frozenset()))
         rooms.append(RoomOut(
             zone_id=z.zone_id,
             roles=tuple(role.value for role in z.roles),
@@ -169,4 +181,5 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
         wall_iterations=wall_iterations,
         open_groups=tuple(tuple(g) for g in fixture.open_groups),
         over_preferred=over_preferred,
+        footprints_m=tuple(_rect_m(w) for w in site.wings),
     )
