@@ -1,4 +1,10 @@
-"""A/B of the laundry-phase-1 row-rescue generalisation, over the 418 failure-log scenarios.
+"""A/B of the laundry-phase-1 row-rescue generalisation, over the failure-log scenarios.
+
+`app/data/failures.json` is a live, append-only production log, so its distinct-context count
+drifts upward over time — print the script's own `scenarios: N` line for the live count rather
+than trusting a number in this docstring (432 distinct contexts, of 750 raw entries, as of the
+2026-09-16 phase-1/activation measurements — see docs/LAUNDRY_ROOM_PHASE1_REPORT.md §3 for the
+full raw/skipped breakdown).
 
     .venv/bin/python3 spikes/failure_log_sweep/laundry_gate_ab.py
 

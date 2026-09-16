@@ -1,5 +1,6 @@
-"""§5A confirmation: the shipped scale_program change is a no-op for the real 418-context corpus
-(2026-09-16, docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md).
+"""§5A confirmation: the shipped scale_program change is a no-op for the real failure-log corpus
+(432 distinct contexts as of this measurement — see below; 2026-09-16,
+docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md).
 
     .venv/bin/python3 spikes/failure_log_sweep/laundry_activation_corpus_check.py
 

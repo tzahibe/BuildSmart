@@ -60,11 +60,13 @@ Of the other 23 cells (a ">5% drop vs. the paired run" happened in all of them, 
 
 Never appears for a plan without a laundry room — confirmed both by direct unit test and across the entire existing `test_demo_p0.py` hard-check suite (24 non-laundry briefs, `laundry_notice: null` in every one).
 
-## 4. Regression — real 418-context corpus (§5A)
+## 4. Regression — real failure-log corpus, 432 distinct contexts (§5A)
+
+**Denominator, precisely** (`app/data/failures.json`, a live production log — see the phase-1 report §3 for the full raw/skipped breakdown, unchanged in kind at this measurement): 750 raw entries → 472 reproducible (278 skipped, missing a required field) → **432 distinct contexts**, all 432 executed. This report uses 432 throughout — not the "418" this codebase's OLDER reports quote, which was that same log's size when THOSE phases measured it, before further real usage grew it.
 
 Method: `spikes/failure_log_sweep/laundry_activation_corpus_check.py` (new) — a single pass, not an A/B, because `_laundry_deficit_targets` is provably unreachable for this corpus (no logged context can carry `laundry_requested=True`; the field postdates the log). The run confirms that reasoning empirically rather than resting on it alone, and additionally asserts inline that no context ever produces a LAUNDRY room and that every planned result still passes validation.
 
-**Result: 404/432 planned, 28 refused, 0 crashed — an exact match to the last verified baseline** (phase-1's own 418-context sweep, `docs/LAUNDRY_ROOM_PHASE1_REPORT.md` §3: 404/432). Refusal codes unchanged in kind (`TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY` ×14, `PLAN_NOT_REALIZABLE` ×13, `WET_ROOMS_UNSUPPORTED` ×1). Every one of the 404 planned results passed the inline "no LAUNDRY room, validation passes" assertion. **0 payload/status changes attributable to this activation, confirmed on the real corpus, not only by construction.**
+**Result: 404/432 planned, 28 refused, 0 crashed — an exact match to the last verified baseline** (phase-1's own sweep of the same 432-context corpus, `docs/LAUNDRY_ROOM_PHASE1_REPORT.md` §3: 404/432). Refusal codes unchanged in kind (`TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY` ×14, `PLAN_NOT_REALIZABLE` ×13, `WET_ROOMS_UNSUPPORTED` ×1). Every one of the 404 planned results passed the inline "no LAUNDRY room, validation passes" assertion. **0 payload/status changes attributable to this activation, confirmed on the real corpus, not only by construction.**
 
 ## 5. Activation
 
