@@ -31,6 +31,14 @@ class TaggedBool(BaseModel):
     source: SourceTag
 
 
+class TaggedStr(BaseModel):
+    """A tagged choice from a closed list, stored as a plain string (like `CorridorWidthField.mode`)
+    so a value this build does not know still loads; USING it is checked where it is used."""
+
+    value: str | None
+    source: SourceTag
+
+
 class PoolField(BaseModel):
     requested: TaggedBool
     length_m: TaggedFloat
@@ -431,6 +439,11 @@ class Project(BaseModel):
     #: the REVIEW step before generation.
     wet_rooms: TaggedInt | None = None
     open_plan: TaggedBool | None = None
+    #: Which side the living rooms open to — `"street"`, `"garden"` or `"engine"` (the engine
+    #: decides; see vertical_slice.spec.PublicOpenSide). A PREFERENCE the person states on the
+    #: REVIEW screen, not parsed from the brief; `None` — every project stored before the field
+    #: existed — reads as `"engine"`, which is exactly what every plan so far was made with.
+    public_open_side: TaggedStr | None = None
     #: Requirements the brief asked for that no structured field can carry (see
     #: requirements/parser.py's `UnsupportedRequest`). Kept on the project so the REVIEW screen can
     #: show them back instead of the system dropping them silently.

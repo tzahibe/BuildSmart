@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import type { RequirementsReview, ReviewEdit, WetRoomKindEdit, WetRoomKindNote } from './demoDesign'
+import type {
+  PublicOpenSide, RequirementsReview, ReviewEdit, WetRoomKindEdit, WetRoomKindNote,
+} from './demoDesign'
+import { PUBLIC_OPEN_SIDES } from './demoDesign'
 import { Dim } from './Dim'
 import './ReviewPage.css'
 
@@ -24,6 +27,17 @@ const SOURCE_LABEL: Record<string, string> = {
   requested: 'ביקשת',
   inferred: 'הנחנו',
   unknown: 'לא זוהה',
+}
+
+const PUBLIC_OPEN_SIDE_LABEL: Record<PublicOpenSide, string> = {
+  engine: 'המנוע יחליט',
+  street: 'לרחוב',
+  garden: 'לגינה',
+}
+
+/** A value the backend sent that this build does not know reads as "the engine decides". */
+function publicOpenSideOf(value: unknown): PublicOpenSide {
+  return PUBLIC_OPEN_SIDES.includes(value as PublicOpenSide) ? (value as PublicOpenSide) : 'engine'
 }
 
 function Provenance({ source }: { source: string }) {
@@ -159,6 +173,9 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const [parking, setParking] = useState(Number(review.parking_spaces.value ?? 0))
   const [safeRoom, setSafeRoom] = useState(Boolean(review.safe_room.value))
   const [openPlan, setOpenPlan] = useState(Boolean(review.open_plan.value))
+  const [publicOpenSide, setPublicOpenSide] = useState<PublicOpenSide>(
+    publicOpenSideOf(review.public_open_side?.value),
+  )
 
   // A count outside the envelope is refused at generation. Saying so HERE, where it can be
   // corrected, is the whole difference between a two-second fix and a wasted journey.
@@ -473,6 +490,29 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
             onChange={(event) => setOpenPlan(event.target.checked)}
           />
         </label>
+
+        {/* A preference, not a requirement: it decides between plans the engine otherwise rates
+            the same (the two ways an L can face), so a house that only fits one way is still
+            offered. The note under the row says so, so nobody reads "לגינה" as a promise. */}
+        <label className="review-row">
+          <span className="review-label">
+            הסלון פונה <Provenance source={review.public_open_side?.source ?? 'inferred'} />
+            <br />
+            <span className="review-rooms-note">העדפה: מכריעה בין תוכניות שוות ערך, לא דרישה</span>
+          </span>
+          <span className="review-select-wrap">
+            <select
+              className="review-select"
+              value={publicOpenSide}
+              aria-label="הסלון פונה"
+              onChange={(event) => setPublicOpenSide(publicOpenSideOf(event.target.value))}
+            >
+              {PUBLIC_OPEN_SIDES.map((side) => (
+                <option key={side} value={side}>{PUBLIC_OPEN_SIDE_LABEL[side]}</option>
+              ))}
+            </select>
+          </span>
+        </label>
       </div>
 
       {/* The footprint used to be stated here on its own. It now appears in the site block above,
@@ -499,6 +539,7 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
               parking_spaces: parking,
               safe_room: safeRoom,
               open_plan: openPlan,
+              public_open_side: publicOpenSide,
             })
           }
         >

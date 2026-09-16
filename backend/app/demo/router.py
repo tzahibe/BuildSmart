@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from app.observability import failure_log
 from app.projects.models import (SetbackAssumptions, SourceTag, StreetSide, TaggedBool,
-                                 TaggedInt, WetRoomKindRecord)
+                                 TaggedInt, TaggedStr, WetRoomKindRecord)
 from app.projects.routes import base_routes as project_routes
 from app.vertical_slice.general_pipeline import PIPELINE_STAGES
 
@@ -62,6 +62,9 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
 
     def _bool(new, current):
         return TaggedBool(value=new, source=SourceTag.requested) if new is not None else current
+
+    def _str(new, current):
+        return TaggedStr(value=new, source=SourceTag.requested) if new is not None else current
 
     # Setbacks are assumptions, so the person may correct them here like any other assumption.
     # Whatever they set is what the buildable region is derived from on the next Generate.
@@ -119,6 +122,7 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
         pool=project.pool,
         wet_rooms=wet_rooms,
         open_plan=_bool(body.open_plan, project.open_plan),
+        public_open_side=_str(body.public_open_side, project.public_open_side),
         setbacks=setbacks,
         wet_room_kinds=wet_room_kinds,
         wet_room_questions=wet_room_questions,
@@ -154,6 +158,8 @@ def _failure_context(project_id: str, project, error=None) -> dict:
         "wet_rooms": project.wet_rooms.value if project.wet_rooms else None,
         "safe_room": project.safe_room.value if project.safe_room else None,
         "open_plan": project.open_plan.value if project.open_plan else None,
+        "public_open_side": (project.public_open_side.value
+                             if project.public_open_side else None),
     }
     # WHAT THE ENGINE ACTUALLY DID, separate from what the person was told. The message on screen
     # is written for them and names no cause; this is the half that can be acted on.

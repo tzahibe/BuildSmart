@@ -46,11 +46,28 @@ The L outlines join the **engine survey**, which runs only when the person gave 
 
 The two L massings are the same dimensions and the parti sizes them symmetrically, so their plans tie EXACTLY on the pool's area criterion (measured on all five real dual-valid briefs: 161.5/161.5, 167.87/167.87, 168.5/168.5 ×2, 165.97/165.97). Left to the pool's determinism (`outline.order`), the rear-arm L was shown every time and a garden-facing L never. `_select_plans` now breaks that tie — and only that tie, among valid plans of one non-rectangle massing otherwise tied — in `demo/service.py`:
 
-1. `HouseConcept.public_open_side`: GARDEN → the L whose band faces the garden (arm at the front); STREET → the band on the street (arm at the rear). (The demo has no concept field yet, so today this is always ENGINE; the path is tested on stubs.)
+1. `HouseConcept.public_open_side`: GARDEN → the L whose band faces the garden (arm at the front); STREET → the band on the street (arm at the rear). (Set from the review screen since branch `017` — see below; the path is tested on stubs and through the API.)
 2. ENGINE → **realized quality of the tied peers only**, Pareto (better on ≥ 1, worse on none) over existing measures: the bedroom-class aspect (`hub_guard.proportions_of`: worst of bedrooms and master), wet adjacency share (same source), and two-sided exposure (habitable rooms with two exterior walls, from `wall_facts`). No global rule, no bonus for being an L, the primary untouched.
 3. Exact tie → `outline.order`, for determinism.
 
 Measured on the five dual-valid briefs — the orientations are NOT exact mirrors in realized quality: rear dominates once (two-sided 0.71 vs 0.57), **front dominates once** (4BR/216 m²: 0.625 vs 0.5 — the garden-facing L wins on merit), three tie exactly and fall to order. Shown: rear ×4, front ×1. 108-context sample vs `main`: primaries 98/98 identical, 0 gained, 0 lost; every L brief shows `rectangle · L · rectangle` (one has only one rectangle alternative to show); 0 rectangle alternatives displaced by a second L. Tests (+8 on stubs): GARDEN → front, STREET → rear, ENGINE picks the dominating peer and falls to order when measures conflict or tie, a preference nobody matches falls through to quality, rectangles and the primary untouched, one L in the shown set, and the tiebreak never overrides the area criterion (a nearer L wins whatever the preference).
+
+## The living side, from the review screen (branch `017-public-open-side`)
+
+The tiebreak's first rule read `HouseConcept.public_open_side`, but nothing set it: every plan was made with `ENGINE`. This branch carries the preference from the person to the selection, along the same path `open_plan` takes — and only that far:
+
+| Where | What |
+|---|---|
+| `projects.models.Project.public_open_side: TaggedStr \| None` | `"street" \| "garden" \| "engine"` with a source tag, stored as a plain string (like `CorridorWidthField.mode`) so a later value still loads. `None` — every stored project — reads as `"engine"`. |
+| `repository.set_parsed_requirements(public_open_side=)` | `None` keeps what is stored: the parser never sets this, so a re-parse must not erase it. |
+| `requirements_view.RequirementsReview.public_open_side` | A `RequirementField` (`"engine"` / `inferred` when unset). `ReviewEdit.public_open_side: Literal["street","garden","engine"]`; the review PUT stores it as `requested`. |
+| `requirements_view.spec_for` | `ArchitecturalSpec(..., concept=HouseConcept(public_open_side=…))`. A value this build does not know falls back to `ENGINE`. Never in `hard_fields`: a preference orders otherwise-tied plans, it refuses none. |
+| `router._failure_context` | Records the preference beside `open_plan`. |
+| `ReviewPage.tsx` | One row, "הסלון פונה": המנוע יחליט / לרחוב / לגינה, with provenance; sent with the other corrections. A backend without the field, or a value the client does not know, shows "המנוע יחליט". |
+
+Not parsed from the brief (the parser has no such field; a brief saying "סלון לגינה" still lands in `unsupported_requests` as an orientation request until someone decides it should not). No generator change: the L parti still puts the band on whichever side the massing's arm leaves free; the preference decides only which of two valid orientations is shown.
+
+**Verified**: unset → `spec_for(project).concept == HouseConcept()`, so plans are byte-identical (108-context sample vs `main`, below). Through the API on the 24 × 28 m 3BR brief where both orientations plan: the engine alone shows the rear-arm L (band on the street); `garden` → the front-arm L is shown, `street` → the rear-arm; the primary stays the rectangle and a rectangle alternative stays beside the L. An edit of another review field keeps the preference; a fourth value is refused (422).
 
 ## Left open
 

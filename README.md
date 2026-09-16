@@ -142,13 +142,15 @@ outdoor areas explicitly classified · **every declared connection realized in t
 | optional safe room (ממ״ד) | pools |
 | 1–3 wet rooms | 3+ parking spaces |
 | open-plan **or** closed kitchen | T, U and courtyard shapes |
-| 0–2 parking spaces | L-shaped houses on a rectangular plot (the outline search offers rectangles only) |
-| single floor, rectangular outline | |
-| an **L-shaped house** — two wings, one seam — where the buildable region is itself L-shaped and yields two adjacent safe rectangles (pipeline level: `run_general` with site constraints) | |
+| 0–2 parking spaces | picking the house shape yourself |
+| single floor, rectangular outline | parsing "the living room faces the garden" from the brief (it is a review-screen choice) |
+| an **L-shaped house** — two wings, one seam — where the buildable region is itself L-shaped, or as two L massings the outline search carves from a rectangular plot beside its rectangles | |
+| a **living-side preference** on the review screen — street / garden / the engine decides — that picks which way a shown L faces when both ways plan | |
 
 Anything in the right column is refused explicitly, with a reason. An L is never a shape you pick: when the
-land offers two adjacent rectangles the planner tries a two-wing house beside the one-wing ones, and a valid
-one is shown as an alternative — the primary stays the plan nearest the requested area.
+land offers two adjacent rectangles — or the outline search carves them from the plot — the planner tries a
+two-wing house beside the one-wing ones, and a valid one is shown as an alternative — the primary stays the
+plan nearest the requested area.
 
 ---
 
