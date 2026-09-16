@@ -15,6 +15,7 @@ from app.projects.models import (
     ProjectUpdate,
     Room,
     TaggedBool,
+    TaggedStr,
     TaggedInt,
     WetRoomKindRecord,
     WetRoomQuestionRecord,
@@ -58,6 +59,7 @@ class ProjectRepository(ABC):
         setbacks: SetbackAssumptions | None = None,
         wet_room_kinds: list[WetRoomKindRecord] | None = None,
         wet_room_questions: list[WetRoomQuestionRecord] | None = None,
+        public_open_side: TaggedStr | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -193,6 +195,7 @@ class JsonFileProjectRepository(ProjectRepository):
         setbacks: SetbackAssumptions | None = None,
         wet_room_kinds: list[WetRoomKindRecord] | None = None,
         wet_room_questions: list[WetRoomQuestionRecord] | None = None,
+        public_open_side: TaggedStr | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -220,6 +223,9 @@ class JsonFileProjectRepository(ProjectRepository):
                 "wet_room_questions": (wet_room_questions if wet_room_questions is not None
                                        else existing.wet_room_questions),
                 "setbacks": setbacks if setbacks is not None else existing.setbacks,
+                # A review preference the parser never sets: `None` keeps it across a re-parse.
+                "public_open_side": (public_open_side if public_open_side is not None
+                                     else existing.public_open_side),
                 "requirements_parsed_at": datetime.now(UTC),
             }
         )

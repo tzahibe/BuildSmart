@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 import pytest
 
 from app.demo import service as svc
+from app.demo.requirements_view import review_of
 from app.demo.site_geometry import PREFERRED_RATIOS, feasible_options, derive
 from app.projects.models import (
     Project, SelectedFootprint, SourceTag, StreetSide, TaggedBool, TaggedInt,
@@ -476,3 +477,42 @@ def test_the_tiebreak_applies_only_to_peers_tied_on_the_area_criterion():
     ]
     assert _shown_l(svc._select_plans(results, 200.0, STREET)) == "front"
 
+
+
+# --- the preference travels from the stored project into the spec the selection reads -----------
+
+
+def test_a_project_without_the_living_side_reads_as_the_engine_deciding():
+    """Every project stored before the field existed, and every brief that says nothing: the
+    review shows "the engine decides" as an assumption, and the spec's concept is the default
+    one — so the plans are exactly what they were."""
+    from app.vertical_slice.spec import HouseConcept
+    from tests.vertical_slice.test_hub_guard import WIDE_SQUARE, _project
+    project = _project(WIDE_SQUARE)
+    assert project.public_open_side is None
+    review = review_of(project)
+    assert (review.public_open_side.value, review.public_open_side.source) == ("engine", "inferred")
+    assert svc.spec_for(project).concept == HouseConcept()
+
+
+def test_the_stored_living_side_becomes_the_concept_the_selection_reads():
+    from app.projects.models import TaggedStr
+    from app.vertical_slice.spec import PublicOpenSide
+    from tests.vertical_slice.test_hub_guard import WIDE_SQUARE, _project
+    project = _project(WIDE_SQUARE).model_copy(
+        update={"public_open_side": TaggedStr(value="garden", source=SourceTag.requested)})
+    review = review_of(project)
+    assert (review.public_open_side.value, review.public_open_side.source) == ("garden", "requested")
+    concept = svc.spec_for(project).concept
+    assert concept.public_open_side is PublicOpenSide.GARDEN
+    assert not concept.hard_fields, "a preference, never a binding requirement"
+
+
+def test_a_living_side_this_build_does_not_know_falls_back_to_the_engine():
+    """A project stored by a later build with a value this one has no parti for still plans."""
+    from app.projects.models import TaggedStr
+    from app.vertical_slice.spec import PublicOpenSide
+    from tests.vertical_slice.test_hub_guard import WIDE_SQUARE, _project
+    project = _project(WIDE_SQUARE).model_copy(
+        update={"public_open_side": TaggedStr(value="courtyard", source=SourceTag.requested)})
+    assert svc.spec_for(project).concept.public_open_side is PublicOpenSide.ENGINE

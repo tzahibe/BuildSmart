@@ -13,6 +13,8 @@ NOT used here and is not on the demo path.
 """
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 from app.projects.models import Project
@@ -22,6 +24,8 @@ from app.vertical_slice.concept_generator import build_room_program
 from app.vertical_slice.relationships import describe
 from app.vertical_slice.spec import (
     ArchitecturalSpec,
+    HouseConcept,
+    PublicOpenSide,
     RelationStrength,
     RoomRelation,
     RoomRelationshipRequirement,
@@ -50,7 +54,7 @@ REAR_SETBACK_M = site_geometry.REAR_SETBACK_M
 class RequirementField(BaseModel):
     """One correctable requirement plus where it came from."""
 
-    value: int | bool | None
+    value: int | bool | str | None
     source: str  # "requested" | "inferred" | "unknown"
 
 
@@ -164,6 +168,10 @@ class RequirementsReview(BaseModel):
     open_plan: RequirementField
     parking_spaces: RequirementField
     floors: RequirementField
+    #: Which side the living rooms open to: "street" | "garden" | "engine". A preference — it
+    #: orders otherwise-tied plans (an L's two orientations), it never refuses one.
+    public_open_side: RequirementField = Field(
+        default_factory=lambda: RequirementField(value="engine", source="inferred"))
     built_area_m2: float | None = None
     footprint_width_m: float | None = None
     footprint_depth_m: float | None = None
@@ -207,6 +215,7 @@ class ReviewEdit(BaseModel):
     open_plan: bool | None = None
     parking_spaces: int | None = None
     floors: int | None = None
+    public_open_side: Literal["street", "garden", "engine"] | None = None
     #: The wet rooms' kinds, one per room in order. Absent keeps what is stored; supplied replaces
     #: it whole (an edit is authoritative, `source="requested"`). Longer than the count is refused.
     wet_room_kinds: list[WetRoomKindEdit] | None = None
@@ -260,6 +269,7 @@ def review_of(project: Project) -> RequirementsReview:
         open_plan=open_plan,
         parking_spaces=_field(project.parking_spaces, default=0),
         floors=_field(project.floors, default=1),
+        public_open_side=_field(project.public_open_side, default=PublicOpenSide.ENGINE.value),
         built_area_m2=project.built_area_m2,
         footprint_width_m=footprint.width_m if footprint else None,
         footprint_depth_m=footprint.depth_m if footprint else None,
@@ -465,4 +475,14 @@ def spec_for(project: Project) -> ArchitecturalSpec:
             corridor=_corridor_of(project),
             relationships=_relationships_of(project),
         ),
+        # The only concept field the client can set so far. A value this build does not know
+        # (a stored project from a later one) reads as ENGINE rather than refusing the plan.
+        concept=HouseConcept(public_open_side=_public_open_side_of(review)),
     )
+
+
+def _public_open_side_of(review: RequirementsReview) -> PublicOpenSide:
+    try:
+        return PublicOpenSide(review.public_open_side.value)
+    except ValueError:
+        return PublicOpenSide.ENGINE

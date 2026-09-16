@@ -263,9 +263,14 @@ export interface DemoPlanSet {
 
 /** "This is what I understood" — mirrors `RequirementsReview`. */
 export interface ReviewField {
-  value: number | boolean | null
+  value: number | boolean | string | null
   source: 'requested' | 'inferred' | 'unknown'
 }
+
+/** Which side the living rooms open to. A preference: it orders otherwise-tied plans (the two
+ * orientations of an L), it never refuses one. `engine` — the engine decides. */
+export type PublicOpenSide = 'street' | 'garden' | 'engine'
+export const PUBLIC_OPEN_SIDES: PublicOpenSide[] = ['engine', 'street', 'garden']
 
 /** A requirement the brief asked for that this stage cannot plan — the person's own words. */
 export type RequestSeverity = 'preference' | 'hard_requirement' | 'ambiguous'
@@ -359,6 +364,8 @@ export interface RequirementsReview {
   open_plan: ReviewField
   parking_spaces: ReviewField
   floors: ReviewField
+  /** Absent from a backend older than the field; the page reads that as `engine`. */
+  public_open_side?: ReviewField
   built_area_m2: number | null
   footprint_width_m: number | null
   footprint_depth_m: number | null
@@ -394,6 +401,7 @@ export interface ReviewEdit {
   open_plan?: boolean
   parking_spaces?: number
   floors?: number
+  public_open_side?: PublicOpenSide
   /** The wet rooms' kinds, one per room, replacing the stored list whole. */
   wet_room_kinds?: WetRoomKindEdit[]
 }

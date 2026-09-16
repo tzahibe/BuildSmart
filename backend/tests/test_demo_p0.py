@@ -1949,3 +1949,52 @@ def test_an_l_massing_is_surveyed_on_a_rectangular_plot_and_shown_when_it_plans(
     assert "C22" not in body["plan"]["validation"]["checks"], "a one-wing plan makes no seam claim"
     # Never two L's of the same family in place of a rectangle alternative.
     assert len(l_plans) == 1
+
+
+def _l_arm_end(l_plan: dict) -> str:
+    """Which end of the primary the arm sits at, read off the two footprints: the arm is the
+    smaller wing; at the FRONT it shares the primary's street edge (y = min), at the REAR its far
+    edge."""
+    primary, arm = sorted(l_plan["footprints"], key=lambda f: -f["width_m"] * f["depth_m"])
+    if arm["y"] == pytest.approx(primary["y"]):
+        return "front"
+    assert arm["y"] + arm["depth_m"] == pytest.approx(primary["y"] + primary["depth_m"])
+    return "rear"
+
+
+@pytest.mark.parametrize("side, arm_end", [("garden", "front"), ("street", "rear")])
+def test_the_living_side_preference_chooses_which_way_the_shown_l_faces(client, side, arm_end):
+    """`public_open_side` travels from the review screen into the plan selection: with both L
+    orientations valid, the one shown is the one whose public band faces the side the person
+    chose — the garden (arm at the front) or the street (arm at the rear). A preference: the
+    primary is untouched and no rectangle is displaced."""
+    project_id = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 672.0, "built_area_m2": 200.0,
+        "plot_width_m": 24.0, "plot_depth_m": 28.0, "street_facing_side": "NORTH",
+        "setbacks": _DEMO_SETBACKS,
+        "description": BRIEF_3BR_SAFE_OPEN,
+        "selected_footprint": None,
+    }).json()["project_id"]
+    assert client.post(f"/projects/{project_id}/requirements").status_code == 200
+    review = client.get(f"/projects/{project_id}/review").json()
+    assert review["public_open_side"] == {"value": "engine", "source": "inferred"}
+
+    edited = client.put(f"/projects/{project_id}/review", json={"public_open_side": side})
+    assert edited.status_code == 200
+    assert edited.json()["public_open_side"] == {"value": side, "source": "requested"}
+    # An edit of another field keeps the preference.
+    kept = client.put(f"/projects/{project_id}/review", json={"parking_spaces": 1}).json()
+    assert kept["public_open_side"] == {"value": side, "source": "requested"}
+
+    body = client.post(f"/projects/{project_id}/design/demo").json()
+    assert body["plan"]["outline"]["shape"] == "RECTANGLE"
+    l_plans = [d for d in body["alternatives"] if d["outline"]["shape"] == "L"]
+    assert len(l_plans) == 1
+    assert _l_arm_end(l_plans[0]) == arm_end
+    assert [d["outline"]["shape"] for d in body["alternatives"]].count("RECTANGLE") >= 1
+
+
+def test_the_living_side_accepts_only_its_three_values(client):
+    project_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
+    assert client.put(f"/projects/{project_id}/review", json={"public_open_side": "north"}).status_code == 422
