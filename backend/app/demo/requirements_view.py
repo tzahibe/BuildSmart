@@ -30,6 +30,7 @@ from app.vertical_slice.spec import (
     PlotSpec,
     ProgramSpec,
     WetRoomKind,
+    WetRoomOrigin,
     WetRoomRequirement,
 )
 from app.vertical_slice.wet_rooms import (
@@ -130,6 +131,9 @@ class WetRoomKindNote(BaseModel):
     source_text: str = ""
     specified: bool = False
     label: str = ""
+    #: "explicit" — the brief (or the person) named this room; "count_derived" — a number did: a
+    #: surplus toilet, or the bare-count default. The label says which.
+    origin: str = "explicit"
     #: Only a shared (or unstated) bathroom can be made flexible — the one case in which the
     #: planner may attach it to a bedroom. The screen greys the toggle out otherwise.
     can_be_flexible: bool = False
@@ -139,6 +143,16 @@ class WetRoomKindEdit(BaseModel):
     kind: str = "unspecified"
     host: str | None = None
     strength: str = "required"
+
+
+class WetRoomProposalNote(BaseModel):
+    """The answer the product offers to `wet_room_problem`, as rows the screen can put straight
+    into the editor. Accepting it is an ordinary edit: the rows are sent back through `ReviewEdit`
+    and stored as the person's word."""
+
+    wet_rooms: int
+    wet_room_kinds: list[WetRoomKindEdit]
+    summary: str
 
 
 class RequirementsReview(BaseModel):
@@ -168,6 +182,8 @@ class RequirementsReview(BaseModel):
     #: generation would refuse with (`scope.wet_room_rejection`). `None` when they can. The screen
     #: keeps Generate blocked while this is set; the backend refuses regardless.
     wet_room_problem: str | None = None
+    #: A one-click answer to `wet_room_problem`, when one exists. `None` otherwise.
+    wet_room_proposal: WetRoomProposalNote | None = None
     #: The rooms the plan will ACTUALLY contain, in the person's words. Counts alone hid the gap
     #: that prompted this: a brief asking for a study came back as "3 bedrooms, 1 bathroom" and the
     #: study was nowhere — not planned, and not reported as unplanned either. A list of what will be
@@ -221,8 +237,11 @@ def review_of(project: Project) -> RequirementsReview:
     safe_room = _field(project.safe_room, default=False)
     wet_rooms = _field(project.wet_rooms, default=1)
     open_plan = _field(project.open_plan, default=False)
-    problem = (scope.wet_room_rejection(project, int(bedrooms.value), int(wet_rooms.value or 1))
-               if bedrooms.value is not None else None)
+    # A reading the parser left open comes first; then the access invariants on what is stored.
+    problem = scope.wet_room_question_rejection(project, bedrooms.value)
+    if problem is None and bedrooms.value is not None:
+        problem = scope.wet_room_rejection(project, int(bedrooms.value), int(wet_rooms.value or 1))
+    proposal = problem.proposal if problem is not None else None
     return RequirementsReview(
         limits=_limits(),
         planned_rooms=([] if problem is not None else
@@ -230,6 +249,10 @@ def review_of(project: Project) -> RequirementsReview:
                                       wet_rooms.value, wet_room_kinds_of(project))),
         wet_room_kinds=_wet_room_notes(project, bedrooms.value, wet_rooms.value),
         wet_room_problem=problem.message if problem is not None else None,
+        wet_room_proposal=(WetRoomProposalNote(
+            wet_rooms=proposal.wet_rooms, summary=proposal.summary,
+            wet_room_kinds=[WetRoomKindEdit(kind=r.kind, host=r.host, strength=r.strength)
+                            for r in proposal.wet_room_kinds]) if proposal is not None else None),
         site=_site_note(project),
         bedrooms=bedrooms,
         safe_room=safe_room,
@@ -272,13 +295,9 @@ _ROOM_WORDS = {
 }
 
 
-#: Wet-room kind -> what to call it on screen.
-_WET_ROOM_WORDS = {
-    ("shared_bathroom", None): "חדר רחצה משותף",
-    ("ensuite", "MASTER_BEDROOM"): "חדר רחצה צמוד לחדר ההורים",
-    ("ensuite", "BEDROOM"): "חדר רחצה צמוד לחדר שינה",
-    ("guest_wc", None): "שירותי אורחים",
-}
+#: Wet-room kind -> what to call it on screen. Lives in `scope` so a proposal names its rows the
+#: same way the review names the rows it becomes.
+_WET_ROOM_WORDS = scope.WET_ROOM_WORDS
 
 
 def _wet_room_notes(project: Project, bedrooms, wet_rooms) -> list[WetRoomKindNote]:
@@ -294,17 +313,23 @@ def _wet_room_notes(project: Project, bedrooms, wet_rooms) -> list[WetRoomKindNo
     except WetRoomResolutionError:
         return [WetRoomKindNote(index=i, kind=r.kind, host=r.host, strength=r.strength,
                                 source_text=r.source_text, specified=r.kind != "unspecified",
-                                label=_WET_ROOM_WORDS.get((r.kind, r.host), r.kind))
+                                label=_WET_ROOM_WORDS.get((r.kind, r.host), r.kind), origin=r.origin)
                 for i, r in enumerate(project.wet_room_kinds)]
     notes = []
     for i, r in enumerate(resolved):
         host = (("MASTER_BEDROOM" if r.host_zone == "MASTER" else "BEDROOM")
                 if r.kind is WetRoomKind.ENSUITE else None)
         word = _WET_ROOM_WORDS[(r.kind.value, host)]
+        if not r.specified:
+            label = f"לא צוין — ברירת מחדל: {word}"
+        elif r.origin is WetRoomOrigin.COUNT_DERIVED:
+            # A room a number made: the surplus of "2 שירותים" over the bathrooms that hold one.
+            label = f"נגזר מהספירה: {word}"
+        else:
+            label = word
         notes.append(WetRoomKindNote(
             index=i, kind=r.kind.value, host=host, strength=r.strength.value,
-            source_text=r.source_text, specified=r.specified,
-            label=word if r.specified else f"לא צוין — ברירת מחדל: {word}",
+            source_text=r.source_text, specified=r.specified, label=label, origin=r.origin.value,
             can_be_flexible=r.kind is WetRoomKind.SHARED_BATHROOM))
     return notes
 
@@ -376,7 +401,7 @@ def wet_room_kinds_of(project: Project) -> tuple[WetRoomRequirement, ...]:
     """The stated wet-room kinds, as the engine reads them. Records this build cannot read raise
     `WetRoomResolutionError`; `scope.check_supported` reports that before this is ever called for
     planning, so here it simply propagates."""
-    return tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text)
+    return tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text, r.origin)
                  for r in project.wet_room_kinds)
 
 

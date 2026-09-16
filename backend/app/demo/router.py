@@ -96,12 +96,19 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
                 # the person changed no longer says what the brief said.
                 source_text=(stored[i].source_text if i < len(stored)
                              and (stored[i].kind, stored[i].host) == (k.kind, k.host) else ""),
-                source=SourceTag.requested if k.kind != "unspecified" else SourceTag.unknown)
+                source=SourceTag.requested if k.kind != "unspecified" else SourceTag.unknown,
+                # Rows that pass through the person's hands are the person's word — a proposal
+                # accepted here, or a count-derived WC confirmed, is explicit from now on.
+                origin="explicit")
             for i, k in enumerate(body.wet_room_kinds)]
+        # Supplying the rows answers every reading the parser had left open (`wet_room_questions`).
+        wet_room_questions: list | None = []
     elif wet_rooms.value is not None and len(project.wet_room_kinds) > wet_rooms.value:
         wet_room_kinds = list(project.wet_room_kinds[:wet_rooms.value])
+        wet_room_questions = None
     else:
         wet_room_kinds = None  # keep what is stored
+        wet_room_questions = None
 
     updated = project_routes.repository.set_parsed_requirements(
         project_id,
@@ -114,6 +121,7 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
         open_plan=_bool(body.open_plan, project.open_plan),
         setbacks=setbacks,
         wet_room_kinds=wet_room_kinds,
+        wet_room_questions=wet_room_questions,
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Project not found")

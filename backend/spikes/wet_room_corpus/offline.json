@@ -1,0 +1,1023 @@
+[
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "f6a2b9f1",
+  "before": [
+   [
+    "BATHROOM",
+    8.1
+   ],
+   [
+    "BATHROOM",
+    9.0
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "bd7d1fc9",
+  "before": [
+   [
+    "BATHROOM",
+    10.1
+   ],
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "b2df1069",
+  "before": [
+   [
+    "BATHROOM",
+    9.0
+   ],
+   [
+    "BATHROOM",
+    10.8
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "9c2712ea",
+  "before": [
+   [
+    "BATHROOM",
+    9.0
+   ],
+   [
+    "BATHROOM",
+    10.8
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "d25017da",
+  "before": [
+   [
+    "BATHROOM",
+    9.0
+   ],
+   [
+    "TOILET",
+    5.0
+   ],
+   [
+    "BATHROOM",
+    6.7
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "5fe30ca6",
+  "before": [
+   [
+    "BATHROOM",
+    7.8
+   ],
+   [
+    "BATHROOM",
+    6.8
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 1,
+  "cls": "P4",
+  "pid": "be53ece9",
+  "before": [
+   [
+    "BATHROOM",
+    9.5
+   ],
+   [
+    "TOILET",
+    5.5
+   ],
+   [
+    "BATHROOM",
+    6.7
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 0,
+  "exp_wc": 1,
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים סלון"
+ },
+ {
+  "idx": 3,
+  "cls": "P3",
+  "pid": "9cd73e89",
+  "before": [
+   [
+    "BATHROOM",
+    12.8
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.8
+   ],
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 4 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון"
+ },
+ {
+  "idx": 3,
+  "cls": "P3",
+  "pid": "6d138f2d",
+  "before": [
+   [
+    "BATHROOM",
+    9.2
+   ],
+   [
+    "TOILET",
+    6.1
+   ],
+   [
+    "BATHROOM",
+    11.3
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.8
+   ],
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 4 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון"
+ },
+ {
+  "idx": 3,
+  "cls": "P3",
+  "pid": "a1780eb5",
+  "before": [
+   [
+    "BATHROOM",
+    10.1
+   ],
+   [
+    "TOILET",
+    5.7
+   ],
+   [
+    "BATHROOM",
+    7.2
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.7
+   ],
+   [
+    "BATHROOM",
+    7.2
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 4 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון"
+ },
+ {
+  "idx": 4,
+  "cls": "P2",
+  "pid": "aadfc3e3",
+  "before": [
+   [
+    "BATHROOM",
+    8.2
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    8.2
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית 3 חדרי שינה, חדר הורים, שירותים מקלחת סלון ומטבח"
+ },
+ {
+  "idx": 4,
+  "cls": "P2",
+  "pid": "42701575",
+  "before": [
+   [
+    "BATHROOM",
+    8.1
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    8.1
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית 3 חדרי שינה, חדר הורים, שירותים מקלחת סלון ומטבח"
+ },
+ {
+  "idx": 4,
+  "cls": "P2",
+  "pid": "bd268685",
+  "before": [
+   [
+    "BATHROOM",
+    8.4
+   ],
+   [
+    "BATHROOM",
+    12.0
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    8.1
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית 3 חדרי שינה, חדר הורים, שירותים מקלחת סלון ומטבח"
+ },
+ {
+  "idx": 5,
+  "cls": "P3",
+  "pid": "f78ebd22",
+  "before": [
+   [
+    "BATHROOM",
+    8.5
+   ],
+   [
+    "TOILET",
+    4.6
+   ],
+   [
+    "BATHROOM",
+    6.8
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    4.7
+   ],
+   [
+    "BATHROOM",
+    6.8
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, סלון ומטבח"
+ },
+ {
+  "idx": 5,
+  "cls": "P3",
+  "pid": "411c6594",
+  "before": [
+   [
+    "BATHROOM",
+    8.4
+   ],
+   [
+    "TOILET",
+    4.3
+   ],
+   [
+    "BATHROOM",
+    7.0
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    4.2
+   ],
+   [
+    "BATHROOM",
+    6.8
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, סלון ומטבח"
+ },
+ {
+  "idx": 5,
+  "cls": "P3",
+  "pid": "f5adf98b",
+  "before": [
+   [
+    "BATHROOM",
+    8.5
+   ],
+   [
+    "BATHROOM",
+    11.3
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    6.0
+   ],
+   [
+    "BATHROOM",
+    12.0
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, סלון ומטבח"
+ },
+ {
+  "idx": 7,
+  "cls": "P2",
+  "pid": "b159ce43",
+  "before": [
+   [
+    "BATHROOM",
+    9.3
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    9.3
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם שלושה חדרי שינה, מקלחת, שירותים, סלון ומטבח"
+ },
+ {
+  "idx": 9,
+  "cls": "P3",
+  "pid": "fcc3bc4d",
+  "before": [
+   [
+    "BATHROOM",
+    12.8
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.8
+   ],
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 2 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון"
+ },
+ {
+  "idx": 9,
+  "cls": "P3",
+  "pid": "726635a9",
+  "before": [
+   [
+    "BATHROOM",
+    10.5
+   ],
+   [
+    "TOILET",
+    6.3
+   ],
+   [
+    "BATHROOM",
+    11.9
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.5
+   ],
+   [
+    "BATHROOM",
+    6.7
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 2 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון"
+ },
+ {
+  "idx": 12,
+  "cls": "P2",
+  "pid": "7a8f3a11",
+  "before": [
+   [
+    "BATHROOM",
+    6.1
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    6.1
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם 2 חדרי שינה, חדר הורים, מקלחת, שירותים, סלון ומטבח"
+ },
+ {
+  "idx": 12,
+  "cls": "P2",
+  "pid": "cf686297",
+  "before": [
+   [
+    "BATHROOM",
+    6.3
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    6.3
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם 2 חדרי שינה, חדר הורים, מקלחת, שירותים, סלון ומטבח"
+ },
+ {
+  "idx": 32,
+  "cls": "P1",
+  "pid": "0f696f52",
+  "before": [
+   [
+    "BATHROOM",
+    8.5
+   ],
+   [
+    "BATHROOM",
+    9.6
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    11.6
+   ],
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 2,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם 3 חדרי שינה, חדר הורים, 2 מקלחות סלון ומטבח"
+ },
+ {
+  "idx": 35,
+  "cls": "P2",
+  "pid": "70a2f694",
+  "before": [
+   [
+    "BATHROOM",
+    10.2
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    10.2
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים מקלחת שירותים סלון ומטבח"
+ },
+ {
+  "idx": 36,
+  "cls": "P2",
+  "pid": "9638d2ca",
+  "before": [
+   [
+    "BATHROOM",
+    11.8
+   ],
+   [
+    "BATHROOM",
+    10.2
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    12.8
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם 2 חדרים, חדר הורים, 1 שירותים, מקלחת מטבח וסלון"
+ },
+ {
+  "idx": 37,
+  "cls": "P2",
+  "pid": "0c1be72b",
+  "before": [
+   [
+    "BATHROOM",
+    11.7
+   ],
+   [
+    "BATHROOM",
+    11.7
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    8.5
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "2 חדרי שינה, חדר הורים, שירותים, מקלחת, מטבח וסלון"
+ },
+ {
+  "idx": 41,
+  "cls": "P1",
+  "pid": "6c131b2c",
+  "before": [
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    11.6
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית קטן עם חדר שינה אחד, חדר רחצה אחד, סלון ומטבח פתוחים"
+ },
+ {
+  "idx": 42,
+  "cls": "P5",
+  "pid": "beeea749",
+  "before": [
+   [
+    "BATHROOM",
+    11.7
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    11.7
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם 3 חדרים חדר הורים, שירותים סלון ומטבח"
+ },
+ {
+  "idx": 43,
+  "cls": "P3",
+  "pid": "0f6f52ce",
+  "before": [
+   [
+    "BATHROOM",
+    7.7
+   ],
+   [
+    "TOILET",
+    3.7
+   ],
+   [
+    "BATHROOM",
+    6.4
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.8
+   ],
+   [
+    "BATHROOM",
+    7.2
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "4 חדרי שינה  כולל חדר הורים, 2 שירותים, מקלחת, סלון ומטבח"
+ },
+ {
+  "idx": 44,
+  "cls": "P4",
+  "pid": "39a9ce57",
+  "before": [
+   [
+    "BATHROOM",
+    9.5
+   ],
+   [
+    "TOILET",
+    4.7
+   ],
+   [
+    "BATHROOM",
+    7.6
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.7
+   ],
+   [
+    "TOILET",
+    5.7
+   ],
+   [
+    "BATHROOM",
+    9.6
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 2,
+  "questions": [],
+  "text": "4 חדרי שינה  כולל חדר הורים, 2 שירותים(תרשום לי שירותים ולא "
+ },
+ {
+  "idx": 45,
+  "cls": "P2",
+  "pid": "cece68ee",
+  "before": [
+   [
+    "BATHROOM",
+    10.8
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    10.8
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 0,
+  "questions": [],
+  "text": "בית עם 3 חדרי שינה, חדר הורים, מקלחת שירותים סלון ומטבח"
+ },
+ {
+  "idx": 46,
+  "cls": "P3",
+  "pid": "22dc4ba4",
+  "before": [
+   [
+    "BATHROOM",
+    8.7
+   ],
+   [
+    "TOILET",
+    5.7
+   ],
+   [
+    "BATHROOM",
+    10.5
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 3 חדרי שינה, חדר הורים עם מקלחת, מרפסת, 2 שירותים סלו"
+ },
+ {
+  "idx": 51,
+  "cls": "P3",
+  "pid": "8b77e69c",
+  "before": [
+   [
+    "BATHROOM",
+    8.5
+   ],
+   [
+    "BATHROOM",
+    11.3
+   ]
+  ],
+  "after": [
+   [
+    "TOILET",
+    5.0
+   ],
+   [
+    "TOILET",
+    5.0
+   ],
+   [
+    "BATHROOM",
+    6.4
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 1,
+  "exp_wc": 2,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, סלון ומטבח ושירותי"
+ },
+ {
+  "idx": 53,
+  "cls": "P4",
+  "pid": "ff9346c4",
+  "before": [
+   [
+    "BATHROOM",
+    10.0
+   ],
+   [
+    "BATHROOM",
+    8.4
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "4 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים סלון ומטבח"
+ },
+ {
+  "idx": 55,
+  "cls": "P4",
+  "pid": "8e76028d",
+  "before": [
+   [
+    "BATHROOM",
+    5.7
+   ],
+   [
+    "TOILET",
+    3.7
+   ],
+   [
+    "BATHROOM",
+    8.6
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, ממ״ד, סלון ו"
+ },
+ {
+  "idx": 57,
+  "cls": "P4",
+  "pid": "545e1719",
+  "before": [
+   [
+    "BATHROOM",
+    8.2
+   ],
+   [
+    "BATHROOM",
+    7.8
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "PLAN_FAILED_VALIDATION",
+  "exp_bath": 2,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, מטבח קטן, סל"
+ },
+ {
+  "idx": 58,
+  "cls": "P4",
+  "pid": "aaa60d29",
+  "before": [
+   [
+    "BATHROOM",
+    6.0
+   ],
+   [
+    "BATHROOM",
+    6.8
+   ]
+  ],
+  "after": [],
+  "after_status": "REFUSED",
+  "code": "NEEDS_CLARIFICATION",
+  "exp_bath": 1,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית עם 3 חדרי שינה, ממ״ד, באחד מחדרי השינה יש גם מקלחת, מטבח"
+ },
+ {
+  "idx": 60,
+  "cls": "P4",
+  "pid": "119e6ed8",
+  "before": [
+   [
+    "BATHROOM",
+    6.0
+   ],
+   [
+    "TOILET",
+    3.8
+   ],
+   [
+    "BATHROOM",
+    6.1
+   ]
+  ],
+  "after": [
+   [
+    "BATHROOM",
+    6.0
+   ],
+   [
+    "TOILET",
+    3.8
+   ],
+   [
+    "BATHROOM",
+    6.1
+   ]
+  ],
+  "after_status": "PLANNED",
+  "code": null,
+  "exp_bath": 2,
+  "exp_wc": 1,
+  "questions": [],
+  "text": "בית 3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, סלון מטב"
+ }
+]

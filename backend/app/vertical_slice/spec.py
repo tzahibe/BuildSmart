@@ -130,6 +130,23 @@ class WetRoomStrength(str, Enum):
     FLEXIBLE = "flexible"
 
 
+class WetRoomOrigin(str, Enum):
+    """WHO DECIDED THIS ROOM EXISTS. EXPLICIT: the person named it as a room (or confirmed it on
+    the review screen). COUNT_DERIVED: the system made a room out of a number — a bare "שירותים"
+    left over after every bathroom already holds a toilet, or the legacy bare-count default.
+
+    A toilet is a FIXTURE; every bathroom contains one. Only the surplus becomes a room, and a
+    room that exists only because of a count is a weaker claim than one the person asked for:
+    the review screen says so, and specs/009 (decision B) plans its placement as a preference
+    rather than a law. Measured 2026-09-15 before this existed: the parser counted every
+    "שירותים" as a room in 16 of 29 briefs that also named a bathroom, and the delivered plans
+    carried a surplus full bathroom in 13 of 37.
+    """
+
+    EXPLICIT = "explicit"
+    COUNT_DERIVED = "count_derived"
+
+
 #: Host tokens an ENSUITE may name. Which secondary bedroom hosts a `BEDROOM` ensuite is the
 #: programme's choice (`concept_generator.resolve_wet_rooms`), never the brief's.
 ENSUITE_HOST_MASTER = "MASTER_BEDROOM"
@@ -146,6 +163,7 @@ class WetRoomRequirement:
     host: str | None = None
     strength: WetRoomStrength = WetRoomStrength.REQUIRED
     source_text: str = ""
+    origin: WetRoomOrigin = WetRoomOrigin.EXPLICIT
 
 
 @dataclass(frozen=True)

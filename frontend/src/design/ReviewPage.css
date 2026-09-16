@@ -284,3 +284,6 @@
   font-size: 0.9rem;
   color: var(--review-muted, #6b6b6b);
 }
+
+/* The backend's proposed answer to a wet-room question: one click puts its rows in the editor. */
+.review-wet-proposal { margin-top: 8px; text-align: right; line-height: 1.5; }

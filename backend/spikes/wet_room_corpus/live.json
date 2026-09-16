@@ -1,0 +1,1976 @@
+[
+ {
+  "idx": 0,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 1,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "toilet_only",
+     "source_text": "חדר הורים עם שירותים",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [
+   "ATTACHED_TOILET_ONLY"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 2,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 3,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 4,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 5,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 6,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים גדול עם מקלחת ושירותים",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 7,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 8,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 9,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 10,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "שני חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 11,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "חדר רחצה אחד",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 12,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 13,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים בכניסה לבית",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 14,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 15,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 מקלחות",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 16,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 17,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 18,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 4,
+   "toilet_source_text": "4 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 19,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 מקלחות",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 20,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 מקלחות",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 21,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 22,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 23,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 24,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 25,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 26,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 27,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "3 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [
+   "TOILETS_WITHOUT_BATHROOM"
+  ],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 28,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 29,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 30,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת ושירותים",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "ועוד שירותים"
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": false,
+  "rooms_ok": false
+ },
+ {
+  "idx": 31,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת שירותים",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": false,
+  "rooms_ok": true
+ },
+ {
+  "idx": 32,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "2 מקלחות",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 33,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 34,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "מקלחת בחדר הורים",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 35,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 36,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "1 שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 37,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 38,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "שני חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 39,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "שני חדרי רחצה",
+     "count": 2,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 40,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "שלושה חדרי רחצה",
+     "count": 3,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 41,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "חדר רחצה אחד",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 42,
+  "demand": {
+   "bathrooms": [],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 1,
+   "toilet_source_text": "שירותים"
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "count_derived"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 43,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 44,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [
+    {
+     "source_text": "2 שירותים (תרשום לי שירותים ולא חדר רחצה)",
+     "count": 2
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 45,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת שירותים",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": false,
+  "rooms_ok": true
+ },
+ {
+  "idx": 46,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "2 שירותים",
+     "count": 2
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": false,
+  "rooms_ok": false
+ },
+ {
+  "idx": 47,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 48,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 49,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 50,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 2,
+   "toilet_source_text": "2 שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 51,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 3,
+   "toilet_source_text": "2 שירותים, שירותים"
+  },
+  "rooms": [
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "guest_wc",
+    null,
+    "count_derived"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 52,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    },
+    {
+     "source_text": "ועוד חדר שירותים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": false,
+  "rooms_ok": false
+ },
+ {
+  "idx": 53,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": false,
+  "rooms_ok": false
+ },
+ {
+  "idx": 54,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 55,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 56,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת סלון",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת קטנה",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 57,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "מקלחת משותפת",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 58,
+  "demand": {
+   "bathrooms": [],
+   "attached": [
+    {
+     "host": "BEDROOM",
+     "fixtures": "bath",
+     "source_text": "באחד מחדרי השינה יש גם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים בכניסה לבית",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 59,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "חדר רחצה אחד",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [],
+   "separate_wcs": [],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ },
+ {
+  "idx": 60,
+  "demand": {
+   "bathrooms": [
+    {
+     "source_text": "חדר רחצה משותף",
+     "count": 1,
+     "flexible": false
+    }
+   ],
+   "attached": [
+    {
+     "host": "MASTER_BEDROOM",
+     "fixtures": "bath",
+     "source_text": "חדר הורים עם מקלחת",
+     "count": 1
+    }
+   ],
+   "separate_wcs": [
+    {
+     "source_text": "שירותי אורחים",
+     "count": 1
+    }
+   ],
+   "toilet_mentions": 0,
+   "toilet_source_text": ""
+  },
+  "rooms": [
+   [
+    "ensuite",
+    "MASTER_BEDROOM",
+    "explicit"
+   ],
+   [
+    "guest_wc",
+    null,
+    "explicit"
+   ],
+   [
+    "shared_bathroom",
+    null,
+    "explicit"
+   ]
+  ],
+  "questions": [],
+  "demand_ok": true,
+  "rooms_ok": true
+ }
+]

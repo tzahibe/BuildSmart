@@ -84,6 +84,38 @@ describe('ReviewPage wet rooms', () => {
     }))
   })
 
+  it('applies the proposed answer with one click and sends those rows', () => {
+    const onConfirm = vi.fn()
+    const review = {
+      ...reviewWith([ENSUITE, GUEST_WC], PROBLEM),
+      wet_room_proposal: {
+        wet_rooms: 3,
+        summary: 'להוסיף חדר רחצה משותף — חדרי הרחצה יהיו: 1. חדר רחצה צמוד לחדר ההורים; 2. שירותי אורחים; 3. חדר רחצה משותף',
+        wet_room_kinds: [
+          { kind: 'ensuite', host: 'MASTER_BEDROOM', strength: 'required' },
+          { kind: 'guest_wc', host: null, strength: 'required' },
+          { kind: 'shared_bathroom', host: null, strength: 'required' },
+        ],
+      },
+    } as RequirementsReview
+    render(<ReviewPage review={review} onConfirm={onConfirm} onBack={() => {}} />)
+
+    const generate = screen.getByRole('button', { name: /יצירת תוכנית/ })
+    expect(generate).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /להוסיף חדר רחצה משותף/ }))
+    expect(screen.getByLabelText('סוג חדר רחצה 3')).toHaveValue('shared_bathroom')
+    expect(generate).toBeEnabled()
+    fireEvent.click(generate)
+    expect(onConfirm).toHaveBeenCalledWith(expect.objectContaining({
+      wet_rooms: 3,
+      wet_room_kinds: [
+        { kind: 'ensuite', host: 'MASTER_BEDROOM', strength: 'required' },
+        { kind: 'guest_wc', host: null, strength: 'required' },
+        { kind: 'shared_bathroom', host: null, strength: 'required' },
+      ],
+    }))
+  })
+
   it('marks a shared bathroom flexible and sends it so', () => {
     const onConfirm = vi.fn()
     render(<ReviewPage review={reviewWith([ENSUITE, DEFAULT_SHARED], null)} onConfirm={onConfirm} onBack={() => {}} />)

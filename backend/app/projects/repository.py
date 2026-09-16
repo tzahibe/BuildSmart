@@ -17,6 +17,7 @@ from app.projects.models import (
     TaggedBool,
     TaggedInt,
     WetRoomKindRecord,
+    WetRoomQuestionRecord,
 )
 
 
@@ -56,6 +57,7 @@ class ProjectRepository(ABC):
         room_relationships: list[RoomRelationshipRecord] | None = None,
         setbacks: SetbackAssumptions | None = None,
         wet_room_kinds: list[WetRoomKindRecord] | None = None,
+        wet_room_questions: list[WetRoomQuestionRecord] | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -190,6 +192,7 @@ class JsonFileProjectRepository(ProjectRepository):
         room_relationships: list[RoomRelationshipRecord] | None = None,
         setbacks: SetbackAssumptions | None = None,
         wet_room_kinds: list[WetRoomKindRecord] | None = None,
+        wet_room_questions: list[WetRoomQuestionRecord] | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -213,6 +216,9 @@ class JsonFileProjectRepository(ProjectRepository):
                 # the brief said about the wet rooms. An empty list is an explicit "nothing stated".
                 "wet_room_kinds": (wet_room_kinds if wet_room_kinds is not None
                                    else existing.wet_room_kinds),
+                # Same rule: `None` keeps the stored questions; a list (even empty) replaces them.
+                "wet_room_questions": (wet_room_questions if wet_room_questions is not None
+                                       else existing.wet_room_questions),
                 "setbacks": setbacks if setbacks is not None else existing.setbacks,
                 "requirements_parsed_at": datetime.now(UTC),
             }

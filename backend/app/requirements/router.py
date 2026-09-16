@@ -7,6 +7,7 @@ from app.projects.models import (
     TaggedInt,
     UnsupportedRequestRecord,
     WetRoomKindRecord,
+    WetRoomQuestionRecord,
 )
 from app.projects.routes import base_routes as project_routes
 from app.requirements.parser import (
@@ -52,10 +53,20 @@ def parse_requirements(project_id: str) -> Project:
                 source_text=r.source_text, ambiguous=r.ambiguous)
             for r in extraction.room_relationships],
         wet_room_kinds=wet_room_kinds,
+        wet_room_questions=[
+            WetRoomQuestionRecord(code=q.code, text=q.text, source_text=q.source_text,
+                                  proposal_kinds=[_kind_record(k) for k in q.proposal_kinds])
+            for q in extraction.wet_room_questions],
     )
     if updated is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return updated
+
+
+def _kind_record(k) -> WetRoomKindRecord:
+    return WetRoomKindRecord(kind=k.kind, host=k.host, strength=k.strength, source_text=k.source_text,
+                             origin=k.origin,
+                             source="requested" if k.kind != "unspecified" else "unknown")
 
 
 def reconcile_wet_rooms(extraction: RequirementExtraction,
@@ -79,8 +90,5 @@ def reconcile_wet_rooms(extraction: RequirementExtraction,
             text=f"{count.value} חדרי רחצה נספרו, אבל תוארו יותר: {extra}",
             topic="wet_rooms", severity=RequestSeverity.AMBIGUOUS))
         kinds = kinds[:count.value]
-    records = [WetRoomKindRecord(kind=k.kind, host=k.host, strength=k.strength,
-                                 source_text=k.source_text,
-                                 source="requested" if k.kind != "unspecified" else "unknown")
-               for k in kinds]
+    records = [_kind_record(k) for k in kinds]
     return count, records, unresolved

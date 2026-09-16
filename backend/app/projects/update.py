@@ -202,6 +202,13 @@ def _apply_diff(existing: Project, diff: ProjectUpdateDiff, source: str, at: dat
             _record(change_log, "wet_room_kinds", old_kinds, new_kinds, source, at)
             updates["wet_room_kinds"] = list(diff.wet_room_kinds)
             changed_fields.add("wet_room_kinds")
+        # The person has now said what the wet rooms are, so every reading the parser left open
+        # is answered — whether or not the rows they set match a proposal.
+        if existing.wet_room_questions:
+            _record(change_log, "wet_room_questions",
+                    [q.model_dump(mode="json") for q in existing.wet_room_questions], [], source, at)
+            updates["wet_room_questions"] = []
+            changed_fields.add("wet_room_kinds")
 
     preferences = list(existing.preferences)
     for create in diff.add_preferences:

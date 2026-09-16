@@ -145,6 +145,22 @@ class WetRoomKindRecord(BaseModel):
     strength: str = "required"
     source_text: str = ""
     source: SourceTag = SourceTag.unknown
+    #: "explicit" | "count_derived" — see vertical_slice.spec.WetRoomOrigin. Records stored before
+    #: the field existed were all the person's word or the count's padding, which the resolver
+    #: already tells apart by `kind == "unspecified"`; "explicit" is the right default for the rest.
+    origin: str = "explicit"
+
+
+class WetRoomQuestionRecord(BaseModel):
+    """Storage form of `requirements.parser.WetRoomQuestion`: a reading of the brief the
+    normalizer would not settle alone, and the wet-room list it proposes as the answer. Present
+    only between parsing and the person's answer — any edit of the wet-room kinds clears every
+    question, because the person has now spoken."""
+
+    code: str
+    text: str
+    source_text: str = ""
+    proposal_kinds: list[WetRoomKindRecord] = Field(default_factory=list)
 
 
 class RoomRelationshipRecord(BaseModel):
@@ -425,6 +441,9 @@ class Project(BaseModel):
     #: before the field existed — means every wet room is unspecified and the programme is exactly
     #: what a bare count always produced. Never longer than `wet_rooms`.
     wet_room_kinds: list[WetRoomKindRecord] = Field(default_factory=list)
+    #: Wet-room readings the parser's normalizer left for the person to settle. Generation is
+    #: refused while any stands; the review screen shows each with its proposed answer.
+    wet_room_questions: list[WetRoomQuestionRecord] = Field(default_factory=list)
     requirements_parsed_at: datetime | None = None
 
     # Parametric design model — generated deterministically (no LLM) from the fields above by

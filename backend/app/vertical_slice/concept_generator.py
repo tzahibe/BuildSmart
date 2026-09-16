@@ -541,11 +541,11 @@ def programme_variants(spec: ArchitecturalSpec) -> list[list[ProgramRoom]]:
     def as_requirement(r: ResolvedWetRoom) -> WetRoomRequirement:
         if r.zone_id == moved.zone_id:
             return WetRoomRequirement(WetRoomKind.ENSUITE, ENSUITE_HOST_BEDROOM, r.strength,
-                                      r.source_text)
+                                      r.source_text, r.origin)
         host = None
         if r.kind is WetRoomKind.ENSUITE:
             host = ENSUITE_HOST_MASTER if r.host_zone == "MASTER" else ENSUITE_HOST_BEDROOM
-        return WetRoomRequirement(r.kind, host, r.strength, r.source_text)
+        return WetRoomRequirement(r.kind, host, r.strength, r.source_text, r.origin)
 
     variant_program = replace(program, wet_room_kinds=tuple(as_requirement(r) for r in resolved))
     if check_wet_room_invariants(variant_program):

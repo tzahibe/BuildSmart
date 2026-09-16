@@ -12,11 +12,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
-from app.projects.models import Project
-from app.vertical_slice.spec import ProgramSpec
+from app.projects.models import Project, WetRoomKindRecord
+from app.vertical_slice.spec import ProgramSpec, WetRoomKind
 from app.vertical_slice.wet_rooms import (
     WetRoomResolutionError,
     check_wet_room_invariants,
+    complete_with_shared_bathroom,
     requirement_from_record,
 )
 
@@ -87,10 +88,67 @@ class ScopeCode(str, Enum):
 
 
 @dataclass(frozen=True)
+class WetRoomProposal:
+    """An answer the product OFFERS to a wet-room question — never one it applies. The rows are
+    the complete list the person would be storing by accepting; the review screen sends them
+    through the same edit path as any correction, so what is confirmed is what is stored."""
+
+    wet_rooms: int
+    wet_room_kinds: tuple[WetRoomKindRecord, ...]
+    summary: str          # product language: what accepting means
+
+
+@dataclass(frozen=True)
 class ScopeRejection:
     code: ScopeCode
     message: str          # product language, shown to the user
     detail: str           # what was actually asked for
+    #: NEEDS_CLARIFICATION only, and only when a one-click answer exists.
+    proposal: WetRoomProposal | None = None
+
+
+#: Wet-room kind -> what to call it on screen. Shared with the review so the proposal and the
+#: rows it becomes are named the same way.
+WET_ROOM_WORDS = {
+    ("shared_bathroom", None): "חדר רחצה משותף",
+    ("ensuite", "MASTER_BEDROOM"): "חדר רחצה צמוד לחדר ההורים",
+    ("ensuite", "BEDROOM"): "חדר רחצה צמוד לחדר שינה",
+    ("guest_wc", None): "שירותי אורחים",
+}
+
+
+def _rows_words(rows) -> str:
+    return "; ".join(f"{i}. {WET_ROOM_WORDS.get((r.kind, r.host if r.kind == 'ensuite' else None), r.kind)}"
+                     for i, r in enumerate(rows, start=1))
+
+
+def _requirements(rows):
+    return tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text, r.origin)
+                 for r in rows)
+
+
+def _completed(bedrooms: int, rows: list[WetRoomKindRecord]) -> list[WetRoomKindRecord]:
+    """`rows` plus the one shared bathroom I4 still needs for this many bedrooms, if it does
+    (`wet_rooms.complete_with_shared_bathroom`); `rows` unchanged otherwise."""
+    program = ProgramSpec(bedrooms=bedrooms, wet_rooms=len(rows), wet_room_kinds=_requirements(rows))
+    completed = complete_with_shared_bathroom(program)
+    if completed is None or len(completed) == len(rows):
+        return list(rows)
+    return list(rows) + [WetRoomKindRecord(kind=WetRoomKind.SHARED_BATHROOM.value,
+                                           origin="count_derived", source="inferred")]
+
+
+def _proposal(bedrooms: int, rows: list[WetRoomKindRecord], lead: str) -> WetRoomProposal | None:
+    """A proposal only when accepting it would actually be plannable here: readable rows, inside
+    the count envelope, and past every invariant. Otherwise the question stands without one."""
+    try:
+        rows = _completed(bedrooms, rows)
+        program = ProgramSpec(bedrooms=bedrooms, wet_rooms=len(rows), wet_room_kinds=_requirements(rows))
+    except WetRoomResolutionError:
+        return None
+    if not rows or len(rows) not in SUPPORTED_WET_ROOMS or check_wet_room_invariants(program):
+        return None
+    return WetRoomProposal(len(rows), tuple(rows), f"{lead} — חדרי הרחצה יהיו: {_rows_words(rows)}")
 
 
 def _value(tagged, default=None):
@@ -106,14 +164,32 @@ def _bedroom_name(zone_id: str) -> str:
     return f"חדר שינה {zone_id.rsplit('_', 1)[-1]}"
 
 
+def wet_room_question_rejection(project: Project, bedrooms: int | None) -> ScopeRejection | None:
+    """A reading of the brief the parser's normalizer left open (`wet_room_questions`), as a
+    refusal that carries the proposed answer. Asked BEFORE the count limits: a house we have not
+    finished reading is not yet a house with too many bathrooms."""
+    if not project.wet_room_questions:
+        return None
+    question = project.wet_room_questions[0]
+    proposal = None
+    if bedrooms is not None:
+        lead = {"ATTACHED_TOILET_ONLY": "לאשר חדר רחצה צמוד",
+                "EXTRACTION_MISMATCH": "לאשר את הקריאה המוצעת"}.get(question.code, "לאשר את הקריאה המוצעת")
+        proposal = _proposal(bedrooms, list(question.proposal_kinds), lead)
+    return ScopeRejection(ScopeCode.NEEDS_CLARIFICATION, question.text,
+                          f"{question.code}: {question.source_text}", proposal)
+
+
 def wet_room_rejection(project: Project, bedrooms: int, wet_rooms: int) -> ScopeRejection | None:
     """The wet-room invariants (`vertical_slice.wet_rooms`) as a refusal, or nothing.
 
     The message REPORTS: which bedroom has no bathroom it can reach, and that a WC is not one. It
-    lists the ways the person can answer, and says in so many words that it will not choose.
+    lists the ways the person can answer, and says in so many words that it will not choose —
+    but when the answer "add a shared bathroom" would plan, it is OFFERED as `proposal`, because
+    measured on the corpus that is what every such brief had been silently given before.
     """
     try:
-        kinds = tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text)
+        kinds = tuple(requirement_from_record(r.kind, r.host, r.strength, r.source_text, r.origin)
                       for r in project.wet_room_kinds)
     except WetRoomResolutionError as exc:
         return ScopeRejection(
@@ -126,6 +202,7 @@ def wet_room_rejection(project: Project, bedrooms: int, wet_rooms: int) -> Scope
         return None
     detail = "; ".join(f"{p.invariant}: {p.detail}" for p in problems)
     missing = [b for p in problems for b in p.bedrooms_without_bathroom]
+    proposal = None
     if missing:
         names = ", ".join(_bedroom_name(b) for b in missing)
         message = (
@@ -134,12 +211,16 @@ def wet_room_rejection(project: Project, bedrooms: int, wet_rooms: int) -> Scope
             f"כדי שנמשיך צריך להגיד לנו מה נכון: להוסיף חדר רחצה, או לשנות את הסוג של אחד "
             f"מחדרי הרחצה שצוינו. לא נכריע בזה במקומך."
         )
+        # Only rows the person can see are proposed on: a padded (unstated) row is already a
+        # shared bathroom, so I4 with padding cannot happen, and this stays a plain question.
+        if len(project.wet_room_kinds) == wet_rooms:
+            proposal = _proposal(bedrooms, list(project.wet_room_kinds), "להוסיף חדר רחצה משותף")
     else:
         message = (
             "מה שנאמר על חדרי הרחצה אינו ניתן לבנייה כפי שהוא. "
             "אפשר לתקן זאת במסך הסקירה — לא נשלים את החסר בניחוש."
         )
-    return ScopeRejection(ScopeCode.NEEDS_CLARIFICATION, message, detail)
+    return ScopeRejection(ScopeCode.NEEDS_CLARIFICATION, message, detail, proposal)
 
 
 def check_supported(project: Project) -> ScopeRejection | None:
@@ -149,6 +230,13 @@ def check_supported(project: Project) -> ScopeRejection | None:
             ScopeCode.REQUIREMENTS_NOT_PARSED,
             "עדיין לא הבנו את הדרישות. יש להריץ ניתוח דרישות לפני יצירת תוכנית.",
             "requirements_parsed_at is None")
+
+    # A WET-ROOM READING STILL OPEN. The parser's normalizer would not decide it alone (a toilet
+    # attached to a bedroom, toilets with no bathroom named); the person answers before anything
+    # else is judged, with the proposed answer beside the question.
+    question = wet_room_question_rejection(project, _value(project.bedrooms))
+    if question is not None:
+        return question
 
     floors = _value(project.floors, 1)
     if floors != SUPPORTED_FLOORS:

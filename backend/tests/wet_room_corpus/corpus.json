@@ -1,0 +1,3400 @@
+{
+ "_about": "Phase 0 fixture (2026-09-15): the 61 distinct wet-room briefs in the stored corpus, hand-labelled. `demand` is the FixtureDemand the parser should extract; `expected` is what wet_room_normalizer must make of it (R1-R5, derived by hand from the labels); `stored` is what the OLD count-based parser actually stored per record — the 'before'.",
+ "briefs": [
+  {
+   "idx": 0,
+   "text": "בית פרטי בן קומה אחת עם 3 חדרי שינה, ממ\"ד, סלון ומטבח פתוחים זה לזה, 2 חדרי רחצה ו-2 מקומות חניה.",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "15e7ddc5",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "011e594b",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "761b223e",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "2ac27445",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "bfd65368",
+     "wet_rooms": 2,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "9cb1c38f",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "e6a25769",
+     "wet_rooms": 2,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "adecbd75",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "bf502284",
+     "wet_rooms": 2,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "bf48b89e",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "bd7bb18b",
+     "wet_rooms": 2,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 1,
+   "text": "בית עם 2 חדרי שינה, חדר הורים עם שירותים, שירותי אורחים\nסלון ומטבח",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite (חדר הורים עם שירותים) + guest WC",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "toilet_only",
+      "source_text": "חדר הורים עם שירותים",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": [
+     "ATTACHED_TOILET_ONLY"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "f6a2b9f1",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "bd7d1fc9",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "b2df1069",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "9c2712ea",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "d25017da",
+     "wet_rooms": 3,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "5fe30ca6",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "be53ece9",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 2,
+   "text": "3 חדרי שינה, 3 שירותים, ממ״ד, מטבח וסלון",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "76246560",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "3e1413a7",
+     "wet_rooms": 2,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "70d1a6a1",
+     "wet_rooms": 2,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "9ed30900",
+     "wet_rooms": 1,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 3,
+   "text": "בית עם 4 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "9cd73e89",
+     "wet_rooms": 1,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "6d138f2d",
+     "wet_rooms": 3,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "a1780eb5",
+     "wet_rooms": 3,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 4,
+   "text": "בית 3 חדרי שינה, חדר הורים, שירותים מקלחת סלון ומטבח",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "aadfc3e3",
+     "wet_rooms": 1,
+     "bedrooms": 6,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "42701575",
+     "wet_rooms": 1,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "bd268685",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 5,
+   "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, סלון ומטבח",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "f78ebd22",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "411c6594",
+     "wet_rooms": 3,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "f5adf98b",
+     "wet_rooms": 2,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 6,
+   "text": "2 חדרי ילדים, חדר הורים גדול עם מקלחת ושירותים, סלון, מטבח, חדר עבודה קטן, ו2 חניות",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite with shower+toilet = one room",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים גדול עם מקלחת ושירותים",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "b4f56ab2",
+     "wet_rooms": 1,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "17eec632",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 7,
+   "text": "בית עם שלושה חדרי שינה, מקלחת, שירותים, סלון ומטבח",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "f0b00857",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "b159ce43",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 8,
+   "text": "בית עם 4 חדרי שינה ו-2 חדרי רחצה, סלון ומטבח פתוחים",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "7cb13c18",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "74ae69bd",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 9,
+   "text": "בית עם 2 חדרים, חדר הורים, 2 שירותים, מקלחת מטבח וסלון",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "fcc3bc4d",
+     "wet_rooms": 1,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "726635a9",
+     "wet_rooms": 3,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 10,
+   "text": "בית פרטי בקומה אחת עם שלושה חדרי שינה, סלון ומטבח פתוחים, שני חדרי רחצה ושתי חניות",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "שני חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "d67cef9e",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "35733a35",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 11,
+   "text": "בית קטן לזוג, שני חדרי שינה, חדר רחצה אחד, סלון ומטבח פתוחים, חניה אחת",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "חדר רחצה אחד",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "bf8bd233",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "a61e9875",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 12,
+   "text": "בית עם 2 חדרי שינה, חדר הורים, מקלחת, שירותים, סלון ומטבח",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "7a8f3a11",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "cf686297",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 13,
+   "text": "בית עם 3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים בכניסה לבית, סלון ומטבח, 2 חניות",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite + guest WC at entrance",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים בכניסה לבית",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "07971f05",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    },
+    {
+     "project_id": "a953cedb",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 14,
+   "text": "4 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים (שלא יהיה בתוך חדר שינה)\nסלון ומטבח",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite + guest WC (not inside a bedroom)",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים (שלא יהיה בתוך חדר שינה)",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "5bbc1d18",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": [
+      [
+       "guest_wc",
+       null
+      ],
+      [
+       "shared_bathroom",
+       null
+      ]
+     ]
+    },
+    {
+     "project_id": "1cfa828b",
+     "wet_rooms": 2,
+     "bedrooms": 5,
+     "wet_room_kinds": [
+      [
+       "ensuite",
+       "MASTER_BEDROOM"
+      ],
+      [
+       "guest_wc",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "idx": 15,
+   "text": "בית עם 5 חדרי שינה, ממ״ד, 2 מקלחות, 3 שירותים, חדר שירות קטן\nושתי כניסות לבית.\nכמובן גם סלון ומטבח גדולים.",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "legacy record, no wet_rooms",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 מקלחות",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "5dca7385",
+     "wet_rooms": null,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 16,
+   "text": "בית 3 חדרים, 2 שירותים, סלון ומטבח גדול, חדר כביסה קטן 5 מטר\nושתי כניסות לבית מדרום ומצפון",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "legacy record",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "0fa4f3af",
+     "wet_rooms": null,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 17,
+   "text": "3 חדרי שינה, 2 שירותים, סלון ומטבח, צורת השטח מלבן 15 מטר על 5 מטר",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "legacy record",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "60586aab",
+     "wet_rooms": null,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 18,
+   "text": "4 חדרי שינה, 4 שירותים, סלון ומטבח",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 4,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "legacy record",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 4,
+    "toilet_source_text": "4 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 4,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "041a0343",
+     "wet_rooms": null,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 19,
+   "text": "אני רוצה בית 4 חדרים, 2 מקלחות, סלון ומטבח כמובן",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 מקלחות",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "2b91a362",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 20,
+   "text": "3 חדרי שינה, 2 מקלחות",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 מקלחות",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "bab2477f",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 21,
+   "text": "3 חדרי שינה, 2 שירותים, מטבח וסלון\nקומה שנייה 3 חדי שינה",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "0797035c",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 22,
+   "text": "3 חדרי שינה, 2 שירותים סלון ומטבח",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "6505bd37",
+     "wet_rooms": 3,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 23,
+   "text": "3 חדרי שינה, 3 שירותים, ממ״ד, מטבח וסלון\nשהמסדרון לא יהיה צר מדי שיהיה לפחות 2 מטר רוחב",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "70a3e466",
+     "wet_rooms": 3,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 24,
+   "text": "3 חדרי שינה, 3 שירותים, ממ״ד, מטבח וסלון\nשהמסדרון לא יהיה צר מדי שיהיה לפחות 5 מטר רוחב",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "c62d6b41",
+     "wet_rooms": 3,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 25,
+   "text": "2 חדרי שינה, 3 שירותים, ממ״ד, מטבח וסלון\nשהמסדרון לא יהיה צר מדי שיהיה לפחות 5 מטר רוחב",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "1f84b55a",
+     "wet_rooms": 3,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 26,
+   "text": "2 חדרי שינה, 3 שירותים, ממ״ד, מטבח וסלון\nשהמסדרון לא יהיה צר מדי שיהיה לפחות 30  מטר רוחב",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "abea07aa",
+     "wet_rooms": 3,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 27,
+   "text": "2 חדרי שינה, 3 שירותים, ממ״ד, מטבח וסלון\nשהמסדרון לא יהיה צר מדי שיהיה לפחות 30  מטר רוחב\nשהחדרי רחצה לא יהיו חדרים צמודים",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "3 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": [
+     "TOILETS_WITHOUT_BATHROOM"
+    ]
+   },
+   "stored": [
+    {
+     "project_id": "d92d6c6b",
+     "wet_rooms": 3,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 28,
+   "text": "בית פרטי בקומה אחת עם 3 חדרי שינה, ממ\"ד, 2 חדרי רחצה שלא יהיו צמודים זה לזה, מסדרון ברוחב 5 מטר, סלון ומטבח פתוחים, ו-2 מקומות חניה.",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "2ca9535b",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 29,
+   "text": "בית פרטי בקומה אחת עם 3 חדרי שינה, ממ\"ד, 2 חדרי רחצה, סלון ומטבח פתוחים ו-2 מקומות חניה. אני מעדיף שחדרי הרחצה לא יהיו צמודים. המסדרון חייב להיות לפחות 1.8 מטר.",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "a160781e",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 30,
+   "text": "בית עם 3 חדרי שינה, חדר הורים עם מקלחת ושירותים, ועוד שירותים\nו2 חניות",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite (shower+toilet) + 'ועוד שירותים' = an additional toilet room",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת ושירותים",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "ועוד שירותים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "5e06b126",
+     "wet_rooms": 1,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 31,
+   "text": "אני רוצה לבנות בית 2 חדרי שינה, חדר הורים, מקלחת שירותים, סלון ומטבח, ו3 חניות",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "2dcc1f9e",
+     "wet_rooms": 1,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 32,
+   "text": "בית עם 3 חדרי שינה, חדר הורים, 2 מקלחות סלון ומטבח",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "2 מקלחות",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "0f696f52",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 33,
+   "text": "בית עם 2 חדרי שינה, חדר הורים, מקלחת, סלון ומטבח",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "dbf52b44",
+     "wet_rooms": 1,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 34,
+   "text": "בית עם 2 חדרי שינה, חדר הורים, שירותים, מקלחת בחדר הורים\nחדר עבודה מאוד קטן, ו2 חניות",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ambiguous: 'שירותים, מקלחת בחדר הורים' — toilet could be inside the ensuite or shared",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "מקלחת בחדר הורים",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "ce7c4e75",
+     "wet_rooms": 1,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 35,
+   "text": "3 חדרי שינה, חדר הורים מקלחת שירותים סלון ומטבח",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "70a2f694",
+     "wet_rooms": 1,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 36,
+   "text": "בית עם 2 חדרים, חדר הורים, 1 שירותים, מקלחת מטבח וסלון",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "'1 שירותים, מקלחת'",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "1 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "9638d2ca",
+     "wet_rooms": 2,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 37,
+   "text": "2 חדרי שינה, חדר הורים, שירותים, מקלחת, מטבח וסלון",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "0c1be72b",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 38,
+   "text": "בית עם שלושה חדרי שינה, סלון ומטבח פתוחים, שני חדרי רחצה ושתי חניות",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "שני חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "a96c7b23",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 39,
+   "text": "בית פרטי בקומה אחת עם שלושה חדרי שינה, ממ\"ד, מטבח פתוח לסלון, שני חדרי רחצה ושתי חניות",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "שני חדרי רחצה",
+      "count": 2,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "4fa14201",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 40,
+   "text": "בית גדול עם חמישה חדרי שינה, שלושה חדרי רחצה, סלון ומטבח פתוחים ושתי חניות",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 3,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "three full bathrooms, no toilet word",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "שלושה חדרי רחצה",
+      "count": 3,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "463c5585",
+     "wet_rooms": 3,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 41,
+   "text": "בית קטן עם חדר שינה אחד, חדר רחצה אחד, סלון ומטבח פתוחים",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "חדר רחצה אחד",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "6c131b2c",
+     "wet_rooms": 1,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 42,
+   "text": "בית עם 3 חדרים חדר הורים, שירותים סלון ומטבח",
+   "class": "P5",
+   "labels": {
+    "bathrooms": 0,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "beeea749",
+     "wet_rooms": 1,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 43,
+   "text": "4 חדרי שינה  כולל חדר הורים, 2 שירותים, מקלחת, סלון ומטבח",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "0f6f52ce",
+     "wet_rooms": 3,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 44,
+   "text": "4 חדרי שינה  כולל חדר הורים, 2 שירותים(תרשום לי שירותים ולא חדר רחצה) , מקלחת, סלון ומטבח",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 2,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "explicit: 'תרשום לי שירותים ולא חדר רחצה'",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "חדר רחצה",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [
+     {
+      "source_text": "2 שירותים(תרשום לי שירותים ולא חדר רחצה)",
+      "count": 2
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "39a9ce57",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 45,
+   "text": "בית עם 3 חדרי שינה, חדר הורים, מקלחת שירותים סלון ומטבח",
+   "class": "P2",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 1,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 1,
+    "toilet_source_text": "שירותים"
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "cece68ee",
+     "wet_rooms": 1,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 46,
+   "text": "בית עם 3 חדרי שינה, חדר הורים עם מקלחת, מרפסת, 2 שירותים סלון ומטבח",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite absorbs one toilet; ambiguous whether the person meant that",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "22dc4ba4",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 47,
+   "text": "בית עם סלון, מטבח, מקלחת, חדר הורים עם מקלחת, שירותי אורחים, חדר עבודה, סלון, ומטבח, בצד צפון לא ניתן לשים חלונות כלל (יש קיר של השכן)",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "shared shower + ensuite + guest WC",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "6b0c30d9",
+     "wet_rooms": 3,
+     "bedrooms": 1,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 48,
+   "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, חדר עבודה, חדר טלויזיה ומטבח",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "e1afb3ab",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 49,
+   "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, חדר עבודה, סלון ומטבח",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "9aee5e24",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 50,
+   "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, חדר קטן, סלון ומטבח",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 2,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 2,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "e184f7b5",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 51,
+   "text": "3 חדרי שינה, חדר הורים, 2 שירותים, מקלחת, סלון ומטבח ושירותים",
+   "class": "P3",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 3,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "'2 שירותים, מקלחת ... ושירותים'",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 3,
+    "toilet_source_text": "2 שירותים"
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "guest_wc",
+      null,
+      "count_derived"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "8b77e69c",
+     "wet_rooms": 2,
+     "bedrooms": 2,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 52,
+   "text": "בית עם 3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, סלון ומטבח, ועוד חדר שירותים",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 2,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite + guest WC + 'ועוד חדר שירותים'",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     },
+     {
+      "source_text": "ועוד חדר שירותים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "8bef7111",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 53,
+   "text": "4 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים\nסלון ומטבח",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "ff9346c4",
+     "wet_rooms": 2,
+     "bedrooms": 5,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 54,
+   "text": "3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, ממ״ד, סלון ומטבח גדול",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "4b2a109b",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": [
+      [
+       "shared_bathroom",
+       null
+      ],
+      [
+       "guest_wc",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "idx": 55,
+   "text": "3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, ממ״ד, סלון ומטבח גדול\nאני רוצה ששירותי האורחים יהיו החדר הראשון",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "+ guest WC should be the first room",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "8e76028d",
+     "wet_rooms": 3,
+     "bedrooms": 4,
+     "wet_room_kinds": [
+      [
+       "ensuite",
+       "BEDROOM"
+      ],
+      [
+       "guest_wc",
+       null
+      ],
+      [
+       "shared_bathroom",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "idx": 56,
+   "text": "בית עם 3 חדרי שינה, חדר הורים עם מקלחת קטנה, מקלחת סלון ומטבח",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "small ensuite + shared shower; NO toilet word at all",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת קטנה",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "49a20a63",
+     "wet_rooms": 2,
+     "bedrooms": 3,
+     "wet_room_kinds": [
+      [
+       "shared_bathroom",
+       null
+      ],
+      [
+       "guest_wc",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "idx": 57,
+   "text": "3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, מטבח קטן, סלון מרווח + פינת אוכל, ועוד מקלחת משותפת",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite + guest WC + shared shower",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "מקלחת",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "545e1719",
+     "wet_rooms": 2,
+     "bedrooms": 4,
+     "wet_room_kinds": [
+      [
+       "ensuite",
+       "MASTER_BEDROOM"
+      ],
+      [
+       "shared_bathroom",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "idx": 58,
+   "text": "בית עם 3 חדרי שינה, ממ״ד, באחד מחדרי השינה יש גם מקלחת,\nמטבח וסלון. ושירותי אורחים בכניסה לבית",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "BEDROOM"
+   },
+   "note": "bedroom ensuite + guest WC at entrance",
+   "demand": {
+    "bathrooms": [],
+    "attached": [
+     {
+      "host": "BEDROOM",
+      "fixtures": "bath",
+      "source_text": "באחד מחדרי השינה יש גם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים בכניסה לבית",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 2,
+    "kinds": [
+     [
+      "ensuite",
+      "BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "aaa60d29",
+     "wet_rooms": 2,
+     "bedrooms": 2,
+     "wet_room_kinds": [
+      [
+       "ensuite",
+       "BEDROOM"
+      ],
+      [
+       "unspecified",
+       null
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "idx": 59,
+   "text": "שני חדרי שינה וממ\"ד, מטבח סגור, לא מטבח פתוח, חדר רחצה אחד, שתי חניות.",
+   "class": "P1",
+   "labels": {
+    "bathrooms": 1,
+    "toilet_mentions": 0,
+    "separate_wcs": 0,
+    "ensuites": 0,
+    "host": null
+   },
+   "note": "legacy record",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "חדר רחצה אחד",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [],
+    "separate_wcs": [],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 1,
+    "kinds": [
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "99e0899c",
+     "wet_rooms": null,
+     "bedrooms": null,
+     "wet_room_kinds": []
+    }
+   ]
+  },
+  {
+   "idx": 60,
+   "text": "בית 3 חדרי שינה, חדר הורים עם מקלחת, שירותי אורחים, סלון מטבח, וחדר רחצה משותף",
+   "class": "P4",
+   "labels": {
+    "bathrooms": 2,
+    "toilet_mentions": 0,
+    "separate_wcs": 1,
+    "ensuites": 1,
+    "host": "MASTER_BEDROOM"
+   },
+   "note": "ensuite + guest WC + shared bathroom",
+   "demand": {
+    "bathrooms": [
+     {
+      "source_text": "חדר רחצה משותף",
+      "count": 1,
+      "flexible": false
+     }
+    ],
+    "attached": [
+     {
+      "host": "MASTER_BEDROOM",
+      "fixtures": "bath",
+      "source_text": "חדר הורים עם מקלחת",
+      "count": 1
+     }
+    ],
+    "separate_wcs": [
+     {
+      "source_text": "שירותי אורחים",
+      "count": 1
+     }
+    ],
+    "toilet_mentions": 0,
+    "toilet_source_text": ""
+   },
+   "expected": {
+    "wet_rooms": 3,
+    "kinds": [
+     [
+      "ensuite",
+      "MASTER_BEDROOM",
+      "explicit"
+     ],
+     [
+      "guest_wc",
+      null,
+      "explicit"
+     ],
+     [
+      "shared_bathroom",
+      null,
+      "explicit"
+     ]
+    ],
+    "questions": []
+   },
+   "stored": [
+    {
+     "project_id": "119e6ed8",
+     "wet_rooms": 3,
+     "bedrooms": 3,
+     "wet_room_kinds": [
+      [
+       "ensuite",
+       "MASTER_BEDROOM"
+      ],
+      [
+       "guest_wc",
+       null
+      ],
+      [
+       "shared_bathroom",
+       null
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

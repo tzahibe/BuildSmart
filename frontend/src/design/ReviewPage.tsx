@@ -124,6 +124,16 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
   const [wetRowsDirty, setWetRowsDirty] = useState(false)
   const wetProblem = review.wet_room_problem ?? null
   const wetBlocked = wetProblem !== null && !wetRowsDirty
+  // THE ANSWER THE BACKEND OFFERS. Accepting it is an ordinary edit — the rows land in the editor
+  // and travel with Generate like any correction — so what is confirmed is what is stored.
+  const wetProposal = review.wet_room_proposal ?? null
+
+  function applyWetProposal() {
+    if (!wetProposal) return
+    setWetRoomsState(wetProposal.wet_rooms)
+    setWetRows(wetProposal.wet_room_kinds.map((r) => ({ kind: r.kind, host: r.host, strength: r.strength })))
+    setWetRowsDirty(true)
+  }
 
   function setWetRooms(count: number) {
     setWetRoomsState(count)
@@ -377,6 +387,11 @@ function ReviewPage({ review, onConfirm, onBack, busy = false }: ReviewPageProps
           })}
           {wetProblem ? (
             <p className="review-out-of-range" role="alert">{wetProblem}</p>
+          ) : null}
+          {wetProblem && wetProposal && !wetRowsDirty ? (
+            <button type="button" className="review-back review-wet-proposal" onClick={applyWetProposal}>
+              {wetProposal.summary}
+            </button>
           ) : null}
         </section>
 

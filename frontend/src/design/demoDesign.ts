@@ -256,6 +256,8 @@ export interface WetRoomKindNote {
   specified: boolean
   label: string
   can_be_flexible: boolean
+  /** "explicit" — the brief named this room; "count_derived" — a number did (a surplus toilet). */
+  origin?: 'explicit' | 'count_derived' | string
 }
 
 export interface WetRoomKindEdit {
@@ -287,6 +289,14 @@ export interface RequirementsReview {
   /** Why the wet rooms as stored cannot be planned — the refusal generation would give. Null when
    * they can. Generate stays blocked while this is set. */
   wet_room_problem?: string | null
+  /** The answer the backend offers to `wet_room_problem`, as rows for the editor. Null when none. */
+  wet_room_proposal?: WetRoomProposalNote | null
+}
+
+export interface WetRoomProposalNote {
+  wet_rooms: number
+  wet_room_kinds: WetRoomKindEdit[]
+  summary: string
 }
 
 export interface ReviewEdit {

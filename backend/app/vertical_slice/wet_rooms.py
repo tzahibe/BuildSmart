@@ -19,13 +19,14 @@ two bedrooms).
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .spec import (
     ENSUITE_HOST_BEDROOM,
     ENSUITE_HOST_MASTER,
     ProgramSpec,
     WetRoomKind,
+    WetRoomOrigin,
     WetRoomRequirement,
     WetRoomStrength,
 )
@@ -63,6 +64,10 @@ class ResolvedWetRoom:
     strength: WetRoomStrength
     specified: bool
     source_text: str = ""
+    #: Whether the person asked for this room or a number did (`spec.WetRoomOrigin`). A room the
+    #: resolver padded from the bare count is COUNT_DERIVED by definition; a stated one carries
+    #: what the parser's normalizer decided.
+    origin: WetRoomOrigin = WetRoomOrigin.EXPLICIT
 
     @property
     def entered_from_circulation(self) -> bool:
@@ -131,6 +136,7 @@ def resolve_wet_rooms(program: ProgramSpec) -> tuple[ResolvedWetRoom, ...]:
     free_hosts = [f"BEDROOM_{i}" for i in range(program.bedrooms - 1, 0, -1)]
     for index, item in enumerate(stated):
         specified = item.kind is not WetRoomKind.UNSPECIFIED
+        origin = item.origin if specified else WetRoomOrigin.COUNT_DERIVED
         if specified:
             kind, host, strength = item.kind, item.host, item.strength
         elif any_specified:
@@ -165,22 +171,24 @@ def resolve_wet_rooms(program: ProgramSpec) -> tuple[ResolvedWetRoom, ...]:
             raise WetRoomResolutionError(f"{zone_id}: a host names an ensuite, not a {kind.value}")
 
         resolved.append(ResolvedWetRoom(zone_id, kind, host_zone, strength, specified,
-                                        item.source_text))
+                                        item.source_text, origin))
     return tuple(resolved)
 
 
 def requirement_from_record(kind: str, host: str | None, strength: str,
-                            source_text: str = "") -> WetRoomRequirement:
+                            source_text: str = "", origin: str = "explicit") -> WetRoomRequirement:
     """A stored record (plain strings, so old projects always load) -> the engine's requirement.
 
-    Fails closed: a kind or strength the vocabulary does not know is a `WetRoomResolutionError`,
-    which `scope.check_supported` reports — never a silent fallback to UNSPECIFIED, which would
-    plan a house the person did not describe.
+    Fails closed: a kind, strength or origin the vocabulary does not know is a
+    `WetRoomResolutionError`, which `scope.check_supported` reports — never a silent fallback to
+    UNSPECIFIED, which would plan a house the person did not describe.
     """
     try:
-        return WetRoomRequirement(WetRoomKind(kind), host, WetRoomStrength(strength), source_text)
+        return WetRoomRequirement(WetRoomKind(kind), host, WetRoomStrength(strength), source_text,
+                                  WetRoomOrigin(origin))
     except ValueError as exc:
-        raise WetRoomResolutionError(f"unknown wet-room record {kind!r}/{strength!r}") from exc
+        raise WetRoomResolutionError(
+            f"unknown wet-room record {kind!r}/{strength!r}/{origin!r}") from exc
 
 
 def bedroom_zones(program: ProgramSpec) -> tuple[str, ...]:
@@ -218,3 +226,30 @@ def check_wet_room_invariants(program: ProgramSpec) -> tuple[WetRoomProblem, ...
                 "I4", f"no shared full bathroom and no ensuite for {', '.join(without)}", without))
     return tuple(problems)
 
+
+
+def complete_with_shared_bathroom(program: ProgramSpec) -> tuple[WetRoomRequirement, ...] | None:
+    """The smallest programme that answers I4 — the stated wet rooms plus ONE shared bathroom —
+    or `None` when I4 is not what is wrong, or nothing needs answering.
+
+    This is a PROPOSAL, never applied here. Decision A of specs/007 stands: a bedroom with no
+    bathroom it can reach is the person's question to answer, and this is the answer the product
+    offers first — because measured on the corpus (2026-09-15) it is what every such brief had
+    silently been given before, as a second full bathroom nobody was asked about. The other
+    answers (change a kind, mean it) remain theirs to give on the review screen.
+
+    The added room is COUNT_DERIVED: nobody said "a shared bathroom" — the invariant did.
+    """
+    problems = check_wet_room_invariants(program)
+    if not problems or any(p.invariant != "I4" for p in problems):
+        return None
+    stated = tuple(program.wet_room_kinds)
+    if len(stated) < program.wet_rooms:
+        # Unstated rooms resolve to shared bathrooms already (or the bare-count default), so I4
+        # cannot have fired on a padded list; if it somehow did, this is not the answer.
+        return None
+    proposal = stated + (WetRoomRequirement(WetRoomKind.SHARED_BATHROOM,
+                                            origin=WetRoomOrigin.COUNT_DERIVED),)
+    if check_wet_room_invariants(replace(program, wet_rooms=len(proposal), wet_room_kinds=proposal)):
+        return None
+    return proposal
