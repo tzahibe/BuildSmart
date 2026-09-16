@@ -32,6 +32,7 @@ from app.geometry_domain.primitives import MultiRegion
 from . import concept_generator as generator
 from . import footprint as footprint_module
 from . import hub_guard
+from . import l_massing_guard
 from . import doors as doors_stage
 from . import relationships as relationships_stage
 from . import furniture as furniture_stage
@@ -817,6 +818,17 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
         plan = _realize(spec, buildable, site_constraints, candidate, index, solve, relationships)
         if not plan.ok or plan.layout_signature in seen:
             continue
+        # ELIGIBILITY (2026-09-17): this walk takes ANY not-yet-seen family in generator order, so
+        # a brief with fewer than `limit` distinct RECTANGLE families reaches an L candidate here
+        # directly — before the massing-representation block below ever runs. The same gate
+        # applies here for the same reason: an engine-generated non-rectangle massing earns a
+        # slot, never gets one merely by being encountered first.
+        if massing_of(candidate) != "1W":
+            rect_plans = [p for p in ([chosen] + found) if p.massing_signature == "1W"]
+            if rect_plans:
+                best_rect_so_far = max(rect_plans, key=lambda p: p.concept.used_area_m2)
+                if l_massing_guard.eligible_for_slot(best_rect_so_far, plan) is not None:
+                    continue
         seen.add(plan.layout_signature)
         families.add(plan.family_signature)
         found.append(plan)
@@ -827,10 +839,24 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
     # existed for 17 of 25 briefs and reached the screen for one — as the primary, where nothing
     # one-wing planned. So one plan of every massing family the
     # candidates contain is guaranteed a look: for each family not yet represented, its candidates
-    # are tried in the generator's order (bounded) and the first valid, distinct one joins the
-    # alternatives — in a slot of its own, beyond `limit`, so no one-wing alternative the walk
-    # found is displaced (`ALTERNATIVE_PLAN_LIMIT` says why). The primary is untouched, and a
+    # are tried in the generator's order (bounded) and the first valid, distinct, ELIGIBLE one
+    # joins the alternatives — in a slot of its own, beyond `limit`, so no one-wing alternative the
+    # walk found is displaced (`ALTERNATIVE_PLAN_LIMIT` says why). The primary is untouched, and a
     # brief whose candidates are all one massing pays nothing here and stays within `limit`.
+    #
+    # ELIGIBILITY (2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md): an
+    # ENGINE-generated non-rectangle massing (today, only "2W" — an L) is no longer guaranteed a
+    # slot merely by validating. It must clear `l_massing_guard.l_earns_representation_slot`
+    # against the best "1W" plan already realized (the chosen primary, or an alternative the
+    # normal walk already found) — the same hub_guard-style correctness-then-area-floor pattern
+    # 008 already uses for the structurally identical "does the challenger replace the incumbent"
+    # question. Measured: 14 of 16 real/fixture L's fail this gate, all on the area floor; the
+    # gate reads only REALIZED metrics (area, bedroom/master/safe-room aspect, wet adjacency and
+    # shape, two-sided exposure) — never `massing_signature` — so an L is never scored for being
+    # an L. A brief with no realized "1W" plan to compare against (rare; a massing-only outline)
+    # has nothing to gate against and the candidate is taken as before — there is no "better
+    # rectangle" it could be displacing. Entrance-sequence quality is a separate, un-gated
+    # follow-up (see that report's §5.1) and is untouched here.
     represented = {chosen.massing_signature} | {plan.massing_signature for plan in found}
     for massing in dict.fromkeys(massing_of(c) for c in candidates):
         if massing in represented:
@@ -847,6 +873,11 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
         twins = [x for x in family if x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
         interleaved = [x for pair in zip(forced, twins) for x in pair]
         interleaved += forced[len(twins):] + twins[len(forced):]
+        best_rect = None
+        if massing != "1W":
+            rect_plans = [p for p in ([chosen] + found) if p.massing_signature == "1W"]
+            if rect_plans:
+                best_rect = max(rect_plans, key=lambda p: p.concept.used_area_m2)
         tries = 0
         for index, candidate in interleaved:
             if tries >= MASSING_ATTEMPT_LIMIT:
@@ -858,6 +889,9 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
                 continue
             plan = _realize(spec, buildable, site_constraints, candidate, index, solve, relationships)
             if not plan.ok or plan.layout_signature in seen:
+                continue
+            if (best_rect is not None
+                    and l_massing_guard.eligible_for_slot(best_rect, plan) is not None):
                 continue
             seen.add(plan.layout_signature)
             found.append(plan)

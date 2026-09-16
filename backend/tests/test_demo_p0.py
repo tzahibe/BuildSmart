@@ -1919,11 +1919,20 @@ def test_a_validation_failure_records_which_checks_failed(client):
     assert failed[0]["detail"] == "HALL-KITCHEN"
 
 
-def test_an_l_massing_is_surveyed_on_a_rectangular_plot_and_shown_when_it_plans(client):
+def test_an_l_massing_is_surveyed_on_a_rectangular_plot_and_shown_when_it_plans(client, monkeypatch):
     """The engine's outline search carves two L massings (arm at the rear, arm at the front) from
-    the buildable rectangle at the requested area and surveys them beside its rectangles. A valid
-    two-wing plan is shown as an alternative — never instead of the rectangle that won on area —
-    labelled as an L with its two wings, every check including C22 passing."""
+    the buildable rectangle at the requested area and surveys them beside its rectangles. A valid,
+    ELIGIBLE two-wing plan is shown as an alternative — never instead of the rectangle that won on
+    area — labelled as an L with its two wings, every check including C22 passing.
+
+    Eligibility (2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md) is
+    bypassed here: this test is about the SURVEY and LABELLING mechanics (both massings surveyed,
+    the L drawn with two footprints, C22 passing) — not about whether this specific brief's L is
+    architecturally competitive, which it measurably is not
+    (`test_an_uncompetitive_l_on_this_brief_is_not_shown`, below: ~132 m2 against a ~194 m2
+    rectangle, well under `hub_guard.AREA_KEEP_RATIO`)."""
+    from app.demo import service as svc
+    monkeypatch.setattr(svc, "_l_massing_eligible", lambda rect_plan, l_plan: None)
     # The main flow: no outline chosen — the engine plans its own, on a 24 x 28 m plot.
     project_id = client.post("/projects", json={
         "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
@@ -1951,6 +1960,26 @@ def test_an_l_massing_is_surveyed_on_a_rectangular_plot_and_shown_when_it_plans(
     assert len(l_plans) == 1
 
 
+def test_an_uncompetitive_l_on_this_brief_is_not_shown(client):
+    """2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md: the SAME brief as
+    above, gate live (no monkeypatch). Measured: the L delivers ~132 m2 against a ~194 m2
+    rectangle already in the pool (ratio ~0.68, well under `hub_guard.AREA_KEEP_RATIO`), so it no
+    longer earns a representation slot; both alternative slots go to rectangles instead, and the
+    primary is unaffected."""
+    project_id = client.post("/projects", json={
+        "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
+        "plot_area_m2": 672.0, "built_area_m2": 200.0,
+        "plot_width_m": 24.0, "plot_depth_m": 28.0, "street_facing_side": "NORTH",
+        "setbacks": _DEMO_SETBACKS,
+        "description": BRIEF_3BR_SAFE_OPEN,
+        "selected_footprint": None,
+    }).json()["project_id"]
+    assert client.post(f"/projects/{project_id}/requirements").status_code == 200
+    body = client.post(f"/projects/{project_id}/design/demo").json()
+    assert body["plan"]["outline"]["shape"] == "RECTANGLE"
+    assert [d["outline"]["shape"] for d in body["alternatives"]] == ["RECTANGLE", "RECTANGLE"]
+
+
 def _l_arm_end(l_plan: dict) -> str:
     """Which end of the primary the arm sits at, read off the two footprints: the arm is the
     smaller wing; at the FRONT it shares the primary's street edge (y = min), at the REAR its far
@@ -1963,11 +1992,17 @@ def _l_arm_end(l_plan: dict) -> str:
 
 
 @pytest.mark.parametrize("side, arm_end", [("garden", "front"), ("street", "rear")])
-def test_the_living_side_preference_chooses_which_way_the_shown_l_faces(client, side, arm_end):
+def test_the_living_side_preference_chooses_which_way_the_shown_l_faces(client, monkeypatch, side, arm_end):
     """`public_open_side` travels from the review screen into the plan selection: with both L
     orientations valid, the one shown is the one whose public band faces the side the person
     chose — the garden (arm at the front) or the street (arm at the rear). A preference: the
-    primary is untouched and no rectangle is displaced."""
+    primary is untouched and no rectangle is displaced.
+
+    Eligibility is bypassed (2026-09-17): this brief's L fails the area-eligibility gate
+    regardless of orientation (both orientations deliver the same, small area) — orthogonal to
+    what this test checks, which is WHICH orientation wins once one is eligible/shown."""
+    from app.demo import service as svc
+    monkeypatch.setattr(svc, "_l_massing_eligible", lambda rect_plan, l_plan: None)
     project_id = client.post("/projects", json={
         "city": "מודיעין-מכבים-רעות", "street": "עמק זבולון",
         "plot_area_m2": 672.0, "built_area_m2": 200.0,

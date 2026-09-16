@@ -366,10 +366,18 @@ def test_c22_is_not_emitted_for_a_one_wing_fixture():
 
 # ------------------------------------------------------------------ massing representation
 
-def test_a_valid_l_reaches_the_alternatives_and_the_primary_is_unchanged():
+def test_a_valid_l_reaches_the_alternatives_and_the_primary_is_unchanged(monkeypatch):
     """Before the representation pass a valid L existed for 17 of the 25 measured briefs and was
     shown for one. The pool now carries one plan of every massing the candidates contain; the
-    primary is still the area-nearest plan."""
+    primary is still the area-nearest plan.
+
+    The eligibility gate (2026-09-17) is orthogonal to what THIS test checks — that the search,
+    solve and append mechanics still find and attach a valid 2W candidate — so it is bypassed
+    here (`l_massing_guard.eligible_for_slot` forced permissive); the gate's own real effect on
+    this exact brief (it fails on delivered area, ~0.72x the best rectangle) is
+    `test_an_ineligible_l_on_this_brief_does_not_reach_the_alternatives`, below."""
+    from app.vertical_slice import l_massing_guard
+    monkeypatch.setattr(l_massing_guard, "eligible_for_slot", lambda rect, l: None)
     result = run_general_from_site(F.l_shaped_site_deep_primary(), plot_size_m=(24.0, 32.0),
                                    program=OPEN_3BR, max_alternatives=3)
     assert result.ok
@@ -380,6 +388,21 @@ def test_a_valid_l_reaches_the_alternatives_and_the_primary_is_unchanged():
     assert all(a.ok and len(a.design.footprints_m) == 2 for a in l_plans)
     from app.vertical_slice.general_pipeline import ALTERNATIVE_PLAN_LIMIT
     assert len(result.alternatives) <= ALTERNATIVE_PLAN_LIMIT + 1   # the L's own slot
+
+
+def test_an_ineligible_l_on_this_brief_does_not_reach_the_alternatives():
+    """2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md: the SAME site and
+    programme (`OPEN_3BR`, a safe room) as `test_a_valid_l_reaches_the_alternatives_...`, gate
+    live (no monkeypatch) this time. The primary itself is the only "1W" plan the normal walk
+    finds (170.5 m2); the L delivers 141.5 m2 against it — ratio ~0.83, under
+    `hub_guard.AREA_KEEP_RATIO` (0.85) — so it does not earn a representation slot. With no OTHER
+    rectangle in the pool to take the slot instead, the alternatives list is simply empty rather
+    than showing an uncompetitive L; the primary is unaffected either way."""
+    result = run_general_from_site(F.l_shaped_site_deep_primary(), plot_size_m=(24.0, 32.0),
+                                   program=OPEN_3BR, max_alternatives=3)
+    assert result.ok
+    assert result.concept.strategy is not L
+    assert not any(plan.massing_signature == "2W" for plan in result.alternatives)
 
 
 def test_a_one_wing_site_is_untouched_by_the_representation_pass():
@@ -397,11 +420,18 @@ def test_massing_signature_counts_the_wings(deep_open):
     assert all(massing_of(c) == "2W" and p.massing_signature == "2W" for c, p in plans)
 
 
-def test_the_l_never_displaces_a_one_wing_alternative():
+def test_the_l_never_displaces_a_one_wing_alternative(monkeypatch):
     """The representation pass used to replace the area-farthest one-wing plan on this brief (a
     162 m2 spine, the only plan of its family in the pool). It now takes a slot of its own: the
-    pool holds every one-wing alternative the walk found AND the L — one more than the budget."""
+    pool holds every one-wing alternative the walk found AND the L — one more than the budget.
+
+    Eligibility (2026-09-17) is bypassed here for the same reason as
+    `test_a_valid_l_reaches_the_alternatives_and_the_primary_is_unchanged`: this test is about
+    slot mechanics (does the L ever cost a one-wing alternative its place), not about whether
+    this particular L is architecturally competitive."""
     from app.vertical_slice import general_pipeline as gp
+    from app.vertical_slice import l_massing_guard
+    monkeypatch.setattr(l_massing_guard, "eligible_for_slot", lambda rect, l: None)
     prog = ProgramSpec(bedrooms=3, safe_room=False, open_plan_living=True, wet_rooms=2,
                        parking_spaces=2, target_built_area_m2=180)
     site = F.l_shaped_site_deep_primary()

@@ -39,6 +39,7 @@ from app.vertical_slice.concept_generator import (
 )
 from app.vertical_slice.relationships import describe
 from app.geometry_domain.walls import BoundaryContext
+from app.vertical_slice import l_massing_guard
 from app.vertical_slice.hub_guard import proportions_of
 from app.vertical_slice.spec import HouseConcept, PublicOpenSide, RelationStrength
 from app.vertical_slice.general_pipeline import (
@@ -609,6 +610,15 @@ def _l_quality_of_plan(plan) -> LQuality:
     return l_quality_of(plan.design)
 
 
+def _l_massing_eligible(rect_plan, l_plan) -> str | None:
+    """Whether `l_plan` (an engine-generated non-rectangle massing) earns a representation slot
+    against `rect_plan` (the best rectangle plan available) — `None` if it may take the slot,
+    else why not (`l_massing_guard.l_earns_representation_slot`). A thin, one-line seam over
+    `.design`-reading logic, the same role `_l_quality_of_plan` already plays for the orientation
+    tiebreak: a test can stand in for it without building full geometry."""
+    return l_massing_guard.eligible_for_slot(rect_plan, l_plan)
+
+
 def _pareto_better(a: LQuality, b: LQuality, eps: float = 1e-6) -> bool:
     """`a` better than `b` on at least one measure and worse on none."""
     def cmp(x, y, lower_is_better):
@@ -707,6 +717,14 @@ def _select_plans(results: list[OutlineResult],
     # A massing is a coarser difference than an organisation family, and the one a person sees
     # first; a valid plan of another massing is shown before a second organisation of the same
     # one. Display de-duplication only, like family: never an input to the primary.
+    #
+    # ELIGIBILITY (2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md): an
+    # ENGINE-generated non-rectangle massing is no longer taken here unconditionally — it must
+    # clear `l_massing_guard.l_earns_representation_slot` against the best "1W" plan anywhere in
+    # the pool first (mirrors the same gate `general_pipeline._alternative_plans` already applies
+    # before such a plan is even offered as an alternative; this is the belt to that suspenders,
+    # protecting the screen even if a caller bypassed that layer). No rectangle in the pool at all
+    # means nothing to gate against, so the candidate is taken as before.
     concept = concept or HouseConcept()
     for item in pool:
         if len(shown) >= _SHOWN_LIMIT:
@@ -722,6 +740,12 @@ def _select_plans(results: list[OutlineResult],
                          and round(abs(other[1].concept.used_area_m2 - target), 4) == area_key
                          and unseen_drawing(other)]
                 item = _break_l_tie(peers, concept)
+                rect_plans = ([p for _, p in shown if p.massing_signature == "1W"]
+                             + [p for _, p in pool if p.massing_signature == "1W"])
+                if rect_plans:
+                    best_rect = max(rect_plans, key=lambda p: p.concept.used_area_m2)
+                    if _l_massing_eligible(best_rect, item[1]) is not None:
+                        continue
             take(item)
     # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
     # shape of a family already on screen). Never the same outline re-proportioned.

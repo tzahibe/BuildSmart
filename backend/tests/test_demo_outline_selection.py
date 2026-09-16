@@ -287,6 +287,23 @@ def test_a_plan_of_another_massing_is_shown_before_a_second_organisation_of_the_
     assert len(shown) == 2
 
 
+def test_an_ineligible_l_is_not_shown_and_the_next_rectangle_takes_its_place(monkeypatch):
+    """2026-09-17: the massing pass no longer takes the first valid L unconditionally — it must
+    clear `_l_massing_eligible` against the best rectangle first. An L that fails the gate simply
+    is not taken; Pass 0 moves on, and the next pass (families) fills the slot with a rectangle
+    instead. The primary and the FIRST rectangle alternative are untouched either way."""
+    monkeypatch.setattr(svc, "_l_massing_eligible", lambda rect_plan, l_plan: "not eligible (test)")
+    results = [
+        _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F2"), _Plan(174.0, 2, "F3"),
+                                     _Plan(150.0, 3, "V[...]+H[...]", massing="2W"))),
+    ]
+    selection = svc._select_plans(results, 176.0)
+    assert selection.primary[1].family == "F1" and selection.primary[1].massing == "1W"
+    shown = [(p.family, p.massing) for _, p in selection.alternatives]
+    assert ("V[...]+H[...]", "2W") not in shown, "the ineligible L is not shown"
+    assert shown == [("F2", "1W"), ("F3", "1W")], "rectangles fill the slots the L would have taken"
+
+
 def test_the_massing_pass_changes_nothing_when_every_plan_is_one_wing():
     results = [
         _OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F1"), _Plan(174.0, 2, "F2"))),
@@ -401,6 +418,17 @@ ENGINE = HouseConcept()
 def _stub_l_quality(monkeypatch):
     """The tiebreak reads realized measures off `plan.design`; the stubs carry them directly."""
     monkeypatch.setattr(svc, "_l_quality_of_plan", lambda plan: svc.LQuality(*plan.quality))
+
+
+@pytest.fixture(autouse=True)
+def _stub_l_eligibility(monkeypatch):
+    """The representation gate (`_l_massing_eligible`) reads realized `PlanProportions`/
+    `ExposureProportions` off `plan.design` — none of these stand-ins have one. Every test in
+    this file is about REPRESENTATION MECHANICS (which slot, which pass, which tiebreak), not
+    about the gate itself, so it is stubbed to always say "eligible" here; a dedicated test
+    below (`test_an_ineligible_l_is_not_shown_and_the_next_rectangle_takes_its_place`)
+    monkeypatches it the other way to exercise the gate in isolation."""
+    monkeypatch.setattr(svc, "_l_massing_eligible", lambda rect_plan, l_plan: None)
 
 
 def _tied_ls(rear_quality=(1.5, 1.0, 0.5), front_quality=(1.5, 1.0, 0.5)):
