@@ -61,7 +61,7 @@ from .level_planner import (
 )
 from .level_program import LevelAllocation, allocate_levels, closed_fallback, with_upper_strip
 from .site import EntranceWalk, SitePlan
-from .spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+from .spec import ArchitecturalSpec, HouseConcept, PlotSpec, ProgramSpec, PublicPrivateStrategy
 from .vertical import VerticalCore
 
 #: Sizing-tier fallback ladder `_build` itself uses — normal, then deficit-shrunk, then past-
@@ -89,6 +89,15 @@ class BuildingCandidate:
     """One complete, validated two-level building, with the search choices that produced it —
     diagnostic, not a ranking key. `family` names the allocation/lobby-form/massing combination
     for grouping (`MULTI_LEVEL_PHASE_1_INVESTIGATION_REPORT.md` §10's "family before repeat").
+
+    `ground_warnings`/`upper_warnings` are the REALIZED `LevelProgram.warnings` from the exact
+    `LevelAllocation` that produced this candidate — carried here at construction time, never
+    reconstructed afterward from `(strategy, ground_layout)` the way the ranking investigation
+    had to (`MULTI_LEVEL_CANDIDATE_RANKING_INVESTIGATION_REPORT.md` §1: recomputing them by
+    re-calling `allocate_levels` is lossless only because warnings are a pure function of the
+    programme and the chosen strategy/layout — true today, not a property a caller should have to
+    rely on). This is what lets `primary_selection.select_primary` read a candidate's explicit-
+    preference and quality-warning signals directly, with no second source of truth.
     """
 
     building: Building
@@ -99,10 +108,16 @@ class BuildingCandidate:
     retreat: str
     upper_strip_bedrooms: int
     building_validation: BuildingValidationReport
+    ground_warnings: tuple[str, ...] = ()
+    upper_warnings: tuple[str, ...] = ()
 
     @property
     def family(self) -> str:
         return f"{self.strategy}/{self.ground_layout}/{self.ground_lobby_form}/{self.retreat}"
+
+    @property
+    def warnings(self) -> tuple[str, ...]:
+        return self.ground_warnings + self.upper_warnings
 
 
 @dataclass(frozen=True)
@@ -129,14 +144,26 @@ class CoordinatorResult:
 
 
 def plan_buildings(program: ProgramSpec, plot: PlotSpec, total_built_area_m2: float, *,
-                   seat: StairSeat = DEFAULT_SEAT, stop_at_first: bool = False,
-                   outline_count: int = 4) -> CoordinatorResult:
+                   concept: HouseConcept | None = None, seat: StairSeat = DEFAULT_SEAT,
+                   stop_at_first: bool = False, outline_count: int = 4) -> CoordinatorResult:
     """The bounded joint search described in the module docstring.
 
     `stop_at_first=True` is the fast path a production caller wants (the first valid building,
     in the search order below — allocation A before C, SHRUNK before ABSORBED, nearest outline
     first, no retreat before a retreat, k=0 upward); `False` (the default) is the survey a
     measurement or a "show every valid candidate" caller wants.
+
+    `concept` is the SAME `HouseConcept` a single-storey house already carries
+    (`ArchitecturalSpec.concept`, `spec.py`) — not a second, multi-level-only preference type.
+    `concept=None` (the default) reproduces exactly today's behaviour: every allocation is tried,
+    nothing is filtered, `primary_selection.select_primary` sees no explicit strategy preference
+    to honour. When `concept.public_private_strategy` is bound and `concept.is_binding
+    ("public_private_strategy")` (i.e. the person's own `hard_fields` made it HARD, the same
+    grammar `CorridorRequirement`/`RelationStrength` already use), the OTHER allocation is not
+    even generated — a HARD preference is a real constraint, gated here exactly where every other
+    hard constraint in this search is gated, not a ranking bonus (`primary_selection.py` never
+    sees the excluded allocation at all). A PREFERENCE-strength `public_private_strategy` changes
+    nothing here — both allocations are still generated, and the preference is read in ranking.
     """
     started = time.perf_counter()
     candidates: list[BuildingCandidate] = []
@@ -145,8 +172,17 @@ def plan_buildings(program: ProgramSpec, plot: PlotSpec, total_built_area_m2: fl
     bx, by = plot.buildable_origin_m()
     bw, bd = plot.buildable_size_m()
     x0_u, y0_u = m_to_u(bx), m_to_u(by)
+    hard_strategy = (concept.public_private_strategy
+                     if concept is not None and concept.is_binding("public_private_strategy")
+                     and concept.public_private_strategy is not PublicPrivateStrategy.ENGINE
+                     else None)
 
     for allocation in allocate_levels(program):
+        if hard_strategy is not None and allocation.strategy is not hard_strategy:
+            refusals.append(BuildingRefusal(
+                allocation.strategy.value, "allocation", "HARD_PREFERENCE_EXCLUDED",
+                f"the person's public_private_strategy is HARD-bound to {hard_strategy.value}"))
+            continue
         ground_target, upper_target = _split_target(total_built_area_m2, allocation)
         outlines = _ground_outlines(bw, bd, ground_target, outline_count)
         if not outlines:
@@ -202,7 +238,9 @@ def plan_buildings(program: ProgramSpec, plot: PlotSpec, total_built_area_m2: fl
                         candidates.append(BuildingCandidate(
                             building, ground_alloc.strategy.value,
                             ground_alloc.ground.ground_layout.value if ground_alloc.ground.ground_layout else "-",
-                            ground_form.value, (fw, fh), retreat_name, k, v_report))
+                            ground_form.value, (fw, fh), retreat_name, k, v_report,
+                            ground_warnings=tuple(ground_alloc.ground.warnings),
+                            upper_warnings=tuple(upper_alloc.upper.warnings)))
                         found_for_ground = True
                         if stop_at_first:
                             return CoordinatorResult(tuple(candidates), tuple(refusals),
