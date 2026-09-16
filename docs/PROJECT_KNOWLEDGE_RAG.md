@@ -118,12 +118,27 @@ evaluation set manually grounded via `git grep` on tracked content
 Methodology and raw per-model reports: `backend/tests/knowledge/eval/run_eval.py` +
 `baseline_hash.json`/`e5_base.json`/`bge_m3.json`/`mpnet.json` in the same directory.
 
-| model | dim | index time (72 files) | peak RSS | hybrid Top-1 | Recall@3 | Recall@5 | MRR | HE Top-1 | EN Top-1 | query latency |
-|---|---|---|---|---|---|---|---|---|---|---|
-| hash (baseline) | 512 | 1.3s | 34 MB | 43.3% | 53.3% | 63.3% | 0.513 | 20% | 55% | 167 ms |
-| paraphrase-multilingual-mpnet-base-v2 | 768 | 26s | 1.73 GB | 43.3% | 70.0% | 83.3% | 0.587 | 40% | 45% | 373 ms |
-| intfloat/multilingual-e5-base | 768 | 105s | 2.53 GB | 46.7% | 70.0% | 83.3% | 0.601 | 40% | 50% | 390 ms |
-| **BAAI/bge-m3** | 1024 | 618s | 3.67 GB | **56.7%** | **86.7%** | **90.0%** | **0.703** | **50%** | **60%** | 572 ms |
+**`index time` below is the indexing phase only** (the `indexing_s` field measured inside
+`build_index()`, i.e. embedding the corpus into the store) — **not** the total first-run cost. A
+model that has never been downloaded before also pays a one-time download + load cost on top of
+this, shown separately:
+
+| model | dim | download (one-time) | index time (72 files) | **total fresh wall-clock** | peak RSS | hybrid Top-1 | Recall@3 | Recall@5 | MRR | HE Top-1 | EN Top-1 | query latency |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| hash (baseline) | 512 | — | 1.3s | 1.3s | 34 MB | 43.3% | 53.3% | 63.3% | 0.513 | 20% | 55% | 167 ms |
+| paraphrase-multilingual-mpnet-base-v2 | 768 | ~31s | 26s | **~85s** | 1.73 GB | 43.3% | 70.0% | 83.3% | 0.587 | 40% | 45% | 373 ms |
+| intfloat/multilingual-e5-base | 768 | ~27s | 105s | **~160s** | 2.53 GB | 46.7% | 70.0% | 83.3% | 0.601 | 40% | 50% | 390 ms |
+| **BAAI/bge-m3** | 1024 | ~61s | 618s | **~709s (11m49s)** | 3.67 GB | **56.7%** | **86.7%** | **90.0%** | **0.703** | **50%** | **60%** | 572 ms |
+
+Download and total-wall-clock figures were reconstructed after the fact from real file timestamps
+(each script's startup `date` print and its output JSON's mtime, plus each model's cache-directory
+first/last blob mtimes as a download-window proxy) rather than re-running the models — a live
+`ps` check during the bge-m3 run was misread in the moment as ">30 minutes elapsed" because `ps`'s
+`TIME` column is cumulative CPU-seconds summed across threads (it showed `32:55` at ~290% CPU,
+i.e. ~2.9 cores — that's `32:55 ÷ 2.9 ≈ 11.3` minutes of *real* elapsed time), not wall-clock; the
+hard timestamps confirm the true total was ~11m49s, consistent with `indexing_s=618.2s` plus a
+~61s download and ~35s of query evaluation (90 query×mode calls at ~575ms each). No discrepancy in
+the underlying measurement — only in how a live progress check was read at the time.
 
 **Semantic-only vs. FTS-only vs. hybrid** (proving the semantic channel adds value rather than
 replacing keyword search — full breakdown in the per-model JSON reports): FTS-only alone already
@@ -138,19 +153,31 @@ semantic-only MRR (0.627) and FTS-only's (0.444).
 **Selected: `BAAI/bge-m3`.** It is not the fastest or the lightest — it is the only candidate that
 improved **both** languages simultaneously (`e5-base` traded English Top-1 for Hebrew gains;
 `mpnet` matched baseline English at best) and won on every single retrieval-quality metric
-measured, not one cherry-picked number. The cost is real (618s to fully reindex vs. 1.3s for hash;
-3.67 GB peak RSS vs. 34 MB) but bounded and one-time-ish: `knowledge index --changed` only
-re-embeds changed files, so the 618s is a full-rebuild cost, not a per-edit one, and 3.67 GB is
-comfortable headroom on the 32 GB target machine. Per-query latency (572ms) stays sub-second for
-an interactive CLI tool. This is an evidence-based choice, not a "pick the biggest" default —
-`mpnet` (26s indexing, 1.73 GB) remains a documented lighter-weight alternative for anyone who
-wants faster reindexing at a real quality cost, and `e5-base` sits in between.
+measured, not one cherry-picked number. The cost is real (618s indexing time, ~709s total on a
+machine that has never pulled the model before, vs. 1.3s for hash; 3.67 GB peak RSS vs. 34 MB) but
+bounded and mostly one-time: the ~61s download happens once per machine (cached afterward), and
+`knowledge index --changed` only re-embeds changed files, so 618s is a full-rebuild cost, not a
+per-edit one. 3.67 GB is comfortable headroom on the 32 GB target machine, and per-query latency
+(572ms) stays sub-second for an interactive CLI tool. This is an evidence-based choice, not a
+"pick the biggest" default — `mpnet` (~85s total first run, 1.73 GB) remains a documented
+lighter-weight alternative for anyone who wants faster reindexing at a real quality cost, and
+`e5-base` (~160s total first run) sits in between.
 **`huggingface` remains opt-in** — the auto-detected default (`hash`, or `ollama` once a
 capability-verified model is pulled) is unchanged; nothing switches automatically.
 
 Not measured this round (explicitly, not fabricated): `KNOWLEDGE_EMBEDDING_DEVICE=mps`
 acceleration (available, untested); a 4th/5th HF candidate; production-scale corpora larger than
 this repo's ~1,100 chunks.
+
+**Use an isolated environment for `knowledge-embeddings` work, not the shared dev `.venv`.**
+`uv sync --extra knowledge-embeddings` reconciles the environment to exactly match the
+lockfile+extras — standard, correct `uv` behavior, but on a `.venv` shared with other concurrent
+work it will also prune any package present but undeclared in `pyproject.toml`, which happened
+here (unrelated geospatial/graph-ML packages another session's environment had picked up were
+removed; this repo's own tests never needed them, but it's still a cross-session side effect worth
+avoiding). Prefer a `git worktree` with its own `.venv` (as this evaluation's own validation
+passes did) or a scratch clone when installing this extra, rather than running `uv sync
+--extra knowledge-embeddings` directly in a checkout other sessions are actively using.
 
 **Index versioning**: the store's `index_meta` row records `(embedding_provider, embedding_model,
 embedding_dim)`. `index_changed()` refuses to run incrementally if the active config no longer
