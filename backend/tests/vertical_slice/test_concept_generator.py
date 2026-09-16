@@ -57,9 +57,11 @@ def _spec(program: ProgramSpec) -> ArchitecturalSpec:
 
 
 def _tiers(candidates):
-    """The normal candidates and the tier-2 (`Repartition`) ones, in their list order."""
+    """The normal candidates, the tier-2 (`Repartition`) ones and the quality-tier ones
+    (`quality_repartitioned`), each in their list order."""
     return ([c for c in candidates if not c.repartitioned],
-            [c for c in candidates if c.repartitioned])
+            [c for c in candidates if c.repartitioned and not c.quality_repartitioned],
+            [c for c in candidates if c.quality_repartitioned])
 
 
 # ------------------------------------------------------------------ programme generation
@@ -267,13 +269,16 @@ def test_generator_produces_a_bounded_candidate_set(name):
     # then its twin); among the peers, twins still come after every forced tree. Tier 2
     # (`Repartition`) is its own block after every normal peer, ordered the same way inside.
     peers = [c for c in result.candidates if "hub last resort" not in c.rationale]
-    tier1, tier2 = _tiers(peers)
+    tier1, tier2, quality = _tiers(peers)
     # Each fallback class (shrunk / over_preferred / both) keeps up to `wanted` candidates of its
     # own beside the normal ones (`_build`'s `budget_left`), so the per-variant ceiling is wider
     # than the 24 the normal walk alone allowed. Still bounded, still not padded.
     assert 1 <= len(tier1) <= 48
-    assert peers == tier1 + tier2, "tier 2 comes after every normal candidate and twin"
-    for block in (tier1, tier2):
+    # The quality tier (rows re-partitioned for proportions) is at most one plan per kept plan.
+    assert len(quality) <= 2 * len(tier1)
+    assert peers == tier1 + tier2 + quality, \
+        "tier 2 comes after every normal candidate and twin, the quality tier after tier 2"
+    for block in (tier1, tier2, quality):
         block_twins = [c for c in block if c.rationale.endswith(FREE_TWIN_RATIONALE)]
         assert block[len(block_twins):] == block_twins, "twins must come after every forced tree"
     demoted = [c for c in result.candidates if "hub last resort" in c.rationale]
@@ -295,9 +300,13 @@ def test_vocabulary_is_additive():
         R.LIVING: RoomTemplate(16.0, 22.0, 46.0, 3.0, 2.5, elasticity=3.0, hard_max_area_m2=50.0),
         R.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5, hard_max_area_m2=33.0),
         R.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0, hard_max_area_m2=28.0),
-        R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9, hard_max_area_m2=23.0),
-        R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5, hard_max_area_m2=18.0),
-        R.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
+        # `preferred_aspect_ratio` (the quality tier, 2026-09-16) — a target, not a gate; the hard
+        # aspect and every area figure are as before.
+        R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9, hard_max_area_m2=23.0,
+                                       preferred_aspect_ratio=1.5),
+        R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5, hard_max_area_m2=18.0,
+                                preferred_aspect_ratio=1.5),
+        R.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0, preferred_aspect_ratio=1.5),
         R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15, hard_max_area_m2=14.0),
         R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10, hard_max_area_m2=7.0),
         R.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
@@ -515,7 +524,7 @@ def test_hub_is_offered_only_for_three_or_more_bedrooms():
     assert twins and len(twins) * 2 == len(hubs)
     # 008: the forced-before-twin rule holds inside the peer block; a hub the outline's bound demotes
     # sits after every peer (forced tree, then its twin) — see test_a_demoted_hub_is_the_last_resort.
-    peers, _ = _tiers([c for c in three.candidates if "hub last resort" not in c.rationale])
+    peers, _, _ = _tiers([c for c in three.candidates if "hub last resort" not in c.rationale])
     first_twin = next(i for i, c in enumerate(peers) if c.rationale.endswith(FREE_TWIN_RATIONALE))
     last_forced = max(i for i, c in enumerate(peers) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
     assert last_forced < first_twin, "every forced tree must precede every twin"
@@ -1272,7 +1281,7 @@ def test_a_demoted_hub_is_the_last_resort():
     assert cands[-2:] == hubs, "forced hub then its twin, after everything"
     assert not cands[-2].rationale.endswith(FREE_TWIN_RATIONALE)
     assert cands[-1].rationale.endswith(FREE_TWIN_RATIONALE)
-    peers, _ = _tiers(cands[:-2])
+    peers, _, _ = _tiers(cands[:-2])
     first_twin = next(i for i, c in enumerate(peers) if c.rationale.endswith(FREE_TWIN_RATIONALE))
     assert all(c.rationale.endswith(FREE_TWIN_RATIONALE) for c in peers[first_twin:])
     assert "wet adjacency reaches 0%" in hubs[0].rationale
@@ -1289,7 +1298,7 @@ def test_an_eligible_hub_keeps_its_v2_place():
     bound = cg.hub_bound(_hub_rooms(SAFE_BRIEF), fw, fh, cg._HUB_WIDTHS_M)
     if cg.hub_eligibility(bound) is cg.HubEligibility.ELIGIBLE:
         assert all("hub eligible on this outline" in c.rationale for c in hubs)
-        cands, _ = _tiers(result.candidates)
+        cands, _, _ = _tiers(result.candidates)
         first_twin = next(i for i, c in enumerate(cands) if c.rationale.endswith(FREE_TWIN_RATIONALE))
         last_forced = max(i for i, c in enumerate(cands) if not c.rationale.endswith(FREE_TWIN_RATIONALE))
         assert last_forced < first_twin

@@ -358,7 +358,7 @@ def _plan_l(spec: ArchitecturalSpec, rooms: list[ProgramRoom], geometry: SeamGeo
         return [], PlanFailure(RejectionReason.COLUMN_WIDTH_EXCEEDED, "the arm has no net width")
     arm_rows = [cg._orient_row(r, corridor_on_east=arm_corridor_east)
                 for r in cg._daylight_order(cg._rows_of(arm_rooms), north_is_envelope=True)]
-    arm_rows = cg._rows_for_width(arm_rows, net_arm, fallback, arm_corridor_east)
+    arm_rows = cg._rows_for_width(arm_rows, net_arm, fallback, arm_corridor_east, areas)
     for row in arm_rows:
         if cg._row_widths(row, net_arm) is None:
             return [], PlanFailure(
@@ -424,14 +424,16 @@ def _plan_l(spec: ArchitecturalSpec, rooms: list[ProgramRoom], geometry: SeamGeo
         # the spine's seam search; the band gets whatever width the column leaves it.
         natural = sum(areas[r.zone_id] for r in column_rooms) / max(arm_len, 1e-6) + inset
         options = cg._seam_options(natural, column_min, pw - hall_w,
-                                   limit=None if fallback is not None else cg._MAX_SEAM_OPTIONS)
+                                   limit=None if fallback is not None and not fallback.quality
+                                   else cg._MAX_SEAM_OPTIONS)
         if column_min <= pw - hall_w + 1e-9 and all(abs(column_min - w) > 1e-9 for w in options):
             options.append(_snap(column_min))
         for column_w in sorted(options):
             primary_w = _snap(column_w + hall_w)
             column_w = primary_w - hall_w
             net_column = column_w - inset
-            column_rows = cg._rows_for_width(column_rows0, net_column, fallback, column_corridor_east)
+            column_rows = cg._rows_for_width(column_rows0, net_column, fallback, column_corridor_east,
+                                             areas)
             bad_row = next((row for row in column_rows if cg._row_widths(row, net_column) is None), None)
             if bad_row is not None:
                 miss(PlanFailure(RejectionReason.ROW_WIDTH_EXCEEDED,
@@ -610,10 +612,57 @@ def _arm_rect(geometry: SeamGeometry, arm_len: float) -> Rect:
 
 # --------------------------------------------------------------------------- the fixture
 
+def _plan_shapes(plan: LPlan) -> dict[str, tuple[float, float]]:
+    """Every arm and column room's planned NET (width, depth) — `cg._row_shapes` on the wing rows.
+    The band's public rooms carry no preferred aspect and are not read."""
+    inset = cg._EDGE_INSET_ALLOWANCE_M
+    shapes = cg._row_shapes(plan.arm_rows, plan.arm_depths_m, u_to_m(plan.arm.w) - inset)
+    shapes.update(cg._row_shapes(plan.column_rows, plan.column_depths_m, plan.column_w_m - inset))
+    return shapes
+
+
+def _quality_l_plans(spec: ArchitecturalSpec, rooms: list[ProgramRoom], geometry: SeamGeometry,
+                     arm_rooms: list[ProgramRoom], column_rooms: list[ProgramRoom],
+                     band_rooms: list[ProgramRoom], *, stacked_band: bool,
+                     repartition: cg.Repartition, bases: list[tuple[LPlan, bool, bool]],
+                     ) -> list[tuple[LPlan, bool, bool]]:
+    """The quality tier for the L — `concept_generator._quality_layouts` on `_plan_l`, nothing
+    L-specific: where a kept plan leaves a bedroom-class room past its preferred aspect, the same
+    allocation and band form are sized again with the wing rows re-partitioned for proportions
+    through the `_rows_for_width` hook `_plan_l` already uses — the base plan's own sizing tier,
+    the normal nine column widths, at most `cg._MAX_QUALITY_PAIRINGS` pairings, and every plan
+    held to `cg._quality_accepts` against the base with the SAME WINGS — a re-partitioned plan
+    is offered at its base's footprint, never at another sizing's."""
+    by_zone = {r.zone_id: r for r in rooms}
+    aspects = {id(b): cg._preferred_aspects(_plan_shapes(b), rooms) for b, *_ in bases}
+    poor = [(b, d, h) for b, d, h in bases if cg._quality_shortfall(aspects[id(b)], by_zone) > 1e-6]
+    out: list[tuple[LPlan, bool, bool]] = []
+    for allow_deficit, allow_hard in dict.fromkeys((d, h) for _, d, h in poor):
+        tier_bases = [b for b, d, h in poor if (d, h) == (allow_deficit, allow_hard)]
+        for rank in range(cg._MAX_QUALITY_PAIRINGS):
+            options = replace(repartition, quality=True, quality_rank=rank, hard=allow_hard)
+            plans, _ = _plan_l(spec, rooms, geometry, arm_rooms, column_rooms, band_rooms,
+                               stacked_band=stacked_band, fallback=options,
+                               allow_deficit=allow_deficit, allow_hard=allow_hard)
+            if not plans or all(any(p == b for b, *_ in bases) for p in plans):
+                break   # no pairing of this rank: the normal sizing came back
+            for plan in plans:
+                if any(plan == b for b, *_ in bases) or any(plan == o for o, *_ in out):
+                    continue
+                ref = next((b for b in tier_bases
+                            if b.primary == plan.primary and b.arm == plan.arm), None)
+                if ref is None:
+                    continue
+                new = cg._preferred_aspects(_plan_shapes(plan), rooms)
+                if cg._quality_accepts(aspects[id(ref)], new, by_zone):
+                    out.append((plan, allow_deficit, allow_hard))
+    return out
+
+
 def _candidate_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], plan: LPlan,
                     primary: SolverGeometryCandidate, arm: SolverGeometryCandidate,
                     rationale: str, *, repartitioned: bool, shrunk: bool,
-                    over_preferred: bool) -> ConceptCandidate:
+                    over_preferred: bool, quality_repartitioned: bool = False) -> ConceptCandidate:
     inset = cg._EDGE_INSET_ALLOWANCE_M
     g = plan.geometry
     hall_w_u = m_to_u(plan.hall_w_m)
@@ -682,13 +731,15 @@ def _candidate_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], plan: LPl
                    f"{'stacked' if plan.stacked_band else 'side-by-side'} public band "
                    f"{plan.band_depth_m:.2f} m | column {plan.column_w_m:.2f} m "
                    f"({len(plan.column_rows)} rows) | hall {plan.hall_w_m:.2f} m on the seam"
-                   + (cg.REPARTITIONED_RATIONALE if repartitioned else "")
+                   + (cg.QUALITY_RATIONALE if quality_repartitioned
+                      else cg.REPARTITIONED_RATIONALE if repartitioned else "")
                    + (cg.SHRUNK_RATIONALE if shrunk else "")
                    + (cg.OVER_PREFERRED_RATIONALE if over_preferred else "")),
         used_area_m2=used,
         unused_wing_area_m2=round(primary.area_m2 + arm.area_m2 - used, 2),
         wet_rooms=cg.wet_rooms_of(rooms),
         repartitioned=repartitioned, shrunk=shrunk, over_preferred=over_preferred,
+        quality_repartitioned=quality_repartitioned,
     )
 
 
@@ -734,7 +785,7 @@ def l_concepts(spec: ArchitecturalSpec, rooms: list[ProgramRoom],
             # Every sizing this allocation and band form produce, across the ladder; then the
             # nearest few to the request (a normal plan before a fallback on a tie), so the L is
             # as bounded per form as a one-wing strategy is per proportion.
-            combo: list[ConceptCandidate] = []
+            combo: list[tuple[ConceptCandidate, LPlan, bool, bool, bool]] = []
             normal_found = False
             for fallback, allow_deficit, allow_hard in ladder:
                 if (allow_deficit or allow_hard) and normal_found:
@@ -756,14 +807,29 @@ def l_concepts(spec: ArchitecturalSpec, rooms: list[ProgramRoom],
                     continue
                 normal_found = normal_found or not (allow_deficit or allow_hard)
                 for plan in plans:
-                    combo.append(_candidate_from(spec, rooms, plan, primary, arm, rationale,
-                                                 repartitioned=repartitioned, shrunk=allow_deficit,
-                                                 over_preferred=allow_hard))
+                    combo.append((_candidate_from(spec, rooms, plan, primary, arm, rationale,
+                                                  repartitioned=repartitioned, shrunk=allow_deficit,
+                                                  over_preferred=allow_hard),
+                                  plan, repartitioned, allow_deficit, allow_hard))
             if target is not None:
-                combo.sort(key=lambda c: (round(abs(c.used_area_m2 - target), 4),
-                                          c.over_preferred or c.shrunk or c.repartitioned,
-                                          round(c.used_area_m2, 4)))
-            built.extend(combo[:cg._MAX_PROPORTIONS_PER_STRATEGY])
+                combo.sort(key=lambda item: (round(abs(item[0].used_area_m2 - target), 4),
+                                             item[0].over_preferred or item[0].shrunk or item[0].repartitioned,
+                                             round(item[0].used_area_m2, 4)))
+            kept = combo[:cg._MAX_PROPORTIONS_PER_STRATEGY]
+            built.extend(candidate for candidate, *_ in kept)
+            # QUALITY TIER beside the kept plans (`_quality_l_plans`): additional candidates,
+            # bounded like the kept ones, ordered last by `generate_concepts`.
+            quality = [_candidate_from(spec, rooms, plan, primary, arm, rationale, repartitioned=True,
+                                       shrunk=allow_deficit, over_preferred=allow_hard,
+                                       quality_repartitioned=True)
+                       for plan, allow_deficit, allow_hard in _quality_l_plans(
+                           spec, rooms, geometry, arm_rooms, column_rooms, band_rooms,
+                           stacked_band=stacked, repartition=repartition,
+                           bases=[(plan, d, h) for _, plan, rep, d, h in kept if not rep])]
+            if target is not None:
+                quality.sort(key=lambda c: (round(abs(c.used_area_m2 - target), 4),
+                                            c.over_preferred or c.shrunk, round(c.used_area_m2, 4)))
+            built.extend(quality[:cg._MAX_PROPORTIONS_PER_STRATEGY])
     if built:
         return built, None
     if nearest is None:

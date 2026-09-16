@@ -115,6 +115,11 @@ class RoomTemplate:
     #: "the tiling solver has little room to drift upward," not just the first of those.
     elasticity: float = 0.0
     hard_max_area_m2: float | None = None
+    #: PREFERRED aspect ratio (long/short) — a QUALITY TARGET, never a gate (2026-09-16). The hard
+    #: `max_aspect_ratio` stays what `room_depth_band_m`, `_zone_spec` and validation C20 hold a
+    #: room to; this is the shape the planner tries to REACH by re-partitioning rows
+    #: (`_quality_candidates`) beside a normal plan that leaves the room past it. None: no target.
+    preferred_aspect_ratio: float | None = None
 
     @property
     def preferred_max_area_m2(self) -> float:
@@ -137,10 +142,17 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # generous house should get MORE rooms, or a bigger hall/living room (elasticity above),
     # never one bedroom stretched to fill leftover footprint. Below the public tier's floor
     # (KITCHEN's 1.0), as the priority ranking requires.
-    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9, hard_max_area_m2=23.0),
-    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5, hard_max_area_m2=18.0),
+    # `preferred_aspect_ratio` 1.5 for the three bedroom-class rooms (2026-09-16, the proportion
+    # report): measured over the 431-context log the realized bedroom aspects are BIMODAL — a
+    # well-shaped mode up to ~1.5 (short side >= 3.0 m, median 1.28, the census range) and a strip
+    # mode at 1.7-2.1 (a lone room at its 2.6 m floor across a ~5 m column); the trough between
+    # them is the 1.5-1.6 bin. The safe room is one of the bedrooms (the census), same target.
+    ProgramRole.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9, hard_max_area_m2=23.0,
+                                             preferred_aspect_ratio=1.5),
+    ProgramRole.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5, hard_max_area_m2=18.0,
+                                      preferred_aspect_ratio=1.5),
     # Regulated minimum: never scaled down, and not inflated just because the house is large.
-    ProgramRole.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0),
+    ProgramRole.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0, preferred_aspect_ratio=1.5),
     # max_area_m2 (12.0) is a conservative DEMO PRODUCT POLICY ceiling for a generous full
     # bathroom — not a verified regulatory or legal figure for any jurisdiction, and specifically
     # NOT copied from any external tool's suggested dimensions (regulatory/architectural
@@ -437,6 +449,13 @@ class ConceptCandidate:
     #: that stayed inside. Validation C21 holds it to the hard maxima; the contract reports the
     #: rooms above preferred as a quality warning.
     over_preferred: bool = False
+    #: QUALITY TIER (2026-09-16): this candidate is a found plan re-partitioned for room
+    #: PROPORTIONS — the tier-2 pairing applied beside a plan that leaves a bedroom-class room past
+    #: its `preferred_aspect_ratio`, at the same footprint, programme and sizing tier
+    #: (`_quality_layouts`). Always `repartitioned` as well (it IS re-partitioned rows, and the
+    #: pipeline's tier-2 rule applies), and ordered after every other one-wing candidate: it never
+    #: displaces the plan a brief already had — ranking among them is a later review's question.
+    quality_repartitioned: bool = False
 
 
 @dataclass(frozen=True)
@@ -1203,6 +1222,15 @@ class Repartition:
     hall_public: str | None
     north_is_envelope: bool
     never_shared: frozenset[str] = frozenset()
+    #: QUALITY TIER (2026-09-16): re-partition for room PROPORTIONS rather than for a shape refusal.
+    #: With `quality`, `_rows_for_width` keeps the normal path's rows and then lets a lone row
+    #: take the master's slot beside the ensuite where that brings a bedroom-class room toward
+    #: its `preferred_aspect_ratio` (`_quality_candidates`), choosing the `quality_rank`-th best
+    #: legal pairing; `hard` is the ceiling tier the base plan was sized under, so the shape
+    #: estimate floors rows the same way. The seam window stays the normal nine (`plan_layout`).
+    quality: bool = False
+    quality_rank: int = 0
+    hard: bool = False
 
     @property
     def open_group(self) -> frozenset[str]:
@@ -1305,8 +1333,7 @@ def _repartition_rows(rows: list[list[ProgramRoom]], net_width: float, options: 
     result is re-ordered for daylight and re-oriented for the corridor, because a shared row's
     corridor-facing member may now be one that needs a window."""
     def finished(candidate: list[list[ProgramRoom]]) -> list[list[ProgramRoom]]:
-        return [_orient_row(r, corridor_on_east) if any(m.entered_from for m in r) else r
-                for r in _daylight_order(candidate, north_is_envelope=options.north_is_envelope)]
+        return _finish_rows(candidate, options, corridor_on_east)
 
     out = [list(r) for r in rows]
     changed = False
@@ -1367,9 +1394,183 @@ def _access_intact(rows: list[list[ProgramRoom]], options: Repartition,
     return True
 
 
+def _finish_rows(candidate: list[list[ProgramRoom]], options: Repartition,
+                 corridor_on_east: bool) -> list[list[ProgramRoom]]:
+    """A re-partitioned row list made plan-ready: re-ordered for daylight and every shared row
+    re-oriented for the corridor — a shared row's corridor-facing member may now be one that
+    needs a window. Shared by tier 2 and the quality tier."""
+    return [_orient_row(r, corridor_on_east) if any(m.entered_from for m in r) else r
+            for r in _daylight_order(candidate, north_is_envelope=options.north_is_envelope)]
+
+
+# --------------------------------------------------------------------------- quality tier (2026-09-16)
+#
+# Re-partition for room PROPORTIONS. Measured over the 431-context log (docs/
+# ROOM_PROPORTION_REPARTITION_REPORT.md): 85 % of delivered plans leave a bedroom-class room past
+# 1.6, almost all of them a lone full-width row across a ~5 m column — a bedroom at its 2.6 m
+# floor, a safe room at its 2.4 m — and the one legal move that reshapes such a room is the
+# pairing tier 2 already knows: a lone room of any role takes the master's corridor-facing slot
+# beside the ensuite and the master goes full-width (`_dependent_pairings`). Applied as a quality
+# move beside a plan that succeeded (rather than as the repair of a shape refusal) it brings the
+# worst bedroom-class aspect of a plan from a median 1.98 to 1.56 in 132 of 350 replayed spine
+# primaries, at the same footprint and area. Its ceiling is topology: one ensuite per programme,
+# one host slot. Nothing here shrinks a room, relaxes a maximum, moves a wet room's door or
+# changes the ranking — a quality candidate is an ADDITIONAL candidate, ordered last.
+
+#: Marker appended to a quality-tier candidate's rationale.
+QUALITY_RATIONALE = "; rows re-partitioned for room proportions (quality)"
+#: How many legal pairings a plan may be re-partitioned with, best-estimated first — the bound on
+#: the search beside the normal nine seams (`_seam_options`) each attempt keeps.
+_MAX_QUALITY_PAIRINGS = 3
+#: The least a plan's worst bedroom-class aspect must move toward its target for the re-partitioned
+#: plan to be offered at all: a swap that merely shuffles which room is the strip is not a plan.
+_QUALITY_MIN_GAIN = 0.1
+#: How far past its preferred aspect a room that was INSIDE it may be carried by the pairing. The
+#: host goes full-width across its column, and a 4.8 m wide master at its 3.0-3.1 m depth is 1.55:
+#: refusing that kept the 4.8 m L arm's best pairing (a 1.96 safe room to 1.2 beside a 1.25 master
+#: to 1.55) off the table. Up to the trough between the two modes (1.5 + 0.1 = 1.6), never into
+#: the strip mode; the plan's worst room must still have moved by `_QUALITY_MIN_GAIN`.
+_QUALITY_SPILL = 0.1
+
+
+def _row_shapes(rows: list[list[ProgramRoom]], depths: list[float], net_width: float,
+                ) -> dict[str, tuple[float, float]]:
+    """zone -> the NET (width, depth) the planner gave it: rows at their chosen CENTERLINE depths,
+    members at `_row_widths`' widths — the rectangles `_zone_spec` is built from, before the
+    solver. The solver lands within the wall insets of these (`_largest_net_area_m2`)."""
+    out: dict[str, tuple[float, float]] = {}
+    for row, depth in zip(rows, depths):
+        net_d = depth - _EDGE_INSET_ALLOWANCE_M / 2
+        widths = _row_widths(row, net_width, net_d) or [net_width / len(row)] * len(row)
+        for room, w in zip(row, widths):
+            out[room.zone_id] = (w, net_d)
+    return out
+
+
+def _estimated_row_shapes(rows: list[list[ProgramRoom]], net_width: float,
+                          areas: dict[str, float], hard: bool,
+                          ) -> dict[str, tuple[float, float]] | None:
+    """The shapes a column's rows would take at `net_width` BEFORE the column's depth is known:
+    each row at the larger of its area quotient and its shape floor — `_row_depths`' wants, from
+    which the surplus distribution can only deepen a row. None when a row cannot be shaped at
+    this width at all. This ranks pairings inside `_rows_for_width`, where the column depth is
+    not in hand; the plan a pairing produces is judged on its exact shapes afterwards
+    (`_quality_accepts`)."""
+    depths = []
+    for row, allowance in zip(rows, _row_wall_allowances_m(rows, (True, True))):
+        floor, failure = _row_depth_floor_m(row, net_width, "column", allowance, hard)
+        if failure is not None:
+            return None
+        depths.append(max(sum(areas[r.zone_id] for r in row) / max(net_width, 1e-6), floor))
+    return _row_shapes(rows, depths, net_width)
+
+
+def _preferred_aspects(shapes: dict[str, tuple[float, float]], rooms: Iterable[ProgramRoom],
+                       ) -> dict[str, float]:
+    """zone -> planned aspect (long/short), for every room that carries a preferred aspect."""
+    out: dict[str, float] = {}
+    for room in rooms:
+        if room.template.preferred_aspect_ratio is None or room.zone_id not in shapes:
+            continue
+        w, d = shapes[room.zone_id]
+        out[room.zone_id] = max(w, d) / max(min(w, d), 1e-6)
+    return out
+
+
+def _quality_shortfall(aspects: dict[str, float], rooms_by_zone: dict[str, ProgramRoom]) -> float:
+    """How far the worst room sits past its preferred aspect; 0.0 when every room is inside."""
+    return max((a - rooms_by_zone[z].template.preferred_aspect_ratio for z, a in aspects.items()),
+               default=0.0)
+
+
+def _quality_score(aspects: dict[str, float], rooms_by_zone: dict[str, ProgramRoom],
+                   ) -> tuple[float, int, float]:
+    """(worst shortfall, rooms past their preferred aspect, mean aspect) — lower is better, in
+    that order. The worst room is what a person sees first; the count is what the one pairing a
+    programme has can still change when two lone rooms are equally poor (a 4.8 m arm holding a
+    bedroom AND the safe room at 1.85: pairing either leaves the other as the worst)."""
+    short = _quality_shortfall(aspects, rooms_by_zone)
+    over = sum(1 for z, a in aspects.items()
+               if a > rooms_by_zone[z].template.preferred_aspect_ratio + 1e-6)
+    mean = sum(aspects.values()) / max(len(aspects), 1)
+    return (round(short, 4), over, round(mean, 4))
+
+
+def _quality_accepts(base: dict[str, float], new: dict[str, float],
+                     rooms_by_zone: dict[str, ProgramRoom]) -> bool:
+    """A re-partitioned plan is offered only if its worst room moves at least `_QUALITY_MIN_GAIN`
+    toward the target — or, its worst room no worse, one room fewer sits past the target — AND
+    no room that was inside its preferred aspect is carried more than `_QUALITY_SPILL` past it."""
+    base_short, base_over, _ = _quality_score(base, rooms_by_zone)
+    new_short, new_over, _ = _quality_score(new, rooms_by_zone)
+    better_worst = new_short <= base_short - _QUALITY_MIN_GAIN + 1e-9
+    fewer_past = new_short <= base_short + 1e-6 and new_over < base_over
+    if not (better_worst or fewer_past):
+        return False
+    for zone, aspect in new.items():
+        preferred = rooms_by_zone[zone].template.preferred_aspect_ratio
+        if base.get(zone, aspect) <= preferred + 1e-6 and aspect > preferred + _QUALITY_SPILL + 1e-6:
+            return False
+    return True
+
+
+def _quality_candidates(rows: list[list[ProgramRoom]], net_width: float, areas: dict[str, float],
+                        options: Repartition, corridor_on_east: bool,
+                        ) -> list[list[list[ProgramRoom]]]:
+    """The legal re-partitions of `rows` that bring the column's worst bedroom-class room toward
+    its preferred aspect at `net_width`, best-estimated first, at most `_MAX_QUALITY_PAIRINGS`.
+
+    Only the dependent pairing is tried (`_dependent_pairings`): a lone row of ANY role — a shared
+    bath, the safe room, a bedroom, a WC, a closed kitchen — takes the host's corridor-facing slot
+    beside the ensuite, and the host (always a bedroom-class room) goes full-width; the ensuite
+    keeps its door across the row edge. The open-chain pairing (`_pair_with_open_member`) reshapes
+    public rooms, which is outside this tier's objective, and is left to tier 2. Legality is
+    exactly tier 2's (`_access_intact` after `_finish_rows`); FLEX never shares a row.
+    """
+    by_zone = {r.zone_id: r for row in rows for r in row}
+    base = _estimated_row_shapes(rows, net_width, areas, options.hard)
+    if base is None:
+        return []
+    base_score = _quality_score(_preferred_aspects(base, by_zone.values()), by_zone)
+    if base_score[0] <= 1e-6:
+        return []
+    ranked: list[tuple[tuple[float, int, float], tuple, list[list[ProgramRoom]]]] = []
+    seen: set[tuple] = set()
+    for index, row in enumerate(rows):
+        if len(row) != 1 or row[0].zone_id in options.never_shared:
+            continue
+        for candidate in _dependent_pairings(rows, index):
+            finished = _finish_rows(candidate, options, corridor_on_east)
+            key = tuple(tuple(r.zone_id for r in rr) for rr in finished)
+            if key in seen or not _access_intact(finished, options, corridor_on_east):
+                continue
+            seen.add(key)
+            shapes = _estimated_row_shapes(finished, net_width, areas, options.hard)
+            if shapes is None:
+                continue
+            score = _quality_score(_preferred_aspects(shapes, by_zone.values()), by_zone)
+            if score < base_score:
+                ranked.append((score, key, finished))
+    ranked.sort(key=lambda t: (t[0], t[1]))
+    return [t[2] for t in ranked[:_MAX_QUALITY_PAIRINGS]]
+
+
+def _quality_repartition_rows(rows: list[list[ProgramRoom]], net_width: float,
+                              areas: dict[str, float], options: Repartition,
+                              corridor_on_east: bool) -> list[list[ProgramRoom]]:
+    """The `options.quality_rank`-th best quality re-partition at this width, or the rows
+    unchanged when there is none of that rank — the caller then finds the base plan again and
+    stops (`_quality_layouts`)."""
+    candidates = _quality_candidates(rows, net_width, areas, options, corridor_on_east)
+    if options.quality_rank < len(candidates):
+        return candidates[options.quality_rank]
+    return rows
+
+
 def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
                     fallback: Repartition | None = None,
-                    corridor_on_east: bool = True) -> list[list[ProgramRoom]]:
+                    corridor_on_east: bool = True,
+                    areas: dict[str, float] | None = None) -> list[list[ProgramRoom]]:
     """The rows a column plans with at `net_width`.
 
     The normal path (no `fallback`) keeps a column's rows, with one settled exception: a WC alone
@@ -1377,16 +1578,23 @@ def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
     strip or oversized) shares an ensuite's row (`_pair_with_dependent`); a column with no ensuite
     keeps its rows and is refused downstream with its own reason. Tier 2 (`fallback` given)
     applies the same idea to ANY room, with every partner the access model permits
-    (`_repartition_rows`).
+    (`_repartition_rows`). The QUALITY tier (`fallback.quality`) starts from the normal path's
+    rows and re-partitions for proportions (`_quality_repartition_rows`); it needs the row
+    `areas` to estimate shapes at this width.
     """
-    if fallback is not None:
+    if fallback is not None and not fallback.quality:
         return _repartition_rows(rows, net_width, fallback, corridor_on_east)
     for i, row in enumerate(rows):
         if (len(row) == 1 and row[0].role is ProgramRole.TOILET and not row[0].entered_from
                 and room_depth_band_m(row[0].template, net_width) is None):
             shared = _pair_with_dependent(rows, i)
             if shared is not None:
-                return shared
+                rows = shared
+                break
+    if fallback is not None:
+        if areas is None:
+            raise ValueError("the quality tier needs the row areas to estimate shapes")
+        return _quality_repartition_rows(rows, net_width, areas, fallback, corridor_on_east)
     return rows
 
 
@@ -1473,7 +1681,7 @@ def _columns_at_seam(west_w: float, east_w: float, west_rows: list[list[ProgramR
         if net_w <= 0:
             return None, PlanFailure(RejectionReason.COLUMN_WIDTH_EXCEEDED,
                                      f"{name} column has no net width at {width:.2f} m")
-        rows = _rows_for_width(rows, net_w, fallback, corridor_on_east)
+        rows = _rows_for_width(rows, net_w, fallback, corridor_on_east, areas)
         for row in rows:
             if _row_widths(row, net_w) is None:
                 return None, PlanFailure(
@@ -1857,8 +2065,11 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
     plans: list[ColumnPlan] | None = None
     failure: PlanFailure | None = None
     shape_seen = deficit_seen = hard_seen = False
+    # Tier 2 walks the whole seam window; the QUALITY tier keeps the normal nine — the window is
+    # the runtime knob (measured: a third of every planner call is a tier-2 seam walk).
     seams = _seam_options(natural_w, west_min, usable - east_min,
-                          limit=None if fallback is not None else _MAX_SEAM_OPTIONS)
+                          limit=None if fallback is not None and not fallback.quality
+                          else _MAX_SEAM_OPTIONS)
     for seam_w in seams:
         east_w = round((usable - seam_w) / 0.05) * 0.05
         west_w = footprint_w_m - hall_w - east_w  # absorb rounding
@@ -2231,7 +2442,84 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                            footprint, plan, repartitioned=repartitioned, shrunk=shrunk,
                            over_preferred=over_preferred)
              for footprint, plan, repartitioned, shrunk, over_preferred in found]
+    # QUALITY TIER: every plan above is kept exactly as it is; beside one that leaves a
+    # bedroom-class room past its preferred aspect, the same proportion re-partitioned for
+    # proportions is offered as well (`_quality_layouts`), ordered last by `generate_concepts`.
+    built.extend(_concept_from(spec, rooms, candidate, strategy,
+                               rationale + QUALITY_RATIONALE
+                               + (SHRUNK_RATIONALE if shrunk else "")
+                               + (OVER_PREFERRED_RATIONALE if over_preferred else ""),
+                               footprint, plan, repartitioned=True, shrunk=shrunk,
+                               over_preferred=over_preferred, quality_repartitioned=True)
+                 for footprint, plan, shrunk, over_preferred
+                 in _quality_layouts(rooms, west, east, hall_ids, corridor, repartition, found))
     return built, None
+
+
+def _quality_layouts(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[ProgramRoom],
+                     hall_ids: list[str], corridor: CorridorRequirement | None,
+                     repartition: Repartition,
+                     found: list[tuple[Rect, LayoutPlan, bool, bool, bool]],
+                     ) -> list[tuple[Rect, LayoutPlan, bool, bool]]:
+    """The quality tier for the column partis: for each plan `_build` found that leaves a
+    bedroom-class room past its preferred aspect, the same proportion planned again with rows
+    re-partitioned for proportions — (footprint, plan, shrunk, over_preferred), at most one per
+    base plan.
+
+    BOUNDED, and nothing else moves: the base plan's own sizing tier (a shrunk base is
+    re-partitioned shrunk, an over-preferred one at the hard ceilings — nothing is shrunk or
+    inflated that the base was not), the normal nine seams (`plan_layout`), at most
+    `_MAX_QUALITY_PAIRINGS` pairings tried best-estimated first (`Repartition.quality_rank`; a
+    rank with no pairing left returns the base plan, which ends the walk), and the exact planned
+    shapes must clear `_quality_accepts`. Tier-2 plans are already re-partitioned and are not
+    re-partitioned again.
+    """
+    by_zone = {r.zone_id: r for r in rooms}
+    out: list[tuple[Rect, LayoutPlan, bool, bool]] = []
+    for footprint, plan, repartitioned, shrunk, over_preferred in found:
+        if repartitioned:
+            continue
+        base = _preferred_aspects(_layout_shapes(plan), rooms)
+        if _quality_shortfall(base, by_zone) <= 1e-6:
+            continue
+        tw, th = u_to_m(footprint.w), u_to_m(footprint.h)
+        best: tuple[tuple[float, int, float], LayoutPlan] | None = None
+        for rank in range(_MAX_QUALITY_PAIRINGS):
+            options = replace(repartition, quality=True, quality_rank=rank, hard=over_preferred)
+            attempt, _ = plan_layout(rooms, west, east, hall_ids, tw, th, corridor,
+                                     fallback=options, allow_deficit=shrunk, allow_hard=over_preferred)
+            if attempt is None:
+                continue
+            if attempt == plan:
+                break   # no pairing of this rank at any seam: the base plan came back
+            new = _preferred_aspects(_layout_shapes(attempt), rooms)
+            if not _quality_accepts(base, new, by_zone):
+                continue
+            score = _quality_score(new, by_zone)
+            if best is None or score < best[0]:
+                best = (score, attempt)
+        if best is not None and all(pl != best[1] for _, pl, *_ in found) \
+                and all(pl != best[1] for _, pl, *_ in out):
+            out.append((footprint, best[1], shrunk, over_preferred))
+    return out
+
+
+def _layout_shapes(plan: LayoutPlan) -> dict[str, tuple[float, float]]:
+    """Every column room's planned NET (width, depth) — see `_row_shapes`."""
+    shapes: dict[str, tuple[float, float]] = {}
+    for column in (plan.west, plan.east):
+        shapes.update(_row_shapes(column.rows, column.row_depths_m,
+                                  column.width_m - _EDGE_INSET_ALLOWANCE_M))
+    return shapes
+
+
+def _front_band_shapes(plan: tuple) -> dict[str, tuple[float, float]]:
+    """The rear columns' planned NET shapes of a front-band plan (`_plan_front_band_at`'s tuple);
+    the band's public rooms carry no preferred aspect and are not read."""
+    (_, _, west_w, _, east_w, west_depths, east_depths, _, west_rows, east_rows) = plan
+    shapes = _row_shapes(west_rows, west_depths, west_w - _EDGE_INSET_ALLOWANCE_M)
+    shapes.update(_row_shapes(east_rows, east_depths, east_w - _EDGE_INSET_ALLOWANCE_M))
+    return shapes
 
 
 #: Marker appended to a tier-2 candidate's rationale, so logs show the rows were re-partitioned.
@@ -2370,7 +2658,8 @@ FREE_TWIN_RATIONALE = "cut positions chosen by the solver"
 def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                   strategy: ConceptStrategy, rationale: str,
                   footprint: Rect, plan: LayoutPlan, *, repartitioned: bool = False,
-                  shrunk: bool = False, over_preferred: bool = False) -> ConceptCandidate:
+                  shrunk: bool = False, over_preferred: bool = False,
+                  quality_repartitioned: bool = False) -> ConceptCandidate:
     """One realized proportion -> one `ConceptCandidate`. Split out of `_build` unchanged so that
     function can offer several proportions without duplicating any of this."""
     hall_ids = ["HALL"]
@@ -2379,9 +2668,11 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
     specs = plan.specs
     public_ids = [r.zone_id for r in rooms if r.group is ZoneGroup.PUBLIC]
     # tier 2 may have put two open-plan zones in one row; the tree must then keep the open block
-    # together (see `_forced_chain`). The normal path passes nothing and its tree is unchanged.
+    # together (see `_forced_chain`). The normal path passes nothing and its tree is unchanged —
+    # and so does the quality tier, which never pairs public rooms (`_quality_candidates`).
     open_block = (frozenset(public_ids)
-                  if repartitioned and spec.program.open_plan_living and len(public_ids) > 1
+                  if repartitioned and not quality_repartitioned
+                  and spec.program.open_plan_living and len(public_ids) > 1
                   else frozenset())
     west_tree = _forced_chain(plan.west.rows, plan.west.row_depths_m,
                               plan.west.width_m - _EDGE_INSET_ALLOWANCE_M, open_block,
@@ -2413,6 +2704,7 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
         repartitioned=repartitioned,
         shrunk=shrunk,
         over_preferred=over_preferred,
+        quality_repartitioned=quality_repartitioned,
     )
 
 
@@ -2621,13 +2913,61 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
         built.append(_front_band_candidate(spec, rooms, candidate, public, private, fp,
                                            fallback_plan, repartitioned=False,
                                            shrunk=shrunk, over_preferred=over_preferred))
+    # QUALITY TIER, the column partis' rule on the rear columns (`_quality_layouts`): beside a
+    # plan that leaves a bedroom-class room past its preferred aspect, the same proportion with
+    # its rear rows re-partitioned for proportions. Ordered last by `generate_concepts`.
+    bases = ([(footprint, plan, False, False)] if plan is not None else []) + [
+        (fp, fallback_plan, shrunk, over_preferred)
+        for (shrunk, over_preferred), (fp, fallback_plan) in fallback_plans.items()]
+    for fp, quality_plan, shrunk, over_preferred in _quality_front_bands(rooms, public, repartition, bases):
+        built.append(_front_band_candidate(spec, rooms, candidate, public, private, fp,
+                                           quality_plan, repartitioned=True, shrunk=shrunk,
+                                           over_preferred=over_preferred, quality_repartitioned=True))
     return built, None
+
+
+def _quality_front_bands(rooms: list[ProgramRoom], public: list[ProgramRoom],
+                         repartition: Repartition,
+                         bases: list[tuple[Rect, tuple, bool, bool]],
+                         ) -> list[tuple[Rect, tuple, bool, bool]]:
+    """`_quality_layouts` for the front band: each base plan's rear rows (as it planned them)
+    re-partitioned for proportions at the same footprint and sizing tier, the rear seam searched
+    over the normal nine positions (`_plan_front_band`), at most `_MAX_QUALITY_PAIRINGS` pairings,
+    the exact planned shapes held to `_quality_accepts`."""
+    by_zone = {r.zone_id: r for r in rooms}
+    out: list[tuple[Rect, tuple, bool, bool]] = []
+    for footprint, plan, shrunk, over_preferred in bases:
+        base = _preferred_aspects(_front_band_shapes(plan), rooms)
+        if _quality_shortfall(base, by_zone) <= 1e-6:
+            continue
+        west_rows, east_rows = plan[8], plan[9]
+        fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
+        best: tuple[tuple[float, int, float], tuple] | None = None
+        for rank in range(_MAX_QUALITY_PAIRINGS):
+            options = replace(repartition, quality=True, quality_rank=rank, hard=over_preferred)
+            attempt, _ = _plan_front_band(rooms, public, west_rows, east_rows, fw, fh,
+                                          fallback=options, allow_deficit=shrunk,
+                                          allow_hard=over_preferred)
+            if attempt is None:
+                continue
+            if attempt == plan:
+                break
+            new = _preferred_aspects(_front_band_shapes(attempt), rooms)
+            if not _quality_accepts(base, new, by_zone):
+                continue
+            score = _quality_score(new, by_zone)
+            if best is None or score < best[0]:
+                best = (score, attempt)
+        if best is not None and all(b[1] != best[1] for b in bases) and all(o[1] != best[1] for o in out):
+            out.append((footprint, best[1], shrunk, over_preferred))
+    return out
 
 
 def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                           public: list[ProgramRoom], private: list[ProgramRoom],
                           footprint: Rect, plan: tuple, *, repartitioned: bool,
-                          shrunk: bool = False, over_preferred: bool = False) -> ConceptCandidate:
+                          shrunk: bool = False, over_preferred: bool = False,
+                          quality_repartitioned: bool = False) -> ConceptCandidate:
     """One planned front band -> one `ConceptCandidate`. The rows come with the plan: a WC may
     have joined an ensuite's row, or (tier 2) any room a partner's."""
     strategy = ConceptStrategy.FRONT_PUBLIC_BAND
@@ -2658,7 +2998,9 @@ def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], can
         Concept(fixture, "HALL", Side.N, fw, fh), strategy, (0,),
         rationale=(f"front public band {band_depth:.2f} m deep; rear west {west_w:.2f} m "
                    f"({len(west_rows)} rows) | hall {hall_w:.2f} m | east {east_w:.2f} m "
-                   f"({len(east_rows)} rows)" + (REPARTITIONED_RATIONALE if repartitioned else "")
+                   f"({len(east_rows)} rows)"
+                   + (QUALITY_RATIONALE if quality_repartitioned
+                      else REPARTITIONED_RATIONALE if repartitioned else "")
                    + (SHRUNK_RATIONALE if shrunk else "")
                    + (OVER_PREFERRED_RATIONALE if over_preferred else "")),
         used_area_m2=round(fw * fh, 2),
@@ -2667,6 +3009,7 @@ def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], can
         repartitioned=repartitioned,
         shrunk=shrunk,
         over_preferred=over_preferred,
+        quality_repartitioned=quality_repartitioned,
     )
 
 
@@ -2710,6 +3053,8 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None,
     natural_w = usable * west_raw / max(west_raw + east_raw, 1e-6)
     if fallback is None:
         seams = [round(min(max(natural_w, west_min), usable - east_min) / 0.05) * 0.05]
+    elif fallback.quality:
+        seams = _seam_options(natural_w, west_min, usable - east_min)   # the normal nine
     else:
         seams = _seam_options(natural_w, west_min, usable - east_min, limit=None)
 
@@ -2738,8 +3083,8 @@ def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall
     # How much depth the rear genuinely needs, from the bedrooms' own programme. The rows are
     # settled here for the widths just chosen: a WC that cannot be shaped across its column shares
     # an ensuite's row (`_rows_for_width`), and every later step plans the rows settled here.
-    west_rows = _rows_for_width(west_rows, west_w - _EDGE_INSET_ALLOWANCE_M, fallback, True)
-    east_rows = _rows_for_width(east_rows, east_w - _EDGE_INSET_ALLOWANCE_M, fallback, False)
+    west_rows = _rows_for_width(west_rows, west_w - _EDGE_INSET_ALLOWANCE_M, fallback, True, areas)
+    east_rows = _rows_for_width(east_rows, east_w - _EDGE_INSET_ALLOWANCE_M, fallback, False, areas)
     rear_need = 0.0
     rear_cap = math.inf  # the shallower column's rows at their maxima — what the rear CAN take
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
@@ -3980,7 +4325,11 @@ def generate_concepts(spec: ArchitecturalSpec,
     # Tier 2 (`Repartition`) candidates are ranked among themselves the same way but AFTER every
     # normal candidate and its twin: a brief that plans normally never receives one, and one is
     # delivered only when nothing normal can be realized. Ordering only — no score, no bonus.
-    tier2 = [c for c in accepted if c.repartitioned]
+    tier2 = [c for c in accepted if c.repartitioned and not c.quality_repartitioned]
+    # The QUALITY tier (`_quality_layouts`) is its own block after tier 2, ordered the same way:
+    # a plan re-partitioned for proportions is offered beside the plan it came from, never in
+    # front of any candidate a brief already had. Ranking among them is a later review's question.
+    quality = [c for c in accepted if c.quality_repartitioned]
     accepted = [c for c in accepted if not c.repartitioned]
     if target_m2 is not None:
         # A shrunk candidate (`ConceptCandidate.shrunk`) ranks by the same proximity and loses
@@ -3990,6 +4339,9 @@ def generate_concepts(spec: ArchitecturalSpec,
                                      round(c.used_area_m2, 4), c.strategy.value))
         tier2.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                   round(c.used_area_m2, 4), c.strategy.value))
+        quality.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
+                                    c.over_preferred or c.shrunk, c.over_preferred,
+                                    round(c.used_area_m2, 4), c.strategy.value))
 
     else:
         # Without a target the strategy order is kept; the fallbacks (shrunk, then over
@@ -4006,6 +4358,9 @@ def generate_concepts(spec: ArchitecturalSpec,
     # ...and only then tier 2, forced trees first and their twins after, the same way.
     accepted.extend(tier2)
     accepted.extend(_free_twin(c) for c in tier2)
+    # ...and after tier 2 the quality tier, the same way again.
+    accepted.extend(quality)
+    accepted.extend(_free_twin(c) for c in quality)
 
     # 008: last-resort hubs go after EVERY other candidate — the other partis' twins included — in
     # the order they already had (forced tree before its twin), so the first-realizable pipeline

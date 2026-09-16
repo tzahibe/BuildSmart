@@ -483,7 +483,10 @@ def test_fallback_candidates_come_after_every_normal_one():
     forced = [c for c in g.candidates if not c.hub_last_resort and cg.FREE_TWIN_RATIONALE not in c.rationale]
     flags = [c.repartitioned or c.shrunk or c.over_preferred for c in forced]
     assert True in flags and False in flags and flags == sorted(flags), flags   # normal first, then fallbacks
-    assert all(cg.REPARTITIONED_RATIONALE in c.rationale for c in g.candidates if c.repartitioned)
+    # a re-partitioned candidate says so: tier 2's marker, or the quality tier's (rows
+    # re-partitioned for proportions beside a plan that succeeded, ordered after tier 2)
+    assert all((cg.QUALITY_RATIONALE if c.quality_repartitioned else cg.REPARTITIONED_RATIONALE)
+               in c.rationale for c in g.candidates if c.repartitioned)
     assert all(cg.SHRUNK_RATIONALE in c.rationale for c in g.candidates if c.shrunk)
     assert all(cg.OVER_PREFERRED_RATIONALE in c.rationale for c in g.candidates if c.over_preferred)
 

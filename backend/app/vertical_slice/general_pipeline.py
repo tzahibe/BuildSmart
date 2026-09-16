@@ -535,6 +535,19 @@ def run_general(buildable: BuildableRegion, *,
         chosen, chosen_index, plan = _guard_demoted_hub(
             spec, buildable, site_constraints, generated.candidates, chosen, chosen_index, plan,
             failures, on_stage=on_stage)
+    # QUALITY TWIN (2026-09-16, phase 2). The plan that won is compared with ITS OWN peer
+    # re-partitioned for room proportions (`concept_generator._quality_layouts`): the same
+    # strategy, the same wings, the same sizing tier — both realized, both validated — and the
+    # peer takes the primary's place only where its REALIZED bedroom-class shapes clear the
+    # tier's acceptance rule against the primary's. Nothing else is compared: not another
+    # footprint, not another parti, not the area (the peer's area IS the primary's). The base it
+    # displaces is left out of the alternatives. Without relationships only, like the hub guard.
+    displaced: frozenset[int] = frozenset()
+    if not relationships and not chosen.quality_repartitioned:
+        chosen, chosen_index, plan, displaced, twin_attempts = _prefer_quality_twin(
+            spec, buildable, site_constraints, generated.candidates, chosen, chosen_index, plan,
+            failures, on_stage=on_stage)
+        attempts += twin_attempts
     design, validation, safety = plan.design, plan.validation, plan.safety
     path = render(design, render_path) if render_path else None
 
@@ -542,7 +555,8 @@ def run_general(buildable: BuildableRegion, *,
     # than on demand because whether any exist is itself the answer — a screen cannot offer options
     # it has not proven are real.
     alternatives = (_alternative_plans(spec, buildable, site_constraints, generated.candidates,
-                                       chosen_index, plan, relationships, max_alternatives)
+                                       chosen_index, plan, relationships, max_alternatives,
+                                       skip=displaced)
                     if max_alternatives > 0 else ())
 
     used_wings = {c.order for c in adapter_result.candidates
@@ -563,6 +577,72 @@ def run_general(buildable: BuildableRegion, *,
         # the same thing. Each alternative carries its own, for the same reason.
         relationships=plan.relationships,
         alternatives=alternatives)
+
+
+def _quality_twins_of(candidates: tuple, chosen) -> list[tuple[int, object]]:
+    """The chosen plan's quality peers: re-partitioned for proportions from the SAME base — same
+    strategy, same wings, same sizing tier. The forced tree first, then the unforced twin: the
+    base's cut regime is preferred, but a forced quality tree the solver refuses (its cuts land
+    where the paired rows put them) still has its solver-cut twin."""
+    wings = tuple(w.rect() for w in chosen.concept.fixture.wings)
+    peers = [(i, c) for i, c in enumerate(candidates)
+             if c.quality_repartitioned and c.strategy is chosen.strategy
+             and tuple(w.rect() for w in c.concept.fixture.wings) == wings
+             and (c.shrunk, c.over_preferred) == (chosen.shrunk, chosen.over_preferred)]
+    forced = [p for p in peers if not p[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
+    twins = [p for p in peers if p[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
+    return forced + twins
+
+
+def _realized_shapes(design: GeometricDesign) -> dict[str, tuple[float, float]]:
+    return {r.zone_id: (r.net_w_m, r.net_h_m) for r in design.rooms}
+
+
+def _prefer_quality_twin(spec: ArchitecturalSpec, buildable: BuildableRegion,
+                         site_constraints: SiteConstraints | None, candidates: tuple,
+                         chosen, chosen_index: int, plan: RealizedPlan, failures: list[str],
+                         on_stage: Callable[[str], None] | None = None,
+                         ) -> tuple[object, int, RealizedPlan, frozenset[int], int]:
+    """The chosen plan, or its quality peer where that peer realizes, validates, and its realized
+    bedroom-class shapes clear `concept_generator._quality_accepts` against the chosen plan's —
+    the same rule the tier planned it by, now on the drawing. Returns the winner, its index, its
+    plan, the indices to leave out of the alternatives (the displaced base), and the solver
+    attempts spent."""
+    peers = _quality_twins_of(candidates, chosen)
+    if not peers:
+        return chosen, chosen_index, plan, frozenset(), 0
+    rooms = [z for z in chosen.concept.fixture.zones]
+    templates = {z.zone_id: generator.ROOM_TEMPLATES.get(z.primary_role) for z in rooms}
+    preferred = {zid: t.preferred_aspect_ratio for zid, t in templates.items()
+                 if t is not None and t.preferred_aspect_ratio is not None}
+
+    def aspects(design: GeometricDesign) -> dict[str, float]:
+        shapes = _realized_shapes(design)
+        return {zid: max(w, d) / max(min(w, d), 1e-6) for zid, (w, d) in shapes.items() if zid in preferred}
+
+    class _Room:  # what `_quality_accepts` reads: `.template.preferred_aspect_ratio`
+        def __init__(self, template):
+            self.template = template
+    by_zone = {zid: _Room(templates[zid]) for zid in preferred}
+    base = aspects(plan.design)
+    attempts = 0
+    for index, peer in peers:
+        attempts += 1
+        try:
+            peer_solve = solve_fixture(peer.concept.fixture)
+        except GeometryInfeasible as exc:
+            failures.append(f"quality peer {index} ({peer.strategy.value}): {exc}")
+            continue
+        peer_plan = _realize(spec, buildable, site_constraints, peer, index, peer_solve, (),
+                             on_stage=on_stage)
+        if not peer_plan.ok:
+            failed = [c.check_id for c in peer_plan.validation.failures()]
+            failures.append(f"quality peer {index} ({peer.strategy.value}) realized but failed "
+                            f"validation: {', '.join(failed) or 'safety'}")
+            continue
+        if generator._quality_accepts(base, aspects(peer_plan.design), by_zone):
+            return peer, index, peer_plan, frozenset({chosen_index}), attempts
+    return chosen, chosen_index, plan, frozenset(), attempts
 
 
 def _guard_demoted_hub(spec: ArchitecturalSpec, buildable: BuildableRegion,
@@ -693,7 +773,8 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
 def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
                        site_constraints: SiteConstraints | None,
                        candidates: tuple, chosen_index: int, chosen: RealizedPlan,
-                       relationships: tuple, limit: int) -> tuple[RealizedPlan, ...]:
+                       relationships: tuple, limit: int,
+                       skip: frozenset[int] = frozenset()) -> tuple[RealizedPlan, ...]:
     """The other plans this brief and this land genuinely produce — never a lesser plan.
 
     An alternative is offered ONLY if it would have been accepted as the chosen one: every
@@ -717,7 +798,7 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
     for index, candidate in enumerate(candidates):
         if len(found) >= limit or attempts >= ALTERNATIVE_ATTEMPT_LIMIT:
             break
-        if index == chosen_index:
+        if index == chosen_index or index in skip:
             continue
         if _family_signature(candidate.concept.fixture, candidate.strategy) in families:
             continue
@@ -754,7 +835,7 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
         # site: the 15 area-nearest L forced trees all failed in the solver and every twin solved,
         # so a walk in list order found nothing within the limit.
         family = [(i, c) for i, c in enumerate(candidates)
-                  if i != chosen_index and massing_of(c) == massing]
+                  if i != chosen_index and i not in skip and massing_of(c) == massing]
         forced = [x for x in family if not x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
         twins = [x for x in family if x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
         interleaved = [x for pair in zip(forced, twins) for x in pair]

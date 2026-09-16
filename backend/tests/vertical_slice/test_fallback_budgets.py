@@ -174,6 +174,10 @@ def test_no_fallback_attempt_runs_without_a_failure_that_asked_for_its_mechanism
     assert any(kw.get("allow_deficit") for _, kw, _ in log), "the brief must exercise fallbacks"
     seen: dict[tuple[float, float], _FallbackAsks] = {}
     for proportion, kw, failure in log:
+        if kw.get("fallback") is not None and kw["fallback"].quality:
+            # the quality tier is not a fallback: it re-partitions a plan that SUCCEEDED and left
+            # a bedroom-class room past its preferred aspect, at that plan's own sizing tier
+            continue
         asks = seen.get(proportion, _FallbackAsks())
         if kw.get("allow_deficit") or kw.get("allow_hard"):
             assert (kw.get("allow_deficit") and asks.deficit) or (kw.get("allow_hard") and asks.hard), (proportion, kw)
