@@ -378,7 +378,8 @@ def test_a_valid_l_reaches_the_alternatives_and_the_primary_is_unchanged():
     assert "2W" in massings, [a.concept.rationale[:60] for a in result.alternatives]
     l_plans = [a for a in result.alternatives if a.massing_signature == "2W"]
     assert all(a.ok and len(a.design.footprints_m) == 2 for a in l_plans)
-    assert len(result.alternatives) <= 3
+    from app.vertical_slice.general_pipeline import ALTERNATIVE_PLAN_LIMIT
+    assert len(result.alternatives) <= ALTERNATIVE_PLAN_LIMIT + 1   # the L's own slot
 
 
 def test_a_one_wing_site_is_untouched_by_the_representation_pass():
@@ -394,3 +395,31 @@ def test_massing_signature_counts_the_wings(deep_open):
     _, plans = deep_open
     from app.vertical_slice.general_pipeline import massing_of
     assert all(massing_of(c) == "2W" and p.massing_signature == "2W" for c, p in plans)
+
+
+def test_the_l_never_displaces_a_one_wing_alternative():
+    """The representation pass used to replace the area-farthest one-wing plan on this brief (a
+    162 m2 spine, the only plan of its family in the pool). It now takes a slot of its own: the
+    pool holds every one-wing alternative the walk found AND the L — one more than the budget."""
+    from app.vertical_slice import general_pipeline as gp
+    prog = ProgramSpec(bedrooms=3, safe_room=False, open_plan_living=True, wet_rooms=2,
+                       parking_spaces=2, target_built_area_m2=180)
+    site = F.l_shaped_site_deep_primary()
+    saved = gp.MASSING_ATTEMPT_LIMIT
+    try:
+        gp.MASSING_ATTEMPT_LIMIT = 0
+        without = run_general_from_site(site, plot_size_m=(24.0, 32.0), program=prog,
+                                        max_alternatives=gp.ALTERNATIVE_PLAN_LIMIT)
+    finally:
+        gp.MASSING_ATTEMPT_LIMIT = saved
+    with_l = run_general_from_site(site, plot_size_m=(24.0, 32.0), program=prog,
+                                   max_alternatives=gp.ALTERNATIVE_PLAN_LIMIT)
+    one_wing_before = {a.layout_signature for a in without.alternatives}
+    one_wing_after = {a.layout_signature for a in with_l.alternatives if a.massing_signature == "1W"}
+    assert with_l.concept.rationale == without.concept.rationale, "the primary is untouched"
+    assert one_wing_before, "the brief has one-wing alternatives to protect"
+    assert one_wing_before <= one_wing_after, "no one-wing alternative may be displaced by the L"
+    assert any(a.massing_signature == "2W" for a in with_l.alternatives)
+    assert len(without.alternatives) <= gp.ALTERNATIVE_PLAN_LIMIT
+    assert len(with_l.alternatives) <= gp.ALTERNATIVE_PLAN_LIMIT + 1
+
