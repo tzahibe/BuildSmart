@@ -33,6 +33,8 @@ class _Plan:
     ok: bool = True
     #: one wing ("1W") or two ("2W", an L) — `RealizedPlan.massing_signature`
     massing: str = "1W"
+    #: realized quality for the L tiebreak (bedroom-class aspect, wet share, two-sided share)
+    quality: tuple = (1.5, 1.0, 0.5)
 
     @property
     def concept(self) -> _Concept:
@@ -61,8 +63,15 @@ class _OutlineResult:
     offered_for_area: bool = False
 
 
-def _outline(order: int, origin: str = "ENGINE", w: float = 12.0, d: float = 15.0) -> svc.Outline:
-    return svc.Outline(w, d, origin, order)
+@dataclass(frozen=True)
+class _Massing:
+    """Stand-in for `site_geometry.LMassing`: only the arm end matters to the selection."""
+    arm_end: str
+
+
+def _outline(order: int, origin: str = "ENGINE", w: float = 12.0, d: float = 15.0,
+             arm_end: str | None = None) -> svc.Outline:
+    return svc.Outline(w, d, origin, order, _Massing(arm_end) if arm_end else None)
 
 
 # ------------------------------------------------------------------ _select_plans (US1)
@@ -153,10 +162,14 @@ def test_without_a_footprint_the_outlines_are_the_engines_shapes_in_preferred_or
     project = _project(footprint=None)
     outlines = svc._outlines_for(project)
     expected = feasible_options(derive(project), project.built_area_m2)
-    assert [(o.width_m, o.depth_m) for o in outlines] == list(dict.fromkeys(expected))
+    # The rectangles first, in the preferred order; then the engine's L massings, when the site
+    # and the area allow any (they are outlines too, with a massing on them).
+    rectangles = [o for o in outlines if o.massing is None]
+    assert [(o.width_m, o.depth_m) for o in rectangles] == list(dict.fromkeys(expected))
     assert all(o.origin == "ENGINE" for o in outlines)
     assert [o.order for o in outlines] == list(range(len(outlines)))
-    assert len(outlines) <= len(PREFERRED_RATIOS)
+    assert len(rectangles) <= len(PREFERRED_RATIOS)
+    assert all(o.massing is not None for o in outlines[len(rectangles):])
 
 
 def test_the_persons_footprint_comes_first_and_an_equal_engine_shape_is_dropped():
@@ -294,4 +307,172 @@ def test_a_two_wing_primary_gets_a_one_wing_alternative_first():
     selection = svc._select_plans(results, 176.0)
     assert selection.primary[1].massing == "2W"
     assert [p.massing for _, p in selection.alternatives][0] == "1W"
+
+
+
+# ------------------------------------------------------------------ L massings on a rectangular plot
+from app.demo import site_geometry as sg
+
+
+def _site(w=24.0, d=28.0, front=5.5, side=3.0, rear=4.0) -> sg.SiteGeometry:
+    return sg.SiteGeometry(plot_width_m=w, plot_depth_m=d, street_facing_side=StreetSide.north,
+                           canonical_width_m=w, canonical_depth_m=d,
+                           front_setback_m=front, side_setback_m=side, rear_setback_m=rear)
+
+
+def test_l_massings_carve_two_wings_at_the_requested_area_when_the_site_allows():
+    massings = sg.l_massings(_site(), 200.0)
+    assert [m.arm_end for m in massings] == ["rear", "front"]
+    for m in massings:
+        assert m.area_m2 == pytest.approx(200.0, abs=0.5), "the area is the request, never less"
+        assert m.arm_w_m == sg.L_ARM_WIDTH_M and m.arm_d_m == sg.L_ARM_DEPTH_M
+        assert m.bbox_w_m <= _site().buildable_width_m + 1e-9 and m.bbox_d_m <= _site().buildable_depth_m + 1e-9
+        assert m.primary_w_m >= sg.L_PRIMARY_MIN_WIDTH_M
+        # The primary column outweighs the full-width strip along the arm, so the adapter's largest
+        # rectangle IS the primary and the arm lies east of it, not north or south.
+        assert m.primary_w_m * m.primary_d_m > (m.primary_w_m + m.arm_w_m) * m.arm_d_m
+
+
+def test_l_massings_ring_is_the_l_itself():
+    rear, front = sg.l_massings(_site(), 200.0)
+    pts = rear.ring_points(3.0, 5.5)
+    assert len(pts) == 6 and pts[0] == (3.0, 5.5)
+    # Shoelace: the ring's area is the massing's, and it is counter-clockwise (positive).
+    area = 0.5 * sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in zip(pts, pts[1:] + pts[:1]))
+    assert area == pytest.approx(rear.area_m2, abs=0.01)
+    assert front.ring_points(3.0, 5.5)[1] == (3.0 + front.bbox_w_m, 5.5), "front arm: full width at the street"
+
+
+def test_no_l_massing_when_the_house_is_too_small_or_the_site_too_tight():
+    assert sg.l_massings(_site(), 120.0) == []                        # primary would be a strip
+    assert sg.l_massings(_site(w=16.0, d=22.0, front=5.0, side=3.0, rear=3.0), 150.0) == []  # 10 x 14 buildable
+    assert sg.l_massings(_site(), 300.0) == []                        # too wide for the plot
+
+
+def test_outlines_include_the_l_massings_after_the_rectangles_and_label_them():
+    project = _project(footprint=None, plot=(24.0, 28.0), area=200.0)
+    outlines = svc._outlines_for(project)
+    shapes = [o.shape for o in outlines]
+    assert shapes[: shapes.index("L")].count("L") == 0 and shapes.count("L") == 2
+    l = next(o for o in outlines if o.massing is not None)
+    assert l.origin == "ENGINE" and l.area_m2 == pytest.approx(200.0, abs=0.5)
+    out = l.as_out()
+    assert out.shape == "L" and len(out.wing_dims_m) == 2 and out.width_m == l.massing.bbox_w_m
+
+
+def test_a_second_l_from_the_other_massing_outline_does_not_take_a_rectangles_slot():
+    """The rear-arm and front-arm L massings produce same-area, same-family plans on different
+    outlines. One is shown (massing pass); the other must not come through the 'another outline'
+    pass in place of a rectangle alternative."""
+    results = [
+        _OutlineResult(_outline(0), (_Plan(192.0, 0, "F1"),)),
+        _OutlineResult(_outline(1), (_Plan(190.0, 0, "F1"),)),                 # same family, other outline
+        _OutlineResult(_outline(4), (_Plan(141.5, 0, "L1", massing="2W"),)),
+        _OutlineResult(_outline(5), (_Plan(141.5, 0, "L1", massing="2W"),)),
+    ]
+    selection = svc._select_plans(results, 200.0)
+    shown = [(p.massing, p.family, o.outline.order) for o, p in selection.alternatives]
+    assert shown == [("2W", "L1", 4), ("1W", "F1", 1)]
+
+
+def test_the_two_l_orientations_are_different_families_but_only_one_is_shown():
+    """Arm at the rear and arm at the front give different trees (band above or below the seam),
+    so family alone would admit both. One L per shown set; the rectangle alternative keeps its slot."""
+    results = [
+        _OutlineResult(_outline(0), (_Plan(192.0, 0, "F1"), _Plan(185.0, 1, "F2"))),
+        _OutlineResult(_outline(4), (_Plan(166.0, 0, "L-rear", massing="2W"),)),
+        _OutlineResult(_outline(5), (_Plan(166.0, 0, "L-front", massing="2W"),)),
+    ]
+    selection = svc._select_plans(results, 200.0)
+    shown = [(p.massing, p.family) for _, p in selection.alternatives]
+    assert shown == [("2W", "L-rear"), ("1W", "F2")]
+
+
+# ------------------------------------------------------------------ the L orientation tiebreak
+from app.vertical_slice.spec import HouseConcept, PublicOpenSide
+
+GARDEN = HouseConcept(public_open_side=PublicOpenSide.GARDEN)
+STREET = HouseConcept(public_open_side=PublicOpenSide.STREET)
+ENGINE = HouseConcept()
+
+
+@pytest.fixture(autouse=True)
+def _stub_l_quality(monkeypatch):
+    """The tiebreak reads realized measures off `plan.design`; the stubs carry them directly."""
+    monkeypatch.setattr(svc, "_l_quality_of_plan", lambda plan: svc.LQuality(*plan.quality))
+
+
+def _tied_ls(rear_quality=(1.5, 1.0, 0.5), front_quality=(1.5, 1.0, 0.5)):
+    """A rectangle primary, two one-wing alternatives, and the two L orientations tied on area."""
+    return [
+        _OutlineResult(_outline(0), (_Plan(196.0, 0, "F1"), _Plan(185.0, 1, "F2"), _Plan(184.0, 2, "F3"))),
+        _OutlineResult(_outline(4, arm_end="rear"), (_Plan(161.5, 0, "L-rear", massing="2W", quality=rear_quality),)),
+        _OutlineResult(_outline(5, arm_end="front"), (_Plan(161.5, 0, "L-front", massing="2W", quality=front_quality),)),
+    ]
+
+
+def _shown_l(selection):
+    ls = [(o.outline.massing.arm_end, p.family) for o, p in selection.alternatives if o.outline.massing]
+    assert len(ls) == 1, "exactly one L in the shown set"
+    return ls[0][0]
+
+
+def test_garden_preference_selects_the_front_arm_l():
+    assert _shown_l(svc._select_plans(_tied_ls(), 200.0, GARDEN)) == "front"
+
+
+def test_street_preference_selects_the_rear_arm_l():
+    assert _shown_l(svc._select_plans(_tied_ls(), 200.0, STREET)) == "rear"
+
+
+def test_engine_selects_the_better_realized_l_when_quality_differs():
+    # The front L has the better bedrooms and the same wet share and exposure: it dominates.
+    assert _shown_l(svc._select_plans(_tied_ls(front_quality=(1.2, 1.0, 0.5)), 200.0, ENGINE)) == "front"
+    # The rear L has better exposure: it dominates.
+    assert _shown_l(svc._select_plans(_tied_ls(rear_quality=(1.5, 1.0, 0.8)), 200.0, ENGINE)) == "rear"
+    # Better on one measure, worse on another: no dominance, order decides (rear is order 4).
+    assert _shown_l(svc._select_plans(_tied_ls(rear_quality=(1.2, 1.0, 0.5), front_quality=(1.5, 1.0, 0.8)),
+                                      200.0, ENGINE)) == "rear"
+
+
+def test_an_exact_quality_tie_falls_back_to_outline_order_deterministically():
+    for _ in range(3):
+        assert _shown_l(svc._select_plans(_tied_ls(), 200.0, ENGINE)) == "rear"
+    # ...and a plan's own concept default is ENGINE, so no concept given behaves the same.
+    assert _shown_l(svc._select_plans(_tied_ls(), 200.0)) == "rear"
+
+
+def test_a_preference_that_no_peer_matches_falls_through_to_quality():
+    results = [
+        _OutlineResult(_outline(0), (_Plan(196.0, 0, "F1"), _Plan(185.0, 1, "F2"))),
+        _OutlineResult(_outline(4, arm_end="rear"), (_Plan(161.5, 0, "L-rear-a", massing="2W", quality=(1.5, 1.0, 0.5)),)),
+        _OutlineResult(_outline(6, arm_end="rear"), (_Plan(161.5, 0, "L-rear-b", massing="2W", quality=(1.3, 1.0, 0.5)),)),
+    ]
+    selection = svc._select_plans(results, 200.0, GARDEN)   # no front-arm L exists
+    assert [p.family for _, p in selection.alternatives if p.massing == "2W"] == ["L-rear-b"]
+
+
+def test_the_tiebreak_leaves_rectangles_and_the_primary_alone():
+    for concept in (GARDEN, STREET, ENGINE):
+        selection = svc._select_plans(_tied_ls(), 200.0, concept)
+        assert selection.primary[1].family == "F1" and selection.primary[1].massing == "1W"
+        shown = [(p.massing, p.family) for _, p in selection.alternatives]
+        assert shown[1] == ("1W", "F2"), "the rectangle alternative keeps its slot"
+        assert sum(1 for m, _ in shown if m == "2W") == 1
+    # A pool with no L at all: the same three families as always, whatever the concept says.
+    plain = [_OutlineResult(_outline(0), (_Plan(176.0, 0, "F1"), _Plan(175.0, 1, "F2"), _Plan(174.0, 2, "F3")))]
+    for concept in (GARDEN, STREET, ENGINE):
+        selection = svc._select_plans(plain, 176.0, concept)
+        assert [selection.primary[1].family] + [p.family for _, p in selection.alternatives] == ["F1", "F2", "F3"]
+
+
+def test_the_tiebreak_applies_only_to_peers_tied_on_the_area_criterion():
+    """A front-arm L nearer the request is chosen by the existing criterion, whatever the
+    preference says — the tiebreak never overrides the pool's own ranking."""
+    results = [
+        _OutlineResult(_outline(0), (_Plan(196.0, 0, "F1"), _Plan(185.0, 1, "F2"))),
+        _OutlineResult(_outline(4, arm_end="rear"), (_Plan(150.0, 0, "L-rear", massing="2W"),)),
+        _OutlineResult(_outline(5, arm_end="front"), (_Plan(170.0, 0, "L-front", massing="2W"),)),
+    ]
+    assert _shown_l(svc._select_plans(results, 200.0, STREET)) == "front"
 

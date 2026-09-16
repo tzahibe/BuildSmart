@@ -181,6 +181,10 @@ class OutlineOut(BaseModel):
     depth_m: float
     area_m2: float
     origin: Literal["ENGINE", "PERSON"]
+    #: RECTANGLE, or an L of two wings whose bounding box `width_m x depth_m` is; `wing_dims_m`
+    #: then lists the primary's and the arm's (width, depth). Additive; a rectangle has none.
+    shape: Literal["RECTANGLE", "L"] = "RECTANGLE"
+    wing_dims_m: list[tuple[float, float]] = []
 
 
 class OutlineTried(BaseModel):
@@ -192,6 +196,7 @@ class OutlineTried(BaseModel):
     planned: bool
     plans_found: int
     latency_ms: float
+    shape: Literal["RECTANGLE", "L"] = "RECTANGLE"
 
 
 class SearchSummary(BaseModel):

@@ -329,6 +329,14 @@ describe('DemoWorkspace', () => {
 })
 
 describe('DemoWorkspace — the outline each plan occupies (feature 006)', () => {
+  it('labels an L outline by its two wings, not by its bounding box', () => {
+    const l = design({
+      outline: { width_m: 13.25, depth_m: 18.5, area_m2: 200.1, origin: 'ENGINE', shape: 'L', wing_dims_m: [[8.25, 18.5], [5, 9.5]] },
+    })
+    const { getByText } = render(<DemoWorkspace plans={{ plan: l, alternatives: [] }} onChangeRequirements={() => {}} />)
+    expect(getByText(/בית L: 8\.25 × 18\.50 \+ 5\.00 × 9\.50 מ׳ · 200 מ״ר · מתאר אוטומטי/)).toBeTruthy()
+  })
+
   const engine = design({ outline: { width_m: 12.35, depth_m: 14.25, area_m2: 175.99, origin: 'ENGINE' } })
   const person = design({ outline: { width_m: 15, depth_m: 11.75, area_m2: 176.25, origin: 'PERSON' } })
 

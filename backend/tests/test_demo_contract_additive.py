@@ -52,7 +52,8 @@ def test_search_summary_carries_every_outline_tried():
     summary = SearchSummary(outlines=[tried], total_latency_ms=1180.4)
     dumped = summary.model_dump()
     assert set(dumped["outlines"][0]) == {"width_m", "depth_m", "origin", "planned",
-                                          "plans_found", "latency_ms"}
+                                          "plans_found", "latency_ms", "shape"}
+    assert dumped["outlines"][0]["shape"] == "RECTANGLE", "additive: a rectangle unless said"
 
 
 def test_a_design_carries_its_outline_and_family_when_given():
@@ -87,3 +88,12 @@ def test_a_building_payload_lists_only_the_checks_that_ran():
     assert out.warnings == ["חשבון השטחים תקין: שטח כל קומה שווה למתאר שלה: "
                             "L1 gross 126.0 m2 is not its outline's 115.5 m2"]
     assert out.checks == {"V2": True, "V7": False}
+
+
+def test_an_outline_is_a_rectangle_unless_it_says_it_is_an_l():
+    rect = OutlineOut(width_m=12.35, depth_m=14.25, area_m2=175.99, origin="ENGINE")
+    assert rect.shape == "RECTANGLE" and rect.wing_dims_m == []
+    l = OutlineOut(width_m=13.25, depth_m=18.5, area_m2=200.1, origin="ENGINE", shape="L",
+                   wing_dims_m=[(8.25, 18.5), (5.0, 9.5)])
+    assert l.model_dump()["wing_dims_m"] == [(8.25, 18.5), (5.0, 9.5)]
+

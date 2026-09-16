@@ -38,7 +38,9 @@ from app.vertical_slice.concept_generator import (
     program_capacity_gross_m2,
 )
 from app.vertical_slice.relationships import describe
-from app.vertical_slice.spec import RelationStrength
+from app.geometry_domain.walls import BoundaryContext
+from app.vertical_slice.hub_guard import proportions_of
+from app.vertical_slice.spec import HouseConcept, PublicOpenSide, RelationStrength
 from app.vertical_slice.general_pipeline import (
     ALTERNATIVE_PLAN_LIMIT,
     GeneralSliceResult,
@@ -192,7 +194,7 @@ def _set_aside(project: Project, spec, preference_dropped: bool) -> list[str]:
     return notes
 
 
-def _buildable_from(spec, project: Project) -> BuildableRegion:
+def _buildable_from(spec, project: Project, outline: "Outline | None" = None) -> BuildableRegion:
     """The land the planner may use: the chosen footprint, PLACED INSIDE the real buildable area.
 
     Both containments are real — footprint inside buildable, buildable inside the parcel — so the
@@ -214,6 +216,15 @@ def _buildable_from(spec, project: Project) -> BuildableRegion:
     origin_x, origin_y = site.buildable_origin_m()
     origin_x += max(0.0, (site.buildable_width_m - footprint.width_m) / 2)
     origin_y = max(origin_y, front_band_m(spec))
+    if outline is not None and outline.massing is not None:
+        # An L massing: the same placement rule applied to its bounding box, and the region is the
+        # L itself — one ring — so the adapter finds the primary and the arm as two adjacent safe
+        # rectangles, exactly as it does on an L-shaped site.
+        ring = Ring.from_points(outline.massing.ring_points(origin_x, origin_y))
+        return BuildableRegion.known(
+            MultiRegion.of(Region(ring)),
+            Provenance(Source.INFERRED, Authority.AUTHORITATIVE,
+                       ref="engine L massing inside the supplied parcel"))
     return BuildableRegion.known(
         MultiRegion.of(Region(Ring.rectangle(origin_x, origin_y,
                                             footprint.width_m, footprint.depth_m))),
@@ -265,7 +276,7 @@ def generate_demo_design(project: Project,
             f"לא נצר תוכנית עם מסדרון צר ממה שביקשת.",
             reasons_so_far or head.outcome.value)
 
-    selection = _select_plans(results, spec.program.target_built_area_m2)
+    selection = _select_plans(results, spec.program.target_built_area_m2, spec.concept)
     if selection is None:
         return _finish(project, spec, head, preference_dropped, outlines=results)
     return _result_from(project, spec, selection, results, preference_dropped)
@@ -286,21 +297,38 @@ OutlineOrigin = Literal["ENGINE", "PERSON"]
 
 @dataclass(frozen=True)
 class Outline:
-    """One rectangle the brief is planned into, and who chose it."""
+    """One outline the brief is planned into, and who chose it.
+
+    A rectangle — `width_m x depth_m` — or, when `massing` is set, an L of two wings whose bounding
+    box those are (`site_geometry.LMassing`). An L is always the ENGINE's: it is one more massing
+    the survey tries beside its rectangles, never something the person picked, and only a plan of
+    two wings may come out of it (`_plan_outlines`).
+    """
 
     width_m: float
     depth_m: float
     origin: OutlineOrigin
-    #: 0 for the person's outline; the engine's in `site_geometry.PREFERRED_RATIOS` order after it.
+    #: 0 for the person's outline; the engine's in `site_geometry.PREFERRED_RATIOS` order after it,
+    #: then the L massings.
     order: int
+    massing: site_geometry.LMassing | None = None
 
     @property
     def area_m2(self) -> float:
+        if self.massing is not None:
+            return round(self.massing.area_m2, 4)
         return round(self.width_m * self.depth_m, 4)
 
+    @property
+    def shape(self) -> str:
+        return "L" if self.massing is not None else "RECTANGLE"
+
     def as_out(self) -> OutlineOut:
+        wings = ([] if self.massing is None else
+                 [(self.massing.primary_w_m, self.massing.primary_d_m),
+                  (self.massing.arm_w_m, self.massing.arm_d_m)])
         return OutlineOut(width_m=self.width_m, depth_m=self.depth_m, area_m2=self.area_m2,
-                          origin=self.origin)
+                          origin=self.origin, shape=self.shape, wing_dims_m=wings)
 
 
 @dataclass(frozen=True)
@@ -324,7 +352,8 @@ class OutlineResult:
     def as_tried(self) -> OutlineTried:
         return OutlineTried(width_m=self.outline.width_m, depth_m=self.outline.depth_m,
                             origin=self.outline.origin, planned=bool(self.plans),
-                            plans_found=len(self.plans), latency_ms=round(self.latency_ms, 1))
+                            plans_found=len(self.plans), latency_ms=round(self.latency_ms, 1),
+                            shape=self.outline.shape)
 
 
 #: How many plans the screen shows at most — the primary and two others (spec 006 FR-004). Fewer
@@ -368,6 +397,12 @@ def _outlines_for(project: Project) -> list[Outline]:
         site, _tagged_value(project.parking_spaces, 0), PARKING_BAY_DEPTH_M)
     for width_m, depth_m in site_geometry.feasible_options(behind_band, project.built_area_m2):
         add(width_m, depth_m, "ENGINE")
+    # THE L MASSINGS, after the rectangles: two wings carved from the same buildable rectangle at
+    # the same area (arm at the rear — public band on the street; arm at the front — band to the
+    # garden). Surveyed like any engine outline; shown only when a two-wing plan validates, and
+    # then beside the rectangles' plans, never instead of them (`_select_plans`, massing pass).
+    for massing in site_geometry.l_massings(behind_band, project.built_area_m2):
+        out.append(Outline(massing.bbox_w_m, massing.bbox_d_m, "ENGINE", len(out), massing))
     return out
 
 
@@ -378,9 +413,12 @@ def _tagged_value(tagged, default):
 def _with_outline(project: Project, outline: Outline) -> Project:
     """The same project, planned into `outline` — exactly how the retired refusal-path search built
     its candidates, so an engine outline reaches the pipeline the way a chosen one always did."""
+    # For an L massing this record carries the BOUNDING BOX (the placement `_buildable_from`
+    # needs); the L's own area lives on the outline, and the record's validator wants w x d.
     footprint = SelectedFootprint(
         source="CUSTOM", shape_type="RECTANGLE", target_area_m2=project.built_area_m2,
-        width_m=outline.width_m, depth_m=outline.depth_m, area_m2=outline.area_m2)
+        width_m=outline.width_m, depth_m=outline.depth_m,
+        area_m2=round(outline.width_m * outline.depth_m, 4))
     return project.model_copy(update={"selected_footprint": footprint})
 
 
@@ -399,9 +437,14 @@ def _plan_outlines(spec, project: Project, outlines: list[Outline], on_stage=Non
     for outline in outlines:
         started = time.perf_counter()
         result = _plan(spec, _with_outline(project, outline), on_stage,
-                       max_alternatives=max_alternatives)
+                       max_alternatives=max_alternatives, outline=outline)
         latency_ms = (time.perf_counter() - started) * 1000
         plans = (_chosen_as_realized(result), *result.alternatives) if result.ok else ()
+        if outline.massing is not None:
+            # An L massing exists to offer a TWO-WING house. The one-wing plans the pipeline also
+            # makes on its primary rectangle are rectangles the rectangle outlines already cover —
+            # offering them again would be the same house twice under two outlines.
+            plans = tuple(plan for plan in plans if plan.massing_signature == "2W")
         out.append(OutlineResult(outline, result, tuple(plans), latency_ms))
     return out
 
@@ -526,8 +569,92 @@ def _any_plan(results: list[OutlineResult]) -> bool:
     return any(r.plans for r in results)
 
 
+# ------------------------------------------------------------------ L orientation tiebreak
+#
+# The two L massings (arm at the rear: public band on the street; arm at the front: band to the
+# garden) are the same dimensions by construction and the parti sizes them symmetrically, so the
+# two-wing plans they produce tie EXACTLY on the pool's area criterion — measured on the five
+# real briefs where both validated (161.5/161.5, 167.87/167.87, …). Left to the pool's own
+# determinism (`outline.order`), the rear-arm L won every time and a "living to the garden" L was
+# never shown. This tiebreak applies only to valid plans of one non-rectangle massing that are
+# otherwise tied by the existing criteria: the person's `public_open_side` first, then the
+# realized quality of the tied peers alone, then `outline.order` for determinism. It is not a
+# ranking rule — an L gets nothing for being an L, and the primary is never touched.
+
+_HABITABLE_ROLES = frozenset({"LIVING", "DINING", "KITCHEN", "BEDROOM", "MASTER_BEDROOM",
+                              "SAFE_ROOM", "STUDY", "FAMILY_ROOM"})
+
+
+@dataclass(frozen=True)
+class LQuality:
+    """The realized measures two tied L plans are compared on — all existing ones."""
+
+    bedroom_class_aspect: float | None   # worst of the bedrooms' and the master's long/short; lower is better
+    wet_share: float                     # wet rooms touching a wet room or the kitchen; higher is better
+    two_sided: float                     # habitable rooms with two exterior walls; higher is better
+
+
+def l_quality_of(design) -> LQuality:
+    proportions = proportions_of(design)
+    aspects = [a for a in (proportions.bedroom_max, proportions.master) if a is not None]
+    habitable = [r for r in design.rooms if set(r.roles) & _HABITABLE_ROLES]
+    two_sided = (sum(1 for r in habitable
+                     if sum(1 for f in r.wall_facts.values()
+                            if f.boundary_context is BoundaryContext.EXTERIOR) >= 2)
+                 / len(habitable)) if habitable else 0.0
+    return LQuality(max(aspects) if aspects else None, proportions.wet_share, two_sided)
+
+
+def _l_quality_of_plan(plan) -> LQuality:
+    return l_quality_of(plan.design)
+
+
+def _pareto_better(a: LQuality, b: LQuality, eps: float = 1e-6) -> bool:
+    """`a` better than `b` on at least one measure and worse on none."""
+    def cmp(x, y, lower_is_better):
+        if x is None or y is None:
+            return 0
+        if abs(x - y) <= eps:
+            return 0
+        return (1 if x < y else -1) if lower_is_better else (1 if x > y else -1)
+    verdicts = (cmp(a.bedroom_class_aspect, b.bedroom_class_aspect, True),
+                cmp(a.wet_share, b.wet_share, False),
+                cmp(a.two_sided, b.two_sided, False))
+    return any(v > 0 for v in verdicts) and not any(v < 0 for v in verdicts)
+
+
+def _band_faces_garden(orr: OutlineResult) -> bool | None:
+    """Where an L massing's public band faces: the arm at the FRONT leaves the band at the rear
+    (garden); at the REAR, the band is on the street. None for a rectangle."""
+    massing = orr.outline.massing
+    if massing is None:
+        return None
+    return massing.arm_end == "front"
+
+
+def _break_l_tie(peers: list, concept: HouseConcept):
+    """Which of several otherwise-tied plans of one L massing is shown. `peers` in pool order."""
+    if len(peers) == 1:
+        return peers[0]
+    if concept.public_open_side is not PublicOpenSide.ENGINE:
+        want_garden = concept.public_open_side is PublicOpenSide.GARDEN
+        matching = [item for item in peers if _band_faces_garden(item[0]) is want_garden]
+        if matching:
+            peers = matching
+            if len(peers) == 1:
+                return peers[0]
+    qualities = [(item, _l_quality_of_plan(item[1])) for item in peers]
+    undominated = [item for item, q in qualities
+                   if not any(_pareto_better(other, q) for other_item, other in qualities
+                              if other_item is not item)]
+    if len(undominated) == 1:
+        return undominated[0]
+    return (undominated or peers)[0]      # exact tie: pool order (outline.order, index) decides
+
+
 def _select_plans(results: list[OutlineResult],
-                  requested_m2: float | None) -> PlanSelection | None:
+                  requested_m2: float | None,
+                  concept: HouseConcept | None = None) -> PlanSelection | None:
     """Which plans the screen shows, chosen across every outline that produced any.
 
     THE PRIMARY is the outline primary whose gross area is nearest the requested area — today's
@@ -580,11 +707,21 @@ def _select_plans(results: list[OutlineResult],
     # A massing is a coarser difference than an organisation family, and the one a person sees
     # first; a valid plan of another massing is shown before a second organisation of the same
     # one. Display de-duplication only, like family: never an input to the primary.
+    concept = concept or HouseConcept()
     for item in pool:
         if len(shown) >= _SHOWN_LIMIT:
             break
         massings = {plan.massing_signature for _, plan in shown}
         if unseen_drawing(item) and item[1].massing_signature not in massings:
+            if item[1].massing_signature != "1W":
+                # Several valid plans of this massing tied on the area criterion (the two L
+                # orientations): the tiebreak decides which one is shown, not the pool order.
+                area_key = round(abs(item[1].concept.used_area_m2 - target), 4)
+                peers = [other for other in pool
+                         if other[1].massing_signature == item[1].massing_signature
+                         and round(abs(other[1].concept.used_area_m2 - target), 4) == area_key
+                         and unseen_drawing(other)]
+                item = _break_l_tie(peers, concept)
             take(item)
     # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
     # shape of a family already on screen). Never the same outline re-proportioned.
@@ -592,13 +729,29 @@ def _select_plans(results: list[OutlineResult],
         if len(shown) >= _SHOWN_LIMIT:
             break
         families = {plan.family_signature for _, plan in shown}
-        if unseen_drawing(item) and item[1].family_signature not in families:
+        massings_shown = {plan.massing_signature for _, plan in shown}
+        # One plan per non-rectangle massing in the shown set: the two L massings (arm at the rear,
+        # arm at the front) are different families — the band is above or below the seam — and
+        # both would take a slot here, leaving no room for a rectangle alternative. With three
+        # slots the person sees the rectangle that won, one L, and another rectangle; the second
+        # L orientation waits for a wider shown set, not for a rectangle's place.
+        if (unseen_drawing(item) and item[1].family_signature not in families
+                and (item[1].massing_signature == "1W"
+                     or item[1].massing_signature not in massings_shown)):
             take(item)
     for item in pool:
         if len(shown) >= _SHOWN_LIMIT:
             break
         outlines_shown = {orr.outline.order for orr, _ in shown}
-        if unseen_drawing(item) and item[0].outline.order not in outlines_shown:
+        massings_shown = {plan.massing_signature for _, plan in shown}
+        # A repeat FAMILY from another outline is worth showing when the outlines differ in size
+        # or shape — rectangles. The two L massings (arm at the rear, arm at the front) are the
+        # same area by construction, and a second L of the family already on screen would take
+        # the slot a rectangle alternative should have (measured: two 141.5 m² L's beside one
+        # rectangle). A non-rectangle massing already shown is not repeated here.
+        if (unseen_drawing(item) and item[0].outline.order not in outlines_shown
+                and (item[1].massing_signature == "1W"
+                     or item[1].massing_signature not in massings_shown)):
             take(item)
     return PlanSelection(primary, tuple(shown[1:]))
 
@@ -675,13 +828,13 @@ def realized_corridor_width_m_of(design) -> float:
 
 
 def _plan(spec, project: Project, on_stage=None, *,
-          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT):
+          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT, outline: "Outline | None" = None):
     # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
     # Every other caller of the pipeline still gets one plan at one plan's cost. `max_alternatives`
     # is `run_general`'s own argument: 0 is the fast path (stop at the first plan that validates),
     # which is how the engine's outlines are surveyed before one is chosen (feature 006 phase 4).
     return run_general(
-        _buildable_from(spec, project),
+        _buildable_from(spec, project, outline),
         plot_size_m=(spec.plot.width_m, spec.plot.depth_m),
         program=spec.program,
         max_alternatives=max_alternatives,
