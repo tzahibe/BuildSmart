@@ -202,8 +202,11 @@ def test_generated_plan_passes_every_hard_check(client, case):
     assert body["validation"]["checks"]["C5"], "physical reachability must pass"
     assert not body["validation"]["warnings"]
     # Room-size quality is not validation: a room above its PREFERRED maximum (inside the hard
-    # one) lives in `quality`, and only a room far past it becomes a notice.
-    assert "quality" in body and set(body["quality"]) == {"over_preferred", "signal", "notices"}
+    # one) lives in `quality`, and only a room far past it becomes a notice. `laundry_notice`
+    # (2026-09-16, activation) stays None here — none of these briefs request a laundry room.
+    assert "quality" in body and set(body["quality"]) == {
+        "over_preferred", "signal", "notices", "laundry_notice"}
+    assert body["quality"]["laundry_notice"] is None
 
 
 @pytest.mark.parametrize("case", sorted(VALID_BRIEFS))

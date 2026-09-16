@@ -28,6 +28,15 @@ from app.vertical_slice.validation import ValidationReport
 from app.vertical_slice.building import Building
 from app.vertical_slice.building_validation import BuildingValidationReport, validate_building
 
+#: A room's realized total below this fraction of its own template TARGET, in a plan that also
+#: contains an explicitly requested LAUNDRY room, is disclosed via `QualityOut.laundry_notice`.
+#: Proposed for this notice specifically (2026-09-16, docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md §3) —
+#: mirrors `OVER_PREFERRED_NOTICE_RATIO`'s role (a threshold beside the templates, not a
+#: discovered constant) in the opposite direction. Deliberately NOT a refusal gate — the
+#: activation decision explicitly rules out a flat percentage-loss refusal threshold; this number
+#: only decides what gets NAMED in the disclosure sentence.
+LAUNDRY_REDISTRIBUTION_NOTICE_RATIO = 0.90
+
 #: Hebrew display names. Presentation lives in the contract so the renderer never has to map
 #: architectural roles to words itself.
 _ROOM_NAMES = {
@@ -116,11 +125,18 @@ class QualityOut(BaseModel):
     `over_preferred` is the planner's own flag: this plan was planned with the hard tier because
     the outline could not be planned inside the preferred maxima. Normal use of that tier is
     not a problem to report; the rooms speak for themselves through the tiers above.
+
+    `laundry_notice` (2026-09-16, activation — docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md §3): the
+    opposite-direction case, contained to plans with an explicitly requested LAUNDRY room — a
+    room realized materially BELOW its own template target, disclosed as a product notice, never
+    a validation failure and never a refusal (the activation decision explicitly rules out a flat
+    percentage-loss refusal threshold — see `LAUNDRY_REDISTRIBUTION_NOTICE_RATIO`).
     """
 
     over_preferred: bool = False
     signal: list[QualitySignal] = []
     notices: list[str] = []
+    laundry_notice: str | None = None
 
 
 class WindowOut(BaseModel):
@@ -613,6 +629,42 @@ def _room_size_facts(room) -> dict:
                 over_preferred_ratio=round(ratio, 3) if ratio > 1.0 + 1e-6 else None)
 
 
+def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
+    """One aggregated sentence naming every OTHER room realized materially below its own template
+    TARGET, in a plan that also contains an explicitly requested LAUNDRY room — the signal that
+    the laundry room's area came from somewhere (2026-09-16, activation —
+    docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md §3).
+
+    Compares each room's realized total against its OWN fixed template target — never a second
+    "without laundry" solve, which can land on a genuinely different footprint candidate and
+    confound a before/after comparison (see the investigation report,
+    docs/LAUNDRY_AREA_BUDGET_INVESTIGATION.md). Same reference-point philosophy as the
+    over-preferred check above, in the opposite direction. `None` for every plan without a
+    laundry room — contained to explicit LAUNDRY_ROOM activation, nothing else.
+    """
+    if not any(room.roles[0] == ProgramRole.LAUNDRY.value for room in design.rooms):
+        return None
+    totals: dict[str, float] = {}
+    targets: dict[str, float] = {}
+    names: dict[str, str] = {}
+    for room in design.rooms:
+        if room.roles[0] == ProgramRole.LAUNDRY.value:
+            continue
+        template = _template_of(room)
+        if template is None:
+            continue
+        role = room.roles[0]
+        totals[role] = totals.get(role, 0.0) + room.net_area_m2
+        targets[role] = targets.get(role, 0.0) + template.target_area_m2
+        names[role] = _room_name(room)
+    parts = [f"{names[role]} {realized:.1f} מ\"ר (יעד {targets[role]:.1f})"
+            for role, realized in totals.items()
+            if realized < targets[role] * LAUNDRY_REDISTRIBUTION_NOTICE_RATIO - 1e-6]
+    if not parts:
+        return None
+    return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
+
+
 def quality_of(design: SolvedDesign) -> QualityOut:
     """The three tiers of `QualityOut` from the realized rooms — see the class for the policy."""
     signal: list[QualitySignal] = []
@@ -637,7 +689,8 @@ def quality_of(design: SolvedDesign) -> QualityOut:
         count = len(notice_rooms)
         head = "חדר אחד גדול מהמומלץ בצורה ניכרת" if count == 1 else f"{count} חדרים גדולים מהמומלץ בצורה ניכרת"
         notices.append(f"{head}: {'; '.join(parts)}")
-    return QualityOut(over_preferred=design.over_preferred, signal=signal, notices=notices)
+    return QualityOut(over_preferred=design.over_preferred, signal=signal, notices=notices,
+                      laundry_notice=_laundry_redistribution_notice(design))
 
 
 def summarize(report: ValidationReport,

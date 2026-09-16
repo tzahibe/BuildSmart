@@ -23,6 +23,7 @@ from app.vertical_slice.concept_generator import (
     _rows_of,
     build_room_program,
     room_depth_band_m,
+    target_gross_area_m2,
 )
 from app.vertical_slice.general_pipeline import run_general_from_site
 from app.vertical_slice.geometry_core.model import ProgramRole
@@ -86,13 +87,19 @@ def _program(**kw) -> ProgramSpec:
                        laundry=LaundryRequirement(demand=LaundryDemand.ROOM, source_text="x"), **kw)
 
 
-def test_gate_off_never_emits_a_room_even_when_requested():
-    """The default state (`LAUNDRY_ROOM_ENABLED` as shipped) must be inert: normal generation for
-    every existing brief is byte-identical to before this phase, whatever `ProgramSpec.laundry`
-    says."""
-    assert cg.LAUNDRY_ROOM_ENABLED is False
+def test_gate_off_never_emits_a_room_even_when_requested(monkeypatch):
+    """The gate mechanism itself: with `LAUNDRY_ROOM_ENABLED` off, generation stays inert whatever
+    `ProgramSpec.laundry` says — this was the shipped default through phase 1
+    (docs/LAUNDRY_ROOM_PHASE1_REPORT.md); activation (docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md)
+    flipped the module default to `True`, but the gate itself still works either way."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", False)
     rooms = build_room_program(_spec(_program()))
     assert not any(r.role is ProgramRole.LAUNDRY for r in rooms)
+
+
+def test_gate_is_on_by_default_after_activation():
+    """docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md: the flag flip is the shipped state now."""
+    assert cg.LAUNDRY_ROOM_ENABLED is True
 
 
 def test_gate_on_without_a_request_still_emits_nothing(monkeypatch):
@@ -257,14 +264,244 @@ def test_a_planned_laundry_room_is_circulation_accessible_and_within_its_templat
 def test_laundry_none_leaves_the_same_brief_byte_identical(monkeypatch):
     """§7A in miniature: the same programme, laundry NONE vs ROOM with the gate OFF, must realize
     the identical drawing — proof at the single-scenario level that the request alone changes
-    nothing until the gate opens."""
+    nothing while the gate stays closed."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", False)
     program_without = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, target_built_area_m2=180)
     program_with = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, target_built_area_m2=180,
                                laundry=LaundryRequirement(demand=LaundryDemand.ROOM, source_text="x"))
-    assert cg.LAUNDRY_ROOM_ENABLED is False
     a = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=program_without)
     b = run_general_from_site(F.exact_rectangle(), plot_size_m=(20.0, 24.0), program=program_with)
     assert a.outcome is b.outcome is AdapterOutcome.SOLVED
     sig_a = sorted((r.zone_id, r.net_w_m, r.net_h_m, r.rect_m) for r in a.design.rooms)
     sig_b = sorted((r.zone_id, r.net_w_m, r.net_h_m, r.rect_m) for r in b.design.rooms)
     assert sig_a == sig_b
+
+
+# ------------------------------------------------------------------ 6. allocation policy B (activation)
+
+
+def _alloc_rooms():
+    """MASTER/BEDROOM/HALL/LIVING/KITCHEN plus BATHROOM+TOILET (service) and LAUNDRY — a small,
+    hand-computable programme for testing `scale_program`'s deficit branches directly."""
+    return [
+        cg.ProgramRoom("MASTER", ProgramRole.MASTER_BEDROOM, ZoneGroup.PRIVATE,
+                       ROOM_TEMPLATES[ProgramRole.MASTER_BEDROOM]),
+        cg.ProgramRoom("BEDROOM_1", ProgramRole.BEDROOM, ZoneGroup.PRIVATE,
+                       ROOM_TEMPLATES[ProgramRole.BEDROOM]),
+        cg.ProgramRoom("HALL", ProgramRole.HALL, ZoneGroup.CIRCULATION, ROOM_TEMPLATES[ProgramRole.HALL]),
+        cg.ProgramRoom("LIVING", ProgramRole.LIVING, ZoneGroup.PUBLIC, ROOM_TEMPLATES[ProgramRole.LIVING]),
+        cg.ProgramRoom("KITCHEN", ProgramRole.KITCHEN, ZoneGroup.PUBLIC, ROOM_TEMPLATES[ProgramRole.KITCHEN]),
+        cg.ProgramRoom("BATHROOM", ProgramRole.BATHROOM, ZoneGroup.SERVICE, ROOM_TEMPLATES[ProgramRole.BATHROOM]),
+        cg.ProgramRoom("TOILET", ProgramRole.TOILET, ZoneGroup.SERVICE, ROOM_TEMPLATES[ProgramRole.TOILET]),
+        cg.ProgramRoom("LAUNDRY", ProgramRole.LAUNDRY, ZoneGroup.SERVICE, ROOM_TEMPLATES[ProgramRole.LAUNDRY]),
+    ]
+
+
+def _targets_of(rooms, net_available_m2):
+    return {zid: spec.net_area_target_m2 for zid, spec in cg.scale_program(rooms, net_available_m2).items()}
+
+
+def test_a_deficit_without_laundry_is_the_unchanged_uniform_proportional_shrink():
+    """Byte-for-byte proof that a programme with NO laundry room takes the ORIGINAL formula —
+    the new branch in `scale_program` is unreachable without a `ProgramRole.LAUNDRY` room present."""
+    rooms = [r for r in _alloc_rooms() if r.role is not ProgramRole.LAUNDRY]
+    base = sum(r.template.target_area_m2 for r in rooms)
+    net_available = base - 5.0   # a 5 m2 deficit
+    targets = _targets_of(rooms, net_available)
+    for r in rooms:
+        start = r.template.target_area_m2
+        expected = max(start - 5.0 * (start / base), r.template.min_area_m2)
+        assert targets[r.zone_id] == pytest.approx(expected, abs=1e-6), r.zone_id
+
+
+def test_a_small_laundry_deficit_is_absorbed_by_service_headroom_alone(monkeypatch):
+    """Deficit fully covered by BATHROOM/TOILET headroom: every OTHER room — bedrooms, hall,
+    public rooms, and the laundry room itself — keeps its own exact target, zero collateral."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", True)
+    rooms = _alloc_rooms()
+    base = sum(r.template.target_area_m2 for r in rooms)
+    bath, wc = ROOM_TEMPLATES[ProgramRole.BATHROOM], ROOM_TEMPLATES[ProgramRole.TOILET]
+    service_capacity = (bath.target_area_m2 - bath.min_area_m2) + (wc.target_area_m2 - wc.min_area_m2)
+    deficit = service_capacity - 1.0   # inside the service headroom, with margin
+    targets = _targets_of(rooms, base - deficit)
+    for r in rooms:
+        if r.role in (ProgramRole.BATHROOM, ProgramRole.TOILET):
+            assert targets[r.zone_id] < r.template.target_area_m2 - 1e-6, r.zone_id
+            assert targets[r.zone_id] >= r.template.min_area_m2 - 1e-6, r.zone_id
+        else:
+            assert targets[r.zone_id] == pytest.approx(r.template.target_area_m2, abs=1e-6), r.zone_id
+    bath_share = (bath.target_area_m2 - bath.min_area_m2) / service_capacity
+    wc_share = (wc.target_area_m2 - wc.min_area_m2) / service_capacity
+    assert targets["BATHROOM"] == pytest.approx(bath.target_area_m2 - deficit * bath_share, abs=1e-6)
+    assert targets["TOILET"] == pytest.approx(wc.target_area_m2 - deficit * wc_share, abs=1e-6)
+
+
+def test_a_large_laundry_deficit_floors_service_then_cascades_to_everyone_else(monkeypatch):
+    """Deficit exceeds service headroom: BATHROOM/TOILET land exactly at their floors (never
+    below), and the remainder is shared proportionally among every other room — bedrooms,
+    circulation and public rooms alike, none singled out or protected."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", True)
+    rooms = _alloc_rooms()
+    base = sum(r.template.target_area_m2 for r in rooms)
+    bath, wc = ROOM_TEMPLATES[ProgramRole.BATHROOM], ROOM_TEMPLATES[ProgramRole.TOILET]
+    service_capacity = (bath.target_area_m2 - bath.min_area_m2) + (wc.target_area_m2 - wc.min_area_m2)
+    deficit = service_capacity + 3.0   # exceeds service headroom
+    targets = _targets_of(rooms, base - deficit)
+    assert targets["BATHROOM"] == pytest.approx(bath.min_area_m2, abs=1e-6)
+    assert targets["TOILET"] == pytest.approx(wc.min_area_m2, abs=1e-6)
+    others = [r for r in rooms if r.role not in (ProgramRole.BATHROOM, ProgramRole.TOILET)]
+    other_base = sum(r.template.target_area_m2 for r in others)
+    remaining = deficit - service_capacity
+    for r in others:
+        expected = max(r.template.target_area_m2 - remaining * (r.template.target_area_m2 / other_base),
+                       r.template.min_area_m2)
+        assert targets[r.zone_id] == pytest.approx(expected, abs=1e-6), r.zone_id
+
+
+def test_laundry_deficit_never_shrinks_any_room_below_its_floor(monkeypatch):
+    """Stress case: a deficit far larger than the whole programme's headroom. Every room still
+    lands at or above its own `min_area_m2` — the floor holds through both tiers."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", True)
+    rooms = _alloc_rooms()
+    base = sum(r.template.target_area_m2 for r in rooms)
+    targets = _targets_of(rooms, base * 0.2)   # an extreme, unrealizable shortfall
+    for r in rooms:
+        assert targets[r.zone_id] >= r.template.min_area_m2 - 1e-6, r.zone_id
+
+
+def _tight_project(bedrooms: int, wet: int, laundry_requested: bool):
+    """A `Project` whose plot/footprint are sized to the programme's OWN natural (no-surplus)
+    gross area — deficit-inducing once a laundry room's target joins the base, exactly the
+    `docs/LAUNDRY_AREA_BUDGET_INVESTIGATION.md` "tight" tier methodology. Self-contained here
+    (not imported from spikes/) so this regression proof does not depend on spike-script code."""
+    from datetime import UTC, datetime
+
+    from app.projects.models import Project, SelectedFootprint, StreetSide, TaggedBool, TaggedInt
+
+    base_program = ProgramSpec(bedrooms=bedrooms, safe_room=False, wet_rooms=wet, open_plan_living=True)
+    rooms = build_room_program(_spec(base_program))
+    target = target_gross_area_m2(rooms)
+    aspect = 0.82
+    fd = (target / aspect) ** 0.5
+    fw = target / fd
+    now = datetime.now(UTC)
+    footprint = SelectedFootprint(source="CUSTOM", shape_type="RECTANGLE", target_area_m2=target,
+                                  width_m=fw, depth_m=fd, area_m2=round(fw * fd, 4))
+    return Project(
+        project_id="TEST", city="TLV", street="S", plot_area_m2=(fw + 4) * (fd + 4),
+        plot_width_m=fw + 4, plot_depth_m=fd + 4, street_facing_side=StreetSide.north,
+        built_area_m2=round(target, 2), description="", status="active",
+        created_at=now, updated_at=now, selected_footprint=footprint,
+        floors=TaggedInt(value=1, source="inferred"),
+        bedrooms=TaggedInt(value=bedrooms, source="requested"),
+        safe_room=TaggedBool(value=False, source="unknown"),
+        parking_spaces=TaggedInt(value=0, source="requested"),
+        wet_rooms=TaggedInt(value=wet, source="requested"),
+        open_plan=TaggedBool(value=True, source="requested"),
+        laundry_requested=TaggedBool(value=laundry_requested,
+                                     source="requested" if laundry_requested else "inferred"),
+        laundry_source_text="חדר כביסה" if laundry_requested else "",
+        requirements_parsed_at=now,
+    )
+
+
+def test_end_to_end_bathroom_absorbs_the_deficit_first(monkeypatch):
+    """The activation decision's own case (3BR/2wet, tight target —
+    docs/LAUNDRY_AREA_BUDGET_INVESTIGATION.md): with the laundry room planned, BATHROOM's realized
+    total lands below its own combined template TARGET (never below its FLOOR) — the fixed,
+    unconfounded reference this test (and the disclosure notice, §7) both use, since a second
+    "without laundry" solve can land on a genuinely different footprint candidate and confound a
+    before/after comparison (documented in the investigation report)."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", True)
+    from app.demo.service import generate_demo_design
+
+    result = generate_demo_design(_tight_project(3, 2, laundry_requested=True))
+    by_role: dict[str, float] = {}
+    for r in result.design.rooms:
+        by_role[r.type] = by_role.get(r.type, 0.0) + r.area_m2
+    assert "LAUNDRY" in by_role
+    bath = ROOM_TEMPLATES[ProgramRole.BATHROOM]
+    bathroom_count = sum(1 for r in result.design.rooms if r.type == "BATHROOM")
+    assert bathroom_count >= 1
+    assert by_role["BATHROOM"] < bath.target_area_m2 * bathroom_count - 1e-6
+    assert by_role["BATHROOM"] >= bath.min_area_m2 * bathroom_count - 1e-6
+
+
+# ------------------------------------------------------------------ 7. disclosure notice
+
+
+def test_no_laundry_room_never_carries_a_laundry_notice():
+    """§3: the notice is contained to plans with a laundry room — every existing, non-laundry
+    plan (the whole regression corpus) must see `laundry_notice` stay `None`."""
+    from app.demo.service import generate_demo_design
+
+    result = generate_demo_design(_tight_project(3, 2, laundry_requested=False))
+    assert result.design.quality is not None
+    assert result.design.quality.laundry_notice is None
+
+
+def test_a_laundry_deficit_room_carries_a_notice_naming_the_absorbing_room(monkeypatch):
+    """§3: when BATHROOM is realized below its own target because of the laundry room, the notice
+    names it, is not empty, is not presented as a validation issue, and is not a refusal."""
+    monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", True)
+    from app.demo.service import generate_demo_design
+
+    result = generate_demo_design(_tight_project(3, 2, laundry_requested=True))
+    assert result.design.validation.passed
+    quality = result.design.quality
+    assert quality is not None
+    assert quality.laundry_notice is not None
+    assert "כביסה" in quality.laundry_notice
+    assert "חדר רחצה" in quality.laundry_notice or "רחצה" in quality.laundry_notice
+
+
+def test_laundry_notice_uses_the_fixed_template_target_not_a_second_solve():
+    """Direct unit proof of `_laundry_redistribution_notice`'s own logic, independent of the
+    solver: a synthetic design with a LAUNDRY room and a BATHROOM realized below its template
+    target produces a notice naming BATHROOM; the same design without a LAUNDRY room produces
+    none, even though BATHROOM is realized identically low."""
+    from app.demo.contract import _laundry_redistribution_notice
+    from app.vertical_slice.design_output import RoomOut
+
+    def room(zone_id, roles, area):
+        return RoomOut(zone_id=zone_id, roles=roles, rect_m=(0.0, 0.0, 2.0, area / 2.0),
+                       net_w_m=2.0, net_h_m=area / 2.0, net_area_m2=area, walls={}, wall_facts={})
+
+    bath_template = ROOM_TEMPLATES[ProgramRole.BATHROOM]
+    low_bath_area = bath_template.target_area_m2 * 0.5   # well under the notice threshold
+
+    class _Design:
+        def __init__(self, rooms):
+            self.rooms = rooms
+
+    with_laundry = _Design([
+        room("BATH_1", ("BATHROOM",), low_bath_area),
+        room("LAUNDRY", ("LAUNDRY",), ROOM_TEMPLATES[ProgramRole.LAUNDRY].target_area_m2),
+    ])
+    without_laundry = _Design([room("BATH_1", ("BATHROOM",), low_bath_area)])
+
+    notice = _laundry_redistribution_notice(with_laundry)
+    assert notice is not None
+    assert "רחצה" in notice
+    assert _laundry_redistribution_notice(without_laundry) is None
+
+
+def test_laundry_notice_says_nothing_when_every_room_meets_its_target():
+    """A LAUNDRY room present, but every OTHER room realized at or above its own target — no
+    notice, since nothing was actually redistributed away from anyone."""
+    from app.demo.contract import _laundry_redistribution_notice
+    from app.vertical_slice.design_output import RoomOut
+
+    def room(zone_id, roles, area):
+        return RoomOut(zone_id=zone_id, roles=roles, rect_m=(0.0, 0.0, 2.0, area / 2.0),
+                       net_w_m=2.0, net_h_m=area / 2.0, net_area_m2=area, walls={}, wall_facts={})
+
+    class _Design:
+        def __init__(self, rooms):
+            self.rooms = rooms
+
+    design = _Design([
+        room("BATH_1", ("BATHROOM",), ROOM_TEMPLATES[ProgramRole.BATHROOM].target_area_m2),
+        room("LAUNDRY", ("LAUNDRY",), ROOM_TEMPLATES[ProgramRole.LAUNDRY].target_area_m2),
+    ])
+    assert _laundry_redistribution_notice(design) is None

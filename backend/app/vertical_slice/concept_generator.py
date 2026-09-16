@@ -224,13 +224,16 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     ProgramRole.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
 }
 
-#: LAUNDRY ROOM — PHASE 1 GATE (2026-09-16, docs/LAUNDRY_ROOM_OPTION_REVIEW.md). `False` keeps
-#: `build_room_program` byte-identical to before this phase for every brief, whatever
-#: `ProgramSpec.laundry` says: the request is parsed, stored and carried through, but not yet
-#: planned. Flip to `True` only once the planner sweep this phase's report calls for has been
-#: reviewed and accepted — this is the single point that decides whether real users ever see a
-#: generated laundry room; nothing else in this module should gate on `ProgramSpec.laundry` itself.
-LAUNDRY_ROOM_ENABLED = False
+#: LAUNDRY ROOM — ACTIVATED (2026-09-16, docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md). Phase 1
+#: (docs/LAUNDRY_ROOM_OPTION_REVIEW.md, docs/LAUNDRY_ROOM_PHASE1_REPORT.md) landed this gate as
+#: `False` pending the area-budget product decision; the investigation
+#: (docs/LAUNDRY_AREA_BUDGET_INVESTIGATION.md) and this activation's own measured 31-cell matrix
+#: plus a real-418-context regression pass answered it — service-first allocation
+#: (`_laundry_deficit_targets`) plus a disclosure notice (`contract.QualityOut.laundry_notice`),
+#: 0 payload/status changes for any brief without a laundry room. This is the single point that
+#: decides whether real users see a generated laundry room; nothing else in this module should
+#: gate on `ProgramSpec.laundry` itself.
+LAUNDRY_ROOM_ENABLED = True
 
 #: The room lobby of the hub parti (feature 005) — the compact circulation cell the private wing's
 #: rooms open onto. PRODUCT POLICY placeholders like every row above, derived from a visual census
@@ -597,6 +600,49 @@ def _expansion_headroom_mult(elasticity: float) -> float:
     return 1.0 + _MIN_HEADROOM_FRACTION + (_MAX_HEADROOM_FRACTION - _MIN_HEADROOM_FRACTION) * priority
 
 
+#: Roles `_laundry_deficit_targets` draws from FIRST. Not "wet rooms" in general (LAUNDRY itself
+#: is deliberately excluded — it is the newly requested room the deficit exists to fund, not a
+#: source for funding itself) — exactly BATHROOM/TOILET, the two roles the activation decision
+#: (docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md) measured this against.
+_LAUNDRY_DEFICIT_SOURCE_ROLES = (ProgramRole.BATHROOM, ProgramRole.TOILET)
+
+
+def _laundry_deficit_targets(rooms: list[ProgramRoom], starts: dict[str, float], base: float,
+                             deficit: float, floor_of) -> dict[str, float]:
+    """Deficit distribution for a programme that includes an explicitly requested LAUNDRY room
+    (2026-09-16, activation — docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md, "Policy B" in the
+    investigation that preceded it). CONTAINED to this one case: `scale_program`'s caller only
+    reaches this function when `rooms` already contains a `ProgramRole.LAUNDRY` room AND the
+    programme is short of area — for every other programme, `scale_program`'s original uniform
+    proportional shrink below is untouched, byte for byte.
+
+    The deficit is drawn from BATHROOM/TOILET headroom FIRST — proportional to each one's own
+    room to shrink toward its floor, never past it — before any PRIVATE room (bedroom, master,
+    safe room) or CIRCULATION is touched at all. Only the remainder, if service headroom cannot
+    cover the whole deficit, cascades to every other room (bedrooms, circulation, public rooms,
+    and the laundry room itself alike) via the same proportional-to-target rule `scale_program`
+    already uses for a plain deficit — so circulation is never the FIRST source, and PRIVATE rooms
+    are never touched before service headroom is exhausted, matching the activation decision
+    exactly. Every room's floor (`floor_of`) is respected throughout, in both tiers.
+    """
+    targets = dict(starts)
+    service = [r for r in rooms if r.role in _LAUNDRY_DEFICIT_SOURCE_ROLES]
+    service_capacity = sum(starts[r.zone_id] - floor_of(r) for r in service)
+    take = min(deficit, service_capacity)
+    if take > 0 and service_capacity > 0:
+        for r in service:
+            headroom = starts[r.zone_id] - floor_of(r)
+            targets[r.zone_id] = starts[r.zone_id] - take * (headroom / service_capacity)
+    remaining = deficit - take
+    if remaining > 1e-9:
+        others = [r for r in rooms if r.role not in _LAUNDRY_DEFICIT_SOURCE_ROLES]
+        other_base = sum(starts[r.zone_id] for r in others)
+        for r in others:
+            share = remaining * (starts[r.zone_id] / other_base) if other_base > 0 else 0.0
+            targets[r.zone_id] = max(starts[r.zone_id] - share, floor_of(r))
+    return targets
+
+
 def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
                   area_floors: dict[str, float] | None = None) -> dict[str, ZoneSpec]:
     """Fit the programme's target areas to the area actually available.
@@ -608,6 +654,12 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
     `net_area_max_m2` below caps that growth at the room's own `max_area_m2`, hard, so a
     low-priority room cannot be inflated past its product-policy ceiling just to tile the
     footprint exactly.
+
+    A DEFICIT (surplus < 0) shrinks every room proportionally to its own target, never below its
+    floor — EXCEPT when `rooms` includes an explicitly requested LAUNDRY room, in which case
+    `_laundry_deficit_targets` applies instead (service/wet-room headroom first). That branch is
+    unreachable for any programme without a laundry room, so this function is otherwise identical
+    to its pre-2026-09-16 form.
     """
     floors = area_floors or {}
 
@@ -617,18 +669,22 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
     base = sum(max(r.template.target_area_m2, floor_of(r)) for r in rooms)
     surplus = net_available_m2 - base
     weight_total = sum(r.template.elasticity for r in rooms) or 1.0
+    starts = {r.zone_id: max(r.template.target_area_m2, floor_of(r)) for r in rooms}
 
-    targets: dict[str, float] = {}
-    for room in rooms:
-        t = room.template
-        start = max(t.target_area_m2, floor_of(room))
-        if surplus >= 0:
-            extra = surplus * (t.elasticity / weight_total)
-            targets[room.zone_id] = max(start, min(start + extra, max(t.max_area_m2, start)))
-        else:
-            # Shrink proportionally, but never below the room's floor.
-            shrink = (-surplus) * (start / base)
-            targets[room.zone_id] = max(start - shrink, floor_of(room))
+    if surplus < 0 and any(r.role is ProgramRole.LAUNDRY for r in rooms):
+        targets = _laundry_deficit_targets(rooms, starts, base, -surplus, floor_of)
+    else:
+        targets = {}
+        for room in rooms:
+            t = room.template
+            start = starts[room.zone_id]
+            if surplus >= 0:
+                extra = surplus * (t.elasticity / weight_total)
+                targets[room.zone_id] = max(start, min(start + extra, max(t.max_area_m2, start)))
+            else:
+                # Shrink proportionally, but never below the room's floor.
+                shrink = (-surplus) * (start / base)
+                targets[room.zone_id] = max(start - shrink, floor_of(room))
 
     # Re-balance any residue onto the elastic rooms so the totals still add up. A room already AT
     # its own ceiling is dropped from the pool each pass — not just clamped — so a low-priority
