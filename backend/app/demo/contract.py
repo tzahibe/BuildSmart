@@ -629,6 +629,18 @@ def _room_size_facts(room) -> dict:
                 over_preferred_ratio=round(ratio, 3) if ratio > 1.0 + 1e-6 else None)
 
 
+#: Excluded from `_laundry_redistribution_notice` beyond `_template_of`'s own exclusions.
+#: SAFE_ROOM's `elasticity` is 0 — "Regulated minimum: never scaled down, and not inflated just
+#: because the house is large" (its own template comment) — so it never grows OR shrinks through
+#: either `scale_program` branch's surplus/target logic. It can still REALIZE a little under its
+#: nominal target from ordinary row-depth geometry (confirmed directly: 9.3 m² against a 10.5 m²
+#: target on an identical brief with NO laundry room at all) — a pre-existing property of that
+#: room's usual sizing, not something a laundry request caused. Naming it in this notice would be
+#: a false positive: the room is genuinely "reduced" on paper but not BY the redistribution this
+#: notice exists to disclose.
+_LAUNDRY_NOTICE_EXCLUDED_ROLES = (ProgramRole.SAFE_ROOM.value,)
+
+
 def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     """One aggregated sentence naming every OTHER room realized materially below its own template
     TARGET, in a plan that also contains an explicitly requested LAUNDRY room — the signal that
@@ -648,7 +660,7 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     targets: dict[str, float] = {}
     names: dict[str, str] = {}
     for room in design.rooms:
-        if room.roles[0] == ProgramRole.LAUNDRY.value:
+        if room.roles[0] in (ProgramRole.LAUNDRY.value, *_LAUNDRY_NOTICE_EXCLUDED_ROLES):
             continue
         template = _template_of(room)
         if template is None:
