@@ -636,14 +636,22 @@ def test_topology_does_not_depend_on_the_wing_rectangle():
 
 # ------------------------------------------------------------------ wings
 
-def test_a_second_wing_is_considered_and_declined_with_a_reason_never_ignored():
+def test_a_second_wing_is_considered_planned_or_declined_with_its_own_reason_never_ignored():
+    """The L parti plans across two adjacent safe wings (`l_parti`). It used to be declined
+    outright with CIRCULATION_WOULD_CROSS_PRIVATE; now the second wing is either PLANNED — an L
+    candidate over wings (0, 1) — or refused with the sizing reason that actually bound, naming
+    both wings. Silently ignoring it is the one outcome that must never happen."""
     result = _candidates(PROGRAMS["3BR_SAFE"], F.l_shaped_site())
+    planned = [c for c in result.candidates if c.strategy is ConceptStrategy.MULTI_WING_SPLIT]
     multi = [r for r in result.rejections if r.strategy is ConceptStrategy.MULTI_WING_SPLIT]
-    assert multi, "the L-shape's second wing must be evaluated"
-    assert multi[0].reason in (RejectionReason.CIRCULATION_WOULD_CROSS_PRIVATE,
-                               RejectionReason.NO_SEAM_ALIGNMENT)
-    assert multi[0].wing_orders == (0, 1)
-    assert "wing 1" in multi[0].detail
+    assert planned or multi, "the L-shape's second wing must be evaluated"
+    if planned:
+        assert all(c.wing_orders == (0, 1) and len(c.concept.fixture.wings) == 2 for c in planned)
+    else:
+        assert multi[0].wing_orders == (0, 1)
+        assert multi[0].reason is not RejectionReason.CIRCULATION_WOULD_CROSS_PRIVATE, \
+            "the blanket refusal is gone; a refusal names what bound"
+        assert multi[0].detail
 
 
 # ------------------------------------------------------------------ end to end
