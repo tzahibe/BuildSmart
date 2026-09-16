@@ -505,3 +505,47 @@ def test_laundry_notice_says_nothing_when_every_room_meets_its_target():
         room("LAUNDRY", ("LAUNDRY",), ROOM_TEMPLATES[ProgramRole.LAUNDRY].target_area_m2),
     ])
     assert _laundry_redistribution_notice(design) is None
+
+
+def test_a_low_safe_room_is_never_named_in_the_notice_with_or_without_laundry():
+    """2026-09-17, post-activation fix: SAFE_ROOM realizes a little under its own template target
+    from ordinary row-depth geometry alone (elasticity 0 — it never moves through `scale_program`'s
+    surplus/deficit math either way, in either direction), independent of any laundry room. Naming
+    it in `laundry_notice` would be a false positive — found by the end-to-end smoke test on a
+    brief that also requested a safe room. `_LAUNDRY_NOTICE_EXCLUDED_ROLES` excludes it explicitly.
+
+    Two cases, both required: a low SAFE_ROOM with NO laundry room at all must not produce a
+    notice (there is nothing to disclose — the notice only exists for laundry-containing plans in
+    the first place); and a low SAFE_ROOM alongside an actual laundry-caused deficit (a low
+    BATHROOM too) must still omit SAFE_ROOM specifically, while still naming the room that IS a
+    real redistribution casualty."""
+    from app.demo.contract import _laundry_redistribution_notice
+    from app.vertical_slice.design_output import RoomOut
+
+    def room(zone_id, roles, area):
+        return RoomOut(zone_id=zone_id, roles=roles, rect_m=(0.0, 0.0, 2.0, area / 2.0),
+                       net_w_m=2.0, net_h_m=area / 2.0, net_area_m2=area, walls={}, wall_facts={})
+
+    safe_room_template = ROOM_TEMPLATES[ProgramRole.SAFE_ROOM]
+    low_safe_room_area = safe_room_template.target_area_m2 * 0.5   # well under the notice threshold
+
+    class _Design:
+        def __init__(self, rooms):
+            self.rooms = rooms
+
+    # No laundry room at all — a low SAFE_ROOM here is the pre-existing, laundry-independent
+    # geometry property the fix's commit message measured directly (9.3 m2 vs a 10.5 m2 target).
+    no_laundry = _Design([room("SAFE_1", ("SAFE_ROOM",), low_safe_room_area)])
+    assert _laundry_redistribution_notice(no_laundry) is None
+
+    # A laundry room present AND a real redistribution casualty (BATHROOM) alongside the same low
+    # SAFE_ROOM: the notice must fire (BATHROOM is a genuine casualty) but never name SAFE_ROOM.
+    with_laundry_and_low_bathroom = _Design([
+        room("SAFE_1", ("SAFE_ROOM",), low_safe_room_area),
+        room("BATH_1", ("BATHROOM",), ROOM_TEMPLATES[ProgramRole.BATHROOM].target_area_m2 * 0.5),
+        room("LAUNDRY", ("LAUNDRY",), ROOM_TEMPLATES[ProgramRole.LAUNDRY].target_area_m2),
+    ])
+    notice = _laundry_redistribution_notice(with_laundry_and_low_bathroom)
+    assert notice is not None
+    assert "רחצה" in notice
+    assert 'ממ"ד' not in notice
