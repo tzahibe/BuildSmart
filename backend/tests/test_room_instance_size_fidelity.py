@@ -3,6 +3,8 @@ real GeometrySolver, real Spatial V2.1 planner, and the real GeometricDesign bui
 no disconnected geometry-only toy types.
 """
 import json
+import tempfile
+import os
 from pathlib import Path
 
 import pytest
@@ -18,6 +20,20 @@ from app.geometry.spatial_v2.planner import build_geometric_design_v2, plan_v2
 from app.geometry.spatial_v2.structural_variants import orientation_swap_variants, pair_swap_variants, reflection_variants
 
 _SAMPLES_DIR = Path(__file__).parent / "spatial_v2_1_samples"
+
+
+def _out_dir() -> Path:
+    """Where this evaluation writes its report and design artefacts.
+
+    The committed samples under `_SAMPLES_DIR` are documentation of one deliberate run, not a
+    regression fixture — nothing reads them back — and every run used to rewrite them with fresh
+    timing fields, so `git status` was dirty after any `pytest` and a merge once failed over them.
+    They are rewritten only when asked (`BUILDSMART_WRITE_SAMPLES=1`); otherwise the artefacts go
+    to a scratch directory and the repository stays clean.
+    """
+    if os.environ.get("BUILDSMART_WRITE_SAMPLES") == "1":
+        return _SAMPLES_DIR
+    return Path(tempfile.gettempdir()) / "buildsmart_samples" / _SAMPLES_DIR.name
 
 
 def _mixed_bedroom_spec() -> ArchitecturalSpec:
@@ -316,10 +332,11 @@ def test_end_to_end_real_pipeline_example_and_save_sample():
     print(json.dumps(report, indent=2, default=str))
     assert all(ordering_preserved.values())
 
-    _SAMPLES_DIR.mkdir(exist_ok=True)
+    out = _out_dir()
+    out.mkdir(parents=True, exist_ok=True)
     design_v21 = build_geometric_design_v2(spec, footprint, v21)
-    (_SAMPLES_DIR / "mixed_bedroom_sizes_v21_design.json").write_text(design_v21.model_dump_json(indent=2))
-    (_SAMPLES_DIR / "mixed_bedroom_sizes_report.json").write_text(json.dumps(report, indent=2, default=str))
+    (out / "mixed_bedroom_sizes_v21_design.json").write_text(design_v21.model_dump_json(indent=2))
+    (out / "mixed_bedroom_sizes_report.json").write_text(json.dumps(report, indent=2, default=str))
 
 
 # --- Phase 8/11: interaction sanity with the previously-existing spatial-edit layer -----------
