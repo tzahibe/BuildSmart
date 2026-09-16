@@ -50,7 +50,7 @@ from .safe_adapter import (
     build_buildable_region,
 )
 from .site import EntranceWalk, SitePlan
-from .spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+from .spec import ArchitecturalSpec, PlotSpec, ProgramSpec, WetRoomKind
 
 
 @dataclass(frozen=True)
@@ -613,17 +613,24 @@ def _prefer_quality_twin(spec: ArchitecturalSpec, buildable: BuildableRegion,
         return chosen, chosen_index, plan, frozenset(), 0
     rooms = [z for z in chosen.concept.fixture.zones]
     templates = {z.zone_id: generator.ROOM_TEMPLATES.get(z.primary_role) for z in rooms}
+    roles = {z.zone_id: z.primary_role for z in rooms}
+    # ENSUITE-kind rooms are excluded here too, mirroring `concept_generator._preferred_aspects`
+    # (2026-09-16, docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md §5) — same reason: an ensuite's
+    # shape is its host row's, not its own, a different mechanism this change leaves untouched.
+    ensuite_zones = {wr.zone_id for wr in chosen.wet_rooms if wr.kind is WetRoomKind.ENSUITE}
     preferred = {zid: t.preferred_aspect_ratio for zid, t in templates.items()
-                 if t is not None and t.preferred_aspect_ratio is not None}
+                 if t is not None and t.preferred_aspect_ratio is not None
+                 and zid not in ensuite_zones}
 
     def aspects(design: GeometricDesign) -> dict[str, float]:
         shapes = _realized_shapes(design)
         return {zid: max(w, d) / max(min(w, d), 1e-6) for zid, (w, d) in shapes.items() if zid in preferred}
 
-    class _Room:  # what `_quality_accepts` reads: `.template.preferred_aspect_ratio`
-        def __init__(self, template):
+    class _Room:  # what `_quality_accepts`/`_quality_score` read: `.template`, `.role`
+        def __init__(self, template, role):
             self.template = template
-    by_zone = {zid: _Room(templates[zid]) for zid in preferred}
+            self.role = role
+    by_zone = {zid: _Room(templates[zid], roles[zid]) for zid in preferred}
     base = aspects(plan.design)
     attempts = 0
     for index, peer in peers:

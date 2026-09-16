@@ -84,12 +84,21 @@ def _realized(spec, site, candidates):
 
 # ------------------------------------------------------------------ the target is not a gate
 
+#: Wet/service roles the quality tier was extended to (2026-09-16,
+#: docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md) — BATHROOM at 2.0, TOILET at 2.5. ENSUITE-kind
+#: BATHROOM rooms are excluded from the objective regardless (`_preferred_aspects`); LAUNDRY is
+#: not touched (`LAUNDRY_ROOM_ENABLED` is not even wired on this branch).
+WET_QUALITY_ROLES = {ProgramRole.BATHROOM: 2.0, ProgramRole.TOILET: 2.5}
+
+
 def test_the_preferred_aspect_is_a_target_and_the_hard_limits_are_untouched():
     for role in BEDROOM_CLASS:
         assert ROOM_TEMPLATES[role].preferred_aspect_ratio == 1.5
         assert ROOM_TEMPLATES[role].max_aspect_ratio == 2.5
+    for role, ratio in WET_QUALITY_ROLES.items():
+        assert ROOM_TEMPLATES[role].preferred_aspect_ratio == ratio
     for role, template in ROOM_TEMPLATES.items():
-        if role not in BEDROOM_CLASS:
+        if role not in BEDROOM_CLASS and role not in WET_QUALITY_ROLES:
             assert template.preferred_aspect_ratio is None
     # The shape band a planner floors a row with, and the ZoneSpec the solver and C20 are held
     # to, still carry the HARD aspect: a 5.0 m wide bedroom may still be planned 2.6 m deep.

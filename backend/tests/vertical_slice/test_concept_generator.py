@@ -301,14 +301,17 @@ def test_vocabulary_is_additive():
         R.DINING: RoomTemplate(10.0, 14.0, 30.0, 2.6, 3.0, elasticity=1.5, hard_max_area_m2=33.0),
         R.KITCHEN: RoomTemplate(9.0, 13.0, 26.0, 2.4, 3.0, elasticity=1.0, hard_max_area_m2=28.0),
         # `preferred_aspect_ratio` (the quality tier, 2026-09-16) — a target, not a gate; the hard
-        # aspect and every area figure are as before.
+        # aspect and every area figure are as before. Extended to BATHROOM/TOILET (2026-09-16,
+        # docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md) — same rule: never a gate.
         R.MASTER_BEDROOM: RoomTemplate(11.0, 14.0, 20.0, 3.0, 2.5, elasticity=0.9, hard_max_area_m2=23.0,
                                        preferred_aspect_ratio=1.5),
         R.BEDROOM: RoomTemplate(9.0, 10.5, 14.0, 2.6, 2.5, elasticity=0.5, hard_max_area_m2=18.0,
                                 preferred_aspect_ratio=1.5),
         R.SAFE_ROOM: RoomTemplate(9.0, 10.5, 14.0, 2.4, 2.5, elasticity=0.0, preferred_aspect_ratio=1.5),
-        R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15, hard_max_area_m2=14.0),
-        R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10, hard_max_area_m2=7.0),
+        R.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15, hard_max_area_m2=14.0,
+                                 preferred_aspect_ratio=2.0),
+        R.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10, hard_max_area_m2=7.0,
+                               preferred_aspect_ratio=2.5),
         R.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
         R.STUDY: RoomTemplate(6.0, 8.5, 14.0, 2.1, 2.5, elasticity=0.5),
         R.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),

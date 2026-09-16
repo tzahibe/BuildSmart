@@ -165,7 +165,14 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # INTO above its target (`scale_program`'s `_expansion_headroom_mult`) is scaled by priority,
     # so a low-priority room's EFFECTIVE ceiling sits well under 12.0 in practice without lowering
     # the hard outer bound every footprint-capacity decision depends on.
-    ProgramRole.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15, hard_max_area_m2=14.0),
+    # `preferred_aspect_ratio` 2.0 (2026-09-16, docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md): the
+    # knee of the corpus's BATHROOM distribution — 1.8 x 3.0-3.6 m (5.4-6.5 m2) is a normal
+    # bathroom at 1.7-2.0; short side >= 1.8 m sits at median 1.70. A target only: `_preferred_aspects`
+    # (the quality tier's own objective) additionally excludes any ENSUITE-kind room regardless of
+    # this value — an ensuite's shape comes from a different mechanism (its host's row depth, not
+    # its own), left untouched by this change (see that report's §5).
+    ProgramRole.BATHROOM: RoomTemplate(4.5, 6.5, 12.0, 1.6, 3.0, elasticity=0.15, hard_max_area_m2=14.0,
+                                       preferred_aspect_ratio=2.0),
     # A WC-only room ("שירותים"). Every number here is smaller than BATHROOM's on purpose — this
     # room holds a pan and a basin, not a shower — and `min_short_side_m` is what actually makes
     # it read as a different room on the plan: the private column's rows span the column's full
@@ -174,7 +181,12 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # this table, NOT verified regulation. `max_aspect_ratio` is looser than BATHROOM's (3.5 vs
     # 3.0) because the same column width divided by a shallower row is a longer rectangle, and
     # gating on 3.0 would reject the room for being exactly the shape this role asks for.
-    ProgramRole.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10, hard_max_area_m2=7.0),
+    # `preferred_aspect_ratio` 2.5 (2026-09-16, docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md): a
+    # 1.2 x 2.4-3.0 m WC is 2.0-2.5; the 1.25 x 4.3 m rows at 3.4 are the strips. This role is
+    # always a GUEST_WC (`build_room_program` never gives it any other kind), so no kind exclusion
+    # is needed here the way BATHROOM's ENSUITE case needs one.
+    ProgramRole.TOILET: RoomTemplate(2.2, 4.0, 6.0, 1.1, 3.5, elasticity=0.10, hard_max_area_m2=7.0,
+                                     preferred_aspect_ratio=2.5),
     # ---- VOCABULARY, not new behaviour -------------------------------------------------------
     # The six rows below close the naming gap found by the real-plan realizability study: every
     # sampled plan contained at least one room this table could not name, so the study had to draw
@@ -1419,6 +1431,19 @@ def _finish_rows(candidate: list[list[ProgramRoom]], options: Repartition,
 
 #: Marker appended to a quality-tier candidate's rationale.
 QUALITY_RATIONALE = "; rows re-partitioned for room proportions (quality)"
+#: Which tier `_quality_score` judges a role in — PRIVATE (bedroom-class) strictly before SERVICE
+#: (wet), see that function. Keyed by ROLE, not by a `ProgramRoom.group` lookup, so a caller that
+#: only has a role (`general_pipeline._prefer_quality_twin`'s realized-shape check, which reads
+#: `ZoneSpec.primary_role`, not a `ProgramRoom`) can supply the same grouping without a second
+#: role list to keep in sync. Mirrors `build_room_program`'s own, unconditional group assignment
+#: for exactly these five roles (2026-09-16, docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md).
+_QUALITY_TIER_GROUP: dict[ProgramRole, ZoneGroup] = {
+    ProgramRole.BEDROOM: ZoneGroup.PRIVATE,
+    ProgramRole.MASTER_BEDROOM: ZoneGroup.PRIVATE,
+    ProgramRole.SAFE_ROOM: ZoneGroup.PRIVATE,
+    ProgramRole.BATHROOM: ZoneGroup.SERVICE,
+    ProgramRole.TOILET: ZoneGroup.SERVICE,
+}
 #: How many legal pairings a plan may be re-partitioned with, best-estimated first — the bound on
 #: the search beside the normal nine seams (`_seam_options`) each attempt keeps.
 _MAX_QUALITY_PAIRINGS = 3
@@ -1429,8 +1454,25 @@ _QUALITY_MIN_GAIN = 0.1
 #: host goes full-width across its column, and a 4.8 m wide master at its 3.0-3.1 m depth is 1.55:
 #: refusing that kept the 4.8 m L arm's best pairing (a 1.96 safe room to 1.2 beside a 1.25 master
 #: to 1.55) off the table. Up to the trough between the two modes (1.5 + 0.1 = 1.6), never into
-#: the strip mode; the plan's worst room must still have moved by `_QUALITY_MIN_GAIN`.
+#: the strip mode; the plan's worst room must still have moved by `_QUALITY_MIN_GAIN`. Applies
+#: unconditionally to PRIVATE rooms; for SERVICE rooms it is the FLAT allowance used whenever the
+#: trade is not justified by a PRIVATE-tier gain (`_QUALITY_LOWER_TIER_SEVERE_FRACTION`, below,
+#: applies instead when it is) — see `_quality_accepts`.
 _QUALITY_SPILL = 0.1
+#: 2026-09-17 (docs/WET_ROOM_QUALITY_TIER_IMPLEMENTATION_REPORT.md's follow-up): measured on the
+#: 432-context corpus, `_QUALITY_SPILL` applied flat to SERVICE (wet) rooms too vetoed the ONLY
+#: two cases it ever fired on — both a peer that squared four PRIVATE rooms at the cost of
+#: carrying one previously-fine bathroom from 1.875 to 2.121 (a 0.121 spill against 2.0 preferred,
+#: over the 0.1 flat allowance) — reverting the primary to the UNFIXED base plan instead. A
+#: PRIVATE-tier gain is exactly the "meaningful improvement to higher-tier rooms" a lower-tier
+#: soft degradation must not veto; wet rooms still need protection from a truly severe push,
+#: which this ties to the room's OWN hard headroom rather than a second flat number: at most
+#: halfway from its preferred aspect to its hard `max_aspect_ratio` (BATHROOM 2.0->3.0 allows up
+#: to 2.5; TOILET 2.5->3.5 allows up to 3.0) — a bathroom at 2.121 clears this easily; one pushed
+#: to, say, 2.7 would not. Hard limits, geometry validity and tier-1 rescue are untouched by this
+#: constant; it only widens what the QUALITY tier's own soft spill guard tolerates, and only for
+#: a trade a PRIVATE-tier gain already justifies.
+_QUALITY_LOWER_TIER_SEVERE_FRACTION = 0.5
 
 
 def _row_shapes(rows: list[list[ProgramRoom]], depths: list[float], net_width: float,
@@ -1467,10 +1509,17 @@ def _estimated_row_shapes(rows: list[list[ProgramRoom]], net_width: float,
 
 def _preferred_aspects(shapes: dict[str, tuple[float, float]], rooms: Iterable[ProgramRoom],
                        ) -> dict[str, float]:
-    """zone -> planned aspect (long/short), for every room that carries a preferred aspect."""
+    """zone -> planned aspect (long/short), for every room that carries a preferred aspect.
+
+    An ENSUITE-kind room is excluded regardless of its template's `preferred_aspect_ratio`
+    (2026-09-16, docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md §5): it is always V-split into its
+    host bedroom's row (`_rows_of`), so its shape comes from the ROW's combined depth, not its
+    own area/width — a different mechanism from the lone SHARED_BATHROOM/GUEST_WC row this
+    objective targets. Left for the ensuite-sub-row's own future phase, untouched here."""
     out: dict[str, float] = {}
     for room in rooms:
-        if room.template.preferred_aspect_ratio is None or room.zone_id not in shapes:
+        if (room.template.preferred_aspect_ratio is None or room.zone_id not in shapes
+                or room.wet_kind is WetRoomKind.ENSUITE):
             continue
         w, d = shapes[room.zone_id]
         out[room.zone_id] = max(w, d) / max(min(w, d), 1e-6)
@@ -1483,33 +1532,85 @@ def _quality_shortfall(aspects: dict[str, float], rooms_by_zone: dict[str, Progr
                default=0.0)
 
 
+#: PRIVATE (bedroom-class) is judged strictly BEFORE service/wet rooms in `_quality_score` and
+#: `_quality_accepts` (2026-09-16, docs/WET_ROOM_STRIP_INVESTIGATION_REPORT.md): extending
+#: `preferred_aspect_ratio` to BATHROOM/TOILET means a lone row's pairing can now be scored for
+#: either class, and the two compete for the SAME single host slot a programme ever has. Measured
+#: directly (`test_the_l_arm_gets_a_quality_candidate_through_the_generic_hook`): pooling both
+#: classes into one "worst room" objective let a candidate that improved a bathroom from 3.0 to
+#: 1.1 outrank — and REPLACE — one that improved the bedroom from 1.745 to 1.71, because the
+#: bathroom's shortfall against its 2.0 preferred was simply larger. That is the host-slot
+#: contention the investigation report's fix-A section flagged as a real risk, now closed by
+#: ORDER rather than by a new threshold: a candidate is never preferred for what it does to a
+#: SERVICE room if it makes any PRIVATE room worse. `ZoneGroup.PRIVATE`/`ZoneGroup.SERVICE` are
+#: the existing groups `build_room_program` already assigns (bedroom-class is always PRIVATE, a
+#: shared bathroom or WC is always SERVICE) — no new role list to keep in sync.
 def _quality_score(aspects: dict[str, float], rooms_by_zone: dict[str, ProgramRoom],
-                   ) -> tuple[float, int, float]:
-    """(worst shortfall, rooms past their preferred aspect, mean aspect) — lower is better, in
-    that order. The worst room is what a person sees first; the count is what the one pairing a
+                   ) -> tuple[float, int, float, int, float]:
+    """(PRIVATE worst shortfall, PRIVATE rooms past target, SERVICE worst shortfall, SERVICE rooms
+    past target, mean aspect over every scored room) — lower is better, compared in that order.
+    The worst PRIVATE room is what a person sees first; the count is what the one pairing a
     programme has can still change when two lone rooms are equally poor (a 4.8 m arm holding a
-    bedroom AND the safe room at 1.85: pairing either leaves the other as the worst)."""
-    short = _quality_shortfall(aspects, rooms_by_zone)
-    over = sum(1 for z, a in aspects.items()
-               if a > rooms_by_zone[z].template.preferred_aspect_ratio + 1e-6)
+    bedroom AND the safe room at 1.85: pairing either leaves the other as the worst). SERVICE
+    (wet) rooms are scored the same way, one full tier lower, so they can only ever break a tie
+    the PRIVATE rooms leave open."""
+    def tier(sub: dict[str, float]) -> tuple[float, int]:
+        short = _quality_shortfall(sub, rooms_by_zone)
+        over = sum(1 for z, a in sub.items()
+                   if a > rooms_by_zone[z].template.preferred_aspect_ratio + 1e-6)
+        return round(short, 4), over
+
+    private = {z: a for z, a in aspects.items()
+              if _QUALITY_TIER_GROUP.get(rooms_by_zone[z].role) is ZoneGroup.PRIVATE}
+    service = {z: a for z, a in aspects.items()
+              if _QUALITY_TIER_GROUP.get(rooms_by_zone[z].role) is ZoneGroup.SERVICE}
+    p_short, p_over = tier(private)
+    s_short, s_over = tier(service)
     mean = sum(aspects.values()) / max(len(aspects), 1)
-    return (round(short, 4), over, round(mean, 4))
+    return (p_short, p_over, s_short, s_over, round(mean, 4))
 
 
 def _quality_accepts(base: dict[str, float], new: dict[str, float],
                      rooms_by_zone: dict[str, ProgramRoom]) -> bool:
-    """A re-partitioned plan is offered only if its worst room moves at least `_QUALITY_MIN_GAIN`
-    toward the target — or, its worst room no worse, one room fewer sits past the target — AND
-    no room that was inside its preferred aspect is carried more than `_QUALITY_SPILL` past it."""
-    base_short, base_over, _ = _quality_score(base, rooms_by_zone)
-    new_short, new_over, _ = _quality_score(new, rooms_by_zone)
-    better_worst = new_short <= base_short - _QUALITY_MIN_GAIN + 1e-9
-    fewer_past = new_short <= base_short + 1e-6 and new_over < base_over
-    if not (better_worst or fewer_past):
+    """A re-partitioned plan is offered only if it does not leave any PRIVATE (bedroom-class) room
+    worse than the base (worst shortfall up, or more rooms past target) — checked strictly first
+    — AND, given that, either PRIVATE or SERVICE (wet) rooms improve by at least
+    `_QUALITY_MIN_GAIN` toward their target (or, no worse, one room fewer past it) — AND no room
+    that was inside its preferred aspect is carried too far past it. A SERVICE room's gain is
+    never accepted at a PRIVATE room's expense (see `_quality_score`).
+
+    The spill allowance is TIER-RELATIVE, not a single flat number (2026-09-17): a PRIVATE room
+    is always held to `_QUALITY_SPILL` — a soft SERVICE-side degradation must never cost a
+    bedroom-class room anything beyond what the rule always allowed. A SERVICE room gets the same
+    flat `_QUALITY_SPILL` UNLESS the PRIVATE tier is what is actually improving this trade, in
+    which case its allowance widens to `_QUALITY_LOWER_TIER_SEVERE_FRACTION` of its own hard
+    headroom — still refusing anything that reaches a materially severe degradation, just not
+    vetoing a real bedroom-class win over a comfortably-inside-hard-limits wet room."""
+    base_p_short, base_p_over, base_s_short, base_s_over, _ = _quality_score(base, rooms_by_zone)
+    new_p_short, new_p_over, new_s_short, new_s_over, _ = _quality_score(new, rooms_by_zone)
+    if new_p_short > base_p_short + 1e-6 or new_p_over > base_p_over:
+        return False
+
+    def improves(new_short: float, base_short: float, new_over: int, base_over: int) -> bool:
+        return (new_short <= base_short - _QUALITY_MIN_GAIN + 1e-9
+                or (new_short <= base_short + 1e-6 and new_over < base_over))
+
+    private_improves = improves(new_p_short, base_p_short, new_p_over, base_p_over)
+    if not (private_improves
+            or improves(new_s_short, base_s_short, new_s_over, base_s_over)):
         return False
     for zone, aspect in new.items():
-        preferred = rooms_by_zone[zone].template.preferred_aspect_ratio
-        if base.get(zone, aspect) <= preferred + 1e-6 and aspect > preferred + _QUALITY_SPILL + 1e-6:
+        room = rooms_by_zone[zone]
+        preferred = room.template.preferred_aspect_ratio
+        if base.get(zone, aspect) > preferred + 1e-6:
+            continue  # already past preferred in the base plan: nothing here to spill
+        tier = _QUALITY_TIER_GROUP.get(room.role)
+        if tier is ZoneGroup.SERVICE and private_improves:
+            hard = room.template.max_aspect_ratio
+            allowance = _QUALITY_LOWER_TIER_SEVERE_FRACTION * (hard - preferred)
+        else:
+            allowance = _QUALITY_SPILL
+        if aspect > preferred + allowance + 1e-6:
             return False
     return True
 
@@ -1517,8 +1618,10 @@ def _quality_accepts(base: dict[str, float], new: dict[str, float],
 def _quality_candidates(rows: list[list[ProgramRoom]], net_width: float, areas: dict[str, float],
                         options: Repartition, corridor_on_east: bool,
                         ) -> list[list[list[ProgramRoom]]]:
-    """The legal re-partitions of `rows` that bring the column's worst bedroom-class room toward
-    its preferred aspect at `net_width`, best-estimated first, at most `_MAX_QUALITY_PAIRINGS`.
+    """The legal re-partitions of `rows` that bring the column's worst PRIVATE (bedroom-class) or
+    SERVICE (wet) room toward its preferred aspect at `net_width` — PRIVATE judged first, so a
+    candidate is ranked ahead only where it does not cost a PRIVATE room anything (`_quality_score`)
+    — best-estimated first, at most `_MAX_QUALITY_PAIRINGS`.
 
     Only the dependent pairing is tried (`_dependent_pairings`): a lone row of ANY role — a shared
     bath, the safe room, a bedroom, a WC, a closed kitchen — takes the host's corridor-facing slot
@@ -1531,10 +1634,11 @@ def _quality_candidates(rows: list[list[ProgramRoom]], net_width: float, areas: 
     base = _estimated_row_shapes(rows, net_width, areas, options.hard)
     if base is None:
         return []
-    base_score = _quality_score(_preferred_aspects(base, by_zone.values()), by_zone)
-    if base_score[0] <= 1e-6:
-        return []
-    ranked: list[tuple[tuple[float, int, float], tuple, list[list[ProgramRoom]]]] = []
+    base_aspects = _preferred_aspects(base, by_zone.values())
+    if _quality_shortfall(base_aspects, by_zone) <= 1e-6:
+        return []  # every scored room (PRIVATE or SERVICE) is already inside its preferred aspect
+    base_score = _quality_score(base_aspects, by_zone)
+    ranked: list[tuple[tuple[float, int, float, int, float], tuple, list[list[ProgramRoom]]]] = []
     seen: set[tuple] = set()
     for index, row in enumerate(rows):
         if len(row) != 1 or row[0].zone_id in options.never_shared:
