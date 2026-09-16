@@ -38,7 +38,9 @@ from app.vertical_slice.concept_generator import (
     program_capacity_gross_m2,
 )
 from app.vertical_slice.relationships import describe
-from app.vertical_slice.spec import RelationStrength
+from app.geometry_domain.walls import BoundaryContext
+from app.vertical_slice.hub_guard import proportions_of
+from app.vertical_slice.spec import HouseConcept, PublicOpenSide, RelationStrength
 from app.vertical_slice.general_pipeline import (
     ALTERNATIVE_PLAN_LIMIT,
     GeneralSliceResult,
@@ -274,7 +276,7 @@ def generate_demo_design(project: Project,
             f"לא נצר תוכנית עם מסדרון צר ממה שביקשת.",
             reasons_so_far or head.outcome.value)
 
-    selection = _select_plans(results, spec.program.target_built_area_m2)
+    selection = _select_plans(results, spec.program.target_built_area_m2, spec.concept)
     if selection is None:
         return _finish(project, spec, head, preference_dropped, outlines=results)
     return _result_from(project, spec, selection, results, preference_dropped)
@@ -567,8 +569,92 @@ def _any_plan(results: list[OutlineResult]) -> bool:
     return any(r.plans for r in results)
 
 
+# ------------------------------------------------------------------ L orientation tiebreak
+#
+# The two L massings (arm at the rear: public band on the street; arm at the front: band to the
+# garden) are the same dimensions by construction and the parti sizes them symmetrically, so the
+# two-wing plans they produce tie EXACTLY on the pool's area criterion — measured on the five
+# real briefs where both validated (161.5/161.5, 167.87/167.87, …). Left to the pool's own
+# determinism (`outline.order`), the rear-arm L won every time and a "living to the garden" L was
+# never shown. This tiebreak applies only to valid plans of one non-rectangle massing that are
+# otherwise tied by the existing criteria: the person's `public_open_side` first, then the
+# realized quality of the tied peers alone, then `outline.order` for determinism. It is not a
+# ranking rule — an L gets nothing for being an L, and the primary is never touched.
+
+_HABITABLE_ROLES = frozenset({"LIVING", "DINING", "KITCHEN", "BEDROOM", "MASTER_BEDROOM",
+                              "SAFE_ROOM", "STUDY", "FAMILY_ROOM"})
+
+
+@dataclass(frozen=True)
+class LQuality:
+    """The realized measures two tied L plans are compared on — all existing ones."""
+
+    bedroom_class_aspect: float | None   # worst of the bedrooms' and the master's long/short; lower is better
+    wet_share: float                     # wet rooms touching a wet room or the kitchen; higher is better
+    two_sided: float                     # habitable rooms with two exterior walls; higher is better
+
+
+def l_quality_of(design) -> LQuality:
+    proportions = proportions_of(design)
+    aspects = [a for a in (proportions.bedroom_max, proportions.master) if a is not None]
+    habitable = [r for r in design.rooms if set(r.roles) & _HABITABLE_ROLES]
+    two_sided = (sum(1 for r in habitable
+                     if sum(1 for f in r.wall_facts.values()
+                            if f.boundary_context is BoundaryContext.EXTERIOR) >= 2)
+                 / len(habitable)) if habitable else 0.0
+    return LQuality(max(aspects) if aspects else None, proportions.wet_share, two_sided)
+
+
+def _l_quality_of_plan(plan) -> LQuality:
+    return l_quality_of(plan.design)
+
+
+def _pareto_better(a: LQuality, b: LQuality, eps: float = 1e-6) -> bool:
+    """`a` better than `b` on at least one measure and worse on none."""
+    def cmp(x, y, lower_is_better):
+        if x is None or y is None:
+            return 0
+        if abs(x - y) <= eps:
+            return 0
+        return (1 if x < y else -1) if lower_is_better else (1 if x > y else -1)
+    verdicts = (cmp(a.bedroom_class_aspect, b.bedroom_class_aspect, True),
+                cmp(a.wet_share, b.wet_share, False),
+                cmp(a.two_sided, b.two_sided, False))
+    return any(v > 0 for v in verdicts) and not any(v < 0 for v in verdicts)
+
+
+def _band_faces_garden(orr: OutlineResult) -> bool | None:
+    """Where an L massing's public band faces: the arm at the FRONT leaves the band at the rear
+    (garden); at the REAR, the band is on the street. None for a rectangle."""
+    massing = orr.outline.massing
+    if massing is None:
+        return None
+    return massing.arm_end == "front"
+
+
+def _break_l_tie(peers: list, concept: HouseConcept):
+    """Which of several otherwise-tied plans of one L massing is shown. `peers` in pool order."""
+    if len(peers) == 1:
+        return peers[0]
+    if concept.public_open_side is not PublicOpenSide.ENGINE:
+        want_garden = concept.public_open_side is PublicOpenSide.GARDEN
+        matching = [item for item in peers if _band_faces_garden(item[0]) is want_garden]
+        if matching:
+            peers = matching
+            if len(peers) == 1:
+                return peers[0]
+    qualities = [(item, _l_quality_of_plan(item[1])) for item in peers]
+    undominated = [item for item, q in qualities
+                   if not any(_pareto_better(other, q) for other_item, other in qualities
+                              if other_item is not item)]
+    if len(undominated) == 1:
+        return undominated[0]
+    return (undominated or peers)[0]      # exact tie: pool order (outline.order, index) decides
+
+
 def _select_plans(results: list[OutlineResult],
-                  requested_m2: float | None) -> PlanSelection | None:
+                  requested_m2: float | None,
+                  concept: HouseConcept | None = None) -> PlanSelection | None:
     """Which plans the screen shows, chosen across every outline that produced any.
 
     THE PRIMARY is the outline primary whose gross area is nearest the requested area — today's
@@ -621,11 +707,21 @@ def _select_plans(results: list[OutlineResult],
     # A massing is a coarser difference than an organisation family, and the one a person sees
     # first; a valid plan of another massing is shown before a second organisation of the same
     # one. Display de-duplication only, like family: never an input to the primary.
+    concept = concept or HouseConcept()
     for item in pool:
         if len(shown) >= _SHOWN_LIMIT:
             break
         massings = {plan.massing_signature for _, plan in shown}
         if unseen_drawing(item) and item[1].massing_signature not in massings:
+            if item[1].massing_signature != "1W":
+                # Several valid plans of this massing tied on the area criterion (the two L
+                # orientations): the tiebreak decides which one is shown, not the pool order.
+                area_key = round(abs(item[1].concept.used_area_m2 - target), 4)
+                peers = [other for other in pool
+                         if other[1].massing_signature == item[1].massing_signature
+                         and round(abs(other[1].concept.used_area_m2 - target), 4) == area_key
+                         and unseen_drawing(other)]
+                item = _break_l_tie(peers, concept)
             take(item)
     # Pass 1: families not yet shown. Pass 2: outlines not yet shown (a different house size or
     # shape of a family already on screen). Never the same outline re-proportioned.

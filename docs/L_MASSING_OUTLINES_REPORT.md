@@ -42,6 +42,16 @@ The L outlines join the **engine survey**, which runs only when the person gave 
 - **Frontend**: 164 passed (1 new); `tsc` only the six pre-existing errors.
 - The 108-context sample: primaries 98/98 identical to `main`, 0 gained, 0 lost (above).
 
+## The L-orientation tiebreak (same branch, second commit)
+
+The two L massings are the same dimensions and the parti sizes them symmetrically, so their plans tie EXACTLY on the pool's area criterion (measured on all five real dual-valid briefs: 161.5/161.5, 167.87/167.87, 168.5/168.5 ×2, 165.97/165.97). Left to the pool's determinism (`outline.order`), the rear-arm L was shown every time and a garden-facing L never. `_select_plans` now breaks that tie — and only that tie, among valid plans of one non-rectangle massing otherwise tied — in `demo/service.py`:
+
+1. `HouseConcept.public_open_side`: GARDEN → the L whose band faces the garden (arm at the front); STREET → the band on the street (arm at the rear). (The demo has no concept field yet, so today this is always ENGINE; the path is tested on stubs.)
+2. ENGINE → **realized quality of the tied peers only**, Pareto (better on ≥ 1, worse on none) over existing measures: the bedroom-class aspect (`hub_guard.proportions_of`: worst of bedrooms and master), wet adjacency share (same source), and two-sided exposure (habitable rooms with two exterior walls, from `wall_facts`). No global rule, no bonus for being an L, the primary untouched.
+3. Exact tie → `outline.order`, for determinism.
+
+Measured on the five dual-valid briefs — the orientations are NOT exact mirrors in realized quality: rear dominates once (two-sided 0.71 vs 0.57), **front dominates once** (4BR/216 m²: 0.625 vs 0.5 — the garden-facing L wins on merit), three tie exactly and fall to order. Shown: rear ×4, front ×1. 108-context sample vs `main`: primaries 98/98 identical, 0 gained, 0 lost; every L brief shows `rectangle · L · rectangle` (one has only one rectangle alternative to show); 0 rectangle alternatives displaced by a second L. Tests (+8 on stubs): GARDEN → front, STREET → rear, ENGINE picks the dominating peer and falls to order when measures conflict or tie, a preference nobody matches falls through to quality, rectangles and the primary untouched, one L in the shown set, and the tiebreak never overrides the area criterion (a nearer L wins whatever the preference).
+
 ## Left open
 
 - Cost: each L massing is a full `run_general` (one-wing partis on the primary rectangle included, then discarded). A `two_wing_only` mode in the generator would roughly halve the L survey; left out because `concept_generator.py` is under concurrent edit.
