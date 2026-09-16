@@ -37,7 +37,8 @@ Special rule for `bedrooms` (sleeping rooms):
 - A room named for who sleeps in it is a bedroom: חדר ילדים, חדר הורים, חדר שינה, חדר אורחים
   (when described as a room to sleep in).
 - A room named for what is DONE in it is not: חדר עבודה, חדר משחקים, חדר כביסה, מחסן, ספרייה.
-  Do not count those here — report them under `other_requests` (see the room-type rule there).
+  Do not count those here. Most go under `other_requests` (see the room-type rule there); a named
+  laundry room is the one exception — it has its own field, `laundry` below.
 - THE BARE WORD "חדרים" IS THE MOST COMMON WAY PEOPLE SAY THIS, and it has two meanings. Decide by
   whether the public rooms are named separately in the same sentence:
   * The sentence ALSO names סלון / מטבח / פינת אוכל separately — then the plain "N חדרים" are N
@@ -116,6 +117,21 @@ automatically an open-plan request — check whether it is being negated.
 - If the text says nothing either way, output {"value": false, "source": "inferred"} — do not assume \
 an open plan that was never asked for.
 
+`laundry` — WHETHER THE TEXT ASKS FOR A LAUNDRY ROOM OF ITS OWN:
+- `requested` is {"value": true, "source": "requested"} ONLY when the text names a SEPARATE ROOM \
+for laundry: חדר כביסה, חדר שירות לכביסה, מקום/חדר נפרד למכונת כביסה. Quote the exact phrase in \
+`source_text`.
+- NEVER infer a room from an appliance mention alone. Mentioning a washing machine or dryer, or a \
+laundry corner INSIDE another room, is NOT a room request: "מכונת כביסה במטבח", "יש לי מייבש", \
+"פינת כביסה במרפסת" (a corner OF the balcony, not its own room) all stay {"value": false, \
+"source": "inferred"} with empty `source_text`. Only a NAMED ROOM counts, exactly as for every \
+other room in `other_requests` below (חדר עבודה, מחסן, …) — a laundry room is the one such room \
+with its own field instead of going there.
+- If the text says nothing about laundry at all, output {"value": false, "source": "inferred"} and \
+empty `source_text` — never guess, and never default to "requested".
+- When it is genuinely unclear whether the phrase names a room or just an appliance, default to \
+false/"inferred" — the same fail-toward-nothing rule as every other field above.
+
 Special rule for `pool`:
 - If the text never mentions a pool, `pool.requested` is "unknown" (not false), and `length_m`/`width_m` \
 are "unknown" too.
@@ -161,10 +177,10 @@ Special rule for `corridor_width` (the hall / מסדרון / פרוזדור):
 `other_requests` — REQUIREMENTS THIS SYSTEM CANNOT YET EXPRESS:
 - The fields above are the ONLY requirements the planner can act on. A description often carries
   more: A ROOM THIS SYSTEM CANNOT PLAN — the planner knows only living, dining, kitchen, corridor,
-  bedrooms, a safe room and bathrooms, so any OTHER room the person asks for must be reported here
-  with topic "room_type": חדר עבודה, חדר כביסה, מחסן, חדר משחקים, ספרייה, מרתף, יחידת דיור, סטודיו,
-  a walk-in closet, a garage as a room. This is the most commonly dropped kind of request and the
-  one people notice first, so never let a named room go unreported. Also: dimensions for a space
+  bedrooms, a safe room, bathrooms and (see `laundry` above) a laundry room, so any OTHER room the
+  person asks for must be reported here with topic "room_type": חדר עבודה, מחסן, חדר משחקים, ספרייה,
+  מרתף, יחידת דיור, סטודיו, a walk-in closet, a garage as a room. This is the most commonly dropped
+  kind of request and the one people notice first, so never let a named room go unreported. Also: dimensions for a space
   OTHER than the corridor ("a 4 m ceiling"), orientation
   ("living room facing south"), style, materials, budget, accessibility, a garden layout, a
   basement, a balcony, storage.
@@ -188,8 +204,9 @@ Special rule for `corridor_width` (the hall / מסדרון / פרוזדור):
   "other" when nothing fits.
 - Do NOT list anything already covered by the structured fields above: bathrooms and toilets, a bedroom
   count, a safe room, parking, a pool, floors, whether the kitchen is open, a NUMERIC corridor
-  width, or a room RELATIONSHIP between two resolvable rooms. Those are extracted, not unsupported.
-  A corridor mentioned WITHOUT a number still belongs here — there is nothing to plan from.
+  width, a NAMED laundry room, or a room RELATIONSHIP between two resolvable rooms. Those are
+  extracted, not unsupported. A corridor mentioned WITHOUT a number still belongs here — there is
+  nothing to plan from, and so does a laundry APPLIANCE mentioned without a room (see `laundry`).
 - Do NOT invent requirements, and do NOT list mere description of the family or the plot. If the
   text asks for nothing beyond the structured fields, return an empty list.
 """
@@ -247,6 +264,19 @@ class RoomRelationship(BaseModel):
     strength: RequestSeverity = RequestSeverity.PREFERENCE
     source_text: str = ""
     ambiguous: bool = False
+
+
+class LaundryRoomDemand(BaseModel):
+    """Whether the text asks for a laundry room of its own (2026-09-16, phase 1 — see
+    docs/LAUNDRY_ROOM_OPTION_REVIEW.md). `requested.source` follows the same convention as every
+    other `TaggedBool` field: "requested" when the person named the room, "inferred" when nothing
+    in the text does — never "requested" from an appliance mention alone. There is no
+    "count_derived" case here the way there is for a wet room: a laundry room is never padded in
+    from a number.
+    """
+
+    requested: TaggedBool = Field(default_factory=lambda: TaggedBool(value=False, source="inferred"))
+    source_text: str = ""
 
 
 class UnsupportedRequest(BaseModel):
@@ -349,6 +379,10 @@ class BriefExtraction(BaseModel):
     parking_spaces: TaggedInt
     pool: PoolField
     open_plan: TaggedBool = Field(default_factory=lambda: TaggedBool(value=None, source="unknown"))
+    #: Whether a laundry room was named (2026-09-16, phase 1). Defaulted so extractions built
+    #: before this field existed still validate, to "not requested" — the honest reading of a
+    #: brief that never mentions this field at all.
+    laundry: LaundryRoomDemand = Field(default_factory=LaundryRoomDemand)
     #: Requirements found in the brief that no structured field can carry. Defaulted so extractions
     #: built before this field existed still validate.
     other_requests: list[UnsupportedRequest] = Field(default_factory=list)

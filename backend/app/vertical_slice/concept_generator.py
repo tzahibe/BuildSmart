@@ -60,6 +60,7 @@ from .spec import (
     ArchitecturalSpec,
     CorridorRequirement,
     CorridorWidthMode,
+    LaundryDemand,
     WetRoomKind,
     WetRoomRequirement,
     WetRoomStrength,
@@ -169,12 +170,18 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # a dressing room, a laundry, a store, a work nook and a stair core all as "שירותים". These are
     # PRODUCT POLICY placeholders like every other row here, NOT verified regulation.
     #
-    # NOTHING PRODUCES THESE YET. `build_room_program` derives its rooms from `ProgramSpec`, which
-    # has no field that asks for a store or a laundry, so no demo brief can currently reach them —
-    # by design: adding the request path is a Concept Generator change and was explicitly out of
-    # scope. What these rows buy today is that anything constructing a `ZoneSpec` directly (the
-    # realizability harness, a future concept builder) can name the room correctly instead of
-    # borrowing a wet room's identity.
+    # NOTHING PRODUCES FIVE OF THESE SIX YET. `build_room_program` derives its rooms from
+    # `ProgramSpec`, which has no field that asks for a store, a den, a study, a dressing room or a
+    # stair core, so no demo brief can currently reach them — by design: adding each request path
+    # is its own Concept Generator change and was explicitly out of scope here. What these five
+    # rows buy today is that anything constructing a `ZoneSpec` directly (the realizability
+    # harness, a future concept builder) can name the room correctly instead of borrowing a wet
+    # room's identity.
+    #
+    # LAUNDRY is the exception (2026-09-16 phase 1): `ProgramSpec.laundry` now carries an explicit
+    # request, and `build_room_program` emits the room from it — gated by `LAUNDRY_ROOM_ENABLED`
+    # below until the planner sweep this phase produced is accepted. See
+    # docs/LAUNDRY_ROOM_OPTION_REVIEW.md.
     #
     # `elasticity` places each row in the ranking already documented at the top of this table
     # (PUBLIC > habitable PRIVATE > service/wet > circulation > fixed); none of them disturbs the
@@ -216,6 +223,14 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # `scale_program` lands here first, not on a bedroom.
     ProgramRole.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
 }
+
+#: LAUNDRY ROOM — PHASE 1 GATE (2026-09-16, docs/LAUNDRY_ROOM_OPTION_REVIEW.md). `False` keeps
+#: `build_room_program` byte-identical to before this phase for every brief, whatever
+#: `ProgramSpec.laundry` says: the request is parsed, stored and carried through, but not yet
+#: planned. Flip to `True` only once the planner sweep this phase's report calls for has been
+#: reviewed and accepted — this is the single point that decides whether real users ever see a
+#: generated laundry room; nothing else in this module should gate on `ProgramSpec.laundry` itself.
+LAUNDRY_ROOM_ENABLED = False
 
 #: The room lobby of the hub parti (feature 005) — the compact circulation cell the private wing's
 #: rooms open onto. PRODUCT POLICY placeholders like every row above, derived from a visual census
@@ -486,6 +501,15 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
         role = ProgramRole.TOILET if wet.kind is WetRoomKind.GUEST_WC else ProgramRole.BATHROOM
         rooms.append(ProgramRoom(wet.zone_id, role, ZoneGroup.SERVICE, ROOM_TEMPLATES[role],
                                  wet.host_zone, wet))
+
+    # Laundry room — phase 1 (2026-09-16, docs/LAUNDRY_ROOM_OPTION_REVIEW.md). The brief's request
+    # (`program.laundry`) and whether it is actually PLANNED are two different questions:
+    # `LAUNDRY_ROOM_ENABLED` answers the second, independently of what was asked, until the sweep
+    # this phase produced is reviewed. `entered_from` is deliberately never set — a laundry room is
+    # circulation-accessible like a WC, never an ensuite-style dependent; `_build_access` already
+    # reaches every SERVICE room from the hall with no room-specific code.
+    if LAUNDRY_ROOM_ENABLED and program.laundry.demand is LaundryDemand.ROOM:
+        add("LAUNDRY", ProgramRole.LAUNDRY, ZoneGroup.SERVICE)
 
     return rooms
 
@@ -1367,22 +1391,39 @@ def _access_intact(rows: list[list[ProgramRoom]], options: Repartition,
     return True
 
 
+#: Zone groups eligible for `_rows_for_width`'s tier-1 rescue below. SERVICE, not a role list: a
+#: WC and now a laundry room are the two roles that have ever needed it, but the ELIGIBILITY
+#: condition is the group, not either name — whatever else ever joins `ZoneGroup.SERVICE` is
+#: rescued the same way with no new code here. PRIVATE (bedroom-class rooms) is deliberately
+#: excluded even though `_pair_with_dependent` itself doesn't care (tier 2's `_repartition_rows`
+#: already pairs a lone bedroom into an ensuite's row, proven by
+#: `test_tier2_pairs_a_bedroom_with_the_ensuite_row_and_puts_it_at_a_column_end`): widening the
+#: FAST PATH to bedrooms was never asked for and was never measured, so it stays tier-2-only.
+_ROW_RESCUE_GROUPS = (ZoneGroup.SERVICE,)
+
+
 def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
                     fallback: Repartition | None = None,
                     corridor_on_east: bool = True) -> list[list[ProgramRoom]]:
     """The rows a column plans with at `net_width`.
 
-    The normal path (no `fallback`) keeps a column's rows, with one settled exception: a WC alone
-    in a row that cannot be shaped at that width (`room_depth_band_m` is None — the WC would be a
-    strip or oversized) shares an ensuite's row (`_pair_with_dependent`); a column with no ensuite
-    keeps its rows and is refused downstream with its own reason. Tier 2 (`fallback` given)
-    applies the same idea to ANY room, with every partner the access model permits
-    (`_repartition_rows`).
+    The normal path (no `fallback`) keeps a column's rows, with one settled exception: a lone
+    SERVICE room (`_ROW_RESCUE_GROUPS`) that cannot be shaped at this width (`room_depth_band_m`
+    is None — it would be a strip or oversized) and is not itself a dependent shares an ensuite's
+    row (`_pair_with_dependent`); a column with no ensuite keeps its rows and is refused downstream
+    with its own reason. This was the WC's fix (2026-09-14) and now also reaches a requested
+    laundry room (2026-09-16, docs/LAUNDRY_ROOM_OPTION_REVIEW.md) — same mechanism, same
+    eligibility test, no role named either time: `_pair_with_dependent`'s swap is safe for ANY
+    room that is (a) hall-facing already (`not entered_from`, so the swap cannot orphan a door)
+    and (b) not an open-plan member (excluded by the group check — a PUBLIC room's legal partner
+    is a chain neighbour, `_pair_with_open_member`, which this fast path does not try; that is
+    tier 2's job). Tier 2 (`fallback` given) applies the fuller idea to ANY room, with every
+    partner the access model permits (`_repartition_rows`), open-chain pairing included.
     """
     if fallback is not None:
         return _repartition_rows(rows, net_width, fallback, corridor_on_east)
     for i, row in enumerate(rows):
-        if (len(row) == 1 and row[0].role is ProgramRole.TOILET and not row[0].entered_from
+        if (len(row) == 1 and row[0].group in _ROW_RESCUE_GROUPS and not row[0].entered_from
                 and room_depth_band_m(row[0].template, net_width) is None):
             shared = _pair_with_dependent(rows, i)
             if shared is not None:
@@ -3611,7 +3652,6 @@ def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[floa
     from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
     opening = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
     inset = _EDGE_INSET_ALLOWANCE_M
-    wet_roles = (ProgramRole.BATHROOM, ProgramRole.TOILET)
 
     def net_aspect(w: float, d: float) -> float:
         w, d = w - inset, d - inset
@@ -3778,7 +3818,11 @@ def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[floa
                         seated_max = max(seated_max, seated)
                         ens_ok = mate is None or _shared_edge_m(
                             rects[mate.zone_id], rects[mate.entered_from]) >= opening - 1e-6
-                        wets = [r for r in rooms if r.role in wet_roles and r.zone_id in rects]
+                        # M5 wet adjacency: SERVICE rooms are exactly the plumbed ones — the gate
+                        # applied to whichever of them the programme has (BATHROOM/TOILET before
+                        # 2026-09-16; now also a requested LAUNDRY, docs/LAUNDRY_ROOM_OPTION_REVIEW.md)
+                        # with no role named here, mirroring `_ROW_RESCUE_GROUPS` above.
+                        wets = [r for r in rooms if r.group is ZoneGroup.SERVICE and r.zone_id in rects]
                         adj = sum(1 for r in wets if any(
                             _shared_edge_m(rects[r.zone_id], rects[o.zone_id]) > 0.3 for o in wets if o is not r))
                         wet = adj / len(wets) if wets else 1.0

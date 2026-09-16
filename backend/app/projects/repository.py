@@ -58,6 +58,8 @@ class ProjectRepository(ABC):
         setbacks: SetbackAssumptions | None = None,
         wet_room_kinds: list[WetRoomKindRecord] | None = None,
         wet_room_questions: list[WetRoomQuestionRecord] | None = None,
+        laundry_requested: TaggedBool | None = None,
+        laundry_source_text: str | None = None,
     ) -> Project | None: ...
 
     @abstractmethod
@@ -193,6 +195,8 @@ class JsonFileProjectRepository(ProjectRepository):
         setbacks: SetbackAssumptions | None = None,
         wet_room_kinds: list[WetRoomKindRecord] | None = None,
         wet_room_questions: list[WetRoomQuestionRecord] | None = None,
+        laundry_requested: TaggedBool | None = None,
+        laundry_source_text: str | None = None,
     ) -> Project | None:
         store = self._load()
         record = store.get(project_id)
@@ -209,6 +213,9 @@ class JsonFileProjectRepository(ProjectRepository):
                 "pool": pool,
                 "wet_rooms": wet_rooms,
                 "open_plan": open_plan,
+                "laundry_requested": laundry_requested,
+                "laundry_source_text": (laundry_source_text if laundry_source_text is not None
+                                        else existing.laundry_source_text),
                 "unsupported_requests": unsupported_requests or [],
                 "corridor_width": corridor_width,
                 "room_relationships": room_relationships or [],

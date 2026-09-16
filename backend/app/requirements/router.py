@@ -40,6 +40,8 @@ def parse_requirements(project_id: str) -> Project:
         pool=extraction.pool,
         wet_rooms=wet_rooms,
         open_plan=extraction.open_plan,
+        laundry_requested=extraction.laundry.requested,
+        laundry_source_text=extraction.laundry.source_text,
         unsupported_requests=[UnsupportedRequestRecord(text=r.text, topic=r.topic, severity=r.severity.value)
                               for r in [*extraction.other_requests, *unresolved]],
         corridor_width=CorridorWidthField(

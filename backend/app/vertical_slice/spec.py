@@ -153,6 +153,33 @@ ENSUITE_HOST_MASTER = "MASTER_BEDROOM"
 ENSUITE_HOST_BEDROOM = "BEDROOM"
 
 
+class LaundryDemand(str, Enum):
+    """What the brief asked for a laundry room to be.
+
+    Two values today. A niche/alcove treatment (a laundry appliance recessed into circulation or
+    the kitchen rather than its own room) is a real future option this enum deliberately leaves
+    room for — the name is reserved in the docs this phase produced — but it is NOT implemented:
+    `NONE`/`ROOM` are the only members, and nothing in this codebase should assume a third exists.
+    """
+
+    NONE = "none"
+    ROOM = "room"
+
+
+@dataclass(frozen=True)
+class LaundryRequirement:
+    """What the brief said about a laundry room, with the words that said it.
+
+    There is no COUNT_DERIVED case here the way there is for `WetRoomOrigin` — a laundry room is
+    never padded in from a number, never inferred from an appliance mention (see
+    `requirements/parser.py`'s extraction rules). `demand` is `ROOM` only when the person named a
+    room; `source_text` is empty whenever it is not.
+    """
+
+    demand: LaundryDemand = LaundryDemand.NONE
+    source_text: str = ""
+
+
 @dataclass(frozen=True)
 class WetRoomRequirement:
     """One wet room the brief counted, with whatever the brief said about it."""
@@ -193,6 +220,12 @@ class ProgramSpec:
     #: defect the engine refuses (`concept_generator.resolve_wet_rooms`). The COUNT stays the
     #: authority on how many.
     wet_room_kinds: tuple[WetRoomRequirement, ...] = ()
+    #: Whether the brief asked for a laundry room of its own (2026-09-16 phase 1). Never derived,
+    #: never padded — `LaundryDemand.NONE` (the default) is the honest value for "not asked".
+    #: Emitting an actual room for `ROOM` is additionally gated by
+    #: `concept_generator.LAUNDRY_ROOM_ENABLED` until the planner sweep this phase produced is
+    #: accepted — see docs/LAUNDRY_ROOM_OPTION_REVIEW.md.
+    laundry: LaundryRequirement = LaundryRequirement()
 
     @property
     def total_built_area_m2(self) -> float | None:

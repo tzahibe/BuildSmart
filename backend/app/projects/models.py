@@ -431,6 +431,13 @@ class Project(BaseModel):
     #: the REVIEW step before generation.
     wet_rooms: TaggedInt | None = None
     open_plan: TaggedBool | None = None
+    #: Whether the brief named a laundry room of its own (2026-09-16, phase 1 — see
+    #: docs/LAUNDRY_ROOM_OPTION_REVIEW.md). `None` means "never parsed yet", same convention as
+    #: every other field in this block; a parsed project always carries a value with a `source`.
+    #: Planning it is a SEPARATE decision (`concept_generator.LAUNDRY_ROOM_ENABLED`) — this field
+    #: only records what the person asked for.
+    laundry_requested: TaggedBool | None = None
+    laundry_source_text: str = ""
     #: Requirements the brief asked for that no structured field can carry (see
     #: requirements/parser.py's `UnsupportedRequest`). Kept on the project so the REVIEW screen can
     #: show them back instead of the system dropping them silently.

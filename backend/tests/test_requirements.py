@@ -6,7 +6,7 @@ from app.projects.models import PoolField, SourceTag, TaggedBool, TaggedFloat, T
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.routes import base_routes as project_base_routes
 from app.requirements import router as requirements_router
-from app.requirements.parser import RequirementExtraction, RequirementParser
+from app.requirements.parser import LaundryRoomDemand, RequirementExtraction, RequirementParser
 
 
 class FakeRequirementParser(RequirementParser):
@@ -64,10 +64,43 @@ CONFLICT_EXTRACTION = RequirementExtraction(
     ),
 )
 
+LAUNDRY_DESCRIPTION = 'בית עם 3 חדרי שינה וחדר כביסה נפרד'
+LAUNDRY_EXTRACTION = RequirementExtraction(
+    floors=TaggedInt(value=1, source=SourceTag.inferred),
+    bedrooms=TaggedInt(value=3, source=SourceTag.requested),
+    safe_room=TaggedBool(value=None, source=SourceTag.unknown),
+    parking_spaces=TaggedInt(value=None, source=SourceTag.unknown),
+    pool=PoolField(
+        requested=TaggedBool(value=None, source=SourceTag.unknown),
+        length_m=TaggedFloat(value=None, source=SourceTag.unknown),
+        width_m=TaggedFloat(value=None, source=SourceTag.unknown),
+    ),
+    laundry=LaundryRoomDemand(requested=TaggedBool(value=True, source=SourceTag.requested),
+                              source_text="חדר כביסה נפרד"),
+)
+
+#: An appliance mention, deliberately NOT a room request — the negative case the parser's
+#: `laundry` rule exists for. See requirements/parser.py's system prompt.
+LAUNDRY_APPLIANCE_ONLY_DESCRIPTION = 'בית עם 3 חדרי שינה, יש לי מכונת כביסה במטבח'
+LAUNDRY_APPLIANCE_ONLY_EXTRACTION = RequirementExtraction(
+    floors=TaggedInt(value=1, source=SourceTag.inferred),
+    bedrooms=TaggedInt(value=3, source=SourceTag.requested),
+    safe_room=TaggedBool(value=None, source=SourceTag.unknown),
+    parking_spaces=TaggedInt(value=None, source=SourceTag.unknown),
+    pool=PoolField(
+        requested=TaggedBool(value=None, source=SourceTag.unknown),
+        length_m=TaggedFloat(value=None, source=SourceTag.unknown),
+        width_m=TaggedFloat(value=None, source=SourceTag.unknown),
+    ),
+    # requested stays False/"inferred" — the model default; no `laundry=` override here.
+)
+
 CANNED = {
     FULL_DESCRIPTION: FULL_EXTRACTION,
     POOL_NO_DIMS_DESCRIPTION: POOL_NO_DIMS_EXTRACTION,
     CONFLICT_DESCRIPTION: CONFLICT_EXTRACTION,
+    LAUNDRY_DESCRIPTION: LAUNDRY_EXTRACTION,
+    LAUNDRY_APPLIANCE_ONLY_DESCRIPTION: LAUNDRY_APPLIANCE_ONLY_EXTRACTION,
 }
 
 PROJECT_PAYLOAD_TEMPLATE = {
@@ -162,6 +195,42 @@ def test_parse_conflicting_floors_stays_unknown(client: TestClient):
     response = client.post(f"/projects/{project_id}/requirements")
 
     assert response.json()["floors"] == {"value": None, "source": "unknown"}
+
+
+def test_parse_named_laundry_room_merges_into_the_project(client: TestClient):
+    """2026-09-16, phase 1: a named laundry room is a structured field, not an unsupported
+    request — see docs/LAUNDRY_ROOM_OPTION_REVIEW.md."""
+    project_id = _create_project(client, LAUNDRY_DESCRIPTION)
+
+    response = client.post(f"/projects/{project_id}/requirements")
+
+    body = response.json()
+    assert body["laundry_requested"] == {"value": True, "source": "requested"}
+    assert body["laundry_source_text"] == "חדר כביסה נפרד"
+    # A named room is NOT also reported as an unsupported request.
+    assert not any("כביסה" in r["text"] for r in body["unsupported_requests"])
+
+
+def test_parse_laundry_appliance_mention_does_not_become_a_room_request(client: TestClient):
+    """The negative case: a washing machine mentioned in passing must not silently become a
+    requested laundry room."""
+    project_id = _create_project(client, LAUNDRY_APPLIANCE_ONLY_DESCRIPTION)
+
+    response = client.post(f"/projects/{project_id}/requirements")
+
+    body = response.json()
+    assert body["laundry_requested"] == {"value": False, "source": "inferred"}
+    assert body["laundry_source_text"] == ""
+
+
+def test_new_project_has_no_laundry_requirement_yet(client: TestClient):
+    project_id = _create_project(client, LAUNDRY_DESCRIPTION)
+
+    response = client.get(f"/projects/{project_id}")
+
+    body = response.json()
+    assert body["laundry_requested"] is None
+    assert body["laundry_source_text"] == ""
 
 
 def test_parse_nonexistent_project_returns_404(client: TestClient):
