@@ -3,6 +3,8 @@
 produced BEFORE this task), and V2.1 (generate_tagged_candidates, this task's structural variants +
 local search), on identical real pipeline inputs, for the four required scenarios."""
 import json
+import tempfile
+import os
 import math
 import time
 from datetime import UTC, datetime
@@ -27,6 +29,20 @@ from app.geometry.spatial_v2.scoring import score_layout
 from app.projects.models import PoolField, Project, SourceTag, TaggedBool, TaggedFloat, TaggedInt
 
 _SAMPLES_DIR = Path(__file__).parent / "spatial_v2_1_samples"
+
+
+def _out_dir() -> Path:
+    """Where this evaluation writes its report and design artefacts.
+
+    The committed samples under `_SAMPLES_DIR` are documentation of one deliberate run, not a
+    regression fixture — nothing reads them back — and every run used to rewrite them with fresh
+    timing fields, so `git status` was dirty after any `pytest` and a merge once failed over them.
+    They are rewritten only when asked (`BUILDSMART_WRITE_SAMPLES=1`); otherwise the artefacts go
+    to a scratch directory and the repository stays clean.
+    """
+    if os.environ.get("BUILDSMART_WRITE_SAMPLES") == "1":
+        return _SAMPLES_DIR
+    return Path(tempfile.gettempdir()) / "buildsmart_samples" / _SAMPLES_DIR.name
 
 _UNKNOWN_INT = TaggedInt(value=None, source=SourceTag.unknown)
 _UNKNOWN_BOOL = TaggedBool(value=None, source=SourceTag.unknown)
@@ -124,8 +140,9 @@ def _run_scenario(label: str, project: Project, footprint_override: BuildingFoot
     print(f"\n=== {label} ===")
     print(json.dumps(report, indent=2, default=str))
 
-    _SAMPLES_DIR.mkdir(exist_ok=True)
-    (_SAMPLES_DIR / f"{label}_report.json").write_text(json.dumps(report, indent=2, default=str))
+    out = _out_dir()
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"{label}_report.json").write_text(json.dumps(report, indent=2, default=str))
 
     return report, v21_result, v1_result
 

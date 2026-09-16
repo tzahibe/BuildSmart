@@ -114,7 +114,7 @@ BRIEF (free text)
   ├─ safe geometry adapter ──────────── authoritative geometry → proven-safe rectangles
   ├─ geometry core ──────────────────── exact tiling on a 5 cm integer grid
   ├─ doors → windows → furniture ────── openings and feasibility
-  ├─ validation C1–C13 ──────────────── HARD GATE: a failure returns no plan
+  ├─ validation C1–C22 ──────────────── HARD GATE: a failure returns no plan
   │
   └─ DemoDesign ─────────────────────── the authoritative contract the UI renders verbatim
 ```
@@ -124,7 +124,7 @@ the footprint exactly on a 5 cm integer grid — so room areas are exact, not ro
 Wall types resolve by precedence (`OPEN > RC_SAFE_ROOM > EXTERIOR > PARTITION`) through a bounded
 re-solve loop, because wall thickness depends on wall type and wall type depends on the layout.
 
-### The thirteen checks
+### The checks
 
 No overlapping rooms · the whole footprint used · room areas and dimensions valid · safe room
 envelope and area · every room physically reachable from the entrance · no needless doors inside an
@@ -138,14 +138,17 @@ outdoor areas explicitly classified · **every declared connection realized in t
 
 | Supported | Not yet |
 |---|---|
-| 2–3 bedrooms | 4+ bedrooms |
-| optional safe room (ממ״ד) | more than one floor |
-| 1–3 wet rooms | pools |
-| open-plan **or** closed kitchen | 3+ parking spaces |
-| 0–2 parking spaces | non-rectangular footprints |
-| single floor, rectangular footprint | |
+| 1–6 bedrooms | more than one floor |
+| optional safe room (ממ״ד) | pools |
+| 1–3 wet rooms | 3+ parking spaces |
+| open-plan **or** closed kitchen | T, U and courtyard shapes |
+| 0–2 parking spaces | L-shaped houses on a rectangular plot (the outline search offers rectangles only) |
+| single floor, rectangular outline | |
+| an **L-shaped house** — two wings, one seam — where the buildable region is itself L-shaped and yields two adjacent safe rectangles (pipeline level: `run_general` with site constraints) | |
 
-Anything in the right column is refused explicitly, with a reason.
+Anything in the right column is refused explicitly, with a reason. An L is never a shape you pick: when the
+land offers two adjacent rectangles the planner tries a two-wing house beside the one-wing ones, and a valid
+one is shown as an alternative — the primary stays the plan nearest the requested area.
 
 ---
 
