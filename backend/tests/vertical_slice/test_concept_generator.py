@@ -268,7 +268,10 @@ def test_generator_produces_a_bounded_candidate_set(name):
     # (`Repartition`) is its own block after every normal peer, ordered the same way inside.
     peers = [c for c in result.candidates if "hub last resort" not in c.rationale]
     tier1, tier2 = _tiers(peers)
-    assert 1 <= len(tier1) <= 24
+    # Each fallback class (shrunk / over_preferred / both) keeps up to `wanted` candidates of its
+    # own beside the normal ones (`_build`'s `budget_left`), so the per-variant ceiling is wider
+    # than the 24 the normal walk alone allowed. Still bounded, still not padded.
+    assert 1 <= len(tier1) <= 48
     assert peers == tier1 + tier2, "tier 2 comes after every normal candidate and twin"
     for block in (tier1, tier2):
         block_twins = [c for c in block if c.rationale.endswith(FREE_TWIN_RATIONALE)]

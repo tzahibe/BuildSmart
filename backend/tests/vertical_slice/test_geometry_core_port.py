@@ -67,3 +67,36 @@ def test_safe_room_in_open_group_still_rejected_eagerly_in_the_port():
     wing = Wing("W", 0, 0, m_to_u(9.0), m_to_u(6.0), Split(Cut.V, Leaf("LIVING"), Leaf("SAFE_ROOM"), None))
     with pytest.raises(ValueError, match="SAFE_ROOM"):
         Fixture("BAD", (wing,), zones, DesiredAccessTopology(()), open_groups=(("LIVING", "SAFE_ROOM"),))
+
+
+# ------------------------------------------------------------------ forced-leaf precheck
+
+def _corridor_fixture(hall_w_m: float, depth_m: float, forced: bool) -> Fixture:
+    """A 1.4 m corridor beside a room, the full depth of the wing: under aspect 12 a corridor that
+    narrow can run about 16 m, not 22."""
+    zones = (
+        ZoneSpec("HALL", (ProgramRole.HALL,), 8.0, 25.0, 60.0, 1.2, max_aspect_ratio=12.0),
+        ZoneSpec("ROOM", (ProgramRole.LIVING,), 30.0, 60.0, 500.0, 3.0, max_aspect_ratio=12.0),
+    )
+    tree = Split(Cut.V, Leaf("HALL"), Leaf("ROOM"), m_to_u(hall_w_m) if forced else None)
+    wing = Wing("W", 0, 0, m_to_u(hall_w_m + 5.0), m_to_u(depth_m), tree)
+    return Fixture("CORRIDOR", (wing,), zones, DesiredAccessTopology(()))
+
+
+def test_a_leaf_its_forced_cuts_fix_outside_its_shape_curve_is_refused_before_any_composition():
+    from app.vertical_slice.geometry_core.engine import forced_leaf_refusal
+    refusal = forced_leaf_refusal(_corridor_fixture(1.4, 22.0, forced=True))
+    assert refusal is not None and "HALL" in refusal and "1.4x22.0" in refusal
+    with pytest.raises(GeometryInfeasible, match="forced cuts fix"):
+        solve_fixture(_corridor_fixture(1.4, 22.0, forced=True))
+
+
+def test_the_precheck_refuses_only_what_the_solver_refuses():
+    """Same corridor at a depth its aspect allows: nothing to refuse, and the solve goes through
+    at the forced width. Unforced, the solver may widen the corridor itself, so the precheck says
+    nothing about it."""
+    from app.vertical_slice.geometry_core.engine import forced_leaf_refusal
+    assert forced_leaf_refusal(_corridor_fixture(1.4, 13.0, forced=True)) is None
+    assert solve_fixture(_corridor_fixture(1.4, 13.0, forced=True)).rects["HALL"].w == m_to_u(1.4)
+    assert forced_leaf_refusal(_corridor_fixture(1.4, 22.0, forced=False)) is None
+    assert solve_fixture(_corridor_fixture(1.4, 22.0, forced=False)).rects["HALL"].w > m_to_u(1.4)

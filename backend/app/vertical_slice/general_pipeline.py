@@ -668,11 +668,20 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
     """
     found: list[RealizedPlan] = []
     seen = {chosen.layout_signature}
+    # A family already realized (the chosen plan's, or an alternative's) is not tried again: the
+    # demo shows one plan per family per outline (`service._select_plans`), so a second
+    # re-proportioning of the same family would be realized and then dropped — and with each
+    # fallback class keeping its own candidates (`concept_generator._build`), three such
+    # re-proportionings of the primary's family filled the limit and a brief that had alternatives
+    # showed none. Families are read off the concept's tree, before any solving.
+    families = {chosen.family_signature}
     attempts = 0
     for index, candidate in enumerate(candidates):
         if len(found) >= limit or attempts >= ALTERNATIVE_ATTEMPT_LIMIT:
             break
         if index == chosen_index:
+            continue
+        if _family_signature(candidate.concept.fixture, candidate.strategy) in families:
             continue
         attempts += 1
         try:
@@ -683,6 +692,7 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
         if not plan.ok or plan.layout_signature in seen:
             continue
         seen.add(plan.layout_signature)
+        families.add(plan.family_signature)
         found.append(plan)
     return tuple(found)
 

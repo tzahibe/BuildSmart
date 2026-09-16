@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import bisect
 import math
+from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
 from enum import Enum
 
@@ -354,6 +355,15 @@ class PlanFailure:
     #: nearest miss by shortfall, and a shape refusal has none, so without this flag the one
     #: signal that says "repartition would help" is exactly the one the diagnosis drops.
     shape_seen: bool = False
+    #: Which fallback MECHANISM could address this failure (reason-aware gating, `_build`):
+    #: `deficit_fixable` — the rows' WANTS overflow the column but their FLOORS fit, so shrinking
+    #: the wants toward the floors (`allow_deficit`) can plan it; `hard_fixable` — a PREFERRED
+    #: maximum is what blocked, and the room concerned has hard headroom above it, so sizing past
+    #: preferred (`allow_hard`) can plan it. Aggregated over a seam search like `shape_seen`: true
+    #: when ANY seam failed that way. A fallback whose mechanism no failure asked for is not run —
+    #: measured before this, every proportion paid up to six planner attempts regardless.
+    deficit_fixable: bool = False
+    hard_fixable: bool = False
 
 
 def _nearest_miss(current: PlanFailure | None, candidate: PlanFailure) -> PlanFailure:
@@ -1005,7 +1015,8 @@ def _shape_failure(room: ProgramRoom, net_w_m: float, net_d_m: float,
             f"{t.max_aspect_ratio} aspect ratio and {t.min_short_side_m} m short side under its "
             f"{limit:.0f} m2 {'hard ' if hard else 'preferred '}maximum (needs "
             f"{max(t.min_short_side_m, net_w_m / t.max_aspect_ratio):.2f} m, allowed "
-            f"{limit / net_w_m:.2f} m)")
+            f"{limit / net_w_m:.2f} m)",
+            hard_fixable=not hard and room_depth_band_m(t, net_w_m, hard=True) is not None)
     aspect_lo = net_w_m / t.max_aspect_ratio
     aspect_hi = net_w_m * t.max_aspect_ratio
     if net_d_m < aspect_lo - 1e-6:
@@ -1023,8 +1034,18 @@ def _shape_failure(room: ProgramRoom, net_w_m: float, net_d_m: float,
             RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
             f"{room.zone_id} would be {net_w_m:.2f} x {net_d_m:.2f} m = {net_w_m * net_d_m:.1f} m2 "
             f"in the {where}, past its {limit:.0f} m2 {'hard ' if hard else 'preferred '}maximum",
-            net_w_m * net_d_m - limit)
+            net_w_m * net_d_m - limit,
+            hard_fixable=not hard and t.hard_max > t.max_area_m2 + _AREA_TOL_M2)
     return None
+
+
+def _hard_headroom(rooms: Iterable[ProgramRoom]) -> bool:
+    """Whether sizing past the PREFERRED maxima can change anything for these rooms: at least one
+    has a hard maximum above its preferred one. Under `allow_hard` the surplus distribution, the
+    band and the ceilings all move with that headroom, so any failure decided after it is in play
+    is marked `hard_fixable` when this holds — conservatively: a hard attempt may still fail, but
+    one is never skipped where it could have planned."""
+    return any(r.template.hard_max > r.template.max_area_m2 + _AREA_TOL_M2 for r in rooms)
 
 
 def _row_widths(row: list[ProgramRoom], net_width: float,
@@ -1144,6 +1165,15 @@ def _verify_row_shapes(rows: list[list[ProgramRoom]], depths: list[float], net_w
             if failure is not None:
                 return failure
     return None
+
+
+def _after_distribution(failure: PlanFailure | None, rows: list[list[ProgramRoom]],
+                        hard: bool) -> PlanFailure | None:
+    """A failure decided on depths the surplus distribution chose: under `allow_hard` the
+    distribution itself differs wherever a row has hard headroom, so the failure may not recur."""
+    if failure is None or hard or failure.hard_fixable:
+        return failure
+    return replace(failure, hard_fixable=_hard_headroom(r for row in rows for r in row))
 
 
 @dataclass(frozen=True)
@@ -1527,7 +1557,9 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
         # must not be masked by an earlier row's size.
         failure = _verify_row_shapes(rows, floors, net_width, where, hard=False)
         if failure is not None and failure.reason is RejectionReason.ROOM_ABOVE_MAXIMUM_AREA:
-            return None, failure
+            # The hard pass does not make this check at all (it clamps the row to its ceiling
+            # instead), so it can plan the row whether or not the room has hard headroom.
+            return None, replace(failure, hard_fixable=True)
     need = sum(floors)
     if need > column_depth + 1e-9:  # exact on purpose — see the rejected-tolerance note above
         return None, PlanFailure(
@@ -1539,18 +1571,18 @@ def _row_depths(rows: list[list[ProgramRoom]], areas: dict[str, float], net_widt
             return None, PlanFailure(
                 RejectionReason.COLUMN_DEPTH_EXCEEDED,
                 f"{where} needs {sum(wanted):.2f} m of depth but has {column_depth:.2f} m "
-                f"[{'; '.join(terms)}]", sum(wanted) - column_depth)
+                f"[{'; '.join(terms)}]", sum(wanted) - column_depth, deficit_fixable=True)
         wanted = _shrink_to_column(wanted, floors, column_depth)
     depths, failure = _distribute_column_surplus(rows, wanted, net_width, column_depth, where,
                                                  floors=floors, allow_hard=allow_hard)
     if depths is None:
-        return None, failure
+        return None, _after_distribution(failure, rows, allow_hard)
     # The surplus can deepen a shared row past what its narrow member's width allows (the ensuite
     # stood on end), and the width shift can carry a member past its maximum; the widths are
     # re-derived from the final depth and every member re-checked for shape AND area.
     failure = _verify_row_shapes(rows, depths, net_width, where, allow_hard)
     if failure is not None:
-        return None, failure
+        return None, _after_distribution(failure, rows, allow_hard)
     return depths, None
 
 
@@ -1763,7 +1795,9 @@ def _distribute_column_surplus(rows: list[list[ProgramRoom]], wanted: list[float
         return None, PlanFailure(
             RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
             f"{where} has {residual * step:.2f} m of depth no row can take within its rooms' "
-            f"{'hard' if allow_hard else 'preferred'} maximum areas [{ceiling_terms}]", residual * step)
+            f"{'hard' if allow_hard else 'preferred'} maximum areas [{ceiling_terms}]", residual * step,
+            hard_fixable=not allow_hard and any(r.template.hard_max > r.template.max_area_m2 + _AREA_TOL_M2
+                                                 for row in rows for r in row))
     return depths, None
 
 
@@ -1822,7 +1856,7 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
 
     plans: list[ColumnPlan] | None = None
     failure: PlanFailure | None = None
-    shape_seen = False
+    shape_seen = deficit_seen = hard_seen = False
     seams = _seam_options(natural_w, west_min, usable - east_min,
                           limit=None if fallback is not None else _MAX_SEAM_OPTIONS)
     for seam_w in seams:
@@ -1833,9 +1867,12 @@ def plan_layout(rooms: list[ProgramRoom], west: list[ProgramRoom], east: list[Pr
         if plans is not None:
             break
         shape_seen = shape_seen or failure.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
+        deficit_seen = deficit_seen or failure.deficit_fixable
+        hard_seen = hard_seen or failure.hard_fixable
 
     if plans is None:
-        return None, replace(failure, shape_seen=shape_seen)
+        return None, replace(failure, shape_seen=shape_seen, deficit_fixable=deficit_seen,
+                             hard_fixable=hard_seen)
 
     # Areas now FOLLOW the geometry: each zone's band is centred on the rect it will occupy. The
     # ASPECT RATIO does not: it is the template's, unrelaxed — see `_zone_spec`.
@@ -1917,7 +1954,7 @@ def _specs_within_maxima(rooms: list[ProgramRoom], specs: dict[str, ZoneSpec],
                 RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
                 f"{room.zone_id} is planned at {spec.net_area_target_m2:.1f} m2 in the {where}, "
                 f"past its {limit:.0f} m2 {'hard ' if hard else 'preferred '}maximum",
-                spec.net_area_target_m2 - limit)
+                spec.net_area_target_m2 - limit, hard_fixable=not hard and _hard_headroom(rooms))
     return None
 
 
@@ -2123,8 +2160,9 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
         trial = footprint_of(candidate, width, depth)
         tw, th = u_to_m(trial.w), u_to_m(trial.h)
         attempt, reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor)
-        repartitioned = shrunk = False
-        if attempt is None and _shape_refused(reason):
+        repartitioned = shrunk = over_preferred = False
+        asks = _FallbackAsks.of(reason) if attempt is None else None
+        if attempt is None and asks.shape:
             # Tier 2, at THIS proportion only: the normal attempt failed and a room's shape was
             # among the reasons, so the same proportion is planned with rows re-partitioned. The
             # normal diagnosis is kept; tier 2's own nearest miss is appended to it below.
@@ -2133,25 +2171,36 @@ def _build(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
             repartitioned = attempt is not None
             if attempt is None:
                 tier2_miss = _nearest_miss(tier2_miss, tier2_reason)
-        over_preferred = False
+                asks = asks.plus(tier2_reason)
         if attempt is None:
-            # Fallbacks, at THIS proportion only and only now. Inside the preferred maxima
-            # first: rows shrunk toward their floors (`shrunk`, `_row_depths` deficit
-            # distribution). Only if that cannot plan either, rows allowed past their preferred
-            # maxima up to the hard ones (`over_preferred`) — exceeding preferred is for a plan
-            # that has no other way, never for a plan that fits with smaller rooms — and last
-            # both. Each also re-partitioned where a shape was refused.
+            # Fallbacks, at THIS proportion only and only now, and ONLY the ones that add a
+            # mechanism some failure asked for (`_FallbackAsks.worth`). Inside the preferred
+            # maxima first: rows shrunk toward
+            # their floors (`shrunk`, `_row_depths` deficit distribution). Only if that cannot
+            # plan either, rows allowed past their preferred maxima up to the hard ones
+            # (`over_preferred`) — exceeding preferred is for a plan that has no other way, never
+            # for a plan that fits with smaller rooms — and last both. Each also re-partitioned
+            # where a shape was refused. A failed attempt widens what is asked for: a shrunk
+            # attempt that dies on a preferred maximum is what makes the hard attempt worth it.
             hard_possible = _absorbable_over_preferred(rooms, tw * th)
+            tried: set[tuple[bool, bool]] = set()
             for allow_deficit, allow_hard in ((True, False), (False, True), (True, True)):
                 if allow_hard and not hard_possible:
                     continue
-                attempt, _ = plan_layout(rooms, west, east, hall_ids, tw, th, corridor,
-                                         allow_deficit=allow_deficit, allow_hard=allow_hard)
+                if not asks.worth(allow_deficit, allow_hard, tried):
+                    continue
+                tried.add((allow_deficit, allow_hard))
+                attempt, fb_reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor,
+                                                 allow_deficit=allow_deficit, allow_hard=allow_hard)
+                if attempt is None:
+                    asks = asks.plus(fb_reason)
                 if attempt is None and _shape_refused(reason):
-                    attempt, _ = plan_layout(rooms, west, east, hall_ids, tw, th, corridor,
-                                             fallback=repartition, allow_deficit=allow_deficit,
-                                             allow_hard=allow_hard)
+                    attempt, fb_reason = plan_layout(rooms, west, east, hall_ids, tw, th, corridor,
+                                                     fallback=repartition, allow_deficit=allow_deficit,
+                                                     allow_hard=allow_hard)
                     repartitioned = attempt is not None
+                    if attempt is None:
+                        asks = asks.plus(fb_reason)
                 if attempt is not None:
                     over_preferred, shrunk = allow_hard, allow_deficit
                     break
@@ -2191,6 +2240,48 @@ REPARTITIONED_RATIONALE = "; rows re-partitioned (tier 2)"
 SHRUNK_RATIONALE = "; rows shrunk toward their floors (deficit)"
 #: Marker appended to a candidate planned past its rooms' preferred maxima (up to the hard ones).
 OVER_PREFERRED_RATIONALE = "; rooms past their preferred maxima (hard ceiling)"
+
+
+@dataclass(frozen=True)
+class _FallbackAsks:
+    """What the failures at one proportion have asked for, mechanism by mechanism.
+
+    `shape` — a room's shape was refused, so re-partitioning (tier 2) may help; `deficit` — the
+    rows' wants overflowed a column whose floors fit, so shrinking may help; `hard` — a preferred
+    maximum blocked a room that has hard headroom, so sizing past preferred may help. A fallback
+    class is skipped when what it adds was not asked for (`worth`): shrinking a column whose
+    FLOORS already overflow, or inflating rooms that were never blocked by their maximum, cannot
+    plan anything and used to cost a full planner attempt each, at every proportion, for every
+    strategy. Every failed attempt adds what IT asked for (`plus`), so a shrunk attempt that dies
+    on a preferred maximum is what earns the hard attempt after it.
+    """
+    shape: bool = False
+    deficit: bool = False
+    hard: bool = False
+
+    @classmethod
+    def of(cls, failure: PlanFailure | None) -> "_FallbackAsks":
+        return cls().plus(failure)
+
+    def plus(self, failure: PlanFailure | None) -> "_FallbackAsks":
+        if failure is None:
+            return self
+        return _FallbackAsks(self.shape or _shape_refused(failure),
+                             self.deficit or failure.deficit_fixable,
+                             self.hard or failure.hard_fixable)
+
+    def worth(self, allow_deficit: bool, allow_hard: bool,
+              tried: set[tuple[bool, bool]]) -> bool:
+        """Whether the fallback class `(allow_deficit, allow_hard)` can still plan something the
+        attempts so far could not. A mechanism no failure asked for is INERT — shrinking only acts
+        where wants overflow a column whose floors fit, hard ceilings only where a preferred one
+        blocked — so the class behaves exactly like the class with those mechanisms dropped: with
+        nothing left it is the normal attempt again, and with a class already `tried` (and failed)
+        here it is that attempt again. Only then is it skipped."""
+        effective = (allow_deficit and self.deficit, allow_hard and self.hard)
+        if effective == (False, False):
+            return False
+        return effective == (allow_deficit, allow_hard) or effective not in tried
 
 
 def _shape_refused(failure: PlanFailure | None) -> bool:
@@ -2457,6 +2548,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                     for r in _daylight_order(rows[split_at:], north_is_envelope=False)])
                   for split_at in split_options]
         shape_refused = False
+        asks = _FallbackAsks()
         for west_try, east_try in splits:
             attempt, reason = _plan_front_band(rooms, public, west_try, east_try,
                                                u_to_m(trial.w), u_to_m(trial.h))
@@ -2465,6 +2557,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                 break
             failure = _nearest_miss(failure, reason)
             shape_refused = shape_refused or _shape_refused(reason)
+            asks = asks.plus(reason)
         if plan is None and shape_refused and tier2 is None:
             # Tier 2 at this proportion: the same splits, rows re-partitioned and the rear seam
             # searched (`Repartition`). The walk for a NORMAL plan continues regardless, so the
@@ -2477,6 +2570,7 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
                     tier2 = (trial, attempt)
                     break
                 tier2_miss = _nearest_miss(tier2_miss, reason)
+                asks = asks.plus(reason)
         if plan is None and tier2 is None and len(fallback_plans) < 3:
             # Fallbacks at this proportion, in `_build`'s order: shrunk toward the floors (inside
             # the preferred maxima), past the preferred maxima, both — the first class that plans
@@ -2484,18 +2578,26 @@ def _front_band_concept(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candi
             # tried again. Past the rooms' hard capacity the hard attempts are skipped
             # (`_absorbable_over_preferred`).
             hard_possible = _absorbable_over_preferred(rooms, u_to_m(trial.w) * u_to_m(trial.h))
+            tried: set[tuple[bool, bool]] = set()
             for allow_deficit, allow_hard in ((True, False), (False, True), (True, True)):
                 if (allow_deficit, allow_hard) in fallback_plans or (allow_hard and not hard_possible):
                     continue
+                if not asks.worth(allow_deficit, allow_hard, tried):
+                    continue   # no failure asked for what this class adds (`_FallbackAsks`)
+                tried.add((allow_deficit, allow_hard))
                 for west_try, east_try in splits:
-                    attempt, _ = _plan_front_band(rooms, public, west_try, east_try,
-                                                  u_to_m(trial.w), u_to_m(trial.h),
-                                                  allow_deficit=allow_deficit, allow_hard=allow_hard)
+                    attempt, fb_reason = _plan_front_band(rooms, public, west_try, east_try,
+                                                          u_to_m(trial.w), u_to_m(trial.h),
+                                                          allow_deficit=allow_deficit, allow_hard=allow_hard)
+                    if attempt is None:
+                        asks = asks.plus(fb_reason)
                     if attempt is None and shape_refused:
-                        attempt, _ = _plan_front_band(rooms, public, west_try, east_try,
-                                                      u_to_m(trial.w), u_to_m(trial.h),
-                                                      fallback=repartition, allow_deficit=allow_deficit,
-                                                      allow_hard=allow_hard)
+                        attempt, fb_reason = _plan_front_band(rooms, public, west_try, east_try,
+                                                              u_to_m(trial.w), u_to_m(trial.h),
+                                                              fallback=repartition, allow_deficit=allow_deficit,
+                                                              allow_hard=allow_hard)
+                        if attempt is None:
+                            asks = asks.plus(fb_reason)
                     if attempt is not None:
                         if all(prev[1] != attempt for prev in fallback_plans.values()):
                             fallback_plans[(allow_deficit, allow_hard)] = (trial, attempt)
@@ -2612,7 +2714,7 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None,
         seams = _seam_options(natural_w, west_min, usable - east_min, limit=None)
 
     failure: PlanFailure | None = None
-    shape_seen = False
+    shape_seen = deficit_seen = hard_seen = False
     for seam_w in seams:
         east_w = round((usable - seam_w) / 0.05) * 0.05
         west_w = fw - hall_w - east_w
@@ -2623,7 +2725,10 @@ def _plan_front_band(rooms, public, west_rows, east_rows, fw, fh, corridor=None,
             return plan, ""
         failure = _nearest_miss(failure, reason)
         shape_seen = shape_seen or reason.reason is RejectionReason.ROOM_SHAPE_INFEASIBLE
-    return None, replace(failure, shape_seen=shape_seen)
+        deficit_seen = deficit_seen or reason.deficit_fixable
+        hard_seen = hard_seen or reason.hard_fixable
+    return None, replace(failure, shape_seen=shape_seen, deficit_fixable=deficit_seen,
+                         hard_fixable=hard_seen)
 
 
 def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall_w, west_w,
@@ -2696,7 +2801,8 @@ def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall
         return None, PlanFailure(
             RejectionReason.COLUMN_DEPTH_EXCEEDED,
             f"rear needs {rear_need:.2f} m and the front band at least {band_min:.2f} m, "
-            f"which does not fit {fh:.2f} m of depth")
+            f"which does not fit {fh:.2f} m of depth",
+            hard_fixable=not allow_hard and _hard_headroom(rooms))   # `rear_cap` moves with hard
 
     # The band takes whatever depth the rear does not need, and that is where surplus area used to
     # be dumped: at 220 m2 a 2-bedroom house came out with an 81.5 m2 living room against its own
@@ -2717,7 +2823,8 @@ def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall
             RejectionReason.ROOM_ABOVE_MAXIMUM_AREA,
             f"a {band_depth:.2f} m front band would push {binding[1].zone_id} past its "
             f"{binding[1].template.ceiling_m2(allow_hard):.0f} m2 "
-            f"{'hard ' if allow_hard else 'preferred '}maximum")
+            f"{'hard ' if allow_hard else 'preferred '}maximum",
+            hard_fixable=not allow_hard and _hard_headroom(rooms))   # the band or `rear_cap` moves
 
     depths = []
     for name, width, rws in (("west", west_w, west_rows), ("east", east_w, east_rows)):
@@ -2735,7 +2842,7 @@ def _plan_front_band_at(rooms, public, west_rows, east_rows, fw, fh, areas, hall
         failure = _shape_failure(room, w - _EDGE_INSET_ALLOWANCE_M, net_band, "front band",
                                  allow_hard)
         if failure is not None:
-            return None, failure
+            return None, _after_distribution(failure, [public], allow_hard)
         specs[room.zone_id] = _zone_spec(room, w - _EDGE_INSET_ALLOWANCE_M, net_band, 0.55, 1.70,
                                          allow_hard)
     for width, rws, ds in ((west_w, west_rows, depths[0]), (east_w, east_rows, depths[1])):

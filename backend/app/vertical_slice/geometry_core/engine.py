@@ -406,10 +406,102 @@ def solve_wing(fixture: Fixture, wing: Wing, extra_rc: dict[str, set[Side]] | No
     return out, walls
 
 
+def forced_leaf_refusal(fixture: Fixture, max_wall_iterations: int = 3) -> str | None:
+    """The first leaf whose rectangle its forced cuts already fix and whose shape curve does not
+    contain it, or None.
+
+    Under a chain of forced cuts a leaf's rectangle is decided before any shape set is composed,
+    and `assign` at the cut above it can only refuse — after every set in the wing was built. That
+    refusal was 80 % of the slowest requests: hundreds of planner candidates whose corridor, at
+    the width the planner derived from its area, cannot run the column's depth under its own
+    aspect ratio, each costing a full stage-2 composition to learn it. This asks the same
+    `leaf_shapes` the same question under the same walls, so what it refuses the solver would
+    have refused. Where every cut is forced the geometry is settled here too, so the wall types
+    the solver would only discover from it (safe-room neighbours, open interfaces) are followed
+    through the same bounded re-solve; a rectangle any unforced cut still decides is left to the
+    solver, and so is everything past the first pass of a tree with one.
+    """
+    extra_rc: dict[str, set[Side]] = {}
+    extra_open: dict[str, set[Side]] = {}
+    for _iteration in range(1, max_wall_iterations + 1):
+        rects: dict[str, Rect] = {}
+        walls: WallMap = {}
+        settled = True
+        for wing in fixture.wings:
+            wing_walls = derive_wall_types(fixture, wing, extra_rc, extra_open)
+            wing_rects: dict[str, Rect] = {}
+            settled &= _forced_rects(wing.tree, wing.rect(), wing_rects)
+            for zone_id, rect in wing_rects.items():
+                if rect.w not in leaf_shapes(fixture.zone(zone_id), wing_walls, rect.w, rect.h).get(rect.h, ()):
+                    return (f"leaf '{zone_id}' cannot be {u_to_m(rect.w)}x{u_to_m(rect.h)} m, the "
+                            f"rectangle its forced cuts fix")
+            rects.update(wing_rects)
+            walls.update(wing_walls)
+        if not settled:
+            return None
+        new, new_open = _discovered_walls(fixture, rects, walls, extra_rc, extra_open)
+        if not new and not new_open:
+            return None
+        _add_sides(extra_open, new_open)
+        _add_sides(extra_rc, new)
+    return None
+
+
+def _forced_rects(node: Node, rect: Rect, out: dict[str, Rect]) -> bool:
+    """Collects the rectangles the forced cuts fix; True when they fix every leaf's."""
+    if isinstance(node, Leaf):
+        out[node.zone_id] = rect
+        return True
+    if node.fixed_at_u is None:
+        return False
+    if node.cut is Cut.V:
+        first = Rect(rect.x, rect.y, node.fixed_at_u, rect.h)
+        second = Rect(rect.x + node.fixed_at_u, rect.y, rect.w - node.fixed_at_u, rect.h)
+    else:
+        first = Rect(rect.x, rect.y, rect.w, node.fixed_at_u)
+        second = Rect(rect.x, rect.y + node.fixed_at_u, rect.w, rect.h - node.fixed_at_u)
+    first_settled = _forced_rects(node.first, first, out)
+    return _forced_rects(node.second, second, out) and first_settled
+
+
+def _discovered_walls(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
+                      extra_rc: dict[str, set[Side]], extra_open: dict[str, set[Side]],
+                      ) -> tuple[dict[str, set[Side]], dict[str, set[Side]]]:
+    """The wall types this geometry reveals that the passes so far did not carry: safe-room
+    neighbours (RC) and open interfaces."""
+    safe_rooms = [z.zone_id for z in fixture.zones if z.is_safe_room and z.zone_id in rects]
+    discovered: dict[str, set[Side]] = {}
+    for sr in safe_rooms:
+        for zid, sides in _neighbour_sides(rects, sr).items():
+            if fixture.zone(zid).is_safe_room:
+                continue
+            discovered.setdefault(zid, set()).update(sides)
+    new = {z: s - extra_rc.get(z, set()) for z, s in discovered.items()}
+    new = {z: s for z, s in new.items() if s}
+
+    open_found = _discover_open_interfaces(fixture, rects, walls)
+    new_open = {z: s - extra_open.get(z, set()) for z, s in open_found.items()}
+    new_open = {z: s for z, s in new_open.items() if s}
+    return new, new_open
+
+
+def _add_sides(into: dict[str, set[Side]], found: dict[str, set[Side]]) -> None:
+    for z, s in found.items():
+        into.setdefault(z, set()).update(s)
+
+
+def _sides_note(found: dict[str, set[Side]]) -> str:
+    return ", ".join(f"{z}:{''.join(x.value for x in sorted(s, key=lambda k: k.value))}"
+                     for z, s in found.items())
+
+
 def solve_fixture(fixture: Fixture, max_wall_iterations: int = 3) -> SolveResult:
     """Bounded re-solve. Pass 1 uses purely structural wall types; later passes only add
     RC where geometry revealed a safe-room neighbour. The iteration count is the measured
     answer to the report's §7 claim."""
+    refusal = forced_leaf_refusal(fixture, max_wall_iterations)
+    if refusal is not None:
+        raise GeometryInfeasible(refusal)
     notes: list[str] = []
     extra_rc: dict[str, set[Side]] = {}
     extra_open: dict[str, set[Side]] = {}
@@ -422,41 +514,19 @@ def solve_fixture(fixture: Fixture, max_wall_iterations: int = 3) -> SolveResult
             rects.update(r)
             walls.update(w)
 
-        safe_rooms = [z.zone_id for z in fixture.zones if z.is_safe_room and z.zone_id in rects]
-        discovered: dict[str, set[Side]] = {}
-        for sr in safe_rooms:
-            for zid, sides in _neighbour_sides(rects, sr).items():
-                if fixture.zone(zid).is_safe_room:
-                    continue
-                discovered.setdefault(zid, set()).update(sides)
-
-        new = {z: s - extra_rc.get(z, set()) for z, s in discovered.items()}
-        new = {z: s for z, s in new.items() if s}
-
-        open_found = _discover_open_interfaces(fixture, rects, walls)
-        new_open = {z: s - extra_open.get(z, set()) for z, s in open_found.items()}
-        new_open = {z: s for z, s in new_open.items() if s}
-
+        new, new_open = _discovered_walls(fixture, rects, walls, extra_rc, extra_open)
         if not new and not new_open:
             notes.append(f"wall types converged after {iteration} iteration(s)")
             return SolveResult(rects=rects, walls=walls, wall_iterations=iteration, notes=notes)
 
-        for z, s in new_open.items():
-            extra_open.setdefault(z, set()).update(s)
+        _add_sides(extra_open, new_open)
         if new_open:
-            notes.append(
-                f"iteration {iteration}: found geometric open interfaces "
-                + ", ".join(f"{z}:{''.join(x.value for x in sorted(s, key=lambda k: k.value))}"
-                            for z, s in new_open.items()))
+            notes.append(f"iteration {iteration}: found geometric open interfaces {_sides_note(new_open)}")
         if not new:
             continue
 
-        for z, s in new.items():
-            extra_rc.setdefault(z, set()).update(s)
-        notes.append(
-            f"iteration {iteration}: found safe-room neighbours "
-            + ", ".join(f"{z}:{''.join(x.value for x in sorted(s, key=lambda k: k.value))}" for z, s in new.items())
-        )
+        _add_sides(extra_rc, new)
+        notes.append(f"iteration {iteration}: found safe-room neighbours {_sides_note(new)}")
 
     raise GeometryInfeasible(f"wall types did not converge within {max_wall_iterations} iterations")
 
