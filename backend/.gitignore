@@ -5,3 +5,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 app/data/
+app/knowledge/data/
+tests/ai_harness/.cache/
+tests/ai_harness/reports/*
+!tests/ai_harness/reports/.gitkeep

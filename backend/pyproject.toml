@@ -33,6 +33,7 @@ local-model = [
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
+    "pytest-xdist>=3.8.0",
 ]
 
 [tool.uv]
@@ -44,3 +45,11 @@ package = false
 # gate a production run — it is run on purpose, from its own directory, not swept up by a bare
 # `pytest`. Naming a path explicitly (e.g. `pytest spikes/geometry_core`) still works.
 testpaths = ["tests"]
+# See tests/conftest.py's TEST_MODE gating and docs/AI_TEST_HARNESS.md. A plain `pytest` run
+# collects none of these (deselected unless TEST_MODE says otherwise) — deterministic stays fast.
+markers = [
+    "local_ai: calls a local Ollama model (needs TEST_MODE=LOCAL_AI/FULL_AI/NIGHTLY)",
+    "production_ai: calls the real OpenAI API, costs money (needs TEST_MODE=FULL_AI/NIGHTLY + OPENAI_API_KEY)",
+    "regression: the full frozen-ProgramSpec-context regression corpus (needs TEST_MODE=REGRESSION/FULL_AI/NIGHTLY)",
+    "nightly: reserved for a larger nightly-only evaluation set",
+]
