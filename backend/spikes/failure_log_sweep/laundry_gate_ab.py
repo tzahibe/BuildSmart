@@ -4,19 +4,25 @@
 
 Every scenario here has `laundry=NONE` (the log predates this field, and `LAUNDRY_ROOM_ENABLED`
 is off besides) — so this answers ONE question precisely: does generalising `_rows_for_width`'s
-tier-1 rescue from `role is TOILET` to `group is ZoneGroup.SERVICE`
-(docs/LAUNDRY_ROOM_OPTION_REVIEW.md phase 1, §3) ever change a REAL brief's plan by newly
-rescuing a lone BATHROOM row that the old, narrower guard would have left refused?
+tier-1 rescue from `role is TOILET` alone ever change a REAL brief's plan?
 
-`hub_bound`'s equivalent generalisation (§4) is NOT re-tested here: it is a no-op by
-CONSTRUCTION for every laundry=NONE brief, not merely by measurement — `ZoneGroup.SERVICE` is
-populated by exactly two `build_room_program` call sites (the wet-room loop: BATHROOM/TOILET; the
-gated LAUNDRY branch, inert here) — so with the gate off, `{r for r in rooms if r.group is
-SERVICE}` and `{r for r in rooms if r.role in (BATHROOM, TOILET)}` are the same set for every
-brief in this log, and the two forms of the M5 check cannot diverge. Only the row-rescue guard
-compares a ROLE literal against a GROUP that a role never fully determines (BATHROOM shares
-SERVICE with TOILET), which is why it is the one line that needs an empirical A/B rather than a
-proof by construction.
+ROUND 1 (docs/LAUNDRY_ROOM_PHASE1_REPORT.md §3) generalised to `group is ZoneGroup.SERVICE` — no
+role named at all — and this script found it DID change one real brief: 1/404, a lone BATHROOM
+newly rescued the same way a WC already is. Directed to narrow it once that was surfaced:
+`_ROW_RESCUE_ROLES` now names `(TOILET, LAUNDRY)` explicitly. ROUND 2, re-running this same script
+against the shipped code, confirms that restores 0/404 — see the report for both rounds' numbers.
+`old_rows_for_width` below is still the verbatim PRE-phase-1 body (TOILET only), so this script
+keeps working as the regression check for whatever `_rows_for_width` ships next.
+
+`hub_bound`'s own `group is ZoneGroup.SERVICE` use (§4) was NEVER part of this A/B and was not
+narrowed: it is a no-op by CONSTRUCTION for every laundry=NONE brief, not merely by measurement —
+`ZoneGroup.SERVICE` is populated by exactly two `build_room_program` call sites (the wet-room
+loop: BATHROOM/TOILET; the gated LAUNDRY branch, inert here) — so with the gate off, `{r for r in
+rooms if r.group is SERVICE}` and `{r for r in rooms if r.role in (BATHROOM, TOILET)}` are the
+same set for every brief in this log, and the two forms of that filter cannot diverge. Only the
+row-rescue guard ever compared a ROLE literal against a GROUP that a role doesn't fully determine
+(BATHROOM shares SERVICE with TOILET) — which is why it was the one line measurement, not
+reasoning, had to settle.
 """
 from __future__ import annotations
 
@@ -79,7 +85,7 @@ def main():
     cg._rows_for_width = old_rows_for_width
     off = run_all(contexts, "OFF (TOILET-only guard, pre-phase-1)")
     cg._rows_for_width = SHIPPED_ROWS_FOR_WIDTH
-    on = run_all(contexts, "ON  (ZoneGroup.SERVICE guard, shipped)")
+    on = run_all(contexts, "ON  (shipped _ROW_RESCUE_ROLES guard)")
 
     statuses_differ = [k for k in by_key if off[k]["status"] != on[k]["status"]]
     planned_both = [k for k in by_key if off[k]["status"] == "PLANNED" and on[k]["status"] == "PLANNED"]

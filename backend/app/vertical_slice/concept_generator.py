@@ -1391,15 +1391,17 @@ def _access_intact(rows: list[list[ProgramRoom]], options: Repartition,
     return True
 
 
-#: Zone groups eligible for `_rows_for_width`'s tier-1 rescue below. SERVICE, not a role list: a
-#: WC and now a laundry room are the two roles that have ever needed it, but the ELIGIBILITY
-#: condition is the group, not either name — whatever else ever joins `ZoneGroup.SERVICE` is
-#: rescued the same way with no new code here. PRIVATE (bedroom-class rooms) is deliberately
-#: excluded even though `_pair_with_dependent` itself doesn't care (tier 2's `_repartition_rows`
-#: already pairs a lone bedroom into an ensuite's row, proven by
-#: `test_tier2_pairs_a_bedroom_with_the_ensuite_row_and_puts_it_at_a_column_end`): widening the
-#: FAST PATH to bedrooms was never asked for and was never measured, so it stays tier-2-only.
-_ROW_RESCUE_GROUPS = (ZoneGroup.SERVICE,)
+#: Roles eligible for `_rows_for_width`'s tier-1 rescue below. This was `ZoneGroup.SERVICE` (an
+#: attribute, not a role list) until measurement (2026-09-16,
+#: docs/LAUNDRY_ROOM_PHASE1_REPORT.md §3) found that the group is WIDER than what was actually
+#: proven safe: on the real 418-context corpus, widening to the full group also rescued a lone
+#: BATHROOM in 1 of 404 previously-planned briefs — a different, still-valid plan, but a real
+#: deviation from this phase's own "no change to an existing brief" bar. TOILET (2026-09-14) and
+#: LAUNDRY (this phase) are the two roles actually measured safe here. BATHROOM's own eligibility
+#: for this rescue is a real, separate question — already in motion as its own measured
+#: row-sharing quality initiative (see project memory) — and is deliberately left to that
+#: decision rather than entering as a side effect of the laundry gate.
+_ROW_RESCUE_ROLES = (ProgramRole.TOILET, ProgramRole.LAUNDRY)
 
 
 def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
@@ -1408,22 +1410,25 @@ def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
     """The rows a column plans with at `net_width`.
 
     The normal path (no `fallback`) keeps a column's rows, with one settled exception: a lone
-    SERVICE room (`_ROW_RESCUE_GROUPS`) that cannot be shaped at this width (`room_depth_band_m`
+    room of a `_ROW_RESCUE_ROLES` role that cannot be shaped at this width (`room_depth_band_m`
     is None — it would be a strip or oversized) and is not itself a dependent shares an ensuite's
     row (`_pair_with_dependent`); a column with no ensuite keeps its rows and is refused downstream
     with its own reason. This was the WC's fix (2026-09-14) and now also reaches a requested
-    laundry room (2026-09-16, docs/LAUNDRY_ROOM_OPTION_REVIEW.md) — same mechanism, same
-    eligibility test, no role named either time: `_pair_with_dependent`'s swap is safe for ANY
-    room that is (a) hall-facing already (`not entered_from`, so the swap cannot orphan a door)
-    and (b) not an open-plan member (excluded by the group check — a PUBLIC room's legal partner
-    is a chain neighbour, `_pair_with_open_member`, which this fast path does not try; that is
-    tier 2's job). Tier 2 (`fallback` given) applies the fuller idea to ANY room, with every
-    partner the access model permits (`_repartition_rows`), open-chain pairing included.
+    laundry room (2026-09-16, docs/LAUNDRY_ROOM_PHASE1_REPORT.md) — same mechanism, same
+    eligibility test: `_pair_with_dependent`'s swap is safe for ANY room that is (a) hall-facing
+    already (`not entered_from`, so the swap cannot orphan a door) and (b) not an open-plan member
+    (a PUBLIC room's legal partner is a chain neighbour, `_pair_with_open_member`, which this fast
+    path does not try; that is tier 2's job) — `_ROW_RESCUE_ROLES` narrows that GENERAL condition
+    to the roles measurement has actually cleared, not the other way round. Tier 2 (`fallback`
+    given) applies the fuller idea to ANY room, with every partner the access model permits
+    (`_repartition_rows`), open-chain pairing included — tier 2 was never narrowed, since its own
+    eligibility is already proven generic by `test_tier2_pairs_a_bedroom_with_the_ensuite_row_and_
+    puts_it_at_a_column_end` and was not part of what this phase measured or changed.
     """
     if fallback is not None:
         return _repartition_rows(rows, net_width, fallback, corridor_on_east)
     for i, row in enumerate(rows):
-        if (len(row) == 1 and row[0].group in _ROW_RESCUE_GROUPS and not row[0].entered_from
+        if (len(row) == 1 and row[0].role in _ROW_RESCUE_ROLES and not row[0].entered_from
                 and room_depth_band_m(row[0].template, net_width) is None):
             shared = _pair_with_dependent(rows, i)
             if shared is not None:
@@ -3820,8 +3825,13 @@ def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[floa
                             rects[mate.zone_id], rects[mate.entered_from]) >= opening - 1e-6
                         # M5 wet adjacency: SERVICE rooms are exactly the plumbed ones — the gate
                         # applied to whichever of them the programme has (BATHROOM/TOILET before
-                        # 2026-09-16; now also a requested LAUNDRY, docs/LAUNDRY_ROOM_OPTION_REVIEW.md)
-                        # with no role named here, mirroring `_ROW_RESCUE_GROUPS` above.
+                        # 2026-09-16; now also a requested LAUNDRY, docs/LAUNDRY_ROOM_PHASE1_REPORT.md)
+                        # with no role named here. Unlike `_ROW_RESCUE_ROLES` above, this is NOT
+                        # narrowed to specific roles: with the laundry gate off, `ZoneGroup.SERVICE`
+                        # is populated by exactly BATHROOM/TOILET (build_room_program's only other
+                        # source), so this form is identical to the old 2-role tuple for every
+                        # existing brief BY CONSTRUCTION, not by measurement — there is nothing here
+                        # for a sweep to have found.
                         wets = [r for r in rooms if r.group is ZoneGroup.SERVICE and r.zone_id in rects]
                         adj = sum(1 for r in wets if any(
                             _shared_edge_m(rects[r.zone_id], rects[o.zone_id]) > 0.3 for o in wets if o is not r))

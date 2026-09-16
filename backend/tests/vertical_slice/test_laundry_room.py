@@ -22,6 +22,7 @@ from app.vertical_slice.concept_generator import (
     _rows_for_width,
     _rows_of,
     build_room_program,
+    room_depth_band_m,
 )
 from app.vertical_slice.general_pipeline import run_general_from_site
 from app.vertical_slice.geometry_core.model import ProgramRole
@@ -122,7 +123,9 @@ def _wet_and_laundry_program(**kw) -> list:
 def test_a_laundry_room_that_cannot_be_shaped_across_its_column_joins_the_ensuite_row(monkeypatch):
     """The exact WC fix (`test_strip_rooms.test_a_wc_that_cannot_be_shaped_across_its_column_
     joins_the_ensuite_row`), now reached by a requested laundry room through the SAME code path —
-    `_ROW_RESCUE_GROUPS` is `ZoneGroup.SERVICE`, no role named."""
+    `_ROW_RESCUE_ROLES` names `(TOILET, LAUNDRY)` explicitly (narrowed from the wider
+    `ZoneGroup.SERVICE` after measurement found it also touched BATHROOM; see
+    docs/LAUNDRY_ROOM_PHASE1_REPORT.md §3)."""
     monkeypatch.setattr(cg, "LAUNDRY_ROOM_ENABLED", True)
     rooms = _wet_and_laundry_program()
     private = [r for r in rooms if r.group in (ZoneGroup.PRIVATE, ZoneGroup.SERVICE)]
@@ -159,6 +162,22 @@ def test_a_column_with_no_ensuite_keeps_the_laundry_row_and_is_refused_downstrea
     depths, failure = cg._row_depths(
         rows, {"BEDROOM_1": 10.5, "LAUNDRY": 6.5}, 5.2, 14.0)
     assert depths is None and failure.reason is cg.RejectionReason.ROOM_SHAPE_INFEASIBLE
+
+
+def test_a_lone_bathroom_is_deliberately_not_rescued_at_tier_one():
+    """The point of narrowing `_ROW_RESCUE_ROLES` to (TOILET, LAUNDRY): a lone BATHROOM hitting
+    the same strip condition stays alone and is refused downstream, exactly as it was before this
+    phase — measurement (docs/LAUNDRY_ROOM_PHASE1_REPORT.md §3) found the wider `ZoneGroup.SERVICE`
+    condition rescued a real brief's BATHROOM this way, which the phase's own bar did not want."""
+    bath = _room(ProgramRole.BATHROOM, "BATH_1")
+    ensuite = _room(ProgramRole.BATHROOM, "ENSUITE", entered_from="MASTER")
+    master = cg.ProgramRoom("MASTER", ProgramRole.MASTER_BEDROOM, ZoneGroup.PRIVATE,
+                            ROOM_TEMPLATES[ProgramRole.MASTER_BEDROOM])
+    rows = [[master, ensuite], [bath]]
+    # 6.1 m: `test_strip_rooms.test_band_is_empty_where_the_aspect_floor_exceeds_the_area_cap`'s
+    # own BATHROOM-analogue width — chosen so `room_depth_band_m` is None for the lone BATHROOM.
+    assert room_depth_band_m(bath.template, 6.5) is None
+    assert _rows_for_width(rows, 6.5) is rows
 
 
 def test_toilet_rescue_is_unaffected_by_the_generalisation():
