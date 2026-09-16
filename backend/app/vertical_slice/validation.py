@@ -155,7 +155,19 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
              furniture: list[FurnitureCheck], site: SitePlan,
              corridor: CorridorRequirement | None = None,
              relationships: tuple = (),
-             wet_rooms: tuple[ResolvedWetRoom, ...] = ()) -> ValidationReport:
+             wet_rooms: tuple[ResolvedWetRoom, ...] = (),
+             entry_seed: str = "OUTSIDE",
+             skip_site_checks: bool = False) -> ValidationReport:
+    """`entry_seed`/`skip_site_checks` (multi-level Phase 1, additive): a level with no street —
+    an upper storey, entered by its `VerticalCore` — seeds C5 from the core's zone id instead of
+    `OUTSIDE` (which the fixture does not have) and does not run the SITE checks (C10-C12, C16,
+    C18) at all, rather than trusting a synthetic site plan to pass them.
+
+    BOTH DEFAULT TO TODAY'S SINGLE-LEVEL BEHAVIOUR EXACTLY: a caller that passes neither gets the
+    identical seed and the identical set of checks it always got. `ONLY CHECKS THAT ACTUALLY RUN
+    APPEAR IN THE REPORT` (the same discipline `building_validation.py` states for its own V
+    checks) — a skipped site check is simply absent, never reported as an unearned pass.
+    """
     rep = ValidationReport()
 
     # C1 — no overlap
@@ -266,11 +278,11 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     for connection in realized:
         graph.setdefault(connection.a, set()).add(connection.b)
         graph.setdefault(connection.b, set()).add(connection.a)
-    if entrance_door.placeable:
+    if entry_seed == "OUTSIDE" and entrance_door.placeable:
         graph.setdefault("OUTSIDE", set()).add(entrance_door.b)
         graph.setdefault(entrance_door.b, set()).add("OUTSIDE")
-    seen = {"OUTSIDE"}
-    frontier = ["OUTSIDE"]
+    seen = {entry_seed}
+    frontier = [entry_seed]
     while frontier:
         cur = frontier.pop()
         for nxt in graph.get(cur, ()):
@@ -279,9 +291,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                 frontier.append(nxt)
     all_zones = {z.zone_id for z in fixture.zones}
     unreachable = sorted(all_zones - seen)
+    seed_note = "" if entry_seed == "OUTSIDE" else f" (seeded from {entry_seed})"
     rep.add("C5", "all required spaces physically reachable from the entrance", not unreachable,
             "; ".join(unreachable) or
-            f"all {len(all_zones)} zones reachable over {len(realized)} realized connections")
+            f"all {len(all_zones)} zones reachable over {len(realized)} realized connections{seed_note}")
 
     # C6 — no artificial doors in open-plan
     open_pairs = {frozenset((e.a, e.b)) for e in fixture.access.edges if e.kind is ConnectionKind.OPEN_CONNECTION}
@@ -313,61 +326,62 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
            for f in furniture if f.fits is False]
     rep.add("C9", "furniture-envelope feasibility", not bad, "; ".join(bad) or "all furnished zones fit")
 
-    # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)
-    bad = [f"parking bay at x={p.x} does not front the street (y={p.y}, plot street at y={site.plot.y})"
-           for p in site.parking if p.y != site.plot.y]
-    rep.add("C10", "parking connected to street", not bad, "; ".join(bad) or f"{len(site.parking)} bays front the street")
+    if not skip_site_checks:
+        # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)
+        bad = [f"parking bay at x={p.x} does not front the street (y={p.y}, plot street at y={site.plot.y})"
+               for p in site.parking if p.y != site.plot.y]
+        rep.add("C10", "parking connected to street", not bad, "; ".join(bad) or f"{len(site.parking)} bays front the street")
 
-    # C18 — parking bays clear of the house. C10 only proves a bay touches the street; a bay drawn
-    # INSIDE the footprint touches it too, and that is exactly what a zero front setback produced —
-    # the rooms were painted over the bays and every plan simply had no parking. Fails closed.
-    bad = [f"parking bay at x={p.x} overlaps the house by "
-           f"{sum(p.overlap_area_u(w) for w in site.wings)} u²"
-           for p in site.parking if any(p.overlap_area_u(w) > 0 for w in site.wings)]
-    rep.add("C18", "parking bays clear of the house", not bad,
-            "; ".join(bad) or f"{len(site.parking)} bays outside the footprint")
+        # C18 — parking bays clear of the house. C10 only proves a bay touches the street; a bay drawn
+        # INSIDE the footprint touches it too, and that is exactly what a zero front setback produced —
+        # the rooms were painted over the bays and every plan simply had no parking. Fails closed.
+        bad = [f"parking bay at x={p.x} overlaps the house by "
+               f"{sum(p.overlap_area_u(w) for w in site.wings)} u²"
+               for p in site.parking if any(p.overlap_area_u(w) > 0 for w in site.wings)]
+        rep.add("C18", "parking bays clear of the house", not bad,
+                "; ".join(bad) or f"{len(site.parking)} bays outside the footprint")
 
-    # C11 — pedestrian entrance connected to house
-    bad = []
-    if not entrance_door.placeable:
-        bad.append("entrance door itself is not placeable")
-    walk = site.entrance.path_rect
-    if walk.y != site.plot.y:
-        bad.append("entrance walk does not start at the street edge")
-    if walk.y2 != site.footprint.y:
-        bad.append("entrance walk does not reach the building line")
-    for p in site.parking:
-        if walk.overlap_area_u(p) > 0:
-            bad.append(f"entrance walk overlaps a parking bay")
-    rep.add("C11", "pedestrian entrance connected to house", not bad, "; ".join(bad) or "entrance walk clear, street to door")
+        # C11 — pedestrian entrance connected to house
+        bad = []
+        if not entrance_door.placeable:
+            bad.append("entrance door itself is not placeable")
+        walk = site.entrance.path_rect
+        if walk.y != site.plot.y:
+            bad.append("entrance walk does not start at the street edge")
+        if walk.y2 != site.footprint.y:
+            bad.append("entrance walk does not reach the building line")
+        for p in site.parking:
+            if walk.overlap_area_u(p) > 0:
+                bad.append(f"entrance walk overlaps a parking bay")
+        rep.add("C11", "pedestrian entrance connected to house", not bad, "; ".join(bad) or "entrance walk clear, street to door")
 
-    # C12 — garden explicitly classified (Correction 3 discipline carried into the site stage)
-    unclassified = [o.region_id for o in site.garden if o.classification is OutdoorClassification.UNCLASSIFIED_REMAINDER]
-    rep.add("C12", "outdoor regions explicitly classified", not unclassified,
-            "; ".join(unclassified) or f"{len(site.garden)} garden region(s) explicitly classified")
+        # C12 — garden explicitly classified (Correction 3 discipline carried into the site stage)
+        unclassified = [o.region_id for o in site.garden if o.classification is OutdoorClassification.UNCLASSIFIED_REMAINDER]
+        rep.add("C12", "outdoor regions explicitly classified", not unclassified,
+                "; ".join(unclassified) or f"{len(site.garden)} garden region(s) explicitly classified")
 
-    # C16 — the front door is on the wall of the room it says it opens into.
-    #
-    # THE HOLE THIS CLOSES. C13 enforces "a declared connection must be physically realized" over
-    # the fixture's INTERIOR topology, and the entrance is deliberately not part of that graph — it
-    # is resolved at site level. So the one connection nothing checked was the one the whole
-    # accessibility graph is rooted at: C5 seeds reachability from `entrance_door.b` purely because
-    # the door is `placeable`, which only ever meant "there is wall either side of it". A door drawn
-    # in the dining room's exterior wall while claiming to open into a hall 6.7 m away satisfied
-    # that, and every room was then reported reachable from a connection that did not exist.
-    target = entrance_door.b
-    if target not in rects:
-        rep.add("C16", "the entrance opens into the room it names", False,
-                f"the entrance door names {target}, which is not a room in this plan")
-    else:
-        zone = rects[target]
-        x, y = entrance_door.center_u
-        on_zone_wall = (y == zone.y and zone.x <= x <= zone.x2)
-        rep.add("C16", "the entrance opens into the room it names",
-                entrance_door.placeable and on_zone_wall,
-                f"entrance at x={u_to_m(x):.2f} m on the street wall; {target} spans "
-                f"{u_to_m(zone.x):.2f}-{u_to_m(zone.x2):.2f} m"
-                + ("" if on_zone_wall else " — the door is not on that room's wall"))
+        # C16 — the front door is on the wall of the room it says it opens into.
+        #
+        # THE HOLE THIS CLOSES. C13 enforces "a declared connection must be physically realized" over
+        # the fixture's INTERIOR topology, and the entrance is deliberately not part of that graph — it
+        # is resolved at site level. So the one connection nothing checked was the one the whole
+        # accessibility graph is rooted at: C5 seeds reachability from `entrance_door.b` purely because
+        # the door is `placeable`, which only ever meant "there is wall either side of it". A door drawn
+        # in the dining room's exterior wall while claiming to open into a hall 6.7 m away satisfied
+        # that, and every room was then reported reachable from a connection that did not exist.
+        target = entrance_door.b
+        if target not in rects:
+            rep.add("C16", "the entrance opens into the room it names", False,
+                    f"the entrance door names {target}, which is not a room in this plan")
+        else:
+            zone = rects[target]
+            x, y = entrance_door.center_u
+            on_zone_wall = (y == zone.y and zone.x <= x <= zone.x2)
+            rep.add("C16", "the entrance opens into the room it names",
+                    entrance_door.placeable and on_zone_wall,
+                    f"entrance at x={u_to_m(x):.2f} m on the street wall; {target} spans "
+                    f"{u_to_m(zone.x):.2f}-{u_to_m(zone.x2):.2f} m"
+                    + ("" if on_zone_wall else " — the door is not on that room's wall"))
 
     # C13 — every DECLARED access edge is physically realized.
     #
