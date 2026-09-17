@@ -1,0 +1,185 @@
+# Central configuration for the autonomous engineering workflow (scripts/agent_team/).
+#
+# Every tunable of the orchestrator lives here — nothing is hard-coded across the scripts.
+# Values were chosen conservatively for the machine discovered in Phase 0 (Apple M1 Pro,
+# 10 cores, 32 GiB, shared with interactive Claude sessions that routinely run their own
+# regression sweeps). Raise concurrency only after the system has proven stable.
+version: 1
+
+github:
+  repo: tzahibe/BuildSmart          # origin still says "sddproject"; GitHub redirects the rename
+  base_branch: main
+  poll_interval_seconds: 120
+  poll_labels: [agent:queued]
+  # Trust boundary: only Issues opened by these author associations are executable. Any other
+  # author's Issue is ignored even if it carries the labels (labels can be added by anyone with
+  # triage, the body is untrusted text).
+  executable_author_associations: [OWNER, MEMBER, COLLABORATOR]
+  merge_method: squash              # squash | merge
+  delete_branch_after_merge: true
+  ci_wait_seconds: 5400             # give up waiting for checks after 90 min -> INFRA_FAILURE
+  ci_poll_interval_seconds: 60
+  required_checks:                  # GitHub Actions job names that must be green before review
+    - "gate-1-contract"
+    - "gate-2-static"
+    - "gate-3-verification"
+    - "gate-4-regression"
+
+paths:
+  worktree_root: .worktrees         # gitignored; one directory per Issue
+  branch_prefix: agent/             # agent/<issue>-<slug>
+  state_dir: .agent/state           # SQLite state store + orchestrator lock
+  logs_dir: .agent/logs             # structured run records (redacted)
+  contracts_dir: .agent/contracts   # snapshot of each parsed Issue contract + verification manifest
+
+models:
+  master_team_lead: opus
+  domain_lead: sonnet
+  worker: sonnet
+  reviewer: sonnet
+
+claude:
+  # "auto" resolves: $CLAUDE_BIN, then `claude` on PATH, then the newest VS Code extension binary.
+  binary: auto
+  effort: high
+  worker_timeout_seconds: 3600
+  repair_timeout_seconds: 2400
+  reviewer_timeout_seconds: 1200
+  domain_lead_timeout_seconds: 1200
+  heartbeat_interval_seconds: 30
+  # A WORKING issue whose heartbeat is older than this and whose process is gone is stale.
+  stale_after_seconds: 900
+  worker_permission_mode: acceptEdits
+  # Least privilege: the worker edits files and runs tests in its own worktree only. Pushing,
+  # PR creation, branch switching and any GitHub access are done by the orchestrator, never by
+  # the model. `--permission-prompts none` means anything outside this list is denied, not asked.
+  worker_allowed_tools:
+    - Read
+    - Edit
+    - Write
+    - Glob
+    - Grep
+    - Skill
+    - "Bash(git status*)"
+    - "Bash(git diff*)"
+    - "Bash(git log*)"
+    - "Bash(git add *)"
+    - "Bash(git commit *)"
+    - "Bash(git show*)"
+    - "Bash(uv run pytest*)"
+    - "Bash(uv run python*)"
+    - "Bash(uv sync*)"
+    - "Bash(.venv/bin/pytest*)"
+    - "Bash(.venv/bin/python*)"
+    - "Bash(npm test*)"
+    - "Bash(npm run *)"
+    - "Bash(npx vitest*)"
+    - "Bash(npx tsc*)"
+    - "Bash(ls*)"
+    - "Bash(cat *)"
+    - "Bash(head *)"
+    - "Bash(tail *)"
+    - "Bash(wc *)"
+    - "Bash(grep *)"
+    - "Bash(find *)"
+    - "Bash(sed -n *)"
+  worker_disallowed_tools:
+    - "Bash(git push*)"
+    - "Bash(git checkout*)"
+    - "Bash(git switch*)"
+    - "Bash(git reset*)"
+    - "Bash(git rebase*)"
+    - "Bash(git merge*)"
+    - "Bash(git stash*)"
+    - "Bash(git worktree*)"
+    - "Bash(git branch -D*)"
+    - "Bash(gh *)"
+    - "Bash(rm -rf*)"
+    - "Bash(curl *)"
+    - "Bash(wget *)"
+    - WebFetch
+    - WebSearch
+    - Agent
+  # The reviewer never runs code: read-only file tools plus the diff/evidence in its prompt.
+  reviewer_tools: [Read, Grep, Glob]
+  domain_lead_tools: [Read, Grep, Glob]
+
+resources:
+  max_worker_agents: 2
+  max_reviewer_agents: 1
+  max_domain_leads: 1
+  weighted_capacity: 4              # sum of weights of running agent jobs
+  weights: {LIGHT: 1, MEDIUM: 2, HEAVY: 3}
+  cpu_threshold_percent: 75         # do not spawn when the machine-wide CPU is above this
+  min_free_memory_gb: 6
+  probe_window_seconds: 3           # CPU sampling window
+  # Heavy validation (full pytest, corpus regression, sweeps) uses its own pool so that agent
+  # slots being free never means "run three regression sweeps at once".
+  heavy_job_concurrency: 1
+  heavy_job_stale_after_seconds: 5400
+
+locks:
+  # Semantic domain locks. An Issue declares which it needs, exclusive or shared.
+  known:
+    - planner-core
+    - geometry-core
+    - validator-core
+    - requirements-parser
+    - knowledge-index
+    - frontend-review
+    - database-schema
+    - ci-infra
+    - docs
+  # Domain -> locks implied when the Issue does not spell them out.
+  implied_by_domain:
+    geometry: [geometry-core]
+    validator: [validator-core]
+    backend: [planner-core]
+    knowledge: [knowledge-index]
+    frontend: [frontend-review]
+    infra: [ci-infra]
+  stale_after_seconds: 7200
+
+repair:
+  max_attempts: 2                   # automatic repair attempts after a red CI before agent:blocked
+
+risk_policy:
+  LOW:
+    requires: [ci_green, reviewer_green]
+    auto_merge: true
+    regression: required_if_backend   # regression gate still runs when backend code changed
+  MEDIUM:
+    requires: [ci_green, regression_green, reviewer_green, lead_approval]
+    auto_merge: false
+    regression: required_if_backend
+  HIGH:
+    requires: [ci_green, regression_green, reviewer_green, lead_architecture_review]
+    auto_merge: false
+    regression: always
+
+# Domains whose code changes make the regression gate mandatory.
+regression_domains: [backend, geometry, validator, ai]
+
+commands:
+  # Run once after a worktree is created, keyed by the Issue's domains (backend deps are always
+  # installed — nearly every verification target needs them; frontend only when relevant).
+  worktree_setup:
+    always:
+      - {cwd: backend, cmd: "uv sync --group dev"}
+    frontend:
+      - {cwd: frontend, cmd: "npm ci --no-audit --no-fund"}
+  fast_tests:
+    backend: {cwd: backend, cmd: "uv run pytest -q -x -p no:cacheprovider -n 4", heavy: true}
+    frontend: {cwd: frontend, cmd: "npm test", heavy: false}
+  # Post-merge smoke on main: cheap, critical-path only. Never the corpus.
+  smoke:
+    - {cwd: backend, cmd: "uv run python -c 'import app.main'"}
+    - {cwd: backend, cmd: "uv run pytest -q -p no:cacheprovider tests/test_projects.py tests/test_demo_p0.py tests/test_design.py"}
+  regression:
+    corpus_tests: {cwd: backend, cmd: "TEST_MODE=REGRESSION uv run pytest -q -p no:cacheprovider tests/regression_corpus -n 4", heavy: true}
+    snapshot: {cwd: backend, cmd: "uv run python spikes/failure_log_sweep/corpus_snapshot.py", heavy: true}
+
+timeouts:
+  command_seconds: 1800             # any single setup/test command
+  regression_seconds: 3600
+  merge_wait_seconds: 600
