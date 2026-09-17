@@ -300,9 +300,23 @@ under `-n 4` does not reliably meet. Fixed by:
 
 ## Pilot record
 
-See the "Pilot" section of `docs/AGENT_TEAM_PHASE_0_ENVIRONMENT_REPORT.md` — filled in when the
-first low-risk Issue has gone Issue → poll → worker → PR → gates → review → merge → smoke → closed.
+The workflow's first pilot, Issue #6 (LOW, docs-only, `backend/README.md`), ran the full loop
+for real: Issue → poll → claim → Sonnet worker (1 attempt, 31 turns, $0.60, 151 s) → branch
+`agent/6-document-the-autonomous-workflow-entry-p` → PR #7 → gates → independent Sonnet review
+APPROVE (including one SEMANTIC_REVIEW criterion) → LOW auto-merge (squash `64f0fd70`) →
+post-merge smoke (164 passed) → closed `agent:done`; total agent cost ≈ $0.67.
+
+- Two red gate-2 runs on the way were both environment defects of the workflow itself (not the
+  product), and were fixed through the workflow itself:
+  - Issue #8 / PR #9 (squash `0f4bb586`): dummy `OPENAI_API_KEY` for isolated environments,
+    `gh api --allow-escape-sequences` for logs/artifacts, contract refresh from the live Issue
+    before review/merge, stale-lock heartbeat fallback, skipped gate-4 == regression_green.
+  - Issue #10 / PR #11 (squash `3edb7d07`): CPU-only torch in gate 2, documented CI deselect of
+    the wall-clock budget test, `backend_changed` scoped to backend code only, `local-model`
+    extra installed in worktrees.
+- no admin bypass occurred: `merge_gate_audit` recorded `bypass: false` for all three merges.
+- The merge policy waited for the Team Lead's recorded approval on both MEDIUM Issues (#8, #10).
 
 ## Last verified against git
 
-Branch `infra/agent-team` (this page lands with the Phase F commit).
+`64f0fd70` (main).
