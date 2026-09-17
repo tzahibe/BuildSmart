@@ -23,7 +23,7 @@ specific page below for your task.**
 - [L-Massing](features/l-massing.md) — IMPLEMENTED_MERGED
 - [Wet Rooms](features/wet-rooms.md) — IMPLEMENTED_MERGED
 - [Room Proportion / Quality Tier](features/room-proportion-quality-tier.md) — IMPLEMENTED_MERGED
-- [Laundry](features/laundry.md) — NOT_IMPLEMENTED on `main` (active unmerged work exists — see page)
+- [Laundry](features/laundry.md) — INTEGRATED on `integration/laundry-into-main`, not yet on `main` (see page)
 
 ## Decisions
 
