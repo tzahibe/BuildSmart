@@ -99,7 +99,7 @@ def test_plan_decides_gates():
     m = {"regression_required": True, "risk": "MEDIUM"}
     d = plan.decide(["backend/app/demo/service.py"], m)
     assert d["backend_changed"] and d["regression_required"] and not d["frontend_changed"]
-    d = plan.decide(["docs/wiki/x.md", "backend/README.md"], m)
+    d = plan.decide(["docs/wiki/x.md", "backend/tests/test_x.py"], m)
     assert d["backend_changed"] and not d["regression_required"] and "no backend product code" in d["regression_reason"]
     d = plan.decide(["backend/app/x.py"], {"regression_required": False, "risk": "LOW"})
     assert not d["regression_required"]
@@ -107,6 +107,17 @@ def test_plan_decides_gates():
     assert d["regression_required"]  # HIGH risk + product code always replays the corpus
     d = plan.decide(["frontend/src/App.tsx", "scripts/agent_team/x.py"], None)
     assert d["frontend_changed"] and d["orchestrator_changed"] and not d["regression_required"]
+
+
+def test_backend_docs_alone_do_not_trigger_the_fast_tier():
+    m = {"regression_required": True, "risk": "MEDIUM"}
+    d = plan.decide(["backend/README.md", "docs/wiki/x.md"], m)
+    assert not d["backend_changed"] and not d["regression_required"]
+    d = plan.decide(["backend/README.md", "backend/app/x.py"], m)
+    assert d["backend_changed"]  # code alongside docs still runs the fast tier
+    for path in ("backend/app/x.py", "backend/tests/test_x.py", "backend/spikes/x.py",
+                 "backend/pyproject.toml", "backend/uv.lock"):
+        assert plan.decide([path], m)["backend_changed"], path
 
 
 def test_verify_runs_file_and_grep_targets(tmp_path: Path):
