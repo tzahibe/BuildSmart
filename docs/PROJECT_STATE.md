@@ -28,7 +28,10 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 ## Active branches / work in progress
 
 - `integration/laundry-into-main` — active, unmerged; see the Laundry Wiki page.
-- `worktree-015-laundry-room-option` (locked) — a separate, older, also-unmerged laundry design.
+- `worktree-015-laundry-room-option` (locked) — not a separate/rival laundry design; it is the
+  source branch the Laundry capability was implemented on, merged whole into
+  `integration/laundry-into-main` (`b678967`) through the validated Laundry integration history.
+  Kept checked out/locked as a historical artifact, not for further changes.
 - `specs/009-guest-wc-placement` — spec committed, nothing implemented yet.
 - `specs/005-hub-private-wing` — spec/plan/results committed, implementation not merged
   ("two hard acceptance gates failed") — `decision_status = REJECTED`.
