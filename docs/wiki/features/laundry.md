@@ -128,3 +128,10 @@ N/A — first implementation of this capability; nothing prior existed on `main`
 by direct `grep` against this commit; focused Laundry tests (170) and the full backend suite
 (1376 passed, 4 pre-existing/unrelated failures — see the Knowledge System page) run clean at this
 commit.
+
+`backend/app/knowledge/doc_status.json`'s entry for this page previously still read
+`capability_status: NOT_IMPLEMENTED` even after this rewrite — that table is a hand-curated
+authoritative source, deliberately not derived from a page's own prose (see
+`docs/wiki/architecture/knowledge-system.md`), so editing this page alone never updates it.
+Corrected alongside this note to `capability_status: IMPLEMENTED`, `branch:
+integration/laundry-into-main`, `merged_to_main: false`.
