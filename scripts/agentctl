@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Operator entry point for the autonomous engineering workflow.
+#
+#   scripts/agentctl status | run | once | dry-run | labels | issue ... | approve ... | audit ...
+#
+# Runs `agent_team.cli` inside scripts/agent_team's own uv-managed environment (separate from the
+# product's backend/.venv on purpose: the orchestrator's dependencies never touch product deps).
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export AGENT_TEAM_REPO_ROOT="${AGENT_TEAM_REPO_ROOT:-$ROOT}"
+exec uv run --project "$ROOT/scripts/agent_team" --quiet python -c \
+  "import sys; sys.path.insert(0, '$ROOT/scripts'); from agent_team.cli import main; sys.exit(main())" "$@"

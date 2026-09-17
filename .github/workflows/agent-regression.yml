@@ -1,0 +1,76 @@
+# GATE 4 — corpus regression with a declared budget (reusable; called by agent-ci.yml).
+# Replays the frozen 432-context corpus at the merge-base and at the PR head in two clean
+# checkouts, compares primary signatures/outcomes/refusal codes, and fails on any change outside
+# the Issue's regression budget. The merge-base snapshot is cached by SHA.
+name: agent-regression
+
+on:
+  workflow_call:
+    inputs:
+      head_sha:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-contract
+          path: .agent/ci
+      - name: Resolve merge-base
+        id: base
+        run: |
+          git fetch --no-tags origin main
+          BASE=$(git merge-base origin/main HEAD)
+          echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+          echo "merge-base: $BASE"
+      - name: Restore cached base snapshot
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .agent/ci/base_snapshot.json
+          key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+      - name: Base snapshot (clean checkout at merge-base)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          git worktree add --detach ../base "${{ steps.base.outputs.sha }}"
+          cd ../base/backend
+          uv sync --group dev
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" --workers 4
+      - name: Head snapshot
+        working-directory: backend
+        run: |
+          uv sync --group dev
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" --workers 4
+      - name: Corpus outcome invariants (TEST_MODE=REGRESSION)
+        working-directory: backend
+        env:
+          TEST_MODE: REGRESSION
+        run: uv run pytest -q -p no:cacheprovider tests/regression_corpus -n 4
+      - name: Evaluate the regression budget
+        env:
+          PYTHONPATH: scripts
+        run: |
+          uv run --project scripts/agent_team python -m agent_team.ci.regression_gate \
+            --before .agent/ci/base_snapshot.json --after .agent/ci/head_snapshot.json \
+            --manifest .agent/ci/manifest.json --report .agent/ci/regression_report.json
+      - name: Upload regression report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-regression
+          path: |
+            .agent/ci/regression_report.json
+            .agent/ci/regression_gate_report.json
+          if-no-files-found: warn

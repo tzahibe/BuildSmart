@@ -8,3 +8,12 @@ dist/
 data/
 
 backend/spikes/failure_log_sweep/gained.json
+
+# Autonomous engineering workflow (scripts/agent_team): local runtime state only.
+.worktrees/
+.agent/state/
+.agent/logs/
+.agent/contracts/
+scripts/agent_team/.venv/
+scripts/agent_team/.pytest_cache/
+scripts/agent_team/**/__pycache__/

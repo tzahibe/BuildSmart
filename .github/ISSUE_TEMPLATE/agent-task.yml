@@ -1,0 +1,138 @@
+name: Agent task (autonomous engineering contract)
+description: A structured work contract executed by the autonomous agent team. Only Issues the Opus Team Lead moves to agent:queued are executed.
+title: "[agent] <short imperative title>"
+labels: ["agent:draft"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This Issue is a **work contract**. Its body is parsed by `scripts/agent_team/issue_contract.py`;
+        keep the section headings exactly as rendered by this form. A contract must validate
+        (`scripts/agentctl issue validate <number>`) before it can be queued, and the Team Lead must
+        not queue it while any Acceptance Criterion is not deterministically verifiable.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One paragraph. What outcome this Issue delivers and for whom.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What the system does today (cite modules/tests where useful).
+    validations:
+      required: true
+  - type: textarea
+    id: required
+    attributes:
+      label: Required behavior
+      description: What it must do after this Issue is done.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: One criterion per line, numbered AC-1, AC-2, ... Each must be verifiable by a test, a file check, or the regression harness.
+      placeholder: |
+        - AC-1: ...
+        - AC-2: ...
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What the worker must NOT touch or change, even if tempting.
+    validations:
+      required: true
+  - type: dropdown
+    id: domains
+    attributes:
+      label: Affected domains
+      multiple: true
+      options:
+        - frontend
+        - backend
+        - geometry
+        - validator
+        - knowledge
+        - ai
+        - qa
+        - infra
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk
+      description: LOW = docs / isolated tests / small cosmetic UI. MEDIUM = normal product feature. HIGH = geometry invariants, validator rules, schema, security, deployment, core parsing.
+      options:
+        - LOW
+        - MEDIUM
+        - HIGH
+    validations:
+      required: true
+  - type: dropdown
+    id: resource
+    attributes:
+      label: Resource class
+      description: LIGHT = docs/small edits. MEDIUM = normal feature with unit tests. HEAVY = needs corpus regression / sweeps.
+      options:
+        - LIGHT
+        - MEDIUM
+        - HEAVY
+    validations:
+      required: true
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Issues that must be agent:done first, e.g. "#200, #201". Write "none" when independent.
+      placeholder: none
+    validations:
+      required: true
+  - type: input
+    id: locks
+    attributes:
+      label: Required locks
+      description: Domain locks, e.g. "planner-core (exclusive), knowledge-index (shared)". Write "none" or leave to the domain defaults.
+      placeholder: none
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: |
+        One line per criterion mapping it to deterministic evidence. Targets:
+        pytest:<nodeid>  |  vitest:<file>  |  regression:corpus  |  file:<path>  |  grep:<path>:<regex>  |  cmd:<allowlisted script>
+      placeholder: |
+        - AC-1 -> pytest:backend/tests/test_x.py::test_y
+        - AC-2 -> file:docs/wiki/features/x.md
+        - AC-3 -> regression:corpus
+    validations:
+      required: true
+  - type: textarea
+    id: budget
+    attributes:
+      label: Regression budget
+      description: Allowed behavior changes on the 432-context corpus. Keys — LOST, GAINED, crashes, status_changes, refusal_code_changes, primary_signature_changes. Values — a number, "allowed", "none", or "tagged:<field><op><value>".
+      value: |
+        LOST: 0
+        GAINED: allowed
+        crashes: 0
+        status_changes: 0
+        refusal_code_changes: 0
+        primary_signature_changes: none
+    validations:
+      required: true
+  - type: textarea
+    id: docs
+    attributes:
+      label: Expected documentation changes
+      description: Which Wiki page / report / README must change (or "none").
+    validations:
+      required: true

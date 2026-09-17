@@ -1,0 +1,24 @@
+[project]
+name = "agent-team"
+version = "0.1.0"
+description = "Autonomous engineering workflow orchestrator for BuildSmart (issue -> worker -> PR -> CI -> review -> merge)."
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "psutil>=5.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.uv]
+# Deliberately NOT a package: the orchestrator is a set of modules run in place
+# (`scripts/agentctl` sets up sys.path), exactly like backend/ runs `python -m app.<module>.cli`.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `scripts/` on the path so tests import the modules as the `agent_team` package.
+pythonpath = [".."]
