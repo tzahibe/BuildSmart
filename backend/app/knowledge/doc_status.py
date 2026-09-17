@@ -35,6 +35,37 @@ _DECISION_BONUS = {
     "APPROVED_FOR_IMPLEMENTATION": 1.05,
 }
 
+#: A floor, not a multiplier — canonical Wiki/PROJECT_STATE sources are guaranteed at least this
+#: reranking weight regardless of their doc_status, so a semantically-similar old investigation
+#: can win on raw relevance but never simply outrank the canonical current-truth source on status
+#: alone. Still bounded (1.20 vs the 0.75 SUPERSEDED floor is a ~1.6x spread) — it can break a
+#: near-tie, never flip a real relevance gap; see retrieval.py's scoring pipeline and
+#: test_retrieval_priority.py's worked-example invariants.
+_SOURCE_TYPE_MIN_WEIGHT = {
+    "WIKI_CANONICAL": 1.20,
+    "PROJECT_STATE": 1.20,
+}
+
+#: Path-pattern based default when a doc_status.json entry doesn't set source_type explicitly —
+#: existing entries (authored before source_type existed) still get a sensible classification
+#: without needing every one hand-edited.
+_SPEC_PATH_RE = re.compile(r"^specs/")
+_WIKI_PATH_RE = re.compile(r"^docs/wiki/")
+
+
+def _default_source_type(path: str, doc_status: str) -> str:
+    if _WIKI_PATH_RE.match(path):
+        return "WIKI_CANONICAL"
+    if path == "docs/PROJECT_STATE.md":
+        return "PROJECT_STATE"
+    if _SPEC_PATH_RE.match(path):
+        return "SPEC"
+    if doc_status in ("SUPERSEDED", "HISTORICAL"):
+        return "HISTORICAL"
+    if doc_status == "ACTIVE_RESEARCH":
+        return "INVESTIGATION"
+    return "IMPLEMENTATION_REPORT"
+
 _CONTENT_HINTS = [
     (re.compile(r"\bSUPERSEDED\b", re.I), "SUPERSEDED"),
     (re.compile(r"STATUS\s*=\s*DONE", re.I), "IMPLEMENTED"),
@@ -57,6 +88,9 @@ class DocStatusEntry:
     superseded_by: str | None = None
     confidence: str = "low"
     last_verified_at: str | None = None
+    #: WIKI_CANONICAL | PROJECT_STATE | IMPLEMENTATION_REPORT | INVESTIGATION | SPEC | HISTORICAL.
+    #: Derived from path/doc_status when not set explicitly — see `_default_source_type`.
+    source_type: str = ""
 
     @property
     def status_weight(self) -> float:
@@ -66,6 +100,8 @@ class DocStatusEntry:
         if self.capability_status in ("IMPLEMENTED_MERGED",) and self.doc_status == "ACTIVE_RESEARCH":
             weight = max(weight, _STATUS_WEIGHT["IMPLEMENTED_MERGED"])
         weight *= _DECISION_BONUS.get(self.decision_status, 1.0)
+        # A floor, not a multiplier — see _SOURCE_TYPE_MIN_WEIGHT's docstring above.
+        weight = max(weight, _SOURCE_TYPE_MIN_WEIGHT.get(self.source_type, 0.0))
         return weight
 
 
@@ -100,8 +136,10 @@ def set_table_for_testing(table: dict) -> None:
 def status_for(doc_path: str, *, content: str | None = None) -> DocStatusEntry:
     entry = _table().get(doc_path)
     if entry is not None:
-        return DocStatusEntry(path=doc_path, tags=tuple(entry.get("tags", ())), **{
-            k: v for k, v in entry.items() if k != "tags"
+        doc_status = entry.get("doc_status", "ACTIVE_RESEARCH")
+        source_type = entry.get("source_type") or _default_source_type(doc_path, doc_status)
+        return DocStatusEntry(path=doc_path, tags=tuple(entry.get("tags", ())), source_type=source_type, **{
+            k: v for k, v in entry.items() if k not in ("tags", "source_type")
         })
 
     doc_status, confidence = "ACTIVE_RESEARCH", "low"
@@ -110,7 +148,9 @@ def status_for(doc_path: str, *, content: str | None = None) -> DocStatusEntry:
             if pattern.search(content):
                 doc_status, confidence = hinted_status, "low"
                 break
-    return DocStatusEntry(path=doc_path, doc_status=doc_status, capability_status="UNKNOWN", confidence=confidence)
+    source_type = _default_source_type(doc_path, doc_status)
+    return DocStatusEntry(path=doc_path, doc_status=doc_status, capability_status="UNKNOWN",
+                           confidence=confidence, source_type=source_type)
 
 
 def stale_entries(*, max_age_note: str = "review manually") -> list[str]:

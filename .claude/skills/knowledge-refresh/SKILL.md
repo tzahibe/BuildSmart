@@ -1,8 +1,8 @@
 ---
 name: "knowledge-refresh"
-description: "Mandatory preflight before architecture, behavioral, planning, debugging, or feature work on this repo: refresh the Project Knowledge RAG index (cheap no-op if nothing changed), read docs/PROJECT_STATE.md, then retrieve targeted, status-ranked evidence for the task. Skip only for trivial work (typo, formatting, isolated CSS, mechanical rename, generated timing-noise cleanup)."
+description: "Mandatory preflight before architecture, behavioral, planning, debugging, or feature work on this repo: refresh the index (cheap no-op if nothing changed), read PROJECT_STATE.md/the Wiki index, read the relevant canonical Wiki page, then use RAG only for deeper evidence/history — and verify against code/tests before changing behavior. Skip only for trivial work (typo, formatting, isolated CSS, mechanical rename, generated timing-noise cleanup)."
 argument-hint: "The task/question to retrieve knowledge for"
-compatibility: "Requires backend/app/knowledge (Project Knowledge RAG) to be present"
+compatibility: "Requires backend/app/knowledge (Project Knowledge RAG) and docs/wiki/ to be present"
 metadata:
   author: "project-knowledge-rag"
 user-invocable: true
@@ -17,47 +17,54 @@ $ARGUMENTS
 
 ## What this skill does
 
-This repo has a derived retrieval layer (`backend/app/knowledge/`) over `docs/**/*.md` and
-`specs/*/{spec,plan,research}.md` — see `docs/PROJECT_KNOWLEDGE_RAG.md`. Git/Markdown remains the
-source of truth; this index is only a cache on top of it, and it can go stale the moment someone
-edits a doc without re-indexing, or the moment a doc's own prose lags what actually got merged
-(this has happened for real in this repo more than once — see `docs/PROJECT_STATE.md`'s
-corrected-facts history). Treating a stale index or a stale doc's own wording as current is
-exactly the mistake this skill exists to prevent.
+This repo has a **Wiki-first + RAG-hybrid** knowledge system. Authority, highest first:
+
+1. **Code + tests + current git state** — final truth about what is actually implemented. Always
+   outranks documentation, including this Wiki.
+2. **`docs/wiki/`** — canonical, compact, human-readable "what is true now," one page per major
+   subsystem/feature. Built only from already-approved/closed work.
+3. **Raw reports/specs/investigations** (`docs/*.md`, `specs/*/`) — history, rationale, evidence,
+   experiments. Not current truth once a Wiki page or newer report supersedes them.
+4. **RAG** (`backend/app/knowledge/`, `docs/PROJECT_KNOWLEDGE_RAG.md`) — the discovery/search layer
+   across both the Wiki and raw sources. A supporting layer, not the mandatory first source.
+
+Git/Markdown remains the source of truth; the RAG index and even a Wiki page can go stale the
+moment something merges without the corresponding page being updated — this has happened for real
+in this repo more than once (see the Laundry and Multi-Level Wiki pages' own histories). Treating
+a stale index, a stale Wiki page, or a stale report's own wording as current is exactly the
+mistake this skill exists to prevent — Step 5 below exists specifically to catch it.
 
 **When to run this**: before architecture, behavioral, planning, debugging, or feature work.
 **When to skip it**: trivial work — a typo, formatting, isolated CSS, a mechanical rename,
-generated timing-noise cleanup. Nobody needs a knowledge preflight to fix a typo.
+generated timing-noise cleanup. Nobody needs a Wiki/RAG preflight to fix a typo. **Do not make
+every task perform broad vector search** — most substantive tasks are answered by Step 3 alone.
 
-Run Steps A–D below, from `backend/`, in order.
+Run Steps 1–5 below, from `backend/`, in order.
 
-## Step A — Incremental refresh
+## Step 1 — Incremental refresh
 
 ```
 uv run python -m app.knowledge.cli index --changed
 ```
 
-This is a sha256 checksum diff: it detects changed/new documents, re-indexes only those (updating
-embeddings only for their chunks), and leaves every unchanged document's index entry exactly as it
-was. When nothing changed, this costs one filesystem stat + hash per source file and does zero
-embedding work — a genuinely cheap no-op, never a full rebuild. **Never skip this step and never
-replace it with a full `index` (no `--changed`)** — a full rebuild is for `EmbeddingConfigMismatch`
-recovery (see below), not routine use.
+A sha256 checksum diff: detects changed/new documents (Wiki pages included — they're indexed like
+any other source), re-indexes only those, leaves every unchanged document exactly as it was. When
+nothing changed, this costs one filesystem stat + hash per file and zero embedding work — a
+genuinely cheap no-op, never a full rebuild.
 
-Multiple agents may run against this same shared index concurrently. `index --changed` is
+**Concurrency**: multiple agents may run against this same shared index. `index --changed` is
 single-writer safe (`app/knowledge/lock.py`): if another agent is already refreshing it, this
-call waits briefly, and if that other refresh is still running past a bounded timeout, it reports
-`deferred` and proceeds using the last known-good index rather than starting a second concurrent
-writer or forcing a rebuild. A deferred refresh is not a failure — retrieval below is unaffected
-either way (reads never block on a writer).
+waits briefly; past a bounded timeout it reports `deferred` and proceeds using the last
+known-good index rather than starting a second writer or forcing a rebuild. **If refresh is
+deferred, report it explicitly** (see Reporting below) — it is not a failure, and retrieval stays
+available throughout (WAL mode) either way.
 
-If this reports `EmbeddingConfigMismatch`, that's the safety check working (the embedding
-provider/model/dimension changed since the index was built) — run `uv run python -m
+If this reports `EmbeddingConfigMismatch`, that's the safety check working — run `uv run python -m
 app.knowledge.cli clear && uv run python -m app.knowledge.cli index` to rebuild, then continue.
 
 ### Embedding provider for this step
 
-Prefer real multilingual semantic embeddings when available in your environment:
+Prefer real multilingual semantic embeddings when available:
 
 ```
 KNOWLEDGE_EMBEDDING_PROVIDER=huggingface KNOWLEDGE_EMBEDDING_MODEL=BAAI/bge-m3 \
@@ -65,56 +72,57 @@ KNOWLEDGE_EMBEDDING_PROVIDER=huggingface KNOWLEDGE_EMBEDDING_MODEL=BAAI/bge-m3 \
 ```
 
 `BAAI/bge-m3` is the evaluated, recommended semantic model (best of 3 multilingual candidates
-tested on this repo's corpus — see `docs/PROJECT_KNOWLEDGE_RAG.md`'s embedding evaluation). This
-requires the `knowledge-embeddings` extra (`sentence-transformers` + `torch`), which is **not**
-installed in the shared dev `.venv` by policy (installing it there once already pruned unrelated
-packages another session needed — see that doc's isolated-environment guidance). **Do not run
-`uv sync --extra knowledge-embeddings` against the shared main checkout.** If you need it, use an
-isolated environment (a `git worktree` with its own `.venv`, or a scratch clone) — never mutate
-another active session's environment to get it.
+tested on this corpus — see `docs/PROJECT_KNOWLEDGE_RAG.md`). Requires the `knowledge-embeddings`
+extra, **not** installed in the shared dev `.venv` by policy — never run `uv sync --extra
+knowledge-embeddings` against the shared main checkout; use an isolated environment (a `git
+worktree` with its own `.venv`, or a scratch clone). Agents never call Hugging Face or
+sentence-transformers directly — only through this CLI/the `KnowledgeStore` abstraction.
 
-**If the command above fails** (extra not installed, model unavailable in this environment): that
-failure is the intended, honest behavior — `huggingface` never silently falls back and pretends
-semantic retrieval happened. Re-run the same command **without** `KNOWLEDGE_EMBEDDING_PROVIDER` set
-(auto-detect: an embedding-capable Ollama model if one is installed, else the deterministic
-hash+FTS5 fallback). The hash+FTS5 default is fully supported and this preflight remains valuable
-and mandatory either way — bge-m3 is a strictly-better-when-available upgrade, not a requirement.
+**If the command above fails**: that is the intended, honest behavior — `huggingface` never
+silently falls back and pretends semantic retrieval happened. Re-run **without**
+`KNOWLEDGE_EMBEDDING_PROVIDER` set (auto-detect: an embedding-capable Ollama model if installed,
+else the hash+FTS5 fallback). Hash+FTS5 is fully supported and this preflight remains mandatory
+either way — bge-m3 is a strictly-better-when-available upgrade, not a requirement.
 
-## Step B — Read current project state
+## Step 2 — Read PROJECT_STATE.md / the Wiki index
 
-Always read `docs/PROJECT_STATE.md` in full before architecture/planning/behavioral work. It is
-deliberately compact (current state only, not history) and is the first source of current
-implementation status — read it before retrieving anything else.
+Read `docs/PROJECT_STATE.md` (a compact, high-level index — capability list + links, not a
+history) and `docs/wiki/INDEX.md` (the Wiki's own topic index). Together these answer "what
+subsystems exist and what's their status" before you read anything else.
 
-## Step C — Retrieve relevant knowledge
+## Step 3 — Identify the relevant canonical Wiki page(s)
 
-Before modifying behavior, run a targeted query or context-pack request for the task at hand
-instead of manually opening many documents:
+For the task at hand, open the specific page(s) under `docs/wiki/{architecture,features,decisions}/`
+that PROJECT_STATE/the Wiki index pointed at. Each page is compact and answers: current behavior,
+authoritative implementation (modules/commits/tests), current constraints, what it supersedes,
+known follow-ups, and evidence/history pointers — everything a substantive task needs to start
+from, without opening raw reports. **Most tasks stop here.**
+
+## Step 4 — Retrieve raw evidence with RAG only when needed
+
+Only when the task genuinely needs deeper history, rationale, or evidence beyond what the Wiki
+page states (a "why", "history", or "investigation" question; or the Wiki page itself says "check
+X for detail"):
 
 ```
 uv run python -m app.knowledge.cli context "<task description>"     # bounded, PROJECT_STATE-first
 uv run python -m app.knowledge.cli search "<specific term>" --json  # a narrow lookup
 ```
 
-Example task shapes this handles well: multi-level, massing/L-massing, wet rooms, laundry,
-geometry, validation constraints, `public_open_side`, requirements semantics, historical
-architecture decisions, feature implementation status, "why does this code behave this way?".
+Retrieved results carry a `source_type` (`WIKI_CANONICAL` > `PROJECT_STATE` > `IMPLEMENTATION_REPORT`
+> `SPEC` > `INVESTIGATION`/`HISTORICAL`) alongside `status`/`capability_status`. Canonical Wiki
+material is preferred for "what is true now" questions — a semantically-similar old investigation
+does not outrank it on relevance score alone — but it is a bounded rerank, never a hard filter:
+add `--historical`/`--status HISTORICAL --status SUPERSEDED` to explicitly pull historical
+material for a "why"/history question; it is down-weighted by default, never hidden.
 
-Add `--historical` (context) or `--status HISTORICAL --status SUPERSEDED` (search) only when the
-task explicitly needs superseded/historical material (e.g. "why did we reject X").
+## Step 5 — Verify against current code/tests before changing behavior
 
-## Step D — Respect document status
-
-Inspect the `status`/`capability_status` metadata on every retrieved result. Priority, highest
-first: `IMPLEMENTED_MERGED` > `IMPLEMENTED` (branch-only or not-yet-wired — check the doc's own
-text for which) > `ACTIVE_RESEARCH` > `SUPERSEDED`/historical investigation docs. **Never treat an
-`ACTIVE_RESEARCH` or `SUPERSEDED` report as current production truth when an `IMPLEMENTED`/
-`IMPLEMENTED_MERGED` source exists** — the retrieval ranking already down-weights
-historical/superseded material for this reason, but the final judgment call is yours: `docs/
-PROJECT_STATE.md` plus the actual current git state (a quick `git log`/`git branch --contains` if
-anything looks uncertain) remain authoritative for feature status, above any single doc's own
-prose. A doc can say "not yet built" and be wrong the moment someone else merges — this has
-happened for real in this repo.
+Before actually changing behavior, verify the implementation claims you're relying on — a Wiki
+page or a report can be wrong the moment someone else merges something, and code+tests+current
+git state always outrank documentation (Step... 0, really, at the top of the authority list). A
+quick `git log`/`git branch --contains`/opening the cited module is enough for most tasks; don't
+skip this because the Wiki page sounded confident.
 
 ## Reporting (for substantive tasks)
 
@@ -124,7 +132,7 @@ Record briefly in your working report — never dump the whole context pack:
 Knowledge preflight:
 - index refresh: changed / unchanged / deferred
 - active embedding provider/model: e.g. huggingface/BAAI/bge-m3, or hash (fallback, and why)
-- knowledge topics queried: e.g. "multi-level phase 1 status", "laundry room allocation"
-- highest-priority docs/context used: path + status, e.g.
-  docs/MULTI_LEVEL_PHASE_1_IMPLEMENTATION_REPORT.md (IMPLEMENTED, commit 4bdebd4)
+- canonical Wiki page(s) used: e.g. docs/wiki/features/multi-level.md
+- RAG used for deeper evidence: yes/no — topics queried if yes
+- verified against code/tests: what you checked
 ```

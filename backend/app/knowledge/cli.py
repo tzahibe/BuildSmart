@@ -57,13 +57,13 @@ def cmd_search(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps([{
             "document": h.doc_path, "section": h.heading_path, "status": h.status.doc_status,
-            "capability_status": h.status.capability_status, "commit": h.status.commit,
-            "score": round(h.final_score, 4), "text": h.text,
+            "capability_status": h.status.capability_status, "source_type": h.status.source_type,
+            "commit": h.status.commit, "score": round(h.final_score, 4), "text": h.text,
         } for h in hits], indent=2, ensure_ascii=False))
     else:
         for h in hits:
             print(f"[{h.final_score:.3f}] {h.doc_path} > {h.heading_path}  "
-                  f"({h.status.doc_status}/{h.status.capability_status})")
+                  f"({h.status.source_type}: {h.status.doc_status}/{h.status.capability_status})")
             print(f"    {h.text[:200].replace(chr(10), ' ')}")
     return 0
 
@@ -79,12 +79,12 @@ def cmd_context(args: argparse.Namespace) -> int:
     print("\n## PROJECT_STATE.md\n")
     print(pack.project_state_text)
     for c in pack.chunks:
-        print(f"\n## {c.doc_path} > {c.heading_path}  [{c.status.doc_status}]\n")
+        print(f"\n## {c.doc_path} > {c.heading_path}  [{c.status.source_type}: {c.status.doc_status}]\n")
         print(c.text)
     if pack.historical_chunks:
         print("\n## Historical evidence\n")
         for c in pack.historical_chunks:
-            print(f"\n### {c.doc_path} > {c.heading_path}  [{c.status.doc_status}]\n")
+            print(f"\n### {c.doc_path} > {c.heading_path}  [{c.status.source_type}: {c.status.doc_status}]\n")
             print(c.text)
     return 0
 

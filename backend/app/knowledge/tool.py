@@ -32,6 +32,7 @@ def retrieve(
             "section": h.heading_path,
             "status": h.status.doc_status,
             "capability_status": h.status.capability_status,
+            "source_type": h.status.source_type,
             "commit": h.status.commit,
             "score": round(h.final_score, 4),
         }
