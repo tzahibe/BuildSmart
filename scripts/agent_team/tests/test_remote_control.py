@@ -528,3 +528,106 @@ def test_operator_pairing_and_launchd_plist(remote, capsys):
     assert "com.buildsmart.agent-team.remote" in plist and "<key>KeepAlive</key><true/>" in plist and "remote</string>" in plist
     assert str(orch.config.repo_root) in plist and "AGENT_TEAM_REPO_ROOT" in plist
     assert "AGENT_TELEGRAM_BOT_TOKEN" not in plist                     # the token stays in the env file, never in the plist
+
+
+# ---------------------------------------------------------------------------------------------
+# usage guard (owner rule: stop at 98 %, resume when the window resets, never strand agents)
+# ---------------------------------------------------------------------------------------------
+
+def _usage(session, week=10):
+    from agent_team.usage_guard import UsageSnapshot
+    return UsageSnapshot(session_percent=session, week_percent=week, session_resets="11:50pm", week_resets="Sep 20", ok=True, probed_at=1.0)
+
+
+def test_usage_guard_pauses_at_threshold_and_resumes_after_reset(remote):
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    _add_issue(gh, 30)
+    orch.usage_prober = lambda: _usage(98.4)
+    rep = _tick(orch)
+    assert orch.paused() and orch.pause_source() == "usage_guard"
+    assert rep.started == [] and "paused" in rep.waiting[30]
+    svc.tick()
+    assert any("98%" in t and "מכסת" in t for t in tg.texts())
+    assert any(e["kind"] == "usage_pause" for e in orch.store.events(None, limit=20))
+    # still above the resume line: stays paused, no duplicate notification
+    orch.usage_prober = lambda: _usage(95)
+    clock.t += orch.config.usage_probe_every_seconds + 1
+    _tick(orch); svc.tick()
+    assert orch.paused() and len([t for t in tg.texts() if "מכסת" in t]) == 1
+    # the window reset: automatic resume, work starts, the owner is told
+    orch.usage_prober = lambda: _usage(3)
+    clock.t += orch.config.usage_probe_every_seconds + 1
+    rep = _tick(orch); svc.tick()
+    assert not orch.paused() and rep.started == [30]
+    assert any("התחדשה" in t for t in tg.texts())
+
+
+def test_usage_guard_never_lifts_an_owner_pause(remote):
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    orch.set_paused(True, source="telegram", who="owner", reason="manual")
+    orch.usage_prober = lambda: _usage(1)
+    _tick(orch)
+    assert orch.paused() and orch.pause_source() == "telegram"
+
+
+def test_rate_limited_worker_is_requeued_without_consuming_an_attempt(remote):
+    from agent_team.agent_runner import AgentRunResult
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    _add_issue(gh, 31)
+    orch.runner.script["worker"] = AgentRunResult(ok=False, exit_code=1, error="You've hit your usage limit. Resets at 11:50pm")
+    orch.usage_prober = lambda: _usage(50)
+    _tick(orch)
+    rec = orch.store.get(31)
+    assert rec.state == sm.QUEUED and rec.attempt_number == 0 and rec.failure_class == "RATE_LIMITED"
+    assert orch.paused() and orch.pause_source() == "usage_guard"
+    svc.tick()
+    assert any("rate limit" in t for t in tg.texts())
+    assert any(e["kind"] == "rate_limited" for e in orch.store.events(31))
+    # nothing starts while paused; after the reset the same Issue runs again with attempt 1
+    _tick(orch)
+    assert orch.store.get(31).state == sm.QUEUED
+    orch.runner.script["worker"] = _worker_that_commits()
+    orch.usage_prober = lambda: _usage(2)
+    clock.t += orch.config.usage_probe_every_seconds + 1
+    _tick(orch)
+    assert orch.store.get(31).state == sm.PR_OPEN and orch.store.get(31).attempt_number == 1
+
+
+def test_review_does_not_start_while_paused(remote):
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    _add_issue(gh, 32)
+    orch.usage_prober = lambda: _usage(5)
+    _tick(orch); _tick(orch)
+    rec = orch.store.get(32)
+    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+    _tick(orch)
+    assert orch.store.get(32).state == sm.REVIEW
+    orch.set_paused(True, source="usage_guard", who="orchestrator", reason="test")
+    assert _tick(orch).advanced[32] == "review waiting: scheduler paused"
+    orch.set_paused(False, source="usage_guard")
+    assert _tick(orch).advanced[32] == "review started"
+
+
+def test_claude_interpreter_answer_uses_the_fast_tier(tmp_path):
+    """Regression: `answer()` once called `_run` without `fast=` and every question failed with a TypeError."""
+    from agent_team.agent_runner import AgentRunResult
+    from agent_team.remote.interpreter import ClaudeInterpreter, ConversationContext
+    seen = []
+    class Runner:
+        def __init__(self, *a, **k): pass
+        def run(self, spec):
+            seen.append(spec)
+            return AgentRunResult(ok=True, exit_code=0, structured={"reply": "תשובה"})
+    import agent_team.remote.interpreter as mod
+    monkey = pytest.MonkeyPatch(); monkey.setattr(mod, "ClaudeCliRunner", Runner)
+    try:
+        interp = ClaudeInterpreter(repo_root=tmp_path, model="opus", timeout_seconds=240, binary="claude",
+                                   fast_model="sonnet", fast_timeout_seconds=60)
+    finally:
+        monkey.undo()
+    assert interp.answer("מה קרה?", "evidence", ConversationContext(chat_id=1)) == "תשובה"
+    assert seen[0].model == "sonnet" and seen[0].tools == () and seen[0].timeout_seconds == 60

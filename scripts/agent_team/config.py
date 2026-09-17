@@ -120,6 +120,15 @@ class Config:
     owner_approval_label: str
     max_active_issues: int
 
+    # usage guard + rolling backlog
+    usage_guard_enabled: bool
+    usage_pause_at_percent: float
+    usage_resume_below_percent: float
+    usage_probe_every_seconds: int
+    roadmap_file: str
+    roadmap_auto_next_batch: bool
+    roadmap_batch_size: int
+
     # remote control (Telegram) + notifications
     telegram_enabled: bool
     telegram_mode: str
@@ -214,6 +223,8 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
             regression=str(p.get("regression", "required_if_backend")),
         )
     gov = raw.get("governance") or {}
+    ug = raw.get("usage_guard") or {}
+    rm = raw.get("roadmap") or {}
     rc = ((raw.get("remote_control") or {}).get("telegram")) or {}
     nt = ((raw.get("notifications") or {}).get("telegram")) or {}
     implied = {k: tuple(v) for k, v in (locks.get("implied_by_domain") or {}).items()}
@@ -280,6 +291,13 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
         owner_approval_label=str(gov.get("owner_approval_label", "owner:approved")),
         max_active_issues=int(gov.get("max_active_issues", 2)),
+        usage_guard_enabled=bool(ug.get("enabled", True)),
+        usage_pause_at_percent=float(ug.get("pause_at_percent", 98)),
+        usage_resume_below_percent=float(ug.get("resume_below_percent", 90)),
+        usage_probe_every_seconds=int(ug.get("probe_every_seconds", 120)),
+        roadmap_file=str(rm.get("file", "docs/ROADMAP.md")),
+        roadmap_auto_next_batch=bool(rm.get("auto_next_batch", False)),
+        roadmap_batch_size=int(rm.get("batch_size", 5)),
         telegram_enabled=bool(rc.get("enabled", False)),
         telegram_mode=str(rc.get("mode", "long_polling")),
         telegram_token_env=str(rc.get("token_env", "AGENT_TELEGRAM_BOT_TOKEN")),

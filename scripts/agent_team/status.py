@@ -1,6 +1,8 @@
 """The operator view: "What are my agents doing?" in one screen."""
 from __future__ import annotations
 
+import json
+
 import time
 
 from agent_team import state_machine as sm
@@ -79,7 +81,15 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
     done = by_state.get(sm.DONE, [])
     section(f"DONE ({len(done)})", [f"#{r.issue_id} PR #{r.pr_number} `{(r.validated_commit or '')[:12]}` — {r.title[:50]}" for r in done[-5:]])
     if store.get_meta("scheduler_paused", "0") == "1":
-        lines.insert(0, "*** SCHEDULER PAUSED BY THE OWNER — no new claims, no new repairs ***\n")
+        src = store.get_meta("scheduler_pause_source", "") or "owner"
+        lines.insert(0, f"*** SCHEDULER PAUSED ({'usage guard — resumes automatically' if src == 'usage_guard' else 'by the owner'}) — no new claims, no new repairs ***\n")
+    usage_raw = store.get_meta("usage_last")
+    if usage_raw:
+        try:
+            u = json.loads(usage_raw)
+            lines.append(f"USAGE\n  session {u.get('session_percent')}% (resets {u.get('session_resets') or '?'})  week {u.get('week_percent')}% (resets {u.get('week_resets') or '?'})\n")
+        except Exception:  # noqa: BLE001
+            pass
     snap = resources.snapshot(probe_machine=probe_machine)
     locks = store.locks_held()
     section("RESOURCE", [snap.describe(config),
@@ -99,7 +109,15 @@ def render_compact(config: Config, store: StateStore, resources: ResourceManager
         by.setdefault(r.state, []).append(r)
     out: list[str] = []
     if store.get_meta("scheduler_paused", "0") == "1":
-        out.append("⏸ מושהה — אין claims/תיקונים חדשים (/resume להמשך)\n")
+        src = store.get_meta("scheduler_pause_source", "") or "owner"
+        out.append("⏸ מושהה אוטומטית — מכסת השימוש; יחודש לבד כשהיא תתחדש\n" if src == "usage_guard" else "⏸ מושהה — אין claims/תיקונים חדשים (/resume להמשך)\n")
+    usage_raw = store.get_meta("usage_last")
+    if usage_raw:
+        try:
+            u = json.loads(usage_raw)
+            out.append(f"מכסה: session {u.get('session_percent')}% · שבועי {u.get('week_percent')}% (מתחדש {u.get('week_resets') or '?'})\n")
+        except Exception:  # noqa: BLE001
+            pass
 
     def block(title: str, rows: list[str]) -> None:
         out.append(title)

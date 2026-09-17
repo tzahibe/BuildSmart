@@ -117,10 +117,10 @@ claude:
   domain_lead_tools: [Read, Grep, Glob]
 
 resources:
-  max_worker_agents: 2
+  max_worker_agents: 3              # raised 2->3 on 2026-09-17 with the owner's permission (M1 Pro 10c/32GB); usage guard live
   max_reviewer_agents: 1
   max_domain_leads: 1
-  weighted_capacity: 4              # sum of weights of running agent jobs
+  weighted_capacity: 7              # sum of weights of running agent jobs (HEAVY 3 + MEDIUM 2 + MEDIUM 2)
   weights: {LIGHT: 1, MEDIUM: 2, HEAVY: 3}
   cpu_threshold_percent: 75         # do not spawn when the machine-wide CPU is above this
   min_free_memory_gb: 6
@@ -155,6 +155,25 @@ locks:
 repair:
   max_attempts: 2                   # automatic repair attempts after a red CI before agent:blocked
 
+# Subscription usage guard (owner rule, 2026-09-17): `claude -p /usage` is probed every tick (free);
+# at pause_at_percent (session or week) the scheduler pauses itself — no new claims, workers,
+# repairs or reviews — the owner is told on Telegram, and it resumes by itself once the window
+# resets / usage falls below resume_below_percent. A run that dies on a rate limit is requeued
+# without consuming a repair attempt.
+usage_guard:
+  enabled: true
+  pause_at_percent: 98
+  resume_below_percent: 90
+  probe_every_seconds: 120
+
+# Rolling backlog (owner rule): when every queued/active roadmap Issue has finished, the next
+# `batch_size` roadmap topics are drafted as agent:draft Issues (with a knowledge check) and the
+# owner is asked to approve them. Drafts only — nothing runs without owner:approved.
+roadmap:
+  file: docs/ROADMAP.md
+  auto_next_batch: true
+  batch_size: 5
+
 # Governance (owner-controlled backlog): every risk level ends at agent:ready-for-owner once its
 # requirements hold; the orchestrator recommends and NEVER merges. auto_merge must stay false —
 # the loader refuses a config that sets it true. Only the owner merges (Telegram CONFIRM MERGE or
@@ -177,9 +196,9 @@ governance:
   # An Issue is executable only with BOTH labels. The orchestrator and the Team Lead never add
   # owner:approved; the owner does (Telegram "Create & Queue" / "approve", or the GitHub UI).
   owner_approval_label: owner:approved
-  # Concurrency defaults the owner may change at runtime: resources.max_worker_agents (2) and
+  # Concurrency defaults the owner may change at runtime: resources.max_worker_agents (3) and
   # resources.heavy_job_concurrency (1) above; max active product Issues:
-  max_active_issues: 2
+  max_active_issues: 3
 
 remote_control:
   telegram:

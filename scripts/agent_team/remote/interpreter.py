@@ -180,7 +180,7 @@ class ClaudeInterpreter:
                                                 "a second pass with repository access writes the contract.")
         data = self._run(prompt, INTENT_SCHEMA, fast=True)
         if data is None:
-            return Intent(C.UNKNOWN, {}, "I could not interpret that right now — please try again or use /help.")
+            return Intent(C.UNKNOWN, {}, "לא הצלחתי להבין את זה כרגע — נסה שוב או שלח /help.")
         return Intent.from_dict(data)
 
     def deepen(self, message: str, ctx: ConversationContext, intent: Intent) -> Intent:
@@ -188,7 +188,7 @@ class ClaudeInterpreter:
         prompt = render_prompt(message, ctx) + f"\n\nThe action is {intent.action}. Write the complete contract body now (args.title, args.body)."
         data = self._run(prompt, INTENT_SCHEMA, fast=False)
         if data is None:
-            return Intent(C.UNKNOWN, {}, "I could not write the draft right now — please try again.")
+            return Intent(C.UNKNOWN, {}, "לא הצלחתי לכתוב את הטיוטה כרגע — נסה שוב.")
         deep = Intent.from_dict(data)
         if deep.action not in DEEP_ACTIONS:
             deep.action = intent.action
@@ -203,8 +203,9 @@ class ClaudeInterpreter:
     def answer(self, question: str, evidence: str, ctx: ConversationContext) -> str:
         prompt = (f"OWNER QUESTION:\n{question}\n\nAUTHORITATIVE EVIDENCE (the only source you may use; say so when it does not "
                   f"contain the answer):\n{evidence[:60000]}\n\nAnswer concisely, ALWAYS IN HEBREW. Do not invent results.")
-        data = self._run(prompt, {"type": "object", "properties": {"reply": {"type": "string"}}, "required": ["reply"]})
-        return (data or {}).get("reply") or "I could not answer that right now."
+        # Evidence-only answers need no tools: the fast tier keeps Telegram replies quick.
+        data = self._run(prompt, {"type": "object", "properties": {"reply": {"type": "string"}}, "required": ["reply"]}, fast=True)
+        return (data or {}).get("reply") or "לא הצלחתי לענות על זה כרגע — נסה שוב בעוד רגע."
 
 
 @dataclass

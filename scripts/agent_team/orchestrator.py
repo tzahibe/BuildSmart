@@ -43,6 +43,7 @@ from agent_team.pr_body import render_pr_body
 from agent_team.resource_manager import ResourceManager, ResourceProbe
 from agent_team.schemas import DOMAIN_LEAD_BRIEF_SCHEMA, REVIEW_VERDICT_SCHEMA, WORKER_REPORT_SCHEMA
 from agent_team.state_store import IssueRecord, StateStore, TransitionConflict
+from agent_team.usage_guard import UsageGuard, UsageSnapshot, looks_rate_limited, probe_usage
 from agent_team.worktree_manager import GitError, MergeConflict, WorktreeManager, run_git
 
 log = logging.getLogger("agent_team.orchestrator")
@@ -97,6 +98,9 @@ class Orchestrator:
         self._lock_fh = None
         self._ci_started: dict[int, float] = {}
         self.blocking_decisions: list[str] = []
+        self.usage = UsageGuard(config.usage_pause_at_percent, config.usage_resume_below_percent, enabled=config.usage_guard_enabled)
+        self.usage_prober = None          # callable() -> UsageSnapshot; None = the real `claude -p /usage`
+        self._last_usage_probe = 0.0
 
     # -- process singleton --------------------------------------------------------------------
     def acquire_singleton(self) -> None:
@@ -258,6 +262,10 @@ class Orchestrator:
             log.exception("reconciliation failed")
             report.reconciled = [f"reconcile error: {exc}"]
         try:
+            self.check_usage()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("usage probe failed: %s", exc)
+        try:
             report.polled = self.poll()
         except Exception as exc:  # noqa: BLE001
             log.exception("poll failed")
@@ -365,8 +373,58 @@ class Orchestrator:
 
     def set_paused(self, paused: bool, *, source: str, who: str | None = None, reason: str = "") -> None:
         self.store.set_meta("scheduler_paused", "1" if paused else "0")
+        self.store.set_meta("scheduler_pause_source", source if paused else "")
         self.store.record_event(None, "scheduler_paused" if paused else "scheduler_resumed",
                                 {"source": source, "by": who, "reason": reason})
+
+    def pause_source(self) -> str:
+        return self.store.get_meta("scheduler_pause_source", "") or ""
+
+    # -- subscription usage guard -------------------------------------------------------------
+    def check_usage(self, *, force: bool = False) -> UsageSnapshot | None:
+        """Probe `/usage`; pause at the threshold, resume automatically after the window resets.
+        Never lifts a pause the owner set by hand."""
+        if not self.config.usage_guard_enabled or self.dry_run and self.usage_prober is None:
+            return None
+        now = self.clock()
+        if not force and now - self._last_usage_probe < self.config.usage_probe_every_seconds:
+            return None
+        self._last_usage_probe = now
+        snap = self.usage_prober() if self.usage_prober else probe_usage(self._claude_binary())
+        self.store.set_meta("usage_last", json.dumps(snap.to_dict()))
+        auto_paused = self.paused() and self.pause_source() == "usage_guard"
+        decision = self.usage.evaluate(snap, auto_paused=auto_paused)
+        if decision == "pause":
+            self.set_paused(True, source="usage_guard", who="orchestrator", reason=snap.describe())
+            self.store.record_event(None, "usage_pause", snap.to_dict())
+            self._owner_notice("usage_pause:" + str(int(now)),
+                               f"⛔ מכסת השימוש הגיעה ל-{snap.worst_percent:.0f}% ({snap.describe()}).\n"
+                               f"עצרתי: אין claims/workers/reviews/תיקונים חדשים; סוכנים שרצים מסיימים את הריצה הנוכחית. "
+                               f"אחדש אוטומטית כשהמכסה תתחדש (session: {snap.session_resets or '?'}; week: {snap.week_resets or '?'}).")
+            log.warning("usage guard: paused at %s", snap.describe())
+        elif decision == "resume":
+            self.set_paused(False, source="usage_guard", who="orchestrator", reason=snap.describe())
+            self.store.record_event(None, "usage_resume", snap.to_dict())
+            self._owner_notice("usage_resume:" + str(int(now)), f"▶️ המכסה התחדשה ({snap.describe()}). הסוכנים ממשיכים.")
+            log.info("usage guard: resumed at %s", snap.describe())
+        return snap
+
+    def _claude_binary(self) -> str:
+        from agent_team.agent_runner import resolve_claude_binary
+        try:
+            return resolve_claude_binary(self.config.claude_binary)
+        except FileNotFoundError:
+            return "claude"
+
+    def _owner_notice(self, key: str, text: str) -> None:
+        """A Telegram note to the owner through the outbox (deduplicated by key)."""
+        try:
+            self.store.enqueue_notification("lead_update", key, None, text)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def rate_limited_run(self, result: AgentRunResult) -> bool:
+        return (not result.ok) and looks_rate_limited(result.error or result.result_text)
 
     def active_issue_count(self) -> int:
         return len(self.store.list((sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)))
@@ -516,6 +574,19 @@ class Orchestrator:
         if result.session_id:
             store.update(issue_id, session_id=result.session_id)
         if not result.ok:
+            if self.rate_limited_run(result):
+                # Not the worker's fault: give the attempt back, pause new work until the window resets.
+                store.update(issue_id, attempt_number=max(0, rec.attempt_number - 1), agent_pid=None, assigned_agent=None)
+                self.locks.release(issue_id, "rate-limited-requeue")
+                self._set_state(store, issue_id, sm.QUEUED, note="rate limited: requeued without consuming an attempt",
+                                last_error=(result.error or "")[:500], failure_class="RATE_LIMITED")
+                store.record_event(issue_id, "rate_limited", {"error": (result.error or "")[:300]})
+                if not self.paused():
+                    self.set_paused(True, source="usage_guard", who="orchestrator", reason="agent run hit a rate limit")
+                    self._owner_notice("usage_pause:ratelimit:" + str(int(self.clock())),
+                                       f"⛔ סוכן נתקל ב-rate limit (Issue #{issue_id}). עצרתי עבודה חדשה; ה-Issue חזר לתור בלי לשרוף ניסיון. אחדש אוטומטית כשהמכסה תתחדש.")
+                self._milestone(issue_id, "Worker run hit a rate limit — requeued without consuming a repair attempt; new work is paused until the usage window resets.")
+                return
             self._worker_failed(store, rec, f"worker run failed: {result.error or 'unknown'}"[:1000])
             return
         report = result.structured or {}
@@ -692,6 +763,8 @@ class Orchestrator:
         if rec.review_verdict is None or reviewed_sha != head:
             if self._thread_active(f"reviewer:{rec.issue_id}"):
                 return "review running"
+            if self.paused():
+                return "review waiting: scheduler paused"
             snap = self.resources.snapshot(probe_machine=True)
             adm = self.resources.can_start_reviewer(snap)
             if not adm.ok:
@@ -805,6 +878,10 @@ class Orchestrator:
             store.update(issue_id, last_error=f"reviewer run failed: {result.error}"[:1000])
             store.record_event(issue_id, "review_failed", {"error": result.error[:500]})
             self._publish_review_status(store, issue_id, head, "pending", "independent review run failed; will retry")
+            if self.rate_limited_run(result) and not self.paused():
+                self.set_paused(True, source="usage_guard", who="orchestrator", reason="reviewer run hit a rate limit")
+                self._owner_notice("usage_pause:ratelimit:" + str(int(self.clock())),
+                                   f"⛔ ה-reviewer נתקל ב-rate limit (Issue #{issue_id}). עצרתי עבודה חדשה עד חידוש המכסה.")
             log.warning("#%s: reviewer failed (%s); will retry next tick", issue_id, result.error[:200])
             return
         verdict = result.structured
