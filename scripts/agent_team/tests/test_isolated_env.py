@@ -177,3 +177,30 @@ def test_stale_lock_recovery_uses_updated_at_when_no_heartbeat_exists(env):
     assert orch.locks.recover_stale(clock()) == []                # fresh record, no heartbeat: not stale
     clock.t += config.lock_stale_after_seconds + 1
     assert [r.name for r in orch.locks.recover_stale(clock())] == ["ci-infra"]   # genuinely abandoned: released
+
+
+def test_skipped_gate4_counts_as_regression_green_when_aggregate_is_green(env):
+    """Pilot finding: #8 hung at 'awaiting regression_green' because the skipped gate-4 check run
+    was read as red. A skipped gate-4 under a green aggregate is a legitimate skip."""
+    from agent_team import merge_policy
+    from agent_team.ci_evidence import CiEvidence, SUCCESS, FAILURE
+    from agent_team.tests.helpers import make_contract, track
+    config, gh, clock, _ = env
+    orch = _orch(config, gh, clock, FakeAgentRunner())
+    c = make_contract(5, risk="MEDIUM", resource="MEDIUM", domains="infra", locks="none")
+    rec = track(orch.store, c)
+    orch.store.add_approval(5, "lead_approval", "opus", "ok")
+    orch.store.update(5, review_verdict="APPROVE@h")
+    rec = orch.store.get(5)
+    checks = {"agent-ci-result": {"status": "completed", "conclusion": "success"},
+              "gate-4-regression / regression": {"status": "completed", "conclusion": "skipped"}}
+    ev = CiEvidence(head_sha="h", status=SUCCESS, checks=checks, statuses={"agent-review-result": {"state": "success"}})
+    d = merge_policy.decide(rec, ev, config, require_github_gates=True)
+    assert d.ok, d.describe()
+    assert any("gate-4 skipped" in n for n in d.notes)
+    # a red aggregate with a skipped gate-4 (required but skipped) stays red
+    ev_red = CiEvidence(head_sha="h", status=FAILURE, checks={**checks, "agent-ci-result": {"status": "completed", "conclusion": "failure"}})
+    assert "regression_green" in merge_policy.decide(rec, ev_red, config).missing
+    # a real gate-4 failure is red regardless of the aggregate
+    ev_g4 = CiEvidence(head_sha="h", status=SUCCESS, checks={**checks, "gate-4-regression / regression": {"status": "completed", "conclusion": "failure"}})
+    assert "regression_green" in merge_policy.decide(rec, ev_g4, config).missing

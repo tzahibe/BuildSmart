@@ -43,9 +43,14 @@ class MergeDecision:
 
 def regression_status(ev: CiEvidence, config: Config) -> tuple[bool, str]:
     gate4 = [n for n in ev.checks if n.startswith("gate-4")]
-    if gate4:
-        ok = all(ev.checks[n].get("conclusion") == "success" for n in gate4)
+    conclusions = {ev.checks[n].get("conclusion") for n in gate4}
+    if gate4 and conclusions - {"skipped"}:
+        ok = conclusions == {"success"}
         return ok, "gate-4 " + ("green" if ok else "red")
+    if gate4:
+        # Skipped by ci/plan.py (no backend product code / not required). The aggregate check
+        # fails when a *required* gate-4 was skipped, so green aggregate == legitimate skip.
+        return ev.status == SUCCESS, "gate-4 skipped for this diff (aggregate check " + ("green" if ev.status == SUCCESS else "red") + ")"
     manifest = ev.reports.get("manifest") or {}
     if manifest.get("regression_required"):
         # the contract wanted the corpus; it was skipped only if no backend product code changed

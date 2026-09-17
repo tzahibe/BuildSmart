@@ -44,6 +44,7 @@ code is untouched.
 - AC-7: a red gate-2 with no job log available is classified INFRA_FAILURE (evidence unavailable), never a blind repair
 - AC-8: before review and before merge the orchestrator refreshes the contract from the live Issue, records contract_updated when it changed, and blocks the Issue (SPEC_MISMATCH) when the live contract no longer validates
 - AC-9: stale-lock recovery never treats a REVIEW/WORKING Issue without a heartbeat as stale on the basis of epoch 0 — it falls back to the record's last update time
+- AC-10: the merge policy treats a gate-4 check run skipped under a green agent-ci-result as regression_green (a legitimate skip), while a failed gate-4 or a red aggregate stays red
 
 ### Out of scope
 
@@ -81,6 +82,7 @@ ci-infra (exclusive)
 - AC-7 -> grep:scripts/agent_team/failure_classifier.py:no job log is available ; grep:scripts/agent_team/tests/test_isolated_env.py:test_red_gate_without_logs_is_infra_not_a_blind_repair
 - AC-8 -> grep:scripts/agent_team/orchestrator.py:def refresh_contract ; grep:scripts/agent_team/tests/test_isolated_env.py:test_contract_amended_while_pr_open_is_refreshed_before_review
 - AC-9 -> grep:scripts/agent_team/locks.py:rec.updated_at or now ; grep:scripts/agent_team/tests/test_isolated_env.py:test_stale_lock_recovery_uses_updated_at_when_no_heartbeat_exists
+- AC-10 -> grep:scripts/agent_team/merge_policy.py:gate-4 skipped for this diff ; grep:scripts/agent_team/tests/test_isolated_env.py:test_skipped_gate4_counts_as_regression_green_when_aggregate_is_green
 
 ### Regression budget
 
