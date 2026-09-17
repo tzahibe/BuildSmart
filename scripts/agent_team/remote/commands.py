@@ -127,7 +127,8 @@ def new_nonce() -> str:
 # -- deterministic quick parser (no LLM) -----------------------------------------------------
 _NUM = r"#?\s*(\d+)"
 _QUICK: list[tuple[re.Pattern, str, str | None]] = [
-    (re.compile(r"^/pair\s+(\d{4,8})\s*$"), PAIR, "code"),
+    (re.compile(r"^/?pair(?:@\w+)?[\s:]+(\d{4,8})\s*$", re.I), PAIR, "code"),   # /pair 123456, /pair@bot 123456, pair: 123456
+    (re.compile(r"^(\d{6})$"), PAIR, "code"),                                      # the bare six-digit code
     (re.compile(r"^/(status|start)\s*$"), GET_STATUS, None),
     (re.compile(r"^/agents\s*$"), GET_AGENTS, None),
     (re.compile(r"^/help\s*$"), HELP, None),
@@ -148,9 +149,10 @@ _QUICK: list[tuple[re.Pattern, str, str | None]] = [
 
 
 def quick_parse(text: str) -> OwnerCommand | None:
-    """Slash commands only. Everything else goes to the interpreter (any language)."""
+    """Slash commands (and the pairing code forms). Everything else goes to the interpreter."""
     t = (text or "").strip()
-    if not t.startswith("/"):
+    t = re.sub(r"^(/\w+)@\w+", r"\1", t)   # "/status@buildsmart_teamlead_bot" -> "/status"
+    if not t.startswith("/") and not re.match(r"^(pair\b|\d{6}$)", t, re.I):
         return None
     for pat, action, argname in _QUICK:
         m = pat.match(t)

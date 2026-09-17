@@ -73,14 +73,14 @@ class HttpTelegramTransport:
         self._base = f"{api_base}/bot{token}/"
         self._file_base = f"{api_base}/file/bot{token}/"
 
-    def _call(self, method: str, timeout: int = 60, **params: Any) -> Any:
+    def _call(self, method: str, http_timeout: int = 60, **params: Any) -> Any:
         data = None
         if params:
             data = json.dumps({k: v for k, v in params.items() if v is not None}).encode()
         req = urllib.request.Request(self._base + method, data=data, method="POST" if data else "GET")
         req.add_header("Content-Type", "application/json")
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with urllib.request.urlopen(req, timeout=http_timeout) as resp:
                 payload = json.load(resp)
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", "replace")[:300]
