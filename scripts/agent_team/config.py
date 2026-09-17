@@ -129,7 +129,9 @@ class Config:
     pairing_ttl_seconds: int
     merge_confirmation_ttl_seconds: int
     interpreter_model: str
+    interpreter_fast_model: str
     interpreter_timeout_seconds: int
+    interpreter_fast_timeout_seconds: int
     transcription_provider: str
     notify_ready_for_owner: bool
     notify_max_attempts: int
@@ -286,7 +288,9 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         pairing_ttl_seconds=int(rc.get("pairing_ttl_seconds", 600)),
         merge_confirmation_ttl_seconds=int(rc.get("merge_confirmation_ttl_seconds", 600)),
         interpreter_model=str(rc.get("interpreter_model", models.get("master_team_lead", "opus"))),
+        interpreter_fast_model=str(rc.get("interpreter_fast_model", "sonnet")),
         interpreter_timeout_seconds=int(rc.get("interpreter_timeout_seconds", 240)),
+        interpreter_fast_timeout_seconds=int(rc.get("interpreter_fast_timeout_seconds", 60)),
         transcription_provider=str(rc.get("transcription_provider", "none")),
         notify_ready_for_owner=bool(nt.get("ready_for_owner", True)),
         notify_max_attempts=int(nt.get("max_attempts", 3)),

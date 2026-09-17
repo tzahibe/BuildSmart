@@ -192,8 +192,13 @@ remote_control:
     poll_timeout_seconds: 30
     pairing_ttl_seconds: 600
     merge_confirmation_ttl_seconds: 600
-    interpreter_model: opus       # natural language -> typed owner commands (read-only tools)
+    # Two-tier interpretation for fast replies: every message is first classified by the fast model
+    # (no tools, a few seconds); only drafting/answering actions then run the Team Lead model with
+    # read-only repository access.
+    interpreter_fast_model: sonnet
+    interpreter_model: opus       # drafts and evidence-based answers (read-only tools)
     interpreter_timeout_seconds: 240
+    interpreter_fast_timeout_seconds: 60
     transcription_provider: none  # none | openai (Whisper via OPENAI_API_KEY); voice never authorizes a merge
 
 notifications:

@@ -55,6 +55,7 @@ class TelegramTransport(Protocol):
     def get_updates(self, offset: int | None, timeout: int) -> list[dict]: ...
     def send_message(self, chat_id: int, text: str, buttons: list[list[dict]] | None = None) -> dict: ...
     def answer_callback(self, callback_id: str, text: str = "") -> None: ...
+    def send_chat_action(self, chat_id: int, action: str = "typing") -> None: ...
     def edit_buttons(self, chat_id: int, message_id: int, buttons: list[list[dict]] | None) -> None: ...
     def get_file(self, file_id: str) -> bytes: ...
     def get_me(self) -> dict: ...
@@ -110,6 +111,12 @@ class HttpTelegramTransport:
             self._call("answerCallbackQuery", callback_query_id=callback_id, text=text[:190] or None)
         except TelegramError:
             pass  # the button reply is best-effort; the real answer is the message that follows
+
+    def send_chat_action(self, chat_id: int, action: str = "typing") -> None:
+        try:
+            self._call("sendChatAction", 15, chat_id=chat_id, action=action)
+        except TelegramError:
+            pass
 
     def edit_buttons(self, chat_id: int, message_id: int, buttons: list[list[dict]] | None) -> None:
         try:
@@ -193,6 +200,10 @@ class FakeTelegramTransport:
 
     def answer_callback(self, callback_id: str, text: str = "") -> None:
         self.callbacks_answered.append((callback_id, text))
+
+    def send_chat_action(self, chat_id: int, action: str = "typing") -> None:
+        self.actions = getattr(self, "actions", [])
+        self.actions.append((chat_id, action))
 
     def edit_buttons(self, chat_id: int, message_id: int, buttons: list[list[dict]] | None) -> None:
         pass

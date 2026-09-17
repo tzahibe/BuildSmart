@@ -50,22 +50,22 @@ class Gateway:
             return self._pair(cmd)
         if not self.is_owner(cmd.user_id):
             self.store.record_event(None, "remote_denied", {"action": cmd.action, "user_id": cmd.user_id, "chat_id": cmd.chat_id})
-            return Reply.deny("Not authorized. This bot answers only its paired owner (agentctl remote pair).")
+            return Reply.deny("⛔ לא מורשה. הבוט הזה עונה רק לבעלים המצומד (agentctl remote pair).")
         if cmd.action in C.BUTTON_ONLY and not cmd.from_callback:
-            return Reply(f"{cmd.action} can only be confirmed with the button — never by text or voice.", ok=False)
+            return Reply(f"את {cmd.action} אפשר לאשר רק בכפתור — לעולם לא בטקסט או בקול.", ok=False)
         if cmd.action in C.MUTATING:
             prior = self.store.command_executed(cmd.command_id) if cmd.command_id else None
             if prior:
-                return Reply(f"Already handled ({prior['action']} → {prior['result']}). Nothing was repeated.")
+                return Reply(f"כבר טופל ({prior['action']} → {prior['result']}). שום דבר לא בוצע פעמיים.")
         handler = getattr(self, "_do_" + cmd.action.lower(), None)
         if handler is None:
-            return Reply(f"Unsupported action {cmd.action}.", ok=False)
+            return Reply(f"פעולה לא נתמכת: {cmd.action}.", ok=False)
         try:
             reply = handler(cmd)
         except Exception as exc:  # noqa: BLE001 — a bug in a handler must never crash the service
             log.exception("command %s failed", cmd.action)
             self._audit(cmd, "ERROR", {"error": str(exc)[:300]})
-            return Reply(f"Command failed: {str(exc)[:200]}", ok=False)
+            return Reply(f"הפקודה נכשלה: {str(exc)[:200]}", ok=False)
         return reply
 
     def _audit(self, cmd: OwnerCommand, result: str, payload: dict | None = None) -> None:
@@ -77,13 +77,13 @@ class Gateway:
     def _pair(self, cmd: OwnerCommand) -> Reply:
         code = str(cmd.args.get("code", ""))
         if cmd.user_id is None or cmd.chat_id is None:
-            return Reply.deny("Pairing needs a private chat.")
+            return Reply.deny("צימוד אפשרי רק בצ'אט פרטי.")
         if not self.store.consume_pairing_code(code):
             self.store.record_event(None, "pairing_rejected", {"user_id": cmd.user_id})
-            return Reply.deny("Pairing code invalid or expired. Ask the operator to run `agentctl remote pair` again.")
+            return Reply.deny("קוד הצימוד לא תקין או שפג תוקפו. בקש מהמפעיל להריץ שוב `agentctl remote pair`.")
         self.store.set_owner(int(cmd.user_id), int(cmd.chat_id))
         self._audit(cmd, "SUCCESS", {"paired_user_id": cmd.user_id})
-        return Reply(f"Paired. Telegram user {cmd.user_id} is now the owner of this orchestrator. Send /help for commands.")
+        return Reply(f"✅ צומד. משתמש טלגרם {cmd.user_id} הוא עכשיו הבעלים של האורקסטרטור. שלח /help לרשימת הפקודות.")
 
     # -- read-only ------------------------------------------------------------------------
     def _do_get_status(self, cmd: OwnerCommand) -> Reply:
@@ -96,7 +96,7 @@ class Gateway:
         return Reply(C.HELP_TEXT)
 
     def _do_unknown(self, cmd: OwnerCommand) -> Reply:
-        return Reply(cmd.args.get("reply") or "I did not understand. Try /help.")
+        return Reply(cmd.args.get("reply") or "לא הבנתי. נסה /help.")
 
     def _do_list_issues(self, cmd: OwnerCommand) -> Reply:
         want = (cmd.args.get("state") or "open").lower()
@@ -108,7 +108,7 @@ class Gateway:
             rec = self.store.get(i["number"])
             tags = [n for n in names if n.startswith(("agent:", "owner:", "risk:"))]
             lines.append(f"#{i['number']} {i['title'][:60]}\n   {' '.join(tags)}" + (f" | orchestrator: {rec.state}" if rec else ""))
-        return Reply("Open Issues:\n" + ("\n".join(lines) if lines else "(none)"))
+        return Reply("Issues פתוחים:\n" + ("\n".join(lines) if lines else "(אין)"))
 
     def _do_get_issue(self, cmd: OwnerCommand) -> Reply:
         n = int(cmd.args["number"])
@@ -118,30 +118,30 @@ class Gateway:
         try:
             c = parse_contract(n, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
                                behavior_domains=self.config.behavior_domains)
-            contract = (f"contract OK: {c.risk}/{c.resource_class} domains {', '.join(c.domains)} · {len(c.acceptance_criteria)} AC · "
-                        f"deps {list(c.dependencies) or 'none'}\nGoal: {c.goal[:300]}")
+            contract = (f"חוזה תקין: {c.risk}/{c.resource_class} · תחומים {', '.join(c.domains)} · {len(c.acceptance_criteria)} קריטריונים · "
+                        f"תלויות {list(c.dependencies) or 'אין'}\nמטרה: {c.goal[:300]}")
         except ContractError as exc:
-            contract = "contract INVALID: " + "; ".join(exc.problems)[:300]
-        state = f"orchestrator: {rec.state}" + (f", PR #{rec.pr_number}" if rec and rec.pr_number else "") if rec else "orchestrator: not tracked"
+            contract = "חוזה לא תקין: " + "; ".join(exc.problems)[:300]
+        state = f"אורקסטרטור: {rec.state}" + (f", PR #{rec.pr_number}" if rec and rec.pr_number else "") if rec else "אורקסטרטור: לא במעקב"
         approved = self.config.owner_approval_label in names
-        text = (f"Issue #{n}: {issue.get('title')}\nGitHub: {issue.get('state')} · labels {', '.join(names) or '-'}\n{state}\n"
-                f"owner approval: {'YES' if approved else 'no'}\n{contract}\n{issue.get('html_url', '')}")
+        text = (f"Issue #{n}: {issue.get('title')}\nGitHub: {issue.get('state')} · תוויות {', '.join(names) or '-'}\n{state}\n"
+                f"אישור בעלים: {'כן' if approved else 'לא'}\n{contract}\n{issue.get('html_url', '')}")
         buttons = []
         if issue.get("state") == "open" and not approved:
-            buttons = [[button("Approve & Queue", C.QUEUE_ISSUE, n), button("Approve only", C.APPROVE_ISSUE, n)]]
+            buttons = [[button("אשר והכנס לתור", C.QUEUE_ISSUE, n), button("אשר בלבד", C.APPROVE_ISSUE, n)]]
         return Reply(text, buttons)
 
     def _do_list_ready_prs(self, cmd: OwnerCommand) -> Reply:
         recs = self.store.list((sm.READY_FOR_OWNER,))
         if not recs:
-            return Reply("No PR is waiting for you right now.")
-        lines, buttons = ["PRs READY FOR OWNER:"], []
+            return Reply("אין PR שממתין לך כרגע.")
+        lines, buttons = ["PRs שממתינים לאישורך (READY FOR OWNER):"], []
         for r in recs:
             sha = (r.validated_commit or "")[:12]
-            lines.append(f"PR #{r.pr_number} — Issue #{r.issue_id} {r.title[:60]}\n   {r.risk} · SHA {sha} · review {(r.review_verdict or '-').split('@')[0]}")
-            buttons.append([button(f"Details #{r.pr_number}", C.GET_PR_DETAILS, r.pr_number, sha[:8]),
-                            button(f"Merge #{r.pr_number}", C.MERGE_PR, r.pr_number, sha[:8]),
-                            button(f"Reject #{r.pr_number}", C.REJECT_PR, r.pr_number, sha[:8])])
+            lines.append(f"PR #{r.pr_number} — Issue #{r.issue_id} {r.title[:60]}\n   סיכון {r.risk} · SHA {sha} · ביקורת {(r.review_verdict or '-').split('@')[0]}")
+            buttons.append([button(f"פרטים #{r.pr_number}", C.GET_PR_DETAILS, r.pr_number, sha[:8]),
+                            button(f"מזג #{r.pr_number}", C.MERGE_PR, r.pr_number, sha[:8]),
+                            button(f"דחה #{r.pr_number}", C.REJECT_PR, r.pr_number, sha[:8])])
         return Reply("\n".join(lines), buttons)
 
     def _rec_for_pr(self, pr: int):
@@ -154,16 +154,16 @@ class Gateway:
         pr = int(cmd.args["pr"])
         rec = self._rec_for_pr(pr)
         if rec is None:
-            return Reply(f"PR #{pr} is not tracked by the orchestrator.", ok=False)
+            return Reply(f"PR #{pr} אינו במעקב האורקסטרטור.", ok=False)
         self.store.set_context(cmd.chat_id, current_pr=pr)
         head = rec.validated_commit or self.github.get_pr(pr)["head"]["sha"]
         report = self.orch.ready_report(rec, head)
         text = render_ready_report(report) if rec.state == sm.READY_FOR_OWNER else \
-            (f"PR #{pr} (Issue #{rec.issue_id}) is {rec.state}" + (f" — {rec.failure_class}: {rec.last_error}" if rec.failure_class else "") +
+            (f"PR #{pr} (Issue #{rec.issue_id}) במצב {rec.state}" + (f" — {rec.failure_class}: {rec.last_error}" if rec.failure_class else "") +
              f"\n{rec.pr_url or ''}")
         buttons = []
         if rec.state == sm.READY_FOR_OWNER:
-            buttons = [[button("Merge", C.MERGE_PR, pr, head[:8]), button("Reject", C.REJECT_PR, pr, head[:8])]]
+            buttons = [[button("מזג", C.MERGE_PR, pr, head[:8]), button("דחה", C.REJECT_PR, pr, head[:8])]]
         return Reply(text, buttons)
 
     def _pr_evidence(self, rec) -> str:
@@ -197,7 +197,7 @@ class Gateway:
         pr = int(cmd.args.get("pr") or self.store.context(cmd.chat_id).get("current_pr") or 0)
         rec = self._rec_for_pr(pr) if pr else None
         if rec is None:
-            return Reply("Which PR? Tell me the number (e.g. PR 57).", ok=False)
+            return Reply("על איזה PR? ציין מספר (למשל PR 57).", ok=False)
         self.store.set_context(cmd.chat_id, current_pr=pr)
         ctx = self._context(cmd.chat_id)
         return Reply(self.interpreter.answer(cmd.args.get("question") or cmd.raw_text, self._pr_evidence(rec), ctx))
@@ -216,15 +216,15 @@ class Gateway:
         except ContractError as exc:
             return list(exc.problems)
 
-    def _render_draft(self, d: dict, prefix: str = "ISSUE DRAFT") -> Reply:
+    def _render_draft(self, d: dict, prefix: str = "טיוטת ISSUE") -> Reply:
         problems = d.get("problems") or []
         text = f"{prefix} ({d['draft_id']})\n\n# {d['title']}\n\n{d['body']}"
         if problems:
-            text += "\n\n⚠️ The draft does not validate yet:\n" + "\n".join(f"- {p}" for p in problems[:8]) + "\n\nTell me what to change."
-            buttons = [[button("Edit", C.SHOW_DRAFT, d["draft_id"]), button("Cancel", C.CANCEL_DRAFT, d["draft_id"])]]
+            text += "\n\n⚠️ הטיוטה עדיין לא תקינה:\n" + "\n".join(f"- {p}" for p in problems[:8]) + "\n\nכתוב לי מה לשנות."
+            buttons = [[button("ערוך", C.SHOW_DRAFT, d["draft_id"]), button("בטל", C.CANCEL_DRAFT, d["draft_id"])]]
         else:
-            buttons = [[button("Create only", C.CREATE_ISSUE, d["draft_id"], "draft"), button("Create & Queue", C.CREATE_ISSUE, d["draft_id"], "queue")],
-                       [button("Edit", C.SHOW_DRAFT, d["draft_id"]), button("Cancel", C.CANCEL_DRAFT, d["draft_id"])]]
+            buttons = [[button("צור בלבד", C.CREATE_ISSUE, d["draft_id"], "draft"), button("צור והכנס לתור", C.CREATE_ISSUE, d["draft_id"], "queue")],
+                       [button("ערוך", C.SHOW_DRAFT, d["draft_id"]), button("בטל", C.CANCEL_DRAFT, d["draft_id"])]]
         return Reply(text, buttons)
 
     def _do_create_issue_draft(self, cmd: OwnerCommand) -> Reply:
@@ -233,7 +233,7 @@ class Gateway:
         if not title.lower().startswith("[agent]"):
             title = "[agent] " + title
         if not body:
-            return Reply("I need more detail to draft the Issue — what should change, and how would we verify it?", ok=False)
+            return Reply("צריך עוד פרטים כדי לנסח את ה-Issue — מה צריך להשתנות, ואיך נאמת את זה?", ok=False)
         draft_id = f"d{int(self.clock())}{secrets.token_hex(2)}"
         problems = self._validate_draft(title, body)
         self.store.save_draft(draft_id, cmd.chat_id, title, body, problems)
@@ -249,7 +249,7 @@ class Gateway:
     def _do_update_issue_draft(self, cmd: OwnerCommand) -> Reply:
         d = self._current_draft(cmd.chat_id)
         if d is None:
-            return Reply("There is no draft to edit. Describe the new Issue and I will draft it.", ok=False)
+            return Reply("אין טיוטה לעריכה. תאר את ה-Issue החדש ואנסח אותו.", ok=False)
         title = (cmd.args.get("title") or d["title"]).strip()
         body = (cmd.args.get("body") or "").strip() or d["body"]
         if not title.lower().startswith("[agent]"):
@@ -257,34 +257,34 @@ class Gateway:
         problems = self._validate_draft(title, body)
         self.store.save_draft(d["draft_id"], cmd.chat_id, title, body, problems)
         self.store.record_event(None, "issue_draft_updated", {"draft_id": d["draft_id"], "valid": not problems})
-        return self._render_draft(self.store.draft(d["draft_id"]), prefix="ISSUE DRAFT (updated)")
+        return self._render_draft(self.store.draft(d["draft_id"]), prefix="טיוטת ISSUE (מעודכנת)")
 
     def _do_show_draft(self, cmd: OwnerCommand) -> Reply:
         d = self._current_draft(cmd.chat_id)
         if d is None:
-            return Reply("No current draft.")
+            return Reply("אין טיוטה נוכחית.")
         r = self._render_draft(d)
-        r.text += "\n\nSend your changes as a message and I will update the draft."
+        r.text += "\n\nשלח את השינויים כהודעה ואעדכן את הטיוטה."
         return r
 
     def _do_cancel_draft(self, cmd: OwnerCommand) -> Reply:
         d = self._current_draft(cmd.chat_id)
         if d is None:
-            return Reply("No current draft.")
+            return Reply("אין טיוטה נוכחית.")
         self.store.finish_draft(d["draft_id"], "cancelled")
         self.store.set_context(cmd.chat_id, current_draft_id=None)
         self.store.record_event(None, "issue_draft_cancelled", {"draft_id": d["draft_id"]})
-        return Reply("Draft discarded.")
+        return Reply("הטיוטה בוטלה.")
 
     def _do_create_issue(self, cmd: OwnerCommand) -> Reply:
         d = self._current_draft(cmd.chat_id)
         if cmd.args.get("draft_id") and (d is None or d["draft_id"] != cmd.args["draft_id"]):
-            return Reply("That draft is no longer current (stale button).", ok=False)
+            return Reply("הטיוטה הזאת כבר לא נוכחית (כפתור ישן).", ok=False)
         if d is None:
-            return Reply("There is no draft to create. Describe the Issue first.", ok=False)
+            return Reply("אין טיוטה ליצירה. תאר קודם את ה-Issue.", ok=False)
         problems = self._validate_draft(d["title"], d["body"])
         if problems:
-            return Reply("The draft does not validate:\n" + "\n".join(f"- {p}" for p in problems[:8]), ok=False)
+            return Reply("הטיוטה לא תקינה:\n" + "\n".join(f"- {p}" for p in problems[:8]), ok=False)
         c = parse_contract(0, d["title"], d["body"], known_locks=self.config.known_locks, behavior_domains=self.config.behavior_domains)
         queue = bool(cmd.args.get("queue"))
         labels = metadata_labels(c.domains, c.risk, c.resource_class)
@@ -297,8 +297,8 @@ class Gateway:
         self._audit(cmd, "SUCCESS", {"issue": number, "queued": queue, "labels": labels, "draft_id": d["draft_id"]})
         if queue:
             self.store.record_event(number, "owner_approved", {"source": cmd.source, "owner_id": cmd.user_id, "how": "create_and_queue"})
-        return Reply(f"Created Issue #{number}: {c.title}\n{issue.get('html_url', '')}\n" +
-                     ("Approved and queued — the scheduler will pick it up." if queue else "Created only (agent:draft) — not approved, not queued."))
+        return Reply(f"✅ נוצר Issue #{number}: {c.title}\n{issue.get('html_url', '')}\n" +
+                     ("אושר והוכנס לתור — הסקדיולר ייקח אותו." if queue else "נוצר בלבד (agent:draft) — לא אושר ולא בתור."))
 
     # -- existing issues ------------------------------------------------------------------
     def _do_approve_issue(self, cmd: OwnerCommand) -> Reply:
@@ -306,13 +306,13 @@ class Gateway:
         queue = bool(cmd.args.get("queue"))
         issue = self.github.get_issue(n)
         if issue.get("state") != "open":
-            return Reply(f"Issue #{n} is not open.", ok=False)
+            return Reply(f"Issue #{n} אינו פתוח.", ok=False)
         try:
             parse_contract(n, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
                            behavior_domains=self.config.behavior_domains)
         except ContractError as exc:
             self._audit(cmd, "REFUSED", {"issue": n, "reason": "contract invalid"})
-            return Reply(f"Issue #{n} cannot be approved: the contract does not validate:\n" + "\n".join(f"- {p}" for p in exc.problems[:8]), ok=False)
+            return Reply(f"אי אפשר לאשר את Issue #{n}: החוזה לא תקין:\n" + "\n".join(f"- {p}" for p in exc.problems[:8]), ok=False)
         names = {l["name"] for l in issue.get("labels", [])}
         add = [l for l in ([self.config.owner_approval_label] + (["agent:queued"] if queue else [])) if l not in names]
         if add:
@@ -321,7 +321,7 @@ class Gateway:
             self.github.set_state_label(n, sm.QUEUED)
         self.store.record_event(n, "owner_approved", {"source": cmd.source, "owner_id": cmd.user_id, "queued": queue})
         self._audit(cmd, "SUCCESS", {"issue": n, "queued": queue, "added": add})
-        return Reply(f"Issue #{n} approved" + (" and queued — the scheduler will pick it up." if queue else " (owner:approved). Say 'queue it' to start."))
+        return Reply(f"✅ Issue #{n} אושר" + (" והוכנס לתור — הסקדיולר ייקח אותו." if queue else " (owner:approved). אמור 'תכניס לתור' כדי להתחיל."))
 
     def _do_queue_issue(self, cmd: OwnerCommand) -> Reply:
         cmd.args["queue"] = True
@@ -332,21 +332,21 @@ class Gateway:
         rec = self.store.get(n)
         if rec and rec.state not in (sm.QUEUED, sm.DONE, sm.BLOCKED):
             self._audit(cmd, "REFUSED", {"issue": n, "reason": f"already {rec.state}"})
-            return Reply(f"Issue #{n} is already {rec.state}; use /pause to stop new work, or reject its PR later.", ok=False)
+            return Reply(f"Issue #{n} כבר במצב {rec.state}; השתמש ב-/pause כדי לעצור עבודה חדשה, או דחה את ה-PR שלו בהמשך.", ok=False)
         self.github.remove_label(n, "agent:queued")
         self.github.add_labels(n, ["agent:draft"])
         if rec and rec.state == sm.QUEUED:
             self.store.transition(n, sm.BLOCKED, note="unqueued by the owner", failure_class="OWNER_UNQUEUED")
         self._audit(cmd, "SUCCESS", {"issue": n})
-        return Reply(f"Issue #{n} taken out of the queue (owner approval kept). Say 'queue it' when ready.")
+        return Reply(f"Issue #{n} הוצא מהתור (אישור הבעלים נשמר). אמור 'תכניס לתור' כשתרצה.")
 
     # -- merge / reject with confirmation -------------------------------------------------
     def _ready_rec(self, pr: int):
         rec = self._rec_for_pr(pr)
         if rec is None:
-            return None, Reply(f"PR #{pr} is not tracked.", ok=False)
+            return None, Reply(f"PR #{pr} אינו במעקב.", ok=False)
         if rec.state != sm.READY_FOR_OWNER:
-            return None, Reply(f"PR #{pr} is {rec.state}, not READY_FOR_OWNER — nothing to confirm.", ok=False)
+            return None, Reply(f"PR #{pr} במצב {rec.state}, לא READY_FOR_OWNER — אין מה לאשר.", ok=False)
         return rec, None
 
     def _pending(self, chat_id: int, kind: str) -> dict | None:
@@ -365,39 +365,39 @@ class Gateway:
             return err
         head = self.github.get_pr(pr)["head"]["sha"]
         if head != rec.validated_commit:
-            return Reply(f"PR #{pr} changed since validation (head {head[:12]} ≠ validated {str(rec.validated_commit)[:12]}). "
-                         "Revalidation required — the orchestrator will re-run the gates.", ok=False)
+            return Reply(f"PR #{pr} השתנה מאז האימות (head {head[:12]} ≠ מאומת {str(rec.validated_commit)[:12]}). "
+                         "נדרש אימות מחדש — האורקסטרטור יריץ שוב את השערים.", ok=False)
         nonce = C.new_nonce()
         self.store.set_context(cmd.chat_id, pending_merge={"kind": "merge", "pr": pr, "issue": rec.issue_id, "sha": rec.validated_commit,
                                                            "nonce": nonce, "expires_at": self.clock() + self.config.merge_confirmation_ttl_seconds})
-        text = (f"CONFIRM MERGE\n\nPR #{pr}\nIssue #{rec.issue_id} {rec.title[:70]}\nRisk: {rec.risk}\nValidated SHA: {rec.validated_commit}\n"
-                f"CI: PASS\nRegression: PASS\nReview: {(rec.review_verdict or '-').split('@')[0]}\n\n"
-                f"Pressing CONFIRM MERGE is your authorization. It expires in {self.config.merge_confirmation_ttl_seconds // 60} minutes.")
+        text = (f"CONFIRM MERGE — אישור מיזוג\n\nPR #{pr}\nIssue #{rec.issue_id} {rec.title[:70]}\nסיכון: {rec.risk}\nSHA מאומת: {rec.validated_commit}\n"
+                f"CI: PASS\nרגרסיה: PASS\nביקורת: {(rec.review_verdict or '-').split('@')[0]}\n\n"
+                f"לחיצה על CONFIRM MERGE היא האישור שלך. תוקף: {self.config.merge_confirmation_ttl_seconds // 60} דקות.")
         return Reply(text, [[button("CONFIRM MERGE", C.CONFIRM_MERGE, pr, rec.validated_commit[:8], nonce),
-                             button("Cancel", C.CANCEL_MERGE, pr, rec.validated_commit[:8], nonce)]])
+                             button("ביטול", C.CANCEL_MERGE, pr, rec.validated_commit[:8], nonce)]])
 
     def _do_confirm_merge(self, cmd: OwnerCommand) -> Reply:
         pr = int(cmd.args["pr"])
         pm = self._pending(cmd.chat_id, "merge")
         if pm is None or pm["pr"] != pr or pm.get("nonce") != cmd.args.get("nonce"):
             self._audit(cmd, "REFUSED", {"pr": pr, "reason": "no matching pending confirmation (stale or expired button)"})
-            return Reply("This confirmation is stale or expired. Ask to merge again to get a fresh confirmation.", ok=False)
+            return Reply("האישור הזה ישן או שפג תוקפו. בקש שוב merge כדי לקבל אישור חדש.", ok=False)
         if not pm["sha"].startswith(cmd.args.get("ref", "")):
             self._audit(cmd, "REFUSED", {"pr": pr, "reason": "button SHA mismatch"})
-            return Reply("This button belongs to a different SHA. Revalidation required.", ok=False)
+            return Reply("הכפתור הזה שייך ל-SHA אחר. נדרש אימות מחדש.", ok=False)
         self.store.set_context(cmd.chat_id, pending_merge=None)   # one confirmation, one attempt
         res = self.orch.owner_merge(pm["issue"], pm["sha"], source="telegram", owner_id=cmd.user_id, command_id=cmd.command_id)
         self._audit(cmd, res["result"], {"pr": pr, "issue": pm["issue"], "requested_sha": pm["sha"],
                                         "actual_validated_sha": res.get("actual_validated_sha"), "merge_commit": res.get("merge_commit"),
                                         "reason": res.get("reason")})
         if res["result"] == "SUCCESS":
-            return Reply(f"Merged PR #{pr} (squash {str(res.get('merge_commit'))[:12]}) at validated SHA {pm['sha'][:12]}. Post-merge smoke is running; "
-                         "the Issue closes when it is green.")
-        return Reply(f"NOT merged: {res.get('reason')}", ok=False)
+            return Reply(f"✅ PR #{pr} מוזג (squash {str(res.get('merge_commit'))[:12]}) ב-SHA המאומת {pm['sha'][:12]}. בדיקת ה-smoke שאחרי המיזוג רצה; "
+                         "ה-Issue ייסגר כשהיא ירוקה.")
+        return Reply(f"❌ לא מוזג: {res.get('reason')}", ok=False)
 
     def _do_cancel_merge(self, cmd: OwnerCommand) -> Reply:
         self.store.set_context(cmd.chat_id, pending_merge=None)
-        return Reply("Cancelled. Nothing was merged.")
+        return Reply("בוטל. שום דבר לא מוזג.")
 
     def _do_reject_pr(self, cmd: OwnerCommand) -> Reply:
         pr = int(cmd.args["pr"])
@@ -405,48 +405,48 @@ class Gateway:
         if err:
             return err
         nonce = C.new_nonce()
-        reason = (cmd.args.get("reason") or "").strip() or "rejected by the owner"
+        reason = (cmd.args.get("reason") or "").strip() or "נדחה על ידי הבעלים"
         self.store.set_context(cmd.chat_id, pending_merge={"kind": "reject", "pr": pr, "issue": rec.issue_id, "sha": rec.validated_commit,
                                                            "nonce": nonce, "reason": reason,
                                                            "expires_at": self.clock() + self.config.merge_confirmation_ttl_seconds})
-        return Reply(f"CONFIRM REJECT\n\nPR #{pr} (Issue #{rec.issue_id})\nReason: {reason}\n\nThe Issue becomes BLOCKED (OWNER_REJECTED); the PR stays open for you to close.",
-                     [[button("CONFIRM REJECT", C.CONFIRM_REJECT, pr, rec.validated_commit[:8], nonce), button("Cancel", C.CANCEL_MERGE, pr, rec.validated_commit[:8], nonce)]])
+        return Reply(f"CONFIRM REJECT — אישור דחייה\n\nPR #{pr} (Issue #{rec.issue_id})\nסיבה: {reason}\n\nה-Issue יהפוך ל-BLOCKED (OWNER_REJECTED); ה-PR נשאר פתוח לסגירה שלך.",
+                     [[button("CONFIRM REJECT", C.CONFIRM_REJECT, pr, rec.validated_commit[:8], nonce), button("ביטול", C.CANCEL_MERGE, pr, rec.validated_commit[:8], nonce)]])
 
     def _do_confirm_reject(self, cmd: OwnerCommand) -> Reply:
         pr = int(cmd.args["pr"])
         pm = self._pending(cmd.chat_id, "reject")
         if pm is None or pm["pr"] != pr or pm.get("nonce") != cmd.args.get("nonce"):
             self._audit(cmd, "REFUSED", {"pr": pr, "reason": "stale/expired confirmation"})
-            return Reply("This confirmation is stale or expired.", ok=False)
+            return Reply("האישור הזה ישן או שפג תוקפו.", ok=False)
         self.store.set_context(cmd.chat_id, pending_merge=None)
         res = self.orch.owner_reject(pm["issue"], source="telegram", owner_id=cmd.user_id, command_id=cmd.command_id, reason=pm.get("reason", ""))
         self._audit(cmd, res["result"], {"pr": pr, "issue": pm["issue"], "reason": pm.get("reason")})
-        return Reply(f"PR #{pr} rejected; Issue #{pm['issue']} is BLOCKED." if res["result"] == "SUCCESS" else f"Not rejected: {res.get('reason')}", ok=res["result"] == "SUCCESS")
+        return Reply(f"PR #{pr} נדחה; Issue #{pm['issue']} חסום (BLOCKED)." if res["result"] == "SUCCESS" else f"לא נדחה: {res.get('reason')}", ok=res["result"] == "SUCCESS")
 
     def _do_owner_change_request(self, cmd: OwnerCommand) -> Reply:
         pr = int(cmd.args.get("pr") or self.store.context(cmd.chat_id).get("current_pr") or 0)
         rec = self._rec_for_pr(pr) if pr else None
         if rec is None:
-            return Reply("Which PR should be changed? Tell me the number.", ok=False)
+            return Reply("איזה PR לשנות? ציין מספר.", ok=False)
         feedback = (cmd.args.get("feedback") or cmd.raw_text or "").strip()
         if not feedback:
-            return Reply("What should change? Describe it and I will send it to the worker.", ok=False)
+            return Reply("מה צריך להשתנות? תאר ואעביר ל-worker.", ok=False)
         res = self.orch.owner_change_request(rec.issue_id, source="telegram", owner_id=cmd.user_id, command_id=cmd.command_id, feedback=feedback)
         self._audit(cmd, res["result"], {"pr": pr, "issue": rec.issue_id, "feedback": feedback[:300], "reason": res.get("reason")})
         if res["result"] != "SUCCESS":
-            return Reply(f"Cannot request changes: {res.get('reason')}", ok=False)
-        return Reply(f"Change request recorded for PR #{pr}; a repair attempt will address it. You will get a new READY notification for the new SHA.")
+            return Reply(f"אי אפשר לבקש שינויים: {res.get('reason')}", ok=False)
+        return Reply(f"✏️ בקשת השינוי נרשמה ל-PR #{pr}; ניסיון תיקון יטפל בה. תקבל התראת READY חדשה ל-SHA החדש.")
 
     # -- control --------------------------------------------------------------------------
     def _do_pause_scheduler(self, cmd: OwnerCommand) -> Reply:
         self.orch.set_paused(True, source=cmd.source, who=str(cmd.user_id), reason=cmd.raw_text[:200])
         self._audit(cmd, "SUCCESS")
-        return Reply("Paused: no new Issue claims, no new workers, no new repair loops. Running workers finish their current step. Say 'תמשיך' or /resume to continue.")
+        return Reply("⏸ הושהה: אין claims חדשים, אין workers חדשים, אין לולאות תיקון חדשות. workers שרצים מסיימים את השלב הנוכחי. אמור 'תמשיך' או /resume להמשך.")
 
     def _do_resume_scheduler(self, cmd: OwnerCommand) -> Reply:
         self.orch.set_paused(False, source=cmd.source, who=str(cmd.user_id), reason=cmd.raw_text[:200])
         self._audit(cmd, "SUCCESS")
-        return Reply("Resumed: the scheduler takes new work again.")
+        return Reply("▶️ ממשיך: הסקדיולר לוקח שוב עבודה חדשה.")
 
     # -- context for the interpreter ------------------------------------------------------
     def _context(self, chat_id: int) -> ConversationContext:
@@ -464,13 +464,26 @@ class Gateway:
                                    status_text=render_compact(self.config, self.store, self.orch.resources, probe_machine=False, now=self.clock()),
                                    recent_issues=issues, paused=self.orch.paused())
 
-    def interpret_and_execute(self, text: str, *, user_id: int, chat_id: int, command_id: str, from_voice: bool = False) -> Reply:
-        """Text/voice path: quick slash parse, else the interpreter; then the typed command."""
+    def interpret_and_execute(self, text: str, *, user_id: int, chat_id: int, command_id: str, from_voice: bool = False,
+                              on_slow: object = None) -> Reply:
+        """Text/voice path: quick slash parse, else the interpreter; then the typed command.
+        `on_slow(action)` is called before a slow (drafting) phase so the service can acknowledge."""
         cmd = C.quick_parse(text)
         if cmd is None or cmd.action == C.UNKNOWN and not text.startswith("/"):
             if not self.is_owner(user_id):
-                return Reply.deny("Not authorized. This bot answers only its paired owner (agentctl remote pair).")
-            intent = self.interpreter.interpret(text, self._context(chat_id))
+                return Reply.deny("⛔ לא מורשה. הבוט הזה עונה רק לבעלים המצומד (agentctl remote pair).")
+            ctx = self._context(chat_id)
+            classify = getattr(self.interpreter, "classify", None)
+            deepen = getattr(self.interpreter, "deepen", None)
+            if callable(classify) and callable(deepen):
+                intent = classify(text, ctx)
+                from agent_team.remote.interpreter import DEEP_ACTIONS
+                if intent.action in DEEP_ACTIONS and not (intent.args.get("body") or "").strip():
+                    if callable(on_slow):
+                        on_slow(intent.action)
+                    intent = deepen(text, ctx, intent)
+            else:
+                intent = self.interpreter.interpret(text, ctx)
             cmd = OwnerCommand(action=intent.action, args=dict(intent.args), raw_text=text)
             if intent.action == C.UNKNOWN or intent.action == C.HELP:
                 cmd.args["reply"] = intent.reply
@@ -479,7 +492,7 @@ class Gateway:
             reply_prefix = ""
         cmd.command_id, cmd.user_id, cmd.chat_id, cmd.from_voice = command_id, user_id, chat_id, from_voice
         if cmd.action in C.BUTTON_ONLY:
-            return Reply(f"{cmd.action} requires the confirmation button.", ok=False)
+            return Reply(f"{cmd.action} דורש אישור בכפתור.", ok=False)
         reply = self.execute(cmd)
         if reply_prefix and cmd.action not in (C.UNKNOWN, C.HELP, C.ASK, C.PR_QUESTION) and reply_prefix not in reply.text:
             reply.text = f"{reply_prefix}\n\n{reply.text}"

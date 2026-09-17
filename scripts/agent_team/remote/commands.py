@@ -168,17 +168,17 @@ def quick_parse(text: str) -> OwnerCommand | None:
     return OwnerCommand(action=UNKNOWN, args={"text": t}, raw_text=t)
 
 
-HELP_TEXT = """BuildSmart Team Lead — owner commands
+HELP_TEXT = """BuildSmart Team Lead — פקודות הבעלים
 
-Talk to me naturally (Hebrew or English), or use:
+דבר איתי בשפה חופשית (עברית או אנגלית; אני עונה תמיד בעברית), או השתמש ב:
 /status  /agents  /ready  /issues  /issue N  /pr N
 /merge N  /reject N  /approve N  /queue N  /unqueue N
 /pause  /resume  /draft  /cancel  /help
 
-Examples:
+דוגמאות:
 "מה הסוכנים עושים עכשיו?"  "תראה לי את כל ה-PRs שמחכים לי"
 "תפתח issue חדש: …"  "תאשר את issue 42 ותתחיל לעבוד"
 "מה הבעיה ב-PR 57?"  "תבצע merge ל-PR 57"  "תעצור"  "תמשיך"
 
-Rules: I never merge without your CONFIRM MERGE button; I never add owner:approved by myself;
-voice can draft and ask, but never confirm a merge."""
+כללים: אני לא ממזג בלי לחיצה שלך על CONFIRM MERGE; אני לא מוסיף owner:approved בעצמי;
+הודעה קולית יכולה לנסח ולשאול, אבל לעולם לא לאשר מיזוג."""

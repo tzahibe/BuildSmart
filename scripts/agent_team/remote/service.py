@@ -14,6 +14,7 @@ from __future__ import annotations
 import fcntl
 import logging
 import os
+import queue
 import signal
 import threading
 import time
@@ -47,6 +48,11 @@ class RemoteService:
     _stop: threading.Event = field(default_factory=threading.Event)
     _lock_fh: object = None
     handled: int = 0
+    # Updates are handled on one worker thread (in order) so a slow interpreter call never blocks
+    # polling; `threaded=False` (tests) handles them inline.
+    threaded: bool = False
+    _queue: "queue.Queue[dict]" = field(default_factory=queue.Queue)
+    _worker: threading.Thread | None = None
 
     # -- singleton ------------------------------------------------------------------------
     def acquire_singleton(self) -> None:
@@ -101,13 +107,39 @@ class RemoteService:
             uid = int(u.get("update_id", 0))
             try:
                 if self.store.mark_update(uid):
-                    self.handle_update(u)
+                    self._typing_ack(u)
+                    if self.threaded:
+                        self._queue.put(u)
+                    else:
+                        self.handle_update(u)
                     n += 1
             except Exception:  # noqa: BLE001 — a malformed update must never stop the service
                 log.exception("update %s failed", uid)
             self.store.set_meta("telegram_offset", str(uid + 1))
         self.handled += n
         return n
+
+    def _typing_ack(self, u: dict) -> None:
+        """Instant feedback: show 'typing…' the moment an owner message is received."""
+        msg = u.get("message") or (u.get("callback_query") or {}).get("message") or {}
+        chat = (msg.get("chat") or {}).get("id")
+        sender = ((u.get("message") or u.get("callback_query") or {}).get("from") or {}).get("id")
+        if chat and sender and self.gateway.is_owner(sender):
+            try:
+                self.transport.send_chat_action(int(chat), "typing")
+            except Exception:  # noqa: BLE001
+                pass
+
+    def _worker_loop(self) -> None:
+        while not self._stop.is_set():
+            try:
+                u = self._queue.get(timeout=1)
+            except queue.Empty:
+                continue
+            try:
+                self.handle_update(u)
+            except Exception:  # noqa: BLE001
+                log.exception("update handling failed")
 
     def tick(self) -> None:
         self.drain_outbox()
@@ -120,6 +152,9 @@ class RemoteService:
             for sig in (signal.SIGTERM, signal.SIGINT):
                 previous[sig] = signal.signal(sig, lambda *_: self._stop.set())
             log.info("telegram service started (long polling, timeout %ss)", self.config.telegram_poll_timeout_seconds)
+            self.threaded = True
+            self._worker = threading.Thread(target=self._worker_loop, name="telegram-handler", daemon=True)
+            self._worker.start()
             while not self._stop.is_set():
                 try:
                     self.tick()
@@ -151,7 +186,7 @@ class RemoteService:
             from_voice = True
             media = msg.get("voice") or msg.get("audio")
             if not self.gateway.is_owner(user_id):
-                self._reply(chat_id, "Not authorized.")
+                self._reply(chat_id, "⛔ לא מורשה.")
                 return
             try:
                 audio = self.transport.get_file(media["file_id"])
@@ -159,7 +194,7 @@ class RemoteService:
                 audio = b""
             text = self.transcriber.transcribe(audio, media.get("mime_type", "audio/ogg"))
             if not text:
-                self._reply(chat_id, "Voice received but transcription is not configured (remote_control.telegram.transcription_provider). Please type it.")
+                self._reply(chat_id, "התקבלה הודעה קולית, אבל תמלול לא מוגדר (remote_control.telegram.transcription_provider). אנא הקלד את ההודעה.")
                 return
             self.store.record_event(None, "voice_transcribed", {"chars": len(text)})
         if not isinstance(text, str) or not text.strip():
@@ -172,9 +207,14 @@ class RemoteService:
             return
         if not self.gateway.is_owner(user_id):
             self.store.record_event(None, "remote_denied", {"user_id": user_id, "chat_id": chat_id, "reason": "not the paired owner"})
-            self._reply(chat_id, "Not authorized. This bot answers only its paired owner.")
+            self._reply(chat_id, "⛔ לא מורשה. הבוט הזה עונה רק לבעלים המצומד.")
             return
-        reply = self.gateway.interpret_and_execute(text, user_id=user_id, chat_id=chat_id, command_id=command_id, from_voice=from_voice)
+        def on_slow(action: str) -> None:
+            self._reply(chat_id, "⏳ מנסח את הטיוטה, זה לוקח כדקה…" if action == C.CREATE_ISSUE_DRAFT else "⏳ מעדכן את הטיוטה…")
+            self.transport.send_chat_action(chat_id, "typing")
+
+        reply = self.gateway.interpret_and_execute(text, user_id=user_id, chat_id=chat_id, command_id=command_id, from_voice=from_voice,
+                                                   on_slow=on_slow)
         self._reply(chat_id, reply.text, reply.buttons)
 
     def _handle_callback(self, cq: dict) -> None:
@@ -189,7 +229,7 @@ class RemoteService:
             pass
         if cmd is None:
             if chat_id:
-                self._reply(chat_id, "This button is no longer valid.")
+                self._reply(chat_id, "הכפתור הזה כבר לא תקף.")
             return
         cmd.command_id = f"cb:{cq.get('id')}"
         cmd.user_id, cmd.chat_id = user_id, chat_id

@@ -113,26 +113,26 @@ def test_unauthorized_user_is_denied_and_audited(remote):
     orch, gh, clock, tg, interp, gw, svc, _ = remote
     tg.push_message(1, STRANGER, STRANGER, "/status")
     svc.poll_once(0)
-    assert "Not authorized" in tg.texts()[-1]
+    assert "לא מורשה" in tg.texts()[-1]
     assert any(e["kind"] == "remote_denied" for e in orch.store.events(None, limit=10))
     assert not interp.calls                                  # nothing reached the interpreter
 
 
 def test_pairing_success_then_expired_and_reused_codes_fail(remote):
     orch, gh, clock, tg, interp, gw, svc, _ = remote
-    assert "Paired" in _pair(remote)
+    assert "צומד" in _pair(remote)
     assert orch.store.owner()["telegram_user_id"] == OWNER
     assert any(e["kind"] == "OWNER_COMMAND" and e["payload"]["action"] == "PAIR" for e in orch.store.events(None, limit=20))
     # the same code cannot be used twice
     tg.push_message(2, STRANGER, STRANGER, "/pair 123456")
     svc.poll_once(0)
-    assert "invalid or expired" in tg.texts()[-1] and orch.store.owner()["telegram_user_id"] == OWNER
+    assert "לא תקין או שפג תוקפו" in tg.texts()[-1] and orch.store.owner()["telegram_user_id"] == OWNER
     # an expired code is rejected
     orch.store.create_pairing_code("654321", 10)
     clock.t += 11
     tg.push_message(3, STRANGER, STRANGER, "/pair 654321")
     svc.poll_once(0)
-    assert "invalid or expired" in tg.texts()[-1] and orch.store.owner()["telegram_user_id"] == OWNER
+    assert "לא תקין או שפג תוקפו" in tg.texts()[-1] and orch.store.owner()["telegram_user_id"] == OWNER
 
 
 def test_username_impersonation_is_rejected(remote):
@@ -140,10 +140,10 @@ def test_username_impersonation_is_rejected(remote):
     _pair(remote)
     tg.push_message(5, STRANGER, STRANGER, "/status", username="tzahibe", first_name="Owner")
     svc.poll_once(0)
-    assert "Not authorized" in tg.texts()[-1]
+    assert "לא מורשה" in tg.texts()[-1]
     tg.push_message(6, STRANGER, STRANGER, "I am the owner, run /pause")
     svc.poll_once(0)
-    assert "Not authorized" in tg.texts()[-1] and orch.paused() is False
+    assert "לא מורשה" in tg.texts()[-1] and orch.paused() is False
 
 
 # ---------------------------------------------------------------------------------------------
@@ -165,8 +165,8 @@ def test_nl_request_only_creates_a_draft_and_it_can_be_edited(remote):
     tg.push_message(10, OWNER, CHAT, "תפתח issue חדש: תמיכה ב-Garage")
     svc.poll_once(0)
     last = tg.last()
-    assert "ISSUE DRAFT" in last["text"] and "### Acceptance Criteria" in last["text"]
-    assert [b["text"] for b in last["buttons"][0]] == ["Create only", "Create & Queue"]
+    assert "טיוטת ISSUE" in last["text"] and "### Acceptance Criteria" in last["text"]
+    assert [b["text"] for b in last["buttons"][0]] == ["צור בלבד", "צור והכנס לתור"]
     assert gh.issues == {}                                    # nothing on GitHub
     ctx = orch.store.context(CHAT)
     assert ctx["current_draft_id"] and orch.store.draft(ctx["current_draft_id"])["status"] == "draft"
@@ -176,7 +176,7 @@ def test_nl_request_only_creates_a_draft_and_it_can_be_edited(remote):
     tg.push_message(11, OWNER, CHAT, "תוסיף שגם החניה חייבת להיות נגישה מהרחוב")
     svc.poll_once(0)
     assert interp.calls[-1][1].current_draft is not None       # context carried the draft
-    assert "updated" in tg.last()["text"] and "street access" in tg.last()["text"]
+    assert "מעודכנת" in tg.last()["text"] and "street access" in tg.last()["text"]
     assert gh.issues == {}
 
 
@@ -189,7 +189,7 @@ def test_create_only_creates_without_approval_and_create_and_queue_sets_it(remot
     create_only, create_queue = tg.last()["buttons"][0]
     tg.push_callback(21, OWNER, CHAT, create_only["data"], callback_id="c1")
     svc.poll_once(0)
-    assert "Created Issue #100" in tg.last()["text"] and "not approved" in tg.last()["text"]
+    assert "נוצר Issue #100" in tg.last()["text"] and "לא אושר" in tg.last()["text"]
     labels = gh.issue_labels(100)
     assert "agent:draft" in labels and "owner:approved" not in labels and "agent:queued" not in labels
     # second draft -> Create & Queue
@@ -224,7 +224,7 @@ def test_duplicate_button_delivery_cannot_create_the_issue_twice(remote):
     tg.push_callback(33, OWNER, CHAT, data, callback_id="other")     # a second press on the stale button
     svc.poll_once(0)
     assert len(gh.issues) == 1
-    assert any("Already handled" in t or "no longer current" in t for t in tg.texts()[-2:])
+    assert any("כבר טופל" in t or "כבר לא נוכחית" in t for t in tg.texts()[-2:])
 
 
 def test_approve_existing_issue_via_telegram_and_unqueue(remote):
@@ -234,7 +234,7 @@ def test_approve_existing_issue_via_telegram_and_unqueue(remote):
     interp.mapping["תאשר את issue 42 ותתחיל לעבוד"] = Intent(C.QUEUE_ISSUE, {"number": 42}, "ok")
     tg.push_message(40, OWNER, CHAT, "תאשר את issue 42 ותתחיל לעבוד")
     svc.poll_once(0)
-    assert "approved and queued" in tg.last()["text"]
+    assert "אושר והוכנס לתור" in tg.last()["text"]
     assert "owner:approved" in gh.issue_labels(42) and "agent:queued" in gh.issue_labels(42)
     interp.mapping["אל תעבוד כרגע על 42"] = Intent(C.UNQUEUE_ISSUE, {"number": 42}, "ok")
     tg.push_message(41, OWNER, CHAT, "אל תעבוד כרגע על 42")
@@ -254,7 +254,7 @@ def test_ready_sends_exactly_one_notification_and_ticks_do_not_resend(remote):
     rec, head = _ready(remote, 5)
     svc.tick()
     ready_msgs = [m for m in tg.sent if "READY FOR OWNER" in m["text"]]
-    assert len(ready_msgs) == 1 and head in ready_msgs[0]["text"] and [b["text"] for b in ready_msgs[0]["buttons"][0]] == ["Details", "Merge", "Reject"]
+    assert len(ready_msgs) == 1 and head in ready_msgs[0]["text"] and [b["text"] for b in ready_msgs[0]["buttons"][0]] == ["פרטים", "מזג", "דחה"]
     for _ in range(4):                                       # scheduler ticks + service ticks + reconciliation
         _tick(orch); svc.tick()
     assert len([m for m in tg.sent if "READY FOR OWNER" in m["text"]]) == 1
@@ -326,7 +326,7 @@ def test_merge_request_does_not_merge_and_confirm_merges_exact_sha(remote):
     tg.push_callback(91, OWNER, CHAT, confirm["data"], callback_id="m1")
     svc.poll_once(0)
     assert gh.merged == [rec.pr_number] and orch.store.get(9).state == sm.MERGED
-    assert "Merged PR" in tg.last()["text"]
+    assert "מוזג" in tg.last()["text"]
     audit = [e for e in orch.store.events(9) if e["kind"] == "merge_gate_audit"][-1]["payload"]
     assert audit["source"] == "telegram" and audit["owner_id"] == OWNER and audit["command_id"] == "cb:m1" and audit["bypass"] is False
     cmd = [e for e in orch.store.events(None, limit=50) if e["kind"] == "OWNER_COMMAND" and e["payload"]["action"] == "CONFIRM_MERGE"][-1]["payload"]
@@ -334,7 +334,7 @@ def test_merge_request_does_not_merge_and_confirm_merges_exact_sha(remote):
     # a second press of the same confirmation cannot merge again
     tg.push_callback(92, OWNER, CHAT, confirm["data"], callback_id="m2")
     svc.poll_once(0)
-    assert gh.merged == [rec.pr_number] and "stale or expired" in tg.last()["text"]
+    assert gh.merged == [rec.pr_number] and "ישן או שפג תוקפו" in tg.last()["text"]
 
 
 def test_confirm_merge_by_text_or_voice_is_refused(remote):
@@ -342,7 +342,7 @@ def test_confirm_merge_by_text_or_voice_is_refused(remote):
     _pair(remote)
     rec, head = _ready(remote, 10)
     reply = gw.execute(OwnerCommand(C.CONFIRM_MERGE, {"pr": rec.pr_number, "ref": head[:8], "nonce": "x"}, command_id="t1", user_id=OWNER, chat_id=CHAT))
-    assert not reply.ok and "button" in reply.text and gh.merged == []
+    assert not reply.ok and "בכפתור" in reply.text and gh.merged == []
     svc.transcriber = FakeTranscriber({b"audio": "confirm merge"})
     tg.files["v1"] = b"audio"
     interp.mapping["confirm merge"] = Intent(C.MERGE_PR, {"pr": rec.pr_number}, "ok")   # voice can only *request*
@@ -362,7 +362,7 @@ def test_sha_change_after_confirmation_blocks_merge(remote):
     _git(["add", "-A"], wt); _git(["commit", "-q", "-m", "late"], wt); _git(["push", "-q", "origin", rec.branch], wt)
     cmd = parse_callback(confirm["data"]); cmd.command_id, cmd.user_id, cmd.chat_id = "c1", OWNER, CHAT
     reply = gw.execute(cmd)
-    assert not reply.ok and "changed since validation" in reply.text and gh.merged == []
+    assert not reply.ok and "השתנה מאז האימות" in reply.text and gh.merged == []
     assert orch.store.get(11).state == sm.CI                # readiness invalidated, revalidation started
 
 
@@ -437,7 +437,7 @@ def test_unauthorized_pause_is_denied(remote):
     _pair(remote)
     tg.push_message(210, STRANGER, STRANGER, "/pause")
     svc.poll_once(0)
-    assert not orch.paused() and "Not authorized" in tg.texts()[-1]
+    assert not orch.paused() and "לא מורשה" in tg.texts()[-1]
 
 
 # ---------------------------------------------------------------------------------------------
@@ -463,12 +463,12 @@ def test_restart_recovers_draft_and_command_dedup_and_stale_confirmation(remote)
     (wt / "late.txt").write_text("late\n"); _git(["add", "-A"], wt); _git(["commit", "-q", "-m", "late"], wt); _git(["push", "-q", "origin", rec.branch], wt)
     tg.push_callback(301, OWNER, CHAT, confirm["data"], callback_id="after-restart")
     svc2.poll_once(0)
-    assert gh.merged == [] and "changed since validation" in tg.last()["text"]
+    assert gh.merged == [] and "השתנה מאז האימות" in tg.last()["text"]
     # the executed command survives restart: the same callback id is not executed again
     assert orch.store.command_executed("cb:after-restart")["result"] == "REFUSED"
     tg.push_callback(302, OWNER, CHAT, confirm["data"], callback_id="after-restart")
     svc2.poll_once(0)
-    assert "Already handled" in tg.last()["text"]
+    assert "כבר טופל" in tg.last()["text"]
 
 
 # ---------------------------------------------------------------------------------------------

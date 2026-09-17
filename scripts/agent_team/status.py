@@ -99,31 +99,31 @@ def render_compact(config: Config, store: StateStore, resources: ResourceManager
         by.setdefault(r.state, []).append(r)
     out: list[str] = []
     if store.get_meta("scheduler_paused", "0") == "1":
-        out.append("⏸ PAUSED — no new claims/repairs (/resume to continue)\n")
+        out.append("⏸ מושהה — אין claims/תיקונים חדשים (/resume להמשך)\n")
 
     def block(title: str, rows: list[str]) -> None:
         out.append(title)
-        out.extend(rows or ["(none)"])
+        out.extend(rows or ["(אין)"])
         out.append("")
 
-    block("RUNNING", [f"#{r.issue_id} {r.title[8:50].strip()} / {(r.assigned_agent or 'worker').split(':')[-1]} / {r.risk} / {_age(r.started_at, now)}"
+    block("רץ עכשיו", [f"#{r.issue_id} {r.title[8:50].strip()} / {(r.assigned_agent or 'worker').split(':')[-1]} / {r.risk} / {_age(r.started_at, now)}"
                       for r in by.get(sm.WORKING, [])])
     waiting = []
     for r in by.get(sm.QUEUED, []):
         deps = [d for d in r.dependencies if (store.get(d) is None or store.get(d).state != sm.DONE)]
-        waiting.append(f"#{r.issue_id} {r.title[8:45].strip()} / " + (f"waiting for #{', #'.join(map(str, deps))}" if deps else "waiting for a slot"))
+        waiting.append(f"#{r.issue_id} {r.title[8:45].strip()} / " + (f"ממתין ל-#{', #'.join(map(str, deps))}" if deps else "ממתין למקום פנוי"))
     for r in by.get(sm.FIX_REQUIRED, []):
-        waiting.append(f"#{r.issue_id} {r.title[8:45].strip()} / repair pending ({r.failure_class})")
-    block("WAITING", waiting)
+        waiting.append(f"#{r.issue_id} {r.title[8:45].strip()} / ממתין לתיקון ({r.failure_class})")
+    block("ממתינים", waiting)
     block("CI", [f"#{r.issue_id} / PR #{r.pr_number} / {r.state.lower().replace('_', ' ')}" for r in by.get(sm.PR_OPEN, []) + by.get(sm.CI, []) + by.get(sm.REVIEW, [])])
-    block("READY FOR OWNER", [f"PR #{r.pr_number} / #{r.issue_id} {r.title[8:45].strip()} / SHA {(r.validated_commit or '')[:8]}" for r in by.get(sm.READY_FOR_OWNER, [])])
-    block("MERGED (smoke)", [f"#{r.issue_id} / PR #{r.pr_number}" for r in by.get(sm.MERGED, [])])
-    block("BLOCKED", [f"#{r.issue_id} / {r.failure_class or 'BLOCKED'}" for r in by.get(sm.BLOCKED, [])])
+    block("מוכן לאישורך (READY FOR OWNER)", [f"PR #{r.pr_number} / #{r.issue_id} {r.title[8:45].strip()} / SHA {(r.validated_commit or '')[:8]}" for r in by.get(sm.READY_FOR_OWNER, [])])
+    block("מוזג (smoke רץ)", [f"#{r.issue_id} / PR #{r.pr_number}" for r in by.get(sm.MERGED, [])])
+    block("חסומים", [f"#{r.issue_id} / {r.failure_class or 'BLOCKED'}" for r in by.get(sm.BLOCKED, [])])
     snap = resources.snapshot(probe_machine=probe_machine)
     machine = "" if snap.free_memory_gb == float("inf") else f"\nCPU {snap.cpu_percent:.0f}%  free RAM {snap.free_memory_gb:.1f} GiB"
-    out.append(f"RESOURCES\nworkers {snap.workers_running}/{config.max_worker_agents}  reviewers {snap.reviewers_running}/{config.max_reviewer_agents}  "
+    out.append(f"משאבים\nworkers {snap.workers_running}/{config.max_worker_agents}  reviewers {snap.reviewers_running}/{config.max_reviewer_agents}  "
                f"heavy jobs {snap.heavy_running}/{config.heavy_job_concurrency}{machine}")
     done = by.get(sm.DONE, [])
     if done:
-        out.append(f"\nDONE: {len(done)} (latest #{done[-1].issue_id})")
+        out.append(f"\nהושלמו: {len(done)} (אחרון #{done[-1].issue_id})")
     return "\n".join(out).strip()

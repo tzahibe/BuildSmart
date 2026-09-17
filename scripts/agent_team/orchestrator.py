@@ -753,7 +753,7 @@ class Orchestrator:
             "failures": [f"{e['payload'].get('class', e['kind'])}: {str(e['payload'].get('summary', e['payload'].get('error', '')))[:100]}" for e in failures][-4:],
             "attempts": rec.attempt_number,
             "limitations": [str(x)[:160] for x in (report.get("known_limitations") or [])][:4],
-            "recommendation": "MERGE — every gate green for this exact SHA" if verdict == "APPROVE" and ev.status == ci_evidence.SUCCESS else "HOLD — see evidence",
+            "recommendation": "MERGE — כל השערים ירוקים ל-SHA הזה בדיוק" if verdict == "APPROVE" and ev.status == ci_evidence.SUCCESS else "HOLD — ראה ראיות",
         }
 
     def _publish_ready_report(self, rec: IssueRecord, head: str, ev: ci_evidence.CiEvidence | None = None) -> None:
@@ -762,9 +762,9 @@ class Orchestrator:
         self._milestone(rec.issue_id, text)
         if self.config.notify_ready_for_owner:
             key = f"pr:{rec.pr_number}:READY_FOR_OWNER:{head}"
-            buttons = [[{"text": "Details", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "Merge", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "Reject", "data": f"v1|REJECT_PR|{rec.pr_number}|{head[:8]}|"}]]
+            buttons = [[{"text": "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
+                        {"text": "מזג", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"},
+                        {"text": "דחה", "data": f"v1|REJECT_PR|{rec.pr_number}|{head[:8]}|"}]]
             created = self.store.enqueue_notification("ready_for_owner", key, rec.issue_id, render_ready_notification(r), buttons)
             if not created:
                 log.info("#%s: READY notification for %s already queued/sent (dedup)", rec.issue_id, head[:12])
@@ -911,41 +911,41 @@ class Orchestrator:
             store.record_event(issue_id, "owner_merge_refused", res)
             return res
         if rec is None or not rec.pr_number:
-            return refuse("issue not tracked or has no PR")
+            return refuse("ה-Issue אינו במעקב או שאין לו PR")
         if rec.state != sm.READY_FOR_OWNER:
-            return refuse(f"issue is {rec.state}, not READY_FOR_OWNER")
+            return refuse(f"ה-Issue במצב {rec.state}, לא READY_FOR_OWNER")
         if not rec.validated_commit or not requested_sha or not rec.validated_commit.startswith(requested_sha):
-            return refuse("requested SHA does not match the validated SHA — revalidation required",
+            return refuse("ה-SHA המבוקש אינו תואם ל-SHA המאומת — נדרש אימות מחדש",
                           validated_sha=rec.validated_commit)
         pr = self.github.get_pr(rec.pr_number)
         head = pr["head"]["sha"]
         if pr.get("merged"):
-            return refuse("PR already merged", merge_commit=pr.get("merge_commit_sha"))
+            return refuse("ה-PR כבר מוזג", merge_commit=pr.get("merge_commit_sha"))
         if head != rec.validated_commit:
             self._invalidate_readiness(rec, head, "head moved before the owner's merge")
-            return refuse("PR changed since validation. Revalidation required.", pr_head=head, validated_sha=rec.validated_commit)
+            return refuse("ה-PR השתנה מאז האימות. נדרש אימות מחדש.", pr_head=head, validated_sha=rec.validated_commit)
         contract = self.refresh_contract(store, rec)
         if contract is None:
-            return refuse("live contract invalid")
+            return refuse("החוזה החי אינו תקין")
         rec = store.get(issue_id)
         self._ensure_review_status(store, rec, head)
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
         decision = merge_policy.decide(rec, ev, self.config, review_sha=_review_sha(rec), lost_allowance=contract.lost_allowance,
                                        require_github_gates=True)
         if not decision.ok:
-            return refuse(f"gates not green for {head[:12]}: {decision.describe()}")
+            return refuse(f"השערים אינם ירוקים ל-{head[:12]} (gates not green): {decision.describe()}")
         self.worktrees.fetch()
         try:
             behind = self.worktrees.behind_base(Path(rec.worktree))
         except GitError:
             behind = 0
         if behind > 0:
-            return refuse(f"base advanced by {behind} commit(s) — stale-base revalidation required (the orchestrator will update the branch)")
+            return refuse(f"ה-base התקדם ב-{behind} קומיט(ים) — נדרש אימות מחדש על base עדכני (base advanced; האורקסטרטור יעדכן את הענף)")
         _, gate_states = ev.required_contexts_green(self.config.protection_required_contexts)
         try:
             res = self.github.merge_pr(rec.pr_number, method=self.config.merge_method, title=f"{rec.title} (#{rec.pr_number})", sha=head)
         except Exception as exc:  # noqa: BLE001
-            return refuse(f"GitHub refused the merge: {str(exc)[:300]}")
+            return refuse(f"GitHub סירב למיזוג: {str(exc)[:300]}")
         merge_sha = res.get("sha")
         self._set_state(store, issue_id, sm.MERGED, note=f"merged by the owner via {source}", validated_commit=merge_sha)
         result = {**base, "result": "SUCCESS", "actual_validated_sha": head, "pr": rec.pr_number, "merge_commit": merge_sha}
@@ -1210,12 +1210,12 @@ def render_ready_report(r: dict) -> str:
 
 def render_ready_notification(r: dict) -> str:
     """The short Telegram form."""
-    lines = [f"PR #{r['pr']} READY FOR OWNER", "", f"Issue #{r['issue']}", r["title"][:120], "",
-             f"Risk: {r['risk']}", f"CI: {r['ci']}", f"Regression: {r['regression'].split(' (')[0]}", f"Review: {r['review']}", "",
-             f"Head SHA:\n{r['head']}", "", f"Summary:\n{r['summary'] or '(see PR)'}"]
+    lines = [f"PR #{r['pr']} READY FOR OWNER — מוכן לאישורך", "", f"Issue #{r['issue']}", r["title"][:120], "",
+             f"סיכון: {r['risk']}", f"CI: {r['ci']}", f"רגרסיה: {r['regression'].split(' (')[0]}", f"ביקורת עצמאית: {r['review']}", "",
+             f"Head SHA:\n{r['head']}", "", f"תקציר:\n{r['summary'] or '(ראה PR)'}"]
     if r["failures"]:
-        lines += ["", "Retries/failures: " + "; ".join(r["failures"])[:300]]
+        lines += ["", "כשלונות/ניסיונות חוזרים: " + "; ".join(r["failures"])[:300]]
     if r["limitations"]:
-        lines += ["", "Limitations: " + "; ".join(r["limitations"])[:300]]
-    lines += ["", f"Recommendation: {r['recommendation']}", "", r["pr_url"] or ""]
+        lines += ["", "מגבלות ידועות: " + "; ".join(r["limitations"])[:300]]
+    lines += ["", f"המלצת Opus: {r['recommendation']}", "", r["pr_url"] or ""]
     return "\n".join(lines)

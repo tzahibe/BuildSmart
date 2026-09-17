@@ -517,7 +517,8 @@ def _build_remote_service(config: Config):
     orch = Orchestrator(config, github=github, runner=FakeAgentRunner(), dry_run=False)   # actions only; never runs the loop
     store = orch.store
     interpreter = ClaudeInterpreter(repo_root=config.repo_root, model=config.interpreter_model,
-                                    timeout_seconds=config.interpreter_timeout_seconds, binary=config.claude_binary)
+                                    timeout_seconds=config.interpreter_timeout_seconds, binary=config.claude_binary,
+                                    fast_model=config.interpreter_fast_model, fast_timeout_seconds=config.interpreter_fast_timeout_seconds)
     gateway = Gateway(config=config, store=store, github=github, orch=orch, interpreter=interpreter)
     return RemoteService(config=config, store=store, transport=HttpTelegramTransport(token), gateway=gateway,
                          transcriber=make_transcriber(config.transcription_provider))
@@ -758,15 +759,15 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
     s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)
     s = sub.add_parser("resume"); s.add_argument("--reason"); s.set_defaults(fn=cmd_resume)
-    s = sub.add_parser("remote"); rsub = s.add_subparsers(dest="remote_cmd", required=True)
+    rem = sub.add_parser("remote"); rsub = rem.add_subparsers(dest="remote_cmd", required=True)
     for name in ("start", "stop", "status", "unpair", "doctor"):
         rsub.add_parser(name)
     pr_ = rsub.add_parser("pair"); pr_.add_argument("--user-id", type=int, help="operator pairing: the owner's numeric Telegram user id")
     pr_.add_argument("--chat-id", type=int)
+    r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
+    rem.set_defaults(fn=cmd_remote)
     s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)
     s = sub.add_parser("uninstall"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_uninstall)
-    r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
-    s.set_defaults(fn=cmd_remote)
     return p
 
 
