@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from app.demo import service as svc
 from app.demo.contract import quality_of
 from app.vertical_slice.concept_generator import (
     OVER_PREFERRED_NOTICE_RATIO,
@@ -17,6 +18,8 @@ from app.vertical_slice.concept_generator import (
     ROOM_TEMPLATES,
 )
 from app.vertical_slice.geometry_core.model import ProgramRole
+from tests.vertical_slice.test_hub_guard import WIDE_SQUARE, _project
+from tests.test_capacity_note import OVER_CAPACITY
 
 
 def _room(zone_id: str, role: str, area: float):
@@ -70,3 +73,49 @@ def test_circulation_and_flex_have_no_tier():
 def test_the_planners_flag_is_carried_but_is_not_a_notice():
     q = quality_of(_design(_room("B1", "BEDROOM", BED * 1.02), over_preferred=True))
     assert q.over_preferred and q.notices == [] and q.signal == []
+
+
+# ------------------------------------------------------------------ Issue #17: metrics (M1–M6)
+#
+# `quality_of()` above runs on the raw solver output and never sees metrics (they need the
+# flattened walls/open-interfaces/doors `to_demo_design` builds) — so these go through the real
+# service entry point, like `test_capacity_note.py` and `test_hub_guard.py` already do.
+
+_M_FIELDS = (
+    "m1_habitable_aspect_median", "m1_habitable_aspect_max", "m2_habitable_on_envelope_ratio",
+    "m3_circulation_share", "m4_hall_door_count", "m4_hall_aspect_median",
+    "m5_wet_adjacency_ratio", "m6_public_zone_contiguous",
+)
+
+
+def test_a_planned_design_carries_all_six_metrics_and_no_dead_space():
+    result = svc.generate_demo_design(_project(WIDE_SQUARE))
+    metrics = result.design.quality.metrics
+    assert metrics is not None
+    for field in _M_FIELDS:
+        assert hasattr(metrics, field)
+    # WIDE_SQUARE has bedrooms, wet rooms, and an open-plan public zone: every metric that CAN be
+    # non-None on some plan is non-None on this one.
+    assert metrics.m1_habitable_aspect_median is not None
+    assert metrics.m2_habitable_on_envelope_ratio is not None
+    assert metrics.m5_wet_adjacency_ratio is not None
+    assert metrics.m6_public_zone_contiguous is not None
+    assert metrics.dead_space_m2 == 0.0                      # C2 already gates this to zero
+    assert 0.0 <= metrics.wasted_circulation_share <= metrics.m3_circulation_share + 1e-9
+
+
+def test_metrics_is_present_on_every_alternative_and_every_level_too():
+    result = svc.generate_demo_design(_project(WIDE_SQUARE))
+    assert result.design.quality.metrics is not None
+    for alternative in result.alternatives:
+        assert alternative.quality.metrics is not None
+    if result.building is not None:
+        for level in result.building.levels:
+            assert level.design.quality.metrics is not None
+
+
+def test_metrics_is_present_on_a_second_real_brief():
+    """A different brief (over the programme's own capacity) — not just one fixture's shape."""
+    result = svc.generate_demo_design(_project(OVER_CAPACITY))
+    assert result.design.quality.metrics is not None
+    assert result.design.quality.metrics.m3_circulation_share > 0.0
