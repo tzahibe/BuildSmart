@@ -76,12 +76,14 @@ jobs:
           uv pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2.0"
           uv run --no-sync python -m compileall -q app tests spikes
           uv run --no-sync python -c "import app.main"
-          # The wall-clock budget test (_MAX_RUNTIME_S, calibrated on the developer's M1 Pro) is
-          # deselected here only: a shared 4-vCPU GitHub runner is not a performance reference, so
-          # its timing is not evidence of a regression. The test stays enforced in the developer
-          # fast tier (.agent/config.yaml's fast_tests.backend) untouched.
+          # The wall-clock budget tests (_MAX_RUNTIME_S and the 1 s plan_v2 budget, both calibrated
+          # on the developer's M1 Pro) are deselected here only: a shared 4-vCPU GitHub runner with
+          # 4 parallel pytest workers is not a performance reference, so their timing is not
+          # evidence of a regression. They stay enforced in the developer fast tier
+          # (.agent/config.yaml's fast_tests.backend) untouched.
           uv run --no-sync pytest -q -x -p no:cacheprovider -n 4 \
-            --deselect tests/test_architectural_concepts.py::test_scenario_plans_before_geometry_and_realizes_it
+            --deselect tests/test_architectural_concepts.py::test_scenario_plans_before_geometry_and_realizes_it \
+            --deselect tests/test_spatial_v2_1_diversity.py::test_runtime_stays_under_one_second_for_evaluation_scenarios
       - uses: actions/setup-node@v4
         if: steps.plan.outputs.frontend_changed == 'true'
         with:
