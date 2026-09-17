@@ -21,7 +21,7 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
-| Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; owner-controlled governance + Telegram control plane on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
+| Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; governance since 2026-09-18: owner approves ROOT Issues and merges, the Team Lead executes everything else (child Issues, parallel workers); Telegram control plane; on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
 | Product roadmap (owner-maintained, proposed only) | PROPOSED | [ROADMAP.md](ROADMAP.md) |
 
 Backend: FastAPI (`backend/app`), Python 3.11, `uv`-managed, `[tool.uv] package = false` — CLIs
@@ -37,6 +37,10 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   subscription usage guard (auto-pause at 98 %, auto-resume after the reset, rate-limit requeue),
   3 concurrent workers, Telegram `answer()` fix; the owner's new P0 topic "Entrance-to-Circulation
   Integration / no entrance dead-end walls" added to `docs/ROADMAP.md` and drafted as Issue #22 (`agent:draft`, depends on #20).
+  2026-09-18 (owner governance message): ROOT/child authorization model (`### Authorization`,
+  `agent:child`, `agent:decomposed`, `agent:hold`), root-aware scheduler (work stealing, locks
+  released at READY, READY never blocks unrelated work), graceful drain on SIGTERM, Team Lead
+  status view; 18 governance tests (`tests/test_governance_parallel.py`).
 
 - `integration/laundry-into-main` — landed: fast-forwarded onto `main` at `6499604`. No longer
   active work; kept for history. See the Laundry Wiki page.

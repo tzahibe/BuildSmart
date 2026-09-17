@@ -12,11 +12,13 @@ def test_real_config_loads(repo_config):
     c = repo_config
     assert c.repo == "tzahibe/BuildSmart"
     assert c.models["worker"] == "sonnet" and c.models["master_team_lead"] == "opus"
-    assert c.max_worker_agents == 2 and c.max_reviewer_agents == 1 and c.heavy_job_concurrency == 1
+    assert c.max_worker_agents == 3 and c.max_reviewer_agents == 1 and c.heavy_job_concurrency == 1
+    assert c.weighted_capacity == 7
     assert c.weights == {"LIGHT": 1, "MEDIUM": 2, "HEAVY": 3}
     assert all(c.risk_policy[r].auto_merge is False for r in ("LOW", "MEDIUM", "HIGH"))
     assert c.risk_policy["MEDIUM"].requires == ("ci_green", "regression_green", "reviewer_green")
-    assert c.owner_approval_label == "owner:approved" and c.max_active_issues == 2
+    assert c.owner_approval_label == "owner:approved" and c.max_active_issues == 3
+    assert c.poll_labels == ("agent:queued", "owner:approved") and c.release_locks_at_ready and c.drain_timeout_seconds == 3900
     assert c.telegram_enabled and c.telegram_mode == "long_polling" and c.telegram_token_env == "AGENT_TELEGRAM_BOT_TOKEN"
     assert c.notify_ready_for_owner and c.notify_max_attempts == 3
     assert c.state_db_path == c.repo_root / ".agent" / "state" / "orchestrator.sqlite3"

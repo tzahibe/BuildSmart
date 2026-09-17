@@ -189,6 +189,62 @@ session with the exact evidence; INFRA/FLAKY get one CI re-run; everything else 
 exhausted budget becomes `agent:blocked` for the Team Lead. The class is persisted on the Issue
 record and posted as a milestone comment.
 
+## Governance: owner vs Team Lead authority (since 2026-09-18)
+
+**Maximize safe parallel execution. The Team Lead is fully authorized to execute. Only merge
+requires owner approval.**
+
+| Who | Decides |
+|---|---|
+| OWNER | the product backlog — creates/approves **ROOT Issues** (`owner:approved`); product priorities; genuine product decisions; the configured maxima (`resources.*`, `max_active_issues`); the final **merge** |
+| TEAM LEAD (Opus) | everything else: claiming, queueing, investigation, decomposition into child Issues, the dependency DAG, worker assignment, branches/worktrees, code within scope, tests, PRs, CI, regression, independent review, repair/retry, base updates and conflicts, docs, closing children, resource allocation, pausing/restarting workers, implementation details |
+| Sonnet workers / reviewers | implementation / independent review |
+
+**ROOT Issue = scope boundary.** A ROOT (owner-approved product goal) authorizes its own
+execution *and* any child Issue derived from it. A child carries a `### Authorization` section
+(`source: inherited`, `root_issue: #N`, `parent_issue: #N`, `derived_by: team-lead`,
+`scope_inherited: true`), the `agent:child` label and **no** `owner:approved` of its own.
+`Orchestrator.authorization_of()` executes a child only when its ROOT is owner-approved and the
+child stays inside the ROOT: `issue_contract.child_scope_problems()` refuses extra domains, locks
+the ROOT does not declare (explicit or domain-implied), and a wider regression budget —
+`SCOPE_ESCAPE`, the child is blocked with a comment and never runs. Work a ROOT does not require
+is reported as PROPOSED PRODUCT FOLLOW-UP and waits for the owner. `agentctl issue decompose ROOT
+--children …` / `issue create --child-of ROOT` create children (the ROOT gets `agent:decomposed`
+and is not run as a task; `close_completed_roots()` closes it when every child is `agent:done`).
+`agentctl issue create` without `--child-of` can only produce `agent:draft` — the Team Lead's
+tools cannot mint ROOT authorization. `agent:hold` (owner, Telegram "don't work on it yet")
+parks an authorized Issue; "queue it" lifts the hold.
+
+**Utilization.** The scheduler polls `owner:approved` and `agent:queued` Issues (any of), queues
+executable ones itself, orders candidates by ROOT then number, and starts every node whose
+dependencies are `agent:done`, whose locks are free and whose weight fits — up to the configured
+worker maximum (`max_worker_agents`, `weighted_capacity`, CPU/RAM thresholds; heavy validation
+still serializes through `heavy_job_concurrency`). `max_active_issues` counts ROOTs in flight
+(children count toward their ROOT). A finished run wakes the loop at once so the freed worker
+takes the next executable task (work stealing) instead of waiting a poll interval. Locks are
+released when a PR reaches `READY_FOR_OWNER` (`release_locks_at_ready`), and `READY_FOR_OWNER`
+does not count as active: a PR waiting for the owner never stops unrelated work; a repair on such
+a PR re-acquires its locks first. Sibling PRs whose base advanced after a merge are updated and
+re-validated automatically. Idle is legitimate when no executable task exists, a dependency or
+lock blocks, or the resource budget is spent — the objective is maximum safe *useful*
+parallelism, never process count.
+
+**Graceful restart.** SIGTERM (launchd `kickstart -k`, `agentctl stop`) drains: nothing new
+starts, running agents finish (up to `drain_timeout_seconds`), then the process exits and launchd
+restarts it; the plist's `ExitTimeOut` matches. SIGINT / `agentctl stop --now` / a second SIGTERM
+stops immediately. Before 2026-09-18 a restart killed running workers mid-run (#17 lost two
+attempts that way).
+
+**Team Lead status** (`agentctl status`): ROOT ISSUES (each ROOT with its children's states),
+RUNNING, WAITING, CI, REVIEW / MERGE, READY FOR OWNER, BLOCKED, AVAILABLE WORKERS `n / max`,
+RESOURCES (weighted capacity, heavy jobs, machine, locks) and BLOCKERS (dependencies, held locks).
+
+Tests: `tests/test_governance_parallel.py` — ROOT authorization, child inheritance, scope escape,
+Authorization validation, owner hold, N workers from one ROOT, DAG parallelism, work stealing,
+slot/capacity saturation, lock serialization, READY not blocking unrelated work, drain, child
+creation by the Team Lead (and refusal for unapproved ROOTs / out-of-scope children), no automatic
+merge (loader + lifecycle), owner merge with SHA re-validation, ROOT auto-close.
+
 ## Merge policy (owner-controlled)
 
 | Risk | Required before `READY_FOR_OWNER` | Auto-merge |
@@ -270,8 +326,10 @@ The `.claude/skills/agent-team-lead/SKILL.md` skill is the Opus session's playbo
 knowledge preflight, investigate (own tools or `agentctl investigate`), decide whether to split,
 write one contract file per Issue with verifiable ACs and deterministic targets, declare risk /
 resource class / locks / dependencies / regression budget, `issue create --queue` them in
-dependency order, keep the daemon running, answer `agentctl status`, approve or redirect blocked
-work, and report the outcome to the user. The Team Lead does not implement product code itself.
+dependency order — as `agent:draft` proposals for new product goals, or as children of an
+owner-approved ROOT (`issue decompose`) that execute at once — keep the daemon running, answer
+`agentctl status`, approve or redirect blocked work, and report the outcome to the user. The Team
+Lead does not implement product code itself and never mints ROOT authorization or merges.
 
 ## Isolated environments
 

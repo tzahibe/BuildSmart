@@ -411,4 +411,6 @@ def test_status_renders(env):
     orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits()}))
     _tick(orch)
     text = render(config, orch.store, orch.resources, probe_machine=False, now=clock())
-    assert "RUNNING" in text and "#16 PR #" in text and "workers 0/2" in text and "weighted capacity 0/4" in text
+    assert "RUNNING" in text and "#16 PR #" in text and f"workers 0/{config.max_worker_agents}" in text
+    assert "ROOT ISSUES" in text and "AVAILABLE WORKERS" in text and f"{config.max_worker_agents} / {config.max_worker_agents}" in text
+    assert "RESOURCES" in text and f"weighted capacity 0 / {config.weighted_capacity}" in text and "BLOCKERS" in text

@@ -1,7 +1,7 @@
 """Deterministic scheduling: which QUEUED issues may start this tick, and why the others wait.
 
 Pure planning over a snapshot — no side effects — so it is trivially testable and its decisions
-can be printed in dry-run exactly as they would be executed. Order is FIFO by issue number.
+can be printed in dry-run exactly as they would be executed. Order is by ROOT Issue, then FIFO by number.
 Each start decided in a tick is accounted for (weight, worker slot, locks) before the next
 candidate is considered, so two MEDIUM issues never both start into one free slot.
 """
@@ -56,7 +56,8 @@ def plan(
     pending_workers = 0
     granted: list[LockRow] = []
 
-    for rec, contract in sorted(queued, key=lambda rc: rc[0].issue_id):
+    # Priority: children of the earliest ROOT first (finish what is in flight), then FIFO by number.
+    for rec, contract in sorted(queued, key=lambda rc: (rc[0].root, rc[0].issue_id)):
         waits: list[str] = []
         for dep in contract.dependencies:
             ok, why = dependency_status(dep, store, external_satisfied)

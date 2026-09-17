@@ -234,14 +234,21 @@ def test_approve_existing_issue_via_telegram_and_unqueue(remote):
     interp.mapping["תאשר את issue 42 ותתחיל לעבוד"] = Intent(C.QUEUE_ISSUE, {"number": 42}, "ok")
     tg.push_message(40, OWNER, CHAT, "תאשר את issue 42 ותתחיל לעבוד")
     svc.poll_once(0)
-    assert "אושר והוכנס לתור" in tg.last()["text"]
+    assert "אושר כ-ROOT" in tg.last()["text"]
     assert "owner:approved" in gh.issue_labels(42) and "agent:queued" in gh.issue_labels(42)
     interp.mapping["אל תעבוד כרגע על 42"] = Intent(C.UNQUEUE_ISSUE, {"number": 42}, "ok")
     tg.push_message(41, OWNER, CHAT, "אל תעבוד כרגע על 42")
     svc.poll_once(0)
-    assert "agent:queued" not in gh.issue_labels(42)
+    assert "agent:queued" not in gh.issue_labels(42) and "agent:hold" in gh.issue_labels(42)
+    assert "owner:approved" in gh.issue_labels(42)          # the authorization survives the hold
     rep = _tick(orch)
-    assert rep.started == []
+    assert rep.started == [] and 42 in orch.on_hold
+    # lifting the hold ("queue it") makes the ROOT executable again
+    interp.mapping["תכניס את 42 לתור"] = Intent(C.QUEUE_ISSUE, {"number": 42}, "ok")
+    tg.push_message(42, OWNER, CHAT, "תכניס את 42 לתור")
+    svc.poll_once(0)
+    assert "agent:hold" not in gh.issue_labels(42)
+    assert _tick(orch).started == [42]
 
 
 # ---------------------------------------------------------------------------------------------

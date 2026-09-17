@@ -20,6 +20,9 @@ class Clock:
 
 @pytest.fixture
 def env(repo_config, tmp_path):
+    # The mechanism is under test, not the production numbers: pin 2 workers / capacity 4 here.
+    import dataclasses
+    repo_config = dataclasses.replace(repo_config, max_worker_agents=2, weighted_capacity=4)
     store = StateStore(tmp_path / "s.sqlite3", clock=Clock())
     probe = FakeProbe(cpu=10.0, free_gb=20.0)
     rm = ResourceManager(repo_config, store, probe)

@@ -39,6 +39,20 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
         lines.extend(("  " + r) for r in rows) if rows else lines.append("  (none)")
         lines.append("")
 
+    open_recs = [r for r in recs if r.state != sm.DONE]
+    roots: dict[int, list[IssueRecord]] = {}
+    for r in open_recs:
+        roots.setdefault(r.root, []).append(r)
+    root_rows = []
+    for root_n, members in sorted(roots.items()):
+        if len(members) == 1 and members[0].issue_id == root_n:
+            r = members[0]
+            root_rows.append(f"#{root_n} {r.title[8:60].strip()} — {r.state}")
+        else:
+            states = ", ".join(f"#{m.issue_id} {m.state}" for m in members)
+            root_rows.append(f"#{root_n} — {len(members)} child task(s): {states}")
+    section("ROOT ISSUES", root_rows)
+
     section("RUNNING", [f"#{r.issue_id} {_dom(r)} / {r.assigned_agent or 'worker'} / {r.resource_class} / attempt {r.attempt_number} / "
                         f"{_age(r.started_at, now)} (heartbeat {_age(r.heartbeat_at, now)} ago) — {r.title[:50]}"
                         for r in by_state.get(sm.WORKING, [])])
@@ -92,9 +106,20 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
             pass
     snap = resources.snapshot(probe_machine=probe_machine)
     locks = store.locks_held()
-    section("RESOURCE", [snap.describe(config),
-                         "locks: " + (", ".join(f"{l.name}({l.mode})#{l.issue_id}" for l in locks) or "none"),
-                         "heavy jobs: " + (", ".join(f"{j.kind}#{j.issue_id}" for j in resources.heavy_jobs()) or "none")])
+    section("AVAILABLE WORKERS", [f"{max(0, config.max_worker_agents - snap.workers_running)} / {config.max_worker_agents}  "
+                                  f"(reviewers {snap.reviewers_running}/{config.max_reviewer_agents})"])
+    section("RESOURCES", [f"weighted capacity {snap.weighted_used} / {config.weighted_capacity}",
+                          f"heavy jobs {snap.heavy_running} / {config.heavy_job_concurrency}",
+                          snap.describe(config),
+                          "locks: " + (", ".join(f"{l.name}({l.mode})#{l.issue_id}" for l in locks) or "none")])
+    blockers = []
+    for r in by_state.get(sm.QUEUED, []):
+        deps = [d for d in r.dependencies if (store.get(d) is None or store.get(d).state != sm.DONE)]
+        if deps:
+            blockers.append(f"#{r.issue_id} waits for #{', #'.join(map(str, deps))}")
+    for l in locks:
+        blockers.append(f"{l.name} locked ({l.mode}) by #{l.issue_id}")
+    section("BLOCKERS", blockers)
     last = store.get_meta("last_tick")
     lines.append(f"last tick: {_age(float(last), now) + ' ago' if last else 'never'}")
     return "\n".join(lines)

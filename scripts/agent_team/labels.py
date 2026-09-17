@@ -39,8 +39,8 @@ DOMAIN_LABELS: tuple[Label, ...] = tuple(
 )
 
 RISK_LABELS: tuple[Label, ...] = (
-    Label("risk:low", "c2e0c6", "Docs, isolated tests, small cosmetic UI — may auto-merge"),
-    Label("risk:medium", "fbca04", "Normal product feature — needs Team Lead approval"),
+    Label("risk:low", "c2e0c6", "Docs, isolated tests, small cosmetic UI — the owner still merges"),
+    Label("risk:medium", "fbca04", "Normal product feature"),
     Label("risk:high", "b60205", "Invariants, validator rules, schema, security — architecture review"),
 )
 
@@ -51,11 +51,19 @@ RESOURCE_LABELS: tuple[Label, ...] = (
 )
 
 OWNER_APPROVED_LABEL = "owner:approved"
+HOLD_LABEL = "agent:hold"
+CHILD_LABEL = "agent:child"
+DECOMPOSED_LABEL = "agent:decomposed"
 OWNER_LABELS: tuple[Label, ...] = (
-    Label(OWNER_APPROVED_LABEL, "8b0000", "The owner approved this Issue for execution — only the owner sets this"),
+    Label(OWNER_APPROVED_LABEL, "8b0000", "ROOT Issue: the owner authorized execution — only the owner sets this; children inherit it"),
+    Label(HOLD_LABEL, "e4e669", "The owner put this Issue on hold: authorized but not to be executed yet"),
+)
+KIND_LABELS: tuple[Label, ...] = (
+    Label(CHILD_LABEL, "bfd4f2", "Child Issue derived by the Team Lead from a ROOT Issue (authorization inherited)"),
+    Label(DECOMPOSED_LABEL, "bfd4f2", "ROOT Issue executed through its child Issues; closed when they are all done"),
 )
 
-ALL_LABELS: tuple[Label, ...] = STATE_LABELS + DOMAIN_LABELS + RISK_LABELS + RESOURCE_LABELS + OWNER_LABELS
+ALL_LABELS: tuple[Label, ...] = STATE_LABELS + DOMAIN_LABELS + RISK_LABELS + RESOURCE_LABELS + OWNER_LABELS + KIND_LABELS
 
 STATE_LABEL_NAMES = tuple(l.name for l in STATE_LABELS)
 

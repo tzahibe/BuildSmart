@@ -119,6 +119,8 @@ class Config:
     # governance
     owner_approval_label: str
     max_active_issues: int
+    release_locks_at_ready: bool
+    drain_timeout_seconds: int
 
     # usage guard + rolling backlog
     usage_guard_enabled: bool
@@ -243,7 +245,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         repo=str(_need(gh, "repo", "github")),
         base_branch=str(gh.get("base_branch", "main")),
         poll_interval_seconds=int(_need(gh, "poll_interval_seconds", "github")),
-        poll_labels=tuple(gh.get("poll_labels") or ("agent:queued",)),
+        poll_labels=tuple(gh.get("poll_labels") or ("agent:queued", "owner:approved")),
         executable_author_associations=tuple(gh.get("executable_author_associations") or ("OWNER",)),
         merge_method=str(gh.get("merge_method", "squash")),
         delete_branch_after_merge=bool(gh.get("delete_branch_after_merge", True)),
@@ -291,6 +293,8 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
         owner_approval_label=str(gov.get("owner_approval_label", "owner:approved")),
         max_active_issues=int(gov.get("max_active_issues", 2)),
+        release_locks_at_ready=bool(gov.get("release_locks_at_ready", True)),
+        drain_timeout_seconds=int(gov.get("drain_timeout_seconds", 3900)),
         usage_guard_enabled=bool(ug.get("enabled", True)),
         usage_pause_at_percent=float(ug.get("pause_at_percent", 98)),
         usage_resume_below_percent=float(ug.get("resume_below_percent", 90)),

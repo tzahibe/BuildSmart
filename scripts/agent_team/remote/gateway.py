@@ -314,14 +314,20 @@ class Gateway:
             self._audit(cmd, "REFUSED", {"issue": n, "reason": "contract invalid"})
             return Reply(f"אי אפשר לאשר את Issue #{n}: החוזה לא תקין:\n" + "\n".join(f"- {p}" for p in exc.problems[:8]), ok=False)
         names = {l["name"] for l in issue.get("labels", [])}
-        add = [l for l in ([self.config.owner_approval_label] + (["agent:queued"] if queue else [])) if l not in names]
+        # Governance: the owner's approval makes this a ROOT Issue and authorizes its execution in full —
+        # claiming, queueing, decomposition, workers, PRs, CI, review. Only the merge stays with the owner.
+        add = [l for l in [self.config.owner_approval_label, "agent:queued"] if l not in names]
         if add:
             self.github.add_labels(n, add)
-        if queue:
-            self.github.set_state_label(n, sm.QUEUED)
-        self.store.record_event(n, "owner_approved", {"source": cmd.source, "owner_id": cmd.user_id, "queued": queue})
-        self._audit(cmd, "SUCCESS", {"issue": n, "queued": queue, "added": add})
-        return Reply(f"✅ Issue #{n} אושר" + (" והוכנס לתור — הסקדיולר ייקח אותו." if queue else " (owner:approved). אמור 'תכניס לתור' כדי להתחיל."))
+        if "agent:hold" in names:
+            self.github.remove_label(n, "agent:hold")
+        self.github.set_state_label(n, sm.QUEUED)
+        rec = self.store.get(n)
+        if rec and rec.state == sm.BLOCKED and rec.failure_class in ("OWNER_HOLD", "OWNER_UNQUEUED"):
+            self.store.transition(n, sm.QUEUED, allowed_from=(sm.BLOCKED,), note="re-authorized by the owner", failure_class=None, last_error=None)
+        self.store.record_event(n, "owner_approved", {"source": cmd.source, "owner_id": cmd.user_id, "queued": True, "root": True})
+        self._audit(cmd, "SUCCESS", {"issue": n, "queued": True, "added": add})
+        return Reply(f"✅ Issue #{n} אושר כ-ROOT — ה-team lead מבצע אותו במלואו (פירוק, workers, PR, CI, review); רק ה-merge אצלך.")
 
     def _do_queue_issue(self, cmd: OwnerCommand) -> Reply:
         cmd.args["queue"] = True
@@ -333,12 +339,13 @@ class Gateway:
         if rec and rec.state not in (sm.QUEUED, sm.DONE, sm.BLOCKED):
             self._audit(cmd, "REFUSED", {"issue": n, "reason": f"already {rec.state}"})
             return Reply(f"Issue #{n} כבר במצב {rec.state}; השתמש ב-/pause כדי לעצור עבודה חדשה, או דחה את ה-PR שלו בהמשך.", ok=False)
+        # `agent:hold` keeps an authorized Issue (and its children) out of execution until the owner lifts it.
         self.github.remove_label(n, "agent:queued")
-        self.github.add_labels(n, ["agent:draft"])
+        self.github.add_labels(n, ["agent:hold"])
         if rec and rec.state == sm.QUEUED:
-            self.store.transition(n, sm.BLOCKED, note="unqueued by the owner", failure_class="OWNER_UNQUEUED")
+            self.store.transition(n, sm.BLOCKED, note="on hold by the owner", failure_class="OWNER_HOLD")
         self._audit(cmd, "SUCCESS", {"issue": n})
-        return Reply(f"Issue #{n} הוצא מהתור (אישור הבעלים נשמר). אמור 'תכניס לתור' כשתרצה.")
+        return Reply(f"Issue #{n} הושם בהמתנה (agent:hold) — האישור נשמר, לא יבוצע עד שתגיד 'תכניס לתור'.")
 
     # -- merge / reject with confirmation -------------------------------------------------
     def _ready_rec(self, pr: int):

@@ -36,8 +36,8 @@ from agent_team.config import Config
 from agent_team.failure_classifier import (
     ENVIRONMENT_FAILURE, FLAKY_TEST, INFRA_FAILURE, MERGE_CONFLICT, REVIEW_REJECTED, Classification, FailureInput, classify,
 )
-from agent_team.issue_contract import ContractError, IssueContract, parse_contract, verification_manifest
-from agent_team.labels import STATE_LABEL_PREFIX
+from agent_team.issue_contract import ContractError, IssueContract, parse_contract, verification_manifest, child_scope_problems
+from agent_team.labels import DECOMPOSED_LABEL, HOLD_LABEL, STATE_LABEL_PREFIX
 from agent_team.locks import LockManager, effective_locks
 from agent_team.pr_body import render_pr_body
 from agent_team.resource_manager import ResourceManager, ResourceProbe
@@ -77,6 +77,16 @@ class TickReport:
         return " | ".join(parts)
 
 
+@dataclass
+class AuthDecision:
+    ok: bool
+    kind: str                 # root | child
+    root: int
+    parent: int | None
+    source: str               # owner | inherited | none
+    problems: list[str] = field(default_factory=list)
+
+
 class Orchestrator:
     def __init__(self, config: Config, *, github, runner: AgentRunner, dry_run: bool = False,
                  probe: ResourceProbe | None = None, clock=time.time, worktrees: WorktreeManager | None = None,
@@ -95,6 +105,9 @@ class Orchestrator:
         self.threads: dict[str, threading.Thread] = {}
         self._threads_lock = threading.Lock()
         self._stop = threading.Event()
+        self._wake = threading.Event()        # set when a run finishes: the loop re-plans immediately (work stealing)
+        self._draining = False                # SIGTERM: finish running agents, start nothing new, then exit
+        self._drain_started = 0.0
         self._lock_fh = None
         self._ci_started: dict[int, float] = {}
         self.blocking_decisions: list[str] = []
@@ -235,6 +248,9 @@ class Orchestrator:
     def _guard(self, key: str, target, *args) -> None:
         try:
             target(*args)
+            # A finished run frees a slot: wake the loop so the next executable task starts at once
+            # instead of waiting for the poll interval (work stealing).
+            self._wake.set()
         except Exception:  # noqa: BLE001
             log.exception("thread %s crashed", key)
 
@@ -289,28 +305,98 @@ class Orchestrator:
             except Exception as exc:  # noqa: BLE001
                 log.exception("advance #%s failed", rec.issue_id)
                 report.errors[rec.issue_id] = str(exc)[:200]
+        try:
+            report.reconciled.extend(self.close_completed_roots())
+        except Exception as exc:  # noqa: BLE001
+            log.warning("root completion check failed: %s", exc)
         self.store.set_meta("last_tick", str(self.clock()))
         return report
+
+    def close_completed_roots(self) -> list[str]:
+        """A decomposed ROOT is done when every child is done: close it with the summary (the ROOT was
+        never a task itself). Idempotent — a closed ROOT is skipped."""
+        out: list[str] = []
+        roots = {r.root for r in self.store.list() if r.kind == "child"}
+        for root_n in sorted(roots):
+            children = self.store.children_of(root_n)
+            if not children or any(c.state != sm.DONE for c in children):
+                continue
+            if self.store.get_meta(f"root_closed:{root_n}") == "1":
+                continue
+            try:
+                root = self.github.get_issue(root_n)
+            except Exception:  # noqa: BLE001
+                continue
+            if root.get("state") != "open":
+                self.store.set_meta(f"root_closed:{root_n}", "1")
+                continue
+            summary = "\n".join(f"- #{c.issue_id} — PR #{c.pr_number} `{(c.validated_commit or '')[:12]}`" for c in children)
+            if not self.dry_run:
+                try:
+                    self.github.comment(root_n, f"**[agent-team]** Every child Issue of this ROOT is done and merged by the owner:\n{summary}\n\nClosing the ROOT.")
+                    self.github.set_state_label(root_n, sm.DONE)
+                    self.github.close_issue(root_n)
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("could not close ROOT #%s: %s", root_n, exc)
+                    continue
+            self.store.set_meta(f"root_closed:{root_n}", "1")
+            self.store.record_event(root_n, "root_done", {"children": [c.issue_id for c in children]})
+            out.append(f"ROOT #{root_n} closed: all {len(children)} children done")
+        return out
 
     def run(self, *, once: bool = False) -> None:
         self.acquire_singleton()
         previous = {}
         try:
             if not once:
-                for sig in (signal.SIGTERM, signal.SIGINT):
-                    previous[sig] = signal.signal(sig, lambda *_: self._stop.set())
+                # SIGTERM (launchd restart, `agentctl stop`) drains: running agents finish, nothing new starts.
+                # SIGINT (Ctrl-C, `agentctl stop --now`) or a second SIGTERM stops immediately.
+                previous[signal.SIGTERM] = signal.signal(signal.SIGTERM, lambda *_: self.request_drain())
+                previous[signal.SIGINT] = signal.signal(signal.SIGINT, lambda *_: self.request_stop())
             while True:
                 report = self.tick()
                 log.info("tick: %s", report.summary())
                 if once or self._stop.is_set():
                     break
-                self._stop.wait(self.config.poll_interval_seconds)
+                if self._draining and self.drain_complete():
+                    log.info("drain complete: no agent running — exiting for restart")
+                    break
+                self._wake.wait(5.0 if self._draining else self.config.poll_interval_seconds)
+                self._wake.clear()
                 if self._stop.is_set():
                     break
         finally:
             for sig, handler in previous.items():
                 signal.signal(sig, handler)
             self.shutdown()
+
+    def request_drain(self) -> None:
+        """Graceful stop: no new claims/repairs/reviews; running agents finish; then exit."""
+        if self._draining:
+            self.request_stop()       # a second request means "now"
+            return
+        self._draining = True
+        self._drain_started = self.clock()
+        log.info("drain requested: finishing running agents, starting nothing new")
+        self._wake.set()
+
+    def request_stop(self) -> None:
+        self._stop.set()
+        self._wake.set()
+
+    @property
+    def draining(self) -> bool:
+        return self._draining
+
+    def drain_complete(self) -> bool:
+        with self._threads_lock:
+            alive = [n for n, t in self.threads.items() if t.is_alive()]
+        if not alive:
+            return True
+        if self.clock() - self._drain_started > self.config.drain_timeout_seconds:
+            log.warning("drain timeout after %ss with %s still running — stopping now", self.config.drain_timeout_seconds, alive)
+            return True
+        return False
 
     def shutdown(self) -> None:
         self._stop.set()
@@ -322,10 +408,24 @@ class Orchestrator:
 
     # -- poll ---------------------------------------------------------------------------------
     def poll(self) -> list[int]:
-        """Track every executable `agent:queued` Issue exactly once. Idempotent."""
+        """Track every executable Issue exactly once. Idempotent.
+
+        Executable means: a ROOT Issue carrying the owner's `owner:approved` label (the owner defines the
+        product backlog by creating/approving ROOT Issues), or a child Issue whose contract inherits its
+        authorization from an owner-approved ROOT and stays inside that ROOT's scope. `agent:hold`
+        (owner) keeps an authorized Issue out of execution. The orchestrator queues executable Issues
+        itself — the Team Lead needs no further owner approval to claim, queue or run them."""
         new: list[int] = []
         self.awaiting_owner: list[int] = []
-        for issue in self.github.list_issues(labels=self.config.poll_labels, state="open"):
+        self.on_hold: list[int] = []
+        seen: set[int] = set()
+        candidates: list[dict] = []
+        for label in self.config.poll_labels:
+            for issue in self.github.list_issues(labels=(label,), state="open"):
+                if issue["number"] not in seen:
+                    seen.add(issue["number"])
+                    candidates.append(issue)
+        for issue in sorted(candidates, key=lambda i: i["number"]):
             number = issue["number"]
             existing = self.store.get(number)
             if existing is not None and existing.state != sm.QUEUED:
@@ -333,6 +433,9 @@ class Orchestrator:
             if issue.get("author_association", "NONE") not in self.config.executable_author_associations:
                 log.warning("#%s ignored: author association %s is not executable", number, issue.get("author_association"))
                 continue
+            labels = {l["name"] for l in issue.get("labels", [])}
+            if DECOMPOSED_LABEL in labels:
+                continue  # a ROOT executed through its children is never run as a task itself
             try:
                 contract = parse_contract(number, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
                                           behavior_domains=self.config.behavior_domains)
@@ -340,20 +443,82 @@ class Orchestrator:
                 if existing is None:
                     self._reject_contract(number, exc.problems)
                 continue
-            labels = {l["name"] for l in issue.get("labels", [])}
-            if self.config.owner_approval_label not in labels:
-                # Governance: agent:queued alone is a request; execution needs the owner's label too.
-                # No claim, no agent, no branch, no worktree, no PR until the owner adds it.
-                self.awaiting_owner.append(number)
+            auth = self.authorization_of(number, labels, contract)
+            if not auth.ok:
+                if auth.kind == "child":
+                    self._reject_child(number, contract, auth.problems, existing)
+                else:
+                    self.awaiting_owner.append(number)
+                continue
+            if HOLD_LABEL in labels:
+                self.on_hold.append(number)
+                if existing is not None and existing.state == sm.QUEUED:
+                    self._set_state(self.store, number, sm.BLOCKED, note="on hold by the owner", failure_class="OWNER_HOLD")
                 continue
             manifest = verification_manifest(contract, regression_domains=self.config.regression_domains)
             self.store.track(number, title=contract.title, risk=contract.risk, resource_class=contract.resource_class,
                              domains=list(contract.domains), dependencies=list(contract.dependencies),
-                             contract=_contract_to_dict(contract))
+                             contract=_contract_to_dict(contract), root_issue=auth.root, parent_issue=auth.parent, kind=auth.kind)
             audit.write_contract_snapshot(self.config, number, contract.to_dict(), manifest)
+            if "agent:queued" not in labels and not self.dry_run:
+                try:
+                    self.github.set_state_label(number, sm.QUEUED)
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("could not label #%s queued: %s", number, exc)
             if existing is None:
+                self.store.record_event(number, "authorized", {"kind": auth.kind, "root": auth.root, "source": auth.source})
                 new.append(number)
         return new
+
+    def authorization_of(self, number: int, labels: set[str], contract: IssueContract) -> "AuthDecision":
+        """Deterministic execution authorization: ROOT by the owner's label, child by inheritance."""
+        if self.config.owner_approval_label in labels:
+            return AuthDecision(True, "root", number, None, "owner")
+        auth = contract.authorization
+        if not auth.inherited or not auth.root_issue:
+            return AuthDecision(False, "root", number, None, "none", ["no owner:approved label and no inherited authorization"])
+        root_n = auth.root_issue
+        problems: list[str] = []
+        try:
+            root = self.github.get_issue(root_n)
+        except Exception as exc:  # noqa: BLE001
+            return AuthDecision(False, "child", root_n, auth.parent_issue, "inherited", [f"ROOT #{root_n} cannot be read: {exc}"])
+        root_labels = {l["name"] for l in root.get("labels", [])}
+        if self.config.owner_approval_label not in root_labels:
+            problems.append(f"ROOT #{root_n} is not owner-approved")
+        if root.get("state") != "open" and DECOMPOSED_LABEL not in root_labels:
+            problems.append(f"ROOT #{root_n} is {root.get('state')}")
+        try:
+            root_contract = parse_contract(root_n, root.get("title", ""), root.get("body") or "", known_locks=self.config.known_locks,
+                                           behavior_domains=self.config.behavior_domains)
+        except ContractError as exc:
+            problems.append(f"ROOT #{root_n} contract invalid: {'; '.join(exc.problems[:3])}")
+            root_contract = None
+        if root_contract is not None:
+            problems.extend(child_scope_problems(contract, root_contract, effective=lambda c: effective_locks(c, self.config)))
+        return AuthDecision(not problems, "child", root_n, auth.parent_issue or root_n, "inherited", problems)
+
+    def _reject_child(self, number: int, contract: IssueContract, problems: list[str], existing: IssueRecord | None) -> None:
+        """A child that escapes its ROOT's scope (or whose ROOT is not authorized) never executes."""
+        text = "Child Issue refused — it does not inherit valid authorization from its ROOT:\n\n" + \
+               "\n".join(f"- {p}" for p in problems) + \
+               "\n\nNarrow the child to the ROOT's domains/locks/budget, or ask the owner to create/approve a new ROOT for the extra scope (PROPOSED PRODUCT FOLLOW-UP)."
+        log.warning("#%s: child refused: %s", number, problems)
+        if existing is not None:
+            self._set_state(self.store, number, sm.BLOCKED, note="child outside ROOT scope", failure_class="SCOPE_ESCAPE", last_error="; ".join(problems)[:1000])
+        else:
+            self.store.track(number, title=contract.title, risk=contract.risk, resource_class=contract.resource_class,
+                             domains=list(contract.domains), dependencies=list(contract.dependencies), contract=_contract_to_dict(contract),
+                             state=sm.BLOCKED, root_issue=contract.authorization.root_issue, parent_issue=contract.authorization.parent_issue, kind="child")
+            self.store.update(number, failure_class="SCOPE_ESCAPE", last_error="; ".join(problems)[:1000])
+        self.store.record_event(number, "child_refused", {"problems": problems})
+        if self.dry_run:
+            return
+        try:
+            self.github.set_state_label(number, sm.BLOCKED)
+            self.github.comment(number, f"**[agent-team]** {text}")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("could not mark #%s blocked: %s", number, exc)
 
     def _reject_contract(self, number: int, problems: list[str]) -> None:
         text = "Contract does not validate — moved back to `agent:draft`. Fix and re-queue with `agentctl issue queue`.\n\n" + \
@@ -426,8 +591,15 @@ class Orchestrator:
     def rate_limited_run(self, result: AgentRunResult) -> bool:
         return (not result.ok) and looks_rate_limited(result.error or result.result_text)
 
+    ACTIVE_STATES = (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.MERGED)
+
     def active_issue_count(self) -> int:
-        return len(self.store.list((sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)))
+        return len(self.store.list(self.ACTIVE_STATES))
+
+    def active_roots(self) -> set[int]:
+        """ROOT Issues with work in flight. Children count toward their ROOT; READY_FOR_OWNER does not
+        count — a PR waiting for the owner's merge must never stop unrelated work."""
+        return {r.root for r in self.store.list(self.ACTIVE_STATES)}
 
     def schedule(self) -> list[scheduler.Decision]:
         queued = []
@@ -440,9 +612,10 @@ class Orchestrator:
             return []
         if self.paused():
             return [scheduler.Decision(rec.issue_id, "wait", "scheduler paused by the owner") for rec, _ in queued]
-        free_slots = self.config.max_active_issues - self.active_issue_count()
-        if free_slots <= 0:
-            return [scheduler.Decision(rec.issue_id, "wait", f"max active issues reached ({self.config.max_active_issues})") for rec, _ in queued]
+        if self._draining:
+            return [scheduler.Decision(rec.issue_id, "wait", "draining for restart") for rec, _ in queued]
+        active_roots = self.active_roots()
+        free_roots = self.config.max_active_issues - len(active_roots)
         snap = self.resources.snapshot(probe_machine=True)
         external = set()
         for _, c in queued:
@@ -456,14 +629,15 @@ class Orchestrator:
         decisions = scheduler.plan(queued, config=self.config, store=self.store, locks=self.locks, resources=self.resources,
                                    snapshot=snap, external_satisfied=external)
         by_id = {rec.issue_id: (rec, c) for rec, c in queued}
-        started = 0
+        new_roots: set[int] = set()
         for d in decisions:
             if d.starts:
-                if started >= free_slots:
-                    decisions[decisions.index(d)] = scheduler.Decision(d.issue_id, "wait", f"max active issues reached ({self.config.max_active_issues})", d.locks)
-                    continue
-                started += 1
                 rec, contract = by_id[d.issue_id]
+                if rec.root not in active_roots and rec.root not in new_roots:
+                    if len(new_roots) >= max(0, free_roots):
+                        decisions[decisions.index(d)] = scheduler.Decision(d.issue_id, "wait", f"max active ROOT issues reached ({self.config.max_active_issues})", d.locks)
+                        continue
+                    new_roots.add(rec.root)
                 if self.dry_run:
                     log.info("DRY-RUN would start #%s: branch %s worktree %s locks %s", d.issue_id,
                              f"{self.config.branch_prefix}{d.issue_id}-{contract.slug}",
@@ -736,10 +910,17 @@ class Orchestrator:
             return "repair running"
         if self.paused():
             return "repair waiting: scheduler paused by the owner"
+        if self._draining:
+            return "repair waiting: draining for restart"
         snap = self.resources.snapshot(probe_machine=True)
         adm = self.resources.can_start_worker(rec.resource_class, snap)
         if not adm.ok:
             return f"repair waiting: {adm.reason}"
+        reqs = effective_locks(self._contract(rec), self.config)
+        if not any(l.issue_id == rec.issue_id for l in self.store.locks_held()):
+            lock_decision = self.locks.acquire(rec.issue_id, reqs)
+            if not lock_decision.ok:
+                return f"repair waiting: {lock_decision.reason}"
         if self.dry_run:
             return "DRY-RUN would start repair"
         self._spawn(f"worker:{rec.issue_id}", self._worker_run, rec.issue_id, True)
@@ -765,6 +946,8 @@ class Orchestrator:
                 return "review running"
             if self.paused():
                 return "review waiting: scheduler paused"
+            if self._draining:
+                return "review waiting: draining for restart"
             snap = self.resources.snapshot(probe_machine=True)
             adm = self.resources.can_start_reviewer(snap)
             if not adm.ok:
@@ -783,6 +966,8 @@ class Orchestrator:
         if decision.ok:
             self._set_state(self.store, rec.issue_id, sm.READY_FOR_OWNER, note=f"every gate green: {decision.describe()}")
             self.store.record_event(rec.issue_id, "ready_for_owner", {"head": head, "policy": decision.describe()})
+            if self.config.release_locks_at_ready:
+                self.locks.release(rec.issue_id, "ready-for-owner")
             self._publish_ready_report(self.store.get(rec.issue_id), head, ev)
             return "REVIEW -> READY_FOR_OWNER"
         return f"awaiting {', '.join(decision.missing)}"
@@ -813,7 +998,7 @@ class Orchestrator:
                 acs.append(f"{a.id}: {e.get('result', 'see gate-3')} — {str(e.get('evidence', ''))[:90]}")
         gates = ev.required_contexts_green(self.config.protection_required_contexts)[1]
         return {
-            "issue": rec.issue_id, "title": rec.title, "pr": rec.pr_number, "pr_url": rec.pr_url, "branch": rec.branch,
+            "issue": rec.issue_id, "root": rec.root, "kind": rec.kind, "title": rec.title, "pr": rec.pr_number, "pr_url": rec.pr_url, "branch": rec.branch,
             "head": head, "risk": rec.risk,
             "summary": (report.get("summary") or "").strip()[:400],
             "what_changed": [str(x)[:160] for x in (report.get("what_changed") or [])][:6],
@@ -1269,6 +1454,7 @@ def _verdict_markdown(v: dict) -> str:
 def render_ready_report(r: dict) -> str:
     """The Issue-comment form of the READY FOR OWNER report (concise, decision-oriented)."""
     lines = [f"READY FOR OWNER — PR #{r['pr']} ({r['pr_url'] or ''})", "",
+             f"- ROOT Issue: #{r.get('root') or r['issue']}" + (f" · Child Issue: #{r['issue']}" if r.get('root') and r.get('root') != r['issue'] else ""),
              f"- Issue: #{r['issue']} {r['title']}", f"- Branch: `{r['branch']}`", f"- Head SHA: `{r['head']}`", f"- Risk: {r['risk']}", "",
              f"**Summary**: {r['summary'] or '(see PR description)'}"]
     if r["what_changed"]:
@@ -1287,7 +1473,8 @@ def render_ready_report(r: dict) -> str:
 
 def render_ready_notification(r: dict) -> str:
     """The short Telegram form."""
-    lines = [f"PR #{r['pr']} READY FOR OWNER — מוכן לאישורך", "", f"Issue #{r['issue']}", r["title"][:120], "",
+    root = f" (ROOT #{r['root']})" if r.get("root") and r["root"] != r["issue"] else ""
+    lines = [f"PR #{r['pr']} READY FOR OWNER — מוכן לאישורך", "", f"Issue #{r['issue']}{root}", r["title"][:120], "",
              f"סיכון: {r['risk']}", f"CI: {r['ci']}", f"רגרסיה: {r['regression'].split(' (')[0]}", f"ביקורת עצמאית: {r['review']}", "",
              f"Head SHA:\n{r['head']}", "", f"תקציר:\n{r['summary'] or '(ראה PR)'}"]
     if r["failures"]:

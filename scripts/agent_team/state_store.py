@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS issues (
     review_verdict   TEXT,
     approvals        TEXT NOT NULL DEFAULT '[]',
     contract         TEXT,
+    root_issue       INTEGER,
+    parent_issue     INTEGER,
+    kind             TEXT NOT NULL DEFAULT 'root',
     created_at       REAL NOT NULL,
     updated_at       REAL NOT NULL
 );
@@ -180,6 +183,9 @@ class IssueRecord:
     review_verdict: str | None = None
     approvals: list[dict] = field(default_factory=list)
     contract: str | None = None
+    root_issue: int | None = None
+    parent_issue: int | None = None
+    kind: str = "root"
     created_at: float = 0.0
     updated_at: float = 0.0
 
@@ -188,7 +194,12 @@ class IssueRecord:
         d = {k: row[k] for k in row.keys()}
         for k in _JSON_FIELDS:
             d[k] = json.loads(d[k] or "[]")
-        return cls(**{f.name: d[f.name] for f in fields(cls)})
+        return cls(**{f.name: d[f.name] for f in fields(cls) if f.name in d})
+
+    @property
+    def root(self) -> int:
+        """The ROOT Issue this record executes under (itself for a root)."""
+        return self.root_issue or self.issue_id
 
     def contract_dict(self) -> dict:
         return json.loads(self.contract) if self.contract else {}
@@ -226,6 +237,14 @@ class StateStore:
             self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Additive column migrations for stores created by an older version (crash-safe: ADD COLUMN is atomic)."""
+        have = {r["name"] for r in self._conn.execute("PRAGMA table_info(issues)").fetchall()}
+        for name, ddl in (("root_issue", "INTEGER"), ("parent_issue", "INTEGER"), ("kind", "TEXT NOT NULL DEFAULT 'root'")):
+            if name not in have:
+                self._conn.execute(f"ALTER TABLE issues ADD COLUMN {name} {ddl}")
 
     def close(self) -> None:
         self._conn.close()
@@ -257,26 +276,34 @@ class StateStore:
         return [IssueRecord.from_row(r) for r in rows]
 
     def track(self, issue_id: int, *, title: str, risk: str, resource_class: str, domains: list[str],
-              dependencies: list[int], contract: dict | None, state: str = sm.QUEUED) -> IssueRecord:
+              dependencies: list[int], contract: dict | None, state: str = sm.QUEUED,
+              root_issue: int | None = None, parent_issue: int | None = None, kind: str = "root") -> IssueRecord:
         """Insert if unknown; if known, refresh the contract-derived metadata but never the state."""
         now = self.clock()
+        root_issue = root_issue or issue_id
+        parent_issue = parent_issue or (root_issue if kind == "child" else None)
         with self.tx() as c:
             existing = c.execute("SELECT issue_id FROM issues WHERE issue_id=?", (issue_id,)).fetchone()
             if existing:
                 c.execute(
-                    "UPDATE issues SET title=?, risk=?, resource_class=?, domains=?, dependencies=?, contract=?, updated_at=? WHERE issue_id=?",
+                    "UPDATE issues SET title=?, risk=?, resource_class=?, domains=?, dependencies=?, contract=?, updated_at=?,"
+                    " root_issue=?, parent_issue=?, kind=? WHERE issue_id=?",
                     (title, risk, resource_class, json.dumps(domains), json.dumps(dependencies),
-                     json.dumps(contract) if contract else None, now, issue_id))
+                     json.dumps(contract) if contract else None, now, root_issue, parent_issue, kind, issue_id))
             else:
                 c.execute(
-                    "INSERT INTO issues (issue_id, title, state, risk, resource_class, domains, dependencies, contract, created_at, updated_at)"
-                    " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO issues (issue_id, title, state, risk, resource_class, domains, dependencies, contract,"
+                    " root_issue, parent_issue, kind, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (issue_id, title, state, risk, resource_class, json.dumps(domains), json.dumps(dependencies),
-                     json.dumps(contract) if contract else None, now, now))
+                     json.dumps(contract) if contract else None, root_issue, parent_issue, kind, now, now))
                 self._event(c, issue_id, "tracked", {"state": state, "risk": risk, "resource_class": resource_class})
         rec = self.get(issue_id)
         assert rec is not None
         return rec
+
+    def children_of(self, root_issue: int) -> list[IssueRecord]:
+        rows = self._conn.execute("SELECT * FROM issues WHERE kind='child' AND root_issue=? ORDER BY issue_id", (root_issue,)).fetchall()
+        return [IssueRecord.from_row(r) for r in rows]
 
     def transition(self, issue_id: int, to_state: str, *, allowed_from: tuple[str, ...] | None = None,
                    note: str | None = None, **fields_to_set: Any) -> IssueRecord:

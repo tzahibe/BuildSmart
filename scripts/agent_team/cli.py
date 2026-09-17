@@ -6,7 +6,7 @@
     agentctl dry-run                     one tick with no spawn / no push / no PR / no merge
     agentctl labels                      create/update the label catalogue on GitHub
     agentctl protect-main                configure branch protection (reports the exact blocker)
-    agentctl issue validate N | queue N | create --from FILE [--queue] | render --from FILE
+    agentctl issue validate N | queue N | create --from FILE [--queue | --child-of ROOT] | decompose ROOT --children F... | render --from FILE
     agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
     agentctl requeue N | block N --reason ... | resume-pr N [--update-base] [--rereview --reason ...]
     agentctl audit N                     the reconstructable timeline of one issue
@@ -36,8 +36,9 @@ from agent_team.agent_runner import ClaudeCliRunner, FakeAgentRunner, resolve_cl
 from agent_team.audit import setup_logging
 from agent_team.config import Config, ConfigError, load_config
 from agent_team.github_client import GhCliTransport, GitHubClient, GitHubError
-from agent_team.issue_contract import ContractError, parse_contract, render_body, verification_manifest
-from agent_team.labels import ALL_LABELS, metadata_labels
+from agent_team.locks import effective_locks
+from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, parse_contract, render_body, verification_manifest
+from agent_team.labels import ALL_LABELS, metadata_labels, CHILD_LABEL, DECOMPOSED_LABEL
 from agent_team.orchestrator import Orchestrator, OrchestratorAlreadyRunning
 from agent_team.resource_manager import ResourceManager
 from agent_team.state_store import StateStore, TransitionConflict
@@ -149,15 +150,27 @@ def cmd_start(config: Config, args) -> int:
 
 
 def cmd_stop(config: Config, args) -> int:
+    """SIGTERM = drain (running agents finish, nothing new starts, then exit); --now = SIGINT, immediate."""
     pid = _daemon_pid(config)
     if not pid:
         print("not running")
         return 0
-    os.kill(pid, signal.SIGTERM)
-    for _ in range(60):
-        time.sleep(0.5)
-        if not _daemon_pid(config):
-            break
+    os.kill(pid, signal.SIGINT if getattr(args, "now", False) else signal.SIGTERM)
+    if not getattr(args, "now", False):
+        print(f"drain requested (pid {pid}): running agents finish, nothing new starts; the process exits when idle "
+              f"(at most {config.drain_timeout_seconds}s). Use --now to stop immediately.")
+        if getattr(args, "wait", False):
+            for _ in range(config.drain_timeout_seconds * 2):
+                time.sleep(0.5)
+                if not _daemon_pid(config):
+                    break
+        else:
+            return 0
+    else:
+        for _ in range(60):
+            time.sleep(0.5)
+            if not _daemon_pid(config):
+                break
     print(f"stopped (pid {pid})" if not _daemon_pid(config) else f"pid {pid} still shutting down")
     _pidfile(config).unlink(missing_ok=True)
     return 0
@@ -214,6 +227,43 @@ def _read_contract_file(path: Path, number: int, title: str | None, config: Conf
     return parse_contract(number, title, body, known_locks=config.known_locks, behavior_domains=config.behavior_domains)
 
 
+def _create_child(config: Config, gh, c, root_number: int, *, queue: bool, created: list[int] | None = None) -> int:
+    """Create a child Issue under an owner-approved ROOT. The child inherits execution authorization
+    (no owner:approved of its own) and must stay inside the ROOT's domains/locks/budget."""
+    root = gh.get_issue(root_number)
+    root_labels = {l["name"] for l in root.get("labels", [])}
+    if config.owner_approval_label not in root_labels:
+        print(f"refusing: ROOT #{root_number} is not owner-approved ({config.owner_approval_label} missing) — only the owner authorizes ROOT Issues",
+              file=sys.stderr)
+        return 1
+    if root.get("state") != "open":
+        print(f"refusing: ROOT #{root_number} is {root.get('state')}", file=sys.stderr)
+        return 1
+    try:
+        root_c = parse_contract(root_number, root.get("title", ""), root.get("body") or "", known_locks=config.known_locks,
+                                behavior_domains=config.behavior_domains)
+    except ContractError as exc:
+        print(f"refusing: ROOT #{root_number} contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
+        return 1
+    auth = c.authorization
+    if not auth.inherited:
+        c = c.with_authorization(Authorization(source="inherited", root_issue=root_number, parent_issue=root_number,
+                                               derived_by="team-lead", scope_inherited=True))
+    problems = child_scope_problems(c, root_c, effective=lambda x: effective_locks(x, config))
+    if problems:
+        print(f"refusing: child escapes ROOT #{root_number} scope:\n- " + "\n- ".join(problems) +
+              "\n(narrow the child, or report the extra work as a PROPOSED PRODUCT FOLLOW-UP for the owner)", file=sys.stderr)
+        return 1
+    labels = [CHILD_LABEL, "agent:queued" if queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
+    issue = gh.create_issue(c.title, render_body(c), labels)
+    n = issue["number"]
+    if created is not None:
+        created.append(n)
+    print(f"created child #{n} of ROOT #{root_number} {issue.get('html_url')} labels={labels} (authorization inherited; "
+          + ("executable now)" if queue else "draft)"))
+    return 0
+
+
 def cmd_issue(config: Config, args) -> int:
     if args.issue_cmd == "render":
         c = _read_contract_file(Path(args.from_file), 0, args.title, config)
@@ -226,13 +276,35 @@ def cmd_issue(config: Config, args) -> int:
         except ContractError as exc:
             print("contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
             return 1
-        labels = ["agent:queued" if args.queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
         gh = _github(config)
+        if getattr(args, "child_of", None):
+            return _create_child(config, gh, c, int(args.child_of), queue=not getattr(args, "no_queue", False))
+        # A ROOT/product Issue: the Team Lead never adds owner:approved — the owner authorizes ROOTs.
+        labels = ["agent:queued" if args.queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
         issue = gh.create_issue(c.title, render_body(c), labels)
         print(f"created #{issue['number']} {issue.get('html_url')} labels={labels}")
         if args.queue:
             print(f"note: queued but NOT approved — the owner must add {config.owner_approval_label} before it runs")
         return 0
+    if args.issue_cmd == "decompose":
+        gh = _github(config)
+        rc = 0
+        created = []
+        for f in args.children:
+            try:
+                c = _read_contract_file(Path(f), 0, None, config)
+            except ContractError as exc:
+                print(f"{f}: contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
+                return 1
+            r = _create_child(config, gh, c, int(args.number), queue=True, created=created)
+            rc = rc or r
+        if created and not rc:
+            gh.add_labels(args.number, [DECOMPOSED_LABEL])
+            gh.comment(args.number, "**[agent-team]** Decomposed by the Team Lead into child Issues (authorization inherited from this ROOT; "
+                                    "the ROOT itself is not executed as a task and closes when every child is done):\n" +
+                                    "\n".join(f"- #{n}" for n in created))
+            print(f"ROOT #{args.number} labelled {DECOMPOSED_LABEL}; children: {created}")
+        return rc
     gh = _github(config)
     issue = gh.get_issue(args.number)
     try:
@@ -259,10 +331,17 @@ def cmd_issue(config: Config, args) -> int:
             if l.split(":")[0] in ("domain", "risk", "resource") and l not in expected:
                 gh.remove_label(args.number, l)
         gh.add_labels(args.number, sorted(expected - set(have)))
+        if "agent:hold" in have:
+            gh.remove_label(args.number, "agent:hold")
         gh.set_state_label(args.number, sm.QUEUED)
         approved = config.owner_approval_label in have
-        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)}); owner approval: "
-              + ("present" if approved else f"MISSING — nothing runs until the owner adds {config.owner_approval_label} (Telegram or GitHub)"))
+        if approved:
+            how = "ROOT — owner-approved"
+        elif c.authorization.inherited:
+            how = f"child — inherits from ROOT #{c.authorization.root_issue} (the scheduler verifies the ROOT and the scope)"
+        else:
+            how = f"MISSING — nothing runs until the owner adds {config.owner_approval_label} (Telegram or GitHub)"
+        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)}); authorization: {how}")
         return 0
     return 1
 
@@ -666,6 +745,7 @@ def launchd_plist(config: Config, which: str) -> str:
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
   <key>ThrottleInterval</key><integer>15</integer>
+  <key>ExitTimeOut</key><integer>{config.drain_timeout_seconds + 60}</integer>
   <key>StandardOutPath</key><string>{logs / f'launchd-{which}.log'}</string>
   <key>StandardErrorPath</key><string>{logs / f'launchd-{which}.log'}</string>
 </dict>
@@ -747,7 +827,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_run)
     s = sub.add_parser("dry-run"); s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_dry_run)
     s = sub.add_parser("start"); s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_start)
-    s = sub.add_parser("stop"); s.set_defaults(fn=cmd_stop)
+    s = sub.add_parser("stop"); s.add_argument("--now", action="store_true"); s.add_argument("--wait", action="store_true"); s.set_defaults(fn=cmd_stop)
     s = sub.add_parser("labels"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_labels)
     s = sub.add_parser("protect-main"); s.add_argument("--enforce-admins", action="store_true"); s.add_argument("--show", action="store_true")
     s.set_defaults(fn=cmd_protect_main)
@@ -756,6 +836,9 @@ def build_parser() -> argparse.ArgumentParser:
     v = isub.add_parser("validate"); v.add_argument("number", type=int); v.add_argument("--json", action="store_true")
     q = isub.add_parser("queue"); q.add_argument("number", type=int)
     c = isub.add_parser("create"); c.add_argument("--from", dest="from_file", required=True); c.add_argument("--title"); c.add_argument("--queue", action="store_true")
+    c.add_argument("--child-of", dest="child_of", type=int, help="create as a child of this owner-approved ROOT (authorization inherited)")
+    c.add_argument("--no-queue", dest="no_queue", action="store_true", help="with --child-of: create the child as a draft instead of executable")
+    d = isub.add_parser("decompose"); d.add_argument("number", type=int); d.add_argument("--children", nargs="+", required=True, help="contract files")
     r = isub.add_parser("render"); r.add_argument("--from", dest="from_file", required=True); r.add_argument("--title")
     s.set_defaults(fn=cmd_issue)
 

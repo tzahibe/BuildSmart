@@ -10,7 +10,10 @@ github:
   repo: tzahibe/BuildSmart          # origin still says "sddproject"; GitHub redirects the rename
   base_branch: main
   poll_interval_seconds: 120
-  poll_labels: [agent:queued]
+  # Any of these labels makes an open Issue a candidate; authorization is then decided per Issue:
+  # owner:approved = ROOT (the owner's product goal, executed in full), agent:queued = a ROOT or a
+  # child the Team Lead queued (a child inherits authorization from its owner-approved ROOT).
+  poll_labels: [agent:queued, owner:approved]
   # Trust boundary: only Issues opened by these author associations are executable. Any other
   # author's Issue is ignored even if it carries the labels (labels can be added by anyone with
   # triage, the body is untrusted text).
@@ -193,12 +196,25 @@ risk_policy:
     regression: always
 
 governance:
-  # An Issue is executable only with BOTH labels. The orchestrator and the Team Lead never add
-  # owner:approved; the owner does (Telegram "Create & Queue" / "approve", or the GitHub UI).
+  # GOVERNANCE (owner rule, 2026-09-18): the owner defines the product backlog by creating/approving
+  # ROOT Issues (this label; only the owner adds it — Telegram "approve"/"Create & Queue" or GitHub).
+  # Once a ROOT exists the Team Lead executes it in full without further approval: claim, queue,
+  # decompose into child Issues (authorization inherited — `### Authorization` section, agent:child),
+  # workers, branches/worktrees, PRs, CI, regression, review, repair, base updates. The ONLY
+  # owner-only action is MERGE TO MAIN (no auto-merge at any risk). `agent:hold` (owner) parks an
+  # authorized Issue.
   owner_approval_label: owner:approved
-  # Concurrency defaults the owner may change at runtime: resources.max_worker_agents (3) and
-  # resources.heavy_job_concurrency (1) above; max active product Issues:
+  # Concurrency: the owner sets the maxima (resources.max_worker_agents, weighted_capacity,
+  # heavy_job_concurrency above); within them the Team Lead/scheduler uses every slot that is safe.
+  # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
+  # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
   max_active_issues: 3
+  # Locks are released when a PR reaches READY_FOR_OWNER (its code changes are done); a repair on
+  # that PR re-acquires them first. false = hold locks until merge (serializes on owner latency).
+  release_locks_at_ready: true
+  # SIGTERM / `agentctl stop` / launchd restart drain: running agents finish (up to this many
+  # seconds), nothing new starts, then the process exits. SIGINT or a second SIGTERM = stop now.
+  drain_timeout_seconds: 3900
 
 remote_control:
   telegram:
