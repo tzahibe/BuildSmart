@@ -31,6 +31,8 @@ from app.vertical_slice.spec import (
     RoomRelationshipRequirement,
     CorridorRequirement,
     CorridorWidthMode,
+    LaundryDemand,
+    LaundryRequirement,
     PlotSpec,
     ProgramSpec,
     WetRoomKind,
@@ -407,6 +409,15 @@ def _corridor_of(project: Project) -> CorridorRequirement | None:
     return CorridorRequirement(width_m=float(field.value_m), mode=mode)
 
 
+def _laundry_of(project: Project) -> LaundryRequirement:
+    """The authoritative laundry requirement (2026-09-16, phase 1). `None`/unset reads as `NONE`,
+    the same "never parsed yet" convention as every other field on `Project`."""
+    field = project.laundry_requested
+    demand = LaundryDemand.ROOM if field is not None and field.value else LaundryDemand.NONE
+    return LaundryRequirement(demand=demand,
+                              source_text=project.laundry_source_text if demand is LaundryDemand.ROOM else "")
+
+
 def wet_room_kinds_of(project: Project) -> tuple[WetRoomRequirement, ...]:
     """The stated wet-room kinds, as the engine reads them. Records this build cannot read raise
     `WetRoomResolutionError`; `scope.check_supported` reports that before this is ever called for
@@ -466,6 +477,7 @@ def spec_for(project: Project) -> ArchitecturalSpec:
             open_plan_living=bool(review.open_plan.value),
             wet_rooms=int(review.wet_rooms.value or 1),
             wet_room_kinds=wet_room_kinds_of(project),
+            laundry=_laundry_of(project),
             parking_spaces=int(review.parking_spaces.value or 0),
             # The TARGET BUILT AREA the person entered, carried through as a target the plan should
             # meet — not as a ceiling. The selected footprint is validated to be within 0.5% of it

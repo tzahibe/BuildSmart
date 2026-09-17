@@ -60,6 +60,7 @@ from .spec import (
     ArchitecturalSpec,
     CorridorRequirement,
     CorridorWidthMode,
+    LaundryDemand,
     WetRoomKind,
     WetRoomRequirement,
     WetRoomStrength,
@@ -193,12 +194,18 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # a dressing room, a laundry, a store, a work nook and a stair core all as "שירותים". These are
     # PRODUCT POLICY placeholders like every other row here, NOT verified regulation.
     #
-    # NOTHING PRODUCES THESE YET. `build_room_program` derives its rooms from `ProgramSpec`, which
-    # has no field that asks for a store or a laundry, so no demo brief can currently reach them —
-    # by design: adding the request path is a Concept Generator change and was explicitly out of
-    # scope. What these rows buy today is that anything constructing a `ZoneSpec` directly (the
-    # realizability harness, a future concept builder) can name the room correctly instead of
-    # borrowing a wet room's identity.
+    # NOTHING PRODUCES FIVE OF THESE SIX YET. `build_room_program` derives its rooms from
+    # `ProgramSpec`, which has no field that asks for a store, a den, a study, a dressing room or a
+    # stair core, so no demo brief can currently reach them — by design: adding each request path
+    # is its own Concept Generator change and was explicitly out of scope here. What these five
+    # rows buy today is that anything constructing a `ZoneSpec` directly (the realizability
+    # harness, a future concept builder) can name the room correctly instead of borrowing a wet
+    # room's identity.
+    #
+    # LAUNDRY is the exception (2026-09-16 phase 1): `ProgramSpec.laundry` now carries an explicit
+    # request, and `build_room_program` emits the room from it — gated by `LAUNDRY_ROOM_ENABLED`
+    # below until the planner sweep this phase produced is accepted. See
+    # docs/LAUNDRY_ROOM_OPTION_REVIEW.md.
     #
     # `elasticity` places each row in the ranking already documented at the top of this table
     # (PUBLIC > habitable PRIVATE > service/wet > circulation > fixed); none of them disturbs the
@@ -240,6 +247,17 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # `scale_program` lands here first, not on a bedroom.
     ProgramRole.FLEX: RoomTemplate(3.0, 6.0, 500.0, 1.0, 6.0, elasticity=5.0),
 }
+
+#: LAUNDRY ROOM — ACTIVATED (2026-09-16, docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md). Phase 1
+#: (docs/LAUNDRY_ROOM_OPTION_REVIEW.md, docs/LAUNDRY_ROOM_PHASE1_REPORT.md) landed this gate as
+#: `False` pending the area-budget product decision; the investigation
+#: (docs/LAUNDRY_AREA_BUDGET_INVESTIGATION.md) and this activation's own measured 31-cell matrix
+#: plus a real-418-context regression pass answered it — service-first allocation
+#: (`_laundry_deficit_targets`) plus a disclosure notice (`contract.QualityOut.laundry_notice`),
+#: 0 payload/status changes for any brief without a laundry room. This is the single point that
+#: decides whether real users see a generated laundry room; nothing else in this module should
+#: gate on `ProgramSpec.laundry` itself.
+LAUNDRY_ROOM_ENABLED = True
 
 #: The room lobby of the hub parti (feature 005) — the compact circulation cell the private wing's
 #: rooms open onto. PRODUCT POLICY placeholders like every row above, derived from a visual census
@@ -518,6 +536,15 @@ def build_room_program(spec: ArchitecturalSpec) -> list[ProgramRoom]:
         rooms.append(ProgramRoom(wet.zone_id, role, ZoneGroup.SERVICE, ROOM_TEMPLATES[role],
                                  wet.host_zone, wet))
 
+    # Laundry room — phase 1 (2026-09-16, docs/LAUNDRY_ROOM_OPTION_REVIEW.md). The brief's request
+    # (`program.laundry`) and whether it is actually PLANNED are two different questions:
+    # `LAUNDRY_ROOM_ENABLED` answers the second, independently of what was asked, until the sweep
+    # this phase produced is reviewed. `entered_from` is deliberately never set — a laundry room is
+    # circulation-accessible like a WC, never an ensuite-style dependent; `_build_access` already
+    # reaches every SERVICE room from the hall with no room-specific code.
+    if LAUNDRY_ROOM_ENABLED and program.laundry.demand is LaundryDemand.ROOM:
+        add("LAUNDRY", ProgramRole.LAUNDRY, ZoneGroup.SERVICE)
+
     return rooms
 
 
@@ -604,6 +631,49 @@ def _expansion_headroom_mult(elasticity: float) -> float:
     return 1.0 + _MIN_HEADROOM_FRACTION + (_MAX_HEADROOM_FRACTION - _MIN_HEADROOM_FRACTION) * priority
 
 
+#: Roles `_laundry_deficit_targets` draws from FIRST. Not "wet rooms" in general (LAUNDRY itself
+#: is deliberately excluded — it is the newly requested room the deficit exists to fund, not a
+#: source for funding itself) — exactly BATHROOM/TOILET, the two roles the activation decision
+#: (docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md) measured this against.
+_LAUNDRY_DEFICIT_SOURCE_ROLES = (ProgramRole.BATHROOM, ProgramRole.TOILET)
+
+
+def _laundry_deficit_targets(rooms: list[ProgramRoom], starts: dict[str, float], base: float,
+                             deficit: float, floor_of) -> dict[str, float]:
+    """Deficit distribution for a programme that includes an explicitly requested LAUNDRY room
+    (2026-09-16, activation — docs/LAUNDRY_ROOM_ACTIVATION_REPORT.md, "Policy B" in the
+    investigation that preceded it). CONTAINED to this one case: `scale_program`'s caller only
+    reaches this function when `rooms` already contains a `ProgramRole.LAUNDRY` room AND the
+    programme is short of area — for every other programme, `scale_program`'s original uniform
+    proportional shrink below is untouched, byte for byte.
+
+    The deficit is drawn from BATHROOM/TOILET headroom FIRST — proportional to each one's own
+    room to shrink toward its floor, never past it — before any PRIVATE room (bedroom, master,
+    safe room) or CIRCULATION is touched at all. Only the remainder, if service headroom cannot
+    cover the whole deficit, cascades to every other room (bedrooms, circulation, public rooms,
+    and the laundry room itself alike) via the same proportional-to-target rule `scale_program`
+    already uses for a plain deficit — so circulation is never the FIRST source, and PRIVATE rooms
+    are never touched before service headroom is exhausted, matching the activation decision
+    exactly. Every room's floor (`floor_of`) is respected throughout, in both tiers.
+    """
+    targets = dict(starts)
+    service = [r for r in rooms if r.role in _LAUNDRY_DEFICIT_SOURCE_ROLES]
+    service_capacity = sum(starts[r.zone_id] - floor_of(r) for r in service)
+    take = min(deficit, service_capacity)
+    if take > 0 and service_capacity > 0:
+        for r in service:
+            headroom = starts[r.zone_id] - floor_of(r)
+            targets[r.zone_id] = starts[r.zone_id] - take * (headroom / service_capacity)
+    remaining = deficit - take
+    if remaining > 1e-9:
+        others = [r for r in rooms if r.role not in _LAUNDRY_DEFICIT_SOURCE_ROLES]
+        other_base = sum(starts[r.zone_id] for r in others)
+        for r in others:
+            share = remaining * (starts[r.zone_id] / other_base) if other_base > 0 else 0.0
+            targets[r.zone_id] = max(starts[r.zone_id] - share, floor_of(r))
+    return targets
+
+
 def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
                   area_floors: dict[str, float] | None = None) -> dict[str, ZoneSpec]:
     """Fit the programme's target areas to the area actually available.
@@ -615,6 +685,12 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
     `net_area_max_m2` below caps that growth at the room's own `max_area_m2`, hard, so a
     low-priority room cannot be inflated past its product-policy ceiling just to tile the
     footprint exactly.
+
+    A DEFICIT (surplus < 0) shrinks every room proportionally to its own target, never below its
+    floor — EXCEPT when `rooms` includes an explicitly requested LAUNDRY room, in which case
+    `_laundry_deficit_targets` applies instead (service/wet-room headroom first). That branch is
+    unreachable for any programme without a laundry room, so this function is otherwise identical
+    to its pre-2026-09-16 form.
     """
     floors = area_floors or {}
 
@@ -624,18 +700,22 @@ def scale_program(rooms: list[ProgramRoom], net_available_m2: float,
     base = sum(max(r.template.target_area_m2, floor_of(r)) for r in rooms)
     surplus = net_available_m2 - base
     weight_total = sum(r.template.elasticity for r in rooms) or 1.0
+    starts = {r.zone_id: max(r.template.target_area_m2, floor_of(r)) for r in rooms}
 
-    targets: dict[str, float] = {}
-    for room in rooms:
-        t = room.template
-        start = max(t.target_area_m2, floor_of(room))
-        if surplus >= 0:
-            extra = surplus * (t.elasticity / weight_total)
-            targets[room.zone_id] = max(start, min(start + extra, max(t.max_area_m2, start)))
-        else:
-            # Shrink proportionally, but never below the room's floor.
-            shrink = (-surplus) * (start / base)
-            targets[room.zone_id] = max(start - shrink, floor_of(room))
+    if surplus < 0 and any(r.role is ProgramRole.LAUNDRY for r in rooms):
+        targets = _laundry_deficit_targets(rooms, starts, base, -surplus, floor_of)
+    else:
+        targets = {}
+        for room in rooms:
+            t = room.template
+            start = starts[room.zone_id]
+            if surplus >= 0:
+                extra = surplus * (t.elasticity / weight_total)
+                targets[room.zone_id] = max(start, min(start + extra, max(t.max_area_m2, start)))
+            else:
+                # Shrink proportionally, but never below the room's floor.
+                shrink = (-surplus) * (start / base)
+                targets[room.zone_id] = max(start - shrink, floor_of(room))
 
     # Re-balance any residue onto the elastic rooms so the totals still add up. A room already AT
     # its own ceiling is dropped from the pool each pass — not just clamped — so a low-priority
@@ -1671,25 +1751,54 @@ def _quality_repartition_rows(rows: list[list[ProgramRoom]], net_width: float,
     return rows
 
 
+#: Roles eligible for `_rows_for_width`'s tier-1 rescue below. This was `ZoneGroup.SERVICE` (an
+#: attribute, not a role list) until measurement (2026-09-16,
+#: docs/LAUNDRY_ROOM_PHASE1_REPORT.md §3) found that the group is WIDER than what was actually
+#: proven safe: on the real 418-context corpus, widening to the full group also rescued a lone
+#: BATHROOM in 1 of 404 previously-planned briefs — a different, still-valid plan, but a real
+#: deviation from this phase's own "no change to an existing brief" bar. TOILET (2026-09-14) and
+#: LAUNDRY (this phase) are the two roles actually measured safe here. BATHROOM's own eligibility
+#: for this rescue is a real, separate question — already in motion as its own measured
+#: row-sharing quality initiative (see project memory) — and is deliberately left to that
+#: decision rather than entering as a side effect of the laundry gate.
+_ROW_RESCUE_ROLES = (ProgramRole.TOILET, ProgramRole.LAUNDRY)
+
+
 def _rows_for_width(rows: list[list[ProgramRoom]], net_width: float,
                     fallback: Repartition | None = None,
                     corridor_on_east: bool = True,
                     areas: dict[str, float] | None = None) -> list[list[ProgramRoom]]:
     """The rows a column plans with at `net_width`.
 
-    The normal path (no `fallback`) keeps a column's rows, with one settled exception: a WC alone
-    in a row that cannot be shaped at that width (`room_depth_band_m` is None — the WC would be a
-    strip or oversized) shares an ensuite's row (`_pair_with_dependent`); a column with no ensuite
-    keeps its rows and is refused downstream with its own reason. Tier 2 (`fallback` given)
-    applies the same idea to ANY room, with every partner the access model permits
-    (`_repartition_rows`). The QUALITY tier (`fallback.quality`) starts from the normal path's
-    rows and re-partitions for proportions (`_quality_repartition_rows`); it needs the row
-    `areas` to estimate shapes at this width.
+    The normal path (no `fallback`) keeps a column's rows, with one settled exception: a lone
+    room of a `_ROW_RESCUE_ROLES` role that cannot be shaped at this width (`room_depth_band_m`
+    is None — it would be a strip or oversized) and is not itself a dependent shares an ensuite's
+    row (`_pair_with_dependent`); a column with no ensuite keeps its rows and is refused downstream
+    with its own reason. This was the WC's fix (2026-09-14) and now also reaches a requested
+    laundry room (2026-09-16, docs/LAUNDRY_ROOM_PHASE1_REPORT.md) — same mechanism, same
+    eligibility test: `_pair_with_dependent`'s swap is safe for ANY room that is (a) hall-facing
+    already (`not entered_from`, so the swap cannot orphan a door) and (b) not an open-plan member
+    (a PUBLIC room's legal partner is a chain neighbour, `_pair_with_open_member`, which this fast
+    path does not try; that is tier 2's job) — `_ROW_RESCUE_ROLES` narrows that GENERAL condition
+    to the roles measurement has actually cleared, not the other way round.
+
+    Tier 2 (`fallback` given, `fallback.quality` False) applies the fuller idea to ANY room, with
+    every partner the access model permits (`_repartition_rows`), open-chain pairing included —
+    tier 2 was never narrowed, since its own eligibility is already proven generic by
+    `test_tier2_pairs_a_bedroom_with_the_ensuite_row_and_puts_it_at_a_column_end` and was not part
+    of what the laundry phase measured or changed. The QUALITY tier (`fallback.quality` True)
+    instead starts from the rescue's own rows and re-partitions for proportions
+    (`_quality_repartition_rows`), across BOTH the PRIVATE (bedroom-class) and SERVICE (wet) tiers
+    `f2092af` added; it needs the row `areas` to estimate shapes at this width. The two mechanisms
+    are independent: the quality tier's own candidate search only considers rows still of length
+    1, so it never re-touches a row the rescue above has already paired, and `_ROW_RESCUE_ROLES`'
+    LAUNDRY is invisible to it either way — LAUNDRY carries no `preferred_aspect_ratio` and is not
+    in `_QUALITY_TIER_GROUP`, both deliberately left unchanged by the laundry work.
     """
     if fallback is not None and not fallback.quality:
         return _repartition_rows(rows, net_width, fallback, corridor_on_east)
     for i, row in enumerate(rows):
-        if (len(row) == 1 and row[0].role is ProgramRole.TOILET and not row[0].entered_from
+        if (len(row) == 1 and row[0].role in _ROW_RESCUE_ROLES and not row[0].entered_from
                 and room_depth_band_m(row[0].template, net_width) is None):
             shared = _pair_with_dependent(rows, i)
             if shared is not None:
@@ -4060,7 +4169,6 @@ def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[floa
     from .doors import DOOR_MARGIN_M, INTERIOR_DOOR_WIDTH_M
     opening = INTERIOR_DOOR_WIDTH_M + 2 * DOOR_MARGIN_M
     inset = _EDGE_INSET_ALLOWANCE_M
-    wet_roles = (ProgramRole.BATHROOM, ProgramRole.TOILET)
 
     def net_aspect(w: float, d: float) -> float:
         w, d = w - inset, d - inset
@@ -4227,7 +4335,16 @@ def hub_bound(rooms: list[ProgramRoom], fw: float, fh: float, widths: tuple[floa
                         seated_max = max(seated_max, seated)
                         ens_ok = mate is None or _shared_edge_m(
                             rects[mate.zone_id], rects[mate.entered_from]) >= opening - 1e-6
-                        wets = [r for r in rooms if r.role in wet_roles and r.zone_id in rects]
+                        # M5 wet adjacency: SERVICE rooms are exactly the plumbed ones — the gate
+                        # applied to whichever of them the programme has (BATHROOM/TOILET before
+                        # 2026-09-16; now also a requested LAUNDRY, docs/LAUNDRY_ROOM_PHASE1_REPORT.md)
+                        # with no role named here. Unlike `_ROW_RESCUE_ROLES` above, this is NOT
+                        # narrowed to specific roles: with the laundry gate off, `ZoneGroup.SERVICE`
+                        # is populated by exactly BATHROOM/TOILET (build_room_program's only other
+                        # source), so this form is identical to the old 2-role tuple for every
+                        # existing brief BY CONSTRUCTION, not by measurement — there is nothing here
+                        # for a sweep to have found.
+                        wets = [r for r in rooms if r.group is ZoneGroup.SERVICE and r.zone_id in rects]
                         adj = sum(1 for r in wets if any(
                             _shared_edge_m(rects[r.zone_id], rects[o.zone_id]) > 0.3 for o in wets if o is not r))
                         wet = adj / len(wets) if wets else 1.0

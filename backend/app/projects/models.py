@@ -444,6 +444,13 @@ class Project(BaseModel):
     #: REVIEW screen, not parsed from the brief; `None` — every project stored before the field
     #: existed — reads as `"engine"`, which is exactly what every plan so far was made with.
     public_open_side: TaggedStr | None = None
+    #: Whether the brief named a laundry room of its own (2026-09-16, phase 1 — see
+    #: docs/LAUNDRY_ROOM_OPTION_REVIEW.md). `None` means "never parsed yet", same convention as
+    #: every other field in this block; a parsed project always carries a value with a `source`.
+    #: Planning it is a SEPARATE decision (`concept_generator.LAUNDRY_ROOM_ENABLED`) — this field
+    #: only records what the person asked for.
+    laundry_requested: TaggedBool | None = None
+    laundry_source_text: str = ""
     #: Requirements the brief asked for that no structured field can carry (see
     #: requirements/parser.py's `UnsupportedRequest`). Kept on the project so the REVIEW screen can
     #: show them back instead of the system dropping them silently.
