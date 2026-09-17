@@ -117,6 +117,7 @@ class Config:
     behavior_domains: tuple[str, ...]
 
     # commands
+    command_env: dict[str, str]
     worktree_setup: dict[str, tuple[Command, ...]]
     fast_tests: dict[str, Command]
     smoke: tuple[Command, ...]
@@ -251,6 +252,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         risk_policy=risk_policy,
         regression_domains=tuple(raw.get("regression_domains") or ("backend", "geometry", "validator")),
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
+        command_env={str(k): str(v) for k, v in (cmds.get("env") or {}).items()},
         worktree_setup=setup,
         fast_tests=fast,
         smoke=smoke,

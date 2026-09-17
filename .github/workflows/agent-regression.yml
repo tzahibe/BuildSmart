@@ -18,6 +18,8 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: not-a-real-key-ci-only   # import-time client construction; never used for a call
     steps:
       - uses: actions/checkout@v4
         with:

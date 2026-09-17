@@ -47,14 +47,23 @@ class GhCliTransport:
             return False, "gh is not authenticated — run `gh auth login` once (browser flow)"
         return True, "gh authenticated"
 
-    def request(self, method: str, path: str, *, body: dict | None = None, paginate: bool = False, raw: bool = False) -> Any:
+    def command(self, method: str, path: str, *, has_body: bool = False, paginate: bool = False, raw: bool = False) -> list[str]:
         cmd = [self.binary, "api", "-X", method, path, "-H", "Accept: application/vnd.github+json"]
         if paginate:
             cmd += ["--paginate", "--slurp"]
-        stdin = None
-        if body is not None:
+        if raw:
+            # Job logs carry ANSI sequences and artifacts are binary zips: without this flag `gh api`
+            # refuses to write them at all (pilot finding — evidence silently went missing).
+            cmd.append("--allow-escape-sequences")
+        if has_body:
             cmd += ["--input", "-"]
-            stdin = json.dumps(body)
+        return cmd
+
+    def request(self, method: str, path: str, *, body: dict | None = None, paginate: bool = False, raw: bool = False) -> Any:
+        cmd = self.command(method, path, has_body=body is not None, paginate=paginate, raw=raw)
+        stdin = json.dumps(body) if body is not None else None
+        if raw and stdin is not None:
+            stdin = stdin.encode()
         proc = subprocess.run(cmd, input=stdin, capture_output=True, text=not raw, timeout=300)
         if proc.returncode != 0:
             err = proc.stderr if isinstance(proc.stderr, str) else proc.stderr.decode("utf-8", "replace")

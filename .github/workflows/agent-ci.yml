@@ -33,6 +33,10 @@ jobs:
     needs: gate-1-contract
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      # backend/app/main.py constructs OpenAI clients at import time; the deterministic suites never
+      # call OpenAI (production_ai tests stay skipped), so an obviously-fake literal is enough.
+      OPENAI_API_KEY: not-a-real-key-ci-only
     outputs:
       backend_changed: ${{ steps.plan.outputs.backend_changed }}
       frontend_changed: ${{ steps.plan.outputs.frontend_changed }}
@@ -94,6 +98,8 @@ jobs:
     needs: gate-2-static
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      OPENAI_API_KEY: not-a-real-key-ci-only
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

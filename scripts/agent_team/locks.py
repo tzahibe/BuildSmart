@@ -76,7 +76,9 @@ class LockManager:
             if rec is None or rec.state not in sm.RESOURCE_HOLDING_STATES:
                 stale = True
             elif rec.state in sm.AGENT_ACTIVE_STATES:
-                hb = rec.heartbeat_at or rec.started_at or 0.0
+                # A reconciled PR reaches REVIEW without a worker ever having run: no heartbeat, no
+                # started_at. Fall back to the record's own last update, never to epoch 0.
+                hb = rec.heartbeat_at or rec.started_at or rec.updated_at or now
                 if now - hb > self.config.lock_stale_after_seconds:
                     stale = True
             else:
