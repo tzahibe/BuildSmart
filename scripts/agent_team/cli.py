@@ -107,16 +107,23 @@ def _pidfile(config: Config) -> Path:
     return config.path(config.state_dir) / "orchestrator.pid"
 
 
+def _pid_from(*paths: Path) -> int | None:
+    """The live pid recorded in a pid file or in the running process's flock file (launchd-managed)."""
+    for p in paths:
+        if not p.exists():
+            continue
+        try:
+            pid = int(p.read_text().strip() or "0")
+            if pid:
+                os.kill(pid, 0)
+                return pid
+        except (ValueError, ProcessLookupError, PermissionError):
+            continue
+    return None
+
+
 def _daemon_pid(config: Config) -> int | None:
-    p = _pidfile(config)
-    if not p.exists():
-        return None
-    try:
-        pid = int(p.read_text().strip())
-        os.kill(pid, 0)
-        return pid
-    except (ValueError, ProcessLookupError, PermissionError):
-        return None
+    return _pid_from(_pidfile(config), config.path(config.state_dir) / "orchestrator.lock")
 
 
 def cmd_start(config: Config, args) -> int:
@@ -485,15 +492,7 @@ def _remote_pidfile(config: Config) -> Path:
 
 
 def _remote_pid(config: Config) -> int | None:
-    p = _remote_pidfile(config)
-    if not p.exists():
-        return None
-    try:
-        pid = int(p.read_text().strip())
-        os.kill(pid, 0)
-        return pid
-    except (ValueError, ProcessLookupError, PermissionError):
-        return None
+    return _pid_from(_remote_pidfile(config), config.path(config.state_dir) / "remote.lock")
 
 
 def _remote_env(config: Config) -> dict:
@@ -616,6 +615,24 @@ def cmd_remote(config: Config, args) -> int:
         print(f"service: {'running' if _remote_pid(config) else 'not running'}  interpreter: {config.interpreter_model}  transcription: {config.transcription_provider}")
         return 0
     return 1
+
+
+# -- owner updates from the Team Lead -----------------------------------------------------------
+
+def cmd_notify(config: Config, args) -> int:
+    """Send the owner a progress update on Telegram (through the outbox: delivered by the running
+    remote service, deduplicated, retried). The Team Lead uses this so the owner is never left
+    without updates while away from the computer."""
+    import hashlib
+    store = StateStore(config.state_db_path)
+    if store.owner() is None:
+        print("no paired owner — run `agentctl remote pair`", file=sys.stderr)
+        return 2
+    text = args.text if args.text != "-" else sys.stdin.read()
+    key = "lead-update:" + hashlib.sha256(f"{time.time()}:{text}".encode()).hexdigest()[:16]
+    store.enqueue_notification("lead_update", key, None, text.strip()[:3900])
+    print("queued for Telegram delivery" + ("" if _remote_pid(config) else " (remote service not running: it will be sent when it starts)"))
+    return 0
 
 
 # -- permanent services (macOS launchd user agents) -------------------------------------------
@@ -766,6 +783,7 @@ def build_parser() -> argparse.ArgumentParser:
     pr_.add_argument("--chat-id", type=int)
     r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
     rem.set_defaults(fn=cmd_remote)
+    s = sub.add_parser("notify"); s.add_argument("text", help="Hebrew update for the owner ('-' reads stdin)"); s.set_defaults(fn=cmd_notify)
     s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)
     s = sub.add_parser("uninstall"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_uninstall)
     return p

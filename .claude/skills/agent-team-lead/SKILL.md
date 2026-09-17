@@ -106,7 +106,18 @@ the timeline. Issue comments carry milestones; PR descriptions carry evidence.
 - Never merge by hand; never bypass a red deterministic gate; never let "the worker said done"
   stand in for evidence.
 
-## 5. Report
+## 5. Keep the owner updated on Telegram — always, in Hebrew
+
+The owner is often away from the computer. Every meaningful milestone, question, blocker or
+result must also reach Telegram, in Hebrew, promptly:
+
+```
+scripts/agentctl notify "📋 עדכון: ..."      # queued to the paired owner via the remote service
+```
+
+Never leave a long task running without a Telegram update; never answer only in the IDE.
+
+## 6. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),
 what is blocked and why, and what decision (if any) is theirs.
