@@ -24,7 +24,11 @@ skipped). The orchestrator injects `commands.env` from `.agent/config.yaml` into
 commands and into worker/reviewer processes unless the variable is already set. The classifier
 maps `openai.OpenAIError: Missing credentials` (and `OPENAI_API_KEY`-missing messages) to
 ENVIRONMENT_FAILURE. `agentctl resume-pr N --update-base` merges `origin/main` into the Issue's
-branch and pushes, so CI re-runs with the fixed workflow. Product code is untouched.
+branch and pushes, so CI re-runs with the fixed workflow. The `gh api` transport passes
+`--allow-escape-sequences` for raw requests (job logs, artifact zips) — without it `gh` refuses to
+emit them and evidence silently goes missing (the pilot's second finding: PR #7 was misclassified
+IMPLEMENTATION_FAILURE for that reason). A red gate-2 without any log is INFRA_FAILURE. Product
+code is untouched.
 
 ### Acceptance Criteria
 
@@ -33,6 +37,8 @@ branch and pushes, so CI re-runs with the fixed workflow. Product code is untouc
 - AC-3: the failure classifier returns ENVIRONMENT_FAILURE for an `openai.OpenAIError: Missing credentials` log
 - AC-4: `agentctl resume-pr N --update-base` merges the base branch into the Issue branch and pushes before resuming at PR_OPEN
 - AC-5: the orchestrator test suite passes with the new tests
+- AC-6: the gh transport fetches job logs and artifact zips with --allow-escape-sequences (raw requests)
+- AC-7: a red gate-2 with no job log available is classified INFRA_FAILURE (evidence unavailable), never a blind repair
 
 ### Out of scope
 
@@ -66,6 +72,8 @@ ci-infra (exclusive)
 - AC-3 -> grep:scripts/agent_team/failure_classifier.py:Missing credentials ; cmd:scripts/agent_team/ci/run_orchestrator_tests.sh
 - AC-4 -> grep:scripts/agent_team/cli.py:update_base ; cmd:scripts/agent_team/ci/run_orchestrator_tests.sh
 - AC-5 -> cmd:scripts/agent_team/ci/run_orchestrator_tests.sh
+- AC-6 -> grep:scripts/agent_team/github_client.py:allow-escape-sequences ; grep:scripts/agent_team/tests/test_isolated_env.py:test_gh_transport_allows_escape_sequences_for_raw_requests
+- AC-7 -> grep:scripts/agent_team/failure_classifier.py:no job log is available ; grep:scripts/agent_team/tests/test_isolated_env.py:test_red_gate_without_logs_is_infra_not_a_blind_repair
 
 ### Regression budget
 

@@ -115,3 +115,19 @@ def test_resume_pr_update_base_merges_main_and_pushes(env, capsys):
     orch.store.transition(2, sm.CI); orch.store.transition(2, sm.BLOCKED)
     assert cli.cmd_resume_pr(config, args) == 0
     assert "already up to date" in capsys.readouterr().out
+
+
+def test_gh_transport_allows_escape_sequences_for_raw_requests():
+    from agent_team.github_client import GhCliTransport
+    t = GhCliTransport(binary="gh")
+    raw = t.command("GET", "/repos/o/r/actions/jobs/1/logs", raw=True)
+    assert "--allow-escape-sequences" in raw
+    plain = t.command("GET", "/repos/o/r/issues/1")
+    assert "--allow-escape-sequences" not in plain and "--paginate" not in plain
+    assert "--input" in t.command("POST", "/x", has_body=True)
+
+
+def test_red_gate_without_logs_is_infra_not_a_blind_repair():
+    from agent_team.failure_classifier import INFRA_FAILURE
+    c = classify(FailureInput(gate_results={"gate-1-contract / contract": "success", "gate-2-static": "failure"}, logs={}))
+    assert c.kind == INFRA_FAILURE and "no job log" in c.summary and not c.repairable

@@ -149,6 +149,10 @@ def classify(inp: FailureInput) -> Classification:
                               "\n".join(f"{c['name']}: {c['detail']}" for c in bad)[:2000], gate3[0])
 
     gate2 = [n for n in failed if n.startswith("gate-2")]
+    if gate2 and not all_logs.strip():
+        # No log could be fetched for the failed gate: a repair worker would be guessing. Treat the
+        # missing evidence itself as an infrastructure problem (one CI re-run, then the Team Lead).
+        return Classification(INFRA_FAILURE, f"{gate2[0]} failed but no job log is available — evidence collection failed", "", gate2[0])
     if gate2:
         log = inp.logs.get(gate2[0], all_logs)
         if _COMPILE_ERROR.search(log):
