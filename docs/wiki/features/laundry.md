@@ -1,6 +1,6 @@
 # Laundry
 
-Status: INTEGRATED on `integration/laundry-into-main` (commit `3d8b9243a575034ca013e4aa0eb0d95c173cda78`); not yet merged to `main`
+Status: IMPLEMENTED on `main` (commit `6499604aeda6b5b044398308ffd9fd2334b755b4`, fast-forwarded from `integration/laundry-into-main`)
 
 ## Current behavior
 
@@ -73,9 +73,9 @@ older, also-never-merged laundry design" — that was inaccurate; corrected here
   `ec672a8` (area-budget investigation, measurement only), `27fabb5` (activation — service-first
   allocation + disclosure notice), `5261b0b` (corpus-count fix + activation e2e smoke),
   `a1dd3a8` (SAFE_ROOM notice false-positive fix), `da5b007` (SAFE_ROOM regression test).
-- Integration: `b678967` (Laundry into a fresh branch off then-current `main`), `3d8b924`
-  (current `main`, through the Knowledge Wiki-first/RAG-hybrid pivot, merged in — zero file
-  overlap, no conflicts).
+- Integration: `b678967` (Laundry into a fresh branch off then-current `main`), `3d8b924` (current
+  `main` at the time, through the Knowledge Wiki-first/RAG-hybrid pivot, merged in — zero file
+  overlap, no conflicts), `6499604` (fast-forwarded onto `main` — no merge commit, linear history).
 - Tests: `tests/vertical_slice/test_laundry_room.py` (551 lines — parsing, allocation, row-rescue,
   notice logic), `tests/test_laundry_activation_e2e.py` (225 lines — end-to-end through
   requirements/review/API), plus additions to `tests/test_requirements.py` and
@@ -94,9 +94,9 @@ older, also-never-merged laundry design" — that was inaccurate; corrected here
   (Phase 1); 404/432 distinct-context match confirmed at activation (`docs/
   LAUNDRY_ROOM_ACTIVATION_REPORT.md`) — 432 distinct contexts is the reconciled, current
   denominator (750 raw → 472 reproducible → 432 distinct; 404 planned / 28 refused / 0 crashed).
-  The full frozen 432-context corpus has not been re-swept against `3d8b924` specifically — focused
-  Laundry tests (170) and the full backend suite were run post-integration instead; the full sweep
-  is deferred to final release validation per standing instruction.
+  The full frozen 432-context corpus has not been re-swept against `main` at `6499604` specifically
+  — focused Laundry tests (170) and the full backend suite were run post-integration instead; the
+  full sweep is part of release validation, not yet run at time of writing.
 
 ## Supersedes
 
@@ -104,10 +104,8 @@ N/A — first implementation of this capability; nothing prior existed on `main`
 
 ## Known follow-ups
 
-- Land `integration/laundry-into-main` to `main` — integrated and verified, pending final
-  main-advancement approval.
-- The full frozen 432-context corpus regression sweep against the final `main` HEAD, as part of
-  final release validation (not yet run against `3d8b924`).
+- The full frozen 432-context corpus regression sweep against `main` at `6499604`, as part of
+  release validation (not yet run at time of writing).
 - BATHROOM's own row-rescue eligibility — a separate, already-in-motion decision (the row-sharing
   quality initiative), deliberately not addressed here.
 - Wiring `laundry_notice` (and an explicit laundry toggle) into the ReviewPage/product surface —
@@ -122,16 +120,18 @@ N/A — first implementation of this capability; nothing prior existed on `main`
 
 ## Last verified against git
 
-`3d8b9243a575034ca013e4aa0eb0d95c173cda78` (`integration/laundry-into-main` HEAD, current main
-`ccadc33` merged in). `LAUNDRY_ROOM_ENABLED = True`, `_ROW_RESCUE_ROLES`,
+`6499604aeda6b5b044398308ffd9fd2334b755b4` — `main` HEAD, after `integration/laundry-into-main`
+was fast-forwarded onto `main` (no merge commit; `main` and the integration branch tip are
+identical at this commit). `LAUNDRY_ROOM_ENABLED = True`, `_ROW_RESCUE_ROLES`,
 `_LAUNDRY_NOTICE_EXCLUDED_ROLES`, and `_QUALITY_TIER_GROUP` (LAUNDRY absent) all confirmed present
-by direct `grep` against this commit; focused Laundry tests (170) and the full backend suite
-(1376 passed, 4 pre-existing/unrelated failures — see the Knowledge System page) run clean at this
-commit.
+by direct `grep` against `main` at this commit; focused Laundry tests (170) and the full backend
+suite (1376 passed, 4 pre-existing/unrelated failures — see the Knowledge System page) ran clean
+against this history before the fast-forward.
 
-`backend/app/knowledge/doc_status.json`'s entry for this page previously still read
-`capability_status: NOT_IMPLEMENTED` even after this rewrite — that table is a hand-curated
-authoritative source, deliberately not derived from a page's own prose (see
-`docs/wiki/architecture/knowledge-system.md`), so editing this page alone never updates it.
-Corrected alongside this note to `capability_status: IMPLEMENTED`, `branch:
-integration/laundry-into-main`, `merged_to_main: false`.
+`backend/app/knowledge/doc_status.json`'s entry for this page has gone through two corrections: it
+previously read `capability_status: NOT_IMPLEMENTED` even after this page was first rewritten
+(that table is a hand-curated authoritative source, deliberately not derived from a page's own
+prose — see `docs/wiki/architecture/knowledge-system.md` — so editing this page alone never
+updates it), corrected then to `capability_status: IMPLEMENTED` with `branch:
+integration/laundry-into-main`, `merged_to_main: false`; now corrected again to `branch: main`,
+`merged_to_main: true`, `commit: 6499604`, reflecting the actual fast-forward onto `main`.

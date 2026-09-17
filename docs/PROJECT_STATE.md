@@ -6,7 +6,7 @@ exist, their current status at a glance, and where to read more. Historical deta
 reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 (`docs/PROJECT_KNOWLEDGE_RAG.md`) but deliberately not repeated here.
 
-**Current main HEAD at last verification: `1d648c3`.**
+**Current main HEAD at last verification: `6499604`.**
 
 ## Major capabilities and current status
 
@@ -18,7 +18,7 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Wet Rooms | IMPLEMENTED_MERGED | [wiki/features/wet-rooms.md](wiki/features/wet-rooms.md) |
 | Room Proportion / Quality Tier | IMPLEMENTED_MERGED | [wiki/features/room-proportion-quality-tier.md](wiki/features/room-proportion-quality-tier.md) |
 | Multi-Level | IMPLEMENTED_MERGED (backend), not wired to product | [wiki/features/multi-level.md](wiki/features/multi-level.md) |
-| Laundry | INTEGRATED on `integration/laundry-into-main`, not yet on `main` | [wiki/features/laundry.md](wiki/features/laundry.md) |
+| Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
 
@@ -27,11 +27,12 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 
 ## Active branches / work in progress
 
-- `integration/laundry-into-main` — active, unmerged; see the Laundry Wiki page.
+- `integration/laundry-into-main` — landed: fast-forwarded onto `main` at `6499604`. No longer
+  active work; kept for history. See the Laundry Wiki page.
 - `worktree-015-laundry-room-option` (locked) — not a separate/rival laundry design; it is the
   source branch the Laundry capability was implemented on, merged whole into
-  `integration/laundry-into-main` (`b678967`) through the validated Laundry integration history.
-  Kept checked out/locked as a historical artifact, not for further changes.
+  `integration/laundry-into-main` (`b678967`), which is now itself on `main`. Kept checked
+  out/locked as a historical artifact, not for further changes.
 - `specs/009-guest-wc-placement` — spec committed, nothing implemented yet.
 - `specs/005-hub-private-wing` — spec/plan/results committed, implementation not merged
   ("two hard acceptance gates failed") — `decision_status = REJECTED`.
@@ -61,10 +62,11 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 ## Next recommended work
 
 1. Wire Multi-Level Phase 1 into the live product path — see its Wiki page's Known follow-ups.
-2. Land `integration/laundry-into-main`, then rewrite the Laundry Wiki page from scratch.
-3. Guest-WC placement (009) — spec exists, nothing implemented.
-4. `BAAI/bge-m3` (opt-in) is the recommended path to real semantic embeddings — see the Knowledge
+2. Guest-WC placement (009) — spec exists, nothing implemented.
+3. `BAAI/bge-m3` (opt-in) is the recommended path to real semantic embeddings — see the Knowledge
    System Wiki page.
+4. Wire `laundry_notice`/a laundry toggle into the ReviewPage product surface — see the Laundry
+   Wiki page's Known follow-ups.
 
 ## Keeping this file current
 
