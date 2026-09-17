@@ -514,3 +514,17 @@ def test_buttons_encode_exact_state():
     assert b["data"] == "v1|MERGE_PR|57|abcdef123456|n0nce" and len(b["data"]) <= 64
     cmd = parse_callback(b["data"])
     assert cmd.action == C.MERGE_PR and cmd.args == {"pr": 57, "ref": "abcdef123456", "nonce": "n0nce"} and cmd.from_callback
+
+
+def test_operator_pairing_and_launchd_plist(remote, capsys):
+    from agent_team import cli
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    args = type("A", (), {"remote_cmd": "pair", "user_id": OWNER, "chat_id": None})()
+    assert cli.cmd_remote(orch.config, args) == 0
+    assert "paired by operator" in capsys.readouterr().out
+    assert gw.is_owner(OWNER) and not gw.is_owner(STRANGER)
+    assert any(e["kind"] == "owner_paired_by_operator" for e in orch.store.events(None, limit=10))
+    plist = cli.launchd_plist(orch.config, "remote")
+    assert "com.buildsmart.agent-team.remote" in plist and "<key>KeepAlive</key><true/>" in plist and "remote</string>" in plist
+    assert str(orch.config.repo_root) in plist and "AGENT_TEAM_REPO_ROOT" in plist
+    assert "AGENT_TELEGRAM_BOT_TOKEN" not in plist                     # the token stays in the env file, never in the plist

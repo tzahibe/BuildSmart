@@ -95,7 +95,7 @@ class HttpTelegramTransport:
         params: dict[str, Any] = {"timeout": timeout, "allowed_updates": ["message", "callback_query"]}
         if offset is not None:
             params["offset"] = offset
-        return self._call("getUpdates", timeout + 15, **params)
+        return self._call("getUpdates", timeout + 30, **params)
 
     def send_message(self, chat_id: int, text: str, buttons: list[list[dict]] | None = None) -> dict:
         chunks = _chunks(text, 3900)

@@ -66,6 +66,9 @@ def cmd_status(config: Config, args) -> int:
     print(render(config, store, ResourceManager(config, store), probe_machine=not args.no_probe))
     pid = _daemon_pid(config)
     print(f"orchestrator daemon: {'running (pid %s)' % pid if pid else 'not running'}")
+    if sys.platform == "darwin":
+        for w, st in launchd_status(config).items():
+            print(f"launchd {w}: {st}")
     return 0
 
 
@@ -580,6 +583,13 @@ def cmd_remote(config: Config, args) -> int:
         print(f"notifications due: {len(pending)}")
         return 0
     if sub == "pair":
+        if getattr(args, "user_id", None):
+            # Operator pairing at the terminal: the owner, working on this machine, names the numeric
+            # Telegram user id seen on their own messages to the bot. Audited like a code pairing.
+            store.set_owner(int(args.user_id), int(args.chat_id or args.user_id))
+            store.record_event(None, "owner_paired_by_operator", {"telegram_user_id": int(args.user_id)})
+            print(f"owner paired by operator: telegram user {args.user_id} (chat {args.chat_id or args.user_id})")
+            return 0
         import secrets as _secrets
         code = f"{_secrets.randbelow(900000) + 100000}"
         store.create_pairing_code(code, config.pairing_ttl_seconds)
@@ -605,6 +615,106 @@ def cmd_remote(config: Config, args) -> int:
         print(f"service: {'running' if _remote_pid(config) else 'not running'}  interpreter: {config.interpreter_model}  transcription: {config.transcription_provider}")
         return 0
     return 1
+
+
+# -- permanent services (macOS launchd user agents) -------------------------------------------
+
+LAUNCHD_LABELS = {"orchestrator": "com.buildsmart.agent-team.orchestrator", "remote": "com.buildsmart.agent-team.remote"}
+
+
+def launchd_plist(config: Config, which: str) -> str:
+    """A launchd user agent that keeps the service alive across logins, crashes and reboots."""
+    label = LAUNCHD_LABELS[which]
+    logs = config.path(config.logs_dir)
+    boot = f"import sys; sys.path.insert(0, {str(config.repo_root / 'scripts')!r}); from agent_team.cli import main; sys.exit(main())"
+    argv = [sys.executable, "-c", boot] + (["run"] if which == "orchestrator" else ["remote", "run"])
+    args_xml = "".join(f"\n      <string>{a.replace('&', '&amp;').replace('<', '&lt;')}</string>" for a in argv)
+    path_env = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + os.path.dirname(sys.executable)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>{label}</string>
+  <key>ProgramArguments</key>
+  <array>{args_xml}
+  </array>
+  <key>WorkingDirectory</key><string>{config.repo_root}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>AGENT_TEAM_REPO_ROOT</key><string>{config.repo_root}</string>
+    <key>PATH</key><string>{path_env}</string>
+    <key>HOME</key><string>{os.path.expanduser('~')}</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>15</integer>
+  <key>StandardOutPath</key><string>{logs / f'launchd-{which}.log'}</string>
+  <key>StandardErrorPath</key><string>{logs / f'launchd-{which}.log'}</string>
+</dict>
+</plist>
+"""
+
+
+def _launchd_dir() -> Path:
+    return Path(os.path.expanduser("~/Library/LaunchAgents"))
+
+
+def _launchctl(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["launchctl", *args], capture_output=True, text=True)
+
+
+def cmd_install(config: Config, args) -> int:
+    """Install (or reinstall) the launchd user agents so both services are permanent."""
+    if sys.platform != "darwin":
+        print("launchd install is macOS-only; use a systemd unit on Linux", file=sys.stderr)
+        return 2
+    which = ["orchestrator", "remote"] if args.service == "all" else [args.service]
+    config.path(config.logs_dir).mkdir(parents=True, exist_ok=True)
+    _launchd_dir().mkdir(parents=True, exist_ok=True)
+    uid = os.getuid()
+    for w in which:
+        # a manually started instance would fight the agent for the singleton lock: stop it first
+        if w == "orchestrator" and _daemon_pid(config):
+            cmd_stop(config, args)
+        if w == "remote" and _remote_pid(config):
+            cmd_remote(config, type("A", (), {"remote_cmd": "stop"})())
+        plist = _launchd_dir() / f"{LAUNCHD_LABELS[w]}.plist"
+        _launchctl("bootout", f"gui/{uid}/{LAUNCHD_LABELS[w]}")
+        plist.write_text(launchd_plist(config, w), encoding="utf-8")
+        res = _launchctl("bootstrap", f"gui/{uid}", str(plist))
+        if res.returncode != 0:
+            res = _launchctl("load", "-w", str(plist))
+        ok = res.returncode == 0
+        print(f"{w}: {'installed and started' if ok else 'INSTALL FAILED: ' + (res.stderr or res.stdout).strip()[:200]} — {plist}")
+        StateStore(config.state_db_path).record_event(None, "service_installed", {"service": w, "plist": str(plist), "ok": ok})
+    print("both services now start at login, restart on crash, and survive reboots" if args.service == "all" else "")
+    return 0
+
+
+def cmd_uninstall(config: Config, args) -> int:
+    which = ["orchestrator", "remote"] if args.service == "all" else [args.service]
+    uid = os.getuid()
+    for w in which:
+        plist = _launchd_dir() / f"{LAUNCHD_LABELS[w]}.plist"
+        _launchctl("bootout", f"gui/{uid}/{LAUNCHD_LABELS[w]}")
+        if plist.exists():
+            plist.unlink()
+        print(f"{w}: uninstalled ({plist})")
+        StateStore(config.state_db_path).record_event(None, "service_uninstalled", {"service": w})
+    return 0
+
+
+def launchd_status(config: Config) -> dict[str, str]:
+    out = {}
+    uid = os.getuid()
+    for w, label in LAUNCHD_LABELS.items():
+        res = _launchctl("print", f"gui/{uid}/{label}")
+        if res.returncode != 0:
+            out[w] = "not installed"
+        else:
+            pid = next((l.split("=")[1].strip() for l in res.stdout.splitlines() if l.strip().startswith("pid =")), None)
+            out[w] = f"installed, running (pid {pid})" if pid else "installed, not running"
+    return out
 
 
 # -- parser -----------------------------------------------------------------------------------
@@ -649,8 +759,12 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)
     s = sub.add_parser("resume"); s.add_argument("--reason"); s.set_defaults(fn=cmd_resume)
     s = sub.add_parser("remote"); rsub = s.add_subparsers(dest="remote_cmd", required=True)
-    for name in ("start", "stop", "status", "pair", "unpair", "doctor"):
+    for name in ("start", "stop", "status", "unpair", "doctor"):
         rsub.add_parser(name)
+    pr_ = rsub.add_parser("pair"); pr_.add_argument("--user-id", type=int, help="operator pairing: the owner's numeric Telegram user id")
+    pr_.add_argument("--chat-id", type=int)
+    s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)
+    s = sub.add_parser("uninstall"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_uninstall)
     r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
     s.set_defaults(fn=cmd_remote)
     return p
