@@ -26,9 +26,15 @@ alone. Last refreshed: 2026-09-16.
   directly from the UI/API (`app/demo/requirements_view.py::_public_open_side_of`).
 - **Geometry**: `app/geometry_domain/` (Shapely-backed booleans/offsetting), `app/geometry/spatial_v2/`.
 - **Massing**: the engine surveys rectangles plus, since 016, two L massings per requested area on
-  any rectangular plot (not just L-shaped sites).
-- **Multi-level**: Phase 0 (types/contracts, still single-storey behavior) is implemented; Phase 1
-  (an actual second storey) is approved-for-implementation research, not yet built (see below).
+  any rectangular plot (not just L-shaped sites); a later refinement (commit `9ae6893`) gates an
+  engine-generated L on realized quality instead of always taking the slot.
+- **Multi-level**: Phase 0 (types/contracts, still single-storey behavior) is implemented. Phase 1
+  (an actual second storey: core-band coordinator, allocations A/C, building-level V-checks,
+  lexicographic candidate primary selection) is **implemented and merged to `main`** (commits
+  `4bdebd4`, `3270063`) — but, per its own implementation report, **not yet wired to the live
+  product**: `concept_generator.py`, `general_pipeline.py`, `demo/*` and the frontend have zero
+  diff, and the new modules are reached only by calling them directly (as in their own tests),
+  never through the ordinary single-level request path.
 - **Project Knowledge RAG** (this delivery): `backend/app/knowledge/` — hybrid (FTS5 keyword +
   hash-embedding vector) retrieval over `docs/**/*.md` and `specs/*/{spec,plan,research}.md`, SQLite
   storage, status-aware reranking. CLI: `python -m app.knowledge.cli {index,search,context,stats,
@@ -41,6 +47,18 @@ alone. Last refreshed: 2026-09-16.
 
 - L massings on a rectangular plot + the L-orientation tiebreak (016; commit `5195368`).
 - Massing representation / display fix (013).
+- L-massing representation quality gate — an engine-generated L only takes its representation
+  slot on realized-quality eligibility, not merely for being an L (commit `9ae6893`).
+- Wet-room quality tier extended to `SHARED_BATHROOM`/`GUEST_WC` (commit `f2092af`, follows
+  `be8c0ca`'s bedroom-class original) — a soft objective only, no hard-gate or row-rescue changes.
+  **Laundry is explicitly excluded and does not exist on `main` at all**: `LAUNDRY_ROOM_ENABLED`
+  is not present anywhere in this branch's code. A laundry-room implementation exists only on the
+  separate, never-merged, locked `worktree-015-laundry-room-option` (see Known limitations) —
+  treat any doc describing a "gated off but implemented" laundry capability as describing that
+  separate worktree, not `main`'s current state.
+- Multi-Level Phase 1 (core-band coordinator, allocations A/C, building V-checks, lexicographic
+  candidate primary selection) — implemented and merged (commits `4bdebd4`, `3270063`), not yet
+  wired to the live product (see Current architecture above).
 - Room-proportion quality tier — bounded `preferred_aspect_ratio` on bedroom-class rooms, a lone
   row may take the master's corridor-facing slot beside its ensuite (commit `be8c0ca`). This
   **supersedes** `ROOM_PROPORTION_REPARTITION_REPORT.md`, which is investigation-only now.
@@ -67,17 +85,18 @@ alone. Last refreshed: 2026-09-16.
 - `BUILDING_SHAPE_MASSING_FAMILIES_REPORT.md` — the massing-family plan the L-parti/L-massing work
   implements.
 - `MULTI_LEVEL_AND_HOUSE_CONCEPT_ARCHITECTURE_REPORT.md` — the multi-level architecture (Phase 0
-  implemented against it; Phase 1 approved-for-implementation, not yet built).
-- Multi-level Phase 1's circulation approach (`MULTI_LEVEL_PHASE_1_FOLLOWUP_REPORT.md`):
-  `decision_status = APPROVED_FOR_IMPLEMENTATION` — a real, currently-checked-out branch
-  (`017-multi-level-phase1`) exists for this, alongside a sibling `017-public-open-side` branch.
+  and Phase 1 both implemented against it now; Phase 1 not yet wired to the live product).
+- Multi-level Phase 1's circulation approach (`MULTI_LEVEL_PHASE_1_IMPLEMENTATION_REPORT.md`):
+  `decision_status = APPROVED`, implemented and merged (commits `4bdebd4`, `3270063`) — this
+  **supersedes** the two earlier `MULTI_LEVEL_PHASE_1_{INVESTIGATION,FOLLOWUP}_REPORT.md` research
+  docs, which described the design baseline before it was built.
 
 ## Active branches / work in progress (confirmed via `git worktree list` / `git branch -a`)
 
-- `017-multi-level-phase1` — Multi-Level Phase 1 (an actual second storey). Not merged.
-- `017-public-open-side` — a sibling branch, not merged.
-- `worktree-015-laundry-room-option` (locked worktree) — laundry-room option review; see Known
-  limitations below (feature is implemented but gated off).
+- `integration/laundry-into-main` (checked-out worktree) — active, uncommitted work bringing a
+  laundry-room capability into `main` for the first time; nothing merged yet as of this writing.
+- `worktree-015-laundry-room-option` (locked worktree) — a separate, never-merged laundry-room
+  design; see Known limitations below. Not the same code as `integration/laundry-into-main` above.
 - `specs/009-guest-wc-placement` — spec committed (`c3b1c96`), nothing implemented yet.
 - `specs/005-hub-private-wing` — spec + plan + results committed to `main`, but the implementation
   itself was **not merged** ("two hard acceptance gates failed" per its own results doc) —
@@ -85,8 +104,6 @@ alone. Last refreshed: 2026-09-16.
 
 ## Open investigations (ACTIVE_RESEARCH, no code changed)
 
-- Multi-Level Phase 1 follow-up — circulation efficiency, open-plan ground, bathroom semantics
-  (builds on the Phase 1 investigation report, which it supersedes).
 - Room capacity constraint, plan-not-realizable root cause — standalone diagnostics, no successor
   doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
@@ -100,14 +117,20 @@ alone. Last refreshed: 2026-09-16.
   access model allows, and nothing further is available "for free."
   Also, an ensuite pairing is limited to whichever wet room happens to be a `SERVICE`-zone member,
   which today is only ever one ensuite per programme (149 of 432 briefs have none at all).
-- **Laundry room**: `LAUNDRY_ROOM_ENABLED=False` — implemented (Phase 1) but gated off. Wiring it
-  live reopens the TOILET-only strip-room gap; row-sharing generalized to `ZoneGroup.SERVICE`
-  already accounts for it, at a 1/404 real-corpus deviation, but area-budget crowding is an open
-  decision. Recommendation on file: keep gated.
-- **Multi-level, if/when Phase 1 lands**: the only seat proven to work on both levels is the
-  core-band seat; the two-storey ground floor needs the kitchen across the corridor from it. Only
-  27/36 hand-built briefs and 0/76 independently-generated briefs currently align on a shared stair
-  seat — this is the open problem Phase 1's follow-up work targets.
+- **Laundry room**: does **not exist on `main`** — `LAUNDRY_ROOM_ENABLED` is absent from this
+  branch's code entirely (confirmed via `git grep` on `main`), and `WET_ROOM_QUALITY_TIER_
+  IMPLEMENTATION_REPORT.md` explicitly excludes it from the wet/service quality-tier extension for
+  exactly this reason. A prior design (`LAUNDRY_ROOM_ENABLED=False`, gated off, row-sharing
+  generalized to `ZoneGroup.SERVICE`) exists only on the separate, never-merged, locked
+  `worktree-015-laundry-room-option` — that recommendation was never about `main`. Active,
+  uncommitted work to bring laundry into `main` for the first time is underway on
+  `integration/laundry-into-main` as of this writing; nothing merged yet.
+- **Multi-level Phase 1 is implemented and merged but not wired to the live product** (see Current
+  architecture above) — the only seat proven to work on both levels is the core-band seat; the
+  two-storey ground floor needs the kitchen across the corridor from it. Only 27/36 hand-built
+  briefs and 0/76 independently-generated briefs aligned on a shared stair seat during the
+  pre-implementation investigation — check the implementation report itself for whether that gap
+  was closed or remains open.
 - **Knowledge RAG embeddings**: neither installed Ollama model (`llama3.2`, `gemma4:26b`) declares
   `embedding` capability (confirmed live via `/api/tags`/`/api/show`) — the auto-detected default
   index still runs on the deterministic hash embedder, not real semantic vectors. A real
@@ -139,18 +162,23 @@ alone. Last refreshed: 2026-09-16.
 
 ## Next recommended work
 
-1. Multi-level Phase 1 implementation, informed by the follow-up report's core-band-seat findings.
-2. Pull a dedicated Ollama embedding model (e.g. `nomic-embed-text`) and switch
-   `KNOWLEDGE_EMBEDDING_PROVIDER=ollama` to get real semantic retrieval — not done automatically,
-   see `docs/PROJECT_KNOWLEDGE_RAG.md`.
-3. Guest-WC placement (009) — spec exists, nothing implemented.
-4. Extend `tests/ai_harness/golden/semantic_cases.json` as new semantic behaviors are approved —
+1. Wire Multi-Level Phase 1 into the live product path (`concept_generator.py`/`general_pipeline.py`/
+   `demo/*` currently have zero diff from it) — check the implementation report for whether the
+   stair-seat alignment gap (27/36 hand-built, 0/76 independently-generated) was closed.
+2. Land `integration/laundry-into-main` — the first laundry capability actually merged to `main`.
+3. `BAAI/bge-m3` (opt-in) is the recommended path to real semantic embeddings — see
+   `docs/PROJECT_KNOWLEDGE_RAG.md`; `ollama pull nomic-embed-text` remains a lighter alternative.
+4. Guest-WC placement (009) — spec exists, nothing implemented.
+5. Extend `tests/ai_harness/golden/semantic_cases.json` as new semantic behaviors are approved —
    expected values must come from approved rules, never from "whatever a model said."
 
 ## Important current commits
 
 - `5195368` — Merge '016-l-massing-outlines': L massings on a rectangular plot, L-orientation tiebreak.
+- `9ae6893` — feat(selection): gate engine-generated L massings on realized quality.
 - `be8c0ca` — feat(planner): prefer bounded room-proportion quality peers.
+- `f2092af` — feat(planner): extend the room-proportion quality tier to wet/service rooms.
 - `8c4cdba` — fix(review): clarify wet-room edits and disabled generate reason.
 - `a235c37` / `b5c74fa` — multi-level Phase 0 (domain/contracts, no behavior change).
+- `4bdebd4` / `3270063` — multi-level Phase 1: core-band coordinator + candidate primary selection.
 - `e513d91`, `ae6e1b8` — wet-room semantics (007) PRs #2 and #4.

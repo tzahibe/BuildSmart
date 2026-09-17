@@ -20,6 +20,7 @@ from app.knowledge.context_pack import build_context_pack
 from app.knowledge.doc_status import stale_entries
 from app.knowledge.embeddings.factory import get_embedding_provider
 from app.knowledge.indexer import EmbeddingConfigMismatch, KnowledgeIndexer, repo_root_from_here
+from app.knowledge.lock import IndexLockTimeout
 from app.knowledge.retrieval import search
 from app.knowledge.store.factory import get_store
 from app.local_models.discovery import discover_ollama, recommend_candidates
@@ -37,6 +38,11 @@ def cmd_index(args: argparse.Namespace) -> int:
     except EmbeddingConfigMismatch as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
+    if report.deferred:
+        print("refresh deferred — another process is currently indexing this shared index; "
+              "using the last known-good index. Retrieval is unaffected; re-run later to pick up "
+              "any changes.")
+        return 0
     print(f"indexed: {len(report.indexed)}  skipped (unchanged): {len(report.skipped_unchanged)}  "
           f"removed: {len(report.removed)}")
     return 0
@@ -90,7 +96,11 @@ def cmd_stats(_args: argparse.Namespace) -> int:
 
 
 def cmd_clear(_args: argparse.Namespace) -> int:
-    _indexer().clear()
+    try:
+        _indexer().clear()
+    except IndexLockTimeout as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     print("index cleared")
     return 0
 

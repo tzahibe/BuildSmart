@@ -150,6 +150,40 @@ only**; the prompt and the code both forbid it from judging whether a regression
 The compact structured output is what a human/Claude reviewer reads instead of raw logs — the
 accept/reject decision stays human.
 
+## Local Test Assistant (`failure_triage.py`)
+
+A distinct, narrower sibling of the failure-cluster analysis above: `failure_analysis.py` triages
+the **product's** failure log (real refusals/crashes from `app/observability/failure_log.py`);
+`failure_triage.py` triages a **pytest run's own failing tests**, for an agent mid-task.
+
+```
+code change -> focused deterministic tests -> IF failures ->
+    parse_pytest_short_summary(pytest output) -> triage_failures() ->
+    {failure_groups, likely_modules, knowledge_topics, investigation_areas} ->
+    agent retrieves those knowledge_topics via the Knowledge RAG -> agent investigates
+```
+
+Hard rules, enforced by construction, not just convention:
+- **`triage_failures([])` returns `None`** — never calls a model just to report that everything
+  passed.
+- **`TriageReport` has no pass/fail/verdict field** (`test_triage_never_produces_a_pass_fail_
+  verdict_field` guards this) — a local model can summarize and group already-known failures; it
+  can never redefine what passed. Tests remain the sole source of truth, and a model's opinion is
+  never merge/release evidence, exactly like `failure_analysis.py`.
+- Golden expectations are never adjusted based on triage output.
+- Bounded input only — at most 30 failing tests, each error truncated to 300 chars, never a full
+  traceback dump — and every raw failing-test name plus the deterministic pass/fail result belongs
+  in the agent's own report regardless of what triage says.
+
+Role selection follows the same measured roles as the rest of the harness (§Model roles): default
+to `local_fast` (`LOCAL_FAST_LIMITED`/`llama3.2` today) for routine grouping — summarization,
+duplicate-failure grouping, extracting names/modules is well within what a `LOCAL_FAST_LIMITED`
+model reliably does. Escalate to `role="local_strong"` (`gemma4:26b`) only when the fast pass
+wasn't useful enough, and never concurrently with a heavy regression sweep (§32GB RAM policy) —
+this is a per-invocation judgment call for the agent, not an automatic heuristic in the code.
+Identical failure reports are cached (`ResponseCache`, same key formula as everywhere else in this
+harness) so re-triaging the same failures costs nothing on a retry.
+
 ## CI strategy (recommendation only — no workflow file added this round)
 
 - **Per commit/PR**: `TEST_MODE=FAST` (deterministic only). Optionally `REGRESSION` on PRs that

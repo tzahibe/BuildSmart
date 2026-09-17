@@ -15,7 +15,14 @@ from datetime import datetime, timezone
 from app.knowledge.chunking import chunk_markdown
 from app.knowledge.config import EXCLUDED_GLOBS, KnowledgeConfig
 from app.knowledge.embeddings.base import EmbeddingProvider
+from app.knowledge.lock import IndexLockTimeout, acquire_index_lock
 from app.knowledge.store.base import ChunkRecord, IndexMeta, KnowledgeStore
+
+#: How long a write (index/clear) waits for another agent's in-progress refresh before giving up.
+#: Deliberately short relative to a full reindex — the point is to let a second agent notice
+#: quickly and either wait briefly or fall back to reading the last known-good index, not to make
+#: every agent queue behind a slow first indexer.
+DEFAULT_LOCK_TIMEOUT_S = 30.0
 
 
 def repo_root_from_here() -> str:
@@ -49,6 +56,10 @@ class IndexReport:
     indexed: list[str]
     skipped_unchanged: list[str]
     removed: list[str]
+    #: True when another process held the write lock past the bounded timeout — no write was
+    #: attempted, and `indexed`/`skipped_unchanged`/`removed` are meaningless (empty) here.
+    #: Retrieval against the existing (last known-good) index remains valid and unaffected.
+    deferred: bool = False
 
 
 class EmbeddingConfigMismatch(RuntimeError):
@@ -101,7 +112,13 @@ class KnowledgeIndexer:
             updated_at=datetime.now(timezone.utc).isoformat(),
         ))
 
-    def index_all(self) -> IndexReport:
+    def index_all(self, *, lock_timeout_s: float = DEFAULT_LOCK_TIMEOUT_S) -> IndexReport:
+        with acquire_index_lock(self.cfg.sqlite_path, timeout_s=lock_timeout_s) as acquired:
+            if not acquired:
+                return IndexReport(indexed=[], skipped_unchanged=[], removed=[], deferred=True)
+            return self._index_all_locked()
+
+    def _index_all_locked(self) -> IndexReport:
         current_files = discover_source_files(self.repo_root, self.cfg.source_globs)
         known_paths = set(self.store.all_document_checksums())
         for rel_path in current_files:
@@ -112,7 +129,17 @@ class KnowledgeIndexer:
         self._finalize_meta()
         return IndexReport(indexed=current_files, skipped_unchanged=[], removed=sorted(removed))
 
-    def index_changed(self) -> IndexReport:
+    def index_changed(self, *, lock_timeout_s: float = DEFAULT_LOCK_TIMEOUT_S) -> IndexReport:
+        """Single-writer safe: if another agent is already refreshing this shared index, this
+        waits up to `lock_timeout_s` and, failing that, returns `deferred=True` rather than
+        starting a second concurrent writer — the existing index is left exactly as it was and
+        remains fully readable in the meantime (see sqlite_store.py's WAL mode)."""
+        with acquire_index_lock(self.cfg.sqlite_path, timeout_s=lock_timeout_s) as acquired:
+            if not acquired:
+                return IndexReport(indexed=[], skipped_unchanged=[], removed=[], deferred=True)
+            return self._index_changed_locked()
+
+    def _index_changed_locked(self) -> IndexReport:
         self._assert_embedding_config_compatible()
         current_files = discover_source_files(self.repo_root, self.cfg.source_globs)
         known_checksums = self.store.all_document_checksums()
@@ -136,5 +163,15 @@ class KnowledgeIndexer:
             self._finalize_meta()
         return IndexReport(indexed=indexed, skipped_unchanged=skipped, removed=sorted(removed))
 
-    def clear(self) -> None:
-        self.store.clear()
+    def clear(self, *, lock_timeout_s: float = DEFAULT_LOCK_TIMEOUT_S) -> None:
+        """Destructive and rare — refuses outright (raises) rather than silently no-op'ing or
+        forcing through another process's in-progress write if the lock can't be acquired.
+        Never deletes/rebuilds the shared index merely because a lock is held."""
+        with acquire_index_lock(self.cfg.sqlite_path, timeout_s=lock_timeout_s) as acquired:
+            if not acquired:
+                raise IndexLockTimeout(
+                    f"could not acquire the index lock within {lock_timeout_s}s — another "
+                    f"process appears to be indexing. Refusing to clear the shared index "
+                    f"concurrently; try again shortly."
+                )
+            self.store.clear()
