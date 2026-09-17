@@ -40,7 +40,22 @@ REQUIRED_SECTIONS = (
 
 NO_RESPONSE = "_No response_"
 
-VERIFICATION_KINDS = ("pytest", "vitest", "regression", "file", "grep", "cmd")
+# Verification TYPES (what kind of evidence a target is) and the concrete KINDS that produce it.
+#   TEST            an executed test:          pytest:<nodeid> | vitest:<file> | cmd:scripts/<script>
+#   REGRESSION      the corpus budget gate:    regression:corpus
+#   STATIC          a deterministic static check: static:<backend-compile|backend-import|frontend-lint|frontend-types>
+#   ARTIFACT        a deliverable exists/contains: file:<path> | grep:<path>:<regex>
+#   SEMANTIC_REVIEW an independent-reviewer judgement: review:<what the reviewer must confirm>
+# A target may carry its type explicitly (`TEST:pytest:...`) or leave it to be inferred from the kind.
+# SEMANTIC_REVIEW is never sufficient on its own for a behavior-changing Issue.
+TEST, REGRESSION, STATIC, ARTIFACT, SEMANTIC_REVIEW = "TEST", "REGRESSION", "STATIC", "ARTIFACT", "SEMANTIC_REVIEW"
+VERIFICATION_TYPES = (TEST, REGRESSION, STATIC, ARTIFACT, SEMANTIC_REVIEW)
+DETERMINISTIC_TYPES = (TEST, REGRESSION, STATIC, ARTIFACT)
+KIND_TYPES = {"pytest": TEST, "vitest": TEST, "cmd": TEST, "regression": REGRESSION, "static": STATIC,
+              "file": ARTIFACT, "grep": ARTIFACT, "review": SEMANTIC_REVIEW}
+VERIFICATION_KINDS = tuple(KIND_TYPES)
+STATIC_TARGETS = ("backend-compile", "backend-import", "frontend-lint", "frontend-types")
+DEFAULT_BEHAVIOR_DOMAINS = ("backend", "geometry", "validator", "frontend", "ai")
 
 BUDGET_KEYS = ("LOST", "GAINED", "crashes", "status_changes", "refusal_code_changes", "primary_signature_changes")
 BUDGET_DEFAULTS = {
@@ -80,11 +95,20 @@ class LockRequirement:
 class VerificationTarget:
     ac: str
     kind: str      # one of VERIFICATION_KINDS
-    target: str    # nodeid / path / "corpus" / "path:regex" / script
+    target: str    # nodeid / path / "corpus" / "path:regex" / script / static check / review question
+    vtype: str = ""  # one of VERIFICATION_TYPES (inferred from kind when not given explicitly)
+
+    def __post_init__(self):
+        if not self.vtype:
+            object.__setattr__(self, "vtype", KIND_TYPES[self.kind])
 
     @property
     def spec(self) -> str:
         return f"{self.kind}:{self.target}"
+
+    @property
+    def deterministic(self) -> bool:
+        return self.vtype in DETERMINISTIC_TYPES
 
 
 @dataclass(frozen=True)
@@ -139,6 +163,19 @@ class IssueContract:
             if r.key == key:
                 return r
         return parse_budget_value(key, BUDGET_DEFAULTS[key])
+
+    @property
+    def lost_allowance(self) -> bool:
+        """True when the budget intentionally allows some LOST contexts (a number > 0 or a tagged predicate)."""
+        r = self.budget_rule("LOST")
+        return r.kind == "tagged" or (r.kind == "max" and r.limit > 0)
+
+    @property
+    def semantic_review_acs(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(t.ac for t in self.verification if t.vtype == SEMANTIC_REVIEW))
+
+    def is_behavior_changing(self, behavior_domains: tuple[str, ...] = DEFAULT_BEHAVIOR_DOMAINS) -> bool:
+        return any(d in behavior_domains for d in self.domains)
 
     def needs_regression(self, regression_domains: tuple[str, ...]) -> bool:
         return any(t.kind == "regression" for t in self.verification) or any(
@@ -272,14 +309,22 @@ def _parse_locks(text: str, known: tuple[str, ...] | None, problems: list[str]) 
 
 
 def parse_verification_target(ac: str, spec: str) -> VerificationTarget | str:
-    """Returns a target, or an error string."""
+    """Returns a target, or an error string. Accepts `[TYPE:]kind:target`."""
     spec = spec.strip().strip("`")
     if ":" not in spec:
-        return f"{ac} verification target must be '<kind>:<target>', got {spec!r}"
-    kind, target = spec.split(":", 1)
-    kind, target = kind.strip().lower(), target.strip()
+        return f"{ac} verification target must be '[TYPE:]<kind>:<target>', got {spec!r}"
+    head, rest = spec.split(":", 1)
+    explicit_type = ""
+    if head.strip() in VERIFICATION_TYPES:          # types are uppercase, kinds lowercase
+        explicit_type = head.strip()
+        if ":" not in rest:
+            return f"{ac} verification target must be '{explicit_type}:<kind>:<target>', got {spec!r}"
+        head, rest = rest.split(":", 1)
+    kind, target = head.strip().lower(), rest.strip()
     if kind not in VERIFICATION_KINDS:
         return f"{ac} verification kind {kind!r} is not one of {', '.join(VERIFICATION_KINDS)}"
+    if explicit_type and KIND_TYPES[kind] != explicit_type:
+        return f"{ac} kind {kind!r} produces {KIND_TYPES[kind]} evidence, not {explicit_type}"
     if not target:
         return f"{ac} verification target for {kind} is empty"
     if kind == "regression" and target != "corpus":
@@ -288,12 +333,17 @@ def parse_verification_target(ac: str, spec: str) -> VerificationTarget | str:
         return f"{ac} grep target must be 'grep:<path>:<regex>', got {target!r}"
     if kind == "cmd" and not target.startswith("scripts/"):
         return f"{ac} cmd target must be a script under scripts/, got {target!r}"
+    if kind == "static" and target not in STATIC_TARGETS:
+        return f"{ac} static target must be one of {', '.join(STATIC_TARGETS)}, got {target!r}"
+    if kind == "review" and len(target) < 12:
+        return f"{ac} review target must say what the reviewer has to confirm, got {target!r}"
     if kind in ("pytest", "vitest", "file") and (".." in target or target.startswith("/")):
         return f"{ac} {kind} target must be a repo-relative path, got {target!r}"
-    return VerificationTarget(ac=ac, kind=kind, target=target)
+    return VerificationTarget(ac=ac, kind=kind, target=target, vtype=KIND_TYPES[kind])
 
 
-def _parse_verification(text: str, ac_ids: tuple[str, ...], problems: list[str]) -> tuple[VerificationTarget, ...]:
+def _parse_verification(text: str, ac_ids: tuple[str, ...], problems: list[str], *,
+                        behavior_changing: bool) -> tuple[VerificationTarget, ...]:
     out: list[VerificationTarget] = []
     for line in text.splitlines():
         if not line.strip():
@@ -314,9 +364,15 @@ def _parse_verification(text: str, ac_ids: tuple[str, ...], problems: list[str])
             else:
                 out.append(res)
     covered = {t.ac for t in out}
+    deterministic = {t.ac for t in out if t.deterministic}
     for ac in ac_ids:
         if ac not in covered:
-            problems.append(f"{ac} has no verification target — every criterion needs deterministic evidence")
+            problems.append(f"{ac} has no verification target — every criterion needs evidence")
+        elif ac not in deterministic and behavior_changing:
+            problems.append(f"{ac} is proven only by SEMANTIC_REVIEW — a behavior-changing Issue needs "
+                            f"TEST/REGRESSION/STATIC/ARTIFACT evidence for every criterion")
+    if out and not deterministic:
+        problems.append("no deterministic verification target at all — at least one TEST/REGRESSION/STATIC/ARTIFACT target is required")
     return tuple(out)
 
 
@@ -336,7 +392,7 @@ def parse_budget_value(key: str, value: str) -> BudgetRule:
     raise ValueError(f"Regression budget {key}: value {value!r} is not a number, 'allowed', 'none' or 'tagged:<field><op><value>'")
 
 
-def _parse_budget(text: str, problems: list[str]) -> tuple[BudgetRule, ...]:
+def _parse_budget(text: str, problems: list[str], *, risk: str) -> tuple[BudgetRule, ...]:
     rules: dict[str, BudgetRule] = {}
     for line in text.splitlines():
         if not line.strip():
@@ -357,12 +413,16 @@ def _parse_budget(text: str, problems: list[str]) -> tuple[BudgetRule, ...]:
     for key in BUDGET_KEYS:
         rules.setdefault(key, parse_budget_value(key, BUDGET_DEFAULTS[key]))
     lost = rules["LOST"]
-    if lost.kind == "allowed" or (lost.kind == "max" and lost.limit > 0):
-        problems.append("Regression budget LOST must be 0 — a lost plan is never an acceptable trade")
+    if lost.kind == "allowed":
+        problems.append("Regression budget LOST: 'allowed' is never accepted — name the intentionally lost contexts "
+                        "with 'tagged:<field><op><value>' or an explicit number (default and normal value: 0)")
+    elif (lost.kind == "tagged" or (lost.kind == "max" and lost.limit > 0)) and risk == "LOW":
+        problems.append("a non-zero LOST allowance requires Risk MEDIUM or HIGH (and Team Lead approval before merge)")
     return tuple(rules[k] for k in BUDGET_KEYS)
 
 
-def parse_contract(number: int, title: str, body: str, *, known_locks: tuple[str, ...] | None = None) -> IssueContract:
+def parse_contract(number: int, title: str, body: str, *, known_locks: tuple[str, ...] | None = None,
+                   behavior_domains: tuple[str, ...] = DEFAULT_BEHAVIOR_DOMAINS) -> IssueContract:
     """Parse + validate. Raises ContractError listing every problem found (not just the first)."""
     problems: list[str] = []
     sections = split_sections(body or "")
@@ -383,8 +443,10 @@ def parse_contract(number: int, title: str, body: str, *, known_locks: tuple[str
     resource = _parse_choice(values[SECTION_RESOURCE], RESOURCE_CLASSES, SECTION_RESOURCE, problems)
     deps = _parse_dependencies(values[SECTION_DEPENDENCIES], number, problems)
     locks = _parse_locks(values[SECTION_LOCKS], known_locks, problems)
-    verification = _parse_verification(values[SECTION_VERIFICATION], tuple(a.id for a in acs), problems)
-    budget = _parse_budget(values[SECTION_BUDGET], problems)
+    behavior_changing = any(d in behavior_domains for d in domains)
+    verification = _parse_verification(values[SECTION_VERIFICATION], tuple(a.id for a in acs), problems,
+                                       behavior_changing=behavior_changing)
+    budget = _parse_budget(values[SECTION_BUDGET], problems, risk=risk)
 
     if problems:
         raise ContractError(problems)
@@ -409,7 +471,7 @@ def render_body(c: IssueContract) -> str:
         return f"### {label}\n\n{value.strip() or NO_RESPONSE}\n"
 
     ac = "\n".join(f"- {a.id}: {a.text}" for a in c.acceptance_criteria)
-    ver = "\n".join(f"- {t.ac} -> {t.spec}" for t in c.verification)
+    ver = "\n".join(f"- {t.ac} -> {t.vtype}:{t.spec}" for t in c.verification)
     budget = "\n".join(f"{r.key}: {r.spec()}" for r in c.budget)
     deps = ", ".join(f"#{n}" for n in c.dependencies) or "none"
     locks = ", ".join(f"{l.name} ({l.mode})" for l in c.locks) or "none"
@@ -439,9 +501,11 @@ def verification_manifest(c: IssueContract, *, regression_domains: tuple[str, ..
         "resource_class": c.resource_class,
         "domains": list(c.domains),
         "acceptance_criteria": [{"id": a.id, "text": a.text} for a in c.acceptance_criteria],
-        "targets": [{"ac": t.ac, "kind": t.kind, "target": t.target} for t in c.verification],
+        "targets": [{"ac": t.ac, "type": t.vtype, "kind": t.kind, "target": t.target} for t in c.verification],
+        "semantic_review_acs": list(c.semantic_review_acs),
         "regression_required": c.needs_regression(regression_domains),
         "regression_budget": {r.key: r.spec() for r in c.budget},
+        "lost_allowance": c.lost_allowance,
         "locks": [{"name": l.name, "mode": l.mode} for l in c.locks],
         "dependencies": list(c.dependencies),
     }

@@ -223,6 +223,19 @@ class GitHubClient:
                 return False
             raise
 
+    # -- commit statuses (the independent-review gate) ----------------------------------------
+    def set_commit_status(self, sha: str, state: str, context: str, description: str, target_url: str | None = None) -> dict:
+        body: dict[str, Any] = {"state": state, "context": context, "description": description[:140]}
+        if target_url:
+            body["target_url"] = target_url
+        return self.transport.request("POST", f"/repos/{self.repo}/statuses/{sha}", body=body)
+
+    def combined_status(self, sha: str) -> dict[str, dict]:
+        """context -> {state, description, updated_at} (latest per context, as GitHub reports it)."""
+        data = self.transport.request("GET", f"/repos/{self.repo}/commits/{sha}/status") or {}
+        return {s["context"]: {"state": s.get("state"), "description": s.get("description"), "updated_at": s.get("updated_at")}
+                for s in data.get("statuses", [])}
+
     # -- checks / actions ---------------------------------------------------------------------
     def check_runs(self, sha: str) -> list[dict]:
         data = self.transport.request("GET", f"/repos/{self.repo}/commits/{sha}/check-runs?per_page=100")
@@ -289,6 +302,8 @@ class FakeGitHub:
     prs: dict[int, dict] = field(default_factory=dict)
     labels: dict[str, dict] = field(default_factory=dict)
     checks: dict[str, list[dict]] = field(default_factory=dict)        # sha -> check runs
+    statuses: dict[str, dict[str, dict]] = field(default_factory=dict)   # sha -> {context: {state, description}}
+    status_log: list[tuple[str, str, str, str]] = field(default_factory=list)  # (sha, context, state, description)
     artifacts: dict[str, dict[str, dict]] = field(default_factory=dict)  # sha -> {name: json}
     comments: list[tuple[int, str]] = field(default_factory=list)
     reviews: list[tuple[int, str, str]] = field(default_factory=list)
@@ -401,10 +416,18 @@ class FakeGitHub:
         self.reviews.append((number, event if event != "APPROVE" else "COMMENT", body))
         return {"id": len(self.reviews)}
 
+    required_contexts_for_merge: tuple[str, ...] = ()   # simulate branch protection on merge (405 like GitHub)
+
     def merge_pr(self, number: int, *, method: str = "squash", title: str | None = None, sha: str | None = None) -> dict:
         if self.fail_merge_with:
             raise GitHubError(self.fail_merge_with, 405)
         pr = self.get_pr(number)
+        head = pr["head"]["sha"]
+        for ctx in self.required_contexts_for_merge:
+            run_ok = any(r.get("name") == ctx and r.get("conclusion") == "success" for r in self.checks.get(head, []))
+            status_ok = self.statuses.get(head, {}).get(ctx, {}).get("state") == "success"
+            if not (run_ok or status_ok):
+                raise GitHubError(f"Required status check \"{ctx}\" is expected.", 405)
         pr["merged"] = True
         pr["state"] = "closed"
         pr["merge_commit_sha"] = self.on_merge(pr) if self.on_merge else f"merge-{number}"
@@ -415,6 +438,15 @@ class FakeGitHub:
     def delete_branch(self, branch: str) -> bool:
         self.deleted_branches.append(branch)
         return True
+
+    # statuses
+    def set_commit_status(self, sha: str, state: str, context: str, description: str, target_url: str | None = None) -> dict:
+        self.statuses.setdefault(sha, {})[context] = {"state": state, "description": description, "updated_at": None}
+        self.status_log.append((sha, context, state, description))
+        return {"state": state, "context": context}
+
+    def combined_status(self, sha: str) -> dict[str, dict]:
+        return dict(self.statuses.get(sha, {}))
 
     # checks
     def check_runs(self, sha: str) -> list[dict]:

@@ -38,13 +38,32 @@ and closes Issues. No model performs any of those.
 `.github/ISSUE_TEMPLATE/agent-task.yml` renders `### <Section>` blocks: Goal, Current behavior,
 Required behavior, Acceptance Criteria (`- AC-n: ...`), Out of scope, Affected domains, Risk,
 Resource class, Dependencies (`#n, #m` or `none`), Required locks (`name (exclusive|shared)` or
-defaults from domains), Verification plan (`- AC-n -> kind:target`, kinds `pytest`, `vitest`,
-`regression:corpus`, `file`, `grep:<path>:<regex>`, `cmd:scripts/...`), Regression budget
-(`LOST: 0`, `GAINED: allowed`, `crashes`, `status_changes`, `refusal_code_changes`,
-`primary_signature_changes: none|allowed|<n>|tagged:<field><op><value>`), Expected documentation
-changes. `issue_contract.py` parses and validates it (every problem listed at once; `LOST` must be
-0; every AC needs a target). An invalid contract is never executable: the poller moves it back to
-`agent:draft` with a comment.
+defaults from domains), Verification plan, Regression budget, Expected documentation changes.
+`issue_contract.py` parses and validates it (every problem listed at once). An invalid contract is
+never executable: the poller moves it back to `agent:draft` with a comment.
+
+**Verification plan** — one line per criterion, `- AC-n -> [TYPE:]kind:target`, where the type is
+one of five and is inferred from the kind when omitted:
+
+| Type | Kinds | Proven by |
+|---|---|---|
+| `TEST` | `pytest:<nodeid>`, `vitest:<file>`, `cmd:scripts/<script>` | gate 3 runs it |
+| `REGRESSION` | `regression:corpus` | gate 4's budget evaluation |
+| `STATIC` | `static:backend-compile`, `static:backend-import`, `static:frontend-lint`, `static:frontend-types` | gate 3 runs it |
+| `ARTIFACT` | `file:<path>`, `grep:<path>:<regex>` | gate 3 checks it |
+| `SEMANTIC_REVIEW` | `review:<what the reviewer must confirm>` | gate 5: the independent reviewer must mark the AC `MET`; an APPROVE with a semantic AC not MET is downgraded to REQUEST_CHANGES |
+
+Product behavior changes must have deterministic evidence: for an Issue in a behavior domain
+(`behavior_domains`: backend, geometry, validator, frontend, ai) every AC needs at least one
+TEST/REGRESSION/STATIC/ARTIFACT target; SEMANTIC_REVIEW may only be added on top. Any Issue needs
+at least one deterministic target overall.
+
+**Regression budget** — `LOST`, `GAINED`, `crashes`, `status_changes`, `refusal_code_changes`,
+`primary_signature_changes`, each `<n>`, `allowed`, `none`, or `tagged:<field><op><value>`.
+`LOST: 0` is the default and the normal value. A contract may *name* intentionally lost contexts
+(`LOST: tagged:bedrooms>=6` or an explicit number) only at MEDIUM/HIGH risk (`LOST: allowed` is
+never accepted); such a contract additionally needs `agentctl approve N --kind lost_allowance`
+before it can merge. Any LOST context outside the declaration fails CI.
 
 The Team Lead writes contracts as Markdown files and runs `agentctl issue create --from f.md
 --queue` (or `issue validate N` / `issue queue N` for a form-authored Issue). Only Issues whose
@@ -125,8 +144,13 @@ Fail-fast, for PRs from `agent/**` to `main`:
 
 **Gate 5 — independent AI review** runs locally (the orchestrator, after `agent-ci-result` is
 green): the reviewer sees the contract, the deterministic evidence, the regression report, the
-worker's report, the file list and the diff, and returns a structured verdict posted to the PR as
-a review comment (never an approval through the owner's token). It is advisory and blocking.
+worker's report, the file list, the diff and its assigned SEMANTIC_REVIEW criteria, and returns a
+structured verdict posted to the PR as a review comment (never an approval through the owner's
+token). **The verdict is enforceable by GitHub**: the orchestrator publishes the commit status
+`agent-review-result` on the PR head — `pending` when a PR is opened or its head moves (the
+review is stale for the new SHA and runs again), `success` only when the reviewer APPROVEd that
+exact validated SHA, `failure` on REQUEST_CHANGES/BLOCK. Branch protection requires both
+`agent-ci-result` and `agent-review-result`.
 
 ## Failure classification and repair
 
@@ -148,6 +172,11 @@ record and posted as a milestone comment.
 | MEDIUM | ci_green, regression_green, reviewer_green, `agentctl approve N --kind lead_approval` | no |
 | HIGH | ci_green, regression_green, reviewer_green, `agentctl approve N --kind lead_architecture_review` | no |
 
+Two requirements are added on top of the risk table: `lost_allowance` (an explicit approval when
+the contract declares a non-zero LOST budget) and `github_gates_green` (GitHub itself must report
+every branch-protection context — `agent-ci-result`, `agent-review-result` — green for the head
+SHA; if not, the merge is deferred and the status is re-published from the store, never forced).
+
 Before merging, the orchestrator checks whether `main` advanced; if so it merges `origin/main`
 into the branch in its worktree (a conflict → `MERGE_CONFLICT`, blocked), pushes, and goes back to
 CI — old evidence is never reused for a new effective diff. The merge is `squash` by default
@@ -165,6 +194,15 @@ closed externally → BLOCKED; label drift → re-applied; stale locks and heavy
 A `flock` on `.agent/state/orchestrator.lock` guarantees a single orchestrator; polling is
 idempotent (DB state wins over labels). `agentctl stop` sends SIGTERM: the loop finishes its tick,
 kills live agent process groups, and the next start resumes from the store.
+
+**Break-glass.** `agentctl protect-main` requires `agent-ci-result` + `agent-review-result` on
+`main` with administrators exempt (`github.protect_enforce_admins: false`) — an escape hatch for
+the owner, never a path for automation: the orchestrator merges only when GitHub shows every
+required context green (`merge_gate_audit` event, `bypass: false`). Reconciliation audits every PR
+merged outside the workflow (`merge_gate_audit`; `admin_bypass_detected` + an Issue comment when
+a required context was not green, with the merging login) and records branch-protection drift
+(`protection_observed` / `protection_drift`, and a tick note when protection is missing or lacks
+a required context).
 
 ## Observability
 
@@ -184,7 +222,7 @@ scripts/agentctl protect-main           # once: branch protection (reports the e
 scripts/agentctl dry-run                # one tick, no side effects, proposed assignments
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
-scripts/agentctl approve N --kind lead_approval --note "..."
+scripts/agentctl approve N --kind lead_approval|lead_architecture_review|lost_allowance --note "..."
 scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N
 scripts/agentctl audit N
 scripts/agentctl investigate --domain geometry "question"
@@ -204,9 +242,9 @@ work, and report the outcome to the user. The Team Lead does not implement produ
 
 ## Known limitations
 
-- Gate 5 needs the orchestrator machine (local OAuth); it is not a GitHub check. Branch
-  protection therefore requires `agent-ci-result` only; the reviewer verdict is enforced by the
-  orchestrator's merge step.
+- Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is
+  enforced through the `agent-review-result` commit status the orchestrator publishes, so a
+  stopped orchestrator leaves new SHAs `pending` (blocked from merging) rather than unreviewed.
 - Webhooks are not implemented; polling every 120 s is the V1 discovery mechanism (the loop is
   event-shaped so a webhook receiver can call `tick()` later).
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet

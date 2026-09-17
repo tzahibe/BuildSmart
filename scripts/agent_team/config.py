@@ -63,7 +63,9 @@ class Config:
     delete_branch_after_merge: bool
     ci_wait_seconds: int
     ci_poll_interval_seconds: int
-    required_checks: tuple[str, ...]
+    required_checks: tuple[str, ...]          # deterministic CI check runs that must be green before review
+    review_status_context: str                # commit status published after the independent review
+    protect_enforce_admins: bool
     gate_checks: tuple[str, ...]
 
     # paths (relative to repo_root unless absolute)
@@ -112,6 +114,7 @@ class Config:
     max_repair_attempts: int
     risk_policy: dict[str, RiskPolicy]
     regression_domains: tuple[str, ...]
+    behavior_domains: tuple[str, ...]
 
     # commands
     worktree_setup: dict[str, tuple[Command, ...]]
@@ -130,6 +133,11 @@ class Config:
     @property
     def state_db_path(self) -> Path:
         return self.path(self.state_dir) / "orchestrator.sqlite3"
+
+    @property
+    def protection_required_contexts(self) -> tuple[str, ...]:
+        """Everything branch protection must require: CI check runs + the review status."""
+        return (*self.required_checks, self.review_status_context)
 
 
 def _need(d: dict, key: str, section: str):
@@ -203,7 +211,9 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         delete_branch_after_merge=bool(gh.get("delete_branch_after_merge", True)),
         ci_wait_seconds=int(gh.get("ci_wait_seconds", 5400)),
         ci_poll_interval_seconds=int(gh.get("ci_poll_interval_seconds", 60)),
-        required_checks=tuple(gh.get("required_checks") or ()),
+        required_checks=tuple(gh.get("ci_required_checks") or gh.get("required_checks") or ("agent-ci-result",)),
+        review_status_context=str(gh.get("review_status_context", "agent-review-result")),
+        protect_enforce_admins=bool(gh.get("protect_enforce_admins", False)),
         gate_checks=tuple(gh.get("gate_checks") or ()),
         worktree_root=Path(str(_need(paths, "worktree_root", "paths"))),
         branch_prefix=str(_need(paths, "branch_prefix", "paths")),
@@ -240,6 +250,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         max_repair_attempts=int(_need(repair, "max_attempts", "repair")),
         risk_policy=risk_policy,
         regression_domains=tuple(raw.get("regression_domains") or ("backend", "geometry", "validator")),
+        behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
         worktree_setup=setup,
         fast_tests=fast,
         smoke=smoke,

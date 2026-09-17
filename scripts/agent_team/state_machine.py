@@ -33,7 +33,7 @@ TRANSITIONS: dict[str, tuple[str, ...]] = {
     WORKING: (PR_OPEN, QUEUED, BLOCKED),                # QUEUED: stale agent requeued
     PR_OPEN: (CI, BLOCKED),
     CI: (REVIEW, FIX_REQUIRED, BLOCKED),
-    REVIEW: (READY, FIX_REQUIRED, BLOCKED),
+    REVIEW: (READY, FIX_REQUIRED, BLOCKED, CI),         # CI: head moved -> review is stale, re-validate
     FIX_REQUIRED: (WORKING, BLOCKED),
     READY: (MERGED, CI, BLOCKED),                       # CI: base advanced -> re-validate
     MERGED: (DONE, BLOCKED),

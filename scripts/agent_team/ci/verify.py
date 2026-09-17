@@ -1,9 +1,10 @@
 """GATE 3 — requirement verification: every acceptance criterion's mapped evidence must pass.
 
-Runs each target from the manifest (`pytest:`, `vitest:`, `file:`, `grep:`, `cmd:`) and records
-its real result. `regression:corpus` targets are satisfied by gate 4's budget evaluation and are
-recorded here as deferred (gate 4 is mandatory whenever one exists). No target, no pass: an AC
-without a passing target fails the gate.
+Runs each deterministic target from the manifest — TEST (`pytest:`, `vitest:`, `cmd:`), STATIC
+(`static:<check>`), ARTIFACT (`file:`, `grep:`) — and records its real result. REGRESSION
+(`regression:corpus`) is satisfied by gate 4's budget evaluation and SEMANTIC_REVIEW (`review:`)
+by gate 5's independent reviewer; both are recorded here as deferred, never as a pass on their
+own. An AC with no deterministic target passing (and nothing deferred) fails the gate.
 """
 from __future__ import annotations
 
@@ -46,9 +47,30 @@ def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tu
         proc = run(f"{runner} {target}", root, timeout=timeout)
         tail = (proc.stdout.strip().splitlines() or [""])[-1]
         return proc.returncode == 0, tail[:300] or proc.stderr[-300:]
+    if kind == "static":
+        return run_static(target, root, timeout=timeout)
     if kind == "regression":
         return True, "deferred to gate-4-regression (budget evaluation)"
+    if kind == "review":
+        return True, "deferred to gate-5 independent review (semantic; not deterministic evidence)"
     return False, f"unknown verification kind {kind!r}"
+
+
+STATIC_COMMANDS = {
+    "backend-compile": ("backend", "uv run python -m compileall -q app tests spikes"),
+    "backend-import": ("backend", "uv run python -c 'import app.main'"),
+    "frontend-lint": ("frontend", "npm run lint"),
+    "frontend-types": ("frontend", "npx tsc -b"),
+}
+
+
+def run_static(target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, str]:
+    if target not in STATIC_COMMANDS:
+        return False, f"unknown static check {target!r}"
+    cwd, cmd = STATIC_COMMANDS[target]
+    proc = run(cmd, root / cwd, timeout=timeout)
+    tail = " ".join(l.strip() for l in (proc.stdout + proc.stderr).strip().splitlines()[-2:])
+    return proc.returncode == 0, (tail[:300] or "ok")
 
 
 def evaluate(manifest: dict, root: Path, *, runner=run_target) -> GateReport:

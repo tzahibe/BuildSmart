@@ -53,7 +53,7 @@ def contract_values(c: IssueContract) -> dict[str, str]:
         "current_behavior": c.current_behavior,
         "required_behavior": c.required_behavior,
         "acceptance_criteria": "\n".join(f"- {a.id}: {a.text}" for a in c.acceptance_criteria),
-        "verification_plan": "\n".join(f"- {t.ac} -> {t.spec}" for t in c.verification),
+        "verification_plan": "\n".join(f"- {t.ac} -> {t.vtype}:{t.spec}" for t in c.verification),
         "out_of_scope": c.out_of_scope,
         "regression_budget": "\n".join(f"{r.key}: {r.spec()}" for r in c.budget),
         "documentation_changes": c.documentation_changes,
@@ -82,8 +82,9 @@ def repair_prompt(c: IssueContract, *, worktree: str, branch: str, attempt: int,
 
 def reviewer_prompt(c: IssueContract, *, ci_evidence: str, regression_report: str, worker_report: str,
                     files_changed: str, diff: str) -> str:
+    semantic = "\n".join(f"- {t.ac}: {t.target}" for t in c.verification if t.vtype == "SEMANTIC_REVIEW") or "- none"
     return render("reviewer", **contract_values(c), ci_evidence=ci_evidence, regression_report=regression_report,
-                  worker_report=worker_report, files_changed=files_changed, diff=diff)
+                  worker_report=worker_report, files_changed=files_changed, diff=diff, semantic_criteria=semantic)
 
 
 def domain_lead_prompt(*, domain: str, question: str, worktree: str) -> str:

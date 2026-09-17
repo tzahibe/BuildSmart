@@ -36,16 +36,21 @@ A contract is a Markdown file whose first line is `# [agent] <title>` followed b
 sections of `.github/ISSUE_TEMPLATE/agent-task.yml` (see `.agent/examples/pilot-docs.md`).
 Rules that make a contract executable:
 
-- Every `AC-n` is verifiable by a deterministic target: `pytest:<nodeid>`, `vitest:<file>`,
-  `regression:corpus`, `file:<path>`, `grep:<path>:<regex>`, `cmd:scripts/<script>`. No "looks
-  right" criteria.
+- Every `AC-n` maps to evidence: TEST (`pytest:<nodeid>`, `vitest:<file>`, `cmd:scripts/<script>`),
+  REGRESSION (`regression:corpus`), STATIC (`static:backend-import`, ...), ARTIFACT (`file:<path>`,
+  `grep:<path>:<regex>`) or SEMANTIC_REVIEW (`review:<what the reviewer must confirm>`). A
+  behavior-changing Issue (backend/geometry/validator/frontend/ai) needs deterministic evidence
+  for every AC — `review:` only adds to it, never replaces it.
 - `Out of scope` names what the worker must not touch.
 - Risk: LOW (docs / isolated tests / cosmetic UI) · MEDIUM (normal feature) · HIGH (geometry
   invariants, validator rules, schema, security, deployment, core parsing).
 - Resource class: LIGHT / MEDIUM / HEAVY (HEAVY = needs the corpus or sweeps).
 - Locks: explicit (`planner-core (exclusive)`) or leave `none` to inherit from domains.
-- Regression budget: `LOST: 0` always; `primary_signature_changes` `none` unless the feature is
-  supposed to change plans — then `tagged:<field><op><value>` limited to the contexts it is about.
+- Regression budget: `LOST: 0` (the default). Only when a plan is *meant* to be refused from now
+  on: `LOST: tagged:<field><op><value>` (or a number), MEDIUM/HIGH risk, and you must record
+  `agentctl approve N --kind lost_allowance` before it can merge. `primary_signature_changes`
+  `none` unless the feature is supposed to change plans — then `tagged:...` limited to the
+  contexts it is about.
 - Large requests are split into several Issues with `Dependencies: #a, #b`; independent Issues
   run concurrently, dependent ones wait automatically.
 
@@ -63,9 +68,12 @@ the timeline. Issue comments carry milestones; PR descriptions carry evidence.
 
 ## 4. Decide
 
-- `REVIEW` waiting on `lead_approval` (MEDIUM) or `lead_architecture_review` (HIGH): read the PR
-  and the reviewer's verdict; then `scripts/agentctl approve N --kind ... --note "..."` — or
-  `block N --reason ...` and write a better contract.
+- `REVIEW` waiting on `lead_approval` (MEDIUM), `lead_architecture_review` (HIGH) or
+  `lost_allowance` (declared LOST budget): read the PR and the reviewer's verdict; then
+  `scripts/agentctl approve N --kind ... --note "..."` — or `block N --reason ...` and write a
+  better contract.
+- Never merge by hand. The admin exemption on `main` is break-glass only; every bypass is
+  recorded (`admin_bypass_detected`) and must be explained to the user.
 - `BLOCKED`: read `failure_class` / `last_error` in `audit N`. Options: change direction (edit the
   Issue body, then `requeue N --reason ... --reset-attempts`), split the Issue, return to research
   (`investigate`), fix test infrastructure (an `ENVIRONMENT_FAILURE` is an environment task, not

@@ -18,6 +18,12 @@ Risk: {{risk}} · Domains: {{domains}}
 ## Verification plan
 {{verification_plan}}
 
+## Semantic criteria assigned to you (SEMANTIC_REVIEW targets)
+{{semantic_criteria}}
+These criteria have no deterministic test; your per-AC verdict is the evidence for them. Mark
+each MET only if you verified it yourself in the diff/code. An APPROVE with any of these NOT_MET
+or UNCLEAR is treated as REQUEST_CHANGES by the orchestrator.
+
 ## Out of scope
 {{out_of_scope}}
 

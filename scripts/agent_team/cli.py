@@ -168,9 +168,17 @@ def cmd_protect_main(config: Config, args) -> int:
         print("current protection:", json.dumps(current, indent=1)[:800] if current else "none")
         if args.show:
             return 0
-        res = gh.set_branch_protection(config.base_branch, list(config.required_checks), enforce_admins=args.enforce_admins)
-        print(f"protection set on {config.base_branch}: required checks {config.required_checks}, "
-              f"enforce_admins={res.get('enforce_admins', {}).get('enabled')}")
+        enforce = True if args.enforce_admins else config.protect_enforce_admins
+        contexts = list(config.protection_required_contexts)
+        res = gh.set_branch_protection(config.base_branch, contexts, enforce_admins=enforce)
+        enabled = (res.get("enforce_admins") or {}).get("enabled")
+        store = StateStore(config.state_db_path)
+        store.record_event(None, "protection_set", {"branch": config.base_branch, "contexts": contexts, "enforce_admins": enabled,
+                                                    "by": "agentctl protect-main"})
+        print(f"protection set on {config.base_branch}: required contexts {contexts}, enforce_admins={enabled}")
+        if not enabled:
+            print("NOTE: administrators are exempt — break-glass only. The orchestrator never merges through that "
+                  "exemption; reconciliation records any bypass as `admin_bypass_detected` in the audit trail.")
         return 0
     except GitHubError as exc:
         print(f"BLOCKED: {exc} (HTTP {exc.status}) — {exc.body[:300]}", file=sys.stderr)
@@ -187,7 +195,7 @@ def _read_contract_file(path: Path, number: int, title: str | None, config: Conf
         body = text
     if not title:
         raise SystemExit("a title is required: first line `# [agent] Title` in the file or --title")
-    return parse_contract(number, title, body, known_locks=config.known_locks)
+    return parse_contract(number, title, body, known_locks=config.known_locks, behavior_domains=config.behavior_domains)
 
 
 def cmd_issue(config: Config, args) -> int:
@@ -210,14 +218,16 @@ def cmd_issue(config: Config, args) -> int:
     gh = _github(config)
     issue = gh.get_issue(args.number)
     try:
-        c = parse_contract(issue["number"], issue.get("title", ""), issue.get("body") or "", known_locks=config.known_locks)
+        c = parse_contract(issue["number"], issue.get("title", ""), issue.get("body") or "", known_locks=config.known_locks,
+                           behavior_domains=config.behavior_domains)
     except ContractError as exc:
         print(f"#{args.number} contract INVALID:\n- " + "\n- ".join(exc.problems))
         return 1
     manifest = verification_manifest(c, regression_domains=config.regression_domains)
     if args.issue_cmd == "validate":
         print(f"#{args.number} contract OK: {c.risk}/{c.resource_class} domains={list(c.domains)} AC={len(c.acceptance_criteria)} "
-              f"targets={len(c.verification)} deps={list(c.dependencies)} regression_required={manifest['regression_required']}")
+              f"targets={len(c.verification)} deps={list(c.dependencies)} regression_required={manifest['regression_required']} "
+              f"lost_allowance={c.lost_allowance} semantic_acs={list(c.semantic_review_acs)}")
         if args.json:
             print(json.dumps(manifest, indent=2))
         return 0
@@ -407,7 +417,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_issue)
 
     s = sub.add_parser("approve"); s.add_argument("number", type=int)
-    s.add_argument("--kind", choices=["lead_approval", "lead_architecture_review"], default="lead_approval"); s.add_argument("--note")
+    s.add_argument("--kind", choices=["lead_approval", "lead_architecture_review", "lost_allowance"], default="lead_approval")
+    s.add_argument("--note")
     s.set_defaults(fn=cmd_approve)
     s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
     s.set_defaults(fn=cmd_requeue)

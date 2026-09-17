@@ -19,9 +19,17 @@ github:
   delete_branch_after_merge: true
   ci_wait_seconds: 5400             # give up waiting for checks after 90 min -> INFRA_FAILURE
   ci_poll_interval_seconds: 60
-  # The single aggregate check branch protection requires (agent-ci.yml's last job). It fails when
+  # Deterministic CI: the aggregate GitHub Actions check (agent-ci.yml's last job). It fails when
   # any gate failed and passes when gate-4 was legitimately skipped for a non-regression PR.
-  required_checks: ["agent-ci-result"]
+  ci_required_checks: ["agent-ci-result"]
+  # Independent review: a commit STATUS the orchestrator publishes on the validated head SHA after
+  # gate 5 — success only when the reviewer APPROVEd that exact SHA, failure on REQUEST_CHANGES /
+  # BLOCK, pending otherwise. A new SHA has no status, i.e. the review is stale until it re-runs.
+  review_status_context: "agent-review-result"
+  # Branch protection (`agentctl protect-main`) requires ci_required_checks + review_status_context.
+  # The admin exemption is break-glass only: the orchestrator never merges unless every required
+  # context is green on GitHub, and reconciliation records any bypass / protection drift.
+  protect_enforce_admins: false
   # Individual gate jobs, reported and used for failure classification.
   gate_checks:
     - "gate-1-contract / contract"
@@ -163,6 +171,9 @@ risk_policy:
 
 # Domains whose code changes make the regression gate mandatory.
 regression_domains: [backend, geometry, validator, ai]
+# Domains whose Issues change product behavior: every acceptance criterion of such an Issue needs
+# deterministic evidence (TEST / REGRESSION / STATIC / ARTIFACT); SEMANTIC_REVIEW may only add to it.
+behavior_domains: [backend, geometry, validator, frontend, ai]
 
 commands:
   # Run once after a worktree is created, keyed by the Issue's domains (backend deps are always

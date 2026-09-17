@@ -26,6 +26,7 @@ and states that agent PRs come from `agent/<issue>-<slug>` branches and are vali
 - AC-3: the new section mentions `scripts/agentctl status`, `scripts/agentctl dry-run` and `scripts/agentctl audit`
 - AC-4: the new section mentions the `agent/` branch prefix and the `agent-ci` workflow
 - AC-5: the existing backend fast test tests/test_projects.py still passes (no code was touched)
+- AC-6: the section is written for a newcomer — plain language, no orchestrator internals beyond the three commands
 
 ### Out of scope
 
@@ -59,6 +60,7 @@ docs (shared)
 - AC-3 -> grep:backend/README.md:scripts/agentctl status ; grep:backend/README.md:scripts/agentctl dry-run ; grep:backend/README.md:scripts/agentctl audit
 - AC-4 -> grep:backend/README.md:agent/ ; grep:backend/README.md:agent-ci
 - AC-5 -> pytest:backend/tests/test_projects.py
+- AC-6 -> review:the section is readable by a newcomer and does not go beyond the three commands and the Wiki link
 
 ### Regression budget
 

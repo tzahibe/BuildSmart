@@ -8,6 +8,14 @@
 corpus and no backend product code changed — by the gate's explicit, recorded skip. Approvals
 are recorded in the state store by the Team Lead (`agentctl approve`), never inferred from text.
 The worker saying "done" is not an input to this function.
+
+Two further requirements are implied by the contract / the GitHub state rather than the risk table:
+
+- `lost_allowance` — a contract whose regression budget intentionally allows LOST contexts needs
+  an explicit `agentctl approve N --kind lost_allowance` on top of the risk requirements.
+- `github_gates_green` — every context branch protection requires (the CI check run and the
+  `agent-review-result` status) must be green on GitHub for the exact head SHA. The orchestrator
+  merges only through that door; the admin exemption is break-glass and never used by automation.
 """
 from __future__ import annotations
 
@@ -45,13 +53,19 @@ def regression_status(ev: CiEvidence, config: Config) -> tuple[bool, str]:
     return ev.status == SUCCESS, "gate-4 not required by the contract"
 
 
-def decide(record: IssueRecord, ev: CiEvidence | None, config: Config, *, review_sha: str | None = None) -> MergeDecision:
+def decide(record: IssueRecord, ev: CiEvidence | None, config: Config, *, review_sha: str | None = None,
+           lost_allowance: bool = False, require_github_gates: bool = False) -> MergeDecision:
     policy = config.risk_policy[record.risk]
     satisfied: list[str] = []
     missing: list[str] = []
     notes: list[str] = []
     approvals = {a["kind"] for a in record.approvals}
-    for req in policy.requires:
+    requirements = list(policy.requires)
+    if lost_allowance:
+        requirements.append("lost_allowance")
+    if require_github_gates:
+        requirements.append("github_gates_green")
+    for req in requirements:
         if req == "ci_green":
             ok = ev is not None and ev.status == SUCCESS
         elif req == "regression_green":
@@ -66,8 +80,15 @@ def decide(record: IssueRecord, ev: CiEvidence | None, config: Config, *, review
             ok = verdict == "APPROVE" and (sha is None or ev is None or sha == ev.head_sha)
             if verdict == "APPROVE" and not ok:
                 notes.append("review verdict is for an older head SHA")
-        elif req in ("lead_approval", "lead_architecture_review"):
+        elif req in ("lead_approval", "lead_architecture_review", "lost_allowance"):
             ok = req in approvals
+        elif req == "github_gates_green":
+            if ev is None:
+                ok = False
+            else:
+                ok, states = ev.required_contexts_green(config.protection_required_contexts)
+                if not ok:
+                    notes.append("GitHub contexts: " + ", ".join(f"{k}={v}" for k, v in states.items()))
         else:
             ok = False
             notes.append(f"unknown requirement {req!r}")

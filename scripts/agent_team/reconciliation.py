@@ -76,6 +76,7 @@ def reconcile(orch) -> list[str]:
                     pr = None
                 if pr is not None:
                     if pr.get("merged"):
+                        orch.audit_external_merge(rec, pr)
                         if rec.state == sm.READY:
                             orch._set_state(store, n, sm.MERGED, note="merged externally", validated_commit=pr.get("merge_commit_sha"))
                         else:
@@ -106,6 +107,11 @@ def reconcile(orch) -> list[str]:
         except Exception as exc:  # noqa: BLE001
             log.exception("#%s: reconciliation step failed", n)
             actions.append(f"#{n}: reconcile error {str(exc)[:120]}")
+
+    if not orch.dry_run:
+        drift = orch.check_branch_protection()
+        # only report a change or a defect, not the steady state, to keep tick logs quiet
+        actions.extend(n for n in drift if "changed" in n or "missing" in n or "NOT protected" in n)
 
     released = orch.locks.recover_stale(now)
     if released:

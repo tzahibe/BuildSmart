@@ -56,11 +56,15 @@ def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None 
     rep.add("Issue carries an executable agent:* label", bool(state_labels) and "agent:draft" not in state_labels, f"labels={state_labels}")
 
     try:
-        contract = parse_contract(issue["number"], issue.get("title", ""), issue.get("body") or "", known_locks=config.known_locks)
+        contract = parse_contract(issue["number"], issue.get("title", ""), issue.get("body") or "", known_locks=config.known_locks,
+                                  behavior_domains=config.behavior_domains)
     except ContractError as exc:
         rep.add("Issue contract validates", False, "; ".join(exc.problems)[:800])
         return rep
-    rep.add("Issue contract validates", True, f"{len(contract.acceptance_criteria)} AC, {len(contract.verification)} targets")
+    rep.add("Issue contract validates", True, f"{len(contract.acceptance_criteria)} AC, {len(contract.verification)} targets"
+            + (f", LOST allowance declared ({contract.budget_rule('LOST').spec()})" if contract.lost_allowance else ""))
+    if contract.lost_allowance:
+        rep.add("LOST allowance requires MEDIUM/HIGH risk", contract.risk in ("MEDIUM", "HIGH"), f"risk={contract.risk}")
     expected_meta = set(metadata_labels(contract.domains, contract.risk, contract.resource_class))
     have_meta = {l for l in labels if l.split(":")[0] in ("domain", "risk", "resource")}
     rep.add("Issue metadata labels match contract", expected_meta == have_meta,

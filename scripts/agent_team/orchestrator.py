@@ -123,7 +123,8 @@ class Orchestrator:
     # -- helpers ------------------------------------------------------------------------------
     def _contract(self, rec: IssueRecord) -> IssueContract:
         d = rec.contract_dict()
-        return parse_contract(rec.issue_id, d["title"], _body_from_dict(d), known_locks=self.config.known_locks)
+        return parse_contract(rec.issue_id, d["title"], _body_from_dict(d), known_locks=self.config.known_locks,
+                              behavior_domains=self.config.behavior_domains)
 
     def _set_state(self, store: StateStore, issue_id: int, state: str, *, note: str = "", **fields_to_set) -> IssueRecord:
         rec = store.transition(issue_id, state, note=note or None, **fields_to_set)
@@ -142,6 +143,40 @@ class Orchestrator:
             self.github.comment(issue_id, f"**[agent-team]** {text}")
         except Exception as exc:  # noqa: BLE001
             log.warning("comment on #%s failed: %s", issue_id, exc)
+
+    # -- the independent-review commit status (enforced by branch protection) ----------------
+    def _publish_review_status(self, store: StateStore, issue_id: int, sha: str, state: str, description: str) -> None:
+        """success only for an APPROVE of this exact SHA; failure for REQUEST_CHANGES/BLOCK; pending otherwise."""
+        ctx = self.config.review_status_context
+        store.record_event(issue_id, "review_status", {"sha": sha, "state": state, "description": description})
+        if self.dry_run:
+            log.info("DRY-RUN would set status %s=%s on %s (%s)", ctx, state, sha[:12], description)
+            return
+        try:
+            rec = store.get(issue_id)
+            self.github.set_commit_status(sha, state, ctx, description, target_url=rec.pr_url if rec else None)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("#%s: publishing %s=%s on %s failed: %s", issue_id, ctx, state, sha[:12], exc)
+
+    def _ensure_review_status(self, store: StateStore, rec: IssueRecord, head: str) -> str:
+        """Make GitHub's status for `head` agree with the store (after restarts / failed publishes)."""
+        verdict, _, sha = (rec.review_verdict or "").partition("@")
+        try:
+            current = self.github.combined_status(head).get(self.config.review_status_context, {}).get("state")
+        except Exception:  # noqa: BLE001
+            current = None
+        if verdict == "APPROVE" and sha == head:
+            if current != "success":
+                self._publish_review_status(store, rec.issue_id, head, "success", f"independent review APPROVE for {head[:12]}")
+            return "success"
+        if verdict in ("REQUEST_CHANGES", "BLOCK") and sha == head:
+            if current != "failure":
+                self._publish_review_status(store, rec.issue_id, head, "failure", f"independent review {verdict} for {head[:12]}")
+            return "failure"
+        if current != "pending":
+            self._publish_review_status(store, rec.issue_id, head, "pending",
+                                        "stale: review required for this SHA" if rec.review_verdict else "independent review not yet run")
+        return "pending"
 
     def _thread_active(self, key: str) -> bool:
         with self._threads_lock:
@@ -253,7 +288,8 @@ class Orchestrator:
                 log.warning("#%s ignored: author association %s is not executable", number, issue.get("author_association"))
                 continue
             try:
-                contract = parse_contract(number, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks)
+                contract = parse_contract(number, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
+                                          behavior_domains=self.config.behavior_domains)
             except ContractError as exc:
                 if existing is None:
                     self._reject_contract(number, exc.problems)
@@ -448,6 +484,7 @@ class Orchestrator:
             self._set_state(store, issue_id, sm.PR_OPEN, note="PR ready", pr_number=pr["number"], pr_url=pr.get("html_url"),
                             validated_commit=None)
             store.record_event(issue_id, "worker_report", {"report": report})
+            self._publish_review_status(store, issue_id, head, "pending", "independent review not yet run (awaiting CI gates)")
         except (GitError, Exception) as exc:  # noqa: BLE001
             log.exception("#%s: publishing failed", issue_id)
             self._worker_failed(store, rec, f"publishing the branch/PR failed: {str(exc)[:800]}")
@@ -503,6 +540,7 @@ class Orchestrator:
             self._ci_started.pop(rec.issue_id, None)
             self.store.update(rec.issue_id, validated_commit=head, failure_class=None)
             self._set_state(self.store, rec.issue_id, sm.REVIEW, note="deterministic gates green")
+            self._ensure_review_status(self.store, self.store.get(rec.issue_id), head)
             self._milestone(rec.issue_id, f"Deterministic gates green for `{head[:12]}`.\n\n{ev.summary_markdown()}\n\nStarting independent review.")
             _save_evidence_note(self.config, rec.issue_id, ev.summary_markdown())
             return "CI -> REVIEW"
@@ -573,11 +611,13 @@ class Orchestrator:
             self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="PR merged outside the workflow", failure_class="EXTERNAL_MERGE")
             return "REVIEW -> BLOCKED (merged externally)"
         if head != rec.validated_commit:
-            # new commits appeared (someone pushed): re-validate deterministically first
+            # new commits appeared: the review (if any) is stale for this SHA; re-validate deterministically first
             self._ci_started[rec.issue_id] = self.clock()
-            self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="head moved during review", failure_class="HEAD_MOVED",
-                            last_error=f"PR head {head[:12]} != validated {str(rec.validated_commit)[:12]}")
-            return "REVIEW -> BLOCKED (head moved)"
+            self._publish_review_status(self.store, rec.issue_id, head, "pending", "stale: head moved, review must run again")
+            self._set_state(self.store, rec.issue_id, sm.CI, note="head moved during review: review stale, re-validating",
+                            validated_commit=None)
+            self._milestone(rec.issue_id, f"PR head moved to `{head[:12]}` during review — review marked stale; re-running the gates.")
+            return "REVIEW -> CI (head moved, review stale)"
         reviewed_sha = _review_sha(rec)
         if rec.review_verdict is None or reviewed_sha != head:
             if self._thread_active(f"reviewer:{rec.issue_id}"):
@@ -595,7 +635,8 @@ class Orchestrator:
         if verdict != "APPROVE":
             return f"review verdict {verdict} (awaiting decision)"
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
-        decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha)
+        decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha,
+                                       lost_allowance=self._contract(rec).lost_allowance)
         if decision.ok:
             self._set_state(self.store, rec.issue_id, sm.READY, note=f"policy satisfied: {decision.describe()}")
             self._milestone(rec.issue_id, f"Ready to merge under the {rec.risk} policy ({decision.describe()}).")
@@ -633,10 +674,23 @@ class Orchestrator:
         if not result.ok or not result.structured:
             store.update(issue_id, last_error=f"reviewer run failed: {result.error}"[:1000])
             store.record_event(issue_id, "review_failed", {"error": result.error[:500]})
+            self._publish_review_status(store, issue_id, head, "pending", "independent review run failed; will retry")
             log.warning("#%s: reviewer failed (%s); will retry next tick", issue_id, result.error[:200])
             return
         verdict = result.structured
         v = verdict.get("verdict", "BLOCK")
+        # SEMANTIC_REVIEW criteria are evidence only when the reviewer marked them MET.
+        semantic = contract.semantic_review_acs
+        assessed = {a.get("ac"): a.get("verdict") for a in verdict.get("ac_assessment", []) if isinstance(a, dict)}
+        unmet = [ac for ac in semantic if assessed.get(ac) != "MET"]
+        if v == "APPROVE" and unmet:
+            v = "REQUEST_CHANGES"
+            verdict = {**verdict, "verdict": v, "summary": f"downgraded by the orchestrator: semantic criteria not MET {unmet}. " + verdict.get("summary", "")}
+        current_head = None
+        try:
+            current_head = self.github.get_pr(rec.pr_number)["head"]["sha"]
+        except Exception:  # noqa: BLE001
+            pass
         body = _verdict_markdown(verdict)
         if not self.dry_run:
             try:
@@ -644,7 +698,17 @@ class Orchestrator:
             except Exception as exc:  # noqa: BLE001
                 log.warning("posting review on PR #%s failed: %s", rec.pr_number, exc)
         store.update(issue_id, review_verdict=f"{v}@{head}")
-        store.record_event(issue_id, "review_verdict", {"verdict": v, "head": head, "summary": verdict.get("summary", "")[:500]})
+        store.record_event(issue_id, "review_verdict", {"verdict": v, "head": head, "summary": verdict.get("summary", "")[:500],
+                                                         "semantic_unmet": unmet})
+        if current_head is not None and current_head != head:
+            # the PR moved while the reviewer was reading: the verdict is already stale
+            self._publish_review_status(store, issue_id, current_head, "pending", "stale: head moved during review")
+            log.info("#%s: review verdict %s for %s is stale (head now %s)", issue_id, v, head[:12], current_head[:12])
+            return
+        if v == "APPROVE" and rec.validated_commit == head:
+            self._publish_review_status(store, issue_id, head, "success", f"independent review APPROVE for {head[:12]}")
+        else:
+            self._publish_review_status(store, issue_id, head, "failure", f"independent review {v} for {head[:12]}")
         if v == "APPROVE":
             self._milestone(issue_id, f"Independent review: **APPROVE** — {verdict.get('summary', '')[:400]}")
             return
@@ -691,10 +755,19 @@ class Orchestrator:
             return "READY -> CI (base advanced)"
         if self.dry_run:
             return "DRY-RUN would merge"
-        decision = merge_policy.decide(rec, ci_evidence.collect(self.github, self.config, head, fetch_logs=False), self.config, review_sha=_review_sha(rec))
+        self._ensure_review_status(self.store, rec, head)
+        ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
+        decision = merge_policy.decide(rec, ev, self.config, review_sha=_review_sha(rec),
+                                       lost_allowance=self._contract(rec).lost_allowance, require_github_gates=True)
         if not decision.ok:
+            if decision.missing == ("github_gates_green",):
+                # policy holds locally but GitHub does not (yet) show every required context green:
+                # never merge through the admin exemption — wait and re-check.
+                self.store.record_event(rec.issue_id, "merge_deferred", {"reason": decision.describe()})
+                return f"merge deferred: {decision.describe()}"
             self._set_state(self.store, rec.issue_id, sm.CI, note=f"policy no longer satisfied: {decision.describe()}")
             return "READY -> CI (policy re-check failed)"
+        _, gate_states = ev.required_contexts_green(self.config.protection_required_contexts)
         try:
             res = self.github.merge_pr(rec.pr_number, method=self.config.merge_method, title=f"{rec.title} (#{rec.pr_number})", sha=head)
         except Exception as exc:  # noqa: BLE001
@@ -704,6 +777,8 @@ class Orchestrator:
         merge_sha = res.get("sha")
         self._set_state(self.store, rec.issue_id, sm.MERGED, note="merged", validated_commit=merge_sha)
         self.store.record_event(rec.issue_id, "merged", {"pr": rec.pr_number, "merge_sha": merge_sha, "method": self.config.merge_method})
+        self.store.record_event(rec.issue_id, "merge_gate_audit", {"head": head, "contexts": gate_states, "bypass": False,
+                                                                    "policy": decision.describe()})
         self._milestone(rec.issue_id, f"Merged PR #{rec.pr_number} into `{self.config.base_branch}` ({self.config.merge_method}, `{str(merge_sha)[:12]}`). Running post-merge smoke.")
         return "READY -> MERGED"
 
@@ -786,6 +861,51 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.warning("cleanup for #%s failed: %s", rec.issue_id, exc)
         store.record_event(rec.issue_id, "done", {"pr": rec.pr_number, "merge_sha": rec.validated_commit})
+
+    # -- break-glass detection ----------------------------------------------------------------
+    def audit_external_merge(self, rec: IssueRecord, pr: dict) -> dict:
+        """A PR merged outside the workflow: record whether every required context was green on its
+        head SHA. If not, someone used the admin exemption (break-glass) — logged, commented, never hidden."""
+        head = pr.get("head", {}).get("sha", "")
+        try:
+            ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False, fetch_artifacts=False)
+            ok, states = ev.required_contexts_green(self.config.protection_required_contexts)
+        except Exception as exc:  # noqa: BLE001
+            ok, states = False, {"error": str(exc)[:200]}
+        payload = {"pr": pr.get("number"), "head": head, "contexts": states, "bypass": not ok, "merged_by": (pr.get("merged_by") or {}).get("login")}
+        self.store.record_event(rec.issue_id, "merge_gate_audit", payload)
+        if not ok:
+            self.store.record_event(rec.issue_id, "admin_bypass_detected", payload)
+            log.warning("#%s: PR #%s was merged with required contexts not green: %s", rec.issue_id, pr.get("number"), states)
+            self._milestone(rec.issue_id, f"⚠️ PR #{pr.get('number')} was merged outside the workflow with required gates not green "
+                                          f"({', '.join(f'{k}={v}' for k, v in states.items())}) — recorded as an admin break-glass bypass.")
+        return payload
+
+    def check_branch_protection(self) -> list[str]:
+        """Detect protection drift (required contexts / admin enforcement changed). Returns audit notes."""
+        notes: list[str] = []
+        try:
+            prot = self.github.get_branch_protection(self.config.base_branch)
+        except Exception as exc:  # noqa: BLE001
+            return [f"protection check failed: {str(exc)[:120]}"]
+        contexts = sorted((prot or {}).get("required_status_checks", {}).get("contexts", []) or []) if prot else []
+        enforce = bool(((prot or {}).get("enforce_admins") or {}).get("enabled")) if prot else False
+        fingerprint = json.dumps({"contexts": contexts, "enforce_admins": enforce, "protected": prot is not None}, sort_keys=True)
+        previous = self.store.get_meta("protection_fingerprint")
+        if previous != fingerprint:
+            self.store.set_meta("protection_fingerprint", fingerprint)
+            self.store.record_event(None, "protection_observed", json.loads(fingerprint))
+            if previous is not None:
+                self.store.record_event(None, "protection_drift", {"before": json.loads(previous), "after": json.loads(fingerprint)})
+                notes.append(f"branch protection changed: {previous} -> {fingerprint}")
+        missing = [c for c in self.config.protection_required_contexts if c not in contexts]
+        if prot is None:
+            notes.append(f"{self.config.base_branch} is NOT protected — autonomous merges still verify every gate, but nothing stops a manual bypass")
+        elif missing:
+            notes.append(f"branch protection is missing required contexts {missing}")
+        if prot is not None and not enforce:
+            notes.append("branch protection exempts admins (break-glass only — bypasses are audited)")
+        return notes
 
     # -- domain lead (on demand) --------------------------------------------------------------
     def investigate(self, domain: str, question: str, *, cwd: Path | None = None) -> AgentRunResult:

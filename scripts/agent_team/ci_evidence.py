@@ -31,6 +31,7 @@ class CiEvidence:
     head_sha: str
     status: str                                  # pending | success | failure | missing
     checks: dict[str, dict] = field(default_factory=dict)      # name -> {status, conclusion, url}
+    statuses: dict[str, dict] = field(default_factory=dict)    # commit-status context -> {state, description}
     reports: dict[str, dict] = field(default_factory=dict)     # report name -> parsed json
     logs: dict[str, str] = field(default_factory=dict)         # failed check name -> log tail
     run_ids: list[int] = field(default_factory=list)
@@ -38,10 +39,23 @@ class CiEvidence:
     def gate_results(self) -> dict[str, str]:
         return {n: (c.get("conclusion") or c.get("status") or "") for n, c in self.checks.items()}
 
+    def context_state(self, context: str) -> str:
+        """The GitHub-visible state of a required context: a check run's conclusion or a commit status."""
+        if context in self.checks:
+            c = self.checks[context]
+            return c.get("conclusion") or ("pending" if c.get("status") != "completed" else "")
+        return (self.statuses.get(context) or {}).get("state") or "missing"
+
+    def required_contexts_green(self, contexts: tuple[str, ...]) -> tuple[bool, dict[str, str]]:
+        states = {c: self.context_state(c) for c in contexts}
+        return all(v == "success" for v in states.values()), states
+
     def summary_markdown(self) -> str:
         rows = ["| Check | Status | Conclusion |", "|---|---|---|"]
         for name, c in sorted(self.checks.items()):
             rows.append(f"| {name} | {c.get('status')} | {c.get('conclusion') or '—'} |")
+        for ctx, st in sorted(self.statuses.items()):
+            rows.append(f"| {ctx} (status) | {st.get('state')} | {st.get('description') or '—'} |")
         lines = [f"CI for `{self.head_sha[:12]}`: **{self.status.upper()}**", "", *rows]
         v = self.reports.get("verification_report")
         if v:
@@ -87,6 +101,10 @@ def collect(github, config: Config, head_sha: str, *, fetch_logs: bool = True, f
     else:
         status = SUCCESS if all(checks.get(n, {}).get("conclusion") == "success" for n in required) else FAILURE
     ev = CiEvidence(head_sha=head_sha, status=status, checks=checks)
+    try:
+        ev.statuses = github.combined_status(head_sha)
+    except Exception:  # noqa: BLE001
+        ev.statuses = {}
     if status in (SUCCESS, FAILURE):
         try:
             wruns = github.workflow_runs(head_sha)

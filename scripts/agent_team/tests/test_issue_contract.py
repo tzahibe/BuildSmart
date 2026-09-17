@@ -26,6 +26,7 @@ def test_valid_contract_parses(valid_body):
     assert c.dependencies == ()
     assert c.locks[0].name == "docs" and c.locks[0].mode == "shared"
     assert [t.spec for t in c.targets_for("AC-1")] == ["grep:backend/README.md:Autonomous workflow"]
+    assert c.targets_for("AC-1")[0].vtype == "ARTIFACT"
     assert c.targets_for("AC-3")[0].kind == "pytest"
     assert c.budget_rule("LOST").kind == "max" and c.budget_rule("LOST").limit == 0
     assert c.budget_rule("GAINED").kind == "allowed"
@@ -122,9 +123,56 @@ def test_lock_default_mode_is_exclusive(valid_body):
     assert c.locks == (type(c.locks[0])("planner-core", "exclusive"),)
 
 
-def test_lost_budget_must_be_zero(valid_body):
-    _expect_problem(valid_body.replace("LOST: 0", "LOST: 2"), "LOST must be 0")
-    _expect_problem(valid_body.replace("LOST: 0", "LOST: allowed"), "LOST must be 0")
+def test_lost_budget_default_and_allowance_rules(valid_body):
+    # LOW risk: any non-zero LOST allowance is rejected; 'allowed' is never accepted at any risk
+    _expect_problem(valid_body.replace("LOST: 0", "LOST: 2"), "non-zero LOST allowance requires Risk MEDIUM or HIGH")
+    _expect_problem(valid_body.replace("LOST: 0", "LOST: tagged:bedrooms>=6"), "non-zero LOST allowance requires Risk MEDIUM or HIGH")
+    _expect_problem(valid_body.replace("LOST: 0", "LOST: allowed"), "'allowed' is never accepted")
+    _expect_problem(valid_body.replace("LOST: 0", "LOST: allowed").replace("\nLOW\n", "\nHIGH\n"), "'allowed' is never accepted")
+    # default stays 0 when the line is missing
+    c = parse_contract(1, "t", valid_body.replace("LOST: 0\n", ""), known_locks=KNOWN_LOCKS)
+    assert c.budget_rule("LOST").kind == "max" and c.budget_rule("LOST").limit == 0 and not c.lost_allowance
+    # MEDIUM/HIGH may name intentionally lost contexts explicitly
+    body = valid_body.replace("LOST: 0", "LOST: tagged:bedrooms>=6").replace("\nLOW\n", "\nMEDIUM\n")
+    c = parse_contract(1, "t", body, known_locks=KNOWN_LOCKS)
+    assert c.lost_allowance and c.budget_rule("LOST").spec() == "tagged:bedrooms>=6"
+    body = valid_body.replace("LOST: 0", "LOST: 1").replace("\nLOW\n", "\nHIGH\n")
+    assert parse_contract(1, "t", body, known_locks=KNOWN_LOCKS).lost_allowance
+    assert verification_manifest(c)["lost_allowance"] is True
+
+
+def test_verification_types_inferred_and_explicit(valid_body):
+    c = parse_contract(1, "t", valid_body, known_locks=KNOWN_LOCKS)
+    assert {t.vtype for t in c.targets_for("AC-1")} == {"ARTIFACT"}
+    assert c.targets_for("AC-3")[0].vtype == "TEST" and c.semantic_review_acs == ()
+    body = valid_body.replace("- AC-3 -> pytest:backend/tests/test_projects.py",
+                              "- AC-3 -> TEST:pytest:backend/tests/test_projects.py ; STATIC:static:backend-import ; "
+                              "REGRESSION:regression:corpus ; review:the wording matches the Wiki page")
+    c = parse_contract(1, "t", body, known_locks=KNOWN_LOCKS)
+    assert [t.vtype for t in c.targets_for("AC-3")] == ["TEST", "STATIC", "REGRESSION", "SEMANTIC_REVIEW"]
+    assert c.semantic_review_acs == ("AC-3",)
+    assert verification_manifest(c)["semantic_review_acs"] == ["AC-3"]
+    again = parse_contract(1, "t", render_body(c), known_locks=KNOWN_LOCKS)
+    assert again.verification == c.verification
+    _expect_problem(valid_body.replace("pytest:backend/tests/test_projects.py", "ARTIFACT:pytest:backend/tests/test_projects.py"),
+                    "produces TEST evidence, not ARTIFACT")
+    _expect_problem(valid_body.replace("pytest:backend/tests/test_projects.py", "static:something-else"), "static target must be one of")
+    _expect_problem(valid_body.replace("pytest:backend/tests/test_projects.py", "review:ok"), "review target must say")
+
+
+def test_semantic_review_alone_cannot_prove_behavior_change(valid_body):
+    # backend is a behavior domain: a criterion proven only by review is rejected
+    body = valid_body.replace("- AC-3 -> pytest:backend/tests/test_projects.py",
+                              "- AC-3 -> review:the endpoint behaves as described")
+    _expect_problem(body, "AC-3 is proven only by SEMANTIC_REVIEW")
+    # a docs-only (knowledge) Issue may use it, as long as deterministic evidence exists elsewhere
+    docs_only = body.replace("knowledge, backend", "knowledge")
+    c = parse_contract(1, "t", docs_only, known_locks=KNOWN_LOCKS)
+    assert c.semantic_review_acs == ("AC-3",) and not c.is_behavior_changing()
+    # ... but never as the only kind of evidence in the whole contract
+    only_review = docs_only.replace("- AC-1 -> grep:backend/README.md:Autonomous workflow", "- AC-1 -> review:section reads well") \
+                           .replace("- AC-2 -> grep:backend/README.md:agentctl status", "- AC-2 -> review:mentions the status command")
+    _expect_problem(only_review, "no deterministic verification target at all")
 
 
 def test_tagged_budget_parses(valid_body):
