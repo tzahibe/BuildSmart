@@ -14,7 +14,7 @@ from agent_team.agent_runner import AgentRunSpec, ClaudeCliRunner, FakeAgentRunn
 from agent_team.failure_classifier import ENVIRONMENT_FAILURE, FailureInput, classify
 from agent_team.orchestrator import _sh
 from agent_team.tests.conftest import CONFIG_PATH
-from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _orch, _tick, _worker_that_commits, env  # noqa: F401
+from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _tick, _worker_that_commits, env  # noqa: F401
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CI_LOG = """
@@ -101,7 +101,7 @@ def test_resume_pr_update_base_merges_main_and_pushes(env, capsys):
     (other / "fix.txt").write_text("fixed\n")
     _git(["add", "."], other); _git(["commit", "-q", "-m", "env fix"], other); _git(["push", "-q", "origin", "main"], other)
     cli._github = lambda cfg, require_auth=True: gh   # type: ignore[assignment]
-    args = type("A", (), {"number": 2, "update_base": True})()
+    args = type("A", (), {"number": 2, "update_base": True, "rereview": False, "reason": None})()
     assert cli.cmd_resume_pr(config, args) == 0
     out = capsys.readouterr().out
     assert "merged origin/main" in out and "-> PR_OPEN" in out
@@ -115,6 +115,80 @@ def test_resume_pr_update_base_merges_main_and_pushes(env, capsys):
     orch.store.transition(2, sm.CI); orch.store.transition(2, sm.BLOCKED)
     assert cli.cmd_resume_pr(config, args) == 0
     assert "already up to date" in capsys.readouterr().out
+
+
+def _run_to_blocked_review_rejection(env, number):
+    """Drive an issue through a REQUEST_CHANGES repair cycle to a real BLOCKED state whose
+    review_verdict is bound to the final (unchanged) head — the shape of the stuck Issue #12 case:
+    a review verdict later shown to be wrong, with no legitimate code fix left to make."""
+    config, gh, clock, _ = env
+    _add_issue(gh, number, risk="LOW")
+    reject = {**APPROVE, "verdict": "REQUEST_CHANGES", "summary": "wrong verdict", "tests_meaningful": False}
+    runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": reject})
+    orch = _orch(config, gh, clock, runner)
+    _tick(orch); _tick(orch)
+    rec = orch.store.get(number)
+    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+    _tick(orch); _tick(orch)
+    assert orch.store.get(number).state == sm.FIX_REQUIRED
+    runner.script["reviewer"] = {**APPROVE, "verdict": "BLOCK", "summary": "still wrong", "hidden_behavior_changes": True}
+    _tick(orch)                                          # repair -> PR_OPEN
+    _tick(orch)                                          # -> CI
+    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])   # new head after the repair push
+    _tick(orch)                                          # -> REVIEW
+    _tick(orch)                                          # reviewer BLOCK -> BLOCKED
+    rec = orch.store.get(number)
+    assert rec.state == sm.BLOCKED and rec.review_verdict and rec.review_verdict.startswith("BLOCK@")
+    return orch, gh, rec
+
+
+def test_resume_pr_rereview_clears_the_verdict_and_records_the_reason(env, capsys):
+    orch, gh, rec = _run_to_blocked_review_rejection(env, 20)
+    config, previous_verdict = orch.config, rec.review_verdict
+    cli._github = lambda cfg, require_auth=True: gh  # type: ignore[assignment]
+    args = type("A", (), {"number": 20, "update_base": False, "rereview": True,
+                          "reason": "verdict rejected a correct commit hash"})()
+    assert cli.cmd_resume_pr(config, args) == 0
+    capsys.readouterr()
+    updated = orch.store.get(20)
+    assert updated.review_verdict is None and updated.state == sm.PR_OPEN
+    resets = [e for e in orch.store.events(20) if e["kind"] == "review_reset_by_lead"]
+    assert len(resets) == 1
+    assert resets[0]["payload"] == {"reason": "verdict rejected a correct commit hash", "previous_verdict": previous_verdict}
+    assert any(n == 20 and "fresh independent review" in body and "verdict rejected a correct commit hash" in body
+               for n, body in gh.comments)
+
+
+def test_rereview_requires_a_reason(env, capsys):
+    orch, gh, rec = _run_to_blocked_review_rejection(env, 21)
+    config = orch.config
+    cli._github = lambda cfg, require_auth=True: gh  # type: ignore[assignment]
+    args = type("A", (), {"number": 21, "update_base": False, "rereview": True, "reason": None})()
+    assert cli.cmd_resume_pr(config, args) != 0
+    assert "--reason" in capsys.readouterr().out
+    unchanged = orch.store.get(21)
+    assert unchanged.state == sm.BLOCKED and unchanged.review_verdict == rec.review_verdict
+    assert not [e for e in orch.store.events(21) if e["kind"] == "review_reset_by_lead"]
+
+
+def test_fresh_review_runs_after_a_lead_reset(env):
+    orch, gh, rec = _run_to_blocked_review_rejection(env, 22)
+    config = orch.config
+    head = gh.get_pr(rec.pr_number)["head"]["sha"]
+    cli._github = lambda cfg, require_auth=True: gh  # type: ignore[assignment]
+    args = type("A", (), {"number": 22, "update_base": False, "rereview": True,
+                          "reason": "hash was actually correct"})()
+    assert cli.cmd_resume_pr(config, args) == 0
+    status = gh.combined_status(head).get(config.review_status_context)
+    assert status["state"] == "pending" and "Team Lead" in status["description"]
+    orch.runner.script["reviewer"] = APPROVE  # the reviewer sees no prior verdict this time
+    assert _tick(orch).advanced[22] == "PR_OPEN -> CI"
+    assert _tick(orch).advanced[22] == "CI -> REVIEW"
+    assert _tick(orch).advanced[22] == "review started"
+    assert orch.store.get(22).review_verdict == f"APPROVE@{head}"
+    review_events = [e for e in orch.store.events(22) if e["kind"] == "review_verdict"]
+    assert review_events[-1]["payload"]["verdict"] == "APPROVE" and review_events[-1]["payload"]["head"] == head
+    assert _tick(orch).advanced[22] == "REVIEW -> READY"
 
 
 def test_gh_transport_allows_escape_sequences_for_raw_requests():
