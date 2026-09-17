@@ -411,6 +411,14 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
 
 ## Known limitations
 
+- **Headless workers cannot wait.** Found on #17 (2026-09-17, attempt 1, $5.9 / 147 turns): the
+  worker started a 404-plan corpus job, could not use `Monitor`/`timeout` (not allowed / not on
+  macOS), ended its turn "waiting for the next wakeup" — which never comes under `claude -p` — and
+  the run finished without the JSON report. The worker and repair prompts now carry the headless
+  rule (foreground only, Bash `timeout` up to 10 min, split longer jobs, commit early, report
+  `blocked` with the exact command). A run that ends without the report still consumes an
+  attempt; `agentctl requeue N --reset-attempts` restores the budget from BLOCKED.
+
 - Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is
   enforced through the `agent-review-result` commit status the orchestrator publishes, so a
   stopped orchestrator leaves new SHAs `pending` (blocked from merging) rather than unreviewed.

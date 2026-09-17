@@ -18,6 +18,9 @@ Failure class: **{{failure_class}}**
   the Issue needs a decision — report `needs_decision` rather than hiding it.
 - Keep the diff scoped to the Issue's Acceptance Criteria and re-run the relevant tests.
 - Commit the fix on this branch. Do not push.
+- You run headless: no wakeups, no background jobs, no "waiting" — a run that ends without the
+  JSON report is a failed attempt. Long commands run in the foreground with the Bash `timeout`
+  parameter (max 600000 ms); split anything longer or report `blocked` with the exact command.
 
 The contract (Acceptance Criteria, Out of scope, Verification plan, Regression budget) is
 unchanged:
