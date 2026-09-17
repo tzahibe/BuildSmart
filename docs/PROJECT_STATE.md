@@ -32,7 +32,11 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - `infra/telegram-control-plane` — owner-controlled governance (owner:approved, READY_FOR_OWNER,
   no auto-merge) + the Telegram owner control plane; running from the orchestrator home worktree;
   **PR #16 awaits the owner's merge.** Draft Issues #17–#21 (first five P0 roadmap topics) exist
-  on GitHub as `agent:draft`, contracts under `.agent/proposals/p0/`.
+  on GitHub as `agent:draft`, contracts under `.agent/proposals/p0/`; #17 was approved and queued
+  by the owner on 2026-09-17 (first roadmap Issue in execution). Same branch, 2026-09-17 evening:
+  subscription usage guard (auto-pause at 98 %, auto-resume after the reset, rate-limit requeue),
+  3 concurrent workers, Telegram `answer()` fix; the owner's new P0 topic "Entrance-to-Circulation
+  Integration / no entrance dead-end walls" added to `docs/ROADMAP.md` and drafted as an Issue.
 
 - `integration/laundry-into-main` — landed: fast-forwarded onto `main` at `6499604`. No longer
   active work; kept for history. See the Laundry Wiki page.

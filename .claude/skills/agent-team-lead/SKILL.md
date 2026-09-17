@@ -125,7 +125,25 @@ pointer, and the RAG index (`cd backend && uv run python -m app.knowledge.cli in
 An Issue that ships without its Wiki update is not done; a draft Issue records its knowledge
 check in its own `### Knowledge check` section.
 
-## 7. Report
+## 7. Delegate; keep the backlog rolling; respect the usage guard
+
+- **The lead does not implement.** Investigation goes to read-only Sonnet domain leads
+  (`scripts/agentctl investigate --domain <d> "<question>"`), implementation goes to workers
+  through Issues — including infrastructure changes. The lead writes contracts, reads evidence,
+  decides, and talks to the owner. Only a fix that blocks the control plane itself (the bot
+  cannot answer) is made directly, then recorded here and in the Wiki.
+- **Rolling backlog (owner rule, 2026-09-17):** when the current batch of roadmap Issues is done
+  (all `agent:done`/closed), draft the next five topics from `docs/ROADMAP.md` in priority order
+  — each with its knowledge check — as `agent:draft` Issues, and tell the owner on Telegram which
+  ones to approve. Never queue them yourself.
+- **Usage guard:** the orchestrator pauses itself at 98 % of the session/week quota and resumes
+  after the reset (`usage_guard` in `.agent/config.yaml`). During an automatic pause the lead does
+  not start domain leads or extra `claude -p` work either; `agentctl status` shows the numbers.
+- **Concurrency:** 3 workers / 3 active Issues (owner permission of 2026-09-17). Raise further
+  only gradually, after a full batch ran at the current level with no CPU/RAM pressure
+  (`resources` thresholds) and no rate-limit requeues.
+
+## 8. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),
 what is blocked and why, and what decision (if any) is theirs.

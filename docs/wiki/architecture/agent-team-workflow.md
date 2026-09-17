@@ -90,11 +90,31 @@ plan (FIFO by Issue number) → start what may start → advance every in-flight
 
 An Issue starts only when: all `Dependencies` are `agent:done` (or closed on GitHub if
 untracked); its locks are free (exclusive vs. exclusive/shared; shared coexists with shared);
-a worker slot is free (`max_worker_agents`, V1 = 2); the weighted capacity has room
-(LIGHT/MEDIUM/HEAVY = 1/2/3 against `weighted_capacity` = 4); the machine is not under pressure
-(`cpu_threshold_percent` 75, `min_free_memory_gb` 6, sampled with psutil). Heavy validation (the
-corpus, full pytest, sweeps, post-merge smoke) goes through a separate persisted semaphore,
-`heavy_job_concurrency` = 1, so free agent slots never mean "run three sweeps".
+a worker slot is free (`max_worker_agents`: 2 at V1, raised to 3 on 2026-09-17 with the owner's
+permission on the M1 Pro 10-core/32 GB machine; `max_active_issues` 3); the weighted capacity has
+room (LIGHT/MEDIUM/HEAVY = 1/2/3 against `weighted_capacity` = 7); the machine is not under
+pressure (`cpu_threshold_percent` 75, `min_free_memory_gb` 6, sampled with psutil). Heavy
+validation (the corpus, full pytest, sweeps, post-merge smoke) goes through a separate persisted
+semaphore, `heavy_job_concurrency` = 1, so free agent slots never mean "run three sweeps".
+Config is read at orchestrator start: a concurrency change takes effect at the next restart
+(`launchctl kickstart -k gui/$UID/com.buildsmart.agent-team.orchestrator`, done only while no
+worker/reviewer subprocess is running).
+
+**Subscription usage guard** (`scripts/agent_team/usage_guard.py`, owner rule of 2026-09-17: "at
+98 % stop the agents and tell them to wait; resume when the session renews"). Every
+`usage_guard.probe_every_seconds` (120 s) the orchestrator runs `claude -p "/usage"` — a
+zero-cost local command that prints the real session/week percentages and reset times — and
+stores the snapshot in `meta.usage_last` (shown by `agentctl status` and the Telegram status).
+At `pause_at_percent` (98, session *or* week) it pauses itself with source `usage_guard`: no new
+claims, workers, reviewers or repair loops; running subprocesses finish their current run; the
+owner gets a Telegram notice with the reset times. Below `resume_below_percent` (90 — i.e. after
+the window reset) it resumes automatically and notifies again. An automatic pause never lifts a
+pause the owner set (`scheduler_pause_source` distinguishes them), and the owner's `/resume`
+still works during an automatic pause. A worker run that fails with a rate-limit message
+(`looks_rate_limited`: "usage limit", "rate limit", 429, "resets at", "overloaded"…) is requeued
+**without consuming a repair attempt** (`failure_class RATE_LIMITED`, event `rate_limited`) and
+also triggers the pause; a rate-limited reviewer run is retried after the pause. Events:
+`usage_pause`, `usage_resume`.
 
 ## Locks
 

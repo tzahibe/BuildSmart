@@ -23,6 +23,12 @@ Issue. The owner decides, topic by topic, what enters the backlog (see "How this
   בתוך חדר ובלי פתרונות שרשרת גרועים.
 - **Entrance / Exterior Door** — כניסה אמיתית לבית: דלת חיצונית, מיקום כניסה, foyer/מבואה במידת
   הצורך, קשר נכון לאזור הציבורי ולא כניסה אקראית לתוך חדר.
+- **Entrance-to-Circulation Integration / no entrance dead-end walls** (added by the owner
+  2026-09-17; drafted as Issue #22, dependency #20) — הכניסה מתחברת ל-circulation אמיתי: דלת חיצונית → אזור
+  כניסה/מעבר → צומת ציבורי ראשי → מסדרון פרטי. לא קיר שרירותי מול הדלת ולא "כיס" מת ליד הכניסה:
+  נקודת הסיום של המסדרון נקבעת לפי טופולוגיה (אילו חדרים הוא משרת) ולא לפי גבול המגרש; זיהוי
+  dead-space pockets ליד הכניסה; מבואה מכוונת נשארת תקינה; בלי רגרסיה בנגישות. פתרון גנרי, לא
+  תיקון ל-fixture אחד. Risk MEDIUM. תלוי ב-Entrance / Exterior Door (#20).
 - **Doors + Access Topology** — להשלים חוקי דלתות: לכל חדר נגישות תקינה, בלי bedroom-to-bedroom
   כפתרון רגיל, דלתות שירות, פתחים הגיוניים, בדיקות deterministic.
 - **Windows + Exterior Exposure** — חלונות כחלק אמיתי מהתכנון, לא ציור בלבד. אילו חדרים חייבים
