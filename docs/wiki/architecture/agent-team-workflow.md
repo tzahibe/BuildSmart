@@ -223,7 +223,8 @@ scripts/agentctl dry-run                # one tick, no side effects, proposed as
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
 scripts/agentctl approve N --kind lead_approval|lead_architecture_review|lost_allowance --note "..."
-scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N
+scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N [--update-base]
+scripts/agentctl resume-pr N --rereview --reason "..."   # order a fresh review of the same head
 scripts/agentctl audit N
 scripts/agentctl investigate --domain geometry "question"
 ```

@@ -72,6 +72,13 @@ the timeline. Issue comments carry milestones; PR descriptions carry evidence.
   `lost_allowance` (declared LOST budget): read the PR and the reviewer's verdict; then
   `scripts/agentctl approve N --kind ... --note "..."` — or `block N --reason ...` and write a
   better contract.
+- `BLOCKED` on a `REVIEW_REJECTED` verdict you have read and found factually wrong for the current
+  head (e.g. it rejected a correct commit hash, or a worker correctly declined a "fix" that would
+  have broken something): `resume-pr N --rereview --reason "..."` clears the stored verdict and
+  orders a fresh independent review — never hand-edit the state store or push a no-op commit just
+  to move the SHA. `--rereview` composes with `--update-base`.
+- Files under `.claude/` (skills, settings) cannot be written by a headless worker — they are yours:
+  edit them on the Issue's branch in its worktree and let the gates and the reviewer validate them.
 - Never merge by hand. The admin exemption on `main` is break-glass only; every bypass is
   recorded (`admin_bypass_detected`) and must be explained to the user.
 - `BLOCKED`: read `failure_class` / `last_error` in `audit N`. Options: change direction (edit the
