@@ -253,6 +253,40 @@ worker). After an environment fix lands on `main`, `agentctl resume-pr N --updat
 the base into the blocked Issue's branch and pushes, so CI re-runs against the fixed workflow.
 (Found by the Phase H pilot, PR #7, gate-2 job 105194679091.)
 
+**CI fast-tier environment policy.** The pilot PR #7 also failed gate-2-static twice for
+environment reasons unrelated to `OPENAI_API_KEY` (job 105213930461): `tests/test_local_gateway.py`
+imports `torch` (a lazy import inside `app/architect/local_gateway.py`, exercised even with an
+injected fake model/tokenizer), which `uv sync --group dev` alone does not install — the
+`local-model` extra is not part of the `dev` group, and even if it were, the lockfile resolves
+`torch` to the full CUDA stack on Linux. And `tests/test_architectural_concepts.py::
+test_scenario_plans_before_geometry_and_realizes_it` asserts a wall-clock budget
+(`_MAX_RUNTIME_S = 8.0`, calibrated on the developer's M1 Pro) that a shared 4-vCPU GitHub runner
+under `-n 4` does not reliably meet. Fixed by:
+
+- **CPU torch, CI-only.** After `uv sync --group dev`, gate-2-static installs CPU-only torch from
+  the PyTorch CPU index (`uv pip install --index-url https://download.pytorch.org/whl/cpu
+  torch`), with `astral-sh/setup-uv@v6`'s `enable-cache: true` so the download is cached across
+  runs. `uv run` calls that follow use `--no-sync` so the implicit project sync doesn't remove
+  this extraneous (not lock-declared) package before the tests run.
+- **Wall-clock deselect, CI-only.** gate-2-static's fast tier runs with `--deselect tests/
+  test_architectural_concepts.py::test_scenario_plans_before_geometry_and_realizes_it`, with a
+  comment explaining why: a shared runner is not a performance reference. The test is left fully
+  in place and enforced in the developer/worker fast tier (`.agent/config.yaml`'s
+  `fast_tests.backend`) — this is a CI-only exception, not a change to the test or its budget.
+- **Docs-only backend changes skip the fast tier.** `ci/plan.py`'s `backend_changed` (which gates
+  gate-2-static's backend step) now matches only backend code/tests/deps (`backend/app/`,
+  `backend/tests/`, `backend/spikes/`, `backend/pyproject.toml`, `backend/uv.lock`), not
+  `backend/` as a whole — a `backend/README.md`-only PR no longer pays for `compileall` + the
+  import check + the fast pytest tier. Regression-gate eligibility (`BACKEND_PRODUCT`) is
+  unchanged, since it was already narrower than the old `backend_changed` and isn't the criterion
+  this Issue targets.
+- **Worktrees match the developer environment.** Agent worktrees and the post-merge smoke
+  worktree run `uv sync --group dev --extra local-model` (`.agent/config.yaml`'s
+  `worktree_setup.always`), so a worker's environment has the same `torch`/`transformers`/`peft`
+  the developer machine has and can run `tests/test_local_gateway.py` itself.
+
+(Issue #10, found via the pilot PR #7's second and third gate-2 failures.)
+
 ## Known limitations
 
 - Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is
