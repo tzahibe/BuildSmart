@@ -15,8 +15,9 @@ person can accept or correct).
 **Room-proportion quality tier extended to wet/service rooms**: `SHARED_BATHROOM` and `GUEST_WC`
 now also get the bounded `preferred_aspect_ratio` quality tier (as a soft objective only, never a
 hard gate) — see the Room Proportion / Quality Tier page for the shared mechanism. `LAUNDRY` is
-explicitly excluded from this extension (see the Laundry page — the capability doesn't exist on
-`main`).
+explicitly excluded from this extension — not because the capability is missing (it's implemented
+on `main`, see the Laundry page), but as a deliberate quality-tier/domain decision: `LAUNDRY` has
+no `preferred_aspect_ratio` and was never added to `_QUALITY_TIER_GROUP`.
 
 ## Authoritative implementation
 
@@ -33,8 +34,9 @@ explicitly excluded from this extension (see the Laundry page — the capability
 - The quality-tier extension does not touch tier-1 row rescue, does not add `BATHROOM` to any
   row-rescue role set, does not touch `ENSUITE` sub-row behavior, and adds no shape-aware seam
   re-selection.
-- `LAUNDRY` is excluded from the quality-tier extension because the capability doesn't exist on
-  `main` — see the Laundry page.
+- `LAUNDRY` is excluded from the quality-tier extension — the capability is implemented on `main`
+  (see the Laundry page), but it's intentionally not part of `_QUALITY_TIER_GROUP`: a quality-tier
+  scope decision, not an absence of the capability.
 
 ## Supersedes
 
