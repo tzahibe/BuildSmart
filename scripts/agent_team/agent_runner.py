@@ -136,6 +136,17 @@ class ClaudeCliRunner:
         self.binary = resolve_claude_binary(binary)
         self.heartbeat_interval = heartbeat_interval
         self.poll_interval = poll_interval
+        self._active: set[subprocess.Popen] = set()
+        self._active_lock = threading.Lock()
+
+    def terminate_all(self) -> int:
+        """Kill every live agent process group (orchestrator shutdown). Returns how many were signalled."""
+        with self._active_lock:
+            procs = list(self._active)
+        for p in procs:
+            if p.poll() is None:
+                self._kill(p)
+        return len(procs)
 
     def build_command(self, spec: AgentRunSpec) -> list[str]:
         cmd = [self.binary, "-p", "--model", spec.model, "--output-format", "json", "--permission-prompts", "none",
@@ -177,6 +188,8 @@ class ClaudeCliRunner:
                                     stderr=subprocess.PIPE, text=True, env=env, start_new_session=True)
         except OSError as exc:
             return AgentRunResult(ok=False, exit_code=-1, error=f"failed to spawn: {exc}", command=cmd)
+        with self._active_lock:
+            self._active.add(proc)
 
         out_buf: list[str] = []
         err_buf: list[str] = []
@@ -210,6 +223,8 @@ class ClaudeCliRunner:
             time.sleep(self.poll_interval)
         t_out.join(timeout=30)
         t_err.join(timeout=30)
+        with self._active_lock:
+            self._active.discard(proc)
         stdout, stderr = "".join(out_buf), "".join(err_buf)
         return self._parse(spec, cmd, proc.returncode if proc.returncode is not None else -9, stdout, stderr, timed_out, proc.pid)
 

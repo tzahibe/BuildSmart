@@ -298,6 +298,8 @@ class FakeGitHub:
     next_number: int = 100
     fail_merge_with: str | None = None
     default_branch_sha: str = "basesha"
+    on_merge: Any = None   # optional callable(pr) -> merge sha, so tests can really merge into a temp origin
+    on_head_sha: Any = None  # optional callable(branch) -> sha, so a pushed repair moves the PR head like on GitHub
 
     def add_issue(self, number: int, title: str, body: str, labels: list[str], *, author_association: str = "OWNER",
                   state: str = "open") -> dict:
@@ -369,12 +371,15 @@ class FakeGitHub:
     def get_pr(self, number: int) -> dict:
         if number not in self.prs:
             raise GitHubError("not found", 404)
-        return self.prs[number]
+        pr = self.prs[number]
+        if self.on_head_sha and not pr.get("merged"):
+            pr["head"]["sha"] = self.on_head_sha(pr["head"]["ref"]) or pr["head"]["sha"]
+        return pr
 
     def find_pr_for_branch(self, branch: str, *, state: str = "open") -> dict | None:
         for pr in self.prs.values():
             if pr["head"]["ref"] == branch and (state == "all" or pr["state"] == state):
-                return pr
+                return self.get_pr(pr["number"])
         return None
 
     def create_pr(self, *, head: str, base: str, title: str, body: str, draft: bool = False) -> dict:
@@ -402,7 +407,7 @@ class FakeGitHub:
         pr = self.get_pr(number)
         pr["merged"] = True
         pr["state"] = "closed"
-        pr["merge_commit_sha"] = f"merge-{number}"
+        pr["merge_commit_sha"] = self.on_merge(pr) if self.on_merge else f"merge-{number}"
         self.merged.append(number)
         self.default_branch_sha = pr["merge_commit_sha"]
         return {"merged": True, "sha": pr["merge_commit_sha"]}
