@@ -28,7 +28,7 @@ STATE_LABELS: tuple[Label, ...] = (
     Label("agent:review", "c2e0c6", "Deterministic gates green; independent review running"),
     Label("agent:fix-required", "e99695", "CI/review found a problem; a repair attempt is scheduled"),
     Label("agent:blocked", "b60205", "Retry budget exhausted or a decision is needed from the Team Lead"),
-    Label("agent:ready", "0e8a16", "Approved for merge under the risk policy"),
+    Label("agent:ready-for-owner", "0e8a16", "Every gate green; waiting for the owner's merge decision (never auto-merged)"),
     Label("agent:merged", "6f42c1", "Merged to main; post-merge smoke running"),
     Label("agent:done", "2cbe4e", "Smoke green; issue closed by the orchestrator"),
 )
@@ -50,7 +50,12 @@ RESOURCE_LABELS: tuple[Label, ...] = (
     Label("resource:heavy", "a0a0a0", "Weight 3 — needs the heavy validation pool"),
 )
 
-ALL_LABELS: tuple[Label, ...] = STATE_LABELS + DOMAIN_LABELS + RISK_LABELS + RESOURCE_LABELS
+OWNER_APPROVED_LABEL = "owner:approved"
+OWNER_LABELS: tuple[Label, ...] = (
+    Label(OWNER_APPROVED_LABEL, "8b0000", "The owner approved this Issue for execution — only the owner sets this"),
+)
+
+ALL_LABELS: tuple[Label, ...] = STATE_LABELS + DOMAIN_LABELS + RISK_LABELS + RESOURCE_LABELS + OWNER_LABELS
 
 STATE_LABEL_NAMES = tuple(l.name for l in STATE_LABELS)
 

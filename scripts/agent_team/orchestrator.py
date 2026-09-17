@@ -1,7 +1,7 @@
 """The orchestrator: a deterministic loop over the issue state machine.
 
     tick():  reconcile -> poll (agent:queued) -> schedule (start workers) -> advance (every
-             tracked issue one step: PR_OPEN -> CI -> REVIEW -> READY -> MERGED -> DONE, or
+             tracked issue one step: PR_OPEN -> CI -> REVIEW -> READY_FOR_OWNER -> (owner merges) -> MERGED -> DONE, or
              FIX_REQUIRED -> WORKING, or -> BLOCKED)
 
 Long-running agent runs (worker, repair, reviewer) execute in threads with their own SQLite
@@ -11,6 +11,11 @@ Issue comment; every agent run is a redacted JSON record under `.agent/logs/runs
 
 DRY_RUN: polls and schedules against a separate state file, prints the proposed assignments,
 and performs no GitHub write, no spawn, no push, no merge.
+
+Governance: an Issue runs only with `agent:queued` AND the owner's `owner:approved`; the loop
+stops at READY_FOR_OWNER and never merges — `owner_merge()` is the only merge path and it is
+invoked exclusively by an explicit owner command (Telegram CONFIRM MERGE); an owner merge on
+GitHub is detected and audited. The owner can pause new claims/repairs at any time.
 """
 from __future__ import annotations
 
@@ -266,7 +271,7 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.exception("schedule failed")
             report.errors[-1] = f"schedule: {exc}"
-        for rec in self.store.list((sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY, sm.MERGED)):
+        for rec in self.store.list((sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)):
             try:
                 outcome = self.advance(rec)
                 if outcome:
@@ -311,6 +316,7 @@ class Orchestrator:
     def poll(self) -> list[int]:
         """Track every executable `agent:queued` Issue exactly once. Idempotent."""
         new: list[int] = []
+        self.awaiting_owner: list[int] = []
         for issue in self.github.list_issues(labels=self.config.poll_labels, state="open"):
             number = issue["number"]
             existing = self.store.get(number)
@@ -325,6 +331,12 @@ class Orchestrator:
             except ContractError as exc:
                 if existing is None:
                     self._reject_contract(number, exc.problems)
+                continue
+            labels = {l["name"] for l in issue.get("labels", [])}
+            if self.config.owner_approval_label not in labels:
+                # Governance: agent:queued alone is a request; execution needs the owner's label too.
+                # No claim, no agent, no branch, no worktree, no PR until the owner adds it.
+                self.awaiting_owner.append(number)
                 continue
             manifest = verification_manifest(contract, regression_domains=self.config.regression_domains)
             self.store.track(number, title=contract.title, risk=contract.risk, resource_class=contract.resource_class,
@@ -348,6 +360,17 @@ class Orchestrator:
             log.warning("could not mark #%s as draft: %s", number, exc)
 
     # -- schedule -----------------------------------------------------------------------------
+    def paused(self) -> bool:
+        return self.store.get_meta("scheduler_paused", "0") == "1"
+
+    def set_paused(self, paused: bool, *, source: str, who: str | None = None, reason: str = "") -> None:
+        self.store.set_meta("scheduler_paused", "1" if paused else "0")
+        self.store.record_event(None, "scheduler_paused" if paused else "scheduler_resumed",
+                                {"source": source, "by": who, "reason": reason})
+
+    def active_issue_count(self) -> int:
+        return len(self.store.list((sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)))
+
     def schedule(self) -> list[scheduler.Decision]:
         queued = []
         for rec in self.store.list((sm.QUEUED,)):
@@ -357,6 +380,11 @@ class Orchestrator:
                 log.error("#%s: stored contract no longer parses: %s", rec.issue_id, exc)
         if not queued:
             return []
+        if self.paused():
+            return [scheduler.Decision(rec.issue_id, "wait", "scheduler paused by the owner") for rec, _ in queued]
+        free_slots = self.config.max_active_issues - self.active_issue_count()
+        if free_slots <= 0:
+            return [scheduler.Decision(rec.issue_id, "wait", f"max active issues reached ({self.config.max_active_issues})") for rec, _ in queued]
         snap = self.resources.snapshot(probe_machine=True)
         external = set()
         for _, c in queued:
@@ -370,8 +398,13 @@ class Orchestrator:
         decisions = scheduler.plan(queued, config=self.config, store=self.store, locks=self.locks, resources=self.resources,
                                    snapshot=snap, external_satisfied=external)
         by_id = {rec.issue_id: (rec, c) for rec, c in queued}
+        started = 0
         for d in decisions:
             if d.starts:
+                if started >= free_slots:
+                    decisions[decisions.index(d)] = scheduler.Decision(d.issue_id, "wait", f"max active issues reached ({self.config.max_active_issues})", d.locks)
+                    continue
+                started += 1
                 rec, contract = by_id[d.issue_id]
                 if self.dry_run:
                     log.info("DRY-RUN would start #%s: branch %s worktree %s locks %s", d.issue_id,
@@ -547,8 +580,8 @@ class Orchestrator:
             return self._step_fix_required(rec)
         if rec.state == sm.REVIEW:
             return self._step_review(rec)
-        if rec.state == sm.READY:
-            return self._step_ready(rec)
+        if rec.state == sm.READY_FOR_OWNER:
+            return self._step_ready_for_owner(rec)
         if rec.state == sm.MERGED:
             return self._step_merged(rec)
         return ""
@@ -630,6 +663,8 @@ class Orchestrator:
     def _step_fix_required(self, rec: IssueRecord) -> str:
         if self._thread_active(f"worker:{rec.issue_id}"):
             return "repair running"
+        if self.paused():
+            return "repair waiting: scheduler paused by the owner"
         snap = self.resources.snapshot(probe_machine=True)
         adm = self.resources.can_start_worker(rec.resource_class, snap)
         if not adm.ok:
@@ -673,10 +708,66 @@ class Orchestrator:
         decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha,
                                        lost_allowance=self._contract(rec).lost_allowance)
         if decision.ok:
-            self._set_state(self.store, rec.issue_id, sm.READY, note=f"policy satisfied: {decision.describe()}")
-            self._milestone(rec.issue_id, f"Ready to merge under the {rec.risk} policy ({decision.describe()}).")
-            return "REVIEW -> READY"
+            self._set_state(self.store, rec.issue_id, sm.READY_FOR_OWNER, note=f"every gate green: {decision.describe()}")
+            self.store.record_event(rec.issue_id, "ready_for_owner", {"head": head, "policy": decision.describe()})
+            self._publish_ready_report(self.store.get(rec.issue_id), head, ev)
+            return "REVIEW -> READY_FOR_OWNER"
         return f"awaiting {', '.join(decision.missing)}"
+
+    # -- READY FOR OWNER ----------------------------------------------------------------------
+    def ready_report(self, rec: IssueRecord, head: str, ev: ci_evidence.CiEvidence | None = None) -> dict:
+        """The decision-oriented facts the owner sees (comment + Telegram). Built only from the store,
+        GitHub evidence and run records — never from a model's free text alone."""
+        if ev is None:
+            ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
+        contract = None
+        try:
+            contract = self._contract(rec)
+        except Exception:  # noqa: BLE001
+            pass
+        report = _last_worker_report(self.store, rec.issue_id)
+        events = self.store.events(rec.issue_id, limit=500)
+        failures = [e for e in events if e["kind"] in ("ci_failed", "review_failed", "worker_failed")]
+        verdicts = [e for e in events if e["kind"] == "review_verdict"]
+        ok_reg, reg_note = merge_policy.regression_status(ev, self.config)
+        v = self.store.get(rec.issue_id)
+        verdict = (v.review_verdict or "").split("@")[0] or "-"
+        acs = []
+        if contract:
+            evidence = {e.get("ac"): e for e in report.get("ac_evidence", []) if isinstance(e, dict)}
+            for a in contract.acceptance_criteria:
+                e = evidence.get(a.id, {})
+                acs.append(f"{a.id}: {e.get('result', 'see gate-3')} — {str(e.get('evidence', ''))[:90]}")
+        gates = ev.required_contexts_green(self.config.protection_required_contexts)[1]
+        return {
+            "issue": rec.issue_id, "title": rec.title, "pr": rec.pr_number, "pr_url": rec.pr_url, "branch": rec.branch,
+            "head": head, "risk": rec.risk,
+            "summary": (report.get("summary") or "").strip()[:400],
+            "what_changed": [str(x)[:160] for x in (report.get("what_changed") or [])][:6],
+            "acceptance": acs,
+            "ci": "PASS" if ev.status == ci_evidence.SUCCESS else ev.status.upper(),
+            "gates": gates,
+            "tests": "; ".join(f"{t.get('command', '')[:60]} -> {t.get('result', '')[:40]}" for t in (report.get("tests_run") or [])[:3]) or "see gate-2/gate-3",
+            "regression": ("PASS" if ok_reg else "FAIL") + f" ({reg_note})",
+            "review": verdict, "review_count": len(verdicts),
+            "failures": [f"{e['payload'].get('class', e['kind'])}: {str(e['payload'].get('summary', e['payload'].get('error', '')))[:100]}" for e in failures][-4:],
+            "attempts": rec.attempt_number,
+            "limitations": [str(x)[:160] for x in (report.get("known_limitations") or [])][:4],
+            "recommendation": "MERGE — every gate green for this exact SHA" if verdict == "APPROVE" and ev.status == ci_evidence.SUCCESS else "HOLD — see evidence",
+        }
+
+    def _publish_ready_report(self, rec: IssueRecord, head: str, ev: ci_evidence.CiEvidence | None = None) -> None:
+        r = self.ready_report(rec, head, ev)
+        text = render_ready_report(r)
+        self._milestone(rec.issue_id, text)
+        if self.config.notify_ready_for_owner:
+            key = f"pr:{rec.pr_number}:READY_FOR_OWNER:{head}"
+            buttons = [[{"text": "Details", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
+                        {"text": "Merge", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"},
+                        {"text": "Reject", "data": f"v1|REJECT_PR|{rec.pr_number}|{head[:8]}|"}]]
+            created = self.store.enqueue_notification("ready_for_owner", key, rec.issue_id, render_ready_notification(r), buttons)
+            if not created:
+                log.info("#%s: READY notification for %s already queued/sent (dedup)", rec.issue_id, head[:12])
 
     def _reviewer_run(self, issue_id: int, head: str) -> None:
         store = self.thread_store()
@@ -762,15 +853,23 @@ class Orchestrator:
             self._milestone(issue_id, f"Independent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nBlocked; Team Lead decision required.")
 
     # -- ready / merge ------------------------------------------------------------------------
-    def _step_ready(self, rec: IssueRecord) -> str:
+    def _step_ready_for_owner(self, rec: IssueRecord) -> str:
+        """Wait for the owner. Keep the readiness honest: a moved head or an advanced base invalidates
+        it (back to CI, new SHA -> new validation -> new notification); an owner merge on GitHub is
+        detected and audited; the orchestrator itself never merges here."""
         pr, head = self._pr_head(rec)
         if pr.get("merged"):
-            self._set_state(self.store, rec.issue_id, sm.MERGED, note="merged externally", validated_commit=pr.get("merge_commit_sha"))
-            return "READY -> MERGED (externally)"
+            self.audit_external_merge(rec, pr)
+            self._set_state(self.store, rec.issue_id, sm.MERGED, note="merged by the owner on GitHub", validated_commit=pr.get("merge_commit_sha"))
+            self._milestone(rec.issue_id, f"PR #{rec.pr_number} merged by the owner (`{str(pr.get('merge_commit_sha'))[:12]}`). Running post-merge smoke.")
+            return "READY_FOR_OWNER -> MERGED (owner merged on GitHub)"
+        if pr.get("state") == "closed":
+            self.locks.release(rec.issue_id, "pr-closed")
+            self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="PR closed by the owner", failure_class="OWNER_REJECTED")
+            return "READY_FOR_OWNER -> BLOCKED (PR closed)"
         if head != rec.validated_commit:
-            self._set_state(self.store, rec.issue_id, sm.CI, note="head changed after validation")
-            self._ci_started[rec.issue_id] = self.clock()
-            return "READY -> CI (head changed)"
+            self._invalidate_readiness(rec, head, "head moved")
+            return "READY_FOR_OWNER -> CI (head moved, readiness invalidated)"
         path = Path(rec.worktree)
         self.worktrees.fetch()
         try:
@@ -787,43 +886,96 @@ class Orchestrator:
                 self.locks.release(rec.issue_id, "merge-conflict")
                 self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT, last_error=str(exc)[:1000])
                 self._milestone(rec.issue_id, f"Blocked: base advanced and the branch conflicts — {str(exc)[:400]}")
-                return "READY -> BLOCKED (merge conflict)"
-            self._ci_started[rec.issue_id] = self.clock()
-            self._set_state(self.store, rec.issue_id, sm.CI, note="base advanced: merged base, re-validating", validated_commit=None)
-            self._milestone(rec.issue_id, f"Base `{self.config.base_branch}` advanced by {behind} commit(s); merged it into the branch and re-running the gates before merge.")
-            return "READY -> CI (base advanced)"
-        if self.dry_run:
-            return "DRY-RUN would merge"
-        contract = self.refresh_contract(self.store, rec)
+                return "READY_FOR_OWNER -> BLOCKED (merge conflict)"
+            new_head = self.worktrees.head_sha(path)
+            self._invalidate_readiness(rec, new_head, f"base advanced by {behind} commit(s); merged base into the branch")
+            return "READY_FOR_OWNER -> CI (base advanced, readiness invalidated)"
+        return "awaiting owner"
+
+    def _invalidate_readiness(self, rec: IssueRecord, new_head: str, why: str) -> None:
+        self.store.record_event(rec.issue_id, "readiness_invalidated", {"old_head": rec.validated_commit, "new_head": new_head, "why": why})
+        self._publish_review_status(self.store, rec.issue_id, new_head, "pending", f"stale: {why}; re-validating")
+        self._ci_started[rec.issue_id] = self.clock()
+        self._set_state(self.store, rec.issue_id, sm.CI, note=f"readiness invalidated: {why}", validated_commit=None)
+        self._milestone(rec.issue_id, f"Readiness for `{str(rec.validated_commit)[:12]}` invalidated ({why}); re-running the gates for `{new_head[:12]}`.")
+
+    def owner_merge(self, issue_id: int, requested_sha: str, *, source: str, owner_id, command_id: str) -> dict:
+        """The ONLY merge path. Re-reads authoritative state immediately before merging and refuses
+        on any mismatch. Returns a result dict that is also the audit payload."""
+        store = self.thread_store()
+        rec = store.get(issue_id)
+        base = {"source": source, "owner_id": owner_id, "command_id": command_id, "issue": issue_id,
+                "requested_sha": requested_sha, "ts": self.clock()}
+        def refuse(reason: str, **extra) -> dict:
+            res = {**base, "result": "REFUSED", "reason": reason, **extra}
+            store.record_event(issue_id, "owner_merge_refused", res)
+            return res
+        if rec is None or not rec.pr_number:
+            return refuse("issue not tracked or has no PR")
+        if rec.state != sm.READY_FOR_OWNER:
+            return refuse(f"issue is {rec.state}, not READY_FOR_OWNER")
+        if not rec.validated_commit or not requested_sha or not rec.validated_commit.startswith(requested_sha):
+            return refuse("requested SHA does not match the validated SHA — revalidation required",
+                          validated_sha=rec.validated_commit)
+        pr = self.github.get_pr(rec.pr_number)
+        head = pr["head"]["sha"]
+        if pr.get("merged"):
+            return refuse("PR already merged", merge_commit=pr.get("merge_commit_sha"))
+        if head != rec.validated_commit:
+            self._invalidate_readiness(rec, head, "head moved before the owner's merge")
+            return refuse("PR changed since validation. Revalidation required.", pr_head=head, validated_sha=rec.validated_commit)
+        contract = self.refresh_contract(store, rec)
         if contract is None:
-            return "READY -> BLOCKED (live contract invalid)"
-        rec = self.store.get(rec.issue_id)
-        self._ensure_review_status(self.store, rec, head)
+            return refuse("live contract invalid")
+        rec = store.get(issue_id)
+        self._ensure_review_status(store, rec, head)
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
-        decision = merge_policy.decide(rec, ev, self.config, review_sha=_review_sha(rec),
-                                       lost_allowance=contract.lost_allowance, require_github_gates=True)
+        decision = merge_policy.decide(rec, ev, self.config, review_sha=_review_sha(rec), lost_allowance=contract.lost_allowance,
+                                       require_github_gates=True)
         if not decision.ok:
-            if decision.missing == ("github_gates_green",):
-                # policy holds locally but GitHub does not (yet) show every required context green:
-                # never merge through the admin exemption — wait and re-check.
-                self.store.record_event(rec.issue_id, "merge_deferred", {"reason": decision.describe()})
-                return f"merge deferred: {decision.describe()}"
-            self._set_state(self.store, rec.issue_id, sm.CI, note=f"policy no longer satisfied: {decision.describe()}")
-            return "READY -> CI (policy re-check failed)"
+            return refuse(f"gates not green for {head[:12]}: {decision.describe()}")
+        self.worktrees.fetch()
+        try:
+            behind = self.worktrees.behind_base(Path(rec.worktree))
+        except GitError:
+            behind = 0
+        if behind > 0:
+            return refuse(f"base advanced by {behind} commit(s) — stale-base revalidation required (the orchestrator will update the branch)")
         _, gate_states = ev.required_contexts_green(self.config.protection_required_contexts)
         try:
             res = self.github.merge_pr(rec.pr_number, method=self.config.merge_method, title=f"{rec.title} (#{rec.pr_number})", sha=head)
         except Exception as exc:  # noqa: BLE001
-            self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="merge failed", failure_class="MERGE_FAILED", last_error=str(exc)[:1000])
-            self._milestone(rec.issue_id, f"Blocked: merge failed — {str(exc)[:400]}")
-            return "READY -> BLOCKED (merge failed)"
+            return refuse(f"GitHub refused the merge: {str(exc)[:300]}")
         merge_sha = res.get("sha")
-        self._set_state(self.store, rec.issue_id, sm.MERGED, note="merged", validated_commit=merge_sha)
-        self.store.record_event(rec.issue_id, "merged", {"pr": rec.pr_number, "merge_sha": merge_sha, "method": self.config.merge_method})
-        self.store.record_event(rec.issue_id, "merge_gate_audit", {"head": head, "contexts": gate_states, "bypass": False,
-                                                                    "policy": decision.describe()})
-        self._milestone(rec.issue_id, f"Merged PR #{rec.pr_number} into `{self.config.base_branch}` ({self.config.merge_method}, `{str(merge_sha)[:12]}`). Running post-merge smoke.")
-        return "READY -> MERGED"
+        self._set_state(store, issue_id, sm.MERGED, note=f"merged by the owner via {source}", validated_commit=merge_sha)
+        result = {**base, "result": "SUCCESS", "actual_validated_sha": head, "pr": rec.pr_number, "merge_commit": merge_sha}
+        store.record_event(issue_id, "merged", {"pr": rec.pr_number, "merge_sha": merge_sha, "method": self.config.merge_method, "by": f"owner via {source}"})
+        store.record_event(issue_id, "merge_gate_audit", {"head": head, "contexts": gate_states, "bypass": False, "policy": decision.describe(),
+                                                          "source": source, "owner_id": owner_id, "command_id": command_id})
+        self._milestone(issue_id, f"Merged PR #{rec.pr_number} into `{self.config.base_branch}` on the owner's command ({source}; {self.config.merge_method}, `{str(merge_sha)[:12]}`). Running post-merge smoke.")
+        return result
+
+    def owner_reject(self, issue_id: int, *, source: str, owner_id, command_id: str, reason: str) -> dict:
+        store = self.thread_store()
+        rec = store.get(issue_id)
+        if rec is None or rec.state != sm.READY_FOR_OWNER:
+            return {"result": "REFUSED", "reason": f"issue is {rec.state if rec else 'untracked'}, not READY_FOR_OWNER"}
+        self.locks.release(issue_id, "owner-reject")
+        self._set_state(store, issue_id, sm.BLOCKED, note="rejected by the owner", failure_class="OWNER_REJECTED", last_error=reason[:1000])
+        self._milestone(issue_id, f"Rejected by the owner ({source}): {reason[:400]}")
+        return {"result": "SUCCESS", "issue": issue_id, "pr": rec.pr_number}
+
+    def owner_change_request(self, issue_id: int, *, source: str, owner_id, command_id: str, feedback: str) -> dict:
+        store = self.thread_store()
+        rec = store.get(issue_id)
+        if rec is None or rec.state not in (sm.READY_FOR_OWNER, sm.BLOCKED):
+            return {"result": "REFUSED", "reason": f"issue is {rec.state if rec else 'untracked'}"}
+        store.record_event(issue_id, "owner_change_request", {"source": source, "owner_id": owner_id, "feedback": feedback[:2000]})
+        _save_evidence_note(self.config, issue_id, f"OWNER CHANGE REQUEST ({source}):\n\n{feedback}")
+        self._set_state(store, issue_id, sm.FIX_REQUIRED, note="owner change request", failure_class="OWNER_CHANGE_REQUEST",
+                        last_error=feedback[:1000])
+        self._milestone(issue_id, f"Owner change request ({source}): {feedback[:400]}\n\nA repair attempt will address it; the PR will be re-validated and re-reported when ready.")
+        return {"result": "SUCCESS", "issue": issue_id, "pr": rec.pr_number}
 
     # -- post-merge ---------------------------------------------------------------------------
     def _step_merged(self, rec: IssueRecord) -> str:
@@ -1034,4 +1186,36 @@ def _verdict_markdown(v: dict) -> str:
             loc = f"{f.get('file')}" + (f":{f['line']}" if f.get("line") else "")
             lines.append(f"- **{f.get('severity')}** `{loc}` — {f.get('summary')}")
     lines += ["", "<sub>Advisory verdict recorded by the orchestrator; it can block but never overrides a deterministic gate.</sub>"]
+    return "\n".join(lines)
+
+
+def render_ready_report(r: dict) -> str:
+    """The Issue-comment form of the READY FOR OWNER report (concise, decision-oriented)."""
+    lines = [f"READY FOR OWNER — PR #{r['pr']} ({r['pr_url'] or ''})", "",
+             f"- Issue: #{r['issue']} {r['title']}", f"- Branch: `{r['branch']}`", f"- Head SHA: `{r['head']}`", f"- Risk: {r['risk']}", "",
+             f"**Summary**: {r['summary'] or '(see PR description)'}"]
+    if r["what_changed"]:
+        lines += ["", "**What changed**:", *[f"- {x}" for x in r["what_changed"]]]
+    if r["acceptance"]:
+        lines += ["", "**Acceptance Criteria**:", *[f"- {x}" for x in r["acceptance"]]]
+    lines += ["", f"**CI**: {r['ci']} ({', '.join(f'{k}={v}' for k, v in r['gates'].items())})",
+              f"**Tests**: {r['tests']}", f"**Regression**: {r['regression']}", f"**Independent review**: {r['review']} ({r['review_count']} run(s))",
+              f"**Failures/retries**: {'; '.join(r['failures']) if r['failures'] else 'none'} (worker attempts: {r['attempts']})",
+              f"**Known limitations**: {'; '.join(r['limitations']) if r['limitations'] else 'none'}", "",
+              f"**Opus recommendation**: {r['recommendation']}", "",
+              "The orchestrator does not merge. Merge via Telegram (Merge → CONFIRM MERGE) or the GitHub Merge button; "
+              "a new commit on the PR invalidates this readiness and triggers re-validation."]
+    return "\n".join(lines)
+
+
+def render_ready_notification(r: dict) -> str:
+    """The short Telegram form."""
+    lines = [f"PR #{r['pr']} READY FOR OWNER", "", f"Issue #{r['issue']}", r["title"][:120], "",
+             f"Risk: {r['risk']}", f"CI: {r['ci']}", f"Regression: {r['regression'].split(' (')[0]}", f"Review: {r['review']}", "",
+             f"Head SHA:\n{r['head']}", "", f"Summary:\n{r['summary'] or '(see PR)'}"]
+    if r["failures"]:
+        lines += ["", "Retries/failures: " + "; ".join(r["failures"])[:300]]
+    if r["limitations"]:
+        lines += ["", "Limitations: " + "; ".join(r["limitations"])[:300]]
+    lines += ["", f"Recommendation: {r['recommendation']}", "", r["pr_url"] or ""]
     return "\n".join(lines)

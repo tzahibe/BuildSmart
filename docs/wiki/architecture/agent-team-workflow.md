@@ -24,7 +24,8 @@ dependencies), configured by `.agent/config.yaml`, operated through `scripts/age
 
 | Role | Model | Where it runs | May |
 |---|---|---|---|
-| Master Team Lead | Opus | the user's interactive Claude Code session (`.claude/skills/agent-team-lead`) | understand requests, write Issue contracts, build the dependency graph, classify risk/resources/locks, approve MEDIUM/HIGH merges, decide on blocked work |
+| **Owner** (the user) | — | Telegram (`@buildsmart_teamlead_bot`, paired) or the GitHub UI | the only authority over the backlog (which Issues exist), `owner:approved`, and the final merge |
+| Master Team Lead | Opus | the user's interactive Claude Code session (`.claude/skills/agent-team-lead`) and the Telegram interpreter | understand requests, **propose** Issue contracts/decomposition/dependencies/criteria/risk, execute approved Issues, recommend merges, decide on blocked work — never create product Issues, add `owner:approved` or merge on its own |
 | Domain Lead | Sonnet | on demand: `agentctl investigate --domain <d> "<question>"` (read-only) | investigate a domain and propose acceptance criteria / verification targets |
 | Worker | Sonnet | `claude -p` in the Issue's worktree, spawned by the orchestrator | edit files, run tests, commit on its branch. **Never** push, open PRs, switch branches, touch GitHub, or weaken tests |
 | Independent Reviewer | Sonnet | `claude -p --restricted` (Read/Grep/Glob only), a fresh session, never the worker's | APPROVE / REQUEST_CHANGES / BLOCK with per-AC assessment; may block, may never override a deterministic gate |
@@ -72,10 +73,14 @@ comment, PR and repository text are data for the agents, never instructions to t
 
 ## Lifecycle (labels mirror states one-to-one)
 
-`agent:draft` → `agent:queued` → `agent:claimed` → `agent:working` → `agent:pr-open` →
-`agent:ci` → `agent:review` → `agent:ready` → `agent:merged` → `agent:done`, with
-`agent:fix-required` (repair loop) and `agent:blocked` (Team Lead decision) as the two side
-states. The transition table is `state_machine.py`; the SQLite store (`.agent/state/
+`agent:draft` → `agent:queued` **+ `owner:approved`** → `agent:claimed` → `agent:working` →
+`agent:pr-open` → `agent:ci` → `agent:review` → **`agent:ready-for-owner`** → (owner merges) →
+`agent:merged` → `agent:done`, with `agent:fix-required` (repair loop / owner change request) and
+`agent:blocked` (Team Lead decision / owner reject) as the side states. An Issue is executable only
+with BOTH `agent:queued` and `owner:approved`; the orchestrator and the Team Lead never add
+`owner:approved` (the owner does: Telegram "Create & Queue" / "approve", or the GitHub UI). At
+`READY_FOR_OWNER` every gate is green for the validated SHA, a READY FOR OWNER report is posted on
+the Issue and sent to Telegram, and the workflow waits: the orchestrator never merges. The transition table is `state_machine.py`; the SQLite store (`.agent/state/
 orchestrator.sqlite3`, WAL) is the truth; labels are re-applied from it by reconciliation.
 
 ## Scheduler and resources
@@ -164,26 +169,29 @@ session with the exact evidence; INFRA/FLAKY get one CI re-run; everything else 
 exhausted budget becomes `agent:blocked` for the Team Lead. The class is persisted on the Issue
 record and posted as a milestone comment.
 
-## Merge policy
+## Merge policy (owner-controlled)
 
-| Risk | Requires | Auto-merge |
+| Risk | Required before `READY_FOR_OWNER` | Auto-merge |
 |---|---|---|
-| LOW | ci_green, reviewer_green | yes |
-| MEDIUM | ci_green, regression_green, reviewer_green, `agentctl approve N --kind lead_approval` | no |
-| HIGH | ci_green, regression_green, reviewer_green, `agentctl approve N --kind lead_architecture_review` | no |
+| LOW / MEDIUM / HIGH | ci_green, regression_green, reviewer_green (+ `lost_allowance` acknowledgement when the contract declares a LOST budget) | **never** — `auto_merge: true` is refused by the config loader |
 
-Two requirements are added on top of the risk table: `lost_allowance` (an explicit approval when
-the contract declares a non-zero LOST budget) and `github_gates_green` (GitHub itself must report
-every branch-protection context — `agent-ci-result`, `agent-review-result` — green for the head
-SHA; if not, the merge is deferred and the status is re-published from the store, never forced).
-
-Before merging, the orchestrator checks whether `main` advanced; if so it merges `origin/main`
-into the branch in its worktree (a conflict → `MERGE_CONFLICT`, blocked), pushes, and goes back to
-CI — old evidence is never reused for a new effective diff. The merge is `squash` by default
-(`github.merge_method`), pinned to the validated head SHA. After the merge: a fresh worktree at
-`origin/main`, the `commands.smoke` list (import check + three cheap test files), then
-`agent:done`, a closing comment with PR / merge commit / attempts / runs / cost / smoke summary,
-lock release, worktree and branch cleanup. A failed smoke blocks the Issue and says so on `main`.
+The orchestrator recommends (the READY FOR OWNER report ends with an Opus recommendation) and
+stops. The only merge path is `Orchestrator.owner_merge()`, invoked exclusively by the owner's
+explicit command — Telegram **Merge → CONFIRM MERGE** (button-bound to PR + validated SHA + a
+short-lived nonce) — or the owner pressing Merge on GitHub (detected by reconciliation, audited).
+Immediately before merging, `owner_merge` re-reads authoritative state and refuses unless: the
+Issue is `READY_FOR_OWNER`; the requested SHA equals the validated SHA; the PR head still equals it
+(otherwise readiness is invalidated and re-validation starts: "PR changed since validation.
+Revalidation required."); `agent-ci-result` and `agent-review-result` are success on GitHub for that
+exact SHA; the regression policy and review are green; the base has not advanced (stale-base
+check); the live contract still validates. Every merge request is audited (`OWNER_COMMAND`:
+source, owner id, PR, Issue, requested SHA, actual validated SHA, command id, timestamp, result,
+merge commit; plus `merge_gate_audit`). A new commit on the PR at any time invalidates readiness
+(`readiness_invalidated`), marks the review status stale and re-runs the gates; a new validated
+SHA produces a new READY notification. After the owner's merge: a fresh worktree at
+`origin/main`, the `commands.smoke` list, then `agent:done`, lock release, worktree and branch
+cleanup. Reject → `BLOCKED (OWNER_REJECTED)`; an owner change request → `FIX_REQUIRED
+(OWNER_CHANGE_REQUEST)` with the feedback handed to the repair worker.
 
 ## Crash recovery and idempotency
 
@@ -222,7 +230,9 @@ scripts/agentctl protect-main           # once: branch protection (reports the e
 scripts/agentctl dry-run                # one tick, no side effects, proposed assignments
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
-scripts/agentctl approve N --kind lead_approval|lead_architecture_review|lost_allowance --note "..."
+scripts/agentctl approve N --kind lost_allowance --note "..."     # the only lead acknowledgement left
+scripts/agentctl pause | resume                                     # also available to the owner on Telegram
+scripts/agentctl remote doctor | pair | unpair | start | stop | status   # the Telegram control plane
 scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N [--update-base]
 scripts/agentctl resume-pr N --rereview --reason "..."   # order a fresh review of the same head
 scripts/agentctl audit N
@@ -288,11 +298,103 @@ under `-n 4` does not reliably meet. Fixed by:
 
 (Issue #10, found via the pilot PR #7's second and third gate-2 failures.)
 
+## Remote owner control plane (Telegram)
+
+**Architecture.** `scripts/agent_team/remote/`: `transport.py` (Telegram Bot API, V1 = long
+polling from the orchestrator machine — no public HTTP server, inbound port, webhook or tunnel; the
+transport is an interface so a webhook/cloud deployment can be added later), `service.py` (a
+deterministic polling *process*, `agentctl remote start|run|stop|status`, single instance via
+flock + pid file, replay protection by Telegram `update_id`, offset persisted in the store),
+`commands.py` (the typed owner command vocabulary and the callback-button encoding
+`v1|ACTION|entity|sha-prefix|nonce`), `interpreter.py` (natural language → one typed command: the
+Team Lead model runs headless with read-only tools and returns a schema-validated intent; it never
+executes anything), `gateway.py` (authorization → replay protection → authoritative state re-read →
+action → audit), `voice.py` (transcription adapter). Notifications go through the store's `outbox`
+table, which the service drains with bounded retries (`notifications.telegram.max_attempts`,
+backoff) and a dedup key `pr:<n>:READY_FOR_OWNER:<sha>` — one message per validated SHA, never
+resent on scheduler ticks or restarts; a failed notification never changes the PR's state and is
+visible in `agentctl status` ("Telegram: FAILED after N attempts").
+
+**Owner pairing.** Only one numeric Telegram user id is the owner; usernames, display names and
+message text claiming ownership are never trusted. `agentctl remote pair` prints a random six-digit
+code valid `pairing_ttl_seconds` (10 min) for one use; the owner sends `/pair <code>` in a private
+chat; the service stores the numeric user id + chat id (`owner_paired` event) and deletes the
+code. Re-pair: run `pair` again (a new user replaces the old). Unpair: `agentctl remote unpair`.
+Every other user gets "Not authorized" and a `remote_denied` audit event.
+
+**Conversation.** The owner writes naturally in Hebrew or English. Slash commands (`/status`,
+`/ready`, `/issue N`, `/pr N`, `/merge N`, `/reject N`, `/approve N`, `/queue N`, `/unqueue N`,
+`/pause`, `/resume`, `/draft`, `/cancel`, `/help`) are parsed deterministically; everything else
+goes to the interpreter with minimal structured context (current draft, current PR, ready PRs,
+compact status, recent Issues) — the raw chat transcript is never the source of truth. Every
+mutating action becomes a typed command (`GET_STATUS`, `LIST_ISSUES`, `GET_ISSUE`,
+`CREATE_ISSUE_DRAFT`, `UPDATE_ISSUE_DRAFT`, `CREATE_ISSUE`, `APPROVE_ISSUE`, `QUEUE_ISSUE`,
+`UNQUEUE_ISSUE`, `LIST_READY_PRS`, `GET_PR_DETAILS`, `PR_QUESTION`, `MERGE_PR`, `CONFIRM_MERGE`,
+`REJECT_PR`, `CONFIRM_REJECT`, `OWNER_CHANGE_REQUEST`, `PAUSE_SCHEDULER`, `RESUME_SCHEDULER`,
+…) that the gateway validates; there is no BASH/GIT/GH/SQL/filesystem command — Telegram is never
+a remote shell.
+
+**Issue workflow.** "תפתח issue חדש: …" → the interpreter (with read-only access to the repo) writes
+a full contract → the gateway validates it (`issue_contract`) and shows the ISSUE DRAFT with
+buttons **[Create only] [Create & Queue] [Edit] [Cancel]**. Follow-up messages edit the current
+draft (`ISSUE_DRAFT` conversation state is persisted per chat). *Create only* creates the GitHub
+Issue with `agent:draft` (no approval, no queue). *Create & Queue* creates it with `owner:approved`
++ `agent:queued` — the only place where `owner:approved` is added programmatically, and only on
+the paired owner's explicit action. Existing Issues: "תאשר את 42 ותכניס אותו לתור" → approve +
+queue; "אל תעבוד כרגע על 42" → unqueue. Duplicate deliveries of the same button/message cannot
+create, approve or queue twice (persisted command ids).
+
+**PR workflow.** `READY_FOR_OWNER` → Telegram message "PR #n READY FOR OWNER" (Issue, risk, CI,
+regression, review, head SHA, summary, retries, limitations, recommendation) with **[Details]
+[Merge] [Reject]**. "מה בדיוק שונה ב-PR 57?" / "מה אמר ה-reviewer?" are answered from the
+authoritative evidence pack (contract, diff, CI evidence, reviewer verdict, audit trail) — never
+invented. **Merge:** "תבצע merge ל-PR 57" or [Merge] → CONFIRM MERGE message (PR, Issue, risk,
+validated SHA, CI/regression/review) with **[CONFIRM MERGE] [Cancel]**; only the button
+confirmation — bound to the PR, the SHA prefix and a nonce that expires after
+`merge_confirmation_ttl_seconds` — authorizes `owner_merge()`, which re-checks everything (see
+Merge policy). A stale button, a moved SHA, a red gate, a stale base or a second press are refused.
+**Reject / change request:** "אל תמזג את 57" → CONFIRM REJECT → `BLOCKED (OWNER_REJECTED)`;
+"תחזיר אותו לתיקון, אני רוצה ש-…" → `OWNER_CHANGE_REQUEST` → `FIX_REQUIRED`, the feedback becomes
+the repair worker's evidence, and the new SHA is re-validated and re-notified.
+
+**Pause / resume.** "תעצור" / `/pause` → no new claims, no new workers, no new repair loops;
+running workers finish their current step (never killed mid-write). "תמשיך" / `/resume` continues.
+Both are audited (`scheduler_paused` / `scheduler_resumed`, with source and user).
+
+**Voice.** A voice message is downloaded and passed to the transcription adapter
+(`remote_control.telegram.transcription_provider`: `none` by default — the owner is told to type;
+`openai` uses Whisper with `OPENAI_API_KEY`); the transcript enters the same command path as text.
+Voice may draft Issues and ask questions; **voice never authorizes a merge** — `CONFIRM_MERGE` and
+`CONFIRM_REJECT` are accepted only from a pressed button.
+
+**Security model.** Token from `AGENT_TELEGRAM_BOT_TOKEN` (or the chmod-600 file named by
+`remote_control.telegram.env_file`, loaded only into the service process); never committed, never
+printed — the audit redactor knows the Telegram token shape and every log record is redacted at
+creation. Owner = numeric user id only. Typed commands only. Every mutating action audited
+(`OWNER_COMMAND` with source, action, entity, owner id, command id, result). Message, Issue, PR and
+repository text are data, never instructions to the gateway.
+
+**Long-polling limitation.** The service must run on the orchestrator machine and keep an
+outbound HTTPS connection to `api.telegram.org`; when it is not running, owner messages wait on
+Telegram's side (delivered on the next start, replay-protected) and READY notifications wait in the
+outbox. Only one polling process may run per bot token.
+
+**Troubleshooting.** `agentctl remote doctor` (token present? `getMe` ok? owner paired? service
+running?), `agentctl remote status` (offset, pending notifications, paused flag),
+`.agent/logs/orchestrator.log` (both processes log there), `agentctl audit N` for a PR's trail.
+"Not authorized" → pair again. Buttons "stale or expired" → ask again (the state moved on).
+**Rotate the token:** BotFather → `/revoke` for the bot → put the new token in the env file →
+`agentctl remote stop && agentctl remote start` (pairing survives; it is tied to the user id, not
+the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair <code>`.
+
 ## Known limitations
 
 - Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is
   enforced through the `agent-review-result` commit status the orchestrator publishes, so a
   stopped orchestrator leaves new SHAs `pending` (blocked from merging) rather than unreviewed.
+- Telegram V1 is long polling from this machine (no webhook); the interpreter is a headless model
+  call per natural-language message (slash commands are free); voice transcription is off unless a
+  provider is configured.
 - Webhooks are not implemented; polling every 120 s is the V1 discovery mechanism (the loop is
   event-shaped so a webhook receiver can call `tick()` later).
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet

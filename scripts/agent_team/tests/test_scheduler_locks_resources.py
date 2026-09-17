@@ -84,7 +84,7 @@ def test_dependency_blocks_until_done(env):
     child = make_contract(201, deps="#200", locks="none", domains="qa")
     d = _plan(env, [dep, child])
     assert d[0].action == "start" and d[1].action == "wait" and "waiting for #200 is QUEUED" in d[1].reason
-    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY, sm.MERGED):
+    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY_FOR_OWNER, sm.MERGED):
         store.transition(200, st)
     d = _plan(env, [child])
     assert d[0].action == "wait"  # MERGED is not DONE (smoke not yet green)
@@ -170,7 +170,7 @@ def test_lock_of_done_issue_is_stale(env):
     a = make_contract(1, locks="docs (exclusive)")
     track(store, a)
     assert lm.acquire(1, a.locks).ok
-    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY, sm.MERGED, sm.DONE):
+    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY_FOR_OWNER, sm.MERGED, sm.DONE):
         store.transition(1, st)
     assert [r.name for r in lm.recover_stale(store.clock())] == ["docs"]
 

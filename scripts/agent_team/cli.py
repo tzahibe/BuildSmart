@@ -13,6 +13,12 @@
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
     agentctl reconcile                   one reconciliation pass, printed
     agentctl doctor                      environment checks (gh auth, claude binary, config)
+    agentctl pause | resume              stop/continue taking new work (audited; the owner can also do it on Telegram)
+    agentctl remote start|run|stop|status|pair|unpair|doctor   the Telegram owner control plane
+
+Governance: the orchestrator never merges and never adds owner:approved. `issue queue` adds
+agent:queued only; execution starts when the owner adds owner:approved (Telegram "Create & Queue" /
+"approve", or the GitHub UI). Merges happen on the owner's CONFIRM MERGE (Telegram) or the GitHub button.
 """
 from __future__ import annotations
 
@@ -214,6 +220,8 @@ def cmd_issue(config: Config, args) -> int:
         gh = _github(config)
         issue = gh.create_issue(c.title, render_body(c), labels)
         print(f"created #{issue['number']} {issue.get('html_url')} labels={labels}")
+        if args.queue:
+            print(f"note: queued but NOT approved — the owner must add {config.owner_approval_label} before it runs")
         return 0
     gh = _github(config)
     issue = gh.get_issue(args.number)
@@ -242,7 +250,9 @@ def cmd_issue(config: Config, args) -> int:
                 gh.remove_label(args.number, l)
         gh.add_labels(args.number, sorted(expected - set(have)))
         gh.set_state_label(args.number, sm.QUEUED)
-        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)})")
+        approved = config.owner_approval_label in have
+        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)}); owner approval: "
+              + ("present" if approved else f"MISSING — nothing runs until the owner adds {config.owner_approval_label} (Telegram or GitHub)"))
         return 0
     return 1
 
@@ -447,6 +457,156 @@ def cmd_doctor(config: Config, args) -> int:
     return 0 if ok else 1
 
 
+# -- pause / resume ---------------------------------------------------------------------------
+
+def cmd_pause(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    store.set_meta("scheduler_paused", "1")
+    store.record_event(None, "scheduler_paused", {"source": "cli", "by": "operator", "reason": args.reason or ""})
+    print("paused: no new claims, no new workers, no new repair loops")
+    return 0
+
+
+def cmd_resume(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    store.set_meta("scheduler_paused", "0")
+    store.record_event(None, "scheduler_resumed", {"source": "cli", "by": "operator", "reason": args.reason or ""})
+    print("resumed")
+    return 0
+
+
+# -- remote (Telegram) ------------------------------------------------------------------------
+
+def _remote_pidfile(config: Config) -> Path:
+    return config.path(config.state_dir) / "remote.pid"
+
+
+def _remote_pid(config: Config) -> int | None:
+    p = _remote_pidfile(config)
+    if not p.exists():
+        return None
+    try:
+        pid = int(p.read_text().strip())
+        os.kill(pid, 0)
+        return pid
+    except (ValueError, ProcessLookupError, PermissionError):
+        return None
+
+
+def _remote_env(config: Config) -> dict:
+    from agent_team.remote.transport import load_env_file
+    env = dict(os.environ)
+    for k, v in load_env_file(config.telegram_env_file).items():
+        env.setdefault(k, v)
+    return env
+
+
+def _build_remote_service(config: Config):
+    from agent_team.remote.gateway import Gateway
+    from agent_team.remote.interpreter import ClaudeInterpreter
+    from agent_team.remote.service import RemoteService
+    from agent_team.remote.transport import HttpTelegramTransport, resolve_token
+    from agent_team.remote.voice import make_transcriber
+    token = resolve_token(config.telegram_token_env, config.telegram_env_file)
+    if not token:
+        raise SystemExit(f"no bot token: set {config.telegram_token_env} or put it in {config.telegram_env_file}")
+    github = _github(config, require_auth=True)
+    orch = Orchestrator(config, github=github, runner=FakeAgentRunner(), dry_run=False)   # actions only; never runs the loop
+    store = orch.store
+    interpreter = ClaudeInterpreter(repo_root=config.repo_root, model=config.interpreter_model,
+                                    timeout_seconds=config.interpreter_timeout_seconds, binary=config.claude_binary)
+    gateway = Gateway(config=config, store=store, github=github, orch=orch, interpreter=interpreter)
+    return RemoteService(config=config, store=store, transport=HttpTelegramTransport(token), gateway=gateway,
+                         transcriber=make_transcriber(config.transcription_provider))
+
+
+def cmd_remote(config: Config, args) -> int:
+    sub = args.remote_cmd
+    if sub == "run":
+        setup_logging(config, verbose=getattr(args, "verbose", False))
+        if not config.telegram_enabled:
+            print("remote_control.telegram.enabled is false", file=sys.stderr)
+            return 2
+        for k, v in _remote_env(config).items():
+            os.environ.setdefault(k, v)
+        from agent_team.remote.service import RemoteAlreadyRunning
+        svc = _build_remote_service(config)
+        try:
+            svc.run()
+        except RemoteAlreadyRunning as exc:
+            print(f"refusing to start: {exc}", file=sys.stderr)
+            return 3
+        return 0
+    if sub == "start":
+        if _remote_pid(config):
+            print(f"already running (pid {_remote_pid(config)})")
+            return 0
+        env = _remote_env(config)
+        if not env.get(config.telegram_token_env):
+            print(f"cannot start: no {config.telegram_token_env} (env or {config.telegram_env_file})", file=sys.stderr)
+            return 2
+        logs = config.path(config.logs_dir)
+        logs.mkdir(parents=True, exist_ok=True)
+        _remote_pidfile(config).parent.mkdir(parents=True, exist_ok=True)
+        out = open(logs / "remote.out", "a")
+        cmd = [sys.executable, "-c",
+               f"import sys; sys.path.insert(0, {str(config.repo_root / 'scripts')!r}); from agent_team.cli import main; sys.exit(main())",
+               "remote", "run"]
+        env["AGENT_TEAM_REPO_ROOT"] = str(config.repo_root)
+        proc = subprocess.Popen(cmd, cwd=str(config.repo_root), stdout=out, stderr=subprocess.STDOUT, start_new_session=True, env=env)
+        _remote_pidfile(config).write_text(str(proc.pid))
+        print(f"telegram service started (pid {proc.pid}); log: {logs / 'orchestrator.log'}")
+        return 0
+    if sub == "stop":
+        pid = _remote_pid(config)
+        if not pid:
+            print("not running")
+            return 0
+        os.kill(pid, signal.SIGTERM)
+        for _ in range(120):
+            time.sleep(0.5)
+            if not _remote_pid(config):
+                break
+        print(f"stopped (pid {pid})" if not _remote_pid(config) else f"pid {pid} still shutting down (waits for the current long poll)")
+        _remote_pidfile(config).unlink(missing_ok=True)
+        return 0
+    store = StateStore(config.state_db_path)
+    if sub == "status":
+        owner = store.owner()
+        pending = [n for n in store.due_notifications(50)]
+        print(f"service: {'running (pid %s)' % _remote_pid(config) if _remote_pid(config) else 'not running'}")
+        print(f"owner: {'paired (telegram user %s)' % owner['telegram_user_id'] if owner else 'NOT paired — run `agentctl remote pair`'}")
+        print(f"offset: {store.get_meta('telegram_offset', '-')}  paused: {store.get_meta('scheduler_paused', '0') == '1'}")
+        print(f"notifications due: {len(pending)}")
+        return 0
+    if sub == "pair":
+        import secrets as _secrets
+        code = f"{_secrets.randbelow(900000) + 100000}"
+        store.create_pairing_code(code, config.pairing_ttl_seconds)
+        print(f"Pairing code: {code}  (valid {config.pairing_ttl_seconds // 60} min, one-time)")
+        print("In Telegram, the owner sends:  /pair " + code)
+        return 0
+    if sub == "unpair":
+        store.clear_owner()
+        print("owner unpaired; run `agentctl remote pair` to pair again")
+        return 0
+    if sub == "doctor":
+        from agent_team.remote.transport import HttpTelegramTransport, TelegramError, resolve_token
+        token = resolve_token(config.telegram_token_env, config.telegram_env_file)
+        print(f"token: {'present (from env/file)' if token else 'MISSING'}  enabled: {config.telegram_enabled}  mode: {config.telegram_mode}")
+        if token:
+            try:
+                me = HttpTelegramTransport(token).get_me()
+                print(f"bot: @{me.get('username')} (id {me.get('id')})")
+            except TelegramError as exc:
+                print(f"bot: ERROR {exc}")
+        owner = store.owner()
+        print(f"owner: {'paired (user %s)' % owner['telegram_user_id'] if owner else 'not paired'}")
+        print(f"service: {'running' if _remote_pid(config) else 'not running'}  interpreter: {config.interpreter_model}  transcription: {config.transcription_provider}")
+        return 0
+    return 1
+
+
 # -- parser -----------------------------------------------------------------------------------
 
 def build_parser() -> argparse.ArgumentParser:
@@ -472,7 +632,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_issue)
 
     s = sub.add_parser("approve"); s.add_argument("number", type=int)
-    s.add_argument("--kind", choices=["lead_approval", "lead_architecture_review", "lost_allowance"], default="lead_approval")
+    s.add_argument("--kind", choices=["lost_allowance"], default="lost_allowance",
+                   help="the only Team Lead acknowledgement left: a declared LOST allowance (merge itself is the owner's)")
     s.add_argument("--note")
     s.set_defaults(fn=cmd_approve)
     s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
@@ -485,6 +646,13 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
+    s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)
+    s = sub.add_parser("resume"); s.add_argument("--reason"); s.set_defaults(fn=cmd_resume)
+    s = sub.add_parser("remote"); rsub = s.add_subparsers(dest="remote_cmd", required=True)
+    for name in ("start", "stop", "status", "pair", "unpair", "doctor"):
+        rsub.add_parser(name)
+    r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
+    s.set_defaults(fn=cmd_remote)
     return p
 
 

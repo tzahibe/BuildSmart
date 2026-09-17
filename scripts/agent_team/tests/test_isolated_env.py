@@ -14,7 +14,7 @@ from agent_team.agent_runner import AgentRunSpec, ClaudeCliRunner, FakeAgentRunn
 from agent_team.failure_classifier import ENVIRONMENT_FAILURE, FailureInput, classify
 from agent_team.orchestrator import _sh
 from agent_team.tests.conftest import CONFIG_PATH
-from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _tick, _worker_that_commits, env  # noqa: F401
+from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _owner_merge, _tick, _worker_that_commits, env  # noqa: F401
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CI_LOG = """
@@ -81,7 +81,11 @@ def test_worker_and_smoke_get_the_env(env, monkeypatch):
     rec = orch.store.get(1)
     from agent_team.tests.test_orchestrator_lifecycle import _green
     _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
-    for _ in range(5):
+    for _ in range(3):
+        _tick(orch)
+    assert orch.store.get(1).state == sm.READY_FOR_OWNER
+    assert _owner_merge(orch, 1)["result"] == "SUCCESS"
+    for _ in range(2):
         _tick(orch)
     assert orch.store.get(1).state == sm.DONE                # smoke saw the injected variable
 
@@ -188,7 +192,7 @@ def test_fresh_review_runs_after_a_lead_reset(env):
     assert orch.store.get(22).review_verdict == f"APPROVE@{head}"
     review_events = [e for e in orch.store.events(22) if e["kind"] == "review_verdict"]
     assert review_events[-1]["payload"]["verdict"] == "APPROVE" and review_events[-1]["payload"]["head"] == head
-    assert _tick(orch).advanced[22] == "REVIEW -> READY"
+    assert _tick(orch).advanced[22] == "REVIEW -> READY_FOR_OWNER"
 
 
 def test_gh_transport_allows_escape_sequences_for_raw_requests():
