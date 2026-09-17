@@ -126,6 +126,38 @@ class Orchestrator:
         return parse_contract(rec.issue_id, d["title"], _body_from_dict(d), known_locks=self.config.known_locks,
                               behavior_domains=self.config.behavior_domains)
 
+    def refresh_contract(self, store: StateStore, rec: IssueRecord) -> IssueContract | None:
+        """Re-read the live Issue and adopt an amended contract (the Team Lead may extend/clarify it
+        while the PR is open — gate 1 validates the live Issue, so review and merge must use it too).
+        Returns None (and blocks the Issue) when the live contract no longer validates."""
+        try:
+            issue = self.github.get_issue(rec.issue_id)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("#%s: cannot re-read the Issue (%s); using the stored contract", rec.issue_id, exc)
+            return self._contract(rec)
+        try:
+            live = parse_contract(rec.issue_id, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
+                                  behavior_domains=self.config.behavior_domains)
+        except ContractError as exc:
+            self.locks.release(rec.issue_id, "contract-invalid")
+            self._set_state(store, rec.issue_id, sm.BLOCKED, note="live contract no longer validates", failure_class="SPEC_MISMATCH",
+                            last_error="; ".join(exc.problems)[:1000])
+            self._milestone(rec.issue_id, "Blocked: the Issue contract was edited and no longer validates:\n" + "\n".join(f"- {p}" for p in exc.problems))
+            return None
+        new_dict = _contract_to_dict(live)
+        if new_dict != rec.contract_dict():
+            before = rec.contract_dict()
+            store.track(rec.issue_id, title=live.title, risk=live.risk, resource_class=live.resource_class, domains=list(live.domains),
+                        dependencies=list(live.dependencies), contract=new_dict)
+            audit.write_contract_snapshot(self.config, rec.issue_id, live.to_dict(),
+                                          verification_manifest(live, regression_domains=self.config.regression_domains))
+            store.record_event(rec.issue_id, "contract_updated", {
+                "acs_before": before.get("body", "").count("\n- AC-"), "acs_after": len(live.acceptance_criteria),
+                "risk": [before.get("risk"), live.risk], "resource_class": [before.get("resource_class"), live.resource_class]})
+            self._milestone(rec.issue_id, f"Contract refreshed from the live Issue: {len(live.acceptance_criteria)} acceptance criteria, "
+                                          f"risk {live.risk}, resource {live.resource_class}. Review and merge use this version.")
+        return live
+
     def _set_state(self, store: StateStore, issue_id: int, state: str, *, note: str = "", **fields_to_set) -> IssueRecord:
         rec = store.transition(issue_id, state, note=note or None, **fields_to_set)
         if not self.dry_run:
@@ -389,7 +421,7 @@ class Orchestrator:
         for domain in contract.domains:
             cmds.extend(self.config.worktree_setup.get(domain, ()))
         for cmd in cmds:
-            proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds)
+            proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
             if proc.returncode != 0:
                 raise RuntimeError(f"setup `{cmd.cmd}` in {cmd.cwd} failed: {proc.stderr[-800:]}")
 
@@ -431,6 +463,7 @@ class Orchestrator:
             allowed_tools=self.config.worker_allowed_tools, disallowed_tools=self.config.worker_disallowed_tools,
             permission_mode=self.config.worker_permission_mode, add_dirs=(path,), effort=self.config.claude_effort,
             resume_session_id=rec.session_id if repair else None, session_name=f"agent-{issue_id}-worker-{attempt}",
+            extra_env=tuple(self.config.command_env.items()),
         )
 
         def heartbeat(pid: int | None) -> None:
@@ -538,6 +571,8 @@ class Orchestrator:
             return f"CI pending ({ev.status})"
         if ev.status == ci_evidence.SUCCESS:
             self._ci_started.pop(rec.issue_id, None)
+            if self.refresh_contract(self.store, rec) is None:
+                return "CI -> BLOCKED (live contract invalid)"
             self.store.update(rec.issue_id, validated_commit=head, failure_class=None)
             self._set_state(self.store, rec.issue_id, sm.REVIEW, note="deterministic gates green")
             self._ensure_review_status(self.store, self.store.get(rec.issue_id), head)
@@ -648,7 +683,10 @@ class Orchestrator:
         rec = store.get(issue_id)
         if rec is None or rec.state != sm.REVIEW:
             return
-        contract = self._contract(rec)
+        contract = self.refresh_contract(store, rec)
+        if contract is None:
+            return
+        rec = store.get(issue_id)
         path = Path(rec.worktree)
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
         worker_report = _last_worker_report(store, issue_id)
@@ -662,7 +700,8 @@ class Orchestrator:
         spec = AgentRunSpec(role=REVIEWER, issue_id=issue_id, attempt=rec.attempt_number, model=self.config.models["reviewer"], cwd=path,
                             prompt=prompt, timeout_seconds=self.config.reviewer_timeout_seconds, system_prompt=prompts.ROLE_SYSTEM_PROMPTS[REVIEWER],
                             json_schema=REVIEW_VERDICT_SCHEMA, tools=self.config.reviewer_tools, restricted=True, add_dirs=(path,),
-                            effort=self.config.claude_effort, session_name=f"agent-{issue_id}-review", persist_session=False)
+                            effort=self.config.claude_effort, session_name=f"agent-{issue_id}-review", persist_session=False,
+                            extra_env=tuple(self.config.command_env.items()))
         result = self.runner.run(spec, heartbeat=lambda pid: store.update(issue_id, heartbeat_at=self.clock(), agent_pid=pid))
         record = audit.write_run_record(self.config, spec, result, extra={"head": head})
         store.record_event(issue_id, "agent_run", {"role": REVIEWER, "ok": result.ok, "cost_usd": result.cost_usd, "turns": result.num_turns,
@@ -755,10 +794,14 @@ class Orchestrator:
             return "READY -> CI (base advanced)"
         if self.dry_run:
             return "DRY-RUN would merge"
+        contract = self.refresh_contract(self.store, rec)
+        if contract is None:
+            return "READY -> BLOCKED (live contract invalid)"
+        rec = self.store.get(rec.issue_id)
         self._ensure_review_status(self.store, rec, head)
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
         decision = merge_policy.decide(rec, ev, self.config, review_sha=_review_sha(rec),
-                                       lost_allowance=self._contract(rec).lost_allowance, require_github_gates=True)
+                                       lost_allowance=contract.lost_allowance, require_github_gates=True)
         if not decision.ok:
             if decision.missing == ("github_gates_green",):
                 # policy holds locally but GitHub does not (yet) show every required context green:
@@ -811,12 +854,12 @@ class Orchestrator:
                 if anc.returncode != 0:
                     raise RuntimeError(f"merge commit {rec.validated_commit[:12]} is not on {self.worktrees.base_ref()} yet")
             for cmd in self.config.worktree_setup.get("always", ()):
-                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds)
+                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
                 if proc.returncode != 0:
                     raise RuntimeError(f"setup `{cmd.cmd}` failed: {proc.stderr[-500:]}")
             for cmd in self.config.smoke:
                 self.resources.heartbeat_heavy(job)
-                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds)
+                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
                 tail = (proc.stdout.strip().splitlines() or [""])[-1][:200]
                 results.append(f"{'✅' if proc.returncode == 0 else '❌'} `{cmd.cmd}` — {tail or proc.stderr[-200:]}")
                 if proc.returncode != 0:
@@ -924,9 +967,11 @@ class Orchestrator:
 # module helpers
 # --------------------------------------------------------------------------------------------
 
-def _sh(cmd: str, cwd: Path, timeout: int):
+def _sh(cmd: str, cwd: Path, timeout: int, extra_env: dict[str, str] | None = None):
     import subprocess
     env = {k: v for k, v in os.environ.items() if not k.startswith(("GH_TOKEN", "GITHUB_TOKEN"))}
+    for k, v in (extra_env or {}).items():
+        env.setdefault(k, v)
     return subprocess.run(cmd, shell=True, cwd=str(cwd), capture_output=True, text=True, timeout=timeout, env=env)
 
 

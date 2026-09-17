@@ -240,6 +240,19 @@ resource class / locks / dependencies / regression budget, `issue create --queue
 dependency order, keep the daemon running, answer `agentctl status`, approve or redirect blocked
 work, and report the outcome to the user. The Team Lead does not implement product code itself.
 
+## Isolated environments
+
+`backend/app/main.py` constructs OpenAI clients at import time, so every environment the workflow
+creates without the developer's `.env` — GitHub Actions jobs, agent worktrees, smoke worktrees —
+would fail at `import app.main`. The workflow therefore exports an obviously fake
+`OPENAI_API_KEY` (`commands.env` in `.agent/config.yaml` for worktrees, workers, reviewers and
+smoke; a job-level `env` in the gate workflows). The deterministic suites never call OpenAI and
+`production_ai` tests stay skipped, so the value is never used for a request. A
+`Missing credentials` failure in CI is classified `ENVIRONMENT_FAILURE` (not repairable by a
+worker). After an environment fix lands on `main`, `agentctl resume-pr N --update-base` merges
+the base into the blocked Issue's branch and pushes, so CI re-runs against the fixed workflow.
+(Found by the Phase H pilot, PR #7, gate-2 job 105194679091.)
+
 ## Known limitations
 
 - Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is

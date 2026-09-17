@@ -8,7 +8,7 @@
     agentctl protect-main                configure branch protection (reports the exact blocker)
     agentctl issue validate N | queue N | create --from FILE [--queue] | render --from FILE
     agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
-    agentctl requeue N | block N --reason ... | resume-pr N
+    agentctl requeue N | block N --reason ... | resume-pr N [--update-base]
     agentctl audit N                     the reconstructable timeline of one issue
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
     agentctl reconcile                   one reconciliation pass, printed
@@ -286,13 +286,34 @@ def cmd_requeue(config: Config, args) -> int:
 
 
 def cmd_resume_pr(config: Config, args) -> int:
+    """Lead decision after a BLOCKED PR: resume at PR_OPEN. `--update-base` first merges the base
+    branch into the Issue branch (in its own worktree) and pushes, so CI re-runs against the current
+    workflow/base — the normal move after an ENVIRONMENT/INFRA fix landed on main."""
+    from agent_team.worktree_manager import MergeConflict, WorktreeManager
     store = StateStore(config.state_db_path)
     rec = store.get(args.number)
     if rec is None or not rec.pr_number:
         print("not tracked or no PR")
         return 1
+    if args.update_base:
+        wm = WorktreeManager(config)
+        slug = rec.contract_dict().get("slug") or Path(rec.worktree).name.split("-", 1)[1]
+        info = wm.ensure(args.number, slug)
+        try:
+            behind = wm.behind_base(info.path)
+            if behind:
+                wm.update_from_base(info.path)
+                wm.push(info.path, info.branch)
+                print(f"#{args.number}: merged {wm.base_ref()} into {info.branch} ({behind} commit(s)) and pushed")
+            else:
+                print(f"#{args.number}: branch already up to date with {wm.base_ref()}")
+        except MergeConflict as exc:
+            print(f"cannot update base: {exc}")
+            return 1
+        store.record_event(args.number, "base_updated_by_lead", {"behind": behind, "head": wm.head_sha(info.path)})
     try:
-        store.transition(args.number, sm.PR_OPEN, allowed_from=(sm.BLOCKED,), failure_class=None, last_error=None, note="resumed at PR by lead")
+        store.transition(args.number, sm.PR_OPEN, allowed_from=(sm.BLOCKED,), failure_class=None, last_error=None,
+                         validated_commit=None, note="resumed at PR by lead" + (" (base updated)" if args.update_base else ""))
     except Exception as exc:  # noqa: BLE001
         print(f"cannot resume: {exc}")
         return 1
@@ -422,7 +443,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_approve)
     s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
     s.set_defaults(fn=cmd_requeue)
-    s = sub.add_parser("resume-pr"); s.add_argument("number", type=int); s.set_defaults(fn=cmd_resume_pr)
+    s = sub.add_parser("resume-pr"); s.add_argument("number", type=int); s.add_argument("--update-base", action="store_true")
+    s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
