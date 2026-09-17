@@ -131,3 +131,49 @@ def test_red_gate_without_logs_is_infra_not_a_blind_repair():
     from agent_team.failure_classifier import INFRA_FAILURE
     c = classify(FailureInput(gate_results={"gate-1-contract / contract": "success", "gate-2-static": "failure"}, logs={}))
     assert c.kind == INFRA_FAILURE and "no job log" in c.summary and not c.repairable
+
+
+def test_contract_amended_while_pr_open_is_refreshed_before_review(env):
+    """Pilot finding: the reviewer was shown the poll-time snapshot, not the amended live Issue."""
+    from agent_team.tests.test_orchestrator_lifecycle import _green
+    config, gh, clock, _ = env
+    _add_issue(gh, 3, risk="LOW")
+    runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
+    orch = _orch(config, gh, clock, runner)
+    _tick(orch); _tick(orch)
+    rec = orch.store.get(3)
+    # the lead extends the live contract with a fourth criterion
+    body = gh.get_issue(3)["body"]
+    body = body.replace("- AC-3: the fast backend test suite still passes",
+                        "- AC-3: the fast backend test suite still passes\n- AC-4: the section names the audit command")
+    body = body.replace("- AC-3 -> TEST:pytest:backend/tests/test_projects.py",
+                        "- AC-3 -> TEST:pytest:backend/tests/test_projects.py\n- AC-4 -> ARTIFACT:grep:backend/README.md:agentctl audit")
+    gh.issues[3]["body"] = body
+    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+    assert _tick(orch).advanced[3] == "CI -> REVIEW"
+    assert len(orch._contract(orch.store.get(3)).acceptance_criteria) == 4
+    assert any(e["kind"] == "contract_updated" and e["payload"]["acs_after"] == 4 for e in orch.store.events(3))
+    assert any("Contract refreshed" in c[1] for c in gh.comments if c[0] == 3)
+    _tick(orch)                                                   # review runs against the refreshed contract
+    reviewer_prompt = [c for c in runner.calls if c.role == "reviewer"][-1].prompt
+    assert "AC-4: the section names the audit command" in reviewer_prompt
+    # an edit that breaks the contract blocks the Issue instead of being reviewed
+    gh.issues[3]["body"] = body.replace("### Risk", "### Danger")
+    orch.store.transition(3, sm.CI, note="test: force re-evaluation"); orch.store.update(3, validated_commit=None)
+    out = _tick(orch).advanced[3]
+    assert out == "CI -> BLOCKED (live contract invalid)" and orch.store.get(3).failure_class == "SPEC_MISMATCH"
+
+
+def test_stale_lock_recovery_uses_updated_at_when_no_heartbeat_exists(env):
+    """Pilot finding: a reconciled PR in REVIEW (never had a worker) lost its lock as 'stale'."""
+    from agent_team.tests.helpers import make_contract, track
+    config, gh, clock, _ = env
+    orch = _orch(config, gh, clock, FakeAgentRunner())
+    c = make_contract(4, locks="ci-infra (exclusive)")
+    track(orch.store, c)
+    for st in (sm.CLAIMED, sm.PR_OPEN, sm.CI, sm.REVIEW):
+        orch.store.transition(4, st)
+    assert orch.locks.acquire(4, c.locks).ok
+    assert orch.locks.recover_stale(clock()) == []                # fresh record, no heartbeat: not stale
+    clock.t += config.lock_stale_after_seconds + 1
+    assert [r.name for r in orch.locks.recover_stale(clock())] == ["ci-infra"]   # genuinely abandoned: released

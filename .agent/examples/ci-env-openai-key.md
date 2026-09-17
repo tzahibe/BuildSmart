@@ -27,7 +27,10 @@ ENVIRONMENT_FAILURE. `agentctl resume-pr N --update-base` merges `origin/main` i
 branch and pushes, so CI re-runs with the fixed workflow. The `gh api` transport passes
 `--allow-escape-sequences` for raw requests (job logs, artifact zips) — without it `gh` refuses to
 emit them and evidence silently goes missing (the pilot's second finding: PR #7 was misclassified
-IMPLEMENTATION_FAILURE for that reason). A red gate-2 without any log is INFRA_FAILURE. Product
+IMPLEMENTATION_FAILURE for that reason). A red gate-2 without any log is INFRA_FAILURE. The orchestrator
+re-reads the live Issue before review and before merge (the third finding: the reviewer was shown
+the poll-time snapshot after the lead had amended the Issue) and stale-lock recovery no longer
+releases the lock of a reconciled PR that never had a worker heartbeat (fourth finding). Product
 code is untouched.
 
 ### Acceptance Criteria
@@ -39,6 +42,8 @@ code is untouched.
 - AC-5: the orchestrator test suite passes with the new tests
 - AC-6: the gh transport fetches job logs and artifact zips with --allow-escape-sequences (raw requests)
 - AC-7: a red gate-2 with no job log available is classified INFRA_FAILURE (evidence unavailable), never a blind repair
+- AC-8: before review and before merge the orchestrator refreshes the contract from the live Issue, records contract_updated when it changed, and blocks the Issue (SPEC_MISMATCH) when the live contract no longer validates
+- AC-9: stale-lock recovery never treats a REVIEW/WORKING Issue without a heartbeat as stale on the basis of epoch 0 — it falls back to the record's last update time
 
 ### Out of scope
 
@@ -74,6 +79,8 @@ ci-infra (exclusive)
 - AC-5 -> cmd:scripts/agent_team/ci/run_orchestrator_tests.sh
 - AC-6 -> grep:scripts/agent_team/github_client.py:allow-escape-sequences ; grep:scripts/agent_team/tests/test_isolated_env.py:test_gh_transport_allows_escape_sequences_for_raw_requests
 - AC-7 -> grep:scripts/agent_team/failure_classifier.py:no job log is available ; grep:scripts/agent_team/tests/test_isolated_env.py:test_red_gate_without_logs_is_infra_not_a_blind_repair
+- AC-8 -> grep:scripts/agent_team/orchestrator.py:def refresh_contract ; grep:scripts/agent_team/tests/test_isolated_env.py:test_contract_amended_while_pr_open_is_refreshed_before_review
+- AC-9 -> grep:scripts/agent_team/locks.py:rec.updated_at or now ; grep:scripts/agent_team/tests/test_isolated_env.py:test_stale_lock_recovery_uses_updated_at_when_no_heartbeat_exists
 
 ### Regression budget
 
