@@ -14,14 +14,16 @@ from pathlib import Path
 from agent_team.ci.common import repo_root, run, set_output
 
 BACKEND_PRODUCT = ("backend/app/", "backend/pyproject.toml", "backend/uv.lock", "backend/spikes/failure_log_sweep/")
-BACKEND_ANY = ("backend/",)
+# Backend code/tests/deps that warrant the fast tier — backend documentation (e.g. backend/README.md)
+# alone does not, so a docs-only backend change no longer pays for compileall + import + pytest.
+BACKEND_CODE = ("backend/app/", "backend/tests/", "backend/spikes/", "backend/pyproject.toml", "backend/uv.lock")
 FRONTEND = ("frontend/",)
 ORCHESTRATOR = ("scripts/agent_team/", "scripts/agentctl", ".agent/config.yaml", ".github/workflows/")
 
 
 def decide(changed: list[str], manifest: dict | None) -> dict:
     backend_product = any(f.startswith(BACKEND_PRODUCT) for f in changed)
-    backend_any = any(f.startswith(BACKEND_ANY) for f in changed)
+    backend_code = any(f.startswith(BACKEND_CODE) for f in changed)
     frontend = any(f.startswith(FRONTEND) for f in changed)
     orchestrator = any(f.startswith(ORCHESTRATOR) for f in changed)
     wants = bool(manifest and manifest.get("regression_required"))
@@ -29,7 +31,7 @@ def decide(changed: list[str], manifest: dict | None) -> dict:
     regression = (wants and backend_product) or (risk == "HIGH" and backend_product)
     reason = ("required by contract and backend product code changed" if regression else
               "not required: " + ("contract does not require it" if not wants else "no backend product code changed"))
-    return {"backend_changed": backend_any, "frontend_changed": frontend, "orchestrator_changed": orchestrator,
+    return {"backend_changed": backend_code, "frontend_changed": frontend, "orchestrator_changed": orchestrator,
             "regression_required": regression, "regression_reason": reason, "changed_count": len(changed)}
 
 

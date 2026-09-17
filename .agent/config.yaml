@@ -183,10 +183,13 @@ commands:
   env:
     OPENAI_API_KEY: not-a-real-key-agent-only
   # Run once after a worktree is created, keyed by the Issue's domains (backend deps are always
-  # installed — nearly every verification target needs them; frontend only when relevant).
+  # installed — nearly every verification target needs them; frontend only when relevant). The
+  # local-model extra (torch/transformers/peft) is installed too so a worker's environment matches
+  # the developer machine — tests/test_local_gateway.py imports torch, and without the extra a
+  # worker cannot even run that test. Also used, unmodified, to set up the post-merge smoke worktree.
   worktree_setup:
     always:
-      - {cwd: backend, cmd: "uv sync --group dev"}
+      - {cwd: backend, cmd: "uv sync --group dev --extra local-model"}
     frontend:
       - {cwd: frontend, cmd: "npm ci --no-audit --no-fund"}
   fast_tests:
