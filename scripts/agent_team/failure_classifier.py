@@ -44,6 +44,8 @@ _INFRA_PATTERNS = [
     r"Could not resolve host", r"Failed to download", r"Cache service responded with 5\d\d",
 ]
 _ENV_PATTERNS = [
+    r"openai\.OpenAIError: Missing credentials", r"(?i)set the `?OPENAI_API_KEY`? .*environment variable",
+    r"(?i)OPENAI_API_KEY (?:is )?(?:not set|missing|required)",
     r"ModuleNotFoundError: No module named '([^']+)'", r"ImportError: cannot import name .* from '([^']+)'",
     r"npm ERR! code E", r"npm ERR! network", r"error: Failed to (?:download|fetch|build) `?([^`\s]+)",
     r"No solution found when resolving dependencies", r"Unable to locate package", r"command not found: ([^\s]+)",
@@ -111,6 +113,9 @@ def classify(inp: FailureInput) -> Classification:
         m = re.search(pat, all_logs)
         if m:
             module = (m.group(1) if m.groups() else "") or ""
+            if "credential" in m.group(0).lower() or "OPENAI_API_KEY" in m.group(0):
+                return Classification(ENVIRONMENT_FAILURE, f"missing credential in the isolated environment: {m.group(0)[:120]}",
+                                      _excerpt(all_logs, m.start()), failed[0] if failed else "")
             top = module.split(".")[0].split("/")[0]
             if top and top in _FIRST_PARTY:
                 return Classification(IMPLEMENTATION_FAILURE, f"first-party import error: {m.group(0)[:120]}",

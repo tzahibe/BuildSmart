@@ -389,7 +389,7 @@ class Orchestrator:
         for domain in contract.domains:
             cmds.extend(self.config.worktree_setup.get(domain, ()))
         for cmd in cmds:
-            proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds)
+            proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
             if proc.returncode != 0:
                 raise RuntimeError(f"setup `{cmd.cmd}` in {cmd.cwd} failed: {proc.stderr[-800:]}")
 
@@ -431,6 +431,7 @@ class Orchestrator:
             allowed_tools=self.config.worker_allowed_tools, disallowed_tools=self.config.worker_disallowed_tools,
             permission_mode=self.config.worker_permission_mode, add_dirs=(path,), effort=self.config.claude_effort,
             resume_session_id=rec.session_id if repair else None, session_name=f"agent-{issue_id}-worker-{attempt}",
+            extra_env=tuple(self.config.command_env.items()),
         )
 
         def heartbeat(pid: int | None) -> None:
@@ -662,7 +663,8 @@ class Orchestrator:
         spec = AgentRunSpec(role=REVIEWER, issue_id=issue_id, attempt=rec.attempt_number, model=self.config.models["reviewer"], cwd=path,
                             prompt=prompt, timeout_seconds=self.config.reviewer_timeout_seconds, system_prompt=prompts.ROLE_SYSTEM_PROMPTS[REVIEWER],
                             json_schema=REVIEW_VERDICT_SCHEMA, tools=self.config.reviewer_tools, restricted=True, add_dirs=(path,),
-                            effort=self.config.claude_effort, session_name=f"agent-{issue_id}-review", persist_session=False)
+                            effort=self.config.claude_effort, session_name=f"agent-{issue_id}-review", persist_session=False,
+                            extra_env=tuple(self.config.command_env.items()))
         result = self.runner.run(spec, heartbeat=lambda pid: store.update(issue_id, heartbeat_at=self.clock(), agent_pid=pid))
         record = audit.write_run_record(self.config, spec, result, extra={"head": head})
         store.record_event(issue_id, "agent_run", {"role": REVIEWER, "ok": result.ok, "cost_usd": result.cost_usd, "turns": result.num_turns,
@@ -811,12 +813,12 @@ class Orchestrator:
                 if anc.returncode != 0:
                     raise RuntimeError(f"merge commit {rec.validated_commit[:12]} is not on {self.worktrees.base_ref()} yet")
             for cmd in self.config.worktree_setup.get("always", ()):
-                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds)
+                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
                 if proc.returncode != 0:
                     raise RuntimeError(f"setup `{cmd.cmd}` failed: {proc.stderr[-500:]}")
             for cmd in self.config.smoke:
                 self.resources.heartbeat_heavy(job)
-                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds)
+                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
                 tail = (proc.stdout.strip().splitlines() or [""])[-1][:200]
                 results.append(f"{'✅' if proc.returncode == 0 else '❌'} `{cmd.cmd}` — {tail or proc.stderr[-200:]}")
                 if proc.returncode != 0:
@@ -924,9 +926,11 @@ class Orchestrator:
 # module helpers
 # --------------------------------------------------------------------------------------------
 
-def _sh(cmd: str, cwd: Path, timeout: int):
+def _sh(cmd: str, cwd: Path, timeout: int, extra_env: dict[str, str] | None = None):
     import subprocess
     env = {k: v for k, v in os.environ.items() if not k.startswith(("GH_TOKEN", "GITHUB_TOKEN"))}
+    for k, v in (extra_env or {}).items():
+        env.setdefault(k, v)
     return subprocess.run(cmd, shell=True, cwd=str(cwd), capture_output=True, text=True, timeout=timeout, env=env)
 
 

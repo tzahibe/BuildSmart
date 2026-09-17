@@ -93,6 +93,7 @@ class AgentRunSpec:
     session_name: str = ""
     persist_session: bool = True
     settings_json: dict | None = None
+    extra_env: tuple[tuple[str, str], ...] = ()   # applied to the agent process unless already set
 
     @property
     def label(self) -> str:
@@ -180,6 +181,8 @@ class ClaudeCliRunner:
     def run(self, spec: AgentRunSpec, *, heartbeat: Callable[[int | None], None] | None = None) -> AgentRunResult:
         cmd = self.build_command(spec)
         env = {k: v for k, v in os.environ.items() if not k.startswith(("GH_TOKEN", "GITHUB_TOKEN"))}
+        for k, v in spec.extra_env:
+            env.setdefault(k, v)
         env["CLAUDE_AGENT_TEAM_ROLE"] = spec.role
         env["CLAUDE_AGENT_TEAM_ISSUE"] = str(spec.issue_id)
         started = time.time()

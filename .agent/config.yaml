@@ -176,6 +176,12 @@ regression_domains: [backend, geometry, validator, ai]
 behavior_domains: [backend, geometry, validator, frontend, ai]
 
 commands:
+  # Environment injected into every setup/test/smoke command and every worker/reviewer process,
+  # unless the variable is already set. backend/app/main.py constructs OpenAI clients at import
+  # time, so isolated environments (worktrees, smoke, CI) need a value; the deterministic suites
+  # never call OpenAI and `production_ai` tests stay skipped, so an obviously-fake literal is right.
+  env:
+    OPENAI_API_KEY: not-a-real-key-agent-only
   # Run once after a worktree is created, keyed by the Issue's domains (backend deps are always
   # installed — nearly every verification target needs them; frontend only when relevant).
   worktree_setup:
