@@ -1,0 +1,43 @@
+# GATE 1 — contract validation (reusable; called by agent-ci.yml).
+# Re-parses the live GitHub Issue linked by the PR and writes the verification manifest that the
+# later gates consume, so no gate ever trusts contract text committed inside the PR itself.
+name: agent-contract
+
+on:
+  workflow_call:
+    outputs:
+      issue:
+        value: ${{ jobs.contract.outputs.issue }}
+      risk:
+        value: ${{ jobs.contract.outputs.risk }}
+      regression_required:
+        value: ${{ jobs.contract.outputs.regression_required }}
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    outputs:
+      issue: ${{ steps.check.outputs.issue }}
+      risk: ${{ steps.check.outputs.risk }}
+      regression_required: ${{ steps.check.outputs.regression_required }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Validate the Issue contract and the PR body
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONPATH: scripts
+        run: uv run --project scripts/agent_team python -m agent_team.ci.contract_check
+      - name: Upload manifest + report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-contract
+          path: .agent/ci/
+          if-no-files-found: warn

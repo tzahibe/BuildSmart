@@ -64,6 +64,7 @@ class Config:
     ci_wait_seconds: int
     ci_poll_interval_seconds: int
     required_checks: tuple[str, ...]
+    gate_checks: tuple[str, ...]
 
     # paths (relative to repo_root unless absolute)
     worktree_root: Path
@@ -203,6 +204,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         ci_wait_seconds=int(gh.get("ci_wait_seconds", 5400)),
         ci_poll_interval_seconds=int(gh.get("ci_poll_interval_seconds", 60)),
         required_checks=tuple(gh.get("required_checks") or ()),
+        gate_checks=tuple(gh.get("gate_checks") or ()),
         worktree_root=Path(str(_need(paths, "worktree_root", "paths"))),
         branch_prefix=str(_need(paths, "branch_prefix", "paths")),
         state_dir=Path(str(_need(paths, "state_dir", "paths"))),

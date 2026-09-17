@@ -19,11 +19,15 @@ github:
   delete_branch_after_merge: true
   ci_wait_seconds: 5400             # give up waiting for checks after 90 min -> INFRA_FAILURE
   ci_poll_interval_seconds: 60
-  required_checks:                  # GitHub Actions job names that must be green before review
-    - "gate-1-contract"
+  # The single aggregate check branch protection requires (agent-ci.yml's last job). It fails when
+  # any gate failed and passes when gate-4 was legitimately skipped for a non-regression PR.
+  required_checks: ["agent-ci-result"]
+  # Individual gate jobs, reported and used for failure classification.
+  gate_checks:
+    - "gate-1-contract / contract"
     - "gate-2-static"
     - "gate-3-verification"
-    - "gate-4-regression"
+    - "gate-4-regression / regression"
 
 paths:
   worktree_root: .worktrees         # gitignored; one directory per Issue

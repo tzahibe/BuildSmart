@@ -1,0 +1,166 @@
+# The staged, fail-fast pipeline for agent PRs (branches agent/<issue>-<slug> -> main).
+#
+#   gate-1-contract  -> gate-2-static -> gate-3-verification -> gate-4-regression (when required)
+#                                                                     \-> agent-ci-result
+#
+# `agent-ci-result` is the single status check branch protection requires: it fails if any gate
+# failed and passes when the regression gate was legitimately skipped (documented in the summary).
+# Gate 5 (independent AI review) is not a GitHub job — the orchestrator runs it locally only after
+# this pipeline is green, and its verdict can block but never override a deterministic result.
+name: agent-ci
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+
+concurrency:
+  group: agent-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  gate-1-contract:
+    if: startsWith(github.head_ref, 'agent/')
+    uses: ./.github/workflows/agent-contract.yml
+    secrets: inherit
+
+  gate-2-static:
+    needs: gate-1-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      backend_changed: ${{ steps.plan.outputs.backend_changed }}
+      frontend_changed: ${{ steps.plan.outputs.frontend_changed }}
+      orchestrator_changed: ${{ steps.plan.outputs.orchestrator_changed }}
+      regression_required: ${{ steps.plan.outputs.regression_required }}
+      regression_reason: ${{ steps.plan.outputs.regression_reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-contract
+          path: .agent/ci
+      - name: Plan which gates this PR needs
+        id: plan
+        env:
+          PYTHONPATH: scripts
+        run: |
+          git fetch --no-tags origin main
+          uv run --project scripts/agent_team python -m agent_team.ci.plan origin/main
+      - name: Backend — syntax, imports, fast unit tier
+        if: steps.plan.outputs.backend_changed == 'true'
+        working-directory: backend
+        run: |
+          uv sync --group dev
+          uv run python -m compileall -q app tests spikes
+          uv run python -c "import app.main"
+          uv run pytest -q -x -p no:cacheprovider -n 4
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.frontend_changed == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend — lint, types/build, unit tests
+        if: steps.plan.outputs.frontend_changed == 'true'
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npm run build
+          npm test
+      - name: Orchestrator — its own unit tests
+        if: steps.plan.outputs.orchestrator_changed == 'true'
+        run: uv run --project scripts/agent_team pytest -q scripts/agent_team/tests
+      - name: Summary
+        run: |
+          {
+            echo "## gate-2-static: PASS"
+            echo "- backend changed: ${{ steps.plan.outputs.backend_changed }}"
+            echo "- frontend changed: ${{ steps.plan.outputs.frontend_changed }}"
+            echo "- orchestrator changed: ${{ steps.plan.outputs.orchestrator_changed }}"
+            echo "- regression required: ${{ steps.plan.outputs.regression_required }} (${{ steps.plan.outputs.regression_reason }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  gate-3-verification:
+    needs: gate-2-static
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-contract
+          path: .agent/ci
+      - name: Backend deps
+        working-directory: backend
+        run: uv sync --group dev
+      - uses: actions/setup-node@v4
+        if: needs.gate-2-static.outputs.frontend_changed == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend deps
+        if: needs.gate-2-static.outputs.frontend_changed == 'true'
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Run every acceptance-criterion target from the manifest
+        env:
+          PYTHONPATH: scripts
+        run: uv run --project scripts/agent_team python -m agent_team.ci.verify .agent/ci/manifest.json
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-verification
+          path: .agent/ci/verification_report.json
+          if-no-files-found: warn
+
+  gate-4-regression:
+    needs: [gate-2-static, gate-3-verification]
+    if: needs.gate-2-static.outputs.regression_required == 'true'
+    uses: ./.github/workflows/agent-regression.yml
+    with:
+      head_sha: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
+
+  agent-ci-result:
+    needs: [gate-1-contract, gate-2-static, gate-3-verification, gate-4-regression]
+    if: always() && startsWith(github.head_ref, 'agent/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate
+        env:
+          R1: ${{ needs.gate-1-contract.result }}
+          R2: ${{ needs.gate-2-static.result }}
+          R3: ${{ needs.gate-3-verification.result }}
+          R4: ${{ needs.gate-4-regression.result }}
+          REG_REQUIRED: ${{ needs.gate-2-static.outputs.regression_required }}
+          REG_REASON: ${{ needs.gate-2-static.outputs.regression_reason }}
+        run: |
+          echo "## agent-ci-result" >> "$GITHUB_STEP_SUMMARY"
+          echo "- gate-1-contract: $R1" >> "$GITHUB_STEP_SUMMARY"
+          echo "- gate-2-static: $R2" >> "$GITHUB_STEP_SUMMARY"
+          echo "- gate-3-verification: $R3" >> "$GITHUB_STEP_SUMMARY"
+          echo "- gate-4-regression: $R4 (required=$REG_REQUIRED; $REG_REASON)" >> "$GITHUB_STEP_SUMMARY"
+          fail=0
+          [ "$R1" = "success" ] || fail=1
+          [ "$R2" = "success" ] || fail=1
+          [ "$R3" = "success" ] || fail=1
+          if [ "$REG_REQUIRED" = "true" ]; then
+            [ "$R4" = "success" ] || fail=1
+          else
+            [ "$R4" = "skipped" ] || [ "$R4" = "success" ] || fail=1
+          fi
+          if [ "$fail" = "1" ]; then echo "::error::one or more gates failed"; exit 1; fi
+          echo "all required gates green"
