@@ -26,6 +26,19 @@ Swagger UI: `http://127.0.0.1:8000/docs`
 .venv/bin/pytest
 ```
 
+## Autonomous workflow
+
+This repo runs an autonomous engineering workflow — see
+[`docs/wiki/architecture/agent-team-workflow.md`](../docs/wiki/architecture/agent-team-workflow.md).
+
+```bash
+scripts/agentctl status
+scripts/agentctl dry-run
+scripts/agentctl audit <issue>
+```
+
+Agent PRs come from `agent/<issue>-<slug>` branches, validated by the `agent-ci` workflow.
+
 ## Endpoints
 
 - `GET /health` — liveness check.
