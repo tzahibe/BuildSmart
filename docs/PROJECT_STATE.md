@@ -21,6 +21,7 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
+| Autonomous Engineering Workflow (Agent Team) | IMPLEMENTED (infrastructure), pilot pending | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
 
 Backend: FastAPI (`backend/app`), Python 3.11, `uv`-managed, `[tool.uv] package = false` — CLIs
 run as `python -m app.<module>.cli`, not via `[project.scripts]`.
@@ -43,6 +44,10 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
 
 ## Guardrails / do-not-change rules
+
+- **Agent PRs only through the workflow**: branches `agent/<issue>-<slug>` are owned by the
+  orchestrator (`scripts/agentctl`); never push to them by hand, never merge them outside the
+  merge policy. `.worktrees/` and `.agent/{state,logs,contracts}/` are local runtime state.
 
 - **ReviewPage Generate guardrail**: preserve the blocking priority order and commit `8c4cdba`'s
   `disabledReason`/pending-message behavior. Don't change without a reproducible regression.

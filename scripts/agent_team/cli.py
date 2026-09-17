@@ -1,0 +1,434 @@
+"""`scripts/agentctl` — the operator / Team Lead command line.
+
+    agentctl status                      what are my agents doing?
+    agentctl run [--once] [--dry-run]    the orchestrator loop (foreground)
+    agentctl start | stop                the orchestrator as a background daemon (pid file)
+    agentctl dry-run                     one tick with no spawn / no push / no PR / no merge
+    agentctl labels                      create/update the label catalogue on GitHub
+    agentctl protect-main                configure branch protection (reports the exact blocker)
+    agentctl issue validate N | queue N | create --from FILE [--queue] | render --from FILE
+    agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
+    agentctl requeue N | block N --reason ... | resume-pr N
+    agentctl audit N                     the reconstructable timeline of one issue
+    agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
+    agentctl reconcile                   one reconciliation pass, printed
+    agentctl doctor                      environment checks (gh auth, claude binary, config)
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from agent_team import state_machine as sm
+from agent_team.agent_runner import ClaudeCliRunner, FakeAgentRunner, resolve_claude_binary
+from agent_team.audit import setup_logging
+from agent_team.config import Config, ConfigError, load_config
+from agent_team.github_client import GhCliTransport, GitHubClient, GitHubError
+from agent_team.issue_contract import ContractError, parse_contract, render_body, verification_manifest
+from agent_team.labels import ALL_LABELS, metadata_labels
+from agent_team.orchestrator import Orchestrator, OrchestratorAlreadyRunning
+from agent_team.resource_manager import ResourceManager
+from agent_team.state_store import StateStore, TransitionConflict
+
+
+def _github(config: Config, *, require_auth: bool = True) -> GitHubClient:
+    transport = GhCliTransport()
+    ok, why = transport.available()
+    if not ok and require_auth:
+        raise SystemExit(f"GitHub access unavailable: {why}")
+    return GitHubClient(config.repo, transport)
+
+
+def _orchestrator(config: Config, *, dry_run: bool, fake_runner: bool = False) -> Orchestrator:
+    github = _github(config, require_auth=True)
+    runner = FakeAgentRunner() if (fake_runner or dry_run) else ClaudeCliRunner(
+        config.claude_binary, heartbeat_interval=config.heartbeat_interval_seconds)
+    return Orchestrator(config, github=github, runner=runner, dry_run=dry_run)
+
+
+# -- commands ---------------------------------------------------------------------------------
+
+def cmd_status(config: Config, args) -> int:
+    from agent_team.status import render
+    store = StateStore(config.state_db_path)
+    print(render(config, store, ResourceManager(config, store), probe_machine=not args.no_probe))
+    pid = _daemon_pid(config)
+    print(f"orchestrator daemon: {'running (pid %s)' % pid if pid else 'not running'}")
+    return 0
+
+
+def cmd_run(config: Config, args) -> int:
+    setup_logging(config, verbose=args.verbose)
+    try:
+        orch = _orchestrator(config, dry_run=args.dry_run)
+    except SystemExit as exc:
+        print(exc, file=sys.stderr)
+        return 2
+    try:
+        orch.run(once=args.once)
+    except OrchestratorAlreadyRunning as exc:
+        print(f"refusing to start: {exc}", file=sys.stderr)
+        return 3
+    return 0
+
+
+def cmd_dry_run(config: Config, args) -> int:
+    setup_logging(config, verbose=args.verbose)
+    try:
+        orch = _orchestrator(config, dry_run=True)
+    except SystemExit as exc:
+        print(exc, file=sys.stderr)
+        return 2
+    report = orch.tick()
+    print("DRY-RUN tick:", report.summary())
+    from agent_team.status import render
+    print()
+    print(render(config, orch.store, orch.resources, probe_machine=True))
+    orch.shutdown()
+    return 0
+
+
+def _pidfile(config: Config) -> Path:
+    return config.path(config.state_dir) / "orchestrator.pid"
+
+
+def _daemon_pid(config: Config) -> int | None:
+    p = _pidfile(config)
+    if not p.exists():
+        return None
+    try:
+        pid = int(p.read_text().strip())
+        os.kill(pid, 0)
+        return pid
+    except (ValueError, ProcessLookupError, PermissionError):
+        return None
+
+
+def cmd_start(config: Config, args) -> int:
+    if _daemon_pid(config):
+        print(f"already running (pid {_daemon_pid(config)})")
+        return 0
+    ok, why = GhCliTransport().available()
+    if not ok:
+        print(f"cannot start: {why}", file=sys.stderr)
+        return 2
+    logs = config.path(config.logs_dir)
+    logs.mkdir(parents=True, exist_ok=True)
+    _pidfile(config).parent.mkdir(parents=True, exist_ok=True)
+    out = open(logs / "daemon.out", "a")
+    cmd = [sys.executable, "-c",
+           f"import sys; sys.path.insert(0, {str(config.repo_root / 'scripts')!r}); from agent_team.cli import main; sys.exit(main())",
+           "run"] + (["--verbose"] if args.verbose else [])
+    proc = subprocess.Popen(cmd, cwd=str(config.repo_root), stdout=out, stderr=subprocess.STDOUT, start_new_session=True,
+                            env={**os.environ, "AGENT_TEAM_REPO_ROOT": str(config.repo_root)})
+    _pidfile(config).write_text(str(proc.pid))
+    print(f"orchestrator started (pid {proc.pid}); log: {logs / 'orchestrator.log'}")
+    return 0
+
+
+def cmd_stop(config: Config, args) -> int:
+    pid = _daemon_pid(config)
+    if not pid:
+        print("not running")
+        return 0
+    os.kill(pid, signal.SIGTERM)
+    for _ in range(60):
+        time.sleep(0.5)
+        if not _daemon_pid(config):
+            break
+    print(f"stopped (pid {pid})" if not _daemon_pid(config) else f"pid {pid} still shutting down")
+    _pidfile(config).unlink(missing_ok=True)
+    return 0
+
+
+def cmd_labels(config: Config, args) -> int:
+    if args.dry_run:
+        for l in ALL_LABELS:
+            print(f"{l.name:22s} #{l.color} {l.description}")
+        return 0
+    gh = _github(config)
+    for l in ALL_LABELS:
+        print(f"{gh.ensure_label(l.name, l.color, l.description):8s} {l.name}")
+    return 0
+
+
+def cmd_protect_main(config: Config, args) -> int:
+    gh = _github(config)
+    try:
+        repo = gh.get_repo()
+        perms = repo.get("permissions") or {}
+        print(f"repo {repo.get('full_name')} default branch {repo.get('default_branch')} admin={perms.get('admin')}")
+        current = gh.get_branch_protection(config.base_branch)
+        print("current protection:", json.dumps(current, indent=1)[:800] if current else "none")
+        if args.show:
+            return 0
+        res = gh.set_branch_protection(config.base_branch, list(config.required_checks), enforce_admins=args.enforce_admins)
+        print(f"protection set on {config.base_branch}: required checks {config.required_checks}, "
+              f"enforce_admins={res.get('enforce_admins', {}).get('enabled')}")
+        return 0
+    except GitHubError as exc:
+        print(f"BLOCKED: {exc} (HTTP {exc.status}) — {exc.body[:300]}", file=sys.stderr)
+        return 4
+
+
+def _read_contract_file(path: Path, number: int, title: str | None, config: Config):
+    text = path.read_text(encoding="utf-8")
+    first, _, rest = text.partition("\n")
+    if first.startswith("# "):
+        title = title or first[2:].strip()
+        body = rest
+    else:
+        body = text
+    if not title:
+        raise SystemExit("a title is required: first line `# [agent] Title` in the file or --title")
+    return parse_contract(number, title, body, known_locks=config.known_locks)
+
+
+def cmd_issue(config: Config, args) -> int:
+    if args.issue_cmd == "render":
+        c = _read_contract_file(Path(args.from_file), 0, args.title, config)
+        print(f"# {c.title}\n")
+        print(render_body(c))
+        return 0
+    if args.issue_cmd == "create":
+        try:
+            c = _read_contract_file(Path(args.from_file), 0, args.title, config)
+        except ContractError as exc:
+            print("contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
+            return 1
+        labels = ["agent:queued" if args.queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
+        gh = _github(config)
+        issue = gh.create_issue(c.title, render_body(c), labels)
+        print(f"created #{issue['number']} {issue.get('html_url')} labels={labels}")
+        return 0
+    gh = _github(config)
+    issue = gh.get_issue(args.number)
+    try:
+        c = parse_contract(issue["number"], issue.get("title", ""), issue.get("body") or "", known_locks=config.known_locks)
+    except ContractError as exc:
+        print(f"#{args.number} contract INVALID:\n- " + "\n- ".join(exc.problems))
+        return 1
+    manifest = verification_manifest(c, regression_domains=config.regression_domains)
+    if args.issue_cmd == "validate":
+        print(f"#{args.number} contract OK: {c.risk}/{c.resource_class} domains={list(c.domains)} AC={len(c.acceptance_criteria)} "
+              f"targets={len(c.verification)} deps={list(c.dependencies)} regression_required={manifest['regression_required']}")
+        if args.json:
+            print(json.dumps(manifest, indent=2))
+        return 0
+    if args.issue_cmd == "queue":
+        if issue.get("author_association", "NONE") not in config.executable_author_associations:
+            print(f"refusing: author association {issue.get('author_association')} is not executable")
+            return 1
+        expected = set(metadata_labels(c.domains, c.risk, c.resource_class))
+        have = [l["name"] for l in issue.get("labels", [])]
+        for l in have:
+            if l.split(":")[0] in ("domain", "risk", "resource") and l not in expected:
+                gh.remove_label(args.number, l)
+        gh.add_labels(args.number, sorted(expected - set(have)))
+        gh.set_state_label(args.number, sm.QUEUED)
+        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)})")
+        return 0
+    return 1
+
+
+def cmd_approve(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None:
+        print(f"#{args.number} is not tracked")
+        return 1
+    store.add_approval(args.number, args.kind, "opus-team-lead", args.note or "")
+    print(f"#{args.number}: recorded {args.kind} (state {rec.state})")
+    try:
+        _github(config).comment(args.number, f"**[agent-team]** Team Lead recorded `{args.kind}`: {args.note or ''}")
+    except SystemExit:
+        pass
+    return 0
+
+
+def cmd_requeue(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None:
+        print("not tracked")
+        return 1
+    try:
+        store.release_locks(args.number, "requeue")
+        store.transition(args.number, sm.QUEUED, allowed_from=(sm.BLOCKED,), attempt_number=0 if args.reset_attempts else rec.attempt_number,
+                         failure_class=None, last_error=None, note=f"requeued by lead: {args.reason or ''}")
+    except (TransitionConflict, Exception) as exc:  # noqa: BLE001
+        print(f"cannot requeue: {exc}")
+        return 1
+    try:
+        gh = _github(config)
+        gh.set_state_label(args.number, sm.QUEUED)
+        gh.comment(args.number, f"**[agent-team]** Team Lead requeued: {args.reason or ''}")
+    except SystemExit:
+        pass
+    print(f"#{args.number} -> QUEUED")
+    return 0
+
+
+def cmd_resume_pr(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None or not rec.pr_number:
+        print("not tracked or no PR")
+        return 1
+    try:
+        store.transition(args.number, sm.PR_OPEN, allowed_from=(sm.BLOCKED,), failure_class=None, last_error=None, note="resumed at PR by lead")
+    except Exception as exc:  # noqa: BLE001
+        print(f"cannot resume: {exc}")
+        return 1
+    try:
+        _github(config).set_state_label(args.number, sm.PR_OPEN)
+    except SystemExit:
+        pass
+    print(f"#{args.number} -> PR_OPEN (CI will re-run its evaluation)")
+    return 0
+
+
+def cmd_block(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None:
+        print("not tracked")
+        return 1
+    try:
+        store.release_locks(args.number, "lead-block")
+        store.transition(args.number, sm.BLOCKED, failure_class="LEAD_BLOCKED", last_error=args.reason, note="blocked by lead")
+    except Exception as exc:  # noqa: BLE001
+        print(f"cannot block: {exc}")
+        return 1
+    try:
+        gh = _github(config)
+        gh.set_state_label(args.number, sm.BLOCKED)
+        gh.comment(args.number, f"**[agent-team]** Team Lead blocked this issue: {args.reason}")
+    except SystemExit:
+        pass
+    print(f"#{args.number} -> BLOCKED")
+    return 0
+
+
+def cmd_audit(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None:
+        print("not tracked")
+        return 1
+    print(f"#{rec.issue_id} {rec.title}\n state={rec.state} risk={rec.risk} class={rec.resource_class} attempt={rec.attempt_number} "
+          f"pr={rec.pr_number} branch={rec.branch}\n worktree={rec.worktree}\n validated={rec.validated_commit} review={rec.review_verdict} "
+          f"failure_class={rec.failure_class}\n last_error={rec.last_error}\n approvals={rec.approvals}\n")
+    for e in store.events(args.number, limit=args.limit):
+        ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(e["ts"]))
+        payload = json.dumps(e["payload"], ensure_ascii=False)
+        print(f"{ts}  {e['kind']:18s} {payload[:200]}")
+    runs = config.path(config.logs_dir) / "runs" / str(args.number)
+    if runs.exists():
+        print("\nrun records:")
+        for p in sorted(runs.iterdir()):
+            print("  ", p)
+    return 0
+
+
+def cmd_investigate(config: Config, args) -> int:
+    setup_logging(config)
+    runner = ClaudeCliRunner(config.claude_binary)
+    orch = Orchestrator(config, github=_github(config, require_auth=False), runner=runner, dry_run=True)
+    result = orch.investigate(args.domain, args.question)
+    if not result.ok:
+        print(f"domain lead failed: {result.error}", file=sys.stderr)
+        return 1
+    print(json.dumps(result.structured, indent=2, ensure_ascii=False))
+    return 0
+
+
+def cmd_reconcile(config: Config, args) -> int:
+    setup_logging(config)
+    from agent_team.reconciliation import reconcile
+    orch = _orchestrator(config, dry_run=args.dry_run, fake_runner=True)
+    for a in reconcile(orch) or ["nothing to reconcile"]:
+        print(a)
+    orch.release_singleton()
+    return 0
+
+
+def cmd_doctor(config: Config, args) -> int:
+    ok = True
+    print(f"config: {config.repo_root / '.agent' / 'config.yaml'} (repo {config.repo}, base {config.base_branch})")
+    gh_ok, why = GhCliTransport().available()
+    print(f"gh: {'OK' if gh_ok else 'MISSING'} — {why}")
+    ok &= gh_ok
+    try:
+        b = resolve_claude_binary(config.claude_binary)
+        v = subprocess.run([b, "--version"], capture_output=True, text=True, timeout=30).stdout.strip()
+        print(f"claude: OK — {b} ({v})")
+    except Exception as exc:  # noqa: BLE001
+        print(f"claude: MISSING — {exc}")
+        ok = False
+    print(f"state db: {config.state_db_path} ({'exists' if config.state_db_path.exists() else 'not created yet'})")
+    print(f"worktree root: {config.path(config.worktree_root)}")
+    from agent_team.resource_manager import PsutilProbe
+    p = PsutilProbe()
+    print(f"machine: CPU {p.cpu_percent(1.0):.0f}% free RAM {p.free_memory_gb():.1f} GiB "
+          f"(limits: {config.cpu_threshold_percent:.0f}%, {config.min_free_memory_gb:.1f} GiB)")
+    print(f"daemon: {'running (pid %s)' % _daemon_pid(config) if _daemon_pid(config) else 'not running'}")
+    return 0 if ok else 1
+
+
+# -- parser -----------------------------------------------------------------------------------
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(prog="agentctl", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--repo-root", default=None)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    s = sub.add_parser("status"); s.add_argument("--no-probe", action="store_true"); s.set_defaults(fn=cmd_status)
+    s = sub.add_parser("run"); s.add_argument("--once", action="store_true"); s.add_argument("--dry-run", action="store_true")
+    s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_run)
+    s = sub.add_parser("dry-run"); s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_dry_run)
+    s = sub.add_parser("start"); s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_start)
+    s = sub.add_parser("stop"); s.set_defaults(fn=cmd_stop)
+    s = sub.add_parser("labels"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_labels)
+    s = sub.add_parser("protect-main"); s.add_argument("--enforce-admins", action="store_true"); s.add_argument("--show", action="store_true")
+    s.set_defaults(fn=cmd_protect_main)
+
+    s = sub.add_parser("issue"); isub = s.add_subparsers(dest="issue_cmd", required=True)
+    v = isub.add_parser("validate"); v.add_argument("number", type=int); v.add_argument("--json", action="store_true")
+    q = isub.add_parser("queue"); q.add_argument("number", type=int)
+    c = isub.add_parser("create"); c.add_argument("--from", dest="from_file", required=True); c.add_argument("--title"); c.add_argument("--queue", action="store_true")
+    r = isub.add_parser("render"); r.add_argument("--from", dest="from_file", required=True); r.add_argument("--title")
+    s.set_defaults(fn=cmd_issue)
+
+    s = sub.add_parser("approve"); s.add_argument("number", type=int)
+    s.add_argument("--kind", choices=["lead_approval", "lead_architecture_review"], default="lead_approval"); s.add_argument("--note")
+    s.set_defaults(fn=cmd_approve)
+    s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
+    s.set_defaults(fn=cmd_requeue)
+    s = sub.add_parser("resume-pr"); s.add_argument("number", type=int); s.set_defaults(fn=cmd_resume_pr)
+    s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
+    s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
+    s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
+    s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
+    s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        config = load_config(repo_root=Path(args.repo_root).resolve() if args.repo_root else None)
+    except ConfigError as exc:
+        print(f"config error: {exc}", file=sys.stderr)
+        return 2
+    return args.fn(config, args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

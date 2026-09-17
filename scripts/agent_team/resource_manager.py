@@ -59,12 +59,13 @@ class ResourceSnapshot:
     running_issues: tuple[int, ...]
 
     def describe(self, config: Config) -> str:
+        machine = ("not probed" if self.free_memory_gb == float("inf") else
+                   f"CPU {self.cpu_percent:.0f}% (limit {config.cpu_threshold_percent:.0f}%)  "
+                   f"free RAM {self.free_memory_gb:.1f} GiB (min {config.min_free_memory_gb:.1f})")
         return (f"workers {self.workers_running}/{config.max_worker_agents}  "
                 f"reviewers {self.reviewers_running}/{config.max_reviewer_agents}  "
                 f"weighted capacity {self.weighted_used}/{config.weighted_capacity}  "
-                f"heavy jobs {self.heavy_running}/{config.heavy_job_concurrency}  "
-                f"CPU {self.cpu_percent:.0f}% (limit {config.cpu_threshold_percent:.0f}%)  "
-                f"free RAM {self.free_memory_gb:.1f} GiB (min {config.min_free_memory_gb:.1f})")
+                f"heavy jobs {self.heavy_running}/{config.heavy_job_concurrency}  {machine}")
 
 
 @dataclass(frozen=True)
