@@ -4,6 +4,19 @@ A derived retrieval layer over this repo's Markdown documentation. **Git/Markdow
 source of truth.** This index is rebuildable from the repo at any time; it is never edited
 directly, and it is never authoritative over the `.md` files it's built from.
 
+## Wiki-first, RAG as the supporting discovery layer
+
+As of 2026-09-17 this is **not** a RAG-first system — vector retrieval is not the mandatory first
+source for substantive work. Authority, highest first: **(1)** code + tests + current git state,
+**(2)** the canonical **Wiki** (`docs/wiki/` — compact, human-authored "what is true now," see
+`docs/wiki/architecture/knowledge-system.md`), **(3)** raw reports/specs/investigations (history,
+rationale, evidence), **(4)** this RAG layer, indexing both the Wiki and raw sources, used for
+discovery and deeper evidence when a Wiki page alone isn't enough. Everything below in this
+document (chunking, storage, embeddings, hybrid retrieval, incremental indexing, the CLI) is
+preserved unchanged in mechanism — only the agent workflow's entry point changed, from "search
+first" to "read the Wiki page first, search when you need history." See
+`.claude/skills/knowledge-refresh/SKILL.md` for the exact agent flow.
+
 ## Architecture
 
 ```
@@ -43,6 +56,7 @@ Every entry in `doc_status.json` carries:
 
 | field | meaning |
 |---|---|
+| `source_type` | `WIKI_CANONICAL` \| `PROJECT_STATE` \| `IMPLEMENTATION_REPORT` \| `INVESTIGATION` \| `SPEC` \| `HISTORICAL` — what *kind* of source this is, independent of `doc_status`. Derived from path/`doc_status` when not set explicitly (`doc_status.py::_default_source_type`) — pre-existing raw-report entries were never hand-annotated for this. |
 | `doc_status` | `IMPLEMENTED` \| `APPROVED` \| `ACTIVE_RESEARCH` \| `HISTORICAL` \| `SUPERSEDED` — the doc's own currency |
 | `capability_status` | `IMPLEMENTED_MERGED` \| `PARTIAL` \| `NOT_IMPLEMENTED` \| `UNKNOWN` \| `N/A` — does the described capability exist in `main` today |
 | `decision_status` | `APPROVED` \| `APPROVED_FOR_IMPLEMENTATION` \| `PROPOSED` \| `REJECTED` \| `N/A` |
@@ -201,7 +215,13 @@ cosine scores are on incomparable scales):
    flip a real relevance gap (a highly-relevant historical chunk always outranks an irrelevant
    current one). See `tests/knowledge/test_retrieval_priority.py` for the four invariants this is
    tested against.
-5. `topics`/`status` filters apply before ranking. An explicit `status=("HISTORICAL",)` request
+5. On top of that, `source_type` applies a **floor, not a multiplier**: `WIKI_CANONICAL` and
+   `PROJECT_STATE` sources are guaranteed at least `1.20` regardless of their `doc_status` — so a
+   semantically-similar old investigation can win on raw relevance but never simply outrank the
+   canonical Wiki page on status alone. Still bounded (1.20 vs. the 0.75 `SUPERSEDED` floor is a
+   ~1.6× spread) — see `tests/knowledge/test_wiki_source_type_priority.py` for the same
+   never-flips-a-real-gap invariant, now proven for the Wiki case specifically.
+6. `topics`/`status` filters apply before ranking. An explicit `status=("HISTORICAL",)` request
    bypasses the default down-weighting entirely — historical/superseded material is down-weighted
    by default, never hidden outright.
 

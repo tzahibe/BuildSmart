@@ -20,6 +20,7 @@ from app.knowledge.context_pack import build_context_pack
 from app.knowledge.doc_status import stale_entries
 from app.knowledge.embeddings.factory import get_embedding_provider
 from app.knowledge.indexer import EmbeddingConfigMismatch, KnowledgeIndexer, repo_root_from_here
+from app.knowledge.lock import IndexLockTimeout
 from app.knowledge.retrieval import search
 from app.knowledge.store.factory import get_store
 from app.local_models.discovery import discover_ollama, recommend_candidates
@@ -37,6 +38,11 @@ def cmd_index(args: argparse.Namespace) -> int:
     except EmbeddingConfigMismatch as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
+    if report.deferred:
+        print("refresh deferred — another process is currently indexing this shared index; "
+              "using the last known-good index. Retrieval is unaffected; re-run later to pick up "
+              "any changes.")
+        return 0
     print(f"indexed: {len(report.indexed)}  skipped (unchanged): {len(report.skipped_unchanged)}  "
           f"removed: {len(report.removed)}")
     return 0
@@ -51,13 +57,13 @@ def cmd_search(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps([{
             "document": h.doc_path, "section": h.heading_path, "status": h.status.doc_status,
-            "capability_status": h.status.capability_status, "commit": h.status.commit,
-            "score": round(h.final_score, 4), "text": h.text,
+            "capability_status": h.status.capability_status, "source_type": h.status.source_type,
+            "commit": h.status.commit, "score": round(h.final_score, 4), "text": h.text,
         } for h in hits], indent=2, ensure_ascii=False))
     else:
         for h in hits:
             print(f"[{h.final_score:.3f}] {h.doc_path} > {h.heading_path}  "
-                  f"({h.status.doc_status}/{h.status.capability_status})")
+                  f"({h.status.source_type}: {h.status.doc_status}/{h.status.capability_status})")
             print(f"    {h.text[:200].replace(chr(10), ' ')}")
     return 0
 
@@ -73,12 +79,12 @@ def cmd_context(args: argparse.Namespace) -> int:
     print("\n## PROJECT_STATE.md\n")
     print(pack.project_state_text)
     for c in pack.chunks:
-        print(f"\n## {c.doc_path} > {c.heading_path}  [{c.status.doc_status}]\n")
+        print(f"\n## {c.doc_path} > {c.heading_path}  [{c.status.source_type}: {c.status.doc_status}]\n")
         print(c.text)
     if pack.historical_chunks:
         print("\n## Historical evidence\n")
         for c in pack.historical_chunks:
-            print(f"\n### {c.doc_path} > {c.heading_path}  [{c.status.doc_status}]\n")
+            print(f"\n### {c.doc_path} > {c.heading_path}  [{c.status.source_type}: {c.status.doc_status}]\n")
             print(c.text)
     return 0
 
@@ -90,7 +96,11 @@ def cmd_stats(_args: argparse.Namespace) -> int:
 
 
 def cmd_clear(_args: argparse.Namespace) -> int:
-    _indexer().clear()
+    try:
+        _indexer().clear()
+    except IndexLockTimeout as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     print("index cleared")
     return 0
 

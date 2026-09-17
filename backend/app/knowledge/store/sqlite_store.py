@@ -60,8 +60,16 @@ def _cosine(a: list[float], b: list[float]) -> float:
 
 class SqliteKnowledgeStore(KnowledgeStore):
     def __init__(self, db_path: str):
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        if os.path.dirname(db_path):
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self._conn = sqlite3.connect(db_path)
+        # WAL mode: one writer, many concurrent readers, neither blocks the other — readers
+        # always see the last committed snapshot even mid-refresh. This is what lets
+        # search/context/stats stay available while another agent holds the index-refresh lock
+        # (app/knowledge/lock.py) and is writing. busy_timeout is a belt-and-suspenders safety net
+        # for the rare case two SQLite-level operations still contend briefly.
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA busy_timeout=5000")
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
 
