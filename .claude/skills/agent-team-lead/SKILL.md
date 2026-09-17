@@ -117,7 +117,15 @@ scripts/agentctl notify "📋 עדכון: ..."      # queued to the paired owner
 
 Never leave a long task running without a Telegram update; never answer only in the IDE.
 
-## 6. Report
+## 6. Update the knowledge on every step
+
+Every milestone updates the repository's knowledge, not only code: the relevant canonical Wiki
+page (`docs/wiki/`), `docs/PROJECT_STATE.md` when a subsystem's status changed, the roadmap
+pointer, and the RAG index (`cd backend && uv run python -m app.knowledge.cli index --changed`).
+An Issue that ships without its Wiki update is not done; a draft Issue records its knowledge
+check in its own `### Knowledge check` section.
+
+## 7. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),
 what is blocked and why, and what decision (if any) is theirs.

@@ -232,7 +232,9 @@ scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
 scripts/agentctl approve N --kind lost_allowance --note "..."     # the only lead acknowledgement left
 scripts/agentctl pause | resume                                     # also available to the owner on Telegram
-scripts/agentctl remote doctor | pair | unpair | start | stop | status   # the Telegram control plane
+scripts/agentctl remote doctor | pair [--user-id N] | unpair | start | stop | status   # Telegram control plane
+scripts/agentctl install | uninstall [all|orchestrator|remote]    # permanent launchd user agents (macOS)
+scripts/agentctl notify "📋 עדכון: ..."                              # a Hebrew progress update to the owner's Telegram
 scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N [--update-base]
 scripts/agentctl resume-pr N --rereview --reason "..."   # order a fresh review of the same head
 scripts/agentctl audit N
@@ -315,14 +317,14 @@ backoff) and a dedup key `pr:<n>:READY_FOR_OWNER:<sha>` — one message per vali
 resent on scheduler ticks or restarts; a failed notification never changes the PR's state and is
 visible in `agentctl status` ("Telegram: FAILED after N attempts").
 
-**Owner pairing.** Only one numeric Telegram user id is the owner; usernames, display names and
+**Owner pairing.** Only one numeric Telegram user id is the owner (the operator may also pair it directly at the terminal with `agentctl remote pair --user-id <id>`, audited as `owner_paired_by_operator`); usernames, display names and
 message text claiming ownership are never trusted. `agentctl remote pair` prints a random six-digit
 code valid `pairing_ttl_seconds` (10 min) for one use; the owner sends `/pair <code>` in a private
 chat; the service stores the numeric user id + chat id (`owner_paired` event) and deletes the
 code. Re-pair: run `pair` again (a new user replaces the old). Unpair: `agentctl remote unpair`.
 Every other user gets "Not authorized" and a `remote_denied` audit event.
 
-**Conversation.** The owner writes naturally in Hebrew or English. Slash commands (`/status`,
+**Conversation.** The owner writes naturally in Hebrew or English; every reply is in Hebrew. Replies are fast by design: 'typing…' is sent on receipt, a fast model (`interpreter_fast_model`, no tools) classifies the intent in seconds, and only Issue drafting runs the Team Lead model with read-only repository access after an explicit '⏳' acknowledgement; updates are handled on a worker thread so polling never blocks. Slash commands (`/status`,
 `/ready`, `/issue N`, `/pr N`, `/merge N`, `/reject N`, `/approve N`, `/queue N`, `/unqueue N`,
 `/pause`, `/resume`, `/draft`, `/cancel`, `/help`) are parsed deterministically; everything else
 goes to the interpreter with minimal structured context (current draft, current PR, ready PRs,
@@ -401,11 +403,24 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
   read API quota.
 - GitHub sub-issues are not used; dependencies live in the contract (`Dependencies`) and the store.
 
-## Pilot record
+## Pilot record (2026-09-17)
 
-See the "Pilot" section of `docs/AGENT_TEAM_PHASE_0_ENVIRONMENT_REPORT.md` — filled in when the
-first low-risk Issue has gone Issue → poll → worker → PR → gates → review → merge → smoke → closed.
+Pilot Issue #6 (LOW, docs-only, `backend/README.md`) completed end-to-end: Issue → poll → claim
+→ Sonnet worker (1 attempt, 31 turns, $0.60, 151 s) → branch `agent/6-document-the-autonomous-workflow-entry-p`
+→ PR #7 → gates → independent Sonnet review APPROVE (incl. one SEMANTIC_REVIEW criterion) →
+LOW-policy merge (squash `64f0fd70`) → post-merge smoke (164 passed) → closed `agent:done`;
+total agent cost ≈ $0.67. Two red gate-2 runs on the way were environment defects of the
+workflow, not of the product, fixed through the workflow itself: Issue #8 / PR #9 (`0f4bb586`:
+dummy `OPENAI_API_KEY` for isolated environments, `gh api --allow-escape-sequences` for
+logs/artifacts, contract refresh from the live Issue before review/merge, stale-lock heartbeat
+fallback, skipped gate-4 == regression_green) and Issue #10 / PR #11 (`3edb7d07`: CPU-only torch
+in gate 2, documented CI deselect of the wall-clock budget test, `backend_changed` only for
+backend code, local-model extra in worktrees); Issue #14 / PR #15 (`7814dc1b`) added the lead's
+re-review command after a factually wrong reviewer verdict (the repair worker correctly refused
+to "fix" a correct commit hash). No admin bypass occurred (`merge_gate_audit` bypass=false for
+every merge). The merges of that day were made by the orchestrator under the then-current policy;
+since the governance change the orchestrator never merges (see Merge policy).
 
 ## Last verified against git
 
-Branch `infra/agent-team` (this page lands with the Phase F commit).
+`7814dc1` (main) + branch `infra/telegram-control-plane` (PR #16) for the governance/Telegram sections.
