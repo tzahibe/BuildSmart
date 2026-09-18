@@ -71,7 +71,10 @@ merge before continuing with the Acceptance Criteria.
 
 # Finish
 When done (or blocked), make sure every intended change is committed (`git status` clean apart
-from untracked build artefacts), then return the structured JSON report requested. The report
+from untracked build artefacts), then return the structured JSON report requested. Keep the report
+compact — every string field under 1500 characters, one line per AC evidence, no code or logs pasted
+into it (the PR diff and the run record carry those): a report that fails to serialize into the schema
+after retries loses the whole run. The report
 becomes the PR description and the reviewer's input, so keep it precise: list the AC evidence
 exactly in terms of the Verification plan targets, and the test commands you actually ran with
 their real results.
