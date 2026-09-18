@@ -86,8 +86,7 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
     review_rows = []
     for r in by_state.get(sm.REVIEW, []):
         verdict = (r.review_verdict or "pending").split("@")[0]
-        approvals = ",".join(a["kind"] for a in r.approvals) or "none"
-        review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / {r.risk} / review {verdict} / approvals {approvals} — {_title(r)}")
+        review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / {r.risk} / review {verdict} — {_title(r)}")
     for r in by_state.get(sm.MERGED, []):
         review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / merged by the owner, smoke pending — {_title(r)}")
     section("REVIEW / MERGE", review_rows)

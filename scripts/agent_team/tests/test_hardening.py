@@ -372,6 +372,20 @@ def test_renumber_titles_idempotent(env, capsys):  # noqa: F811
     assert "no titles need renumbering" in capsys.readouterr().out
 
 
+def test_renumber_titles_all_states(env, capsys):  # noqa: F811
+    config, gh, _, _ = env
+    gh.add_issue(21, "[agent] Closed unnumbered title", "b", ["agent:done"], state="closed")
+    cli._github = lambda c, require_auth=True: gh   # type: ignore[assignment]
+
+    args = type("A", (), {"issue_cmd": "renumber-titles", "dry_run": False, "all_states": False})()
+    assert cli.cmd_issue(config, args) == 0
+    assert gh.get_issue(21)["title"] == "[agent] Closed unnumbered title"    # closed, not touched without --all-states
+
+    args = type("A", (), {"issue_cmd": "renumber-titles", "dry_run": False, "all_states": True})()
+    assert cli.cmd_issue(config, args) == 0
+    assert gh.get_issue(21)["title"] == numbered_title(21, "Closed unnumbered title")    # --all-states covers it
+
+
 def test_cli_issue_create_numbers_title(env, tmp_path, capsys):  # noqa: F811
     config, gh, _, _ = env
     cli._github = lambda c, require_auth=True: gh   # type: ignore[assignment]

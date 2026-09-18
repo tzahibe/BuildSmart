@@ -124,7 +124,7 @@ class Gateway:
             contract = "חוזה לא תקין: " + "; ".join(exc.problems)[:300]
         state = f"אורקסטרטור: {rec.state}" + (f", PR #{rec.pr_number}" if rec and rec.pr_number else "") if rec else "אורקסטרטור: לא במעקב"
         approved = self.config.owner_approval_label in names
-        text = (f"Issue #{n}: {issue.get('title')}\nGitHub: {issue.get('state')} · תוויות {', '.join(names) or '-'}\n{state}\n"
+        text = (f"Issue #{n}: {strip_title_number(issue.get('title') or '')}\nGitHub: {issue.get('state')} · תוויות {', '.join(names) or '-'}\n{state}\n"
                 f"אישור בעלים: {'כן' if approved else 'לא'}\n{contract}\n{issue.get('html_url', '')}")
         buttons = []
         if issue.get("state") == "open" and not approved:

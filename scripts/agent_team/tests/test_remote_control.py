@@ -247,6 +247,11 @@ def test_status_lines_show_number_once(remote):
     issues_line = [l for l in tg.last()["text"].splitlines() if l.strip().startswith("#24")][0]
     assert issues_line.count("#24") == 1 and "Work reports" in issues_line
 
+    tg.push_message(44, OWNER, CHAT, "/issue 24")
+    svc.poll_once(0)
+    header_line = [l for l in tg.last()["text"].splitlines() if l.startswith("Issue #24")][0]
+    assert header_line.count("#24") == 1 and "Work reports" in header_line
+
 
 def test_duplicate_button_delivery_cannot_create_the_issue_twice(remote):
     orch, gh, clock, tg, interp, gw, svc, _ = remote

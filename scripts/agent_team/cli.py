@@ -261,9 +261,11 @@ def _create_child(config: Config, gh, c, root_number: int, *, queue: bool, creat
     labels = [CHILD_LABEL, "agent:queued" if queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
     issue = gh.create_issue(c.title, render_body(c), labels)
     n = issue["number"]
+    final_title = numbered_title(n, issue["title"])
+    issue = gh.update_issue(n, title=final_title)
     if created is not None:
         created.append(n)
-    print(f"created child #{n} of ROOT #{root_number} {issue.get('html_url')} labels={labels} (authorization inherited; "
+    print(f"created child #{n} of ROOT #{root_number} {issue.get('html_url')} title={final_title!r} labels={labels} (authorization inherited; "
           + ("executable now)" if queue else "draft)"))
     return 0
 
