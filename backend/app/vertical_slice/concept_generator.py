@@ -33,7 +33,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from .concept import Concept
-from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, TypedConstraint, assert_realized
+from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, assert_realized
 from .geometry_core.model import (
     UNIT_M,
     WALL_THICKNESS_M,
@@ -494,9 +494,6 @@ class GenerationResult:
     candidates: tuple[ConceptCandidate, ...]
     rejections: tuple[ConceptRejection, ...]
     program: tuple[ProgramRoom, ...]
-    #: The spec's typed constraints (Issue #35), carried alongside the programme they were
-    #: derived from. Empty for a spec with none.
-    constraints: tuple[TypedConstraint, ...] = ()
 
     @property
     def any(self) -> bool:
@@ -4442,7 +4439,7 @@ def generate_concepts(spec: ArchitecturalSpec,
     if not candidates:
         return GenerationResult((), (ConceptRejection(
             ConceptStrategy.SPINE_PUBLIC_PRIVATE, RejectionReason.INSUFFICIENT_TOTAL_AREA,
-            "no safe solver geometry available"),), tuple(rooms), (constraint,))
+            "no safe solver geometry available"),), tuple(rooms))
 
     needed = target_gross_area_m2(rooms)
     usable = [c for c in candidates if c.area_m2 >= needed * 0.55]
@@ -4450,7 +4447,7 @@ def generate_concepts(spec: ArchitecturalSpec,
         return GenerationResult((), (ConceptRejection(
             ConceptStrategy.SPINE_PUBLIC_PRIVATE, RejectionReason.INSUFFICIENT_TOTAL_AREA,
             f"largest safe wing is {candidates[0].area_m2:.1f} m2; the programme needs about "
-            f"{needed:.1f} m2"),), tuple(rooms), (constraint,))
+            f"{needed:.1f} m2"),), tuple(rooms))
 
     # The requested target may simply be more area than THIS room programme can absorb: real room
     # growth stops at each template's max_area_m2. That USED to be a refusal — "add rooms or shrink
@@ -4612,4 +4609,4 @@ def generate_concepts(spec: ArchitecturalSpec,
         accepted = ([c for c in accepted if c.strategy is not ConceptStrategy.MULTI_WING_SPLIT]
                     + [c for c in accepted if c.strategy is ConceptStrategy.MULTI_WING_SPLIT])
 
-    return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms), (constraint,))
+    return GenerationResult(tuple(accepted), tuple(rejections), tuple(rooms))
