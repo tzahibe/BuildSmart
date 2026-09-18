@@ -174,6 +174,10 @@ export interface ProjectCreatePayload {
   city: string
   street: string
   plot_area_m2: number
+  plot_width_m: number
+  plot_depth_m: number
+  street_facing_side: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST'
+  setbacks: { front_m: number; side_m: number; rear_m: number }
   built_area_m2: number
   description: string
   // `null` is the main flow since feature 006 — the engine chooses the outline. A value is the
