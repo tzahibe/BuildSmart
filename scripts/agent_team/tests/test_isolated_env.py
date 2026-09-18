@@ -15,6 +15,7 @@ from agent_team.failure_classifier import ENVIRONMENT_FAILURE, FailureInput, cla
 from agent_team.orchestrator import _sh
 from agent_team.tests.conftest import CONFIG_PATH
 from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _owner_merge, _tick, _worker_that_commits, env  # noqa: F401
+from agent_team.work_reports import report_path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CI_LOG = """
@@ -119,6 +120,24 @@ def test_resume_pr_update_base_merges_main_and_pushes(env, capsys):
     orch.store.transition(2, sm.CI); orch.store.transition(2, sm.BLOCKED)
     assert cli.cmd_resume_pr(config, args) == 0
     assert "already up to date" in capsys.readouterr().out
+
+
+def test_repair_regenerates_the_work_report(env, capsys):
+    """AC-2: the per-Issue work report is regenerated on every state change, including a Team
+    Lead-ordered repair (cmd_repair), not just orchestrator-driven transitions."""
+    config, gh, clock, _ = env
+    _add_issue(gh, 3, risk="LOW")
+    orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE}))
+    _tick(orch); _tick(orch)
+    orch.store.release_locks(3)
+    orch.store.transition(3, sm.BLOCKED, failure_class="IMPLEMENTATION_FAILURE", last_error="pytest failed")
+    assert "State: BLOCKED" not in report_path(config, 3).read_text(encoding="utf-8")   # not yet regenerated
+    cli._github = lambda cfg, require_auth=True: gh   # type: ignore[assignment]
+    args = type("A", (), {"number": 3, "failure_class": "IMPLEMENTATION_FAILURE",
+                          "summary": "wrong test fixture", "evidence_file": None})()
+    assert cli.cmd_repair(config, args) == 0
+    fresh = report_path(config, 3).read_text(encoding="utf-8")
+    assert "State: FIX_REQUIRED" in fresh
 
 
 def _run_to_blocked_review_rejection(env, number):

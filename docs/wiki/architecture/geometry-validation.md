@@ -24,6 +24,7 @@ superseding an earlier declared-interface architecture.
   units}.py`.
 - `app/geometry/spatial_v2/` (the frozen domain model).
 - `app/vertical_slice/validation.py`, `building_validation.py` (the C/V check families).
+- `app/vertical_slice/access_rules.py` (door-rule table, door kinds/widths, C24 — Issue #18).
 - `docs/GEOMETRY_DERIVED_OPEN_INTERFACES_REPORT.md` (derived-interfaces architecture, 636 tests).
 - `app/vertical_slice/quality_metrics.py` (M1–M6, Issue #17), `app/demo/contract.py`'s
   `QualityOut.metrics`, `tests/regression_corpus/{quality_baseline.json,test_quality_baseline.py,
@@ -44,6 +45,42 @@ superseding an earlier declared-interface architecture.
 landed); `docs/GENERAL_GEOMETRY_ARCHITECTURE_REPORT.md` (research-only, superseded by
 `GENERAL_GEOMETRY_DOMAIN_V1_REPORT.md`); `docs/SPATIAL_ENGINE_RESEARCH.md` and
 `docs/SPATIAL_ENGINE_SPEC_V2.md` (both explicitly superseded by `SPATIAL_ENGINE_SPEC_V2_1.md`).
+
+## Access topology and door rules (C24)
+
+Issue #18 (2026-09-18). Interior doors were previously placed for every non-OPEN_CONNECTION edge
+declared in a fixture's `DesiredAccessTopology` with no rule saying which role pairs a door may
+legitimately connect — correct only because the planner (`concept_generator.py`) happened to
+never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future planner path did.
+`app/vertical_slice/access_rules.py` makes the rule explicit and machine-checked:
+
+- **`ALLOWED_ENTERED_FROM`**: for every `ProgramRole`, the roles a room of that role may be
+  entered FROM. PRIVATE rooms (BEDROOM, MASTER_BEDROOM, SAFE_ROOM, STUDY, DRESSING_ROOM): only
+  HALL/CIRCULATION — never another PRIVATE room. Wet rooms (BATHROOM, TOILET): HALL/CIRCULATION,
+  plus the hosting bedroom for an ensuite. Narrow service rooms (LAUNDRY, STORAGE):
+  HALL/CIRCULATION, plus the KITCHEN they serve. Public/circulation rooms
+  (ENTRANCE/LIVING/DINING/KITCHEN/FAMILY_ROOM/FLEX/HALL/CIRCULATION/STAIRWELL): any other
+  public-or-circulation room. `edge_role_pair_allowed` checks one edge's two zone role-sets
+  against the table (a zone can carry more than one role); this is what rules out a
+  bedroom-to-bedroom door — that pair is simply never in either room's allowed set — without the
+  code naming that pair specially.
+- **Door kinds/widths**: `DoorKind.ROOM_DOOR` (0.9 m, unchanged historic width), `SERVICE_DOOR`
+  (0.8 m, new — LAUNDRY/STORAGE/TOILET only; BATHROOM keeps ROOM_DOOR width), `ENTRANCE_DOOR`
+  (1.0 m, unchanged). `door_kind_for_zones` picks the class for one edge from its two zones'
+  roles. `doors.py::generate_interior_doors` now reads the width for each edge from
+  `access_rules.DOOR_WIDTH_M[door_kind_for_zones(...)]` instead of a single hard-coded constant —
+  realized door geometry is otherwise unchanged (same placement/swing logic, only the width value
+  for TOILET/LAUNDRY/STORAGE edges is narrower).
+- **C24 "access topology obeys the door rules"** (`check_access_topology`, wired into
+  `validation.py` next to C5): three defects, checked together, fail closed. (1) every enclosed
+  (non-open-plan) room has at least one DOOR/CASED_OPENING edge. (2) every such edge's role pair
+  is one `ALLOWED_ENTERED_FROM` permits — this alone also covers "no PRIVATE-to-PRIVATE door
+  except the ensuite host," since that pair is never allowed. (3) no room is reachable from the
+  entrance only by continuing on past another PRIVATE room (a private-room chain), walked over the
+  same REALIZED access graph C5 already builds — not the declared topology — so a wall accidentally
+  typed OPEN between two rooms cannot create a silent chain either. C24 is additive: it passes on
+  every existing corpus context and canonical fixture without changing any of them; it exists to
+  catch a FUTURE planner path that would otherwise silently emit a disallowed edge.
 
 ## Architectural-quality metrics (M1–M6) and the corpus baseline
 
@@ -126,6 +163,15 @@ already at reference level — NOT gaps. Three real gaps, ranked:
    kitchens as an L-counter inside one open volume, not a room with its own shape (M1, public
    rooms).
 
+## Architectural quality rubric and anti-pattern library
+
+The measured gaps above (circulation topology, wet-room adjacency, public-room strips) are three
+entries in the canonical, repo-wide quality rubric and anti-pattern library:
+`docs/architecture_reference/quality_rubric.md` (sections A–O) and
+`docs/architecture_reference/anti_patterns.md`. Every later geometry/circulation/interior Issue and
+every reviewer should consult those files rather than re-deriving quality judgments from this page
+alone.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -156,6 +202,8 @@ professional plans' reference values) and `RESULTS.md` (why the hub parti was re
 
 ## Last verified against git
 
-`8bd17a2` (branch `agent/17-architectural-quality-baseline-m1-m6-as`, based on `origin/main`);
-the M1–M6 section above documents work landing on this branch (Issue #17), verified against this
-session's own implementation and test runs, not independently re-verified beyond that.
+`bffd624` (branch `agent/18-door-and-access-topology-rules-every-enc`, based on `origin/main`);
+the Access topology and door rules (C24) section above documents work landing on this branch
+(Issue #18), verified against this session's own implementation and test runs. The M1–M6 section
+documents Issue #17, verified against that session's implementation and test runs, not
+independently re-verified beyond that.

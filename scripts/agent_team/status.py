@@ -10,6 +10,7 @@ from agent_team.config import Config
 from agent_team.issue_contract import strip_title_number
 from agent_team.resource_manager import ResourceManager
 from agent_team.state_store import IssueRecord, StateStore
+from agent_team.work_reports import short_root_cause
 
 
 def _title(rec: IssueRecord, n: int = 50) -> str:
@@ -164,12 +165,17 @@ def render_compact(config: Config, store: StateStore, resources: ResourceManager
         deps = [d for d in r.dependencies if (store.get(d) is None or store.get(d).state != sm.DONE)]
         waiting.append(f"#{r.issue_id} {_title(r, 45)} / " + (f"ממתין ל-#{', #'.join(map(str, deps))}" if deps else "ממתין למקום פנוי"))
     for r in by.get(sm.FIX_REQUIRED, []):
-        waiting.append(f"#{r.issue_id} {_title(r, 45)} / ממתין לתיקון ({r.failure_class})")
+        cause = f" — {short_root_cause(r.last_error)}" if r.last_error else ""
+        waiting.append(f"#{r.issue_id} {_title(r, 45)} / ממתין לתיקון ({r.failure_class}){cause}")
     block("ממתינים", waiting)
     block("CI", [f"#{r.issue_id} / PR #{r.pr_number} / {r.state.lower().replace('_', ' ')}" for r in by.get(sm.PR_OPEN, []) + by.get(sm.CI, []) + by.get(sm.REVIEW, [])])
     block("מוכן לאישורך (READY FOR OWNER)", [f"PR #{r.pr_number} / #{r.issue_id} {_title(r, 45)} / SHA {(r.validated_commit or '')[:8]}" for r in by.get(sm.READY_FOR_OWNER, [])])
     block("מוזג (smoke רץ)", [f"#{r.issue_id} / PR #{r.pr_number}" for r in by.get(sm.MERGED, [])])
-    block("חסומים", [f"#{r.issue_id} / {r.failure_class or 'BLOCKED'}" for r in by.get(sm.BLOCKED, [])])
+    blocked_rows = []
+    for r in by.get(sm.BLOCKED, []):
+        cause = f" — {short_root_cause(r.last_error)}" if r.last_error else ""
+        blocked_rows.append(f"#{r.issue_id} / {r.failure_class or 'BLOCKED'}{cause}")
+    block("חסומים", blocked_rows)
     snap = resources.snapshot(probe_machine=probe_machine)
     machine = "" if snap.free_memory_gb == float("inf") else f"\nCPU {snap.cpu_percent:.0f}%  free RAM {snap.free_memory_gb:.1f} GiB"
     out.append(f"משאבים\nworkers {snap.workers_running}/{config.max_worker_agents}  reviewers {snap.reviewers_running}/{config.max_reviewer_agents}  "

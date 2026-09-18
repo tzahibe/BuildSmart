@@ -346,6 +346,26 @@ def test_notification_failure_keeps_ready_state_and_retries_boundedly(remote):
     assert "READY FOR OWNER" in text and "Telegram: FAILED after 3 attempts" in text
 
 
+def test_status_blocked_line_includes_root_cause(remote):
+    """AC-5: the Telegram compact status shows the short root cause next to the failure class
+    for a BLOCKED Issue (retry budget exhausted after repeated worker failures)."""
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    from agent_team.agent_runner import AgentRunResult, FakeAgentRunner
+    from agent_team.work_reports import short_root_cause
+
+    _add_issue(gh, 9, risk="LOW")
+    failing = FakeAgentRunner(script={"worker": AgentRunResult(ok=False, exit_code=1, error="boom: pytest failed on test_x")})
+    orch2 = _orch(orch.config, gh, clock, failing)
+    for _ in range(3):     # max_repair_attempts=2: 3 straight worker failures exhaust the budget
+        _tick(orch2)
+    rec = orch2.store.get(9)
+    assert rec.state == sm.BLOCKED and rec.failure_class == "WORKER_FAILED"
+    from agent_team.status import render_compact
+    text = render_compact(orch.config, orch2.store, orch2.resources, probe_machine=False, now=clock())
+    expected = short_root_cause(rec.last_error)
+    assert f"#9 / WORKER_FAILED — {expected}" in text
+
+
 def test_details_uses_authoritative_data(remote):
     orch, gh, clock, tg, interp, gw, svc, _ = remote
     _pair(remote)

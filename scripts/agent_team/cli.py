@@ -10,7 +10,9 @@
     agentctl issue renumber-titles [--dry-run] [--all-states]   put each Issue's own #N in its title
     agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
     agentctl requeue N | block N --reason ... | resume-pr N [--update-base] [--rereview --reason ...]
-    agentctl audit N                     the reconstructable timeline of one issue
+    agentctl audit N                     the reconstructable timeline of one issue (failure history, then raw events)
+    agentctl report N                    the Issue's work report (.agent/logs/reports/N.md): what was done per
+                                         attempt, the failure history, and the event timeline
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
     agentctl reconcile                   one reconciliation pass, printed
     agentctl doctor                      environment checks (gh auth, claude binary, config)
@@ -43,6 +45,7 @@ from agent_team.labels import ALL_LABELS, STATE_LABEL_PREFIX, metadata_labels, C
 from agent_team.orchestrator import Orchestrator, OrchestratorAlreadyRunning
 from agent_team.resource_manager import ResourceManager
 from agent_team.state_store import StateStore, TransitionConflict
+from agent_team.work_reports import record_failure, render_report, report_path, save_evidence_note, write_report
 
 
 def _github(config: Config, *, require_auth: bool = True) -> GitHubClient:
@@ -395,6 +398,7 @@ def cmd_requeue(config: Config, args) -> int:
     except (TransitionConflict, Exception) as exc:  # noqa: BLE001
         print(f"cannot requeue: {exc}")
         return 1
+    write_report(store, config, args.number)
     try:
         gh = _github(config)
         gh.set_state_label(args.number, sm.QUEUED)
@@ -471,6 +475,7 @@ def cmd_resume_pr(config: Config, args) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"cannot resume: {exc}")
         return 1
+    write_report(store, config, args.number)
     try:
         _github(config).set_state_label(args.number, sm.PR_OPEN)
     except SystemExit:
@@ -483,7 +488,6 @@ def cmd_repair(config: Config, args) -> int:
     """Team Lead decision (§13): send a BLOCKED PR back to its worker for a targeted repair. The repair
     prompt carries the class, the summary and the evidence; the worker resumes in the Issue's worktree
     with the LIVE contract (amend the Issue first when the fix needs a new constraint)."""
-    from agent_team.orchestrator import _save_evidence_note
     store = StateStore(config.state_db_path)
     rec = store.get(args.number)
     if rec is None or not rec.pr_number:
@@ -493,10 +497,11 @@ def cmd_repair(config: Config, args) -> int:
         print(f"#{args.number} is {rec.state}; repair is ordered from BLOCKED (use `block` first)")
         return 1
     evidence = Path(args.evidence_file).read_text(encoding="utf-8") if args.evidence_file else args.summary
-    _save_evidence_note(config, args.number, f"TEAM LEAD REPAIR ORDER ({args.failure_class}):\n\n{evidence}")
+    save_evidence_note(config, args.number, rec.attempt_number, f"TEAM LEAD REPAIR ORDER ({args.failure_class}):\n\n{evidence}")
     store.transition(args.number, sm.FIX_REQUIRED, allowed_from=(sm.BLOCKED,), failure_class=args.failure_class,
                      last_error=args.summary[:1000], note="repair ordered by lead")
     store.record_event(args.number, "repair_ordered_by_lead", {"class": args.failure_class, "summary": args.summary[:500]})
+    write_report(store, config, args.number)
     try:
         gh = _github(config)
         gh.set_state_label(args.number, sm.FIX_REQUIRED)
@@ -519,10 +524,12 @@ def cmd_block(config: Config, args) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"cannot block: {exc}")
         return 1
+    text = record_failure(store, config, args.number, stage="owner", failure_class="LEAD_BLOCKED", attempt=rec.attempt_number,
+                          attempts_left=0, root_cause=args.reason, evidence_ref=None, next_action="blocked")
     try:
         gh = _github(config)
         gh.set_state_label(args.number, sm.BLOCKED)
-        gh.comment(args.number, f"**[agent-team]** Team Lead blocked this issue: {args.reason}")
+        gh.comment(args.number, f"**[agent-team]** {text}")
     except SystemExit:
         pass
     print(f"#{args.number} -> BLOCKED")
@@ -538,7 +545,20 @@ def cmd_audit(config: Config, args) -> int:
     print(f"#{rec.issue_id} {rec.title}\n state={rec.state} risk={rec.risk} class={rec.resource_class} attempt={rec.attempt_number} "
           f"pr={rec.pr_number} branch={rec.branch}\n worktree={rec.worktree}\n validated={rec.validated_commit} review={rec.review_verdict} "
           f"failure_class={rec.failure_class}\n last_error={rec.last_error}\n approvals={rec.approvals}\n")
-    for e in store.events(args.number, limit=args.limit):
+    events = store.events(args.number, limit=max(args.limit, 5000))
+    failures = [e for e in events if e["kind"] == "failure_record"]
+    print("failure history:")
+    if failures:
+        for e in failures:
+            p = e["payload"]
+            ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(e["ts"]))
+            print(f"  {ts}  {p.get('stage', ''):8s} {p.get('failure_class', ''):22s} attempt {p.get('attempt')}/"
+                  f"{p.get('attempt', 0) + p.get('attempts_left', 0)} -> {p.get('next_action', ''):10s} "
+                  f"root_cause={str(p.get('root_cause', ''))[:120]!r} evidence={p.get('evidence_ref', '')}")
+    else:
+        print("  (none)")
+    print()
+    for e in events[-args.limit:]:
         ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(e["ts"]))
         payload = json.dumps(e["payload"], ensure_ascii=False)
         print(f"{ts}  {e['kind']:18s} {payload[:200]}")
@@ -547,6 +567,16 @@ def cmd_audit(config: Config, args) -> int:
         print("\nrun records:")
         for p in sorted(runs.iterdir()):
             print("  ", p)
+    return 0
+
+
+def cmd_report(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    if store.get(args.number) is None:
+        print("not tracked")
+        return 1
+    path = report_path(config, args.number)
+    print(path.read_text(encoding="utf-8") if path.exists() else render_report(store, config, args.number))
     return 0
 
 
@@ -908,6 +938,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
     s.add_argument("--summary", required=True); s.add_argument("--evidence-file"); s.set_defaults(fn=cmd_repair)
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
+    s = sub.add_parser("report"); s.add_argument("number", type=int); s.set_defaults(fn=cmd_report)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)

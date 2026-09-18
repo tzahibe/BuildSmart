@@ -144,6 +144,35 @@ def test_verify_fails_ac_without_targets_and_defers_regression(tmp_path: Path):
     assert not by["AC-2 has evidence"]["ok"] and not rep.ok
 
 
+def test_run_target_resolves_orchestrator_and_backend_pytest_targets(monkeypatch, tmp_path: Path):
+    """AC-7: `scripts/agent_team/tests/` pytest targets run with the orchestrator's own project
+    from the repository root; `backend/` targets still run from `backend/` exactly as before."""
+    calls = []
+
+    class FakeProc:
+        returncode = 0
+        stdout = "1 passed"
+        stderr = ""
+
+    def fake_run(cmd, cwd, timeout=1800, env=None):
+        calls.append((cmd, str(cwd)))
+        return FakeProc()
+
+    monkeypatch.setattr(verify, "run", fake_run)
+
+    ok, detail = verify.run_target("pytest", "scripts/agent_team/tests/test_work_reports.py::test_x", tmp_path)
+    assert ok
+    cmd, cwd = calls[-1]
+    assert cmd == "uv run --project scripts/agent_team pytest -q -p no:cacheprovider scripts/agent_team/tests/test_work_reports.py::test_x"
+    assert cwd == str(tmp_path)          # the repository root, not backend/
+
+    ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
+    assert ok
+    cmd, cwd = calls[-1]
+    assert cmd == "uv run pytest -q -p no:cacheprovider tests/test_x.py::test_y"
+    assert cwd == str(tmp_path / "backend")
+
+
 def test_verify_uses_injected_runner(tmp_path: Path):
     calls = []
 
