@@ -342,6 +342,47 @@ def test_laundry_unplaceable_message_is_none_when_another_room_is_also_the_probl
     assert _laundry_unplaceable_message(_laundry_spec(), outlines) is None
 
 
+def test_laundry_unplaceable_message_is_none_when_the_same_check_also_names_another_room():
+    """Regression for the review finding: C19/C8/C3's own `detail` is a single `'; '`-joined
+    string covering EVERY zone that check failed for, not just LAUNDRY's. A naive substring check
+    on the whole string wrongly treats "BEDROOM_1 ...; LAUNDRY ..." as laundry-only because it
+    still contains the substring "LAUNDRY" — this must return None instead, since the same check
+    also names a different room in the SAME outline."""
+    outlines = [_outline_result(ValidationReport(checks=[
+        Check("C19", "required rooms touch an exterior wall", False,
+             "BEDROOM_1 has no exterior wall (interior room); "
+             "LAUNDRY has no exterior wall (interior room)"),
+    ]))]
+    assert _laundry_unplaceable_message(_laundry_spec(), outlines) is None
+
+    # Same defect, C8 (whose `detail` is bare zone ids, no per-zone sentence) and C3.
+    outlines_c8 = [_outline_result(ValidationReport(checks=[
+        Check("C8", "daylight/window exposure present where required", False, "BEDROOM_1; LAUNDRY"),
+    ]))]
+    assert _laundry_unplaceable_message(_laundry_spec(), outlines_c8) is None
+
+    outlines_c3 = [_outline_result(ValidationReport(checks=[
+        Check("C3", "room areas and dimensions valid", False,
+             "BEDROOM_1 short side 2.10 < 2.6; LAUNDRY short side 1.40 < 1.7"),
+    ]))]
+    assert _laundry_unplaceable_message(_laundry_spec(), outlines_c3) is None
+
+
+def test_laundry_unplaceable_message_is_none_when_the_pre_solve_reason_names_other_rooms_too():
+    """Regression for the same class of bug in the pre-solve path: a `COLUMN_DEPTH_EXCEEDED`
+    reason lists every room in the crowded column, and a substring check on that whole string
+    would wrongly fire just because "LAUNDRY" appears among several other room names. Only
+    `ROOM_SHAPE_INFEASIBLE`'s own single-room detail counts."""
+    outlines = [_outline_result(
+        None, outcome=_AdapterOutcome.INSUFFICIENT_RECTANGULAR_CAPACITY,
+        rejection_reasons=(
+            "SPINE_PUBLIC_PRIVATE/COLUMN_DEPTH_EXCEEDED: west column needs 15.97 m of depth for "
+            "its rows' floors but has 12.00 m [LIVING 7.05 (area, floor 5.53); "
+            "KITCHEN 4.17 (area, floor 3.20); LAUNDRY 1.90 (shape floor, area wanted 1.28)]",
+        ))]
+    assert _laundry_unplaceable_message(_laundry_spec(), outlines) is None
+
+
 def test_laundry_unplaceable_message_is_none_when_only_some_outlines_blame_laundry():
     """Never fires unless EVERY outline this brief tried failed for a laundry-specific reason —
     one outline that failed for an unrelated cause means the refusal is not really about laundry."""

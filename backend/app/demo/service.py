@@ -885,9 +885,45 @@ def _laundry_failed_requirement(check_id: str) -> str:
     return "מרחב למכונת הכביסה (0.6 מ׳ מכונה + 0.6 מ׳ מייבש אופציונלי + 0.5 מ׳ מעבר = 1.7 מ׳)"
 
 
+def _check_detail_zone_ids(detail: str) -> set[str]:
+    """The zone id each `'; '`-separated clause of a C19/C8/C3 failure `detail` leads with.
+
+    All three checks format `detail` as one clause per offending zone — `f"{zone_id} ..."` for
+    C19/C3, the bare `zone_id` for C8 (`validation.py`) — joined by `'; '`. A single check can
+    fail for SEVERAL zones at once in the same outline (e.g. a BEDROOM and LAUNDRY both losing
+    their exterior wall to the same parti), and `detail` then names all of them in one string.
+    Extracting the leading zone id from each clause is what lets the caller tell "this check named
+    LAUNDRY and ONLY LAUNDRY" from "this check named LAUNDRY among others" — a plain substring
+    check on the whole joined string cannot make that distinction and mis-fires on the second
+    case, wrongly refusing LAUNDRY_UNPLACEABLE for a defect that also hits another room.
+    """
+    return {clause.strip().split(" ", 1)[0] for clause in detail.split("; ") if clause.strip()}
+
+
+def _rejection_reason_names_only_laundry_shape(reason: str) -> bool:
+    """Whether a pre-solve `rejection_reasons` entry (`f"{strategy}/{reason}: {detail}"`, built in
+    `general_pipeline.run_general`) diagnoses the LAUNDRY room's own shape and nothing else.
+
+    Only `ROOM_SHAPE_INFEASIBLE`'s `detail` (`concept_generator._shape_failure`) always names
+    exactly the ONE room whose width leaves no depth satisfying its template — every other reason
+    this generator emits (`COLUMN_DEPTH_EXCEEDED`, `ROW_WIDTH_EXCEEDED`, …) can list SEVERAL rooms
+    in its own `detail` (e.g. "west column needs 15.97 m ... [LIVING ...; KITCHEN ...; LAUNDRY
+    ...]"), and a substring check there would misattribute a whole-column capacity defect to
+    LAUNDRY alone the same way a joined C19/C8/C3 `detail` can (see `_check_detail_zone_ids`).
+    """
+    head, _, detail = reason.partition(": ")
+    _, _, reason_name = head.partition("/")
+    if reason_name != RejectionReason.ROOM_SHAPE_INFEASIBLE.value:
+        return False
+    detail = detail.strip()
+    return bool(detail) and detail.split(" ", 1)[0] == _LAUNDRY_ZONE_ID
+
+
 def _laundry_unplaceable_message(spec, outlines: list["OutlineResult"] | None) -> str | None:
     """None unless EVERY outline this brief tried failed for a reason that names the LAUNDRY
-    room's own exterior-wall/window/bay guarantee specifically (see `_LAUNDRY_REQUIREMENT_CHECKS`).
+    room's own exterior-wall/window/bay guarantee specifically (see `_LAUNDRY_REQUIREMENT_CHECKS`)
+    and NOTHING ELSE — a check or a pre-solve rejection that also names a different room never
+    counts, so this never blames laundry for a defect that hit another room too.
     A brief with no explicit laundry-room request never reaches here."""
     if spec.program.laundry.demand is not LaundryDemand.ROOM or not outlines:
         return None
@@ -897,12 +933,14 @@ def _laundry_unplaceable_message(spec, outlines: list["OutlineResult"] | None) -
         if r.validation is not None:
             failing = r.validation.failures()
             if not failing or any(c.check_id not in _LAUNDRY_REQUIREMENT_CHECKS
-                                  or _LAUNDRY_ZONE_ID not in c.detail for c in failing):
+                                  or _check_detail_zone_ids(c.detail) != {_LAUNDRY_ZONE_ID}
+                                  for c in failing):
                 return None
             failed.update(_laundry_failed_requirement(c.check_id) for c in failing)
         else:
             reasons = r.metrics.rejection_reasons or r.notes
-            if not reasons or any(_LAUNDRY_ZONE_ID not in reason for reason in reasons):
+            if not reasons or not all(_rejection_reason_names_only_laundry_shape(reason)
+                                      for reason in reasons):
                 return None
             failed.add(_laundry_failed_requirement("C3"))
     if not failed:
