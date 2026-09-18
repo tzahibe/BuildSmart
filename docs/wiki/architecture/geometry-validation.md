@@ -92,6 +92,25 @@ aspect-ratio units for M4; a metric moving in the IMPROVING direction never regr
 This is a **no-regression bar, not a new absolute one** — it passes unchanged on today's main and
 exists only to catch a FUTURE planner/template change quietly making one of these four worse.
 
+**CI cost (Issue #17 repair, 2026-09-18)**: gate-4 (`agent-regression.yml`) already replays the
+whole corpus twice — merge-base and head, via `spikes/failure_log_sweep/corpus_snapshot.py` — to
+check outcome/signature invariants; the test above replaying it a THIRD time, sequentially, in one
+pytest process blew the 120-minute CI budget. `corpus_snapshot.py` now also records each PLANNED
+context's `measure_design` output under `"metrics"` (plus two raw counts,
+`m5_wet_adjacent_count`/`m5_wet_total_count`, folded into that same dict — not part of
+`QualityMetrics`/`QualityOut`, only the snapshot's own copy, needed because M5's per-plan RATIO
+alone cannot be pooled back into a corpus-level share: plans have different wet-room counts, so an
+unweighted mean of per-plan ratios is a different number — 11.7 pp off on this corpus, ~6x the
+tolerance — from `summarize()`'s pooled adjacent/total share). When gate-4's `CORPUS_SNAPSHOT` env
+var points at that snapshot, `test_quality_baseline.py` reads the stored `"metrics"` and computes
+the same four stats via `quality_metrics.baseline_summary_from_metrics` WITHOUT calling
+`generate_demo_design` again; without the env var (developer runs), it replays the corpus exactly
+as before. M3/M6 reproduce `summarize()`'s aggregation exactly either way (both are already
+per-plan values there); M4 does too on today's corpus (every plan has at most one hall room) but
+would only approximate on a future corpus with multi-hall plans, the same way a naive M5 does.
+`freeze_quality_baseline.py --from-snapshot SNAPSHOT.json` freezes the baseline from a snapshot
+the same way, with no corpus replay.
+
 **Measured gaps against 21 professional Israeli plans** (visual census, 2026-09-11 —
 memory `architectural-quality-gaps-measured`; the same figures Issue #17's own "Current behavior"
 cites): exposure (~100%, M2) and circulation share (median ~11% vs reference 8–14%, M3) are

@@ -12,13 +12,15 @@ duck-typed against `DemoDesign`'s shape: `.rooms` (`.id`, `.type`, `.width_m`, `
 `.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`), `.doors`
 (`.a`, `.b`, `.kind`, `.is_entrance`).
 
-    measure_design(design) -> QualityMetrics   # one plan's own M1–M6
-    summarize(designs)     -> dict             # corpus medians/shares (the spike's report)
-    baseline_summary(dict) -> dict             # the four load-bearing stats a baseline freezes
-    find_regressions(...)  -> list[str]        # baseline vs current, tolerance-checked
+    measure_design(design)          -> QualityMetrics  # one plan's own M1–M6
+    summarize(designs)              -> dict            # corpus medians/shares (the spike's report)
+    baseline_summary(dict)          -> dict             # the four load-bearing stats a baseline freezes
+    baseline_summary_from_metrics(list[dict]) -> dict   # same four stats, from stored per-plan metrics
+    find_regressions(...)           -> list[str]        # baseline vs current, tolerance-checked
 """
 from __future__ import annotations
 
+import dataclasses
 import statistics
 from collections import defaultdict
 from dataclasses import dataclass
@@ -125,7 +127,12 @@ def _interior_adjacency(design: "DemoDesign") -> dict[str, set[str]]:
     return adj
 
 
-def _wet_adjacency(design: "DemoDesign") -> tuple[int, int]:
+def wet_adjacency_counts(design: "DemoDesign") -> tuple[int, int]:
+    """(adjacent, total) wet rooms for this one plan — the raw components M5's ratio is built
+    from, and what `summarize()` pools across every plan in the corpus for the corpus-level share.
+    Public (not `_`-prefixed) because a corpus snapshot needs these RAW counts verbatim, not the
+    ratio `measure_design` reports: plans have different wet-room counts, so a mean of per-plan
+    ratios is not the same number as this pooled share (`baseline_summary_from_metrics`)."""
     rooms = {r.id: r for r in design.rooms}
     adj = _interior_adjacency(design)
     adjacent = total = 0
@@ -174,7 +181,7 @@ def measure_design(design: "DemoDesign") -> QualityMetrics:
     exposed = sum(1 for r in design.rooms if is_(HABITABLE, r.type) and r.id in ext)
     hab_total = len(aspects)
     hall = _hall_stats(design)
-    wet_adjacent, wet_total = _wet_adjacency(design)
+    wet_adjacent, wet_total = wet_adjacency_counts(design)
     return QualityMetrics(
         m1_habitable_aspect_median=statistics.median(aspects) if aspects else None,
         m1_habitable_aspect_max=max(aspects) if aspects else None,
@@ -209,7 +216,7 @@ def summarize(designs: "list[DemoDesign]") -> dict:
         circ.append(hall["circ_share"])
         hub_deg.append(hall["hall_door_count"])
         hall_asp.extend(hall["hall_aspects"])
-        wa, wt = _wet_adjacency(d)
+        wa, wt = wet_adjacency_counts(d)
         wet_adj += wa
         wet_tot += wt
         contiguous = _public_zone_contiguous(d)
@@ -249,6 +256,42 @@ def baseline_summary(summary: dict) -> dict:
         "m4_hall_aspect_median": summary["hall_aspect_median"],
         "m5_wet_adjacency_share": _share(summary["wet"]),
         "m6_public_contiguous_share": _share(summary["public_contig"]),
+    }
+
+
+def baseline_summary_from_metrics(metrics: "list[dict]") -> dict:
+    """The same four load-bearing stats `baseline_summary(summarize(designs))` computes, read
+    directly off each plan's own already-computed `measure_design` output (e.g. `dict`s read back
+    from a CI corpus snapshot's per-context `"metrics"`) instead of the raw `DemoDesign` list —
+    replaying the whole corpus a third time in one process is what CI's 120-minute budget does not
+    fit (Issue #17 repair). Each `metrics` dict is `dataclasses.asdict(QualityMetrics)`, PLUS the
+    two raw `wet_adjacency_counts` fields `corpus_snapshot.py` folds into that same dict
+    (`m5_wet_adjacent_count`, `m5_wet_total_count` — not part of `QualityMetrics`/`QualityOut`,
+    only the snapshot's own copy) — M5's per-plan RATIO alone cannot be re-pooled into a corpus
+    share: plans have different wet-room counts, so an unweighted mean of per-plan ratios is a
+    different number from `summarize()`'s pooled adjacent/total share (measured gap on this
+    corpus: 11.7pp, ~6x the 2pp tolerance — this is not a rounding nicety).
+
+    M3 (median of each plan's own share) and M6 (share of plans with a contiguous public zone)
+    reproduce `summarize()`'s own aggregation exactly off `measure_design`'s fields alone — both
+    are already per-plan values there too. So does M4 (median hall aspect) on any corpus where
+    every plan has at most one hall room, true of every plan in this codebase's corpus today (a
+    single circulation hub) — verified byte-identical against `quality_baseline.json`; a future
+    plan type introducing multiple halls would make M4 approximate the same way a naive M5 is.
+    """
+    rows = [m if isinstance(m, dict) else dataclasses.asdict(m) for m in metrics]
+    m3 = [r["m3_circulation_share"] for r in rows]
+    m4 = [r["m4_hall_aspect_median"] for r in rows if r.get("m4_hall_aspect_median") is not None]
+    m6 = [r["m6_public_zone_contiguous"] for r in rows if r.get("m6_public_zone_contiguous") is not None]
+    wet_rows = [r for r in rows if r.get("m5_wet_total_count")]
+    wet_adjacent = sum(r["m5_wet_adjacent_count"] for r in wet_rows)
+    wet_total = sum(r["m5_wet_total_count"] for r in wet_rows)
+    return {
+        "n": len(rows),
+        "m3_circulation_share_median": statistics.median(m3) if m3 else None,
+        "m4_hall_aspect_median": statistics.median(m4) if m4 else None,
+        "m5_wet_adjacency_share": (wet_adjacent / wet_total) if wet_total else None,
+        "m6_public_contiguous_share": (sum(m6) / len(m6)) if m6 else None,
     }
 
 
