@@ -28,7 +28,11 @@ entries) so a caller never has to guess which sections exist; the nine NOT measu
 those nine collide with the six this module defines its own way.
 
     A  entrance    — does the entrance open into a public/circulation room (arrival zone)
-    B  circulation — dedicated circulation area, its share of the plan, and corridor length
+    B  circulation — dedicated circulation area, its share of the plan, and corridor length;
+                     `reference_range` is the matching-family entries' own `total_area_sqm`
+                     (min, max) — genuinely computed from `references/index.json`, not merely
+                     attributed to it (see `CIRCULATION_ENGINEERING_FLOOR_RATIO`'s own docstring
+                     for why the circulation-SHARE floor itself stays a fixed constant instead)
     C  zoning      — is each of PUBLIC / PRIVATE / SERVICE a spatially contiguous group
     H  exposure    — share of daylight-required rooms that got a window (C8's own data)
     K  dead space  — residual interior area (C2; always 0 today — a correctness floor, not a band)
@@ -52,13 +56,15 @@ if TYPE_CHECKING:
 PRIVATE = ("BED", "MASTER", "SAFE", "STUDY", "DRESSING")
 SERVICE = ("BATH", "TOILET", "LAUNDRY", "STORAGE")
 
-#: The documented census band M3 (circulation share) already sits inside on today's corpus — 8-14%
-#: of total plan area (`docs/wiki/architecture/geometry-validation.md`, sourced from the same
-#: internal reference-plan census `references/index.json`'s V1 entries are archetypes of, per that
-#: directory's README "V1 provenance note"). Not re-derived per footprint family: the census this
-#: figure comes from was never segmented that way, so the band is one constant, attributed to and
-#: named from whichever matching-family entries exist in the index (see `_matching_entries`).
-CIRCULATION_REFERENCE_RATIO_RANGE = (0.08, 0.14)
+#: A FIXED engineering floor, not derived from `references/index.json` (whose schema carries no
+#: circulation field at all) — the documented census band M3 (circulation share) already sits
+#: inside on today's corpus, 8-14% of total plan area
+#: (`docs/wiki/architecture/geometry-validation.md`). Used ONLY to decide the "high relative
+#: dedicated circulation" finding's wording (AC-2); section B's `reference_range` (AC-3) is a
+#: SEPARATE, genuinely entry-derived figure — see `_matching_family_area_range_m2` — because this
+#: constant itself cannot vary by footprint family (the census it comes from was never segmented
+#: that way, and no field in the index carries a circulation number to compute one from).
+CIRCULATION_ENGINEERING_FLOOR_RATIO = (0.08, 0.14)
 
 #: Every daylight-required room having a window is the expectation this benchmark holds a plan to
 #: (C8 gates on exactly this set, `app/vertical_slice/windows.py::DAYLIGHT_ROLES`) — not a band.
@@ -131,6 +137,14 @@ def _matching_entries(references: list[dict], footprint_family: str) -> list[dic
     return [e for e in references if e.get("footprint_family") == footprint_family]
 
 
+def _matching_family_area_range_m2(entries: list[dict]) -> tuple[float, float] | None:
+    """The (min, max) `total_area_sqm` among these (already footprint-family-filtered) entries —
+    a reference range genuinely COMPUTED from `references/index.json`'s own metadata field, not a
+    constant merely attributed to the entries for citation. `None` when no entry matches."""
+    areas = [e["total_area_sqm"] for e in entries if "total_area_sqm" in e]
+    return (min(areas), max(areas)) if areas else None
+
+
 # --------------------------------------------------------------------------- adjacency (zoning)
 
 
@@ -199,22 +213,36 @@ def _section_b(design: "DemoDesign", family: str, references: list[dict]) -> Sec
     circulation_area_m2 = sum(r.width_m * r.depth_m for r in halls)
     corridor_length_m = max((max(r.width_m, r.depth_m) for r in halls), default=0.0)
     ratio = metrics.m3_circulation_share
-    entries = [e["id"] for e in _matching_entries(references, family)]
-    low, high = CIRCULATION_REFERENCE_RATIO_RANGE
+    matching = _matching_entries(references, family)
+    entries = [e["id"] for e in matching]
+    area_range = _matching_family_area_range_m2(matching)
+    plan_area_m2 = design.gross_area_m2
+    low, high = CIRCULATION_ENGINEERING_FLOOR_RATIO
     value = {
         "circulation_area_m2": round(circulation_area_m2, 2),
         "circulation_ratio": ratio,
         "corridor_length_m": round(corridor_length_m, 2),
+        "plan_area_m2": round(plan_area_m2, 2),
+        "within_reference_size_range": (area_range[0] <= plan_area_m2 <= area_range[1])
+                                        if area_range is not None else None,
     }
     named = ', '.join(entries) or f"no {family} entries in index.json"
+    if area_range is not None:
+        size_note = (f"plan is {plan_area_m2:.1f} m², within the {family} reference size range "
+                    f"{area_range[0]:.0f}-{area_range[1]:.0f} m² ({named})"
+                    if value["within_reference_size_range"] else
+                    f"plan is {plan_area_m2:.1f} m², OUTSIDE the {family} reference size range "
+                    f"{area_range[0]:.0f}-{area_range[1]:.0f} m² ({named})")
+    else:
+        size_note = f"no {family} entries in index.json to size-compare against"
     if ratio > high:
         finding = (f"high relative dedicated circulation: {ratio:.1%} of the plan is circulation, "
-                   f"above the {low:.0%}-{high:.0%} reference band for {family} plans ({named})")
+                   f"above the {low:.0%}-{high:.0%} engineering floor (fixed, not index-derived); {size_note}")
     else:
-        finding = (f"circulation share {ratio:.1%} is within the {low:.0%}-{high:.0%} reference "
-                   f"band for {family} plans ({named})")
+        finding = (f"circulation share {ratio:.1%} is within the {low:.0%}-{high:.0%} engineering "
+                   f"floor (fixed, not index-derived); {size_note}")
     return SectionFinding("B", "Circulation", True, value=value,
-                          reference_range=CIRCULATION_REFERENCE_RATIO_RANGE,
+                          reference_range=area_range,
                           reference_entries=entries, finding=finding)
 
 

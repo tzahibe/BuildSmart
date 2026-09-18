@@ -36,7 +36,7 @@ and so on). Content mapping, this rubric's section -> the benchmark's own letter
 | This rubric's section | Benchmark's own letter | What the benchmark measures |
 |---|---|---|
 | H. Entrance & Arrival Sequence | **A** | does the entrance open into a public/circulation room |
-| D. Circulation Efficiency & Compactness | **B** | dedicated circulation m², its share of the plan, corridor length |
+| D. Circulation Efficiency & Compactness | **B** | dedicated circulation m², its share of the plan, corridor length. Its `reference_range` is the matching-family entries' own `total_area_sqm` (min, max) — genuinely computed from `index.json`, since the index carries no circulation field itself; the "high relative dedicated circulation" wording instead compares the plan's own circulation SHARE against a fixed 8-14% engineering floor (the documented census band), disclosed as fixed rather than claimed to vary by family. |
 | J. Adjacency & Privacy Zoning | **C** | is each of PUBLIC/PRIVATE/SERVICE a spatially contiguous group |
 | C. Exterior Exposure & Daylight | **H** | share of daylight-required rooms with a window (C8 data) |
 | K. Dead Space & Structural Validity | **K** (same letter, same topic) | residual interior area (C2; always 0 — a floor, not a band) |
