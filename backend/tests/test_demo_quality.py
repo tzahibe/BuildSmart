@@ -119,3 +119,16 @@ def test_metrics_is_present_on_a_second_real_brief():
     result = svc.generate_demo_design(_project(OVER_CAPACITY))
     assert result.design.quality.metrics is not None
     assert result.design.quality.metrics.m3_circulation_share > 0.0
+
+
+# ------------------------------------------------------------------ Issue #19: exposure report
+
+def test_a_planned_design_carries_exposure_report_with_one_entry_per_room():
+    result = svc.generate_demo_design(_project(WIDE_SQUARE))
+    exposure = result.design.quality.exposure
+    assert {e.room_id for e in exposure} == {r.id for r in result.design.rooms}
+    for entry in exposure:
+        # exactly one of "a window was placed" or "a reason is given" holds
+        assert (entry.window_side is not None) != (entry.no_window_reason is not None)
+        if entry.window_side is not None:
+            assert entry.window_width_m and entry.window_width_m > 0
