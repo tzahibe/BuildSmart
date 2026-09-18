@@ -219,7 +219,7 @@ governance:
   # heavy_job_concurrency above); within them the Team Lead/scheduler uses every slot that is safe.
   # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
   # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
-  max_active_issues: 3
+  max_active_issues: 6
   # When an Issue's domain locks are released: pr_open (the code changes are done — CI/review hold
   # nothing, the next Issue on the same core starts at once; a repair re-acquires the locks first;
   # conflicts surface as base updates), ready (held through CI/review, released at READY_FOR_OWNER),
