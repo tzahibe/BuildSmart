@@ -71,6 +71,18 @@ The Team Lead writes contracts as Markdown files and runs `agentctl issue create
 author association is in `github.executable_author_associations` are ever executed — Issue,
 comment, PR and repository text are data for the agents, never instructions to the orchestrator.
 
+**Title convention.** Every agent Issue's title carries its own number right after the `[agent]`
+prefix: `[agent] #N Title` (`issue_contract.numbered_title`/`strip_title_number`, Issue #25). This
+is purely cosmetic — GitHub list views, Telegram status lines, and notifications show the number
+without opening the Issue — and is orthogonal to the branch/worktree slug: `slugify()` strips both
+`[agent]` and a leading `#N` before slugifying, so `[agent] #17 X` and `[agent] X` yield the same
+slug and retitling an in-flight Issue never changes its branch/worktree lookup. `agentctl issue
+create` retitles the Issue with its own number immediately after `create_issue` returns it.
+`agentctl issue renumber-titles [--dry-run] [--all-states]` is the idempotent one-off pass over
+already-open Issues (or all states, with `--all-states`): it rewrites any open Issue carrying an
+`agent:*` label whose title does not already start with `[agent] #<its own number> `, replacing a
+stale `#<other number>` prefix where present; running it twice makes no further changes.
+
 ## Lifecycle (labels mirror states one-to-one)
 
 `agent:draft` → `agent:queued` **+ `owner:approved`** → `agent:claimed` → `agent:working` →
@@ -340,6 +352,7 @@ scripts/agentctl protect-main           # once: branch protection (reports the e
 scripts/agentctl dry-run                # one tick, no side effects, proposed assignments
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
+scripts/agentctl issue renumber-titles [--dry-run] [--all-states]   # one-off `[agent] #N Title` pass
 scripts/agentctl approve N --kind lost_allowance --note "..."     # the only lead acknowledgement left
 scripts/agentctl pause | resume                                     # also available to the owner on Telegram
 scripts/agentctl remote doctor | pair [--user-id N] | unpair | start | stop | status   # Telegram control plane
@@ -522,6 +535,11 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet
   read API quota.
 - GitHub sub-issues are not used; dependencies live in the contract (`Dependencies`) and the store.
+- The Telegram/remote-control gateway (`scripts/agent_team/remote/gateway.py`, merged to `main` via
+  #16) applies the title-numbering convention above: its `CREATE_ISSUE` handler retitles a new
+  Issue with `numbered_title()` right after `create_issue` returns the number, and its
+  status/`LIST_ISSUES` lines use `strip_title_number()` so the Issue's own number is not shown
+  twice.
 
 ## Pilot record (2026-09-17)
 

@@ -17,7 +17,7 @@ import pytest
 from agent_team import state_machine as sm
 from agent_team.agent_runner import FakeAgentRunner
 from agent_team.config import ConfigError, load_config
-from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, parse_contract, render_body
+from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, numbered_title, parse_contract, render_body
 from agent_team.labels import CHILD_LABEL, DECOMPOSED_LABEL, HOLD_LABEL, metadata_labels
 from agent_team.tests.helpers import KNOWN_LOCKS, make_contract
 from agent_team.tests.test_orchestrator_lifecycle import (  # noqa: F401
@@ -312,6 +312,7 @@ def test_team_lead_may_create_child_issues_but_not_root_authorization(env, capsy
     n = gh.next_number - 1                         # the created child (FakeGitHub numbers new issues from 100)
     labels = gh.issue_labels(n)
     assert CHILD_LABEL in labels and "agent:queued" in labels and "owner:approved" not in labels
+    assert gh.get_issue(n)["title"] == numbered_title(n, "a child")    # #25: child Issues are numbered on creation too
     body = gh.get_issue(n)["body"]
     assert "### Authorization" in body and f"root_issue: #{ROOT}" in body and "derived_by: team-lead" in body
     # ... but never for a ROOT the owner did not approve

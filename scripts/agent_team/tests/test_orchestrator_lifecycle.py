@@ -414,3 +414,4 @@ def test_status_renders(env):
     assert "RUNNING" in text and "#16 PR #" in text and f"workers 0/{config.max_worker_agents}" in text
     assert "ROOT ISSUES" in text and "AVAILABLE WORKERS" in text and f"{config.max_worker_agents} / {config.max_worker_agents}" in text
     assert "RESOURCES" in text and f"weighted capacity 0 / {config.weighted_capacity}" in text and "BLOCKERS" in text
+    assert "[agent]" not in text and "Task 16" in text   # #25: the '[agent] ' tag is not repeated on every line

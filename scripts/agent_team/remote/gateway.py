@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 from agent_team import state_machine as sm
 from agent_team.config import Config
-from agent_team.issue_contract import ContractError, parse_contract, render_body
+from agent_team.issue_contract import ContractError, numbered_title, parse_contract, render_body, strip_title_number
 from agent_team.labels import metadata_labels
 from agent_team.orchestrator import Orchestrator, render_ready_report
 from agent_team.remote import commands as C
@@ -107,7 +107,7 @@ class Gateway:
             names = [l["name"] for l in i.get("labels", [])]
             rec = self.store.get(i["number"])
             tags = [n for n in names if n.startswith(("agent:", "owner:", "risk:"))]
-            lines.append(f"#{i['number']} {i['title'][:60]}\n   {' '.join(tags)}" + (f" | orchestrator: {rec.state}" if rec else ""))
+            lines.append(f"#{i['number']} {strip_title_number(i['title'])[:60]}\n   {' '.join(tags)}" + (f" | orchestrator: {rec.state}" if rec else ""))
         return Reply("Issues פתוחים:\n" + ("\n".join(lines) if lines else "(אין)"))
 
     def _do_get_issue(self, cmd: OwnerCommand) -> Reply:
@@ -124,7 +124,7 @@ class Gateway:
             contract = "חוזה לא תקין: " + "; ".join(exc.problems)[:300]
         state = f"אורקסטרטור: {rec.state}" + (f", PR #{rec.pr_number}" if rec and rec.pr_number else "") if rec else "אורקסטרטור: לא במעקב"
         approved = self.config.owner_approval_label in names
-        text = (f"Issue #{n}: {issue.get('title')}\nGitHub: {issue.get('state')} · תוויות {', '.join(names) or '-'}\n{state}\n"
+        text = (f"Issue #{n}: {strip_title_number(issue.get('title') or '')}\nGitHub: {issue.get('state')} · תוויות {', '.join(names) or '-'}\n{state}\n"
                 f"אישור בעלים: {'כן' if approved else 'לא'}\n{contract}\n{issue.get('html_url', '')}")
         buttons = []
         if issue.get("state") == "open" and not approved:
@@ -138,7 +138,7 @@ class Gateway:
         lines, buttons = ["PRs שממתינים לאישורך (READY FOR OWNER):"], []
         for r in recs:
             sha = (r.validated_commit or "")[:12]
-            lines.append(f"PR #{r.pr_number} — Issue #{r.issue_id} {r.title[:60]}\n   סיכון {r.risk} · SHA {sha} · ביקורת {(r.review_verdict or '-').split('@')[0]}")
+            lines.append(f"PR #{r.pr_number} — Issue #{r.issue_id} {strip_title_number(r.title)[:60]}\n   סיכון {r.risk} · SHA {sha} · ביקורת {(r.review_verdict or '-').split('@')[0]}")
             buttons.append([button(f"פרטים #{r.pr_number}", C.GET_PR_DETAILS, r.pr_number, sha[:8]),
                             button(f"מזג #{r.pr_number}", C.MERGE_PR, r.pr_number, sha[:8]),
                             button(f"דחה #{r.pr_number}", C.REJECT_PR, r.pr_number, sha[:8])])
@@ -292,12 +292,14 @@ class Gateway:
         labels = (["agent:queued", self.config.owner_approval_label] if queue else ["agent:draft"]) + labels
         issue = self.github.create_issue(c.title, render_body(c), labels)
         number = issue["number"]
+        final_title = numbered_title(number, issue["title"])
+        issue = self.github.update_issue(number, title=final_title)
         self.store.finish_draft(d["draft_id"], "created", number)
         self.store.set_context(cmd.chat_id, current_draft_id=None)
         self._audit(cmd, "SUCCESS", {"issue": number, "queued": queue, "labels": labels, "draft_id": d["draft_id"]})
         if queue:
             self.store.record_event(number, "owner_approved", {"source": cmd.source, "owner_id": cmd.user_id, "how": "create_and_queue"})
-        return Reply(f"✅ נוצר Issue #{number}: {c.title}\n{issue.get('html_url', '')}\n" +
+        return Reply(f"✅ נוצר Issue #{number}: {final_title}\n{issue.get('html_url', '')}\n" +
                      ("אושר והוכנס לתור — הסקדיולר ייקח אותו." if queue else "נוצר בלבד (agent:draft) — לא אושר ולא בתור."))
 
     # -- existing issues ------------------------------------------------------------------

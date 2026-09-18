@@ -140,6 +140,14 @@ class GitHubClient:
     def create_issue(self, title: str, body: str, labels: list[str]) -> dict:
         return self.transport.request("POST", f"/repos/{self.repo}/issues", body={"title": title, "body": body, "labels": labels})
 
+    def update_issue(self, number: int, *, title: str | None = None, body: str | None = None) -> dict:
+        fields: dict[str, Any] = {}
+        if title is not None:
+            fields["title"] = title
+        if body is not None:
+            fields["body"] = body
+        return self.transport.request("PATCH", f"/repos/{self.repo}/issues/{number}", body=fields)
+
     def issue_labels(self, number: int) -> list[str]:
         return [l["name"] for l in self.get_issue(number).get("labels", [])]
 
@@ -352,6 +360,14 @@ class FakeGitHub:
         n = self.next_number
         self.next_number += 1
         return self.add_issue(n, title, body, labels)
+
+    def update_issue(self, number: int, *, title: str | None = None, body: str | None = None) -> dict:
+        issue = self.get_issue(number)
+        if title is not None:
+            issue["title"] = title
+        if body is not None:
+            issue["body"] = body
+        return issue
 
     def issue_labels(self, number: int) -> list[str]:
         return [l["name"] for l in self.get_issue(number)["labels"]]

@@ -7,6 +7,7 @@
     agentctl labels                      create/update the label catalogue on GitHub
     agentctl protect-main                configure branch protection (reports the exact blocker)
     agentctl issue validate N | queue N | create --from FILE [--queue | --child-of ROOT] | decompose ROOT --children F... | render --from FILE
+    agentctl issue renumber-titles [--dry-run] [--all-states]   put each Issue's own #N in its title
     agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
     agentctl requeue N | block N --reason ... | resume-pr N [--update-base] [--rereview --reason ...]
     agentctl audit N                     the reconstructable timeline of one issue (failure history, then raw events)
@@ -39,8 +40,8 @@ from agent_team.audit import setup_logging
 from agent_team.config import Config, ConfigError, load_config
 from agent_team.github_client import GhCliTransport, GitHubClient, GitHubError
 from agent_team.locks import effective_locks
-from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, parse_contract, render_body, verification_manifest
-from agent_team.labels import ALL_LABELS, metadata_labels, CHILD_LABEL, DECOMPOSED_LABEL
+from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, numbered_title, parse_contract, render_body, verification_manifest
+from agent_team.labels import ALL_LABELS, STATE_LABEL_PREFIX, metadata_labels, CHILD_LABEL, DECOMPOSED_LABEL
 from agent_team.orchestrator import Orchestrator, OrchestratorAlreadyRunning
 from agent_team.resource_manager import ResourceManager
 from agent_team.state_store import StateStore, TransitionConflict
@@ -260,9 +261,11 @@ def _create_child(config: Config, gh, c, root_number: int, *, queue: bool, creat
     labels = [CHILD_LABEL, "agent:queued" if queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
     issue = gh.create_issue(c.title, render_body(c), labels)
     n = issue["number"]
+    final_title = numbered_title(n, issue["title"])
+    issue = gh.update_issue(n, title=final_title)
     if created is not None:
         created.append(n)
-    print(f"created child #{n} of ROOT #{root_number} {issue.get('html_url')} labels={labels} (authorization inherited; "
+    print(f"created child #{n} of ROOT #{root_number} {issue.get('html_url')} title={final_title!r} labels={labels} (authorization inherited; "
           + ("executable now)" if queue else "draft)"))
     return 0
 
@@ -285,9 +288,29 @@ def cmd_issue(config: Config, args) -> int:
         # A ROOT/product Issue: the Team Lead never adds owner:approved — the owner authorizes ROOTs.
         labels = ["agent:queued" if args.queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
         issue = gh.create_issue(c.title, render_body(c), labels)
-        print(f"created #{issue['number']} {issue.get('html_url')} labels={labels}")
+        final_title = numbered_title(issue["number"], issue["title"])
+        issue = gh.update_issue(issue["number"], title=final_title)
+        print(f"created #{issue['number']} {issue.get('html_url')} title={final_title!r} labels={labels}")
         if args.queue:
             print(f"note: queued but NOT approved — the owner must add {config.owner_approval_label} before it runs")
+        return 0
+    if args.issue_cmd == "renumber-titles":
+        gh = _github(config)
+        state = "all" if args.all_states else "open"
+        changes = []
+        for issue in gh.list_issues(state=state):
+            if not any(l["name"].startswith(STATE_LABEL_PREFIX) for l in issue.get("labels", [])):
+                continue
+            old_title, number = issue["title"], issue["number"]
+            new_title = numbered_title(number, old_title)
+            if new_title != old_title:
+                changes.append((number, old_title, new_title))
+        for number, old_title, new_title in changes:
+            print(f"#{number}: {old_title!r} -> {new_title!r}")
+            if not args.dry_run:
+                gh.update_issue(number, title=new_title)
+        if not changes:
+            print("no titles need renumbering")
         return 0
     if args.issue_cmd == "decompose":
         gh = _github(config)
@@ -898,6 +921,9 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--no-queue", dest="no_queue", action="store_true", help="with --child-of: create the child as a draft instead of executable")
     d = isub.add_parser("decompose"); d.add_argument("number", type=int); d.add_argument("--children", nargs="+", required=True, help="contract files")
     r = isub.add_parser("render"); r.add_argument("--from", dest="from_file", required=True); r.add_argument("--title")
+    rn = isub.add_parser("renumber-titles")
+    rn.add_argument("--dry-run", action="store_true")
+    rn.add_argument("--all-states", action="store_true")
     s.set_defaults(fn=cmd_issue)
 
     s = sub.add_parser("approve"); s.add_argument("number", type=int)

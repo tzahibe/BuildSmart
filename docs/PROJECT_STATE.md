@@ -75,6 +75,8 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - **Agent PRs only through the workflow**: branches `agent/<issue>-<slug>` are owned by the
   orchestrator (`scripts/agentctl`); never push to them by hand, never merge them outside the
   merge policy. `.worktrees/` and `.agent/{state,logs,contracts}/` are local runtime state.
+- **Agent Issue titles carry their own number**: `[agent] #N Title` on every open Issue, kept
+  current with `agentctl issue renumber-titles` (see [wiki/agent-team.md](wiki/agent-team.md)).
 
 - **ReviewPage Generate guardrail**: preserve the blocking priority order and commit `8c4cdba`'s
   `disabledReason`/pending-message behavior. Don't change without a reproducible regression.
