@@ -235,3 +235,14 @@ def test_fake_github_state_label_is_idempotent():
     assert gh.find_pr_for_branch("agent/1-t")["number"] == pr["number"]
     gh.review_pr(pr["number"], "ok", event="APPROVE")
     assert gh.reviews[-1][1] == "COMMENT"  # never self-approve through the owner's token
+
+
+def test_gate1_accepts_an_integration_branch_base(repo_config):
+    from agent_team.ci.contract_check import evaluate
+    pr = {"head": {"ref": "agent/29-quality-rubric"}, "base": {"ref": "integration/holiday-yom-kippur-2026"}, "body": "Closes #29"}
+    rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
+    names = {c["name"]: c["ok"] for c in rep.checks}
+    assert names["PR targets base branch"] is True and names["head branch is not the base branch"] is True
+    pr["base"]["ref"] = "feature/other"
+    rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
+    assert {c["name"]: c["ok"] for c in rep.checks}["PR targets base branch"] is False

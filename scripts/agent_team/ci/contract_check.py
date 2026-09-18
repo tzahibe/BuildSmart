@@ -38,8 +38,10 @@ def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None 
     base = pr.get("base", {}).get("ref", "")
     body = pr.get("body") or ""
 
-    rep.add("PR targets base branch", base == config.base_branch, f"base={base!r}")
-    rep.add("head branch is not the base branch", head != config.base_branch, f"head={head!r}")
+    # main, or a weekend/holiday integration branch (worker PRs target it during a protected period)
+    base_ok = base == config.base_branch or base.startswith("integration/")
+    rep.add("PR targets base branch", base_ok, f"base={base!r}")
+    rep.add("head branch is not the base branch", head != base and head != config.base_branch, f"head={head!r}")
     issue_no = issue_from_branch(config, head)
     rep.add("branch naming agent/<issue>-<slug>", issue_no is not None and bool(re.fullmatch(rf"{re.escape(config.branch_prefix)}\d+-[a-z0-9\-]+", head)), f"head={head!r}")
     linked = [int(n) for n in _CLOSES.findall(body)]
