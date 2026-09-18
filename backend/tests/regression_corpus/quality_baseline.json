@@ -1,0 +1,14 @@
+{
+  "n": 404,
+  "m3_circulation_share_median": 0.10526315789473685,
+  "m4_hall_aspect_median": 9.321428571428573,
+  "m5_wet_adjacency_share": 0.4251968503937008,
+  "m6_public_contiguous_share": 0.5272277227722773,
+  "source": "tests/regression_corpus/corpus.json PLANNED cases, replayed through generate_demo_design (freeze_quality_baseline.py)",
+  "tolerance": {
+    "m3_circulation_share_median": 0.02,
+    "m4_hall_aspect_median": 0.2,
+    "m5_wet_adjacency_share": 0.02,
+    "m6_public_contiguous_share": 0.02
+  }
+}
