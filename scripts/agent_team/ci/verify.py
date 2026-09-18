@@ -18,8 +18,11 @@ from agent_team.ci.common import GateReport, repo_root, run, write_report
 
 def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, str]:
     if kind == "pytest":
-        rel = target[len("backend/"):] if target.startswith("backend/") else target
-        proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout)
+        if target.startswith("scripts/agent_team/tests/"):
+            proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout)
+        else:
+            rel = target[len("backend/"):] if target.startswith("backend/") else target
+            proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout)
         tail = (proc.stdout.strip().splitlines() or [""])[-1]
         return proc.returncode == 0, tail[:300] or proc.stderr[-300:]
     if kind == "vitest":

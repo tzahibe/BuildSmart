@@ -291,11 +291,32 @@ a required context).
 ## Observability
 
 `agentctl status` — RUNNING / WAITING / CI / REVIEW-MERGE / BLOCKED / DONE / RESOURCE.
-`agentctl audit N` — the Issue's event timeline + run records. `.agent/logs/orchestrator.log`,
+`agentctl audit N` — the Issue's failure history, then its event timeline + run records.
+`agentctl report N` — prints the Issue's work report. `.agent/logs/orchestrator.log`,
 `.agent/logs/runs/<issue>/*.json` (command, model, cost, turns, permission denials, structured
-output — secrets redacted), `.agent/logs/evidence/<issue>.md` (the evidence handed to a repair),
-`.agent/contracts/<issue>.json` (contract + manifest snapshot). Issue comments carry only
-milestones.
+output — secrets redacted), `.agent/logs/evidence/<issue>-attempt<n>.md` (the evidence handed to
+that attempt's repair, one file per attempt), `.agent/contracts/<issue>.json` (contract + manifest
+snapshot). Issue comments carry only milestones.
+
+**Work reports and structured failure records** (`work_reports.py`). Every failure transition —
+a worker run failing or reporting `blocked`/`needs_decision`, a publish (push/PR) failure, a CI
+red run, an independent-review rejection, an owner reject/change-request over Telegram, a rate
+limit (the run is requeued without consuming an attempt), or a Team Lead `agentctl block` — emits
+exactly one `failure_record` event: `stage` (`worker`/`publish`/`ci`/`review`/`owner`/`usage`),
+`failure_class`, `attempt`, `attempts_left`, `root_cause` (<=500 chars, redacted), `evidence_ref`
+(the run record or evidence-note path), `next_action` (`requeue`/`repair`/`rerun_ci`/`blocked`/
+`paused`). The same fields render the one fixed template every failure milestone comment uses
+(`failure_milestone_text`), so an Issue's comments are scannable without opening a run record.
+
+Each state change regenerates `.agent/logs/reports/<issue>.md`: a header (title, state, risk, PR,
+branch, validated SHA, attempts), a "What was done" section per worker-report event (summary,
+what_changed, why, implementation, files_changed, tests_run, known_limitations), a "Failure
+history" table built from every `failure_record` event (time, stage, class, root cause, evidence
+ref, outcome), and the redacted raw event timeline. `agentctl report N` prints it directly;
+`agentctl audit N` prints the same failure-history table before the raw events. The Telegram
+compact status (`status.render_compact`, the owner control plane's `scripts/agent_team/remote/`)
+appends the same <=80-char root cause next to the failure class for BLOCKED and repair-pending
+(`FIX_REQUIRED`) lines.
 
 ## Operating it
 
@@ -524,4 +545,4 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
 
 ## Last verified against git
 
-`7814dc1` (main) + branch `infra/telegram-control-plane` (PR #16) for the governance/Telegram sections.
+`7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.
