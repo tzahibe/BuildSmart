@@ -120,10 +120,17 @@ not an entrance.
   every path that draws a front door, including the frozen pipeline (`pipeline.py::run_once`),
   which now calls `resolve_entrance` at its one call site instead of hardcoding `HALL_MAIN` —
   the frozen baseline's own HALL fronts the street, so its own behaviour is unchanged.
-- **Corpus effect**: re-ranking changed a small number of corpus primaries (their entrance room,
-  and therefore their chosen candidate) with LOST=0 — every context that used to plan a kitchen-
-  or dining-entrance primary had another candidate with an allowed arrival room. See the Issue #20
-  PR for the full before/after list.
+- **Corpus effect**: measured on the frozen 432-context corpus (before/after `corpus_snapshot.py`
+  compare, 8 workers): LOST=0, GAINED=0, refusal-code changes=0, primary-signature changes=19 (the
+  40-context budget). No corpus context's PRIMARY was ever actually a kitchen/dining entrance —
+  the pre-existing C16 check ("the entrance opens into the room it names") already kept a
+  hardcoded-fallback entrance off a room that does not front the street, so a dining/kitchen-only
+  candidate never validated to begin with, in either the pre- or post-#20 code. All 19 changes are
+  the RANKING taking effect among candidates that already validate: 17 contexts' primary moved
+  from a LIVING entrance to a HALL/CIRCULATION one; 2 contexts kept a LIVING entrance (no better
+  candidate exists) but the same ranking mechanism still changed which validating candidate is
+  first-found, so their geometry signature differs too. See the Issue #20 PR body for the full
+  per-context before/after list.
 
 **PROPOSED, not scheduled — foyer synthesis.** A context whose EVERY candidate's only
 street-fronting public room is the kitchen or dining room (none measured in the frozen corpus, but
