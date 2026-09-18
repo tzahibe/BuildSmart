@@ -157,9 +157,11 @@ def test_dependents_start_from_the_integration_branch_and_work_continues(env):
     _tick(orch)
     _to_ready_or_integrated(orch, gh, 121)
     assert orch.store.get(121).state == sm.INTEGRATED
-    rep = _tick(orch)                                        # the dependent starts at once: INTEGRATED satisfies it
-    assert rep.started == [122]
+    if orch.store.get(122).state == sm.QUEUED:               # otherwise it already started in the integrating tick
+        rep = _tick(orch)                                    # the dependent starts at once: INTEGRATED satisfies it
+        assert rep.started == [122]
     rec = orch.store.get(122)
+    assert rec.state != sm.QUEUED
     assert "work-121.txt" in _git(["ls-tree", "--name-only", "HEAD"], rec.worktree).stdout   # built on the integrated work
     _to_ready_or_integrated(orch, gh, 122)
     assert [i["issue"] for i in orch.integrations()] == [121, 122]

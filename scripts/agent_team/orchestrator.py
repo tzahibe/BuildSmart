@@ -303,15 +303,8 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.exception("poll failed")
             report.errors[0] = f"poll: {exc}"
-        try:
-            for d in self.schedule():
-                if d.starts:
-                    report.started.append(d.issue_id)
-                else:
-                    report.waiting[d.issue_id] = d.reason
-        except Exception as exc:  # noqa: BLE001
-            log.exception("schedule failed")
-            report.errors[-1] = f"schedule: {exc}"
+        # In-flight Issues first — a repair re-acquires its locks before new claims compete for them
+        # (finish what was started); then new claims fill the remaining slots.
         for rec in self.store.list((sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)):
             try:
                 outcome = self.advance(rec)
@@ -322,6 +315,15 @@ class Orchestrator:
             except Exception as exc:  # noqa: BLE001
                 log.exception("advance #%s failed", rec.issue_id)
                 report.errors[rec.issue_id] = str(exc)[:200]
+        try:
+            for d in self.schedule():
+                if d.starts:
+                    report.started.append(d.issue_id)
+                else:
+                    report.waiting[d.issue_id] = d.reason
+        except Exception as exc:  # noqa: BLE001
+            log.exception("schedule failed")
+            report.errors[-1] = f"schedule: {exc}"
         try:
             report.reconciled.extend(self.close_completed_roots())
         except Exception as exc:  # noqa: BLE001
