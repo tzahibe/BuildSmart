@@ -167,7 +167,18 @@ check in its own `### Knowledge check` section.
   only gradually, after a full batch ran at the current level with no CPU/RAM pressure
   (`resources` thresholds) and no rate-limit requeues.
 
-## 8. Report
+## 8. Weekend / holiday mode (§26–§41)
+
+On Fridays, Saturdays and the configured Jewish holidays (Erev Chag → last day, Asia/Jerusalem)
+the orchestrator integrates green PRs into ONE integration branch by itself and opens ONE rollup
+PR to `main` when the period ends. Your job during the period: keep the team saturated, handle
+failures/conflicts/reviews autonomously, take the most reasonable reversible product decision
+when the owner is unreachable and record it (`agentctl decide "…" --issue N`) — it appears in the
+rollup PR. Stop only for high-risk or irreversible product decisions outside a ROOT's scope. The
+rollup PR is validated as a whole; only the owner merges it. `agentctl period status` shows the
+calendar; `agentctl rollup exclude N` honours an owner exclusion.
+
+## 9. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),
 what is blocked and why, and what decision (if any) is theirs.

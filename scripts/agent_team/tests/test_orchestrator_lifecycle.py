@@ -55,11 +55,21 @@ def env(tmp_path: Path):
     gh = FakeGitHub(repo=config.repo)
 
     def real_merge(pr):
-        """Fast-forward the PR branch into the temp origin's main, like GitHub would."""
+        """Squash-merge the PR branch into its base on the temp origin (main, or an integration
+        branch in weekend/holiday mode), like GitHub's squash merge: one new commit on the base."""
+        base = pr["base"]["ref"]
         _git(["fetch", "-q", "origin"], root)
-        _git(["push", "-q", "origin", f"origin/{pr['head']['ref']}:main"], root)
+        wt = tmp_path / f"_merge-{pr['number']}"
+        _git(["worktree", "add", "-q", "--detach", str(wt), f"origin/{base}"], root)
+        try:
+            _git(["merge", "--squash", f"origin/{pr['head']['ref']}"], wt)
+            _git(["-c", "user.email=t@example.com", "-c", "user.name=tester", "commit", "-q", "--allow-empty", "-m", f"{pr['title']}"], wt)
+            sha = _git(["rev-parse", "HEAD"], wt).stdout.strip()
+            _git(["push", "-q", "origin", f"HEAD:{base}"], wt)
+        finally:
+            _git(["worktree", "remove", "--force", str(wt)], root)
         _git(["fetch", "-q", "origin"], root)
-        return _git(["rev-parse", "origin/main"], root).stdout.strip()
+        return sha
 
     def real_head(branch):
         out = _git(["ls-remote", "--heads", str(origin), branch], root).stdout.split()

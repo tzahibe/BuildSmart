@@ -163,6 +163,17 @@ repair:
 # repairs or reviews — the owner is told on Telegram, and it resumes by itself once the window
 # resets / usage falls below resume_below_percent. A run that dies on a rate limit is requeued
 # without consuming a repair attempt.
+# Weekend / Jewish-holiday autonomous integration mode (owner governance §26–§41). During a
+# protected period the Team Lead merges fully validated PRs into ONE temporary integration
+# branch (integration/weekend-<date> or integration/holiday-<name>-<year>) and, when it ends,
+# opens ONE rollup PR to main that is validated as a whole. main is never merged autonomously.
+protected_periods:
+  enabled: true
+  timezone: Asia/Jerusalem
+  weekdays: [fri, sat]
+  # keys: yom_kippur, sukkot (incl. Chol HaMoed), shemini_atzeret, shavuot, rosh_hashanah, pesach
+  holidays: [yom_kippur, sukkot, shemini_atzeret, shavuot]
+  erev: true                          # the period starts on Erev Chag
 usage_guard:
   enabled: true
   pause_at_percent: 98

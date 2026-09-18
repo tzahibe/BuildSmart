@@ -486,6 +486,66 @@ def cmd_repair(config: Config, args) -> int:
     return 0
 
 
+def cmd_decide(config: Config, args) -> int:
+    """Record a product/engineering decision the Team Lead took (listed in the period's rollup PR)."""
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    orch = Orchestrator(config, github=_github(config), runner=FakeAgentRunner(script={}))
+    orch.record_decision(args.text, issue_id=args.issue, by="team-lead")
+    print(f"decision recorded{f' for #{args.issue}' if args.issue else ''}: {args.text[:120]}")
+    return 0
+
+
+def cmd_period(config: Config, args) -> int:
+    """Weekend/holiday mode: `status` (calendar + active period), `start` / `end` (force, for ops)."""
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    from agent_team.protected_periods import Calendar
+    orch = Orchestrator(config, github=_github(config), runner=FakeAgentRunner(script={}))
+    cal: Calendar = orch.calendar
+    today = cal.today()
+    if args.period_cmd == "status":
+        p = orch.period
+        print(f"today: {today} ({today.strftime('%A')}, {cal.tz}) — {'PROTECTED' if cal.is_protected(today) else 'normal'}: {cal.classify(today)}")
+        print(f"active period: {p.label + ' -> ' + p.branch + f' ({p.start} → {p.end})' if p else 'none'}")
+        nxt = cal.next_period(today + __import__('datetime').timedelta(days=1))
+        if nxt:
+            print(f"next period: {nxt.label} {nxt.start} → {nxt.end} ({nxt.branch})")
+        ru = orch.rollup()
+        if ru:
+            print(f"rollup pending: Issue #{ru['issue']} / PR #{ru['pr']} children={ru.get('children')}")
+        print(f"integrated so far: {[i['issue'] for i in orch.integrations()]}")
+        return 0
+    if args.period_cmd == "start":
+        if orch.period:
+            print(f"already in a period: {orch.period.label}")
+            return 1
+        p = cal.period_containing(today) or cal.next_period(today)
+        if p is None:
+            print("no period found in the calendar horizon")
+            return 1
+        print(orch.start_period(p))
+        return 0
+    if args.period_cmd == "end":
+        if not orch.period:
+            print("no active period")
+            return 1
+        print(orch.end_period())
+        return 0
+    return 1
+
+
+def cmd_rollup(config: Config, args) -> int:
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    orch = Orchestrator(config, github=_github(config), runner=FakeAgentRunner(script={}))
+    if args.rollup_cmd == "exclude":
+        res = orch.rollup_exclude(args.number, source="agentctl", who="team-lead", reason=args.reason or "")
+        print(res)
+        return 0 if res["result"] == "SUCCESS" else 1
+    return 1
+
+
 def cmd_block(config: Config, args) -> int:
     store = StateStore(config.state_db_path)
     rec = store.get(args.number)
@@ -881,6 +941,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--rereview", action="store_true"); s.add_argument("--reason")
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
+    s = sub.add_parser("decide"); s.add_argument("text"); s.add_argument("--issue", type=int); s.set_defaults(fn=cmd_decide)
+    s = sub.add_parser("period"); psub = s.add_subparsers(dest="period_cmd", required=True)
+    psub.add_parser("status"); psub.add_parser("start"); psub.add_parser("end"); s.set_defaults(fn=cmd_period)
+    s = sub.add_parser("rollup"); rsub = s.add_subparsers(dest="rollup_cmd", required=True)
+    x = rsub.add_parser("exclude"); x.add_argument("number", type=int); x.add_argument("--reason"); s.set_defaults(fn=cmd_rollup)
     s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
     s.add_argument("--summary", required=True); s.add_argument("--evidence-file"); s.set_defaults(fn=cmd_repair)
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)

@@ -245,6 +245,50 @@ slot/capacity saturation, lock serialization, READY not blocking unrelated work,
 creation by the Team Lead (and refusal for unapproved ROOTs / out-of-scope children), no automatic
 merge (loader + lifecycle), owner merge with SHA re-validation, ROOT auto-close.
 
+## Weekend / Jewish-holiday autonomous integration mode (since 2026-09-18, §26–§41)
+
+When the owner does not manage individual merges — Fridays, Saturdays, and Yom Kippur, Sukkot
+(incl. Chol HaMoed), Shemini Atzeret and Shavuot from Erev Chag to the last day, all in
+`Asia/Jerusalem` (`scripts/agent_team/protected_periods.py`, Hebrew dates from `pyluach`, never
+hard-coded Gregorian dates; `protected_periods` in `.agent/config.yaml`) — the orchestrator:
+
+1. **starts a period** on the first protected day (adjacent weekend + holiday days form ONE
+   period, named after the holiday when one is included): creates ONE integration branch from
+   `main` (`integration/weekend-<date>` / `integration/holiday-<name>-<year>`), makes it the base
+   for new worktrees and PRs, audits `PROTECTED_PERIOD_STARTED`, tells the owner; the period is
+   persisted in meta and survives restarts;
+2. **integrates autonomously**: a PR whose gates are all green (CI, regression within budget,
+   independent APPROVE at the exact head, dependencies satisfied, ROOT authorized) is
+   squash-merged by the Team Lead into the integration branch — state `INTEGRATED`, locks
+   released, dependents start from the integrated base (INTEGRATED satisfies dependencies). Every
+   internal merge is followed by the smoke commands on the combined head; red smoke reverts the
+   squash commit and sends the Issue back for repair (`INTEGRATION_FAILURE`), recorded as a lead
+   decision. Nothing lowers engineering quality; only the owner's merge is deferred;
+3. **ends the period** the day after its last day: one rollup Issue (`agent:rollup`, contract
+   `### Authorization: source: rollup`) and ONE rollup PR (integration branch → main) with the
+   Hebrew owner summary (§32: what was done, PRs, product decisions, behavior changes, tests,
+   regression, limitations, recommendation) and the technical traceability table. The rollup
+   goes through the normal gates on its combined head — fast tier, corpus regression against the
+   `main` merge-base with the strictest included budget, independent review of the combined diff
+   — and becomes the single `READY_FOR_OWNER` item with ONE Telegram message (§34). Nothing
+   integrated → the branch is deleted quietly. `PROTECTED_PERIOD_ENDED` carries the rollup PR.
+4. **the owner merges the rollup** (CONFIRM MERGE / "מזג PR N"); post-merge smoke on main;
+   every integrated child becomes `DONE` and closes; the branch and the mode state go away.
+
+Owner drill-down (§35): `/rollup` or "איזה PRs נכנסו לחבילת סוף השבוע?" → the traceability text
+(ROOT → children → PRs → commits → review); every child keeps its own milestone comments. Owner
+change request on the rollup (§36): "לא רוצה את השינוי של Issue N" → `rollup_exclude` reverts that
+Issue's squash commit on the integration branch (child → `OWNER_EXCLUDED`), the rollup's head
+moves and re-validates; a free-text change request blocks the rollup for a Team Lead decision
+(no worker owns a rollup). Work still running when the period ends stays in the normal
+lifecycle on its current base and is never added unvalidated. `agentctl period status|start|end`,
+`agentctl rollup exclude N`, `agentctl decide "…"` (records a decision for the rollup body).
+**Main is never merged autonomously — the rollup PR is the owner's single merge for the period.**
+Tests: `tests/test_integration_mode.py` (calendar on real 2026 dates; period start/restart;
+integration instead of READY; dependents on the integrated base; rollup creation, validation,
+single notification, owner merge, children done; smoke-failure revert; exclude; change request;
+normal owner gate outside a period).
+
 ## Merge policy (owner-controlled)
 
 | Risk | Required before `READY_FOR_OWNER` | Auto-merge |
