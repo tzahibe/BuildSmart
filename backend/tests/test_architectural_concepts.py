@@ -28,6 +28,7 @@ from app.geometry.planning.planner import build_geometric_design_from_plan, plan
 from app.geometry.solver import _layout_satisfies_hard_requirements, _overlaps, generate_valid_candidate_pool
 from app.geometry.spatial_v2.planner import plan_v2
 from app.projects.models import PoolField, Project, SourceTag, TaggedBool, TaggedFloat, TaggedInt
+from tests import wallclock
 
 _SAMPLES_DIR = Path(__file__).parent / "architectural_concept_samples"
 
@@ -202,7 +203,7 @@ def test_scenario_plans_before_geometry_and_realizes_it(label):
 
     # (5) resulting GeometricDesign is valid either way -- already asserted in _run() via
     # GeometricDesign.model_validate() and the hard-constraint/overlap/bounds checks above.
-    assert report["runtime_s"] < _MAX_RUNTIME_S
+    assert wallclock.within(report["runtime_s"], _MAX_RUNTIME_S)
 
 
 # --- unit: concept identity ---------------------------------------------------------------------
