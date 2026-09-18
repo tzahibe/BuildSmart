@@ -12,10 +12,12 @@ architectural-quality rule applied to those segments after they exist.
 """
 from __future__ import annotations
 
+import dataclasses
 from typing import Literal
 
 from pydantic import BaseModel
 
+from app.vertical_slice import quality_metrics
 from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.concept_generator import (
     OVER_PREFERRED_NOTICE_RATIO,
@@ -112,6 +114,27 @@ class QualitySignal(BaseModel):
     ratio: float
 
 
+class QualityMetricsOut(BaseModel):
+    """M1–M6 for this one plan (Issue #17), read-only — never an input to ranking or validation.
+
+    Field names mirror `app.vertical_slice.quality_metrics.QualityMetrics` exactly. See that
+    module's docstring for how each is computed, and
+    `docs/wiki/architecture/geometry-validation.md` for the corpus baseline these numbers are
+    checked against and the measured gaps against 21 professional plans.
+    """
+
+    m1_habitable_aspect_median: float | None = None
+    m1_habitable_aspect_max: float | None = None
+    m2_habitable_on_envelope_ratio: float | None = None
+    m3_circulation_share: float
+    m4_hall_door_count: int | None = None
+    m4_hall_aspect_median: float | None = None
+    m5_wet_adjacency_ratio: float | None = None
+    m6_public_zone_contiguous: bool | None = None
+    dead_space_m2: float = 0.0
+    wasted_circulation_share: float = 0.0
+
+
 class QualityOut(BaseModel):
     """Room-size quality, kept apart from validation on purpose: the preferred maximum is a soft
     target, the hard one is the gate (C21). Three tiers, thresholds beside the templates
@@ -137,6 +160,9 @@ class QualityOut(BaseModel):
     signal: list[QualitySignal] = []
     notices: list[str] = []
     laundry_notice: str | None = None
+    #: M1–M6 for this plan (Issue #17). `None` only for a payload built before this field existed
+    #: — every plan `to_demo_design` produces from here on attaches one.
+    metrics: QualityMetricsOut | None = None
 
 
 class WindowOut(BaseModel):
@@ -682,6 +708,10 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
+def _metrics_out(m: quality_metrics.QualityMetrics) -> QualityMetricsOut:
+    return QualityMetricsOut(**dataclasses.asdict(m))
+
+
 def quality_of(design: SolvedDesign) -> QualityOut:
     """The three tiers of `QualityOut` from the realized rooms — see the class for the policy."""
     signal: list[QualitySignal] = []
@@ -764,7 +794,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                          orientation=entrance.orientation, is_entrance=True,
                          swings_into=entrance.swings_into,
                          hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1]))
-    return DemoDesign(
+    demo = DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),
         footprints=[_rect(f) for f in design.footprints_m],
@@ -800,6 +830,14 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         outline=outline,
         family=family,
     )
+    # M1–M6 (Issue #17) need the FLATTENED walls/open-interfaces/doors this function just built
+    # (adjacency, hall doors, open-plan joins) — data `quality_of(design)` above never sees, since
+    # it runs on the raw solver output. Computed here, once the shape exists, and attached
+    # additively onto the `quality` already built rather than threaded through `quality_of`.
+    metrics = quality_metrics.measure_design(demo)
+    return demo.model_copy(update={
+        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics)})
+    })
 
 
 # --------------------------------------------------------------------------- building payload

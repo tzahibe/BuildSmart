@@ -42,6 +42,7 @@ from app.vertical_slice.spec import (
     WetRoomRequirement,
     WetRoomStrength,
 )
+from tests import wallclock
 
 PROGRAMS = {
     "2BR": ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=1),
@@ -1270,7 +1271,7 @@ def test_hub_bound_is_cheap():
     b = cg.hub_bound(rooms, 18.0, 12.0, cg._HUB_WIDTHS_M)
     assert a == b
     assert a.evaluated < 40_000, a.evaluated
-    assert time.perf_counter() - started < 1.0
+    assert wallclock.within(time.perf_counter() - started, 1.0)
 
 
 @HUB_VS_HARD_MAXIMA
