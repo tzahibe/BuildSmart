@@ -18,6 +18,33 @@ metric) or is planned (an Issue reference), what a **reference comparison** agai
 professional plans adds beyond a synthetic threshold, what only **semantic review** (a person, or
 an LLM reviewer prompt) can judge, and a one-line "how a reviewer applies it."
 
+## Reference benchmark (Issue #32)
+
+`app.vertical_slice.reference_benchmark.benchmark(design, references) -> BenchmarkReport`
+(`backend/scripts/reference_benchmark.py --context <id>` prints it) produces one machine-generated
+`SectionFinding` per rubric section for a realized plan, six of them with a real deterministic
+value today, compared against the curated reference-plan index
+(`docs/architecture_reference/references/index.json`) filtered to entries of the same
+`footprint_family` — metadata and ratios derived from that index only, never a reference plan's own
+geometry (the V1 set carries none on disk; every entry is `rights: "metadata-only"`).
+
+The benchmark's own six section codes are lettered exactly as Issue #32's contract named them —
+A, B, C, H, K, L — which does **not** line up with this rubric's own A–O lettering for the same or
+adjacent topics (this rubric's A is Room Proportion, not Entrance; its H is Entrance, not Exposure;
+and so on). Content mapping, this rubric's section -> the benchmark's own letter:
+
+| This rubric's section | Benchmark's own letter | What the benchmark measures |
+|---|---|---|
+| H. Entrance & Arrival Sequence | **A** | does the entrance open into a public/circulation room |
+| D. Circulation Efficiency & Compactness | **B** | dedicated circulation m², its share of the plan, corridor length |
+| J. Adjacency & Privacy Zoning | **C** | is each of PUBLIC/PRIVATE/SERVICE a spatially contiguous group |
+| C. Exterior Exposure & Daylight | **H** | share of daylight-required rooms with a window (C8 data) |
+| K. Dead Space & Structural Validity | **K** (same letter, same topic) | residual interior area (C2; always 0 — a floor, not a band) |
+| — (no existing rubric section; a new data-integrity fact) | **L** | how far a room's declared area sits from its own width×depth |
+
+Every other rubric section (A, B, E, F, G, I, L, M, N, O in this document's own lettering) has no
+signal wired into the benchmark yet and comes back `not_measured` from `benchmark()`.
+
 ## A. Room Proportion & Aspect Ratio
 
 A habitable room should read as a room, not a corridor with a bed in it — its long/short ratio
