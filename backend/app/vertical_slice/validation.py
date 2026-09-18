@@ -38,6 +38,7 @@ from .geometry_core.model import (
 )
 from .site import SitePlan
 from .spec import CorridorRequirement, WetRoomKind
+from . import wet_privacy as wet_privacy_module
 from .wet_rooms import ResolvedWetRoom
 from .windows import DAYLIGHT_ROLES, Window, seam_sides_of
 
@@ -521,6 +522,19 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                        f"{', '.join(entered_from) or 'nothing'}, required {expected}")
     rep.add("C17", "bathroom access matches the requirements", not bad,
             "; ".join(bad) or f"all {len(wet_rooms)} wet rooms entered as required")
+
+    # C29 — wet-room privacy (Issue #37). C17 above already fails closed on WHO may enter a wet
+    # room; this is the door's own relationship to the public part of the house once that access
+    # is legal. Fails closed ONLY on the hard rule (`wet_privacy.hard_violations`: entered directly
+    # from KITCHEN or DINING) — corridor access, however its facing geometry scores, is never
+    # refused here (see `wet_privacy.py`'s module docstring). Everything else is quality data on
+    # `QualityOut.wet_privacy` (`app.demo.contract`), never a gate.
+    privacy_records = wet_privacy_module.compute_wet_privacy(fixture, rects, walls, interior_doors,
+                                                             wet_rooms)
+    privacy_bad = wet_privacy_module.hard_violations(fixture, privacy_records)
+    rep.add("C29", "wet-room privacy", not privacy_bad,
+            "; ".join(privacy_bad) or
+            f"all {len(privacy_records)} wet rooms clear of a direct public-zone sight line")
 
     # C22 — declared wing seams are real (the spike's proof P9, ported). Multi-wing fixtures only:
     # a one-wing house has no seam to prove, and a check that did not run makes no claim — which
