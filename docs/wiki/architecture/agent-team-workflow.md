@@ -522,10 +522,11 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet
   read API quota.
 - GitHub sub-issues are not used; dependencies live in the contract (`Dependencies`) and the store.
-- A Telegram/remote-control gateway (inbound `CREATE_ISSUE`/`LIST_ISSUES` commands) exists only on
-  the separate, unmerged `infra/telegram-control-plane` branch, not on `main` — the title-numbering
-  convention above applies there too once merged, but that branch's own retitling/display code is
-  out of this page's (and Issue #25's) scope.
+- The Telegram/remote-control gateway (`scripts/agent_team/remote/gateway.py`, merged to `main` via
+  #16) applies the title-numbering convention above: its `CREATE_ISSUE` handler retitles a new
+  Issue with `numbered_title()` right after `create_issue` returns the number, and its
+  status/`LIST_ISSUES` lines use `strip_title_number()` so the Issue's own number is not shown
+  twice.
 
 ## Pilot record (2026-09-17)
 

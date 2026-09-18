@@ -13,10 +13,17 @@ from agent_team.state_store import IssueRecord, StateStore
 from agent_team.work_reports import short_root_cause
 
 
+_AGENT_TAG = "[agent] "
+
+
 def _title(rec: IssueRecord, n: int = 50) -> str:
     """The title for a status line that already shows `#{issue_id}` itself, so the Issue's own
-    number is not repeated."""
-    return strip_title_number(rec.title)[:n]
+    number is not repeated, and the `[agent] ` tag (every tracked Issue's) is not repeated
+    either — matches the pre-#25 `r.title[8:...]` display within the same char budget."""
+    t = strip_title_number(rec.title)
+    if t.startswith(_AGENT_TAG):
+        t = t[len(_AGENT_TAG):]
+    return t[:n]
 
 
 def _age(ts: float | None, now: float) -> str:
