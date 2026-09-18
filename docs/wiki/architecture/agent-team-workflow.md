@@ -509,10 +509,6 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet
   read API quota.
 - GitHub sub-issues are not used; dependencies live in the contract (`Dependencies`) and the store.
-- A Telegram/remote-control owner interface (compact status, owner commands) exists only on the
-  unmerged `infra/telegram-control-plane` branch, not on `main`; the compact-status root-cause
-  line (`work_reports.short_root_cause`) is ready for it but has no call site until that branch
-  lands (Issue #24 follow-up).
 
 ## Pilot record (2026-09-17)
 
@@ -549,4 +545,4 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
 
 ## Last verified against git
 
-`7814dc1` (main) + branch `infra/telegram-control-plane` (PR #16) for the governance/Telegram sections.
+`7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.

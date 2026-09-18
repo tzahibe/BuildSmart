@@ -480,6 +480,7 @@ def cmd_repair(config: Config, args) -> int:
     store.transition(args.number, sm.FIX_REQUIRED, allowed_from=(sm.BLOCKED,), failure_class=args.failure_class,
                      last_error=args.summary[:1000], note="repair ordered by lead")
     store.record_event(args.number, "repair_ordered_by_lead", {"class": args.failure_class, "summary": args.summary[:500]})
+    write_report(store, config, args.number)
     try:
         gh = _github(config)
         gh.set_state_label(args.number, sm.FIX_REQUIRED)
