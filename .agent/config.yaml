@@ -57,7 +57,7 @@ claude:
   # "auto" resolves: $CLAUDE_BIN, then `claude` on PATH, then the newest VS Code extension binary.
   binary: auto
   effort: high
-  worker_timeout_seconds: 3600
+  worker_timeout_seconds: 5400              # HEAVY Issues (validator + corpus) need more than an hour; the usage guard bounds cost
   repair_timeout_seconds: 2400
   reviewer_timeout_seconds: 1200
   domain_lead_timeout_seconds: 1200
