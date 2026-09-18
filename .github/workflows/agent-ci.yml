@@ -1,4 +1,4 @@
-# The staged, fail-fast pipeline for agent PRs (branches agent/<issue>-<slug> -> main).
+# The staged, fail-fast pipeline for agent PRs (branches agent/<issue>-<slug> -> main or -> integration/<period>).
 #
 #   gate-1-contract  -> gate-2-static -> gate-3-verification -> gate-4-regression (when required)
 #                                                                     \-> agent-ci-result
@@ -11,7 +11,8 @@ name: agent-ci
 
 on:
   pull_request:
-    branches: [main]
+    # main, and the weekend/holiday integration branches (worker PRs target them during a protected period)
+    branches: [main, "integration/**"]
     types: [opened, synchronize, reopened, edited, ready_for_review]
 
 concurrency:
@@ -59,8 +60,8 @@ jobs:
         env:
           PYTHONPATH: scripts
         run: |
-          git fetch --no-tags origin main
-          uv run --project scripts/agent_team python -m agent_team.ci.plan origin/main
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          uv run --project scripts/agent_team python -m agent_team.ci.plan "origin/${{ github.base_ref }}"
       - name: Backend — syntax, imports, fast unit tier
         if: steps.plan.outputs.backend_changed == 'true'
         working-directory: backend
@@ -152,6 +153,7 @@ jobs:
     uses: ./.github/workflows/agent-regression.yml
     with:
       head_sha: ${{ github.event.pull_request.head.sha }}
+      base_ref: ${{ github.base_ref }}
     secrets: inherit
 
   agent-ci-result:
