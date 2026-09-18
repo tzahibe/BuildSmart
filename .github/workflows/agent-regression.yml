@@ -71,6 +71,9 @@ jobs:
         working-directory: backend
         env:
           TEST_MODE: REGRESSION
+          # Regression-tier tests that need per-plan data read the head snapshot computed above
+          # instead of regenerating the corpus (a third corpus pass does not fit the budget).
+          CORPUS_SNAPSHOT: ${{ github.workspace }}/.agent/ci/head_snapshot.json
         run: uv run pytest -q -p no:cacheprovider tests/regression_corpus -n 4
       - name: Evaluate the regression budget
         env:
