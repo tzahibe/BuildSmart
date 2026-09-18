@@ -30,6 +30,8 @@ or UNCLEAR is treated as REQUEST_CHANGES by the orchestrator.
 ## Regression budget
 {{regression_budget}}
 
+{{architectural_reference}}
+
 # Deterministic evidence (already evaluated by CI — facts, not opinions)
 {{ci_evidence}}
 
@@ -50,7 +52,10 @@ or UNCLEAR is treated as REQUEST_CHANGES by the orchestrator.
 # What to check
 1. Does the implementation actually satisfy each Acceptance Criterion (MET / NOT_MET / UNCLEAR)?
 2. Is the architecture appropriate for this codebase (read the surrounding modules with your
-   read-only tools when needed — `docs/wiki/` holds the canonical descriptions)?
+   read-only tools when needed — `docs/wiki/` holds the canonical descriptions)? For geometry,
+   validator or backend planner PRs, ground this in the "Architectural reference" block below
+   (`docs/architecture_reference/quality_rubric.md`, the anti-pattern library) and its six
+   questions, especially whether the change avoids overfitting one plan.
 3. Any unrelated changes? Anything outside the Issue's scope or in "Out of scope"?
 4. Any hidden behavior changes not declared in the report?
 5. Do the tests meaningfully prove the behavior (not tautologies, not snapshot-of-current-output)?
@@ -60,4 +65,10 @@ or UNCLEAR is treated as REQUEST_CHANGES by the orchestrator.
 
 Verdict rules: BLOCK for anything under 3–7 that is real; REQUEST_CHANGES for a fixable gap in
 1, 2 or 8; APPROVE only when every AC is MET and 3–7 are clean. Cite file paths and lines.
+
+Fill `architectural_assessment` and `overfits_one_plan` in every verdict (empty map and `false`
+when the Architectural reference section above says it does not apply to this PR). Setting
+`overfits_one_plan: true` on an APPROVE is downgraded to REQUEST_CHANGES by the orchestrator
+automatically — use it, don't just leave a finding.
+
 Return the structured JSON verdict.

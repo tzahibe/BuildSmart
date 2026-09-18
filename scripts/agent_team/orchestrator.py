@@ -1109,6 +1109,12 @@ class Orchestrator:
             return
         verdict = result.structured
         v = verdict.get("verdict", "BLOCK")
+        # An architectural reviewer flag: never let an "it works" APPROVE stand when the reviewer
+        # itself judged the fix only holds for the one plan it was built against.
+        overfits = bool(verdict.get("overfits_one_plan", False))
+        if v == "APPROVE" and overfits:
+            v = "REQUEST_CHANGES"
+            verdict = {**verdict, "verdict": v, "summary": "downgraded by the orchestrator: overfits_one_plan is true. " + verdict.get("summary", "")}
         # SEMANTIC_REVIEW criteria are evidence only when the reviewer marked them MET.
         semantic = contract.semantic_review_acs
         assessed = {a.get("ac"): a.get("verdict") for a in verdict.get("ac_assessment", []) if isinstance(a, dict)}
@@ -1129,7 +1135,7 @@ class Orchestrator:
                 log.warning("posting review on PR #%s failed: %s", rec.pr_number, exc)
         store.update(issue_id, review_verdict=f"{v}@{head}")
         store.record_event(issue_id, "review_verdict", {"verdict": v, "head": head, "summary": verdict.get("summary", "")[:500],
-                                                         "semantic_unmet": unmet})
+                                                         "semantic_unmet": unmet, "overfits_one_plan": overfits})
         if current_head is not None and current_head != head:
             # the PR moved while the reviewer was reading: the verdict is already stale
             self._publish_review_status(store, issue_id, current_head, "pending", "stale: head moved during review")

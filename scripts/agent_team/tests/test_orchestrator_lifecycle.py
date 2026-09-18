@@ -88,7 +88,7 @@ def _worker_that_commits(report_overrides=None):
 
 APPROVE = {"verdict": "APPROVE", "summary": "fine", "ac_assessment": [{"ac": "AC-1", "verdict": "MET", "note": ""}], "findings": [],
            "unrelated_changes": False, "hidden_behavior_changes": False, "tolerance_hacks": False, "silent_fallback": False,
-           "tests_meaningful": True, "architecture_appropriate": True}
+           "tests_meaningful": True, "architecture_appropriate": True, "architectural_assessment": {}, "overfits_one_plan": False}
 
 
 def _add_issue(gh: FakeGitHub, number: int, approved: bool = True, **kw):
