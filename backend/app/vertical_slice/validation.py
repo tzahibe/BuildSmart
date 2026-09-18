@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import access_rules
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
@@ -295,6 +296,17 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     rep.add("C5", "all required spaces physically reachable from the entrance", not unreachable,
             "; ".join(unreachable) or
             f"all {len(all_zones)} zones reachable over {len(realized)} realized connections{seed_note}")
+
+    # C24 — access topology obeys the door rules (access_rules.py): every enclosed room has a
+    # declared door, every declared edge's role pair is one the table allows (which is what rules
+    # out a PRIVATE-to-PRIVATE door except an ensuite's own bedroom), and no room is reachable
+    # from the entrance only by continuing on through another PRIVATE room — the last of these
+    # walked over the same REALIZED `graph` C5 just built, not the declared topology, so a wall
+    # accidentally typed OPEN between two rooms cannot create a silent chain either.
+    access_defects = access_rules.check_access_topology(fixture, graph, entry_seed)
+    rep.add("C24", "access topology obeys the door rules", not access_defects,
+            "; ".join(access_defects) or "every enclosed room has a proper door from an allowed "
+                                         "role, no private-to-private chain")
 
     # C6 — no artificial doors in open-plan
     open_pairs = {frozenset((e.a, e.b)) for e in fixture.access.edges if e.kind is ConnectionKind.OPEN_CONNECTION}
