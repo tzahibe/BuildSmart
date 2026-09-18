@@ -205,8 +205,10 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # one) lives in `quality`, and only a room far past it becomes a notice. `laundry_notice`
     # (2026-09-16, activation) stays None here — none of these briefs request a laundry room.
     # `metrics` (Issue #17, M1–M6) is additive and always present on a delivered plan.
+    # `constraints` (Issue #35) is additive too — one entry for a brief with an authoritative
+    # SAFE_ROOM requirement, empty for a brief without one.
     assert "quality" in body and set(body["quality"]) == {
-        "over_preferred", "signal", "notices", "laundry_notice", "metrics"}
+        "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 
