@@ -61,14 +61,14 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 ## Agent-team Issues
 
 - **#24 Work reports and structured failure records** — every failure transition (worker
-  failed/blocked, publish failed, CI red, review rejected, `agentctl block`) emits one structured
-  `failure_record` event and a fixed-template failure milestone comment; a per-Issue Markdown work
-  report (`.agent/logs/reports/<issue>.md`, `agentctl report N`) is regenerated on every state
-  change with a "What was done" section per attempt and a "Failure history" table; `agentctl audit
-  N` shows the failure history before raw events. See the agent-team-workflow Wiki page's
-  Observability section (`work_reports.py`). The Telegram-status root-cause line (AC-5) is blocked
-  on the unmerged `infra/telegram-control-plane` branch, which is the only place the referenced
-  `remote_control`/Telegram status module exists — not implemented here.
+  failed/blocked, publish failed, CI red, review rejected, owner reject/change-request, a rate
+  limit, `agentctl block`) emits one structured `failure_record` event and a fixed-template
+  failure milestone comment; a per-Issue Markdown work report (`.agent/logs/reports/<issue>.md`,
+  `agentctl report N`) is regenerated on every state change with a "What was done" section per
+  attempt and a "Failure history" table; `agentctl audit N` shows the failure history before raw
+  events; the Telegram compact status (`status.render_compact`) appends the short root cause next
+  to a BLOCKED/repair-pending class. See the agent-team-workflow Wiki page's Observability section
+  (`work_reports.py`).
 
 ## Guardrails / do-not-change rules
 

@@ -300,8 +300,9 @@ snapshot). Issue comments carry only milestones.
 
 **Work reports and structured failure records** (`work_reports.py`). Every failure transition —
 a worker run failing or reporting `blocked`/`needs_decision`, a publish (push/PR) failure, a CI
-red run, an independent-review rejection, or a Team Lead `agentctl block` — emits exactly one
-`failure_record` event: `stage` (`worker`/`publish`/`ci`/`review`/`owner`/`usage`),
+red run, an independent-review rejection, an owner reject/change-request over Telegram, a rate
+limit (the run is requeued without consuming an attempt), or a Team Lead `agentctl block` — emits
+exactly one `failure_record` event: `stage` (`worker`/`publish`/`ci`/`review`/`owner`/`usage`),
 `failure_class`, `attempt`, `attempts_left`, `root_cause` (<=500 chars, redacted), `evidence_ref`
 (the run record or evidence-note path), `next_action` (`requeue`/`repair`/`rerun_ci`/`blocked`/
 `paused`). The same fields render the one fixed template every failure milestone comment uses
@@ -312,10 +313,10 @@ branch, validated SHA, attempts), a "What was done" section per worker-report ev
 what_changed, why, implementation, files_changed, tests_run, known_limitations), a "Failure
 history" table built from every `failure_record` event (time, stage, class, root cause, evidence
 ref, outcome), and the redacted raw event timeline. `agentctl report N` prints it directly;
-`agentctl audit N` prints the same failure-history table before the raw events. Owner-facing
-Telegram status is not yet wired to append the root cause next to a BLOCKED class — that piece of
-the Telegram/remote-control surface (`scripts/agent_team/remote/` in the still-unmerged
-`infra/telegram-control-plane` branch) does not exist on `main`; see Known limitations.
+`agentctl audit N` prints the same failure-history table before the raw events. The Telegram
+compact status (`status.render_compact`, the owner control plane's `scripts/agent_team/remote/`)
+appends the same <=80-char root cause next to the failure class for BLOCKED and repair-pending
+(`FIX_REQUIRED`) lines.
 
 ## Operating it
 
