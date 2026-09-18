@@ -451,7 +451,12 @@ class Orchestrator:
                 continue
             labels = {l["name"] for l in issue.get("labels", [])}
             if DECOMPOSED_LABEL in labels:
-                continue  # a ROOT executed through its children is never run as a task itself
+                # a ROOT executed through its children is never run as a task itself — including one
+                # that was tracked before the label appeared
+                if existing is not None and existing.state == sm.QUEUED:
+                    self._set_state(self.store, number, sm.BLOCKED, note="decomposed ROOT: executed through its children",
+                                    failure_class="DECOMPOSED")
+                continue
             try:
                 contract = parse_contract(number, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
                                           behavior_domains=self.config.behavior_domains)
@@ -810,6 +815,11 @@ class Orchestrator:
             store.update(issue_id, agent_pid=None, assigned_agent=None)
             self._set_state(store, issue_id, sm.PR_OPEN, note="PR ready", pr_number=pr["number"], pr_url=pr.get("html_url"),
                             validated_commit=None)
+            if self.config.release_locks_at == "pr_open":
+                # The code changes are done: CI/review hold no locks, so the next Issue on the same core can
+                # start now (owner rule: never let a worker rest). A repair re-acquires them first.
+                self.locks.release(issue_id, "pr-open")
+                self._wake.set()
             store.record_event(issue_id, "worker_report", {"report": report})
             self._publish_review_status(store, issue_id, head, "pending", "independent review not yet run (awaiting CI gates)")
         except (GitError, Exception) as exc:  # noqa: BLE001
@@ -987,7 +997,7 @@ class Orchestrator:
                 return self._integrate(rec, head, ev, verdict)
             self._set_state(self.store, rec.issue_id, sm.READY_FOR_OWNER, note=f"every gate green: {decision.describe()}")
             self.store.record_event(rec.issue_id, "ready_for_owner", {"head": head, "policy": decision.describe()})
-            if self.config.release_locks_at_ready:
+            if self.config.release_locks_at in ("ready", "pr_open"):
                 self.locks.release(rec.issue_id, "ready-for-owner")
             self._publish_ready_report(self.store.get(rec.issue_id), head, ev)
             return "REVIEW -> READY_FOR_OWNER"

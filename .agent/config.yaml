@@ -220,9 +220,12 @@ governance:
   # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
   # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
   max_active_issues: 3
-  # Locks are released when a PR reaches READY_FOR_OWNER (its code changes are done); a repair on
-  # that PR re-acquires them first. false = hold locks until merge (serializes on owner latency).
-  release_locks_at_ready: true
+  # When an Issue's domain locks are released: pr_open (the code changes are done — CI/review hold
+  # nothing, the next Issue on the same core starts at once; a repair re-acquires the locks first;
+  # conflicts surface as base updates), ready (held through CI/review, released at READY_FOR_OWNER),
+  # merge (held until the merge — serializes on owner latency). Owner rule 2026-09-18: never let a
+  # worker rest -> pr_open.
+  release_locks_at: pr_open
   # SIGTERM / `agentctl stop` / launchd restart drain: running agents finish (up to this many
   # seconds), nothing new starts, then the process exits. SIGINT or a second SIGTERM = stop now.
   drain_timeout_seconds: 3900
