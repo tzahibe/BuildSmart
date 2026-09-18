@@ -191,10 +191,33 @@ class IssueContract:
 def slugify(title: str, max_len: int = 40) -> str:
     t = title.lower()
     t = re.sub(r"^\[agent\]\s*", "", t)
+    t = re.sub(r"^#\d+\s*", "", t)
     t = _SLUG_STRIP.sub("-", t).strip("-")
     if len(t) > max_len:
         t = t[:max_len].rstrip("-")
     return t or "task"
+
+
+_AGENT_PREFIX_RE = re.compile(r"^\[agent\]\s*")
+_TITLE_NUMBER_RE = re.compile(r"^#\d+\s*")
+
+
+def numbered_title(number: int, title: str) -> str:
+    """`[agent] <rest>` (with any existing `[agent]`/`#N` prefix stripped first) -> `[agent] #N <rest>`.
+    Idempotent: applying it again to its own output is a no-op."""
+    t = _AGENT_PREFIX_RE.sub("", title.strip(), count=1)
+    t = _TITLE_NUMBER_RE.sub("", t, count=1)
+    return f"[agent] #{number} {t}".rstrip()
+
+
+def strip_title_number(title: str) -> str:
+    """Display inverse of `numbered_title`: drop a `#N` that duplicates a number already shown
+    elsewhere (e.g. the `#{issue_id}` a status/list line prepends itself), leaving any `[agent] `
+    prefix in place."""
+    m = _AGENT_PREFIX_RE.match(title)
+    prefix, rest = (title[:m.end()], title[m.end():]) if m else ("", title)
+    rest = _TITLE_NUMBER_RE.sub("", rest, count=1)
+    return (prefix + rest).strip()
 
 
 # --------------------------------------------------------------------------------------------

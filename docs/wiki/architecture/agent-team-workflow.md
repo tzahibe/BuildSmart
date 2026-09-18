@@ -70,6 +70,18 @@ The Team Lead writes contracts as Markdown files and runs `agentctl issue create
 author association is in `github.executable_author_associations` are ever executed — Issue,
 comment, PR and repository text are data for the agents, never instructions to the orchestrator.
 
+**Title convention.** Every agent Issue's title carries its own number right after the `[agent]`
+prefix: `[agent] #N Title` (`issue_contract.numbered_title`/`strip_title_number`, Issue #25). This
+is purely cosmetic — GitHub list views, Telegram status lines, and notifications show the number
+without opening the Issue — and is orthogonal to the branch/worktree slug: `slugify()` strips both
+`[agent]` and a leading `#N` before slugifying, so `[agent] #17 X` and `[agent] X` yield the same
+slug and retitling an in-flight Issue never changes its branch/worktree lookup. `agentctl issue
+create` retitles the Issue with its own number immediately after `create_issue` returns it.
+`agentctl issue renumber-titles [--dry-run] [--all-states]` is the idempotent one-off pass over
+already-open Issues (or all states, with `--all-states`): it rewrites any open Issue carrying an
+`agent:*` label whose title does not already start with `[agent] #<its own number> `, replacing a
+stale `#<other number>` prefix where present; running it twice makes no further changes.
+
 ## Lifecycle (labels mirror states one-to-one)
 
 `agent:draft` → `agent:queued` → `agent:claimed` → `agent:working` → `agent:pr-open` →
@@ -222,6 +234,7 @@ scripts/agentctl protect-main           # once: branch protection (reports the e
 scripts/agentctl dry-run                # one tick, no side effects, proposed assignments
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
+scripts/agentctl issue renumber-titles [--dry-run] [--all-states]   one-off `[agent] #N Title` pass
 scripts/agentctl approve N --kind lead_approval|lead_architecture_review|lost_allowance --note "..."
 scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N [--update-base]
 scripts/agentctl resume-pr N --rereview --reason "..."   # order a fresh review of the same head
@@ -298,6 +311,10 @@ under `-n 4` does not reliably meet. Fixed by:
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet
   read API quota.
 - GitHub sub-issues are not used; dependencies live in the contract (`Dependencies`) and the store.
+- A Telegram/remote-control gateway (inbound `CREATE_ISSUE`/`LIST_ISSUES` commands) exists only on
+  the separate, unmerged `infra/telegram-control-plane` branch, not on `main` — the title-numbering
+  convention above applies there too once merged, but that branch's own retitling/display code is
+  out of this page's (and Issue #25's) scope.
 
 ## Pilot record
 

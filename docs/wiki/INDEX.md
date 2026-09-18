@@ -17,6 +17,7 @@ specific page below for your task.**
 - [Requirements / Parsing Semantics](architecture/requirements-parsing.md) — IMPLEMENTED_MERGED
 - [Geometry / Validation](architecture/geometry-validation.md) — IMPLEMENTED_MERGED
 - [Autonomous Engineering Workflow (Agent Team)](architecture/agent-team-workflow.md) — IMPLEMENTED (infrastructure); pilot status on the page
+  - [Issue title convention](agent-team.md) — short pointer page: `[agent] #N Title`, `renumber-titles`
 
 ## Features
 
