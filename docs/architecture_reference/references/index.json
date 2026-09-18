@@ -20,7 +20,8 @@
       "notes": "Near-square rectangle (ratio ~0.95-1.05), spine organisation, master ensuite plus two bedrooms sharing a family bathroom.",
       "tags": ["spine", "near-square"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-4br-family",
@@ -39,7 +40,8 @@
       "notes": "Near-square footprint, guest WC off the entry, private wing organised around a compact room lobby.",
       "tags": ["hub-lobby", "near-square"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-2br-starter",
@@ -58,7 +60,8 @@
       "notes": "Smallest program in the set; single shared bathroom, open-plan public zone.",
       "tags": ["small-footprint"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-5br-ensuite",
@@ -77,7 +80,8 @@
       "notes": "Two ensuite bedrooms plus a family bathroom and guest WC; near-square footprint at the upper end of the private-house area range.",
       "tags": ["ensuite", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-3br-hub-lobby",
@@ -96,7 +100,8 @@
       "notes": "Compact room-lobby (~2.5-3.5 m square) private-wing circulation hub, matching the census's dominant private-wing organisation (specs/005-hub-private-wing/spec.md).",
       "tags": ["hub-lobby"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-4br-safe-room",
@@ -115,7 +120,8 @@
       "notes": "One bedroom doubles as the mandated safe room (ממ\"ד), labelled 'bedroom / security room' as in the census.",
       "tags": ["safe-room"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-6br-large",
@@ -134,7 +140,8 @@
       "notes": "Largest single-level rectangle in the set; hub organisation keeps wing depth constant despite the bedroom count, per the census finding.",
       "tags": ["hub-lobby", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-3br-multi",
@@ -153,7 +160,8 @@
       "notes": "Ground floor open-plan public zone; bedrooms upstairs around a shared landing.",
       "tags": ["two-storey"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-4br-multi",
@@ -172,7 +180,8 @@
       "notes": "Master ensuite upstairs, guest WC on the ground floor next to the entrance.",
       "tags": ["two-storey", "ensuite"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "rect-2br-annex",
@@ -191,7 +200,8 @@
       "notes": "Small rectangle with a half-bath (guest WC) in addition to the family bathroom.",
       "tags": ["small-footprint"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-3br-front-band",
@@ -210,7 +220,8 @@
       "notes": "Wide footprint (ratio ~1.15), public zones spread across the street front, corridor and bedroom columns behind.",
       "tags": ["front-band"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-4br-front-band",
@@ -229,7 +240,8 @@
       "notes": "Wide footprint with a side-by-side bedroom wing regime (≥12.5 m wide), guest WC near the entrance.",
       "tags": ["front-band", "side-by-side"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-2br-compact",
@@ -248,7 +260,8 @@
       "notes": "Wide, shallow footprint on a broad, shallow plot; single shared bathroom.",
       "tags": ["small-footprint"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-5br-hub",
@@ -267,7 +280,8 @@
       "notes": "Wide footprint, private wing around a compact room lobby with 5-6 doors opening onto it.",
       "tags": ["hub-lobby"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-3br-multi",
@@ -286,7 +300,8 @@
       "notes": "Wide ground floor for the public zone; bedrooms upstairs across the same width.",
       "tags": ["two-storey", "front-band"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-4br-flex",
@@ -305,7 +320,8 @@
       "notes": "Wide footprint with an extra flexible room (home office / study) off the entrance.",
       "tags": ["flex-room"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-6br-large",
@@ -324,7 +340,8 @@
       "notes": "Largest wide-rectangle entry; side-by-side bedroom wings on a broad plot.",
       "tags": ["side-by-side", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "wide-2br-multi",
@@ -343,7 +360,8 @@
       "notes": "Small two-storey house on a wide, shallow lot; both bedrooms upstairs.",
       "tags": ["two-storey", "small-footprint"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-3br-spine",
@@ -362,7 +380,8 @@
       "notes": "Deep footprint (ratio ~0.75) on a narrow plot; single spine corridor is the only organisation that fits this ratio.",
       "tags": ["spine", "narrow-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-4br-spine",
@@ -381,7 +400,8 @@
       "notes": "Narrow semi-detached lot; rear garden the full plot width, long single-loaded corridor.",
       "tags": ["spine", "narrow-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-2br-small",
@@ -400,7 +420,8 @@
       "notes": "Smallest narrow-deep entry, single bathroom shared, no room for a hub organisation at this width.",
       "tags": ["small-footprint", "narrow-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-5br-spine",
@@ -419,7 +440,8 @@
       "notes": "Long spine corridor carries five bedrooms on a narrow lot; deepest footprint in the set.",
       "tags": ["spine", "narrow-plot", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-3br-multi",
@@ -438,7 +460,8 @@
       "notes": "Narrow semi-detached lot; splitting across two storeys keeps the footprint depth manageable.",
       "tags": ["two-storey", "narrow-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-4br-safe-room",
@@ -457,7 +480,8 @@
       "notes": "One bedroom is the mandated safe room; narrow lot forces a single-loaded corridor.",
       "tags": ["safe-room", "narrow-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-2br-multi",
@@ -476,7 +500,8 @@
       "notes": "Small narrow-deep house on two storeys, ground floor public zone the full plot width.",
       "tags": ["two-storey", "narrow-plot", "small-footprint"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "deep-6br-large",
@@ -495,7 +520,8 @@
       "notes": "Largest narrow-deep entry; the census's #1 measured quality gap (long single spine, hall long/short median 9.4) is deliberately represented here for benchmark contrast.",
       "tags": ["spine", "narrow-plot", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "l-3br-corner",
@@ -514,7 +540,8 @@
       "notes": "Two-wing L on a corner plot; bedrooms in their own arm, entry court formed by the L.",
       "tags": ["two-wing", "corner-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "l-4br-wide-plot",
@@ -533,7 +560,8 @@
       "notes": "L-shape needs a plot that holds a rectangle of roughly 0.6x the total area plus a second wing sharing a full side; sheltered terrace in the L's corner.",
       "tags": ["two-wing"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "l-5br-two-wing",
@@ -552,7 +580,8 @@
       "notes": "13 of the census's 21 plans were non-rectangular; this entry represents the L family's dominant two-wing-with-seam pattern, circulation crossing the seam through a hall.",
       "tags": ["two-wing", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "l-3br-multi",
@@ -571,7 +600,8 @@
       "notes": "One wing single-storey, one wing two-storey; bedrooms occupy the taller wing's upper floor.",
       "tags": ["two-wing", "two-storey"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "l-2br-compact",
@@ -590,7 +620,8 @@
       "notes": "Smallest L in the set; short second wing holds both bedrooms off a shared bathroom.",
       "tags": ["two-wing", "small-footprint"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "l-4br-safe-room",
@@ -609,7 +640,8 @@
       "notes": "Safe room placed in the bedroom wing, away from the entry-court wing.",
       "tags": ["two-wing", "safe-room"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "irr-4br-courtyard",
@@ -628,7 +660,8 @@
       "notes": "Three wings around an inner courtyard on a large plot (frontage ≳ 20 m); ring circulation, one of only 2 of 21 census plans with this organisation.",
       "tags": ["courtyard", "large-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "irr-5br-angled",
@@ -647,7 +680,8 @@
       "notes": "Angled/cross footprint following an irregular plot boundary, part of the census's non-rectangular majority.",
       "tags": ["angled", "large-program"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "irr-3br-t-shape",
@@ -666,7 +700,8 @@
       "notes": "T-shaped footprint, one arm public, one arm private, stem holds shared circulation.",
       "tags": ["t-shape"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     },
     {
       "id": "irr-4br-multi-courtyard",
@@ -685,7 +720,8 @@
       "notes": "Ground floor wraps a courtyard on three sides; upper floor sits over one wing only, bedrooms there.",
       "tags": ["courtyard", "two-storey", "large-plot"],
       "added_date": "2026-09-18",
-      "files": []
+      "files": [],
+      "annotation": true
     }
   ]
 }
