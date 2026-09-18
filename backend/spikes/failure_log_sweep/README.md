@@ -45,11 +45,20 @@ main-flow replay; `plans_shown(result)` lists what the screen shows.
 
 ## `quality_metrics.py [--contexts gained.json] [--split-by-strategy]`
 
-The Stage-0 architectural-quality metrics, measured on delivered geometry:
-M1 room aspect (long/short) by room type · M2 habitable rooms touching the envelope · M3 circulation
-share of room area · M4 doors on the hall and the hall's own long/short · M5 wet rooms sharing an
-interior wall with a wet room / kitchen / laundry · M6 living-dining-kitchen joined by open interfaces.
-Reference values from 21 professional plans are in `specs/005-hub-private-wing/spec.md` §1.
+The corpus driver and printed report for the Stage-0 architectural-quality metrics, measured on
+delivered geometry: M1 room aspect (long/short) by room type · M2 habitable rooms touching the
+envelope · M3 circulation share of room area · M4 doors on the hall and the hall's own long/short ·
+M5 wet rooms sharing an interior wall with a wet room / kitchen / laundry · M6 living-dining-kitchen
+joined by open interfaces. Reference values from 21 professional plans are in
+`specs/005-hub-private-wing/spec.md` §1.
+
+The computations themselves (Issue #17) live in `app.vertical_slice.quality_metrics` —
+`measure_design` for one plan (also what feeds `QualityOut.metrics` on every delivered plan) and
+`summarize` for the corpus-level report this script prints, unchanged. A committed baseline over
+the frozen 432-context regression corpus and its no-regression test live in
+`tests/regression_corpus/{quality_baseline.json,test_quality_baseline.py}`; see
+`docs/wiki/architecture/geometry-validation.md` for the tolerances and the measured gaps against
+the 21 professional plans.
 
 ## `hub_rooms.py [--hub-only]`
 

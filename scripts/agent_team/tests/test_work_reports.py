@@ -82,9 +82,10 @@ APPROVE = {"verdict": "APPROVE", "summary": "fine", "ac_assessment": [{"ac": "AC
            "tests_meaningful": True, "architecture_appropriate": True}
 
 
-def _add_issue(gh: FakeGitHub, number: int, **kw):
+def _add_issue(gh: FakeGitHub, number: int, approved: bool = True, **kw):
     c = make_contract(number, title=f"[agent] Task {number}", **kw)
-    gh.add_issue(number, c.title, render_body(c), ["agent:queued", *metadata_labels(c.domains, c.risk, c.resource_class)])
+    labels = ["agent:queued", *metadata_labels(c.domains, c.risk, c.resource_class)] + (["owner:approved"] if approved else [])
+    gh.add_issue(number, c.title, render_body(c), labels)
     return c
 
 

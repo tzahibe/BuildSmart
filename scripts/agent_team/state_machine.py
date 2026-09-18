@@ -13,16 +13,16 @@ CI = "CI"
 REVIEW = "REVIEW"
 FIX_REQUIRED = "FIX_REQUIRED"
 BLOCKED = "BLOCKED"
-READY = "READY"
+READY_FOR_OWNER = "READY_FOR_OWNER"   # every gate green; waiting for the owner's merge decision
 MERGED = "MERGED"
 DONE = "DONE"
 
-STATES = (QUEUED, CLAIMED, WORKING, PR_OPEN, CI, REVIEW, FIX_REQUIRED, BLOCKED, READY, MERGED, DONE)
+STATES = (QUEUED, CLAIMED, WORKING, PR_OPEN, CI, REVIEW, FIX_REQUIRED, BLOCKED, READY_FOR_OWNER, MERGED, DONE)
 
 #: States in which an agent process may be running for the issue.
 AGENT_ACTIVE_STATES = (WORKING, REVIEW)
 #: States in which the issue holds its domain locks and a worktree.
-RESOURCE_HOLDING_STATES = (CLAIMED, WORKING, PR_OPEN, CI, REVIEW, FIX_REQUIRED, READY, MERGED)
+RESOURCE_HOLDING_STATES = (CLAIMED, WORKING, PR_OPEN, CI, REVIEW, FIX_REQUIRED, READY_FOR_OWNER, MERGED)
 #: States that satisfy a dependency edge.
 SATISFIES_DEPENDENCY = (DONE,)
 TERMINAL_STATES = (DONE,)
@@ -33,11 +33,14 @@ TRANSITIONS: dict[str, tuple[str, ...]] = {
     WORKING: (PR_OPEN, QUEUED, BLOCKED),                # QUEUED: stale agent requeued
     PR_OPEN: (CI, BLOCKED),
     CI: (REVIEW, FIX_REQUIRED, BLOCKED),
-    REVIEW: (READY, FIX_REQUIRED, BLOCKED, CI),         # CI: head moved -> review is stale, re-validate
+    REVIEW: (READY_FOR_OWNER, FIX_REQUIRED, BLOCKED, CI),   # CI: head moved -> review is stale, re-validate
     FIX_REQUIRED: (WORKING, BLOCKED),
-    READY: (MERGED, CI, BLOCKED),                       # CI: base advanced -> re-validate
+    # READY_FOR_OWNER: the orchestrator never merges. MERGED only through an explicit owner merge
+    # (Telegram CONFIRM MERGE, or the owner pressing Merge on GitHub); CI when the head or the base
+    # moved (readiness invalidated); FIX_REQUIRED on an owner change request; BLOCKED on a reject.
+    READY_FOR_OWNER: (MERGED, CI, FIX_REQUIRED, BLOCKED),
     MERGED: (DONE, BLOCKED),
-    BLOCKED: (QUEUED, PR_OPEN, DONE),                   # lead decisions: requeue / resume PR / close
+    BLOCKED: (QUEUED, PR_OPEN, FIX_REQUIRED, DONE),     # lead decisions: requeue / resume PR / send back for repair / close
     DONE: (),
 }
 

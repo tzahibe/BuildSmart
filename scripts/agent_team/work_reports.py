@@ -25,9 +25,8 @@ from agent_team.agent_runner import redact
 from agent_team.config import Config
 from agent_team.state_store import StateStore
 
-#: `stage` values a failure_record may carry. Only worker/publish/ci/review are ever emitted by
-#: code on this branch today; owner/usage are reserved for the (not yet merged) governance and
-#: usage-guard call sites so the schema does not need to change when they land.
+#: `stage` values a failure_record may carry: worker/publish/ci/review are worker-lifecycle
+#: failures, `owner` is an owner reject/change-request, `usage` is a rate-limit pause.
 FAILURE_STAGES = ("worker", "publish", "ci", "review", "owner", "usage")
 NEXT_ACTIONS = ("requeue", "repair", "rerun_ci", "blocked", "paused")
 

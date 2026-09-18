@@ -25,8 +25,17 @@ def render_pr_body(c: IssueContract, report: dict, *, model: str, session_id: st
         else:
             rows.append(f"| {ac.id} | {targets} | NOT_VERIFIED |")
     tests = "\n".join(f"- `{t.get('command')}` — {t.get('result')}" for t in report.get("tests_run", []) if isinstance(t, dict)) or "- none recorded"
+    auth = c.authorization
+    issue_lines = [f"Closes #{c.number}"]
+    if auth.inherited and auth.root_issue:
+        issue_lines = [f"Root Issue: #{auth.root_issue} (owner-approved product goal)", f"Child Issue: #{c.number} — closes #{c.number}",
+                       f"Scope: inherited from the ROOT ({', '.join(c.domains)})"]
+    else:
+        issue_lines = [f"Root Issue: #{c.number} (owner-approved)", f"Closes #{c.number}"]
+    issue_lines.append(f"Dependencies: {', '.join(f'#{d}' for d in c.dependencies) or 'none'}")
+    issue_lines.append(f"Acceptance Criteria covered: {', '.join(c.ac_ids)}")
     return "\n".join([
-        "## Issue", f"Closes #{c.number}", "",
+        "## Issue", *issue_lines, "",
         "## What changed", _bullets(report.get("what_changed")), "",
         "## Why", str(report.get("why", "")).strip() or c.goal, "",
         "## Implementation", str(report.get("implementation", "")).strip() or "(see diff)", "",

@@ -41,13 +41,28 @@ def setup_logging(config: Config, *, verbose: bool = False) -> Path:
     return path
 
 
-class _Redacting(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = redact(str(record.msg))
-        return True
+def _install_redacting_record_factory() -> None:
+    """Redact every log record at creation (message AND %-args), for every logger and handler in the
+    process — a root-logger filter would not see child loggers' records, and would miss args."""
+    current = logging.getLogRecordFactory()
+    if getattr(current, "_agent_team_redacting", False):
+        return
+
+    def factory(*args, **kwargs):
+        record = current(*args, **kwargs)
+        try:
+            record.msg = redact(record.getMessage())
+            record.args = ()
+        except Exception:  # noqa: BLE001 — never break logging
+            record.msg = redact(str(record.msg))
+            record.args = ()
+        return record
+
+    factory._agent_team_redacting = True  # type: ignore[attr-defined]
+    logging.setLogRecordFactory(factory)
 
 
-logging.getLogger().addFilter(_Redacting())
+_install_redacting_record_factory()
 
 
 def write_run_record(config: Config, spec: AgentRunSpec, result: AgentRunResult, *, extra: dict | None = None) -> Path:

@@ -20,6 +20,7 @@ from app.geometry.spatial_v2.planner import plan_v2
 from app.geometry.spatial_v2.scoring import score_layout
 from app.geometry.spatial_v2.structural_variants import orientation_swap_variants, reflection_variants
 from app.projects.models import PoolField, Project, SourceTag, TaggedBool, TaggedFloat, TaggedInt
+from tests import wallclock
 
 _UNKNOWN_INT = TaggedInt(value=None, source=SourceTag.unknown)
 _UNKNOWN_BOOL = TaggedBool(value=None, source=SourceTag.unknown)
@@ -228,5 +229,5 @@ def test_runtime_stays_under_one_second_for_evaluation_scenarios():
         t0 = time.monotonic()
         result = plan_v2(spec, footprint)
         elapsed = time.monotonic() - t0
-        assert elapsed < 1.0, f"plan_v2 took {elapsed:.3f}s for bedrooms={bedrooms}"
+        assert wallclock.within(elapsed, 1.0), f"plan_v2 took {elapsed:.3f}s for bedrooms={bedrooms}"
         assert result.status.value == "satisfied"

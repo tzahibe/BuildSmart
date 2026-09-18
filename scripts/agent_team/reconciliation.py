@@ -68,7 +68,7 @@ def reconcile(orch) -> list[str]:
             if rec.state == sm.REVIEW and rec.assigned_agent and f"reviewer:{n}" not in active:
                 store.update(n, assigned_agent=None, agent_pid=None)
                 actions.append(f"#{n}: reviewer slot cleared (no live reviewer)")
-            if rec.state in (sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY) and rec.pr_number:
+            if rec.state in (sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY_FOR_OWNER) and rec.pr_number:
                 try:
                     pr = orch.github.get_pr(rec.pr_number)
                 except Exception as exc:  # noqa: BLE001
@@ -77,8 +77,9 @@ def reconcile(orch) -> list[str]:
                 if pr is not None:
                     if pr.get("merged"):
                         orch.audit_external_merge(rec, pr)
-                        if rec.state == sm.READY:
-                            orch._set_state(store, n, sm.MERGED, note="merged externally", validated_commit=pr.get("merge_commit_sha"))
+                        if rec.state == sm.READY_FOR_OWNER:
+                            # the owner pressed Merge on GitHub while every gate was green: legitimate
+                            orch._set_state(store, n, sm.MERGED, note="merged by the owner on GitHub", validated_commit=pr.get("merge_commit_sha"))
                         else:
                             orch._set_state(store, n, sm.BLOCKED, note="PR merged outside the workflow", failure_class="EXTERNAL_MERGE")
                         actions.append(f"#{n}: PR #{rec.pr_number} merged externally -> {store.get(n).state}")

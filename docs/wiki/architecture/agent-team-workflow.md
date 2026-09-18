@@ -24,7 +24,8 @@ dependencies), configured by `.agent/config.yaml`, operated through `scripts/age
 
 | Role | Model | Where it runs | May |
 |---|---|---|---|
-| Master Team Lead | Opus | the user's interactive Claude Code session (`.claude/skills/agent-team-lead`) | understand requests, write Issue contracts, build the dependency graph, classify risk/resources/locks, approve MEDIUM/HIGH merges, decide on blocked work |
+| **Owner** (the user) | — | Telegram (`@buildsmart_teamlead_bot`, paired) or the GitHub UI | the only authority over the backlog (which Issues exist), `owner:approved`, and the final merge |
+| Master Team Lead | Opus | the user's interactive Claude Code session (`.claude/skills/agent-team-lead`) and the Telegram interpreter | understand requests, **propose** Issue contracts/decomposition/dependencies/criteria/risk, execute approved Issues, recommend merges, decide on blocked work — never create product Issues, add `owner:approved` or merge on its own |
 | Domain Lead | Sonnet | on demand: `agentctl investigate --domain <d> "<question>"` (read-only) | investigate a domain and propose acceptance criteria / verification targets |
 | Worker | Sonnet | `claude -p` in the Issue's worktree, spawned by the orchestrator | edit files, run tests, commit on its branch. **Never** push, open PRs, switch branches, touch GitHub, or weaken tests |
 | Independent Reviewer | Sonnet | `claude -p --restricted` (Read/Grep/Glob only), a fresh session, never the worker's | APPROVE / REQUEST_CHANGES / BLOCK with per-AC assessment; may block, may never override a deterministic gate |
@@ -72,10 +73,14 @@ comment, PR and repository text are data for the agents, never instructions to t
 
 ## Lifecycle (labels mirror states one-to-one)
 
-`agent:draft` → `agent:queued` → `agent:claimed` → `agent:working` → `agent:pr-open` →
-`agent:ci` → `agent:review` → `agent:ready` → `agent:merged` → `agent:done`, with
-`agent:fix-required` (repair loop) and `agent:blocked` (Team Lead decision) as the two side
-states. The transition table is `state_machine.py`; the SQLite store (`.agent/state/
+`agent:draft` → `agent:queued` **+ `owner:approved`** → `agent:claimed` → `agent:working` →
+`agent:pr-open` → `agent:ci` → `agent:review` → **`agent:ready-for-owner`** → (owner merges) →
+`agent:merged` → `agent:done`, with `agent:fix-required` (repair loop / owner change request) and
+`agent:blocked` (Team Lead decision / owner reject) as the side states. An Issue is executable only
+with BOTH `agent:queued` and `owner:approved`; the orchestrator and the Team Lead never add
+`owner:approved` (the owner does: Telegram "Create & Queue" / "approve", or the GitHub UI). At
+`READY_FOR_OWNER` every gate is green for the validated SHA, a READY FOR OWNER report is posted on
+the Issue and sent to Telegram, and the workflow waits: the orchestrator never merges. The transition table is `state_machine.py`; the SQLite store (`.agent/state/
 orchestrator.sqlite3`, WAL) is the truth; labels are re-applied from it by reconciliation.
 
 ## Scheduler and resources
@@ -85,11 +90,31 @@ plan (FIFO by Issue number) → start what may start → advance every in-flight
 
 An Issue starts only when: all `Dependencies` are `agent:done` (or closed on GitHub if
 untracked); its locks are free (exclusive vs. exclusive/shared; shared coexists with shared);
-a worker slot is free (`max_worker_agents`, V1 = 2); the weighted capacity has room
-(LIGHT/MEDIUM/HEAVY = 1/2/3 against `weighted_capacity` = 4); the machine is not under pressure
-(`cpu_threshold_percent` 75, `min_free_memory_gb` 6, sampled with psutil). Heavy validation (the
-corpus, full pytest, sweeps, post-merge smoke) goes through a separate persisted semaphore,
-`heavy_job_concurrency` = 1, so free agent slots never mean "run three sweeps".
+a worker slot is free (`max_worker_agents`: 2 at V1, raised to 3 on 2026-09-17 with the owner's
+permission on the M1 Pro 10-core/32 GB machine; `max_active_issues` 3); the weighted capacity has
+room (LIGHT/MEDIUM/HEAVY = 1/2/3 against `weighted_capacity` = 7); the machine is not under
+pressure (`cpu_threshold_percent` 75, `min_free_memory_gb` 6, sampled with psutil). Heavy
+validation (the corpus, full pytest, sweeps, post-merge smoke) goes through a separate persisted
+semaphore, `heavy_job_concurrency` = 1, so free agent slots never mean "run three sweeps".
+Config is read at orchestrator start: a concurrency change takes effect at the next restart
+(`launchctl kickstart -k gui/$UID/com.buildsmart.agent-team.orchestrator`, done only while no
+worker/reviewer subprocess is running).
+
+**Subscription usage guard** (`scripts/agent_team/usage_guard.py`, owner rule of 2026-09-17: "at
+98 % stop the agents and tell them to wait; resume when the session renews"). Every
+`usage_guard.probe_every_seconds` (120 s) the orchestrator runs `claude -p "/usage"` — a
+zero-cost local command that prints the real session/week percentages and reset times — and
+stores the snapshot in `meta.usage_last` (shown by `agentctl status` and the Telegram status).
+At `pause_at_percent` (98, session *or* week) it pauses itself with source `usage_guard`: no new
+claims, workers, reviewers or repair loops; running subprocesses finish their current run; the
+owner gets a Telegram notice with the reset times. Below `resume_below_percent` (90 — i.e. after
+the window reset) it resumes automatically and notifies again. An automatic pause never lifts a
+pause the owner set (`scheduler_pause_source` distinguishes them), and the owner's `/resume`
+still works during an automatic pause. A worker run that fails with a rate-limit message
+(`looks_rate_limited`: "usage limit", "rate limit", 429, "resets at", "overloaded"…) is requeued
+**without consuming a repair attempt** (`failure_class RATE_LIMITED`, event `rate_limited`) and
+also triggers the pause; a rate-limited reviewer run is retried after the pause. Events:
+`usage_pause`, `usage_resume`.
 
 ## Locks
 
@@ -164,26 +189,85 @@ session with the exact evidence; INFRA/FLAKY get one CI re-run; everything else 
 exhausted budget becomes `agent:blocked` for the Team Lead. The class is persisted on the Issue
 record and posted as a milestone comment.
 
-## Merge policy
+## Governance: owner vs Team Lead authority (since 2026-09-18)
 
-| Risk | Requires | Auto-merge |
+**Maximize safe parallel execution. The Team Lead is fully authorized to execute. Only merge
+requires owner approval.**
+
+| Who | Decides |
+|---|---|
+| OWNER | the product backlog — creates/approves **ROOT Issues** (`owner:approved`); product priorities; genuine product decisions; the configured maxima (`resources.*`, `max_active_issues`); the final **merge** |
+| TEAM LEAD (Opus) | everything else: claiming, queueing, investigation, decomposition into child Issues, the dependency DAG, worker assignment, branches/worktrees, code within scope, tests, PRs, CI, regression, independent review, repair/retry, base updates and conflicts, docs, closing children, resource allocation, pausing/restarting workers, implementation details |
+| Sonnet workers / reviewers | implementation / independent review |
+
+**ROOT Issue = scope boundary.** A ROOT (owner-approved product goal) authorizes its own
+execution *and* any child Issue derived from it. A child carries a `### Authorization` section
+(`source: inherited`, `root_issue: #N`, `parent_issue: #N`, `derived_by: team-lead`,
+`scope_inherited: true`), the `agent:child` label and **no** `owner:approved` of its own.
+`Orchestrator.authorization_of()` executes a child only when its ROOT is owner-approved and the
+child stays inside the ROOT: `issue_contract.child_scope_problems()` refuses extra domains, locks
+the ROOT does not declare (explicit or domain-implied), and a wider regression budget —
+`SCOPE_ESCAPE`, the child is blocked with a comment and never runs. Work a ROOT does not require
+is reported as PROPOSED PRODUCT FOLLOW-UP and waits for the owner. `agentctl issue decompose ROOT
+--children …` / `issue create --child-of ROOT` create children (the ROOT gets `agent:decomposed`
+and is not run as a task; `close_completed_roots()` closes it when every child is `agent:done`).
+`agentctl issue create` without `--child-of` can only produce `agent:draft` — the Team Lead's
+tools cannot mint ROOT authorization. `agent:hold` (owner, Telegram "don't work on it yet")
+parks an authorized Issue; "queue it" lifts the hold.
+
+**Utilization.** The scheduler polls `owner:approved` and `agent:queued` Issues (any of), queues
+executable ones itself, orders candidates by ROOT then number, and starts every node whose
+dependencies are `agent:done`, whose locks are free and whose weight fits — up to the configured
+worker maximum (`max_worker_agents`, `weighted_capacity`, CPU/RAM thresholds; heavy validation
+still serializes through `heavy_job_concurrency`). `max_active_issues` counts ROOTs in flight
+(children count toward their ROOT). A finished run wakes the loop at once so the freed worker
+takes the next executable task (work stealing) instead of waiting a poll interval. Locks are
+released when a PR reaches `READY_FOR_OWNER` (`release_locks_at_ready`), and `READY_FOR_OWNER`
+does not count as active: a PR waiting for the owner never stops unrelated work; a repair on such
+a PR re-acquires its locks first. Sibling PRs whose base advanced after a merge are updated and
+re-validated automatically. Idle is legitimate when no executable task exists, a dependency or
+lock blocks, or the resource budget is spent — the objective is maximum safe *useful*
+parallelism, never process count.
+
+**Graceful restart.** SIGTERM (launchd `kickstart -k`, `agentctl stop`) drains: nothing new
+starts, running agents finish (up to `drain_timeout_seconds`), then the process exits and launchd
+restarts it; the plist's `ExitTimeOut` matches. SIGINT / `agentctl stop --now` / a second SIGTERM
+stops immediately. Before 2026-09-18 a restart killed running workers mid-run (#17 lost two
+attempts that way).
+
+**Team Lead status** (`agentctl status`): ROOT ISSUES (each ROOT with its children's states),
+RUNNING, WAITING, CI, REVIEW / MERGE, READY FOR OWNER, BLOCKED, AVAILABLE WORKERS `n / max`,
+RESOURCES (weighted capacity, heavy jobs, machine, locks) and BLOCKERS (dependencies, held locks).
+
+Tests: `tests/test_governance_parallel.py` — ROOT authorization, child inheritance, scope escape,
+Authorization validation, owner hold, N workers from one ROOT, DAG parallelism, work stealing,
+slot/capacity saturation, lock serialization, READY not blocking unrelated work, drain, child
+creation by the Team Lead (and refusal for unapproved ROOTs / out-of-scope children), no automatic
+merge (loader + lifecycle), owner merge with SHA re-validation, ROOT auto-close.
+
+## Merge policy (owner-controlled)
+
+| Risk | Required before `READY_FOR_OWNER` | Auto-merge |
 |---|---|---|
-| LOW | ci_green, reviewer_green | yes |
-| MEDIUM | ci_green, regression_green, reviewer_green, `agentctl approve N --kind lead_approval` | no |
-| HIGH | ci_green, regression_green, reviewer_green, `agentctl approve N --kind lead_architecture_review` | no |
+| LOW / MEDIUM / HIGH | ci_green, regression_green, reviewer_green (+ `lost_allowance` acknowledgement when the contract declares a LOST budget) | **never** — `auto_merge: true` is refused by the config loader |
 
-Two requirements are added on top of the risk table: `lost_allowance` (an explicit approval when
-the contract declares a non-zero LOST budget) and `github_gates_green` (GitHub itself must report
-every branch-protection context — `agent-ci-result`, `agent-review-result` — green for the head
-SHA; if not, the merge is deferred and the status is re-published from the store, never forced).
-
-Before merging, the orchestrator checks whether `main` advanced; if so it merges `origin/main`
-into the branch in its worktree (a conflict → `MERGE_CONFLICT`, blocked), pushes, and goes back to
-CI — old evidence is never reused for a new effective diff. The merge is `squash` by default
-(`github.merge_method`), pinned to the validated head SHA. After the merge: a fresh worktree at
-`origin/main`, the `commands.smoke` list (import check + three cheap test files), then
-`agent:done`, a closing comment with PR / merge commit / attempts / runs / cost / smoke summary,
-lock release, worktree and branch cleanup. A failed smoke blocks the Issue and says so on `main`.
+The orchestrator recommends (the READY FOR OWNER report ends with an Opus recommendation) and
+stops. The only merge path is `Orchestrator.owner_merge()`, invoked exclusively by the owner's
+explicit command — Telegram **Merge → CONFIRM MERGE** (button-bound to PR + validated SHA + a
+short-lived nonce) — or the owner pressing Merge on GitHub (detected by reconciliation, audited).
+Immediately before merging, `owner_merge` re-reads authoritative state and refuses unless: the
+Issue is `READY_FOR_OWNER`; the requested SHA equals the validated SHA; the PR head still equals it
+(otherwise readiness is invalidated and re-validation starts: "PR changed since validation.
+Revalidation required."); `agent-ci-result` and `agent-review-result` are success on GitHub for that
+exact SHA; the regression policy and review are green; the base has not advanced (stale-base
+check); the live contract still validates. Every merge request is audited (`OWNER_COMMAND`:
+source, owner id, PR, Issue, requested SHA, actual validated SHA, command id, timestamp, result,
+merge commit; plus `merge_gate_audit`). A new commit on the PR at any time invalidates readiness
+(`readiness_invalidated`), marks the review status stale and re-runs the gates; a new validated
+SHA produces a new READY notification. After the owner's merge: a fresh worktree at
+`origin/main`, the `commands.smoke` list, then `agent:done`, lock release, worktree and branch
+cleanup. Reject → `BLOCKED (OWNER_REJECTED)`; an owner change request → `FIX_REQUIRED
+(OWNER_CHANGE_REQUEST)` with the feedback handed to the repair worker.
 
 ## Crash recovery and idempotency
 
@@ -242,7 +326,11 @@ scripts/agentctl protect-main           # once: branch protection (reports the e
 scripts/agentctl dry-run                # one tick, no side effects, proposed assignments
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
-scripts/agentctl approve N --kind lead_approval|lead_architecture_review|lost_allowance --note "..."
+scripts/agentctl approve N --kind lost_allowance --note "..."     # the only lead acknowledgement left
+scripts/agentctl pause | resume                                     # also available to the owner on Telegram
+scripts/agentctl remote doctor | pair [--user-id N] | unpair | start | stop | status   # Telegram control plane
+scripts/agentctl install | uninstall [all|orchestrator|remote]    # permanent launchd user agents (macOS)
+scripts/agentctl notify "📋 עדכון: ..."                              # a Hebrew progress update to the owner's Telegram
 scripts/agentctl requeue N --reason "..." | block N --reason "..." | resume-pr N [--update-base]
 scripts/agentctl resume-pr N --rereview --reason "..."   # order a fresh review of the same head
 scripts/agentctl audit N
@@ -258,8 +346,10 @@ The `.claude/skills/agent-team-lead/SKILL.md` skill is the Opus session's playbo
 knowledge preflight, investigate (own tools or `agentctl investigate`), decide whether to split,
 write one contract file per Issue with verifiable ACs and deterministic targets, declare risk /
 resource class / locks / dependencies / regression budget, `issue create --queue` them in
-dependency order, keep the daemon running, answer `agentctl status`, approve or redirect blocked
-work, and report the outcome to the user. The Team Lead does not implement product code itself.
+dependency order — as `agent:draft` proposals for new product goals, or as children of an
+owner-approved ROOT (`issue decompose`) that execute at once — keep the daemon running, answer
+`agentctl status`, approve or redirect blocked work, and report the outcome to the user. The Team
+Lead does not implement product code itself and never mints ROOT authorization or merges.
 
 ## Isolated environments
 
@@ -308,11 +398,111 @@ under `-n 4` does not reliably meet. Fixed by:
 
 (Issue #10, found via the pilot PR #7's second and third gate-2 failures.)
 
+## Remote owner control plane (Telegram)
+
+**Architecture.** `scripts/agent_team/remote/`: `transport.py` (Telegram Bot API, V1 = long
+polling from the orchestrator machine — no public HTTP server, inbound port, webhook or tunnel; the
+transport is an interface so a webhook/cloud deployment can be added later), `service.py` (a
+deterministic polling *process*, `agentctl remote start|run|stop|status`, single instance via
+flock + pid file, replay protection by Telegram `update_id`, offset persisted in the store),
+`commands.py` (the typed owner command vocabulary and the callback-button encoding
+`v1|ACTION|entity|sha-prefix|nonce`), `interpreter.py` (natural language → one typed command: the
+Team Lead model runs headless with read-only tools and returns a schema-validated intent; it never
+executes anything), `gateway.py` (authorization → replay protection → authoritative state re-read →
+action → audit), `voice.py` (transcription adapter). Notifications go through the store's `outbox`
+table, which the service drains with bounded retries (`notifications.telegram.max_attempts`,
+backoff) and a dedup key `pr:<n>:READY_FOR_OWNER:<sha>` — one message per validated SHA, never
+resent on scheduler ticks or restarts; a failed notification never changes the PR's state and is
+visible in `agentctl status` ("Telegram: FAILED after N attempts").
+
+**Owner pairing.** Only one numeric Telegram user id is the owner (the operator may also pair it directly at the terminal with `agentctl remote pair --user-id <id>`, audited as `owner_paired_by_operator`); usernames, display names and
+message text claiming ownership are never trusted. `agentctl remote pair` prints a random six-digit
+code valid `pairing_ttl_seconds` (10 min) for one use; the owner sends `/pair <code>` in a private
+chat; the service stores the numeric user id + chat id (`owner_paired` event) and deletes the
+code. Re-pair: run `pair` again (a new user replaces the old). Unpair: `agentctl remote unpair`.
+Every other user gets "Not authorized" and a `remote_denied` audit event.
+
+**Conversation.** The owner writes naturally in Hebrew or English; every reply is in Hebrew. Replies are fast by design: 'typing…' is sent on receipt, a fast model (`interpreter_fast_model`, no tools) classifies the intent in seconds, and only Issue drafting runs the Team Lead model with read-only repository access after an explicit '⏳' acknowledgement; updates are handled on a worker thread so polling never blocks. Slash commands (`/status`,
+`/ready`, `/issue N`, `/pr N`, `/merge N`, `/reject N`, `/approve N`, `/queue N`, `/unqueue N`,
+`/pause`, `/resume`, `/draft`, `/cancel`, `/help`) are parsed deterministically; everything else
+goes to the interpreter with minimal structured context (current draft, current PR, ready PRs,
+compact status, recent Issues) — the raw chat transcript is never the source of truth. Every
+mutating action becomes a typed command (`GET_STATUS`, `LIST_ISSUES`, `GET_ISSUE`,
+`CREATE_ISSUE_DRAFT`, `UPDATE_ISSUE_DRAFT`, `CREATE_ISSUE`, `APPROVE_ISSUE`, `QUEUE_ISSUE`,
+`UNQUEUE_ISSUE`, `LIST_READY_PRS`, `GET_PR_DETAILS`, `PR_QUESTION`, `MERGE_PR`, `CONFIRM_MERGE`,
+`REJECT_PR`, `CONFIRM_REJECT`, `OWNER_CHANGE_REQUEST`, `PAUSE_SCHEDULER`, `RESUME_SCHEDULER`,
+…) that the gateway validates; there is no BASH/GIT/GH/SQL/filesystem command — Telegram is never
+a remote shell.
+
+**Issue workflow.** "תפתח issue חדש: …" → the interpreter (with read-only access to the repo) writes
+a full contract → the gateway validates it (`issue_contract`) and shows the ISSUE DRAFT with
+buttons **[Create only] [Create & Queue] [Edit] [Cancel]**. Follow-up messages edit the current
+draft (`ISSUE_DRAFT` conversation state is persisted per chat). *Create only* creates the GitHub
+Issue with `agent:draft` (no approval, no queue). *Create & Queue* creates it with `owner:approved`
++ `agent:queued` — the only place where `owner:approved` is added programmatically, and only on
+the paired owner's explicit action. Existing Issues: "תאשר את 42 ותכניס אותו לתור" → approve +
+queue; "אל תעבוד כרגע על 42" → unqueue. Duplicate deliveries of the same button/message cannot
+create, approve or queue twice (persisted command ids).
+
+**PR workflow.** `READY_FOR_OWNER` → Telegram message "PR #n READY FOR OWNER" (Issue, risk, CI,
+regression, review, head SHA, summary, retries, limitations, recommendation) with **[Details]
+[Merge] [Reject]**. "מה בדיוק שונה ב-PR 57?" / "מה אמר ה-reviewer?" are answered from the
+authoritative evidence pack (contract, diff, CI evidence, reviewer verdict, audit trail) — never
+invented. **Merge:** "תבצע merge ל-PR 57" or [Merge] → CONFIRM MERGE message (PR, Issue, risk,
+validated SHA, CI/regression/review) with **[CONFIRM MERGE] [Cancel]**; only the button
+confirmation — bound to the PR, the SHA prefix and a nonce that expires after
+`merge_confirmation_ttl_seconds` — authorizes `owner_merge()`, which re-checks everything (see
+Merge policy). A stale button, a moved SHA, a red gate, a stale base or a second press are refused.
+**Reject / change request:** "אל תמזג את 57" → CONFIRM REJECT → `BLOCKED (OWNER_REJECTED)`;
+"תחזיר אותו לתיקון, אני רוצה ש-…" → `OWNER_CHANGE_REQUEST` → `FIX_REQUIRED`, the feedback becomes
+the repair worker's evidence, and the new SHA is re-validated and re-notified.
+
+**Pause / resume.** "תעצור" / `/pause` → no new claims, no new workers, no new repair loops;
+running workers finish their current step (never killed mid-write). "תמשיך" / `/resume` continues.
+Both are audited (`scheduler_paused` / `scheduler_resumed`, with source and user).
+
+**Voice.** A voice message is downloaded and passed to the transcription adapter
+(`remote_control.telegram.transcription_provider`: `none` by default — the owner is told to type;
+`openai` uses Whisper with `OPENAI_API_KEY`); the transcript enters the same command path as text.
+Voice may draft Issues and ask questions; **voice never authorizes a merge** — `CONFIRM_MERGE` and
+`CONFIRM_REJECT` are accepted only from a pressed button.
+
+**Security model.** Token from `AGENT_TELEGRAM_BOT_TOKEN` (or the chmod-600 file named by
+`remote_control.telegram.env_file`, loaded only into the service process); never committed, never
+printed — the audit redactor knows the Telegram token shape and every log record is redacted at
+creation. Owner = numeric user id only. Typed commands only. Every mutating action audited
+(`OWNER_COMMAND` with source, action, entity, owner id, command id, result). Message, Issue, PR and
+repository text are data, never instructions to the gateway.
+
+**Long-polling limitation.** The service must run on the orchestrator machine and keep an
+outbound HTTPS connection to `api.telegram.org`; when it is not running, owner messages wait on
+Telegram's side (delivered on the next start, replay-protected) and READY notifications wait in the
+outbox. Only one polling process may run per bot token.
+
+**Troubleshooting.** `agentctl remote doctor` (token present? `getMe` ok? owner paired? service
+running?), `agentctl remote status` (offset, pending notifications, paused flag),
+`.agent/logs/orchestrator.log` (both processes log there), `agentctl audit N` for a PR's trail.
+"Not authorized" → pair again. Buttons "stale or expired" → ask again (the state moved on).
+**Rotate the token:** BotFather → `/revoke` for the bot → put the new token in the env file →
+`agentctl remote stop && agentctl remote start` (pairing survives; it is tied to the user id, not
+the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair <code>`.
+
 ## Known limitations
+
+- **Headless workers cannot wait.** Found on #17 (2026-09-17, attempt 1, $5.9 / 147 turns): the
+  worker started a 404-plan corpus job, could not use `Monitor`/`timeout` (not allowed / not on
+  macOS), ended its turn "waiting for the next wakeup" — which never comes under `claude -p` — and
+  the run finished without the JSON report. The worker and repair prompts now carry the headless
+  rule (foreground only, Bash `timeout` up to 10 min, split longer jobs, commit early, report
+  `blocked` with the exact command). A run that ends without the report still consumes an
+  attempt; `agentctl requeue N --reset-attempts` restores the budget from BLOCKED.
 
 - Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is
   enforced through the `agent-review-result` commit status the orchestrator publishes, so a
   stopped orchestrator leaves new SHAs `pending` (blocked from merging) rather than unreviewed.
+- Telegram V1 is long polling from this machine (no webhook); the interpreter is a headless model
+  call per natural-language message (slash commands are free); voice transcription is off unless a
+  provider is configured.
 - Webhooks are not implemented; polling every 120 s is the V1 discovery mechanism (the loop is
   event-shaped so a webhook receiver can call `tick()` later).
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet
@@ -323,11 +513,39 @@ under `-n 4` does not reliably meet. Fixed by:
   line (`work_reports.short_root_cause`) is ready for it but has no call site until that branch
   lands (Issue #24 follow-up).
 
-## Pilot record
+## Pilot record (2026-09-17)
 
-See the "Pilot" section of `docs/AGENT_TEAM_PHASE_0_ENVIRONMENT_REPORT.md` — filled in when the
-first low-risk Issue has gone Issue → poll → worker → PR → gates → review → merge → smoke → closed.
+Pilot Issue #6 (LOW, docs-only, `backend/README.md`) completed end-to-end: Issue → poll → claim
+→ Sonnet worker (1 attempt, 31 turns, $0.60, 151 s) → branch `agent/6-document-the-autonomous-workflow-entry-p`
+→ PR #7 → gates → independent Sonnet review APPROVE (incl. one SEMANTIC_REVIEW criterion) →
+LOW-policy merge (squash `64f0fd70`) → post-merge smoke (164 passed) → closed `agent:done`;
+total agent cost ≈ $0.67. Two red gate-2 runs on the way were environment defects of the
+workflow, not of the product, fixed through the workflow itself: Issue #8 / PR #9 (`0f4bb586`:
+dummy `OPENAI_API_KEY` for isolated environments, `gh api --allow-escape-sequences` for
+logs/artifacts, contract refresh from the live Issue before review/merge, stale-lock heartbeat
+fallback, skipped gate-4 == regression_green) and Issue #10 / PR #11 (`3edb7d07`: CPU-only torch
+in gate 2, documented CI deselect of the wall-clock budget test, `backend_changed` only for
+backend code, local-model extra in worktrees); Issue #14 / PR #15 (`7814dc1b`) added the lead's
+re-review command after a factually wrong reviewer verdict (the repair worker correctly refused
+to "fix" a correct commit hash). No admin bypass occurred (`merge_gate_audit` bypass=false for
+every merge). The merges of that day were made by the orchestrator under the then-current policy;
+since the governance change the orchestrator never merges (see Merge policy).
+
+## First ROOT Issue under the new governance: #17 (2026-09-18)
+
+PR #23 (`d7c79a3`) reached READY_FOR_OWNER at 08:2x after 3 worker runs, 1 lead-ordered repair
+and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on PR #16:
+- workers cannot wait in headless mode (prompt rule); a run that ends without the report costs
+  an attempt — `requeue --reset-attempts` restores the budget;
+- wall-clock budgets are not CI evidence: `backend/tests/wallclock.py` + `WALLCLOCK_BUDGETS=off`
+  in gate-2 (functional assertions keep running; budgets enforced locally);
+- gate-4 costs two corpus passes (~23 min each on the runner): 120-min job budget, the merge-base
+  snapshot cache is saved right after it is computed, the orchestrator waits up to 150 min;
+  regression-tier tests must consume `CORPUS_SNAPSHOT` instead of replaying the corpus;
+- the classifier called a timing failure IMPLEMENTATION_FAILURE: the lead pauses, blocks, fixes
+  the infra and `resume-pr`s; a wrong-scope finding is sent back with `agentctl repair`;
+- restarting the orchestrator mid-run killed two attempts before the drain existed.
 
 ## Last verified against git
 
-Branch `infra/agent-team` (this page lands with the Phase F commit).
+`7814dc1` (main) + branch `infra/telegram-control-plane` (PR #16) for the governance/Telegram sections.

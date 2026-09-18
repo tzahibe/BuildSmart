@@ -61,7 +61,7 @@ def test_track_is_idempotent_and_never_resets_state(store):
 
 def test_full_happy_path_is_legal(store):
     track(store, make_contract(4))
-    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY, sm.MERGED, sm.DONE):
+    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.READY_FOR_OWNER, sm.MERGED, sm.DONE):
         store.transition(4, st)
     assert store.get(4).state == sm.DONE
     with pytest.raises(sm.IllegalTransition):

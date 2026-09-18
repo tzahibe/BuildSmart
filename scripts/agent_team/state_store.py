@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS issues (
     review_verdict   TEXT,
     approvals        TEXT NOT NULL DEFAULT '[]',
     contract         TEXT,
+    root_issue       INTEGER,
+    parent_issue     INTEGER,
+    kind             TEXT NOT NULL DEFAULT 'root',
     created_at       REAL NOT NULL,
     updated_at       REAL NOT NULL
 );
@@ -81,6 +84,68 @@ CREATE INDEX IF NOT EXISTS idx_events_issue ON events(issue_id, id);
 CREATE TABLE IF NOT EXISTS meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
+);
+-- Owner notifications (Telegram). dedup_key is e.g. "pr:57:READY_FOR_OWNER:<sha>": one row per
+-- validated SHA, so scheduler ticks and restarts can never resend; a new SHA is a new row.
+CREATE TABLE IF NOT EXISTS outbox (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind            TEXT NOT NULL,
+    dedup_key       TEXT NOT NULL UNIQUE,
+    issue_id        INTEGER,
+    text            TEXT NOT NULL,
+    buttons         TEXT NOT NULL DEFAULT '[]',
+    status          TEXT NOT NULL DEFAULT 'pending',
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at REAL NOT NULL DEFAULT 0,
+    last_error      TEXT,
+    created_at      REAL NOT NULL,
+    sent_at         REAL,
+    message_id      INTEGER
+);
+-- Remote control plane (Telegram): the single paired owner, one-time pairing codes, processed
+-- update ids and executed command ids (replay protection), Issue drafts and per-chat context.
+CREATE TABLE IF NOT EXISTS remote_owner (
+    id               INTEGER PRIMARY KEY CHECK (id = 1),
+    telegram_user_id INTEGER NOT NULL,
+    chat_id          INTEGER NOT NULL,
+    paired_at        REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS remote_pairing (
+    code        TEXT PRIMARY KEY,
+    created_at  REAL NOT NULL,
+    expires_at  REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS remote_updates (
+    update_id   INTEGER PRIMARY KEY,
+    received_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS remote_commands (
+    command_id  TEXT PRIMARY KEY,
+    action      TEXT NOT NULL,
+    entity      TEXT,
+    source      TEXT NOT NULL,
+    owner_id    INTEGER,
+    ts          REAL NOT NULL,
+    result      TEXT NOT NULL,
+    payload     TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE IF NOT EXISTS remote_drafts (
+    draft_id     TEXT PRIMARY KEY,
+    chat_id      INTEGER NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'draft',
+    title        TEXT NOT NULL DEFAULT '',
+    body         TEXT NOT NULL DEFAULT '',
+    problems     TEXT NOT NULL DEFAULT '[]',
+    issue_number INTEGER,
+    created_at   REAL NOT NULL,
+    updated_at   REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS remote_context (
+    chat_id          INTEGER PRIMARY KEY,
+    current_draft_id TEXT,
+    current_pr       INTEGER,
+    pending_merge    TEXT,
+    updated_at       REAL NOT NULL
 );
 """
 
@@ -118,6 +183,9 @@ class IssueRecord:
     review_verdict: str | None = None
     approvals: list[dict] = field(default_factory=list)
     contract: str | None = None
+    root_issue: int | None = None
+    parent_issue: int | None = None
+    kind: str = "root"
     created_at: float = 0.0
     updated_at: float = 0.0
 
@@ -126,7 +194,12 @@ class IssueRecord:
         d = {k: row[k] for k in row.keys()}
         for k in _JSON_FIELDS:
             d[k] = json.loads(d[k] or "[]")
-        return cls(**{f.name: d[f.name] for f in fields(cls)})
+        return cls(**{f.name: d[f.name] for f in fields(cls) if f.name in d})
+
+    @property
+    def root(self) -> int:
+        """The ROOT Issue this record executes under (itself for a root)."""
+        return self.root_issue or self.issue_id
 
     def contract_dict(self) -> dict:
         return json.loads(self.contract) if self.contract else {}
@@ -164,6 +237,14 @@ class StateStore:
             self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(SCHEMA)
+        self._migrate()
+
+    def _migrate(self) -> None:
+        """Additive column migrations for stores created by an older version (crash-safe: ADD COLUMN is atomic)."""
+        have = {r["name"] for r in self._conn.execute("PRAGMA table_info(issues)").fetchall()}
+        for name, ddl in (("root_issue", "INTEGER"), ("parent_issue", "INTEGER"), ("kind", "TEXT NOT NULL DEFAULT 'root'")):
+            if name not in have:
+                self._conn.execute(f"ALTER TABLE issues ADD COLUMN {name} {ddl}")
 
     def close(self) -> None:
         self._conn.close()
@@ -195,26 +276,34 @@ class StateStore:
         return [IssueRecord.from_row(r) for r in rows]
 
     def track(self, issue_id: int, *, title: str, risk: str, resource_class: str, domains: list[str],
-              dependencies: list[int], contract: dict | None, state: str = sm.QUEUED) -> IssueRecord:
+              dependencies: list[int], contract: dict | None, state: str = sm.QUEUED,
+              root_issue: int | None = None, parent_issue: int | None = None, kind: str = "root") -> IssueRecord:
         """Insert if unknown; if known, refresh the contract-derived metadata but never the state."""
         now = self.clock()
+        root_issue = root_issue or issue_id
+        parent_issue = parent_issue or (root_issue if kind == "child" else None)
         with self.tx() as c:
             existing = c.execute("SELECT issue_id FROM issues WHERE issue_id=?", (issue_id,)).fetchone()
             if existing:
                 c.execute(
-                    "UPDATE issues SET title=?, risk=?, resource_class=?, domains=?, dependencies=?, contract=?, updated_at=? WHERE issue_id=?",
+                    "UPDATE issues SET title=?, risk=?, resource_class=?, domains=?, dependencies=?, contract=?, updated_at=?,"
+                    " root_issue=?, parent_issue=?, kind=? WHERE issue_id=?",
                     (title, risk, resource_class, json.dumps(domains), json.dumps(dependencies),
-                     json.dumps(contract) if contract else None, now, issue_id))
+                     json.dumps(contract) if contract else None, now, root_issue, parent_issue, kind, issue_id))
             else:
                 c.execute(
-                    "INSERT INTO issues (issue_id, title, state, risk, resource_class, domains, dependencies, contract, created_at, updated_at)"
-                    " VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO issues (issue_id, title, state, risk, resource_class, domains, dependencies, contract,"
+                    " root_issue, parent_issue, kind, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (issue_id, title, state, risk, resource_class, json.dumps(domains), json.dumps(dependencies),
-                     json.dumps(contract) if contract else None, now, now))
+                     json.dumps(contract) if contract else None, root_issue, parent_issue, kind, now, now))
                 self._event(c, issue_id, "tracked", {"state": state, "risk": risk, "resource_class": resource_class})
         rec = self.get(issue_id)
         assert rec is not None
         return rec
+
+    def children_of(self, root_issue: int) -> list[IssueRecord]:
+        rows = self._conn.execute("SELECT * FROM issues WHERE kind='child' AND root_issue=? ORDER BY issue_id", (root_issue,)).fetchall()
+        return [IssueRecord.from_row(r) for r in rows]
 
     def transition(self, issue_id: int, to_state: str, *, allowed_from: tuple[str, ...] | None = None,
                    note: str | None = None, **fields_to_set: Any) -> IssueRecord:
@@ -354,6 +443,153 @@ class StateStore:
             row = c.execute("SELECT issue_id, kind FROM heavy_jobs WHERE job_id=?", (job_id,)).fetchone()
             if row:
                 self._event(c, row["issue_id"], "heavy_job_finished", {"kind": row["kind"], "job_id": job_id, "status": status})
+
+    # -- outbox (owner notifications) ---------------------------------------------------------
+    def enqueue_notification(self, kind: str, dedup_key: str, issue_id: int | None, text: str, buttons: list | None = None) -> bool:
+        """Returns True when a new row was created; False when the dedup key already exists."""
+        with self.tx() as c:
+            cur = c.execute(
+                "INSERT OR IGNORE INTO outbox (kind, dedup_key, issue_id, text, buttons, created_at) VALUES (?,?,?,?,?,?)",
+                (kind, dedup_key, issue_id, text, json.dumps(buttons or []), self.clock()))
+            created = cur.rowcount == 1
+            if created:
+                self._event(c, issue_id, "notification_queued", {"kind": kind, "dedup_key": dedup_key})
+        return created
+
+    def due_notifications(self, limit: int = 20) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM outbox WHERE status='pending' AND next_attempt_at<=? ORDER BY id LIMIT ?", (self.clock(), limit)).fetchall()
+        return [self._outbox_row(r) for r in rows]
+
+    def notification(self, dedup_key: str) -> dict | None:
+        row = self._conn.execute("SELECT * FROM outbox WHERE dedup_key=?", (dedup_key,)).fetchone()
+        return self._outbox_row(row) if row else None
+
+    def notifications_for_issue(self, issue_id: int) -> list[dict]:
+        rows = self._conn.execute("SELECT * FROM outbox WHERE issue_id=? ORDER BY id", (issue_id,)).fetchall()
+        return [self._outbox_row(r) for r in rows]
+
+    def mark_notification(self, row_id: int, *, sent: bool, error: str = "", message_id: int | None = None,
+                          max_attempts: int = 3, backoff_seconds: float = 120.0) -> str:
+        """Returns the resulting status: sent | pending (will retry) | failed (attempts exhausted)."""
+        now = self.clock()
+        with self.tx() as c:
+            row = c.execute("SELECT attempts, issue_id, dedup_key FROM outbox WHERE id=?", (row_id,)).fetchone()
+            if row is None:
+                return "missing"
+            attempts = row["attempts"] + 1
+            if sent:
+                c.execute("UPDATE outbox SET status='sent', attempts=?, sent_at=?, message_id=?, last_error=NULL WHERE id=?",
+                          (attempts, now, message_id, row_id))
+                self._event(c, row["issue_id"], "notification_sent", {"dedup_key": row["dedup_key"], "attempts": attempts})
+                return "sent"
+            status = "failed" if attempts >= max_attempts else "pending"
+            c.execute("UPDATE outbox SET status=?, attempts=?, next_attempt_at=?, last_error=? WHERE id=?",
+                      (status, attempts, now + backoff_seconds * attempts, error[:500], row_id))
+            self._event(c, row["issue_id"], "notification_failure", {"dedup_key": row["dedup_key"], "attempts": attempts,
+                                                                       "status": status, "error": error[:200]})
+            return status
+
+    @staticmethod
+    def _outbox_row(r: sqlite3.Row) -> dict:
+        d = {k: r[k] for k in r.keys()}
+        d["buttons"] = json.loads(d.get("buttons") or "[]")
+        return d
+
+    # -- remote control: owner / pairing / replay protection ----------------------------------
+    def owner(self) -> dict | None:
+        row = self._conn.execute("SELECT * FROM remote_owner WHERE id=1").fetchone()
+        return {k: row[k] for k in row.keys()} if row else None
+
+    def set_owner(self, telegram_user_id: int, chat_id: int) -> None:
+        with self.tx() as c:
+            c.execute("INSERT OR REPLACE INTO remote_owner (id, telegram_user_id, chat_id, paired_at) VALUES (1,?,?,?)",
+                      (telegram_user_id, chat_id, self.clock()))
+            self._event(c, None, "owner_paired", {"telegram_user_id": telegram_user_id, "chat_id": chat_id})
+
+    def clear_owner(self) -> None:
+        with self.tx() as c:
+            c.execute("DELETE FROM remote_owner")
+            self._event(c, None, "owner_unpaired", {})
+
+    def create_pairing_code(self, code: str, ttl_seconds: float) -> None:
+        now = self.clock()
+        with self.tx() as c:
+            c.execute("DELETE FROM remote_pairing")   # one active code at a time
+            c.execute("INSERT INTO remote_pairing (code, created_at, expires_at) VALUES (?,?,?)", (code, now, now + ttl_seconds))
+            self._event(c, None, "pairing_code_created", {"expires_in": ttl_seconds})
+
+    def consume_pairing_code(self, code: str) -> bool:
+        """One-time use: returns True and deletes the code when it matches and has not expired."""
+        with self.tx() as c:
+            row = c.execute("SELECT expires_at FROM remote_pairing WHERE code=?", (code,)).fetchone()
+            if row is None:
+                return False
+            c.execute("DELETE FROM remote_pairing WHERE code=?", (code,))
+            if row["expires_at"] < self.clock():
+                self._event(c, None, "pairing_expired", {})
+                return False
+        return True
+
+    def mark_update(self, update_id: int) -> bool:
+        """Returns True if the Telegram update is new (first delivery)."""
+        with self.tx() as c:
+            cur = c.execute("INSERT OR IGNORE INTO remote_updates (update_id, received_at) VALUES (?,?)", (update_id, self.clock()))
+            return cur.rowcount == 1
+
+    def command_executed(self, command_id: str) -> dict | None:
+        row = self._conn.execute("SELECT * FROM remote_commands WHERE command_id=?", (command_id,)).fetchone()
+        return {k: row[k] for k in row.keys()} if row else None
+
+    def record_command(self, command_id: str, action: str, entity: str | None, source: str, owner_id: int | None,
+                       result: str, payload: dict | None = None) -> None:
+        with self.tx() as c:
+            c.execute("INSERT OR REPLACE INTO remote_commands (command_id, action, entity, source, owner_id, ts, result, payload) VALUES (?,?,?,?,?,?,?,?)",
+                      (command_id, action, entity, source, owner_id, self.clock(), result, json.dumps(payload or {}, default=str)))
+            issue_id = None
+            if entity and entity.startswith("issue:"):
+                issue_id = int(entity.split(":", 1)[1])
+            self._event(c, issue_id, "OWNER_COMMAND", {"source": source, "action": action, "entity": entity, "owner_id": owner_id,
+                                                        "command_id": command_id, "result": result, **(payload or {})})
+
+    # -- remote control: drafts and per-chat context ------------------------------------------
+    def save_draft(self, draft_id: str, chat_id: int, title: str, body: str, problems: list[str], status: str = "draft") -> None:
+        now = self.clock()
+        with self.tx() as c:
+            c.execute("INSERT INTO remote_drafts (draft_id, chat_id, status, title, body, problems, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)"
+                      " ON CONFLICT(draft_id) DO UPDATE SET status=excluded.status, title=excluded.title, body=excluded.body,"
+                      " problems=excluded.problems, updated_at=excluded.updated_at",
+                      (draft_id, chat_id, status, title, body, json.dumps(problems), now, now))
+
+    def draft(self, draft_id: str) -> dict | None:
+        row = self._conn.execute("SELECT * FROM remote_drafts WHERE draft_id=?", (draft_id,)).fetchone()
+        if not row:
+            return None
+        d = {k: row[k] for k in row.keys()}
+        d["problems"] = json.loads(d["problems"] or "[]")
+        return d
+
+    def finish_draft(self, draft_id: str, status: str, issue_number: int | None = None) -> None:
+        with self.tx() as c:
+            c.execute("UPDATE remote_drafts SET status=?, issue_number=?, updated_at=? WHERE draft_id=?",
+                      (status, issue_number, self.clock(), draft_id))
+
+    def context(self, chat_id: int) -> dict:
+        row = self._conn.execute("SELECT * FROM remote_context WHERE chat_id=?", (chat_id,)).fetchone()
+        if not row:
+            return {"chat_id": chat_id, "current_draft_id": None, "current_pr": None, "pending_merge": None}
+        d = {k: row[k] for k in row.keys()}
+        d["pending_merge"] = json.loads(d["pending_merge"]) if d.get("pending_merge") else None
+        return d
+
+    def set_context(self, chat_id: int, **fields_to_set: Any) -> dict:
+        cur = self.context(chat_id)
+        cur.update(fields_to_set)
+        with self.tx() as c:
+            c.execute("INSERT OR REPLACE INTO remote_context (chat_id, current_draft_id, current_pr, pending_merge, updated_at) VALUES (?,?,?,?,?)",
+                      (chat_id, cur.get("current_draft_id"), cur.get("current_pr"),
+                       json.dumps(cur["pending_merge"]) if cur.get("pending_merge") else None, self.clock()))
+        return self.context(chat_id)
 
     # -- events / meta ------------------------------------------------------------------------
     def _event(self, c: sqlite3.Connection, issue_id: int | None, kind: str, payload: dict) -> None:
