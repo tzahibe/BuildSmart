@@ -21,7 +21,9 @@ from . import access_rules
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
+from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
+from .geometry_adapter import envelope_sides
 from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import (
     ConnectionKind,
@@ -37,7 +39,7 @@ from .geometry_core.model import (
 from .site import SitePlan
 from .spec import CorridorRequirement, WetRoomKind
 from .wet_rooms import ResolvedWetRoom
-from .windows import DAYLIGHT_ROLES, Window
+from .windows import DAYLIGHT_ROLES, Window, seam_sides_of
 
 TOL_M2 = 0.01
 
@@ -204,8 +206,9 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
             bad.append(f"{z.zone_id} aspect {aspect:.2f} > {z.max_aspect_ratio}")
     rep.add("C3", "room areas and dimensions valid", not bad, "; ".join(bad) or "all zones within spec")
 
-    # C20 — realized rooms within their TEMPLATE's aspect ratio. (C19 is reserved for the guest-WC
-    # access semantics of specs/009; this is the next free code.)
+    # C20 — realized rooms within their TEMPLATE's aspect ratio. (C19 is now the exterior-exposure
+    # check below — Issue #19; the guest-WC access semantics of specs/009, if implemented, need a
+    # different free code.)
     #
     # C3 holds every zone to its own ZoneSpec, and the ZoneSpec is authored by the same planner
     # that drew the rectangle. For a long time the planner set `max_aspect_ratio` to whatever the
@@ -325,6 +328,26 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     if not entrance_door.placeable:
         bad.append("entrance door not placeable on the street-facing wall")
     rep.add("C7", "doors physically placeable", not bad, "; ".join(bad) or f"{len(interior_doors) + 1} doors placeable")
+
+    # C19 — required rooms touch an exterior wall (exposure_policy.py, Issue #19). A GEOMETRIC
+    # fact only (`envelope_sides`), deliberately separate from C8 below: this is a planning-
+    # topology error (the room was placed with no exterior wall at all) rather than a
+    # window-sizing error (an exterior wall too short for the minimum window), and runs first so
+    # a refusal names the real cause. Fails closed, like C8.
+    seams = seam_sides_of(fixture)
+    exterior_required = {z.zone_id for z in fixture.zones if set(z.roles) & REQUIRED_EXTERIOR_ROLES}
+    interior = []
+    for zone_id in sorted(exterior_required):
+        rect = rects.get(zone_id)
+        if rect is None:
+            continue
+        sides = envelope_sides(rect, site.footprint, wings=site.wings,
+                               seam_sides=seams.get(zone_id, frozenset()))
+        if not sides:
+            interior.append(f"{zone_id} has no exterior wall (interior room)")
+    rep.add("C19", "required rooms touch an exterior wall", not interior,
+            "; ".join(interior) or
+            f"all {len(exterior_required)} exterior-required zones touch the envelope")
 
     # C8 — daylight/window exposure present where required
     windowed = {w.zone_id for w in windows if w.placeable}
