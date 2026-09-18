@@ -116,6 +116,38 @@ class Config:
     regression_domains: tuple[str, ...]
     behavior_domains: tuple[str, ...]
 
+    # governance
+    owner_approval_label: str
+    max_active_issues: int
+    release_locks_at_ready: bool
+    drain_timeout_seconds: int
+
+    # usage guard + rolling backlog
+    usage_guard_enabled: bool
+    usage_pause_at_percent: float
+    usage_resume_below_percent: float
+    usage_probe_every_seconds: int
+    roadmap_file: str
+    roadmap_auto_next_batch: bool
+    roadmap_batch_size: int
+
+    # remote control (Telegram) + notifications
+    telegram_enabled: bool
+    telegram_mode: str
+    telegram_token_env: str
+    telegram_env_file: str
+    telegram_poll_timeout_seconds: int
+    pairing_ttl_seconds: int
+    merge_confirmation_ttl_seconds: int
+    interpreter_model: str
+    interpreter_fast_model: str
+    interpreter_timeout_seconds: int
+    interpreter_fast_timeout_seconds: int
+    transcription_provider: str
+    notify_ready_for_owner: bool
+    notify_max_attempts: int
+    notify_retry_backoff_seconds: int
+
     # commands
     command_env: dict[str, str]
     worktree_setup: dict[str, tuple[Command, ...]]
@@ -185,11 +217,18 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
     risk_policy = {}
     for risk in RISKS:
         p = _need(policy, risk, "risk_policy")
+        if bool(p.get("auto_merge", False)):
+            raise ConfigError(f"risk_policy.{risk}.auto_merge must be false — the orchestrator never merges; the owner does")
         risk_policy[risk] = RiskPolicy(
             requires=tuple(p.get("requires", ())),
-            auto_merge=bool(p.get("auto_merge", False)),
+            auto_merge=False,
             regression=str(p.get("regression", "required_if_backend")),
         )
+    gov = raw.get("governance") or {}
+    ug = raw.get("usage_guard") or {}
+    rm = raw.get("roadmap") or {}
+    rc = ((raw.get("remote_control") or {}).get("telegram")) or {}
+    nt = ((raw.get("notifications") or {}).get("telegram")) or {}
     implied = {k: tuple(v) for k, v in (locks.get("implied_by_domain") or {}).items()}
     for dom in implied:
         if dom not in DOMAINS:
@@ -206,7 +245,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         repo=str(_need(gh, "repo", "github")),
         base_branch=str(gh.get("base_branch", "main")),
         poll_interval_seconds=int(_need(gh, "poll_interval_seconds", "github")),
-        poll_labels=tuple(gh.get("poll_labels") or ("agent:queued",)),
+        poll_labels=tuple(gh.get("poll_labels") or ("agent:queued", "owner:approved")),
         executable_author_associations=tuple(gh.get("executable_author_associations") or ("OWNER",)),
         merge_method=str(gh.get("merge_method", "squash")),
         delete_branch_after_merge=bool(gh.get("delete_branch_after_merge", True)),
@@ -252,6 +291,32 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         risk_policy=risk_policy,
         regression_domains=tuple(raw.get("regression_domains") or ("backend", "geometry", "validator")),
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
+        owner_approval_label=str(gov.get("owner_approval_label", "owner:approved")),
+        max_active_issues=int(gov.get("max_active_issues", 2)),
+        release_locks_at_ready=bool(gov.get("release_locks_at_ready", True)),
+        drain_timeout_seconds=int(gov.get("drain_timeout_seconds", 3900)),
+        usage_guard_enabled=bool(ug.get("enabled", True)),
+        usage_pause_at_percent=float(ug.get("pause_at_percent", 98)),
+        usage_resume_below_percent=float(ug.get("resume_below_percent", 90)),
+        usage_probe_every_seconds=int(ug.get("probe_every_seconds", 120)),
+        roadmap_file=str(rm.get("file", "docs/ROADMAP.md")),
+        roadmap_auto_next_batch=bool(rm.get("auto_next_batch", False)),
+        roadmap_batch_size=int(rm.get("batch_size", 5)),
+        telegram_enabled=bool(rc.get("enabled", False)),
+        telegram_mode=str(rc.get("mode", "long_polling")),
+        telegram_token_env=str(rc.get("token_env", "AGENT_TELEGRAM_BOT_TOKEN")),
+        telegram_env_file=str(rc.get("env_file", "")),
+        telegram_poll_timeout_seconds=int(rc.get("poll_timeout_seconds", 30)),
+        pairing_ttl_seconds=int(rc.get("pairing_ttl_seconds", 600)),
+        merge_confirmation_ttl_seconds=int(rc.get("merge_confirmation_ttl_seconds", 600)),
+        interpreter_model=str(rc.get("interpreter_model", models.get("master_team_lead", "opus"))),
+        interpreter_fast_model=str(rc.get("interpreter_fast_model", "sonnet")),
+        interpreter_timeout_seconds=int(rc.get("interpreter_timeout_seconds", 240)),
+        interpreter_fast_timeout_seconds=int(rc.get("interpreter_fast_timeout_seconds", 60)),
+        transcription_provider=str(rc.get("transcription_provider", "none")),
+        notify_ready_for_owner=bool(nt.get("ready_for_owner", True)),
+        notify_max_attempts=int(nt.get("max_attempts", 3)),
+        notify_retry_backoff_seconds=int(nt.get("retry_backoff_seconds", 120)),
         command_env={str(k): str(v) for k, v in (cmds.get("env") or {}).items()},
         worktree_setup=setup,
         fast_tests=fast,

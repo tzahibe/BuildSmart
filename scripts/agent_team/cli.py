@@ -6,13 +6,19 @@
     agentctl dry-run                     one tick with no spawn / no push / no PR / no merge
     agentctl labels                      create/update the label catalogue on GitHub
     agentctl protect-main                configure branch protection (reports the exact blocker)
-    agentctl issue validate N | queue N | create --from FILE [--queue] | render --from FILE
+    agentctl issue validate N | queue N | create --from FILE [--queue | --child-of ROOT] | decompose ROOT --children F... | render --from FILE
     agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
     agentctl requeue N | block N --reason ... | resume-pr N [--update-base] [--rereview --reason ...]
     agentctl audit N                     the reconstructable timeline of one issue
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
     agentctl reconcile                   one reconciliation pass, printed
     agentctl doctor                      environment checks (gh auth, claude binary, config)
+    agentctl pause | resume              stop/continue taking new work (audited; the owner can also do it on Telegram)
+    agentctl remote start|run|stop|status|pair|unpair|doctor   the Telegram owner control plane
+
+Governance: the orchestrator never merges and never adds owner:approved. `issue queue` adds
+agent:queued only; execution starts when the owner adds owner:approved (Telegram "Create & Queue" /
+"approve", or the GitHub UI). Merges happen on the owner's CONFIRM MERGE (Telegram) or the GitHub button.
 """
 from __future__ import annotations
 
@@ -30,8 +36,9 @@ from agent_team.agent_runner import ClaudeCliRunner, FakeAgentRunner, resolve_cl
 from agent_team.audit import setup_logging
 from agent_team.config import Config, ConfigError, load_config
 from agent_team.github_client import GhCliTransport, GitHubClient, GitHubError
-from agent_team.issue_contract import ContractError, parse_contract, render_body, verification_manifest
-from agent_team.labels import ALL_LABELS, metadata_labels
+from agent_team.locks import effective_locks
+from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, parse_contract, render_body, verification_manifest
+from agent_team.labels import ALL_LABELS, metadata_labels, CHILD_LABEL, DECOMPOSED_LABEL
 from agent_team.orchestrator import Orchestrator, OrchestratorAlreadyRunning
 from agent_team.resource_manager import ResourceManager
 from agent_team.state_store import StateStore, TransitionConflict
@@ -60,6 +67,9 @@ def cmd_status(config: Config, args) -> int:
     print(render(config, store, ResourceManager(config, store), probe_machine=not args.no_probe))
     pid = _daemon_pid(config)
     print(f"orchestrator daemon: {'running (pid %s)' % pid if pid else 'not running'}")
+    if sys.platform == "darwin":
+        for w, st in launchd_status(config).items():
+            print(f"launchd {w}: {st}")
     return 0
 
 
@@ -98,16 +108,23 @@ def _pidfile(config: Config) -> Path:
     return config.path(config.state_dir) / "orchestrator.pid"
 
 
+def _pid_from(*paths: Path) -> int | None:
+    """The live pid recorded in a pid file or in the running process's flock file (launchd-managed)."""
+    for p in paths:
+        if not p.exists():
+            continue
+        try:
+            pid = int(p.read_text().strip() or "0")
+            if pid:
+                os.kill(pid, 0)
+                return pid
+        except (ValueError, ProcessLookupError, PermissionError):
+            continue
+    return None
+
+
 def _daemon_pid(config: Config) -> int | None:
-    p = _pidfile(config)
-    if not p.exists():
-        return None
-    try:
-        pid = int(p.read_text().strip())
-        os.kill(pid, 0)
-        return pid
-    except (ValueError, ProcessLookupError, PermissionError):
-        return None
+    return _pid_from(_pidfile(config), config.path(config.state_dir) / "orchestrator.lock")
 
 
 def cmd_start(config: Config, args) -> int:
@@ -133,15 +150,27 @@ def cmd_start(config: Config, args) -> int:
 
 
 def cmd_stop(config: Config, args) -> int:
+    """SIGTERM = drain (running agents finish, nothing new starts, then exit); --now = SIGINT, immediate."""
     pid = _daemon_pid(config)
     if not pid:
         print("not running")
         return 0
-    os.kill(pid, signal.SIGTERM)
-    for _ in range(60):
-        time.sleep(0.5)
-        if not _daemon_pid(config):
-            break
+    os.kill(pid, signal.SIGINT if getattr(args, "now", False) else signal.SIGTERM)
+    if not getattr(args, "now", False):
+        print(f"drain requested (pid {pid}): running agents finish, nothing new starts; the process exits when idle "
+              f"(at most {config.drain_timeout_seconds}s). Use --now to stop immediately.")
+        if getattr(args, "wait", False):
+            for _ in range(config.drain_timeout_seconds * 2):
+                time.sleep(0.5)
+                if not _daemon_pid(config):
+                    break
+        else:
+            return 0
+    else:
+        for _ in range(60):
+            time.sleep(0.5)
+            if not _daemon_pid(config):
+                break
     print(f"stopped (pid {pid})" if not _daemon_pid(config) else f"pid {pid} still shutting down")
     _pidfile(config).unlink(missing_ok=True)
     return 0
@@ -198,6 +227,43 @@ def _read_contract_file(path: Path, number: int, title: str | None, config: Conf
     return parse_contract(number, title, body, known_locks=config.known_locks, behavior_domains=config.behavior_domains)
 
 
+def _create_child(config: Config, gh, c, root_number: int, *, queue: bool, created: list[int] | None = None) -> int:
+    """Create a child Issue under an owner-approved ROOT. The child inherits execution authorization
+    (no owner:approved of its own) and must stay inside the ROOT's domains/locks/budget."""
+    root = gh.get_issue(root_number)
+    root_labels = {l["name"] for l in root.get("labels", [])}
+    if config.owner_approval_label not in root_labels:
+        print(f"refusing: ROOT #{root_number} is not owner-approved ({config.owner_approval_label} missing) — only the owner authorizes ROOT Issues",
+              file=sys.stderr)
+        return 1
+    if root.get("state") != "open":
+        print(f"refusing: ROOT #{root_number} is {root.get('state')}", file=sys.stderr)
+        return 1
+    try:
+        root_c = parse_contract(root_number, root.get("title", ""), root.get("body") or "", known_locks=config.known_locks,
+                                behavior_domains=config.behavior_domains)
+    except ContractError as exc:
+        print(f"refusing: ROOT #{root_number} contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
+        return 1
+    auth = c.authorization
+    if not auth.inherited:
+        c = c.with_authorization(Authorization(source="inherited", root_issue=root_number, parent_issue=root_number,
+                                               derived_by="team-lead", scope_inherited=True))
+    problems = child_scope_problems(c, root_c, effective=lambda x: effective_locks(x, config))
+    if problems:
+        print(f"refusing: child escapes ROOT #{root_number} scope:\n- " + "\n- ".join(problems) +
+              "\n(narrow the child, or report the extra work as a PROPOSED PRODUCT FOLLOW-UP for the owner)", file=sys.stderr)
+        return 1
+    labels = [CHILD_LABEL, "agent:queued" if queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
+    issue = gh.create_issue(c.title, render_body(c), labels)
+    n = issue["number"]
+    if created is not None:
+        created.append(n)
+    print(f"created child #{n} of ROOT #{root_number} {issue.get('html_url')} labels={labels} (authorization inherited; "
+          + ("executable now)" if queue else "draft)"))
+    return 0
+
+
 def cmd_issue(config: Config, args) -> int:
     if args.issue_cmd == "render":
         c = _read_contract_file(Path(args.from_file), 0, args.title, config)
@@ -210,11 +276,35 @@ def cmd_issue(config: Config, args) -> int:
         except ContractError as exc:
             print("contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
             return 1
-        labels = ["agent:queued" if args.queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
         gh = _github(config)
+        if getattr(args, "child_of", None):
+            return _create_child(config, gh, c, int(args.child_of), queue=not getattr(args, "no_queue", False))
+        # A ROOT/product Issue: the Team Lead never adds owner:approved — the owner authorizes ROOTs.
+        labels = ["agent:queued" if args.queue else "agent:draft", *metadata_labels(c.domains, c.risk, c.resource_class)]
         issue = gh.create_issue(c.title, render_body(c), labels)
         print(f"created #{issue['number']} {issue.get('html_url')} labels={labels}")
+        if args.queue:
+            print(f"note: queued but NOT approved — the owner must add {config.owner_approval_label} before it runs")
         return 0
+    if args.issue_cmd == "decompose":
+        gh = _github(config)
+        rc = 0
+        created = []
+        for f in args.children:
+            try:
+                c = _read_contract_file(Path(f), 0, None, config)
+            except ContractError as exc:
+                print(f"{f}: contract invalid:\n- " + "\n- ".join(exc.problems), file=sys.stderr)
+                return 1
+            r = _create_child(config, gh, c, int(args.number), queue=True, created=created)
+            rc = rc or r
+        if created and not rc:
+            gh.add_labels(args.number, [DECOMPOSED_LABEL])
+            gh.comment(args.number, "**[agent-team]** Decomposed by the Team Lead into child Issues (authorization inherited from this ROOT; "
+                                    "the ROOT itself is not executed as a task and closes when every child is done):\n" +
+                                    "\n".join(f"- #{n}" for n in created))
+            print(f"ROOT #{args.number} labelled {DECOMPOSED_LABEL}; children: {created}")
+        return rc
     gh = _github(config)
     issue = gh.get_issue(args.number)
     try:
@@ -241,8 +331,17 @@ def cmd_issue(config: Config, args) -> int:
             if l.split(":")[0] in ("domain", "risk", "resource") and l not in expected:
                 gh.remove_label(args.number, l)
         gh.add_labels(args.number, sorted(expected - set(have)))
+        if "agent:hold" in have:
+            gh.remove_label(args.number, "agent:hold")
         gh.set_state_label(args.number, sm.QUEUED)
-        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)})")
+        approved = config.owner_approval_label in have
+        if approved:
+            how = "ROOT — owner-approved"
+        elif c.authorization.inherited:
+            how = f"child — inherits from ROOT #{c.authorization.root_issue} (the scheduler verifies the ROOT and the scope)"
+        else:
+            how = f"MISSING — nothing runs until the owner adds {config.owner_approval_label} (Telegram or GitHub)"
+        print(f"#{args.number} queued (labels: agent:queued + {sorted(expected)}); authorization: {how}")
         return 0
     return 1
 
@@ -359,6 +458,34 @@ def cmd_resume_pr(config: Config, args) -> int:
     return 0
 
 
+def cmd_repair(config: Config, args) -> int:
+    """Team Lead decision (§13): send a BLOCKED PR back to its worker for a targeted repair. The repair
+    prompt carries the class, the summary and the evidence; the worker resumes in the Issue's worktree
+    with the LIVE contract (amend the Issue first when the fix needs a new constraint)."""
+    from agent_team.orchestrator import _save_evidence_note
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None or not rec.pr_number:
+        print("not tracked or no PR")
+        return 1
+    if rec.state != sm.BLOCKED:
+        print(f"#{args.number} is {rec.state}; repair is ordered from BLOCKED (use `block` first)")
+        return 1
+    evidence = Path(args.evidence_file).read_text(encoding="utf-8") if args.evidence_file else args.summary
+    _save_evidence_note(config, args.number, f"TEAM LEAD REPAIR ORDER ({args.failure_class}):\n\n{evidence}")
+    store.transition(args.number, sm.FIX_REQUIRED, allowed_from=(sm.BLOCKED,), failure_class=args.failure_class,
+                     last_error=args.summary[:1000], note="repair ordered by lead")
+    store.record_event(args.number, "repair_ordered_by_lead", {"class": args.failure_class, "summary": args.summary[:500]})
+    try:
+        gh = _github(config)
+        gh.set_state_label(args.number, sm.FIX_REQUIRED)
+        gh.comment(args.number, f"**[agent-team]** Team Lead sent PR #{rec.pr_number} back for repair (`{args.failure_class}`): {args.summary}")
+    except SystemExit:
+        pass
+    print(f"#{args.number} -> FIX_REQUIRED ({args.failure_class}); a repair worker starts on the next tick")
+    return 0
+
+
 def cmd_block(config: Config, args) -> int:
     store = StateStore(config.state_db_path)
     rec = store.get(args.number)
@@ -447,6 +574,275 @@ def cmd_doctor(config: Config, args) -> int:
     return 0 if ok else 1
 
 
+# -- pause / resume ---------------------------------------------------------------------------
+
+def cmd_pause(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    store.set_meta("scheduler_paused", "1")
+    store.record_event(None, "scheduler_paused", {"source": "cli", "by": "operator", "reason": args.reason or ""})
+    print("paused: no new claims, no new workers, no new repair loops")
+    return 0
+
+
+def cmd_resume(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    store.set_meta("scheduler_paused", "0")
+    store.record_event(None, "scheduler_resumed", {"source": "cli", "by": "operator", "reason": args.reason or ""})
+    print("resumed")
+    return 0
+
+
+# -- remote (Telegram) ------------------------------------------------------------------------
+
+def _remote_pidfile(config: Config) -> Path:
+    return config.path(config.state_dir) / "remote.pid"
+
+
+def _remote_pid(config: Config) -> int | None:
+    return _pid_from(_remote_pidfile(config), config.path(config.state_dir) / "remote.lock")
+
+
+def _remote_env(config: Config) -> dict:
+    from agent_team.remote.transport import load_env_file
+    env = dict(os.environ)
+    for k, v in load_env_file(config.telegram_env_file).items():
+        env.setdefault(k, v)
+    return env
+
+
+def _build_remote_service(config: Config):
+    from agent_team.remote.gateway import Gateway
+    from agent_team.remote.interpreter import ClaudeInterpreter
+    from agent_team.remote.service import RemoteService
+    from agent_team.remote.transport import HttpTelegramTransport, resolve_token
+    from agent_team.remote.voice import make_transcriber
+    token = resolve_token(config.telegram_token_env, config.telegram_env_file)
+    if not token:
+        raise SystemExit(f"no bot token: set {config.telegram_token_env} or put it in {config.telegram_env_file}")
+    github = _github(config, require_auth=True)
+    orch = Orchestrator(config, github=github, runner=FakeAgentRunner(), dry_run=False)   # actions only; never runs the loop
+    store = orch.store
+    interpreter = ClaudeInterpreter(repo_root=config.repo_root, model=config.interpreter_model,
+                                    timeout_seconds=config.interpreter_timeout_seconds, binary=config.claude_binary,
+                                    fast_model=config.interpreter_fast_model, fast_timeout_seconds=config.interpreter_fast_timeout_seconds)
+    gateway = Gateway(config=config, store=store, github=github, orch=orch, interpreter=interpreter)
+    return RemoteService(config=config, store=store, transport=HttpTelegramTransport(token), gateway=gateway,
+                         transcriber=make_transcriber(config.transcription_provider))
+
+
+def cmd_remote(config: Config, args) -> int:
+    sub = args.remote_cmd
+    if sub == "run":
+        setup_logging(config, verbose=getattr(args, "verbose", False))
+        if not config.telegram_enabled:
+            print("remote_control.telegram.enabled is false", file=sys.stderr)
+            return 2
+        for k, v in _remote_env(config).items():
+            os.environ.setdefault(k, v)
+        from agent_team.remote.service import RemoteAlreadyRunning
+        svc = _build_remote_service(config)
+        try:
+            svc.run()
+        except RemoteAlreadyRunning as exc:
+            print(f"refusing to start: {exc}", file=sys.stderr)
+            return 3
+        return 0
+    if sub == "start":
+        if _remote_pid(config):
+            print(f"already running (pid {_remote_pid(config)})")
+            return 0
+        env = _remote_env(config)
+        if not env.get(config.telegram_token_env):
+            print(f"cannot start: no {config.telegram_token_env} (env or {config.telegram_env_file})", file=sys.stderr)
+            return 2
+        logs = config.path(config.logs_dir)
+        logs.mkdir(parents=True, exist_ok=True)
+        _remote_pidfile(config).parent.mkdir(parents=True, exist_ok=True)
+        out = open(logs / "remote.out", "a")
+        cmd = [sys.executable, "-c",
+               f"import sys; sys.path.insert(0, {str(config.repo_root / 'scripts')!r}); from agent_team.cli import main; sys.exit(main())",
+               "remote", "run"]
+        env["AGENT_TEAM_REPO_ROOT"] = str(config.repo_root)
+        proc = subprocess.Popen(cmd, cwd=str(config.repo_root), stdout=out, stderr=subprocess.STDOUT, start_new_session=True, env=env)
+        _remote_pidfile(config).write_text(str(proc.pid))
+        print(f"telegram service started (pid {proc.pid}); log: {logs / 'orchestrator.log'}")
+        return 0
+    if sub == "stop":
+        pid = _remote_pid(config)
+        if not pid:
+            print("not running")
+            return 0
+        os.kill(pid, signal.SIGTERM)
+        for _ in range(120):
+            time.sleep(0.5)
+            if not _remote_pid(config):
+                break
+        print(f"stopped (pid {pid})" if not _remote_pid(config) else f"pid {pid} still shutting down (waits for the current long poll)")
+        _remote_pidfile(config).unlink(missing_ok=True)
+        return 0
+    store = StateStore(config.state_db_path)
+    if sub == "status":
+        owner = store.owner()
+        pending = [n for n in store.due_notifications(50)]
+        print(f"service: {'running (pid %s)' % _remote_pid(config) if _remote_pid(config) else 'not running'}")
+        print(f"owner: {'paired (telegram user %s)' % owner['telegram_user_id'] if owner else 'NOT paired — run `agentctl remote pair`'}")
+        print(f"offset: {store.get_meta('telegram_offset', '-')}  paused: {store.get_meta('scheduler_paused', '0') == '1'}")
+        print(f"notifications due: {len(pending)}")
+        return 0
+    if sub == "pair":
+        if getattr(args, "user_id", None):
+            # Operator pairing at the terminal: the owner, working on this machine, names the numeric
+            # Telegram user id seen on their own messages to the bot. Audited like a code pairing.
+            store.set_owner(int(args.user_id), int(args.chat_id or args.user_id))
+            store.record_event(None, "owner_paired_by_operator", {"telegram_user_id": int(args.user_id)})
+            print(f"owner paired by operator: telegram user {args.user_id} (chat {args.chat_id or args.user_id})")
+            return 0
+        import secrets as _secrets
+        code = f"{_secrets.randbelow(900000) + 100000}"
+        store.create_pairing_code(code, config.pairing_ttl_seconds)
+        print(f"Pairing code: {code}  (valid {config.pairing_ttl_seconds // 60} min, one-time)")
+        print("In Telegram, the owner sends:  /pair " + code)
+        return 0
+    if sub == "unpair":
+        store.clear_owner()
+        print("owner unpaired; run `agentctl remote pair` to pair again")
+        return 0
+    if sub == "doctor":
+        from agent_team.remote.transport import HttpTelegramTransport, TelegramError, resolve_token
+        token = resolve_token(config.telegram_token_env, config.telegram_env_file)
+        print(f"token: {'present (from env/file)' if token else 'MISSING'}  enabled: {config.telegram_enabled}  mode: {config.telegram_mode}")
+        if token:
+            try:
+                me = HttpTelegramTransport(token).get_me()
+                print(f"bot: @{me.get('username')} (id {me.get('id')})")
+            except TelegramError as exc:
+                print(f"bot: ERROR {exc}")
+        owner = store.owner()
+        print(f"owner: {'paired (user %s)' % owner['telegram_user_id'] if owner else 'not paired'}")
+        print(f"service: {'running' if _remote_pid(config) else 'not running'}  interpreter: {config.interpreter_model}  transcription: {config.transcription_provider}")
+        return 0
+    return 1
+
+
+# -- owner updates from the Team Lead -----------------------------------------------------------
+
+def cmd_notify(config: Config, args) -> int:
+    """Send the owner a progress update on Telegram (through the outbox: delivered by the running
+    remote service, deduplicated, retried). The Team Lead uses this so the owner is never left
+    without updates while away from the computer."""
+    import hashlib
+    store = StateStore(config.state_db_path)
+    if store.owner() is None:
+        print("no paired owner — run `agentctl remote pair`", file=sys.stderr)
+        return 2
+    text = args.text if args.text != "-" else sys.stdin.read()
+    key = "lead-update:" + hashlib.sha256(f"{time.time()}:{text}".encode()).hexdigest()[:16]
+    store.enqueue_notification("lead_update", key, None, text.strip()[:3900])
+    print("queued for Telegram delivery" + ("" if _remote_pid(config) else " (remote service not running: it will be sent when it starts)"))
+    return 0
+
+
+# -- permanent services (macOS launchd user agents) -------------------------------------------
+
+LAUNCHD_LABELS = {"orchestrator": "com.buildsmart.agent-team.orchestrator", "remote": "com.buildsmart.agent-team.remote"}
+
+
+def launchd_plist(config: Config, which: str) -> str:
+    """A launchd user agent that keeps the service alive across logins, crashes and reboots."""
+    label = LAUNCHD_LABELS[which]
+    logs = config.path(config.logs_dir)
+    boot = f"import sys; sys.path.insert(0, {str(config.repo_root / 'scripts')!r}); from agent_team.cli import main; sys.exit(main())"
+    argv = [sys.executable, "-c", boot] + (["run"] if which == "orchestrator" else ["remote", "run"])
+    args_xml = "".join(f"\n      <string>{a.replace('&', '&amp;').replace('<', '&lt;')}</string>" for a in argv)
+    path_env = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + os.path.dirname(sys.executable)
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>{label}</string>
+  <key>ProgramArguments</key>
+  <array>{args_xml}
+  </array>
+  <key>WorkingDirectory</key><string>{config.repo_root}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>AGENT_TEAM_REPO_ROOT</key><string>{config.repo_root}</string>
+    <key>PATH</key><string>{path_env}</string>
+    <key>HOME</key><string>{os.path.expanduser('~')}</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>15</integer>
+  <key>ExitTimeOut</key><integer>{config.drain_timeout_seconds + 60}</integer>
+  <key>StandardOutPath</key><string>{logs / f'launchd-{which}.log'}</string>
+  <key>StandardErrorPath</key><string>{logs / f'launchd-{which}.log'}</string>
+</dict>
+</plist>
+"""
+
+
+def _launchd_dir() -> Path:
+    return Path(os.path.expanduser("~/Library/LaunchAgents"))
+
+
+def _launchctl(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["launchctl", *args], capture_output=True, text=True)
+
+
+def cmd_install(config: Config, args) -> int:
+    """Install (or reinstall) the launchd user agents so both services are permanent."""
+    if sys.platform != "darwin":
+        print("launchd install is macOS-only; use a systemd unit on Linux", file=sys.stderr)
+        return 2
+    which = ["orchestrator", "remote"] if args.service == "all" else [args.service]
+    config.path(config.logs_dir).mkdir(parents=True, exist_ok=True)
+    _launchd_dir().mkdir(parents=True, exist_ok=True)
+    uid = os.getuid()
+    for w in which:
+        # a manually started instance would fight the agent for the singleton lock: stop it first
+        if w == "orchestrator" and _daemon_pid(config):
+            cmd_stop(config, args)
+        if w == "remote" and _remote_pid(config):
+            cmd_remote(config, type("A", (), {"remote_cmd": "stop"})())
+        plist = _launchd_dir() / f"{LAUNCHD_LABELS[w]}.plist"
+        _launchctl("bootout", f"gui/{uid}/{LAUNCHD_LABELS[w]}")
+        plist.write_text(launchd_plist(config, w), encoding="utf-8")
+        res = _launchctl("bootstrap", f"gui/{uid}", str(plist))
+        if res.returncode != 0:
+            res = _launchctl("load", "-w", str(plist))
+        ok = res.returncode == 0
+        print(f"{w}: {'installed and started' if ok else 'INSTALL FAILED: ' + (res.stderr or res.stdout).strip()[:200]} — {plist}")
+        StateStore(config.state_db_path).record_event(None, "service_installed", {"service": w, "plist": str(plist), "ok": ok})
+    print("both services now start at login, restart on crash, and survive reboots" if args.service == "all" else "")
+    return 0
+
+
+def cmd_uninstall(config: Config, args) -> int:
+    which = ["orchestrator", "remote"] if args.service == "all" else [args.service]
+    uid = os.getuid()
+    for w in which:
+        plist = _launchd_dir() / f"{LAUNCHD_LABELS[w]}.plist"
+        _launchctl("bootout", f"gui/{uid}/{LAUNCHD_LABELS[w]}")
+        if plist.exists():
+            plist.unlink()
+        print(f"{w}: uninstalled ({plist})")
+        StateStore(config.state_db_path).record_event(None, "service_uninstalled", {"service": w})
+    return 0
+
+
+def launchd_status(config: Config) -> dict[str, str]:
+    out = {}
+    uid = os.getuid()
+    for w, label in LAUNCHD_LABELS.items():
+        res = _launchctl("print", f"gui/{uid}/{label}")
+        if res.returncode != 0:
+            out[w] = "not installed"
+        else:
+            pid = next((l.split("=")[1].strip() for l in res.stdout.splitlines() if l.strip().startswith("pid =")), None)
+            out[w] = f"installed, running (pid {pid})" if pid else "installed, not running"
+    return out
+
+
 # -- parser -----------------------------------------------------------------------------------
 
 def build_parser() -> argparse.ArgumentParser:
@@ -459,7 +855,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_run)
     s = sub.add_parser("dry-run"); s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_dry_run)
     s = sub.add_parser("start"); s.add_argument("--verbose", action="store_true"); s.set_defaults(fn=cmd_start)
-    s = sub.add_parser("stop"); s.set_defaults(fn=cmd_stop)
+    s = sub.add_parser("stop"); s.add_argument("--now", action="store_true"); s.add_argument("--wait", action="store_true"); s.set_defaults(fn=cmd_stop)
     s = sub.add_parser("labels"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_labels)
     s = sub.add_parser("protect-main"); s.add_argument("--enforce-admins", action="store_true"); s.add_argument("--show", action="store_true")
     s.set_defaults(fn=cmd_protect_main)
@@ -468,11 +864,15 @@ def build_parser() -> argparse.ArgumentParser:
     v = isub.add_parser("validate"); v.add_argument("number", type=int); v.add_argument("--json", action="store_true")
     q = isub.add_parser("queue"); q.add_argument("number", type=int)
     c = isub.add_parser("create"); c.add_argument("--from", dest="from_file", required=True); c.add_argument("--title"); c.add_argument("--queue", action="store_true")
+    c.add_argument("--child-of", dest="child_of", type=int, help="create as a child of this owner-approved ROOT (authorization inherited)")
+    c.add_argument("--no-queue", dest="no_queue", action="store_true", help="with --child-of: create the child as a draft instead of executable")
+    d = isub.add_parser("decompose"); d.add_argument("number", type=int); d.add_argument("--children", nargs="+", required=True, help="contract files")
     r = isub.add_parser("render"); r.add_argument("--from", dest="from_file", required=True); r.add_argument("--title")
     s.set_defaults(fn=cmd_issue)
 
     s = sub.add_parser("approve"); s.add_argument("number", type=int)
-    s.add_argument("--kind", choices=["lead_approval", "lead_architecture_review", "lost_allowance"], default="lead_approval")
+    s.add_argument("--kind", choices=["lost_allowance"], default="lost_allowance",
+                   help="the only Team Lead acknowledgement left: a declared LOST allowance (merge itself is the owner's)")
     s.add_argument("--note")
     s.set_defaults(fn=cmd_approve)
     s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
@@ -481,10 +881,24 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--rereview", action="store_true"); s.add_argument("--reason")
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
+    s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
+    s.add_argument("--summary", required=True); s.add_argument("--evidence-file"); s.set_defaults(fn=cmd_repair)
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
+    s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)
+    s = sub.add_parser("resume"); s.add_argument("--reason"); s.set_defaults(fn=cmd_resume)
+    rem = sub.add_parser("remote"); rsub = rem.add_subparsers(dest="remote_cmd", required=True)
+    for name in ("start", "stop", "status", "unpair", "doctor"):
+        rsub.add_parser(name)
+    pr_ = rsub.add_parser("pair"); pr_.add_argument("--user-id", type=int, help="operator pairing: the owner's numeric Telegram user id")
+    pr_.add_argument("--chat-id", type=int)
+    r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
+    rem.set_defaults(fn=cmd_remote)
+    s = sub.add_parser("notify"); s.add_argument("text", help="Hebrew update for the owner ('-' reads stdin)"); s.set_defaults(fn=cmd_notify)
+    s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)
+    s = sub.add_parser("uninstall"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_uninstall)
     return p
 
 

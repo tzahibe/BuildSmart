@@ -6,7 +6,7 @@ exist, their current status at a glance, and where to read more. Historical deta
 reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 (`docs/PROJECT_KNOWLEDGE_RAG.md`) but deliberately not repeated here.
 
-**Current main HEAD at last verification: `6499604`.**
+**Current main HEAD at last verification: `7814dc1` (agent-team follow-ups merged 2026-09-17).**
 
 ## Major capabilities and current status
 
@@ -21,12 +21,27 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
-| Autonomous Engineering Workflow (Agent Team) | IMPLEMENTED (infrastructure), pilot pending | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
+| Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; governance since 2026-09-18: owner approves ROOT Issues and merges, the Team Lead executes everything else (child Issues, parallel workers); Telegram control plane; on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
+| Product roadmap (owner-maintained, proposed only) | PROPOSED | [ROADMAP.md](ROADMAP.md) |
 
 Backend: FastAPI (`backend/app`), Python 3.11, `uv`-managed, `[tool.uv] package = false` — CLIs
 run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 
 ## Active branches / work in progress
+
+- `infra/telegram-control-plane` — owner-controlled governance (owner:approved, READY_FOR_OWNER,
+  no auto-merge) + the Telegram owner control plane; running from the orchestrator home worktree;
+  **PR #16 awaits the owner's merge.** Draft Issues #17–#21 (first five P0 roadmap topics) exist
+  on GitHub as `agent:draft`, contracts under `.agent/proposals/p0/`; #17 was approved and queued
+  by the owner on 2026-09-17 (first roadmap Issue in execution). Same branch, 2026-09-17 evening:
+  subscription usage guard (auto-pause at 98 %, auto-resume after the reset, rate-limit requeue),
+  3 concurrent workers, Telegram `answer()` fix; the owner's new P0 topic "Entrance-to-Circulation
+  Integration / no entrance dead-end walls" added to `docs/ROADMAP.md` and drafted as Issue #22 (`agent:draft`, depends on #20).
+  2026-09-18 (owner governance message): ROOT/child authorization model (`### Authorization`,
+  `agent:child`, `agent:decomposed`, `agent:hold`), root-aware scheduler (work stealing, locks
+  released at READY, READY never blocks unrelated work), graceful drain on SIGTERM, Team Lead
+  status view; 18 governance tests (`tests/test_governance_parallel.py`). #17 → PR #23 READY_FOR_OWNER
+  (CI/regression/review green at `d7c79a3`, owner merges); #18 waits for it.
 
 - `integration/laundry-into-main` — landed: fast-forwarded onto `main` at `6499604`. No longer
   active work; kept for history. See the Laundry Wiki page.
@@ -65,6 +80,9 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   Wiki page for why this rule exists.
 
 ## Next recommended work
+
+The owner's prioritized list is `docs/ROADMAP.md` (P0 first: planning quality, entrance,
+doors, windows, laundry — drafted as Issues #17–#21). The items below predate it and stay valid:
 
 1. Wire Multi-Level Phase 1 into the live product path — see its Wiki page's Known follow-ups.
 2. Guest-WC placement (009) — spec exists, nothing implemented.

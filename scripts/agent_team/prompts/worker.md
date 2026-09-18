@@ -53,6 +53,15 @@ Domains: {{domains}} · Risk: {{risk}} · Resource class: {{resource_class}}
    explicitly about them.
 6. Never write secrets or tokens anywhere.
 7. Be honest in the report: `NOT_VERIFIED` is acceptable, a false `PASS` is not.
+8. You run headless (`claude -p`): there are no wakeups, no task notifications and no next
+   turn. Never run a command in the background and never end your turn "waiting" for anything —
+   the run ends the moment you stop, and a run that ends without the JSON report is a failed
+   attempt that costs a retry. Run long commands in the foreground with the Bash tool's
+   `timeout` parameter (up to 600000 ms = 10 minutes; `timeout`/`gtimeout` binaries are not
+   available). If a job needs more than 10 minutes, split it (a subset of contexts, chunks,
+   intermediate result files it can resume from), or commit what you have and report
+   `status: "blocked"` naming the exact command and how long it needs. Commit early and often:
+   the worktree is reused on a retry, but only committed work is visible to the report.
 
 # Finish
 When done (or blocked), make sure every intended change is committed (`git status` clean apart
