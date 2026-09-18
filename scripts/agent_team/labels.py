@@ -29,7 +29,7 @@ STATE_LABELS: tuple[Label, ...] = (
     Label("agent:fix-required", "e99695", "CI/review found a problem; a repair attempt is scheduled"),
     Label("agent:blocked", "b60205", "Retry budget exhausted or a decision is needed from the Team Lead"),
     Label("agent:ready-for-owner", "0e8a16", "Every gate green; waiting for the owner's merge decision (never auto-merged)"),
-    Label("agent:integrated", "5319e7", "Weekend/holiday mode: merged by the Team Lead into the period's integration branch; lands on main with the rollup PR"),
+    Label("agent:integrated", "5319e7", "Weekend/holiday mode: merged into the period's integration branch; lands on main via the rollup PR"),
     Label("agent:merged", "6f42c1", "Merged to main; post-merge smoke running"),
     Label("agent:done", "2cbe4e", "Smoke green; issue closed by the orchestrator"),
 )
@@ -63,7 +63,7 @@ OWNER_LABELS: tuple[Label, ...] = (
 KIND_LABELS: tuple[Label, ...] = (
     Label(CHILD_LABEL, "bfd4f2", "Child Issue derived by the Team Lead from a ROOT Issue (authorization inherited)"),
     Label(DECOMPOSED_LABEL, "bfd4f2", "ROOT Issue executed through its child Issues; closed when they are all done"),
-    Label(ROLLUP_LABEL, "0e8a16", "Rollup PR of a weekend/holiday integration branch — the one PR the owner merges for that period"),
+    Label(ROLLUP_LABEL, "0e8a16", "Rollup of a weekend/holiday integration branch — the one PR the owner merges for that period"),
 )
 
 ALL_LABELS: tuple[Label, ...] = STATE_LABELS + DOMAIN_LABELS + RISK_LABELS + RESOURCE_LABELS + OWNER_LABELS + KIND_LABELS
