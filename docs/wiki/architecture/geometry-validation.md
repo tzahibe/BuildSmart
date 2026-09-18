@@ -85,6 +85,61 @@ never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future plann
   every existing corpus context and canonical fixture without changing any of them; it exists to
   catch a FUTURE planner path that would otherwise silently emit a disallowed edge.
 
+## Door usability and swing (C28)
+
+Issue #38 (2026-09-18). C7 proves a door is PLACEABLE (real clearance on the shared wall). Nothing
+before this Issue checked whether the leaf, once hung, is actually USABLE: two doors swinging into
+the same corner, a door swinging into a wet-room fixture, a door that cannot reach 90 degrees open
+because the room behind it is too shallow, or a door narrower than the access-rules width for its
+role pair. `app/vertical_slice/door_clearance.py` adds all four:
+
+- **The swing envelope**: `Door.swing_deg` (`doors.py`) is the open leaf's own direction in
+  degrees (0=+x, 90=+y, 180=-x, 270=-y in the grid's own axes) — always exactly 90° from the wall
+  the door is set into, computed by `doors.swing_deg_for`/`hinge_at_for` at the SAME point `_swing`
+  already decides `swings_into`/`hinge_at`. `door_clearance.swing_envelope_m` builds the quarter-
+  circle (a pie slice, apex `hinge_at`, radius `width_m`) from these two facts.
+- **Door-door**: overlapping swing envelopes — two leaves colliding in a shared corner is exactly
+  this fact (their sectors overlap outright).
+- **Door-wall**: the leaf's own room does not have enough NET depth, beyond the door's wall, in the
+  swing direction — the leaf would hit the room's own far wall before reaching 90°.
+- **Door-fixture**: the envelope intersects a conservative wet-room fixture footprint
+  (`WET_FIXTURE_FOOTPRINT_M`, a WC-pan-and-clearance box anchored at the TOILET/BATHROOM zone's own
+  net-rect corner farthest from the door(s) entering it) — a placeholder approximation, not a real
+  fixture catalogue (Issue 9 owns real furniture/fixture placement), same disclosure discipline as
+  `windows.py`'s glazing fractions.
+- **Access width**: the realized door is narrower than `access_rules.DOOR_WIDTH_M` for its role
+  pair — normally unreachable (widths already come from that table), kept as the check that would
+  catch a future path drifting from it.
+
+**Engine-side conflict avoidance, before failing.** `door_clearance.resolve_swings` runs BEFORE
+C28: it flips a conflicting door's swing to the room on the OTHER side of it (`doors.hinge_at_for`/
+`swing_deg_for`, recomputed for that other zone) whenever that strictly reduces the door-door/
+door-wall/door-fixture defect count, one flip at a time, deterministically, until no further flip
+helps. Called once per realized level, right after `generate_interior_doors`, in every pipeline
+path (`pipeline.py`, `general_pipeline.py::_realize`, `building_coordinator.py::_realize_upper`) —
+the entrance door is included in the conflict scan (so an interior door can still be flipped away
+from a conflict WITH it) but never flips itself (there is no other side of the street). Access-
+width defects are never swing-dependent, so C28 fails closed on those regardless of resolution.
+
+**C28 "doors usable"** (`validation.py`, next to C7): fails closed on whatever `resolve_swings`
+could not fix. A non-blocking quality note (`ValidationReport.notes`, merged into
+`ValidationSummary.warnings` in `contract.summarize`) discloses — never fails — a door whose open
+leaf would narrow a requested corridor (C14) below its required width.
+
+**The contract** (`DoorOut`, both `design_output.py` and `app/demo/contract.py`): every door now
+also carries `swing_deg` alongside the existing `swings_into`/`hinge_x`/`hinge_y`. The frontend's
+`DoorSymbol` (`frontend/src/components/plan/DoorSymbol.tsx`, used by `DemoPlan.tsx`) draws the leaf
+and its swing arc from `hinge_x`/`hinge_y`/`swing_deg` ALONE — no room lookup, replacing the
+renderer's previous `design.rooms.find(...)`-based direction inference. A door missing `swing_deg`
+(a payload built before this field existed) draws with no leaf and no arc, never a guessed one.
+
+**Corpus impact**: additive by construction — `resolve_swings` only ever changes
+`swings_into`/`hinge_at`/`swing_deg` (never `a`/`b`/`kind`/`width_m`/`center_u`/`orientation`/
+`placeable`/`shared_length_m`), which nothing except C28 and the door contract reads, so a flip can
+never change any OTHER check's outcome or a plan's primary signature (`spikes/failure_log_sweep/
+sweep.py::signature` reads only room type/rect). C28 passes on the canonical fixture and the 432-
+context regression corpus unchanged.
+
 ## Windows and exterior exposure (C19/C8)
 
 Issue #19 (2026-09-18). A room's relationship to the building envelope is two separate questions

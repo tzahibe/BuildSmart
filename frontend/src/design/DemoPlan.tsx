@@ -1,5 +1,6 @@
 import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
+import { DoorSymbol } from '../components/plan/DoorSymbol'
 import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
 
@@ -67,14 +68,6 @@ export function wallStyle(construction: string, context: string) {
   if (construction === 'RC_SAFE_ROOM') return WALL_STYLE.RC_SAFE_ROOM
   if (context === 'EXTERIOR') return EXTERIOR_WALL_STYLE
   return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
-}
-
-/** Which way the arc turns, so it sweeps the quarter the leaf actually travels through rather than
- *  the opposite one. The cross product of (closed leaf) x (open leaf) about the hinge gives it. */
-function sweep(hx: number, hy: number, far: { x: number; y: number },
-               leaf: { x: number; y: number }): 0 | 1 {
-  const cross = (far.x - hx) * (leaf.y - hy) - (far.y - hy) * (leaf.x - hx)
-  return cross > 0 ? 1 : 0
 }
 
 /** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
@@ -175,79 +168,24 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
       {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
           90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —
           "אין דבר כזה קיר פתוח לחדרים, אלא דלתות". A CASED_OPENING is the one exception: it is
-          still a real interruption in the wall (the door line below draws that), but there is no
-          leaf and no arc, because the backend declared this opening to have no door hardware at
-          all — see `_build_access` in concept_generator.py for why the living room's entrance is
-          always one of these.
+          still a real interruption in the wall, but there is no leaf and no arc, because the
+          backend declared this opening to have no door hardware at all — see `_build_access` in
+          concept_generator.py for why the living room's entrance is always one of these.
 
-          Every fact here comes from the backend: where the opening is, which room the leaf swings
-          into, and which jamb it hangs from. The renderer does the trigonometry and nothing else,
-          which is the same boundary that stopped it inventing doors in the first place. */}
-      {design.doors.map((door, i) => {
-        const half = door.width_m / 2
-        const vertical = door.orientation === 'vertical'
-        const [x1, y1, x2, y2] = vertical
-          ? [door.x, door.y - half, door.x, door.y + half]
-          : [door.x - half, door.y, door.x + half, door.y]
-
-        // The hinge is one end of the opening; the leaf swings from there into `swings_into`.
-        const hx = door.hinge_x ?? x1
-        const hy = door.hinge_y ?? y1
-        const room = design.rooms.find((r) => r.id === door.swings_into)
-        const hasLeaf = door.kind !== 'CASED_OPENING'
-
-        let leaf: { x: number; y: number } | null = null
-        if (room && hasLeaf) {
-          // Perpendicular to the wall, toward the room's own side of it.
-          const inward = vertical
-            ? Math.sign(room.x + room.width_m / 2 - door.x)
-            : Math.sign(room.y + room.depth_m / 2 - door.y)
-          leaf = vertical
-            ? { x: hx + inward * door.width_m, y: hy }
-            : { x: hx, y: hy + inward * door.width_m }
-        }
-
-        // The far jamb — where the arc ends, and where the leaf would lie when closed.
-        const far = vertical
-          ? { x: door.x, y: hy === y1 ? y2 : y1 }
-          : { x: hx === x1 ? x2 : x1, y: door.y }
-
-        // A cased opening has no leaf to mark its bounds, so short jamb ticks — perpendicular to
-        // the opening, at each end — stand in for the door symbol an architect would otherwise
-        // draw there.
-        const jamb = 0.12
-        const jambDx = vertical ? jamb : 0
-        const jambDy = vertical ? 0 : jamb
-
-        return (
-          <g key={`door-${i}`}>
-            {/* the opening itself: the wall does not run through here */}
-            <line x1={x1} y1={y1} x2={x2} y2={y2}
-                  className={
-                    door.is_entrance ? 'demo-door demo-door--entrance'
-                      : hasLeaf ? 'demo-door'
-                      : 'demo-door demo-door--cased'
-                  } />
-            {leaf ? (
-              <>
-                <path
-                  d={`M ${far.x} ${far.y} A ${door.width_m} ${door.width_m} 0 0 ${
-                    sweep(hx, hy, far, leaf)} ${leaf.x} ${leaf.y}`}
-                  className="demo-door-arc"
-                />
-                <line x1={hx} y1={hy} x2={leaf.x} y2={leaf.y} className="demo-door-leaf" />
-              </>
-            ) : !hasLeaf && !door.is_entrance ? (
-              <>
-                <line x1={x1 - jambDx} y1={y1 - jambDy} x2={x1 + jambDx} y2={y1 + jambDy}
-                      className="demo-door-jamb" />
-                <line x1={x2 - jambDx} y1={y2 - jambDy} x2={x2 + jambDx} y2={y2 + jambDy}
-                      className="demo-door-jamb" />
-              </>
-            ) : null}
-          </g>
-        )
-      })}
+          Every fact here comes from the backend (`swings_into`/`hinge_x`/`hinge_y`/`swing_deg`,
+          Issue #38) — `DoorSymbol` does the trigonometry and nothing else, with no room lookup of
+          its own, which is the same boundary that stopped this renderer inventing doors in the
+          first place. */}
+      {design.doors.map((door, i) => (
+        <DoorSymbol
+          key={`door-${i}`}
+          door={{
+            x: door.x, y: door.y, width_m: door.width_m, orientation: door.orientation,
+            hinge_x: door.hinge_x, hinge_y: door.hinge_y, swing_deg: door.swing_deg,
+            is_entrance: door.is_entrance, hasLeaf: door.kind !== 'CASED_OPENING',
+          }}
+        />
+      ))}
 
       {/* Windows: only where the backend says one exists. */}
       {design.windows.map((window, i) => {

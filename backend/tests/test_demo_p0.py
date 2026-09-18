@@ -2039,3 +2039,32 @@ def test_the_living_side_preference_chooses_which_way_the_shown_l_faces(client, 
 def test_the_living_side_accepts_only_its_three_values(client):
     project_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     assert client.put(f"/projects/{project_id}/review", json={"public_open_side": "north"}).status_code == 422
+
+
+@pytest.mark.regression
+def test_every_door_out_carries_hinge_and_swing():
+    """Issue #38, AC-3: every door of every PLANNED corpus design carries `hinge_x`/`hinge_y`/
+    `swing_deg` — the renderer's whole door-symbol contract (`DoorSymbol.tsx`) is built on these
+    three fields plus `swings_into` existing on every single door, never a subset."""
+    import json
+    import os
+
+    from app.demo.service import generate_demo_design
+    from spikes.failure_log_sweep.sweep import project_from_context
+
+    corpus_path = os.path.join(
+        os.path.dirname(__file__), "regression_corpus", "corpus.json")
+    with open(corpus_path, encoding="utf-8") as f:
+        corpus = json.load(f)
+
+    planned = [c for c in corpus["cases"] if c["expected_outcome"] == "PLANNED"]
+    assert planned, "corpus.json has no PLANNED cases to check"
+    checked = 0
+    for case in planned:
+        project = project_from_context(case["context"])
+        result = generate_demo_design(project)
+        for door in result.design.doors:
+            assert door.swing_deg in (0.0, 90.0, 180.0, 270.0), (case["context"], door)
+            assert door.swings_into, (case["context"], door)
+            checked += 1
+    assert checked > 0

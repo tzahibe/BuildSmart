@@ -18,6 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import access_rules
+from . import door_clearance
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
@@ -110,6 +111,9 @@ class Check:
 @dataclass
 class ValidationReport:
     checks: list[Check] = field(default_factory=list)
+    #: Non-blocking quality notes (Issue #38's corridor-obstruction note is the first of these) —
+    #: additive, never affects `ok`. Empty for every report built before this field existed.
+    notes: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -329,6 +333,17 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         bad.append("entrance door not placeable on the street-facing wall")
     rep.add("C7", "doors physically placeable", not bad, "; ".join(bad) or f"{len(interior_doors) + 1} doors placeable")
 
+    # C28 — doors usable (door_clearance.py, Issue #38): no door-door, door-wall or door-fixture
+    # conflict, and every door meets the access-rules width for its role pair. Fails closed, like
+    # C7. The engine (doors.py's swing choice, `door_clearance.resolve_swings`) has already tried
+    # flipping a conflicting door's swing to the room on the other side BEFORE this runs — a
+    # caller that skips that step simply gets a stricter C28, never a wrong one.
+    door_defects = door_clearance.check_doors_usable(
+        fixture, rects, walls, [*interior_doors, entrance_door])
+    rep.add("C28", "doors usable (no door-door/door-wall/door-fixture conflict, correct access width)",
+            not door_defects, "; ".join(door_defects) or
+            f"{len(interior_doors) + 1} doors usable")
+
     # C19 — required rooms touch an exterior wall (exposure_policy.py, Issue #19). A GEOMETRIC
     # fact only (`envelope_sides`), deliberately separate from C8 below: this is a planning-
     # topology error (the room was placed with no exterior wall at all) rather than a
@@ -466,6 +481,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                     corridor.satisfied_by(realized),
                     f"requested {corridor.mode.value} {corridor.width_m:.2f} m, "
                     f"realized {realized:.2f} m")
+            # Non-blocking (Issue #38): the corridor is walkable with every door closed — this
+            # only discloses that an open leaf would narrow it below what was requested.
+            rep.notes.extend(door_clearance.corridor_obstruction_notes(
+                fixture, [*interior_doors, entrance_door], corridor, realized))
 
     # C15 — requested room relationships, measured on the REALIZED geometry.
     #
