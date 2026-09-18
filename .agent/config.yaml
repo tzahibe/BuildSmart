@@ -20,7 +20,7 @@ github:
   executable_author_associations: [OWNER, MEMBER, COLLABORATOR]
   merge_method: squash              # squash | merge
   delete_branch_after_merge: true
-  ci_wait_seconds: 5400             # give up waiting for checks after 90 min -> INFRA_FAILURE
+  ci_wait_seconds: 9000             # give up waiting for checks after 150 min -> INFRA_FAILURE (gate-4 may take ~110 min cold)
   ci_poll_interval_seconds: 60
   # Deterministic CI: the aggregate GitHub Actions check (agent-ci.yml's last job). It fails when
   # any gate failed and passes when gate-4 was legitimately skipped for a non-regression PR.
