@@ -458,6 +458,34 @@ def cmd_resume_pr(config: Config, args) -> int:
     return 0
 
 
+def cmd_repair(config: Config, args) -> int:
+    """Team Lead decision (§13): send a BLOCKED PR back to its worker for a targeted repair. The repair
+    prompt carries the class, the summary and the evidence; the worker resumes in the Issue's worktree
+    with the LIVE contract (amend the Issue first when the fix needs a new constraint)."""
+    from agent_team.orchestrator import _save_evidence_note
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None or not rec.pr_number:
+        print("not tracked or no PR")
+        return 1
+    if rec.state != sm.BLOCKED:
+        print(f"#{args.number} is {rec.state}; repair is ordered from BLOCKED (use `block` first)")
+        return 1
+    evidence = Path(args.evidence_file).read_text(encoding="utf-8") if args.evidence_file else args.summary
+    _save_evidence_note(config, args.number, f"TEAM LEAD REPAIR ORDER ({args.failure_class}):\n\n{evidence}")
+    store.transition(args.number, sm.FIX_REQUIRED, allowed_from=(sm.BLOCKED,), failure_class=args.failure_class,
+                     last_error=args.summary[:1000], note="repair ordered by lead")
+    store.record_event(args.number, "repair_ordered_by_lead", {"class": args.failure_class, "summary": args.summary[:500]})
+    try:
+        gh = _github(config)
+        gh.set_state_label(args.number, sm.FIX_REQUIRED)
+        gh.comment(args.number, f"**[agent-team]** Team Lead sent PR #{rec.pr_number} back for repair (`{args.failure_class}`): {args.summary}")
+    except SystemExit:
+        pass
+    print(f"#{args.number} -> FIX_REQUIRED ({args.failure_class}); a repair worker starts on the next tick")
+    return 0
+
+
 def cmd_block(config: Config, args) -> int:
     store = StateStore(config.state_db_path)
     rec = store.get(args.number)
@@ -853,6 +881,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--rereview", action="store_true"); s.add_argument("--reason")
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
+    s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
+    s.add_argument("--summary", required=True); s.add_argument("--evidence-file"); s.set_defaults(fn=cmd_repair)
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)

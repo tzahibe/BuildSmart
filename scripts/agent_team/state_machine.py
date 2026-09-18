@@ -40,7 +40,7 @@ TRANSITIONS: dict[str, tuple[str, ...]] = {
     # moved (readiness invalidated); FIX_REQUIRED on an owner change request; BLOCKED on a reject.
     READY_FOR_OWNER: (MERGED, CI, FIX_REQUIRED, BLOCKED),
     MERGED: (DONE, BLOCKED),
-    BLOCKED: (QUEUED, PR_OPEN, DONE),                   # lead decisions: requeue / resume PR / close
+    BLOCKED: (QUEUED, PR_OPEN, FIX_REQUIRED, DONE),     # lead decisions: requeue / resume PR / send back for repair / close
     DONE: (),
 }
 

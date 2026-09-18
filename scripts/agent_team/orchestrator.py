@@ -916,7 +916,10 @@ class Orchestrator:
         adm = self.resources.can_start_worker(rec.resource_class, snap)
         if not adm.ok:
             return f"repair waiting: {adm.reason}"
-        reqs = effective_locks(self._contract(rec), self.config)
+        live = self.refresh_contract(self.store, rec)      # the Team Lead may have amended the contract
+        if live is None:
+            return "FIX_REQUIRED -> BLOCKED (live contract invalid)"
+        reqs = effective_locks(live, self.config)
         if not any(l.issue_id == rec.issue_id for l in self.store.locks_held()):
             lock_decision = self.locks.acquire(rec.issue_id, reqs)
             if not lock_decision.ok:
