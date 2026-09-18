@@ -40,7 +40,8 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   2026-09-18 (owner governance message): ROOT/child authorization model (`### Authorization`,
   `agent:child`, `agent:decomposed`, `agent:hold`), root-aware scheduler (work stealing, locks
   released at READY, READY never blocks unrelated work), graceful drain on SIGTERM, Team Lead
-  status view; 18 governance tests (`tests/test_governance_parallel.py`).
+  status view; 18 governance tests (`tests/test_governance_parallel.py`). #17 → PR #23 READY_FOR_OWNER
+  (CI/regression/review green at `d7c79a3`, owner merges); #18 waits for it.
 
 - `integration/laundry-into-main` — landed: fast-forwarded onto `main` at `6499604`. No longer
   active work; kept for history. See the Laundry Wiki page.

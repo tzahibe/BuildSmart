@@ -507,6 +507,21 @@ to "fix" a correct commit hash). No admin bypass occurred (`merge_gate_audit` by
 every merge). The merges of that day were made by the orchestrator under the then-current policy;
 since the governance change the orchestrator never merges (see Merge policy).
 
+## First ROOT Issue under the new governance: #17 (2026-09-18)
+
+PR #23 (`d7c79a3`) reached READY_FOR_OWNER at 08:2x after 3 worker runs, 1 lead-ordered repair
+and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on PR #16:
+- workers cannot wait in headless mode (prompt rule); a run that ends without the report costs
+  an attempt — `requeue --reset-attempts` restores the budget;
+- wall-clock budgets are not CI evidence: `backend/tests/wallclock.py` + `WALLCLOCK_BUDGETS=off`
+  in gate-2 (functional assertions keep running; budgets enforced locally);
+- gate-4 costs two corpus passes (~23 min each on the runner): 120-min job budget, the merge-base
+  snapshot cache is saved right after it is computed, the orchestrator waits up to 150 min;
+  regression-tier tests must consume `CORPUS_SNAPSHOT` instead of replaying the corpus;
+- the classifier called a timing failure IMPLEMENTATION_FAILURE: the lead pauses, blocks, fixes
+  the infra and `resume-pr`s; a wrong-scope finding is sent back with `agentctl repair`;
+- restarting the orchestrator mid-run killed two attempts before the drain existed.
+
 ## Last verified against git
 
 `7814dc1` (main) + branch `infra/telegram-control-plane` (PR #16) for the governance/Telegram sections.
