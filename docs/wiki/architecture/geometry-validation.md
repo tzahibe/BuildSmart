@@ -29,6 +29,9 @@ superseding an earlier declared-interface architecture.
 - `app/vertical_slice/quality_metrics.py` (M1–M6, Issue #17), `app/demo/contract.py`'s
   `QualityOut.metrics`, `tests/regression_corpus/{quality_baseline.json,test_quality_baseline.py,
   freeze_quality_baseline.py}` — see the dedicated section below.
+- `app/vertical_slice/validation.py`'s `check_realized_dimensions` (C27, Issue #34),
+  `app/demo/contract.py`'s `RoomOut`/`InconsistentGeometryError`/`to_demo_design` — see the
+  dedicated section below.
 
 ## Current constraints/invariants
 
@@ -162,6 +165,55 @@ already at reference level — NOT gaps. Three real gaps, ranked:
 3. **Public rooms come out as strips**: KITCHEN median aspect 2.75, DINING 2.35, vs reference
    kitchens as an L-counter inside one open volume, not a room with its own shape (M1, public
    rooms).
+
+## Realized dimensions: gross vs net, and C27 (Issue #34)
+
+Every width/depth/area shown to a person derives from ONE realized geometry, with each
+user-facing number's definition documented here rather than left to be inferred from a field name:
+
+- **`gross_rect`** (`x`, `y`, `gross_width_m`, `gross_depth_m` on `app.demo.contract.RoomOut`):
+  the room's CENTERLINE allocation — `app.vertical_slice.design_output.RoomOut.rect_m` — plot-
+  absolute, extending to the centerline of every bounding wall. This is what the drawing draws:
+  wall segments (`_wall_segments` in `contract.py`) are derived from this same rectangle, so a
+  room's drawn box and its walls can never disagree.
+- **`net_rect`** (`width_m`, `depth_m` on `RoomOut`): the USABLE rectangle — `gross_rect` minus
+  each side's own wall INSET, where the inset is half that side's wall thickness (the room's own
+  share of a shared wall; `geometry_core.engine.net_rect_m`, `geometry_core.model.inset_u`). A
+  0.30 m exterior wall costs the room 0.15 m off that side; a shared 0.10 m partition costs each
+  neighbour 0.05 m.
+- **`net_area_m2`** (`area_m2` on `RoomOut`): `net_width × net_depth`, exactly — never a
+  separately-tracked number, so it can never drift from the net rectangle it describes.
+- **`gross_area_m2`** (on `RoomOut` and on `DemoDesign`): `gross_width × gross_depth` per room;
+  at the building level, `fixture.footprint_area_m2()` — equal to the SUM of every room's own
+  `gross_area_m2`, because centerline allocation is an exact tiling of the footprint (no double-
+  counted or missing wall area).
+- **Wall treatment**: a wall's full thickness is drawn once (as a segment at the shared
+  centerline); each of the two rooms it separates loses only ITS HALF from `net_rect` — so
+  `net_area_m2` is genuinely "what this room can put furniture in," not the room's share of the
+  wall counted twice or not at all.
+
+**Before Issue #34**: `RoomOut.width_m`/`depth_m` were the GROSS dimensions while `area_m2` was
+`net_area_m2` — so `width_m × depth_m` did not equal `area_m2` on virtually every room (the
+displayed rectangle was bigger than the displayed area it was labelled with). Fixed by making
+`width_m`/`depth_m` the NET pair `area_m2` was already reporting, and adding `gross_width_m`/
+`gross_depth_m`/`gross_area_m2` so the drawing (which must stay aligned with the wall segments,
+themselves derived from the gross rect) keeps its own consistent numbers alongside.
+
+**C27** ("displayed dimensions consistent with realized geometry",
+`app.vertical_slice.validation.check_realized_dimensions`) checks, on the final `RoomOut` list a
+product path is about to show: `|net_width_m × net_depth_m − net_area_m2| ≤ 0.05 m²` and
+`|gross_width_m × gross_depth_m − gross_area_m2| ≤ 0.05 m²` per room, the net rectangle never
+exceeds its own declared gross rectangle, and the building's `gross_area_m2` equals the sum of
+every room's `gross_area_m2` within the same tolerance. It runs inside
+`app.demo.contract.to_demo_design` — the one place the authoritative payload is assembled — and
+raises `InconsistentGeometryError` there, which `app.demo.service` turns into a
+`DemoGenerationError("INCONSISTENT_GEOMETRY", ...)`: the product refuses rather than shows a
+self-contradictory plan. C27 duck-types its input (no import of `contract.RoomOut` into the
+validation layer) so it can run on demo contract objects without a layering cycle. On a real
+solved design this check passes by construction — `net_rect_m` computes net width/height/area
+together — so it costs no regression risk and exists specifically to catch a FUTURE seam between
+the solver and this contract (or, in a test, a deliberately tampered fixture) before it reaches a
+person.
 
 ## Known follow-ups
 

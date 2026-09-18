@@ -57,6 +57,7 @@ from .contract import (
     DemoBuilding,
     DemoDesign,
     DemoPlanSet,
+    InconsistentGeometryError,
     OutlineOut,
     OutlineTried,
     SearchSummary,
@@ -797,10 +798,20 @@ def _result_from(project: Project, spec, selection: PlanSelection,
         notes = [n for n in (capacity_note(spec, plan.design.gross_area_m2),) if n]
         if item is selection.primary and offered is not None and person is not None:
             notes.append(outline_note(person, offered))
-        return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
-                              corridor=spec.program.corridor, relationships=plan.relationships,
-                              outline=orr.outline.as_out(), family=plan.family_signature,
-                              notes=notes or None)
+        try:
+            return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
+                                  corridor=spec.program.corridor, relationships=plan.relationships,
+                                  outline=orr.outline.as_out(), family=plan.family_signature,
+                                  notes=notes or None)
+        except InconsistentGeometryError as error:
+            # C27 failing here is never a real solved design's fault (see its own docstring) — a
+            # bug between the solver and this contract, so the product refuses rather than shows a
+            # plan whose own numbers disagree with each other.
+            raise DemoGenerationError(
+                "INCONSISTENT_GEOMETRY",
+                "התוכנית שנוצרה מכילה מידות שאינן תואמות את השטח המחושב עבורה, ולכן לא הוצגה.",
+                error.detail,
+            ) from error
 
     primary = design_of(selection.primary)
     _, primary_plan = selection.primary
