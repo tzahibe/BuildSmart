@@ -31,7 +31,7 @@ from dataclasses import dataclass
 
 from .exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from .geometry_adapter import envelope_sides
-from .geometry_core.model import Fixture, Rect, Side, m_to_u, u_to_m
+from .geometry_core.model import Fixture, ProgramRole, Rect, Side, m_to_u, u_to_m
 
 #: Roles whose window policy is REQUIRED — validation's C8 gates on exactly this set.
 DAYLIGHT_ROLES = frozenset(
@@ -42,6 +42,15 @@ DAYLIGHT_ROLES = frozenset(
 WINDOW_WALL_FRACTION = 0.4
 WINDOW_MIN_WIDTH_M = 0.9
 WINDOW_MAX_WIDTH_M = 2.0
+
+#: LAUNDRY (Issue #21) is REQUIRED-tier like a habitable room — C8 gates on it — but its window is
+#: sized like a service room's, not a living room's: a 0.6 m minimum (the brief's "service-window
+#: minimum width"), same PLACEHOLDER disclosure as the constants above. Narrower than
+#: `WINDOW_MIN_WIDTH_M` (0.9 m, habitable rooms) and wider than `WET_ROOM_WINDOW_MIN_WIDTH_M`
+#: (0.5 m, PREFERRED-tier wet rooms) — a laundry window is expected to open, not just admit light.
+LAUNDRY_WINDOW_WALL_FRACTION = 0.25
+LAUNDRY_WINDOW_MIN_WIDTH_M = 0.6
+LAUNDRY_WINDOW_MAX_WIDTH_M = 1.2
 
 #: Roles whose window policy is PREFERRED — attempted best-effort, never required, never gating
 #: C8 (`validation.py`). See module docstring.
@@ -106,7 +115,10 @@ def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect,
     windows: list[Window] = []
     for zone in fixture.zones:
         roles = set(zone.roles)
-        if roles & DAYLIGHT_ROLES:
+        if ProgramRole.LAUNDRY in roles:
+            min_m, max_m, fraction = (LAUNDRY_WINDOW_MIN_WIDTH_M, LAUNDRY_WINDOW_MAX_WIDTH_M,
+                                       LAUNDRY_WINDOW_WALL_FRACTION)
+        elif roles & DAYLIGHT_ROLES:
             min_m, max_m, fraction = WINDOW_MIN_WIDTH_M, WINDOW_MAX_WIDTH_M, WINDOW_WALL_FRACTION
         elif roles & WET_ROOM_PREFERRED_ROLES:
             min_m, max_m, fraction = (WET_ROOM_WINDOW_MIN_WIDTH_M, WET_ROOM_WINDOW_MAX_WIDTH_M,

@@ -41,7 +41,7 @@ from app.vertical_slice.relationships import describe
 from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import l_massing_guard
 from app.vertical_slice.hub_guard import proportions_of
-from app.vertical_slice.spec import HouseConcept, PublicOpenSide, RelationStrength
+from app.vertical_slice.spec import HouseConcept, LaundryDemand, PublicOpenSide, RelationStrength
 from app.vertical_slice.general_pipeline import (
     ALTERNATIVE_PLAN_LIMIT,
     GeneralSliceResult,
@@ -78,6 +78,7 @@ _FEASIBILITY_CODES = frozenset({
     "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
+    "LAUNDRY_UNPLACEABLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
     "SITE_GEOMETRY_REQUIRED",
@@ -866,6 +867,53 @@ def _plan(spec, project: Project, on_stage=None, *,
     )
 
 
+#: The three validation checks that can name the LAUNDRY room's own guarantee — exterior wall
+#: (C19), window (C8), machine bay (C3, where a too-narrow short side shows up). Issue #21,
+#: AC-3: `LAUNDRY_UNPLACEABLE` fires only when every outline this brief tried failed for one of
+#: these reasons, naming the LAUNDRY zone specifically — never when an unrelated room or the
+#: footprint itself was in the mix, so the refusal never blames laundry for someone else's defect.
+_LAUNDRY_REQUIREMENT_CHECKS = ("C19", "C8", "C3")
+
+_LAUNDRY_ZONE_ID = "LAUNDRY"
+
+
+def _laundry_failed_requirement(check_id: str) -> str:
+    if check_id == "C19":
+        return "קיר חיצוני (החדר תוכנן ללא גישה לקיר חיצוני)"
+    if check_id == "C8":
+        return "חלון (הקיר החיצוני הפנוי קצר מדי לחלון שירות של 0.6 מ׳)"
+    return "מרחב למכונת הכביסה (0.6 מ׳ מכונה + 0.6 מ׳ מייבש אופציונלי + 0.5 מ׳ מעבר = 1.7 מ׳)"
+
+
+def _laundry_unplaceable_message(spec, outlines: list["OutlineResult"] | None) -> str | None:
+    """None unless EVERY outline this brief tried failed for a reason that names the LAUNDRY
+    room's own exterior-wall/window/bay guarantee specifically (see `_LAUNDRY_REQUIREMENT_CHECKS`).
+    A brief with no explicit laundry-room request never reaches here."""
+    if spec.program.laundry.demand is not LaundryDemand.ROOM or not outlines:
+        return None
+    failed: set[str] = set()
+    for outline in outlines:
+        r = outline.result
+        if r.validation is not None:
+            failing = r.validation.failures()
+            if not failing or any(c.check_id not in _LAUNDRY_REQUIREMENT_CHECKS
+                                  or _LAUNDRY_ZONE_ID not in c.detail for c in failing):
+                return None
+            failed.update(_laundry_failed_requirement(c.check_id) for c in failing)
+        else:
+            reasons = r.metrics.rejection_reasons or r.notes
+            if not reasons or any(_LAUNDRY_ZONE_ID not in reason for reason in reasons):
+                return None
+            failed.add(_laundry_failed_requirement("C3"))
+    if not failed:
+        return None
+    return (
+        "לא הצלחנו למקם את חדר הכביסה כחדר סגור עם דלת, מרחב מתאים למכונת כביסה וחלון בקיר "
+        f"חיצוני — הדרישה שלא התקיימה: {'; '.join(sorted(failed))}. "
+        "אפשר להגדיל את שטח הבנייה, לשנות את המתאר שנבחר, או לוותר על חדר כביסה נפרד — "
+        "לא נציג תוכנית עם חדר כביסה חסר חלון או צר מדי למכונה.")
+
+
 def _finish(project: Project, spec, result, preference_dropped: bool,
             outlines: list[OutlineResult] | None = None) -> DemoResult:
     """The refusal path: every outline was planned and none produced a validated plan. `result`
@@ -924,6 +972,14 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                 f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
                 reasons, diagnostics=_diagnostics(result, spec, outlines))
 
+        # Issue #21, AC-3: the LAUNDRY room's own guarantee (exterior wall / window / bay) is a
+        # more specific, more actionable diagnosis than the generic message below — fires only
+        # when it genuinely was the ONLY thing every outline failed on.
+        laundry_message = _laundry_unplaceable_message(spec, outlines)
+        if laundry_message is not None:
+            raise DemoGenerationError("LAUNDRY_UNPLACEABLE", laundry_message, reasons,
+                                      diagnostics=_diagnostics(result, spec, outlines))
+
         # No "try X×Y instead": every feasible outline of this area has already been planned
         # (feature 006), so a shape that worked would be a plan on the screen, not a hint.
         raise DemoGenerationError(
@@ -965,6 +1021,12 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                 f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
                 f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
                 failures, diagnostics=_diagnostics(result, spec, outlines))
+
+        laundry_message = _laundry_unplaceable_message(spec, outlines)
+        if laundry_message is not None:
+            raise DemoGenerationError("LAUNDRY_UNPLACEABLE", laundry_message, failures,
+                                      diagnostics=_diagnostics(result, spec, outlines))
+
         raise DemoGenerationError(
             "PLAN_FAILED_VALIDATION",
             "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",

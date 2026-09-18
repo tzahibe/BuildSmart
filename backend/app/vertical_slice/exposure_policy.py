@@ -20,8 +20,11 @@ neither is attempted.
 Owner's decision (recorded in the Issue #19 contract): REQUIRED/REQUIRED for LIVING, DINING,
 KITCHEN, BEDROOM, MASTER_BEDROOM, SAFE_ROOM, FAMILY_ROOM, STUDY; PREFERRED/PREFERRED for
 BATHROOM, TOILET, DRESSING_ROOM; NONE for HALL, CIRCULATION, STORAGE, ENTRANCE, STAIRWELL, FLEX.
-LAUNDRY is deliberately NONE here too — its own Issue owns that decision; NONE preserves today's
-behaviour (LAUNDRY is skipped by `generate_windows` entirely) until it does.
+LAUNDRY was NONE at that Issue's own scope — its Issue (#21) now sets it to REQUIRED/REQUIRED: a
+laundry room the person explicitly asked for must be an enclosed room with a real exterior wall
+and a window, not a windowless utility box, same as any other habitable room. `generate_windows`
+sizes LAUNDRY's window narrower than a habitable room's (`LAUNDRY_WINDOW_MIN_WIDTH_M`, 0.6 m) —
+still REQUIRED-tier, so C8 still gates on it, just at the smaller service-window size.
 """
 from __future__ import annotations
 
@@ -62,8 +65,10 @@ EXPOSURE_POLICY: dict[ProgramRole, ExposurePolicy] = {
     ProgramRole.SAFE_ROOM: _REQUIRED,
     ProgramRole.BATHROOM: _PREFERRED,
     ProgramRole.TOILET: _PREFERRED,
-    #: Set by the Laundry Issue, not this one — NONE keeps today's behaviour (skipped entirely).
-    ProgramRole.LAUNDRY: _NONE,
+    #: Issue #21: an explicitly requested laundry room is guaranteed an exterior wall and a window
+    #: (a smaller, service-sized one — see `windows.py::LAUNDRY_WINDOW_MIN_WIDTH_M`), gated closed
+    #: by C19/C8 like any other REQUIRED role.
+    ProgramRole.LAUNDRY: _REQUIRED,
     ProgramRole.STORAGE: _NONE,
     ProgramRole.CIRCULATION: _NONE,
     ProgramRole.STAIRWELL: _NONE,

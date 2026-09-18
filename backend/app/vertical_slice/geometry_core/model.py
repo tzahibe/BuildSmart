@@ -251,7 +251,10 @@ MIN_FURNITURE_ENVELOPE_M: dict[ProgramRole, tuple[float, float]] = {
     # A hanging rail 0.6 deep plus a 0.9 passage to stand in front of it. Same envelope as a study
     # by coincidence of dimensions, not because the rooms are alike.
     ProgramRole.DRESSING_ROOM: (1.2, 1.5),
-    # One 0.6 appliance plus the 0.9 needed to stand and open its door.
+    # Issue #21: a WASHING_MACHINE footprint, 0.6 m wide, against a wall with 0.9 m clearance in
+    # front to load/unload it — the C9 feasibility screen this envelope backs. Always satisfied by
+    # construction once `ROOM_TEMPLATES[LAUNDRY].min_short_side_m` is 1.7 m (both net sides of a
+    # template-conforming room are then >= 1.7 m, comfortably inscribing this 1.5 m envelope side).
     ProgramRole.LAUNDRY: (0.6, 1.5),
     # Shelving plus reach. The smallest envelope in the table, as a store should be.
     ProgramRole.STORAGE: (0.9, 0.9),

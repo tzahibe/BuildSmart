@@ -316,7 +316,10 @@ def test_vocabulary_is_additive():
         R.FAMILY_ROOM: RoomTemplate(12.0, 16.0, 30.0, 2.8, 2.5, elasticity=1.2),
         R.STUDY: RoomTemplate(6.0, 8.5, 14.0, 2.1, 2.5, elasticity=0.5),
         R.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),
-        R.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.5, 3.0, elasticity=0.10),
+        # min_short_side_m 1.7 (Issue #21): 0.6 m washing machine + 0.6 m optional dryer beside it
+        # + 0.5 m circulation — the machine bay, not the furniture-passage reasoning other
+        # service-tier rooms' short sides use.
+        R.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.7, 3.0, elasticity=0.10),
         R.STORAGE: RoomTemplate(1.5, 3.0, 6.0, 1.0, 4.0, elasticity=0.05),
         R.STAIRWELL: RoomTemplate(4.0, 6.0, 12.0, 1.1, 4.0, elasticity=0.0),
         R.HALL: RoomTemplate(5.0, 11.0, 30.0, 1.2, 8.0, elasticity=0.1),

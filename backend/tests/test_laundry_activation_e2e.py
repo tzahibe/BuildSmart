@@ -20,6 +20,13 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+from app.demo.service import (
+    DemoGenerationError,
+    Outline,
+    OutlineResult,
+    _finish,
+    _laundry_unplaceable_message,
+)
 from app.main import app
 from app.projects.models import PoolField, SourceTag, TaggedBool, TaggedFloat, TaggedInt
 from app.projects.repository import JsonFileProjectRepository
@@ -27,7 +34,11 @@ from app.projects.routes import base_routes as project_base_routes
 from app.requirements import router as requirements_router
 from app.requirements.parser import LaundryRoomDemand, RequirementExtraction, RequirementParser
 from app.vertical_slice.concept_generator import build_room_program
+from app.vertical_slice.general_pipeline import GeneralSliceResult, RunMetrics
 from app.vertical_slice.geometry_core.model import ProgramRole
+from app.vertical_slice.safe_adapter import AdapterOutcome as _AdapterOutcome
+from app.vertical_slice.spec import PlotSpec as _PlotSpec
+from app.vertical_slice.validation import Check, ValidationReport
 
 REQ = SourceTag.requested
 INF = SourceTag.inferred
@@ -174,6 +185,36 @@ def test_generated_plan_contains_the_laundry_room_when_feasible(client):
     assert len(laundry_rooms) == 1
 
 
+def test_delivered_laundry_room_has_a_door_a_window_and_a_machine_bay(client):
+    """Issue #21, AC-4: a laundry brief that plans delivers a LAUNDRY room with a door, a window
+    (the API's `no_window_reason is None` + `window_side` set is exactly the condition
+    `windows.py::generate_windows` sets `ventilation_status = EXTERIOR_WINDOW` under — see
+    `windows.py`), a short side >= 1.7 m, and a placed washing-machine footprint (C9, in
+    `plan.validation.checks`, passing by construction once the short side floor is 1.7 m — see
+    `test_laundry_room.py::test_a_room_at_the_template_floor_always_inscribes_the_washing_machine_
+    footprint`)."""
+    _, _, _, design = _run(client, BRIEF_LAUNDRY_GENEROUS, width=12.5, depth=14.5)
+    assert design.status_code == 200, design.text
+    body = design.json()
+    checks = body["plan"]["validation"]["checks"]
+    for check_id in ("C19", "C8", "C3", "C9", "C24"):
+        assert checks[check_id] is True, (check_id, body["plan"]["validation"])
+
+    laundry_rooms = _rooms_of_type(body, "LAUNDRY")
+    assert len(laundry_rooms) == 1
+    room = laundry_rooms[0]
+    assert min(room["width_m"], room["depth_m"]) >= 1.7 - 1e-6, room
+
+    doors = [d for d in body["plan"]["doors"] if room["id"] in (d["a"], d["b"])]
+    assert len(doors) == 1, doors
+    assert doors[0]["width_m"] == 0.8, doors[0]  # SERVICE_DOOR (access_rules.DOOR_WIDTH_M)
+
+    exposure = next(e for e in body["plan"]["quality"]["exposure"] if e["room_id"] == room["id"])
+    assert exposure["no_window_reason"] is None, exposure
+    assert exposure["window_side"] is not None
+    assert exposure["window_width_m"] >= 0.6 - 1e-6
+
+
 def test_laundry_notice_stays_silent_on_a_generous_brief(client):
     """§2, point 5 (silent half): plenty of area — no room genuinely squeezed, no notice."""
     _, _, _, design = _run(client, BRIEF_LAUNDRY_GENEROUS, width=12.5, depth=14.5)
@@ -223,3 +264,119 @@ def test_no_laundry_request_plans_with_no_laundry_room(client):
     body = design.json()
     assert len(_rooms_of_type(body, "LAUNDRY")) == 0
     assert body["plan"]["quality"]["laundry_notice"] is None
+
+
+# ------------------------------------------------------------------ LAUNDRY_UNPLACEABLE (Issue #21, AC-3)
+#
+# The real search (`app.vertical_slice.general_pipeline.run_general`) already places LAUNDRY on an
+# exterior wall on every footprint this suite could construct — the exterior-preference ordering
+# `_daylight_order` gained for free once LAUNDRY joined `DAYLIGHT_ROLES` (Issue #21, requirement 1)
+# is resilient across the partis this codebase's search tries. So the tests below prove the
+# REFUSAL's own logic directly, against the real production types
+# (`ValidationReport`/`GeneralSliceResult`/`OutlineResult`) the pipeline actually produces, the same
+# way `test_exposure_policy.py`'s fixture-based C19/C8 proofs stand in for a full corpus repro.
+
+def _laundry_spec():
+    from app.vertical_slice.spec import ArchitecturalSpec, LaundryDemand, LaundryRequirement, ProgramSpec
+
+    return ArchitecturalSpec(
+        plot=_PlotSpec(10.0, 12.0),
+        program=ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=True,
+                            laundry=LaundryRequirement(demand=LaundryDemand.ROOM,
+                                                       source_text="חדר כביסה")))
+
+
+def _outline_result(validation: ValidationReport | None, *,
+                    outcome=_AdapterOutcome.SOLVED, rejection_reasons: tuple[str, ...] = (),
+                    design=object()) -> OutlineResult:
+    result = GeneralSliceResult(
+        outcome=outcome, adapter=None, design=design if validation is not None else None,
+        validation=validation, safety=None,
+        metrics=RunMetrics(rejection_reasons=rejection_reasons))
+    return OutlineResult(outline=Outline(10.0, 12.0, "PERSON", 0), result=result, plans=(),
+                         latency_ms=0.0)
+
+
+def test_laundry_unplaceable_message_names_the_exterior_wall_requirement():
+    outlines = [_outline_result(ValidationReport(checks=[
+        Check("C19", "required rooms touch an exterior wall", False,
+             "LAUNDRY has no exterior wall (interior room)"),
+    ]))]
+    message = _laundry_unplaceable_message(_laundry_spec(), outlines)
+    assert message is not None
+    assert "קיר חיצוני" in message
+
+
+def test_laundry_unplaceable_message_names_the_bay_requirement():
+    outlines = [_outline_result(ValidationReport(checks=[
+        Check("C3", "room areas and dimensions valid", False,
+             "LAUNDRY short side 1.40 < 1.7"),
+    ]))]
+    message = _laundry_unplaceable_message(_laundry_spec(), outlines)
+    assert message is not None
+    assert "מכונת הכביסה" in message
+
+
+def test_laundry_unplaceable_message_none_when_the_pre_solve_rejection_names_laundry():
+    """C19/C8/C3 need a solved candidate; a footprint too narrow for the LAUNDRY room's own shape
+    band never reaches the solver at all (`room_depth_band_m` returns None pre-solve) — the
+    generator's own rejection reason for that failure names the zone the same way."""
+    outlines = [_outline_result(
+        None, outcome=_AdapterOutcome.INSUFFICIENT_RECTANGULAR_CAPACITY,
+        rejection_reasons=("SPINE_PUBLIC_PRIVATE/ROOM_SHAPE_INFEASIBLE: LAUNDRY at 1.40 m wide "
+                           "has no depth that keeps its 3.0 aspect ratio and 1.7 m short side "
+                           "under its 8 m2 preferred maximum",))]
+    message = _laundry_unplaceable_message(_laundry_spec(), outlines)
+    assert message is not None
+    assert "מכונת הכביסה" in message
+
+
+def test_laundry_unplaceable_message_is_none_when_another_room_is_also_the_problem():
+    """Never fires when the failure is not laundry-specific — an unrelated room's own defect
+    alongside LAUNDRY's must not be attributed to the laundry room."""
+    outlines = [_outline_result(ValidationReport(checks=[
+        Check("C19", "required rooms touch an exterior wall", False,
+             "LAUNDRY has no exterior wall (interior room)"),
+        Check("C8", "daylight/window exposure present where required", False, "BEDROOM_1"),
+    ]))]
+    assert _laundry_unplaceable_message(_laundry_spec(), outlines) is None
+
+
+def test_laundry_unplaceable_message_is_none_when_only_some_outlines_blame_laundry():
+    """Never fires unless EVERY outline this brief tried failed for a laundry-specific reason —
+    one outline that failed for an unrelated cause means the refusal is not really about laundry."""
+    laundry_only = _outline_result(ValidationReport(checks=[
+        Check("C19", "required rooms touch an exterior wall", False,
+             "LAUNDRY has no exterior wall (interior room)"),
+    ]))
+    other_reason = _outline_result(ValidationReport(checks=[
+        Check("C14", "corridor width", False, "corridor too narrow"),
+    ]))
+    assert _laundry_unplaceable_message(_laundry_spec(), [laundry_only, other_reason]) is None
+
+
+def test_laundry_unplaceable_message_is_none_without_a_laundry_request():
+    from app.vertical_slice.spec import ArchitecturalSpec, ProgramSpec
+
+    program = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, open_plan_living=True)
+    spec = ArchitecturalSpec(plot=_PlotSpec(10.0, 12.0), program=program)
+    outlines = [_outline_result(ValidationReport(checks=[
+        Check("C19", "required rooms touch an exterior wall", False,
+             "LAUNDRY has no exterior wall (interior room)"),
+    ]))]
+    assert _laundry_unplaceable_message(spec, outlines) is None
+
+
+def test_finish_raises_laundry_unplaceable_for_a_laundry_only_c19_failure():
+    """AC-3, the wiring: `_finish` — the real refusal path `generate_demo_design` calls — raises
+    `LAUNDRY_UNPLACEABLE` (not the generic `PLAN_FAILED_VALIDATION`) when the plan's only failing
+    check is the LAUNDRY room's own exterior-wall requirement."""
+    spec = _laundry_spec()
+    outline = _outline_result(ValidationReport(checks=[
+        Check("C19", "required rooms touch an exterior wall", False,
+             "LAUNDRY has no exterior wall (interior room)"),
+    ]))
+    with pytest.raises(DemoGenerationError) as excinfo:
+        _finish(None, spec, outline.result, False, outlines=[outline])
+    assert excinfo.value.code == "LAUNDRY_UNPLACEABLE"
+    assert "קיר חיצוני" in excinfo.value.message
