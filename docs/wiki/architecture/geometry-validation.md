@@ -82,6 +82,56 @@ never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future plann
   every existing corpus context and canonical fixture without changing any of them; it exists to
   catch a FUTURE planner path that would otherwise silently emit a disallowed edge.
 
+## Entrance / arrival-room policy (C23)
+
+Issue #20 (2026-09-18). The front door has to open into a room a visitor may actually arrive
+in — a hall, a circulation zone, or the living room — never a kitchen, a dining room, a private
+room (bedroom, master bedroom, safe room, study, dressing room) or a wet/service room. Before this
+Issue, `resolve_entrance`'s priority order also included DINING and KITCHEN, so a plan whose only
+street-fronting public room was the dining room got its front door there — geometrically correct
+(C16 passed: the door genuinely sat on that room's own wall) but architecturally a random room,
+not an entrance.
+
+- **`doors.py::ENTRANCE_ZONE_PRIORITY`** is now exactly `(HALL, CIRCULATION, LIVING)` —
+  `ALLOWED_ENTRANCE_ROLES` is the same set. `resolve_entrance` is unchanged in mechanism (it still
+  reads the realized geometry: the street-fronting zone with the best rank in this tuple) but
+  returns `None` whenever nothing in the narrower tuple fronts the street with enough frontage for
+  a door — including a plan whose only street-fronting rooms are DINING/KITCHEN, which used to
+  resolve. `doors.py::street_fronting_roles` reports what WAS there (allowed or not), so a refusal
+  can name it.
+- **Candidate ranking** (`general_pipeline.run_general`'s main loop, the non-relationships path):
+  among candidates that realize and validate, one whose entrance rank
+  (`general_pipeline._entrance_rank`: 0 for HALL/CIRCULATION, 1 for LIVING) is better than the
+  best found so far replaces the current choice; `fast_path` still stops the instant rank 0 is
+  reached, so a brief whose first valid candidate already has a HALL/CIRCULATION entrance costs
+  exactly what it did before this Issue. Untouched for the `relationships` path and for the
+  hub-guard/quality-twin passes that run after selection — those stay governed by full validation
+  (C23 is defense-in-depth there too) but are not entrance-rank-aware; out of scope for #20.
+- **`ENTRANCE_NO_ARRIVAL_ROOM`** (`app/demo/service.py::_finish`): the specific refusal when a
+  plan's front door has nowhere legitimate to open into. Gated on an entrance-related check
+  actually failing (C16/C23/C7/C11) AND none of the realized plan's street-fronting rooms having
+  an allowed role, so an unrelated validation failure is never misdiagnosed as an entrance
+  problem; the message names whatever WAS found fronting the street (e.g. "המטבח, פינת האוכל").
+  Listed in `_FEASIBILITY_CODES`.
+- **C23 "entrance opens into an allowed arrival room"** (`validation.py`, next to C16, under the
+  same `skip_site_checks` gate — a multi-level upper storey has no street door, so it is not held
+  to this check): fails closed whenever the entrance door's named zone carries no role in
+  `ALLOWED_ENTRANCE_ROLES`, independent of HOW that zone name was chosen. Defense in depth for
+  every path that draws a front door, including the frozen pipeline (`pipeline.py::run_once`),
+  which now calls `resolve_entrance` at its one call site instead of hardcoding `HALL_MAIN` —
+  the frozen baseline's own HALL fronts the street, so its own behaviour is unchanged.
+- **Corpus effect**: re-ranking changed a small number of corpus primaries (their entrance room,
+  and therefore their chosen candidate) with LOST=0 — every context that used to plan a kitchen-
+  or dining-entrance primary had another candidate with an allowed arrival room. See the Issue #20
+  PR for the full before/after list.
+
+**PROPOSED, not scheduled — foyer synthesis.** A context whose EVERY candidate's only
+street-fronting public room is the kitchen or dining room (none measured in the frozen corpus, but
+not provable impossible for an arbitrary brief/parcel) would refuse with `ENTRANCE_NO_ARRIVAL_ROOM`
+rather than fabricate an entrance. The fix is a small street-side foyer the planner adds within the
+existing area budget — a new zone, which is planner/generator work, not a validation or ranking
+change — deliberately left for a future Issue rather than attempted here.
+
 ## Architectural-quality metrics (M1–M6) and the corpus baseline
 
 Issue #17 (2026-09-17). Hard validation (above) enforces the structural basics — no overlap, no
@@ -191,6 +241,8 @@ alone.
   not repeat the same seat count.
 
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
+A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
+above.
 
 ## Evidence/history
 
@@ -207,3 +259,7 @@ the Access topology and door rules (C24) section above documents work landing on
 (Issue #18), verified against this session's own implementation and test runs. The M1–M6 section
 documents Issue #17, verified against that session's implementation and test runs, not
 independently re-verified beyond that.
+
+Branch `agent/20-entrance-policy-the-front-door-opens-int`, based on
+`origin/integration/holiday-yom-kippur-2026`: the Entrance / arrival-room policy (C23) section
+above documents Issue #20, verified against this session's own implementation and test runs.
