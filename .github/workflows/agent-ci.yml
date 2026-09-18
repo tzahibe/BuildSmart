@@ -76,22 +76,11 @@ jobs:
           uv pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.2.0"
           uv run --no-sync python -m compileall -q app tests spikes
           uv run --no-sync python -c "import app.main"
-          # The wall-clock budget tests (every `elapsed < 1.0` / _MAX_RUNTIME_S assertion, all
-          # calibrated on the developer's M1 Pro) are deselected here only: a shared 4-vCPU GitHub
-          # runner with 4 parallel pytest workers is not a performance reference (PR #23 measured
-          # 1.09-1.12 s against 1.0 s budgets with no change on those code paths), so their timing
-          # is not evidence of a regression. They stay enforced in the developer fast tier
-          # (.agent/config.yaml's fast_tests.backend) untouched. The four spatial_v2_1 evaluation
-          # tests also carry functional assertions; those run in the developer tier only — a
-          # CI-tolerant budget (pytest marker + env override) is a proposed INFRA follow-up.
-          uv run --no-sync pytest -q -x -p no:cacheprovider -n 4 \
-            --deselect tests/test_architectural_concepts.py::test_scenario_plans_before_geometry_and_realizes_it \
-            --deselect tests/test_spatial_v2_1_diversity.py::test_runtime_stays_under_one_second_for_evaluation_scenarios \
-            --deselect tests/test_spatial_v2_1_evaluation.py::test_square_2br \
-            --deselect tests/test_spatial_v2_1_evaluation.py::test_square_3br_safe_room \
-            --deselect tests/test_spatial_v2_1_evaluation.py::test_wide_3br_safe_room \
-            --deselect tests/test_spatial_v2_1_evaluation.py::test_zoning_pressure \
-            --deselect tests/vertical_slice/test_concept_generator.py::test_hub_bound_is_cheap
+          # Wall-clock budgets (calibrated on the developer's M1 Pro) are switched off on the shared
+          # 4-vCPU runner via WALLCLOCK_BUDGETS=off (backend/tests/wallclock.py): the timing
+          # assertions become no-ops here while every functional assertion in the same tests still
+          # runs. The budgets stay enforced in the developer fast tier (.agent/config.yaml).
+          WALLCLOCK_BUDGETS=off uv run --no-sync pytest -q -x -p no:cacheprovider -n 4
       - uses: actions/setup-node@v4
         if: steps.plan.outputs.frontend_changed == 'true'
         with:

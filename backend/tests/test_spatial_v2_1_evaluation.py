@@ -27,6 +27,7 @@ from app.geometry.spatial_v2.fingerprint import adjacency_signature, exact_geome
 from app.geometry.spatial_v2.planner import plan_v2
 from app.geometry.spatial_v2.scoring import score_layout
 from app.projects.models import PoolField, Project, SourceTag, TaggedBool, TaggedFloat, TaggedInt
+from tests import wallclock
 
 _SAMPLES_DIR = Path(__file__).parent / "spatial_v2_1_samples"
 
@@ -151,14 +152,14 @@ def test_square_2br():
     project = _project(built_area_m2=70, bedrooms=2, safe_room=False)
     report, v21, v1 = _run_scenario("square_2BR", project)
     assert report["v21_unique_relative_layouts"] > 1
-    assert report["v21_elapsed_s"] < 1.0
+    assert wallclock.within(report["v21_elapsed_s"], 1.0)
 
 
 def test_square_3br_safe_room():
     project = _project(built_area_m2=120, bedrooms=3, safe_room=True)
     report, v21, v1 = _run_scenario("square_3BR_saferoom", project)
     assert report["v21_unique_relative_layouts"] > 1
-    assert report["v21_elapsed_s"] < 1.0
+    assert wallclock.within(report["v21_elapsed_s"], 1.0)
     # Phase 5 acceptance: square/tight case must offer more than a translation-only choice.
     assert report["v21_selected_strategy"] not in ("base_pool", "translation") or report["v21_unique_relative_layouts"] > report["v2_unique_relative_layouts"]
 
@@ -169,7 +170,7 @@ def test_wide_3br_safe_room():
     wide_footprint = _reshape_footprint(base_footprint, aspect_ratio=2.0)
     report, v21, v1 = _run_scenario("wide_3BR_saferoom", project, footprint_override=wide_footprint)
     assert report["v21_unique_relative_layouts"] > 1
-    assert report["v21_elapsed_s"] < 1.0
+    assert wallclock.within(report["v21_elapsed_s"], 1.0)
     # No regression: V2.1 must not score worse than the prior V2 baseline on the case V2 already helped.
     assert report["v21_score"] >= report["v2_score"] - 1e-6
 
@@ -178,4 +179,4 @@ def test_zoning_pressure():
     project = _project(built_area_m2=150, bedrooms=4, safe_room=True)
     report, v21, v1 = _run_scenario("zoning_pressure_4BR_saferoom", project)
     assert report["v21_unique_relative_layouts"] > 1
-    assert report["v21_elapsed_s"] < 1.0
+    assert wallclock.within(report["v21_elapsed_s"], 1.0)
