@@ -571,6 +571,25 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
   the infra and `resume-pr`s; a wrong-scope finding is sent back with `agentctl repair`;
 - restarting the orchestrator mid-run killed two attempts before the drain existed.
 
+## First protected period (Yom Kippur 2026, started Fri 2026-09-18) — what changed on day one
+
+- CI: `agent-ci.yml` triggers for PRs into `integration/**` (it was `main` only, so the first three
+  worker PRs had no CI); gate-2's plan and gate-4's merge-base use the PR's base (`github.base_ref`);
+  gate 1 accepts an `integration/**` base. Fixes were cherry-picked onto the integration branch so they
+  reach `main` with the rollup.
+- Locks: released at PR open (`release_locks_at: pr_open`; repairs re-acquire first); repairs advance
+  before new claims in a tick; `agentctl locks list|release`. The P0 check-style ROOTs (#34–#38) were
+  relaxed to shared `validator-core`/`geometry-core` — every P0 Issue adds a check to `validation.py`
+  and exclusive locks serialized the wave with two idle workers; the integration branch validates each
+  combination and conflicts on registration lines resolve at base update.
+- `max_active_issues` 6 (ROOTs in CI/review starved the slots at 3); worker timeout 90 min; the
+  reviewer's `ac_assessment` is keyed by the leading `AC-n` (an APPROVE on #18 was downgraded because
+  the reviewer wrote `AC-3: text`); a decomposed ROOT tracked before its label appeared is blocked, not run.
+- Lead levers used: `agentctl repair` (targeted repairs on #24/#25 with the review findings spelled
+  out), contract amendments for engineering constraints (#24 gate-3 routing, #25 dry-run evidence as a
+  committed file), manual base merges when the integration branch gained fixes.
+- Integrated by 13:50: #18, #24, #25, #29, #30, #31, #33 (7); PR CI ~50 min each with a warm base cache.
+
 ## Last verified against git
 
 `7814dc1` (main) + branch `infra/telegram-control-plane` (PR #16) for the governance/Telegram sections.
