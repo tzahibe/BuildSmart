@@ -35,9 +35,11 @@ already settled that proximity/exposure to the public part of the house is a ran
 a law, and `LIVING` is a legitimate corridor-class-adjacent entry (specs/009 §0 decision C's own
 third-choice public access zone), so it is deliberately not in C29's hard-fail set. Everything
 short of the hard rule is quality data only: `QualityOut.wet_privacy` (`app.demo.contract`) for
-display, and `wet_privacy.candidate_privacy_key`/`better_candidate` for a caller ranking two
-otherwise-equal candidates against each other (never wired into `concept_generator.py`'s own,
-earlier-stage row-proportion quality tier above — a separate mechanism, untouched).
+display, and `wet_privacy.candidate_privacy_key` for ranking — wired into
+`app.demo.service._break_l_tie` (via `_privacy_key_of_plan`) as the last tiebreak among L-massing
+peers already tied on the person's garden/street preference and on `LQuality`'s own Pareto
+comparison. Not wired into `concept_generator.py`'s row-proportion quality tier — that stage runs
+BEFORE doors exist, so no privacy signal could be computed there at all.
 
 ## Authoritative implementation
 
@@ -69,13 +71,17 @@ earlier-stage row-proportion quality tier above — a separate mechanism, untouc
 
 ## Known follow-ups
 
-The privacy ranking signal (`wet_privacy.candidate_privacy_key`) is a standalone, tested utility
-(Issue #37) — it is not yet wired into `concept_generator.py`'s seam/row search or
-`demo/service.py`'s plan-selection pool as a live tiebreaker; doing so is future work, not part of
-this Issue's scope. `specs/009-guest-wc-placement` remains unimplemented (spec only): today every
-non-ensuite wet room is still planned in the private stack, entered only from `HALL`/`CIRCULATION`
-(C17's own invariant), so C29's `LIVING`-is-not-a-hard-fail carve-out has no real plan to apply to
-yet — it anticipates that spec's decision C rather than reacting to shipped behavior.
+The privacy ranking signal is wired into the L-massing orientation tiebreak only
+(`app.demo.service._break_l_tie`) — it does not yet reach the general pool sort in
+`_select_plans`/`_nearest_primary` (those functions are deliberately design-agnostic, tested on
+stand-ins with no `.design`; see `tests/test_demo_outline_selection.py`'s own docstring), nor
+`concept_generator.py`'s row/seam search (impossible there today — that stage runs before doors
+exist, so no door-facing signal could be computed). Extending the tiebreak's reach beyond L-massing
+peers is future work, not part of this Issue's scope. `specs/009-guest-wc-placement` remains
+unimplemented (spec only): today every non-ensuite wet room is still planned in the private stack,
+entered only from `HALL`/`CIRCULATION` (C17's own invariant), so C29's `LIVING`-is-not-a-hard-fail
+carve-out has no real plan to apply to yet — it anticipates that spec's decision C rather than
+reacting to shipped behavior.
 
 ## Evidence/history
 

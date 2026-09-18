@@ -14,7 +14,16 @@ every check in `validation.py` already holds to.
                                          the entered-from zone itself when it is not circulation,
                                          or — a real segment test on the realized rects — the zone
                                          directly across a circulation zone's width, when one
-                                         zone's door faces another's from the opposite wall
+                                         zone's door faces another's from the opposite wall. The
+                                         segment test reads each door's own SIDE and opening span
+                                         off the realized rects directly (`_side_between`,
+                                         `_opening_span_u`) rather than off `Door.orientation`'s
+                                         string or `Door.swings_into`: the rects are the geometry
+                                         those two fields were themselves derived from, so reading
+                                         them directly is the same fact with one less indirection,
+                                         never a different one. `swings_into` answers a different
+                                         question (which room's floor the leaf itself occupies when
+                                         open) that this record does not need.
     public_exposure_score               0.0 (fully private) .. 1.0 (opens straight onto a public
                                          seating/dining zone) — the tiered quality score
     circulation_obstruction             the door's own opening width against the corridor's net
@@ -36,9 +45,13 @@ public access zone for a guest WC), KITCHEN and DINING are not.
 
 Everything else computed here is read-only quality data: `QualityOut.wet_privacy`
 (`app.demo.contract`) for display, and `privacy_score`/`candidate_privacy_key` below for a caller
-that is choosing between otherwise-equal candidate plans — this module never places a room, never
-moves a door and never re-scores a row partition (`concept_generator.py`'s own quality tier is a
-separate, EARLIER-stage mechanism this module does not touch).
+that is choosing between otherwise-equal candidate plans — `app.demo.service._break_l_tie` is
+that caller today (the last tiebreak among L-massing peers already tied on the person's
+garden/street preference and on `LQuality`'s Pareto comparison, via `_privacy_key_of_plan`); this
+module never places a room, never moves a door and never re-scores a row partition
+(`concept_generator.py`'s own quality tier is a separate, EARLIER-stage mechanism — realized doors
+do not exist yet at that stage, so a privacy signal could not be computed there at all — this
+module does not touch it).
 """
 from __future__ import annotations
 
