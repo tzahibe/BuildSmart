@@ -16,6 +16,7 @@ accept the candidate, not just asserted on in a test.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterable, Protocol
 
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
@@ -117,6 +118,68 @@ class ValidationReport:
 
     def failures(self) -> list[Check]:
         return [c for c in self.checks if not c.passed]
+
+
+#: C27's tolerance — the same order of magnitude as `TOL_M2`'s siblings elsewhere in this file,
+#: loose enough to absorb the `round(..., 4)` rounding `net_rect_m` already does, tight enough that
+#: a real definitional mismatch (net dims paired with a gross area, or vice versa) always trips it.
+DIMENSION_CONSISTENCY_TOLERANCE_M2 = 0.05
+
+
+class _DisplayedRoom(Protocol):
+    """What C27 needs off a product-path room — matches `app.demo.contract.RoomOut` structurally
+    so this module never has to import the demo contract (which itself imports this module)."""
+
+    id: str
+    width_m: float
+    depth_m: float
+    area_m2: float
+    gross_width_m: float
+    gross_depth_m: float
+    gross_area_m2: float
+
+
+def check_realized_dimensions(rooms: Iterable[_DisplayedRoom], gross_area_m2: float) -> Check:
+    """C27 — displayed dimensions consistent with realized geometry.
+
+    Runs on the numbers a person actually sees (the assembled `RoomOut` list and the building's
+    own `gross_area_m2`), not the internal solver geometry — a mismatch introduced anywhere
+    between the two (the historical bug: NET area labelled onto a GROSS rectangle) is exactly what
+    this catches. Three things must hold, each within `DIMENSION_CONSISTENCY_TOLERANCE_M2`:
+
+      1. every room's own net width x depth equals its own net area;
+      2. every room's own gross width x depth equals its own gross area, and the net rectangle
+         never exceeds its own declared gross rectangle (a wall inset only ever shrinks a room);
+      3. the building's `gross_area_m2` equals the sum of every room's `gross_area_m2` — true by
+         construction for a real centerline-tiled footprint, so this is a cross-check on the
+         DISPLAYED numbers, not a re-derivation of the tiling proof itself.
+
+    On a real solved design this always passes — `net_rect_m` computes net width/height/area
+    together, so they cannot disagree unless something between the solver and the contract
+    re-derives or overwrites one of them. That is precisely the bug class this exists to catch.
+    """
+    bad: list[str] = []
+    gross_sum = 0.0
+    for room in rooms:
+        net_computed = room.width_m * room.depth_m
+        if abs(net_computed - room.area_m2) > DIMENSION_CONSISTENCY_TOLERANCE_M2:
+            bad.append(f"{room.id}: net {room.width_m:.2f}x{room.depth_m:.2f}="
+                      f"{net_computed:.2f} m2 != declared net area {room.area_m2:.2f} m2")
+        gross_computed = room.gross_width_m * room.gross_depth_m
+        if abs(gross_computed - room.gross_area_m2) > DIMENSION_CONSISTENCY_TOLERANCE_M2:
+            bad.append(f"{room.id}: gross {room.gross_width_m:.2f}x{room.gross_depth_m:.2f}="
+                      f"{gross_computed:.2f} m2 != declared gross area {room.gross_area_m2:.2f} m2")
+        if room.width_m > room.gross_width_m + 1e-6 or room.depth_m > room.gross_depth_m + 1e-6:
+            bad.append(f"{room.id}: net rect {room.width_m:.2f}x{room.depth_m:.2f} exceeds its "
+                      f"own gross rect {room.gross_width_m:.2f}x{room.gross_depth_m:.2f}")
+        gross_sum += gross_computed
+    if abs(gross_sum - gross_area_m2) > DIMENSION_CONSISTENCY_TOLERANCE_M2:
+        bad.append(f"building gross area {gross_area_m2:.2f} m2 != sum of realized room "
+                  f"rectangles {gross_sum:.2f} m2")
+    return Check("C27", "displayed dimensions consistent with realized geometry", not bad,
+                "; ".join(bad) or "every room's width x depth matches its own area (net and "
+                                  "gross), no net rect exceeds its own gross rect, and the "
+                                  "building total matches the sum of realized rooms")
 
 
 def _side_between(a: Rect, b: Rect) -> Side | None:

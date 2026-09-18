@@ -71,6 +71,11 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   stash/checkout/reset from a session.
 - **Corridor opening** (hall↔LDK) is a contract-level post-process (`app/demo/contract.py`), not
   an engine change.
+- **`INCONSISTENT_GEOMETRY`** (Issue #34) is a `DemoGenerationError` refusal code raised when
+  validation check C27 finds a `RoomOut`'s displayed width×depth disagreeing with its own area (or
+  the building's `gross_area_m2` disagreeing with the sum of its rooms') — see the Geometry /
+  Validation Wiki page. It is a data-integrity refusal, not a feasibility one (not in
+  `_FEASIBILITY_CODES`); on a real solved design it never fires.
 - **Do not treat the production OpenAI parser as a source of truth for AI-test expected
   behavior.** It is an implementation under test, exactly like local Ollama models. Authoritative
   expected behavior is: approved product/architecture semantics, versioned golden expected outputs,
