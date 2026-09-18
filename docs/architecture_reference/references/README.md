@@ -56,18 +56,27 @@ not require a schema change — only editing `index.json` entry by entry as in t
 
 ## How to add an entry
 
-1. Pick a unique, kebab-case `id` (also the name of `references/<id>/` if you're adding files).
+1. Pick a unique, kebab-case `id` (also the name of `references/<id>/` for any files, including
+   the annotation below).
 2. Fill in every required field from `schema.json`: `title`, `dwelling_type`, `footprint_family`,
    `levels` (`level_count` optional), `bedrooms`, `bathrooms`, `total_area_sqm`, `rights`,
-   `source_url`, `license`, `source`, `notes`, `files` (and `tags`/`added_date` if useful).
+   `source_url`, `license`, `source`, `notes`, `files`, `annotation` (and `tags`/`added_date` if
+   useful).
 3. Decide `rights` first, honestly, per the policy above — this determines whether `files` may be
    non-empty.
 4. If `rights` allows copying and you have the file(s), place them under `references/<id>/` and
    list their relative paths in `files`. If not, leave `files: []` and rely on `source_url`/`notes`.
-5. Append the entry to the `entries` array in `index.json`.
-6. Run the test suite:
+5. Write `references/<id>/annotation.md` (this is original documentation, not a copied plan file,
+   so it belongs under `references/<id>/` even for a `metadata-only` entry): a `## Why this plan
+   works` section with 3-8 bullets each ending in the `docs/architecture_reference/quality_rubric.md`
+   section it demonstrates (e.g. `[A]`), a `## Trade-offs` section with at least one real trade-off,
+   and a `## Anti-patterns avoided` section linking into `docs/architecture_reference/anti_patterns.md`.
+   Set `annotation: true` on the entry once this file exists.
+6. Append the entry to the `entries` array in `index.json`.
+7. Run the test suite:
    ```
    cd backend && uv run pytest -q tests/reference/test_reference_index.py
    ```
    It validates the whole index against `schema.json`, checks the minimum entry count, footprint
-   family coverage, and the `metadata-only` ↔ no-files invariant.
+   family coverage, the `metadata-only` ↔ no-copied-files invariant, and that every entry has an
+   annotation with rubric-tagged bullets and a trade-off.

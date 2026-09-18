@@ -43,7 +43,8 @@
         "license",
         "source",
         "notes",
-        "files"
+        "files",
+        "annotation"
       ],
       "additionalProperties": false,
       "properties": {
@@ -125,6 +126,11 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Relative paths under references/<id>/ for copied files. MUST be empty when rights is metadata-only (see README and AC-3)."
+        },
+        "annotation": {
+          "type": "boolean",
+          "const": true,
+          "description": "True when references/<id>/annotation.md exists with the 'why this plan works' / trade-offs / anti-patterns-avoided sections (Issue #31). Every entry must carry this."
         }
       }
     }
