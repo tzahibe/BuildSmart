@@ -546,6 +546,29 @@ def cmd_rollup(config: Config, args) -> int:
     return 1
 
 
+def cmd_locks(config: Config, args) -> int:
+    """`locks list` / `locks release N --reason ...` — a Team Lead lever for a lock held by an Issue whose
+    code changes are already on a PR (CI/review/waiting for the owner)."""
+    store = StateStore(config.state_db_path)
+    if args.locks_cmd == "list":
+        for l in store.locks_held():
+            print(f"{l.name} ({l.mode}) held by #{l.issue_id}")
+        return 0
+    if args.locks_cmd == "release":
+        rec = store.get(args.number)
+        if rec is None:
+            print("not tracked")
+            return 1
+        if rec.state in (sm.CLAIMED, sm.WORKING):
+            print(f"refusing: #{args.number} is {rec.state} — a running worker keeps its locks")
+            return 1
+        n = store.release_locks(args.number, f"lead-release: {args.reason}")
+        store.record_event(args.number, "locks_released_by_lead", {"count": n, "reason": args.reason})
+        print(f"#{args.number}: released {n} lock(s) ({rec.state})")
+        return 0
+    return 1
+
+
 def cmd_block(config: Config, args) -> int:
     store = StateStore(config.state_db_path)
     rec = store.get(args.number)
@@ -942,6 +965,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
     s = sub.add_parser("decide"); s.add_argument("text"); s.add_argument("--issue", type=int); s.set_defaults(fn=cmd_decide)
+    s = sub.add_parser("locks"); lsub = s.add_subparsers(dest="locks_cmd", required=True)
+    lsub.add_parser("list"); lr = lsub.add_parser("release"); lr.add_argument("number", type=int); lr.add_argument("--reason", required=True); s.set_defaults(fn=cmd_locks)
     s = sub.add_parser("period"); psub = s.add_subparsers(dest="period_cmd", required=True)
     psub.add_parser("status"); psub.add_parser("start"); psub.add_parser("end"); s.set_defaults(fn=cmd_period)
     s = sub.add_parser("rollup"); rsub = s.add_subparsers(dest="rollup_cmd", required=True)
