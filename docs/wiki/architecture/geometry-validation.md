@@ -126,6 +126,15 @@ already at reference level — NOT gaps. Three real gaps, ranked:
    kitchens as an L-counter inside one open volume, not a room with its own shape (M1, public
    rooms).
 
+## Architectural quality rubric and anti-pattern library
+
+The measured gaps above (circulation topology, wet-room adjacency, public-room strips) are three
+entries in the canonical, repo-wide quality rubric and anti-pattern library:
+`docs/architecture_reference/quality_rubric.md` (sections A–O) and
+`docs/architecture_reference/anti_patterns.md`. Every later geometry/circulation/interior Issue and
+every reviewer should consult those files rather than re-deriving quality judgments from this page
+alone.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
