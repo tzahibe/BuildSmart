@@ -47,7 +47,14 @@ def run_once(spec: ArchitecturalSpec, render_path: str) -> VerticalSliceResult:
     rects = site_stage.translate_rects(solve.rects, site.footprint_offset_u)
 
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
-    entrance_door = doors_stage.build_entrance_door(site.entrance, site.footprint)
+    # ENTRANCE POLICY (Issue #20): the frozen baseline used to hardcode `HALL_MAIN` as the
+    # entrance zone regardless of the realized geometry — the same defect `resolve_entrance` was
+    # built to close in the general pipeline. Reading it off the realized rooms here too means
+    # every path that draws a front door is held to the same arrival-room policy, and C23 is a
+    # true defense-in-depth check rather than one this call site could never actually trip.
+    resolved = doors_stage.resolve_entrance(concept.fixture, rects, site.footprint)
+    entrance_zone_id = resolved[0] if resolved else concept.entrance_zone_id
+    entrance_door = doors_stage.build_entrance_door(site.entrance, site.footprint, entrance_zone_id)
     windows = windows_stage.generate_windows(concept.fixture, rects, site.footprint)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 
