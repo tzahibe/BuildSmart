@@ -484,7 +484,7 @@ def test_restart_recovers_draft_and_command_dedup_and_stale_confirmation(remote)
 
 def test_no_token_in_logs_or_audit(remote, caplog):
     orch, gh, clock, tg, interp, gw, svc, _ = remote
-    token = "8869596174:AAFgHGGqvWHYF0dWxJucgf55L5Nhr-iCyIo"
+    token = "123456789:AAFakeFakeFakeFakeFakeFakeFakeFakeFak0"   # a token-shaped FAKE — never a real token in the repo
     assert TELEGRAM_TOKEN_PATTERN.search(token)
     assert token not in redact(f"failed https://api.telegram.org/bot{token}/getUpdates")
     with caplog.at_level(logging.INFO):
