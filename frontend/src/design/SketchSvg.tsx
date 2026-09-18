@@ -18,21 +18,10 @@ interface SketchSvgProps {
 // geometry (position/size) still comes entirely from the backend Geometry Solver; nothing here invents
 // or adjusts a room's actual size or position. Only used by `LegacyFloorPlan` below — see this file's
 // module docstring.
-const DOOR_WIDTH_M = 0.9
 const TOP_PAD_M = 1.5
 const RIGHT_PAD_M = 1.35
 const SIDE_PAD_M = 0.5
 const EPSILON = 1e-6
-
-/** A short architectural-style door symbol: a leaf line from the hinge to its open position, plus the
- * quarter-circle arc showing the swept path back to the opening's other side. Standard floor-plan
- * drafting convention — see e.g. any architectural graphic-standards reference for "door swing". LEGACY
- * ONLY — see this file's module docstring; `ArchitecturalFloorPlan.tsx` uses a neutral opening symbol
- * instead, since it (unlike this fallback) is invented per-wall rather than backed by a real
- * `DoorConnection`. */
-function doorSymbolPath(hinge: [number, number], leafTip: [number, number], otherSide: [number, number], radius: number) {
-  return `M ${hinge[0]} ${hinge[1]} L ${leafTip[0]} ${leafTip[1]} A ${radius} ${radius} 0 0 1 ${otherSide[0]} ${otherSide[1]}`
-}
 
 interface SharedEdge {
   orientation: 'vertical' | 'horizontal'
@@ -67,21 +56,8 @@ function sharedEdge(a: Room, b: Room): SharedEdge | null {
   return null
 }
 
-type Edge = 'north' | 'south' | 'east' | 'west'
-
-/** Which outer edge of the [0,0]-[maxX,maxDepth] bounding box `room` is flush against, or `null` if
- * it isn't on the boundary at all. LEGACY ONLY — see module docstring. */
-function outerEdgeTouched(room: Room, maxX: number, maxDepth: number): Edge | null {
-  if (Math.abs(room.y) < EPSILON) return 'north'
-  if (Math.abs(room.y + room.depth_m - maxDepth) < EPSILON) return 'south'
-  if (Math.abs(room.x) < EPSILON) return 'west'
-  if (Math.abs(room.x + room.width_m - maxX) < EPSILON) return 'east'
-  return null
-}
-
 interface LegacyFloorPlanProps {
   floorRooms: Room[]
-  groundFloor: number
   activeFloor: number
 }
 
@@ -92,15 +68,10 @@ interface LegacyFloorPlanProps {
  * It draws NO doors and NO entrance. It used to infer both from room adjacency; that inference was
  * removed in demo P0. A legacy design has no authoritative opening data, so none is drawn rather
  * than invented. New designs never reach this component. */
-function LegacyFloorPlan({ floorRooms, groundFloor, activeFloor }: LegacyFloorPlanProps) {
+function LegacyFloorPlan({ floorRooms, activeFloor }: LegacyFloorPlanProps) {
   const maxX = Math.max(...floorRooms.map((room) => room.x + room.width_m), 0)
   const maxDepth = Math.max(...floorRooms.map((room) => room.y + room.depth_m), 0)
   const viewBox = `${-SIDE_PAD_M} ${-TOP_PAD_M} ${maxX + SIDE_PAD_M + RIGHT_PAD_M} ${maxDepth + TOP_PAD_M + SIDE_PAD_M}`
-
-  // The entrance door was inferred here too, from which outer edge the living room happened to
-  // touch. Also removed: a legacy design has no authoritative entrance.
-  const livingRoom = activeFloor === groundFloor ? floorRooms.find((room) => room.type === 'living_room') : undefined
-  const entryEdge = livingRoom ? outerEdgeTouched(livingRoom, maxX, maxDepth) : null
 
   // The entrance door was inferred here too — from which outer edge the living room happened to
   // touch — and the exterior wall was broken to make a gap for it. Both removed: a legacy design
@@ -282,7 +253,6 @@ function SketchSvg({ rooms, geometricDesign }: SketchSvgProps) {
   }
 
   const floorRooms = rooms.filter((room) => room.floor === activeFloor)
-  const groundFloor = floors[0]
   const activeGeometricDesign =
     geometricDesign != null && geometricDesign.footprint.floor === activeFloor ? geometricDesign : null
 
@@ -312,7 +282,7 @@ function SketchSvg({ rooms, geometricDesign }: SketchSvgProps) {
       {activeGeometricDesign ? (
         <ArchitecturalFloorPlan design={activeGeometricDesign} />
       ) : (
-        <LegacyFloorPlan floorRooms={floorRooms} groundFloor={groundFloor} activeFloor={activeFloor} />
+        <LegacyFloorPlan floorRooms={floorRooms} activeFloor={activeFloor} />
       )}
     </div>
   )
