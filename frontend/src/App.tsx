@@ -5,7 +5,6 @@ import {
   DemoPipelineError,
   fetchFootprintOptions,
   generateDemoDesignStreaming,
-  generateDesign,
   getRequirementsReview,
   parseRequirements,
   PipelineStepError,

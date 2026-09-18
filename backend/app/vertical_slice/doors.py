@@ -47,6 +47,13 @@ class Door:
     #: a zone id; `hinge_at` is the (x, y) grid point of the hinged jamb.
     swings_into: str = ""
     hinge_at: tuple[int, int] = (0, 0)
+    #: The direction the OPEN leaf's tip points from `hinge_at`, in degrees, measured the same way
+    #: `orientation`'s axes are (0=+x/east, 90=+y/south, 180=-x/west, 270=-y/north; y grows toward
+    #: the plot's far edge, matching every other grid coordinate in this module). Always exactly 90
+    #: degrees from the wall the door is set into (0/180 for a "vertical" door, 90/270 for a
+    #: "horizontal" one) — `door_clearance.py` uses it, with `hinge_at` and `width_m`, to build the
+    #: swing envelope, and the renderer uses it to place the open leaf without looking up a room.
+    swing_deg: float = 0.0
 
 
 def _side_between(a: Rect, b: Rect) -> Side | None:
@@ -66,9 +73,43 @@ def _side_between(a: Rect, b: Rect) -> Side | None:
 _NEVER_SWING_INTO = (ProgramRole.HALL, ProgramRole.CIRCULATION)
 
 
+def swing_deg_for(rects: dict[str, Rect], into: str, center: tuple[int, int],
+                  orientation: str) -> float:
+    """The open leaf's direction (see `Door.swing_deg`) for a leaf swinging into zone `into`,
+    perpendicular to the wall the opening sits in, toward that zone's own side of it. Exported so
+    `door_clearance.py` can recompute it when it flips a door's swing to the OTHER zone."""
+    room = rects.get(into)
+    cx, cy = center
+    if orientation == "horizontal":                 # opening runs along x; swing is +/- y
+        room_mid = (room.y + room.y2) / 2 if room is not None else cy + 1
+        return 90.0 if room_mid > cy else 270.0
+    room_mid = (room.x + room.x2) / 2 if room is not None else cx + 1  # opening along y; swing +/- x
+    return 0.0 if room_mid > cx else 180.0
+
+
+def hinge_at_for(rects: dict[str, Rect], into: str, center: tuple[int, int],
+                 orientation: str, width_u: int) -> tuple[int, int]:
+    """The hinged jamb (see `Door.hinge_at`) for a leaf swinging into zone `into`: the jamb NEARER
+    that zone's own corner, so the open leaf lies back along a wall instead of standing in the
+    middle of the floor. Exported for the same reason as `swing_deg_for`."""
+    room = rects.get(into)
+    cx, cy = center
+    half = width_u // 2
+    if room is None:
+        return (cx - half, cy) if orientation == "horizontal" else (cx, cy - half)
+    if orientation == "horizontal":                 # opening runs along x, in an N/S wall
+        low, high = (cx - half, cy), (cx + half, cy)
+        nearer_low = abs(cx - half - room.x) <= abs(room.x2 - (cx + half))
+    else:                                           # opening runs along y, in an E/W wall
+        low, high = (cx, cy - half), (cx, cy + half)
+        nearer_low = abs(cy - half - room.y) <= abs(room.y2 - (cy + half))
+    return low if nearer_low else high
+
+
 def _swing(fixture: Fixture, rects: dict[str, Rect], a: str, b: str,
-           center: tuple[int, int], orientation: str, width_u: int) -> tuple[str, tuple[int, int]]:
-    """Which room the leaf opens into, and which jamb it hangs from.
+           center: tuple[int, int], orientation: str,
+           width_u: int) -> tuple[str, tuple[int, int], float]:
+    """Which room the leaf opens into, which jamb it hangs from, and which way it swings.
 
     Two conventions, both ordinary and both deterministic:
 
@@ -77,6 +118,10 @@ def _swing(fixture: Fixture, rects: dict[str, Rect], a: str, b: str,
         is why a bathroom door opens inward.
       * It hangs from the jamb NEARER the room's corner, so the open leaf lies back along a wall
         instead of standing in the middle of the floor.
+
+    `door_clearance.py`'s conflict resolution can override this default `into` by calling
+    `hinge_at_for`/`swing_deg_for` directly for the OTHER zone — this function only picks the
+    default before any conflict is known.
     """
     roles = {z.zone_id: z.roles for z in fixture.zones}
 
@@ -91,19 +136,8 @@ def _swing(fixture: Fixture, rects: dict[str, Rect], a: str, b: str,
         ra, rb = rects.get(a), rects.get(b)
         into = a if (ra and rb and ra.w * ra.h <= rb.w * rb.h) else b
 
-    room = rects.get(into)
-    cx, cy = center
-    half = width_u // 2
-    if room is None:
-        return into, (cx - half, cy) if orientation == "horizontal" else (cx, cy - half)
-
-    if orientation == "horizontal":                 # opening runs along x, in an N/S wall
-        low, high = (cx - half, cy), (cx + half, cy)
-        nearer_low = abs(cx - half - room.x) <= abs(room.x2 - (cx + half))
-    else:                                           # opening runs along y, in an E/W wall
-        low, high = (cx, cy - half), (cx, cy + half)
-        nearer_low = abs(cy - half - room.y) <= abs(room.y2 - (cy + half))
-    return into, (low if nearer_low else high)
+    return into, hinge_at_for(rects, into, center, orientation, width_u), \
+        swing_deg_for(rects, into, center, orientation)
 
 
 def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Door]:
@@ -141,9 +175,9 @@ def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Do
             mid_x = (lo + hi) // 2
             center = (mid_x, ra.y2 if side is Side.S else ra.y)
             orientation = "horizontal"
-        swings_into, hinge_at = _swing(fixture, rects, e.a, e.b, center, orientation, width_u)
+        swings_into, hinge_at, swing_deg = _swing(fixture, rects, e.a, e.b, center, orientation, width_u)
         doors.append(Door(e.a, e.b, e.kind, width_m, center, orientation,
-                           placeable, u_to_m(shared_u), swings_into, hinge_at))
+                           placeable, u_to_m(shared_u), swings_into, hinge_at, swing_deg))
     return doors
 
 
@@ -233,8 +267,11 @@ def build_entrance_door(entrance: EntranceWalk, footprint: Rect,
     wing = footprint_module.wing_on_street_line(wings or (footprint,), x, y)
     on_wall = wing is not None and y == footprint.y
     placeable = on_wall and (x - wing.x) >= width_u and (wing.x2 - x) >= width_u
-    # A front door opens INWARD, always — outward into the street is not a thing.
+    # A front door opens INWARD, always — outward into the street is not a thing. The street wall
+    # is always the footprint's north edge (`site.py` puts the street at y=0), so "inward" is
+    # always +y (south, `swing_deg=90.0`) in this module's grid convention — never derived from a
+    # room lookup, the same as every other fact about this door.
     half = width_u // 2
     return Door("OUTSIDE", entrance_zone_id, ConnectionKind.DOOR, ENTRANCE_DOOR_WIDTH_M,
                 (x, y), "horizontal", placeable, wing.w if on_wall else 0.0,
-                entrance_zone_id, (x - half, y))
+                entrance_zone_id, (x - half, y), 90.0)

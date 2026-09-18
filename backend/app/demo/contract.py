@@ -104,11 +104,14 @@ class DoorOut(BaseModel):
     y: float
     orientation: str
     is_entrance: bool = False
-    #: The room the leaf opens into, and the hinged jamb — so the drawing can show a real door
-    #: symbol (leaf plus swing arc) instead of a gap in a wall, without deciding anything itself.
+    #: The room the leaf opens into, the hinged jamb, and the open leaf's own direction — so the
+    #: drawing can place a real door symbol (leaf plus swing arc) purely from these fields, without
+    #: deciding anything itself and without looking up the room `swings_into` names (Issue #38).
+    #: `swing_deg` is in degrees, `doors.py::Door.swing_deg`'s convention (0=+x, 90=+y, ...).
     swings_into: str = ""
     hinge_x: float = 0.0
     hinge_y: float = 0.0
+    swing_deg: float = 0.0
 
 
 class QualitySignal(BaseModel):
@@ -804,6 +807,10 @@ def summarize(report: ValidationReport,
                   if c.passed and c.check_id in _STATEMENTS]
     warnings = [f"{_STATEMENTS.get(c.check_id, c.name)}: {c.detail}" for c in report.failures()]
 
+    # Non-blocking quality notes (Issue #38's corridor-obstruction note today) — the plan passed
+    # validation; this is disclosure, not a failed check.
+    warnings.extend(report.notes)
+
     # Something true about THIS plan that the person must read before the drawing — a house that
     # fills what its rooms can and not what was asked (`service.capacity_note`). Carried verbatim,
     # unlike `unsupported`, which quotes a request back to them.
@@ -841,7 +848,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     walls, opens = _open_corridor_to_public(design, walls, opens)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
                      y=d.center_m[1], orientation=d.orientation,
-                     swings_into=d.swings_into, hinge_x=d.hinge_m[0], hinge_y=d.hinge_m[1])
+                     swings_into=d.swings_into, hinge_x=d.hinge_m[0], hinge_y=d.hinge_m[1],
+                     swing_deg=d.swing_deg)
              for d in design.interior_doors]
     doors = _suppress_covered_cased_openings(doors, opens)
     entrance = design.entrance_door
@@ -849,7 +857,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                          x=entrance.center_m[0], y=entrance.center_m[1],
                          orientation=entrance.orientation, is_entrance=True,
                          swings_into=entrance.swings_into,
-                         hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1]))
+                         hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1],
+                         swing_deg=entrance.swing_deg))
     demo = DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),

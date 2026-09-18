@@ -123,7 +123,8 @@ describe('DemoPlan', () => {
     const casedOpening = design({
       doors: [
         { a: 'HALL', b: 'LIVING', kind: 'CASED_OPENING', width_m: 0.9, x: 8, y: 8,
-          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5,
+          swing_deg: 180 },
       ],
     })
     const { container } = render(<DemoPlan design={casedOpening} />)
@@ -137,7 +138,8 @@ describe('DemoPlan', () => {
     const ordinaryDoor = design({
       doors: [
         { a: 'HALL', b: 'LIVING', kind: 'DOOR', width_m: 0.9, x: 8, y: 8,
-          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5,
+          swing_deg: 180 },
       ],
     })
     const { container } = render(<DemoPlan design={ordinaryDoor} />)
