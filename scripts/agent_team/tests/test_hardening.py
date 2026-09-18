@@ -328,3 +328,22 @@ def test_protect_main_records_break_glass_note(env, capsys):
     from agent_team.state_store import StateStore
     events = StateStore(config.state_db_path).events(None, limit=5)
     assert events[-1]["kind"] == "protection_set" and events[-1]["payload"]["enforce_admins"] is False
+
+
+def test_semantic_ac_assessment_keyed_by_leading_id(env):
+    """Regression (#18, 2026-09-18): a reviewer wrote `ac: "AC-3: C24 green on every corpus context"` and
+    the orchestrator downgraded its APPROVE because the id did not match exactly."""
+    config, gh, clock, origin = env
+    c = _add_issue(gh, 90, risk="LOW")
+    verbose = {**APPROVE, "ac_assessment": [{"ac": f"{ac}: {c.acceptance_criteria[i].text[:30]}", "verdict": "MET", "note": ""}
+                                            for i, ac in enumerate(c.ac_ids)]}
+    orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": verbose}))
+    _tick(orch)
+    for _ in range(5):
+        rec = orch.store.get(90)
+        if rec.state == sm.READY_FOR_OWNER:
+            break
+        _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+        _tick(orch)
+    assert orch.store.get(90).state == sm.READY_FOR_OWNER
+    assert orch.store.get(90).review_verdict.startswith("APPROVE")

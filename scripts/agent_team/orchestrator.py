@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import re
 import logging
 import os
 import signal
@@ -1404,7 +1405,14 @@ class Orchestrator:
         v = verdict.get("verdict", "BLOCK")
         # SEMANTIC_REVIEW criteria are evidence only when the reviewer marked them MET.
         semantic = contract.semantic_review_acs
-        assessed = {a.get("ac"): a.get("verdict") for a in verdict.get("ac_assessment", []) if isinstance(a, dict)}
+        # Reviewers write the id alone ("AC-3") or with the criterion text ("AC-3: C24 green …"):
+        # key the assessment by the leading AC id.
+        assessed = {}
+        for a in verdict.get("ac_assessment", []):
+            if isinstance(a, dict):
+                m = re.match(r"\s*(AC-\d+)", str(a.get("ac", "")))
+                if m:
+                    assessed[m.group(1)] = a.get("verdict")
         unmet = [ac for ac in semantic if assessed.get(ac) != "MET"]
         if v == "APPROVE" and unmet:
             v = "REQUEST_CHANGES"
