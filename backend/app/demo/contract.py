@@ -18,7 +18,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import quality_metrics
+from app.vertical_slice import circulation_metrics, quality_metrics
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.concept_generator import (
@@ -135,6 +135,18 @@ class QualityMetricsOut(BaseModel):
     m6_public_zone_contiguous: bool | None = None
     dead_space_m2: float = 0.0
     wasted_circulation_share: float = 0.0
+    #: Dedicated-circulation facts (Issue #36), read off the SAME realized geometry independently
+    #: of M3 — see `app.vertical_slice.circulation_metrics.CirculationMetrics` for how each is
+    #: measured and `docs/architecture_reference/quality_rubric.md` section B for what they mean.
+    circulation_area_m2: float = 0.0
+    circulation_ratio: float = 0.0
+    circulation_longest_segment_m: float | None = None
+    circulation_total_length_m: float = 0.0
+    circulation_narrowest_width_m: float | None = None
+    circulation_dead_end_count: int = 0
+    circulation_turn_count: int = 0
+    circulation_duplicated_segment_count: int = 0
+    circulation_duplicated_area_m2: float = 0.0
 
 
 class ExposureOut(BaseModel):
@@ -728,8 +740,12 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
-def _metrics_out(m: quality_metrics.QualityMetrics) -> QualityMetricsOut:
-    return QualityMetricsOut(**dataclasses.asdict(m))
+def _metrics_out(m: quality_metrics.QualityMetrics,
+                 c: circulation_metrics.CirculationMetrics) -> QualityMetricsOut:
+    return QualityMetricsOut(
+        **dataclasses.asdict(m),
+        **{f"circulation_{k}": v for k, v in dataclasses.asdict(c).items()},
+    )
 
 
 def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
@@ -891,12 +907,18 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # it runs on the raw solver output. Computed here, once the shape exists, and attached
     # additively onto the `quality` already built rather than threaded through `quality_of`.
     metrics = quality_metrics.measure_design(demo)
+    # Dedicated-circulation metrics (Issue #36) read the raw `SolvedDesign` directly — the same
+    # `GeometricDesign` C26 (`validation.py`) and the circulation ranking term
+    # (`general_pipeline._guard_demoted_hub`) already measure — rather than the flattened `demo`
+    # M1-M6 reads, so a check, a ranking decision and this report can never disagree about what a
+    # plan's circulation looks like.
+    circulation = circulation_metrics.measure(design)
     # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
     exposure = _exposure_of(design)
     return demo.model_copy(update={
-        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics),
+        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics, circulation),
                                                     "exposure": exposure})
     })
 

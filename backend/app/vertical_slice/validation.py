@@ -18,8 +18,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import access_rules
+from . import circulation_metrics
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
+from .design_output import assemble as assemble_design
 from .doors import Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
@@ -360,6 +362,20 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     bad = [f"{f.zone_id} net {f.net_w_m:.2f}x{f.net_h_m:.2f} cannot inscribe {f.envelope_m} m"
            for f in furniture if f.fits is False]
     rep.add("C9", "furniture-envelope feasibility", not bad, "; ".join(bad) or "all furnished zones fit")
+
+    # C26 — no extreme dedicated circulation (`circulation_metrics.py`, Issue #36). Fails closed
+    # only for an EXTREME corridor (ratio, longest segment or dead-end count past the calibrated
+    # limits) — an ordinary long corridor, the spine parti's by construction, is untouched. Reads
+    # the SAME realized geometry every other check here does; the minimal `GeometricDesign` built
+    # for it is measured and discarded, never the one the pipeline goes on to assemble and draw.
+    circulation_design = assemble_design(fixture, rects, walls, 0, interior_doors, entrance_door,
+                                         windows, furniture, site)
+    circulation = circulation_metrics.measure(circulation_design)
+    extreme = circulation_metrics.classify_extreme(circulation)
+    rep.add("C26", "no extreme dedicated circulation", extreme is None,
+            extreme or f"circulation ratio {circulation.ratio:.0%}, longest segment "
+                      f"{circulation.longest_segment_m or 0:.2f} m, {circulation.dead_end_count} "
+                      f"dead end(s) — within the calibrated limits")
 
     if not skip_site_checks:
         # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)
