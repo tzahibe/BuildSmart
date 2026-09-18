@@ -3,6 +3,11 @@
 Two sinks: the state store's `events` table (queryable timeline per issue) and JSON files under
 `.agent/logs/runs/<issue>/` (one per agent run: command, model, cost, turns, permission denials,
 structured output). Secrets are redacted before anything is written.
+
+See `work_reports.py` for the higher-level views built on top of these: the per-Issue Markdown
+work report (`.agent/logs/reports/<issue>.md`, `agentctl report N`), the structured
+`failure_record` event every failure transition emits, and the per-attempt evidence notes
+(`.agent/logs/evidence/<issue>-attempt<n>.md`).
 """
 from __future__ import annotations
 

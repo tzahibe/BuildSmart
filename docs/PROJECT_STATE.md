@@ -43,6 +43,18 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - Room capacity constraint, plan-not-realizable root cause — no successor doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
 
+## Agent-team Issues
+
+- **#24 Work reports and structured failure records** — every failure transition (worker
+  failed/blocked, publish failed, CI red, review rejected, `agentctl block`) emits one structured
+  `failure_record` event and a fixed-template failure milestone comment; a per-Issue Markdown work
+  report (`.agent/logs/reports/<issue>.md`, `agentctl report N`) is regenerated on every state
+  change with a "What was done" section per attempt and a "Failure history" table; `agentctl audit
+  N` shows the failure history before raw events. See the agent-team-workflow Wiki page's
+  Observability section (`work_reports.py`). The Telegram-status root-cause line (AC-5) is blocked
+  on the unmerged `infra/telegram-control-plane` branch, which is the only place the referenced
+  `remote_control`/Telegram status module exists — not implemented here.
+
 ## Guardrails / do-not-change rules
 
 - **Agent PRs only through the workflow**: branches `agent/<issue>-<slug>` are owned by the

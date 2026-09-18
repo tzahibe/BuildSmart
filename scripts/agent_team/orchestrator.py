@@ -24,7 +24,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agent_team import audit, ci_evidence, merge_policy, prompts, scheduler
+from agent_team import audit, ci_evidence, merge_policy, prompts, scheduler, work_reports
 from agent_team import state_machine as sm
 from agent_team.agent_runner import DOMAIN_LEAD, REVIEWER, WORKER, AgentRunner, AgentRunResult, AgentRunSpec
 from agent_team.config import Config
@@ -160,6 +160,7 @@ class Orchestrator:
 
     def _set_state(self, store: StateStore, issue_id: int, state: str, *, note: str = "", **fields_to_set) -> IssueRecord:
         rec = store.transition(issue_id, state, note=note or None, **fields_to_set)
+        work_reports.write_report(store, self.config, issue_id)
         if not self.dry_run:
             try:
                 self.github.set_state_label(issue_id, state)
@@ -388,9 +389,11 @@ class Orchestrator:
             self.store.transition(rec.issue_id, sm.CLAIMED, allowed_from=(sm.QUEUED,), note="claimed by scheduler")
         except TransitionConflict:
             return  # someone (another tick) already claimed it
+        work_reports.write_report(self.store, self.config, rec.issue_id)
         lock_decision = self.locks.acquire(rec.issue_id, d.locks)
         if not lock_decision.ok:
             self.store.transition(rec.issue_id, sm.QUEUED, note=lock_decision.reason)
+            work_reports.write_report(self.store, self.config, rec.issue_id)
             return
         try:
             self.github.set_state_label(rec.issue_id, sm.CLAIMED)
@@ -441,6 +444,7 @@ class Orchestrator:
         except TransitionConflict as exc:
             log.warning("#%s worker not started: %s", issue_id, exc)
             return
+        work_reports.write_report(store, self.config, issue_id)
         try:
             self.github.set_state_label(issue_id, sm.WORKING)
         except Exception:  # noqa: BLE001
@@ -450,7 +454,8 @@ class Orchestrator:
         if repair:
             prompt = prompts.repair_prompt(contract, worktree=str(path), branch=rec.branch, attempt=attempt - 1,
                                            max_attempts=self.config.max_repair_attempts, failure_class=rec.failure_class or "UNKNOWN",
-                                           failure_summary=rec.last_error or "", evidence=_load_evidence_note(self.config, issue_id))
+                                           failure_summary=rec.last_error or "",
+                                           evidence=work_reports.load_latest_evidence_note(self.config, issue_id))
             timeout = self.config.repair_timeout_seconds
         else:
             prompt = prompts.worker_prompt(contract, worktree=str(path), branch=rec.branch, base_ref=base_ref)
@@ -473,17 +478,18 @@ class Orchestrator:
         record = audit.write_run_record(self.config, spec, result)
         store.record_event(issue_id, "agent_run", {"role": WORKER, "attempt": attempt, "ok": result.ok, "cost_usd": result.cost_usd,
                                                     "turns": result.num_turns, "record": str(record), "session": result.session_id})
-        self._complete_worker(store, issue_id, contract, spec, result, repair)
+        self._complete_worker(store, issue_id, contract, spec, result, repair, record)
 
     def _complete_worker(self, store: StateStore, issue_id: int, contract: IssueContract, spec: AgentRunSpec,
-                         result: AgentRunResult, repair: bool) -> None:
+                         result: AgentRunResult, repair: bool, run_record: Path) -> None:
         rec = store.get(issue_id)
         if rec is None or rec.state != sm.WORKING:
             return
         if result.session_id:
             store.update(issue_id, session_id=result.session_id)
         if not result.ok:
-            self._worker_failed(store, rec, f"worker run failed: {result.error or 'unknown'}"[:1000])
+            self._worker_failed(store, rec, f"worker run failed: {result.error or 'unknown'}"[:1000], stage="worker",
+                                evidence_ref=run_record)
             return
         report = result.structured or {}
         status = report.get("status", "done")
@@ -492,7 +498,14 @@ class Orchestrator:
             self._set_state(store, issue_id, sm.BLOCKED, note=f"worker reported {status}", last_error=(report.get("summary") or "")[:1000],
                             failure_class="NEEDS_DECISION" if status == "needs_decision" else "WORKER_BLOCKED")
             blockers = "\n".join(f"- {b}" for b in report.get("blockers", []))
-            self._milestone(issue_id, f"Worker stopped with `{status}`: {report.get('summary', '')}\n{blockers}\n\nTeam Lead decision required.")
+            attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
+            root_cause = report.get("summary") or (report.get("blockers") or ["no summary reported"])[0]
+            text = work_reports.record_failure(
+                store, self.config, issue_id, stage="worker",
+                failure_class="NEEDS_DECISION" if status == "needs_decision" else "WORKER_BLOCKED",
+                attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=root_cause,
+                evidence_ref=run_record, next_action="blocked")
+            self._milestone(issue_id, f"{text}\n\nBlockers:\n{blockers}")
             return
         path = Path(rec.worktree)
         try:
@@ -501,7 +514,7 @@ class Orchestrator:
                 run_git(["commit", "-q", "-m", f"chore(agent): commit remaining changes for #{issue_id}"], path)
                 store.record_event(issue_id, "leftover_commit", {"note": "orchestrator committed uncommitted worker changes"})
             if self.worktrees.commits_ahead(path) == 0:
-                self._worker_failed(store, rec, "worker reported done but produced no commits")
+                self._worker_failed(store, rec, "worker reported done but produced no commits", stage="publish", evidence_ref=run_record)
                 return
             self.worktrees.push(path, rec.branch)
             head = self.worktrees.head_sha(path)
@@ -516,24 +529,32 @@ class Orchestrator:
             store.update(issue_id, agent_pid=None, assigned_agent=None)
             self._set_state(store, issue_id, sm.PR_OPEN, note="PR ready", pr_number=pr["number"], pr_url=pr.get("html_url"),
                             validated_commit=None)
-            store.record_event(issue_id, "worker_report", {"report": report})
+            store.record_event(issue_id, "worker_report", {"report": report, "attempt": spec.attempt})
+            work_reports.write_report(store, self.config, issue_id)
             self._publish_review_status(store, issue_id, head, "pending", "independent review not yet run (awaiting CI gates)")
         except (GitError, Exception) as exc:  # noqa: BLE001
             log.exception("#%s: publishing failed", issue_id)
-            self._worker_failed(store, rec, f"publishing the branch/PR failed: {str(exc)[:800]}")
+            self._worker_failed(store, rec, f"publishing the branch/PR failed: {str(exc)[:800]}", stage="publish", evidence_ref=run_record)
 
-    def _worker_failed(self, store: StateStore, rec: IssueRecord, error: str) -> None:
+    def _worker_failed(self, store: StateStore, rec: IssueRecord, error: str, *, stage: str = "worker",
+                       evidence_ref: Path | str | None = None) -> None:
         rec = store.get(rec.issue_id) or rec
         store.update(rec.issue_id, agent_pid=None, assigned_agent=None)
+        attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
         if self.attempts_remaining(rec):
             self.locks.release(rec.issue_id, "worker-failed-requeue")
             self._set_state(store, rec.issue_id, sm.QUEUED, note="requeued after worker failure", last_error=error)
-            self._milestone(rec.issue_id, f"Worker attempt {rec.attempt_number} failed ({error[:300]}); requeued — "
-                                           f"{self.config.max_repair_attempts - max(0, rec.attempt_number - 1)} attempt(s) left.")
+            text = work_reports.record_failure(store, self.config, rec.issue_id, stage=stage, failure_class="WORKER_FAILED",
+                                               attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=error,
+                                               evidence_ref=evidence_ref, next_action="requeue")
+            self._milestone(rec.issue_id, text)
         else:
             self.locks.release(rec.issue_id, "worker-failed-blocked")
             self._set_state(store, rec.issue_id, sm.BLOCKED, note="retry budget exhausted", last_error=error, failure_class="WORKER_FAILED")
-            self._milestone(rec.issue_id, f"Blocked: worker failed and the retry budget is exhausted — {error[:300]}. Team Lead decision required.")
+            text = work_reports.record_failure(store, self.config, rec.issue_id, stage=stage, failure_class="WORKER_FAILED",
+                                               attempt=rec.attempt_number, attempts_left=0, root_cause=error,
+                                               evidence_ref=evidence_ref, next_action="blocked")
+            self._milestone(rec.issue_id, text)
 
     # -- advance ------------------------------------------------------------------------------
     def advance(self, rec: IssueRecord) -> str:
@@ -577,7 +598,7 @@ class Orchestrator:
             self._set_state(self.store, rec.issue_id, sm.REVIEW, note="deterministic gates green")
             self._ensure_review_status(self.store, self.store.get(rec.issue_id), head)
             self._milestone(rec.issue_id, f"Deterministic gates green for `{head[:12]}`.\n\n{ev.summary_markdown()}\n\nStarting independent review.")
-            _save_evidence_note(self.config, rec.issue_id, ev.summary_markdown())
+            work_reports.save_evidence_note(self.config, rec.issue_id, rec.attempt_number, ev.summary_markdown())
             return "CI -> REVIEW"
         cls = classify(FailureInput(gate_results=ev.gate_results(), logs=ev.logs, reports=ev.reports,
                                     changed_files=self._changed_files(rec), mergeable=pr.get("mergeable"),
@@ -598,23 +619,33 @@ class Orchestrator:
         note = f"CI red for `{ev.head_sha[:12]}` — classified **{cls.kind}**: {cls.summary}\n\n{ev.summary_markdown()}"
         if cls.evidence:
             note += f"\n\n<details><summary>evidence</summary>\n\n```\n{cls.evidence[:3000]}\n```\n</details>"
-        _save_evidence_note(self.config, rec.issue_id, note)
+        evidence_ref = work_reports.save_evidence_note(self.config, rec.issue_id, rec.attempt_number, note)
         self.store.record_event(rec.issue_id, "ci_failed", {"class": cls.kind, "summary": cls.summary, "head": ev.head_sha})
+        attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
         if cls.kind in (INFRA_FAILURE, FLAKY_TEST) and not _already_rerun(self.store, rec.issue_id, ev.head_sha):
             self.store.record_event(rec.issue_id, "ci_rerun", {"head": ev.head_sha, "class": cls.kind})
             rerun_ok = self._rerun_ci(ev)
-            self._milestone(rec.issue_id, note + f"\n\nRe-running CI once ({'requested' if rerun_ok else 'request failed'}).")
+            text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
+                                               attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
+                                               evidence_ref=evidence_ref, next_action="rerun_ci")
+            self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nRe-running CI once ({'requested' if rerun_ok else 'request failed'}).")
             if rerun_ok:
                 self._ci_started[rec.issue_id] = self.clock()
                 return f"CI red ({cls.kind}) -> rerun requested"
         if cls.repairable and self.attempts_remaining(rec):
             self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=cls.kind, failure_class=cls.kind, last_error=cls.summary[:1000])
-            self._milestone(rec.issue_id, note + f"\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
+                                               attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
+                                               evidence_ref=evidence_ref, next_action="repair")
+            self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
             return f"CI -> FIX_REQUIRED ({cls.kind})"
         self.locks.release(rec.issue_id, "blocked")
         self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=cls.kind, failure_class=cls.kind, last_error=cls.summary[:1000])
         why = "not automatically repairable" if not cls.repairable else "retry budget exhausted"
-        self._milestone(rec.issue_id, note + f"\n\nBlocked ({why}). Team Lead decision required.")
+        text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
+                                           attempt=rec.attempt_number, attempts_left=0, root_cause=cls.summary,
+                                           evidence_ref=evidence_ref, next_action="blocked")
+        self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nBlocked ({why}). Team Lead decision required.")
         return f"CI -> BLOCKED ({cls.kind})"
 
     def _rerun_ci(self, ev: ci_evidence.CiEvidence) -> bool:
@@ -752,14 +783,21 @@ class Orchestrator:
             self._milestone(issue_id, f"Independent review: **APPROVE** — {verdict.get('summary', '')[:400]}")
             return
         cls = Classification(REVIEW_REJECTED, f"independent review {v}: {verdict.get('summary', '')[:300]}", body[:3000], "review")
-        _save_evidence_note(self.config, issue_id, body)
+        evidence_ref = work_reports.save_evidence_note(self.config, issue_id, rec.attempt_number, body)
+        attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
         if v == "REQUEST_CHANGES" and self.attempts_remaining(rec):
             self._set_state(store, issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
-            self._milestone(issue_id, f"Independent review: **REQUEST_CHANGES** — {verdict.get('summary', '')[:400]}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            text = work_reports.record_failure(store, self.config, issue_id, stage="review", failure_class=REVIEW_REJECTED,
+                                               attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
+                                               evidence_ref=evidence_ref, next_action="repair")
+            self._milestone(issue_id, f"{text}\n\nIndependent review: **REQUEST_CHANGES** — {verdict.get('summary', '')[:400]}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
         else:
             self.locks.release(issue_id, "review-blocked")
             self._set_state(store, issue_id, sm.BLOCKED, note=f"review {v}", failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
-            self._milestone(issue_id, f"Independent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nBlocked; Team Lead decision required.")
+            text = work_reports.record_failure(store, self.config, issue_id, stage="review", failure_class=REVIEW_REJECTED,
+                                               attempt=rec.attempt_number, attempts_left=0, root_cause=cls.summary,
+                                               evidence_ref=evidence_ref, next_action="blocked")
+            self._milestone(issue_id, f"{text}\n\nIndependent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nBlocked; Team Lead decision required.")
 
     # -- ready / merge ------------------------------------------------------------------------
     def _step_ready(self, rec: IssueRecord) -> str:
@@ -1004,21 +1042,6 @@ def _last_worker_report(store: StateStore, issue_id: int) -> dict:
         if e["kind"] == "worker_report":
             return e["payload"].get("report", {})
     return {}
-
-
-def _evidence_path(config: Config, issue_id: int) -> Path:
-    return config.path(config.logs_dir) / "evidence" / f"{issue_id}.md"
-
-
-def _save_evidence_note(config: Config, issue_id: int, text: str) -> None:
-    p = _evidence_path(config, issue_id)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text, encoding="utf-8")
-
-
-def _load_evidence_note(config: Config, issue_id: int) -> str:
-    p = _evidence_path(config, issue_id)
-    return p.read_text(encoding="utf-8") if p.exists() else "(no evidence recorded)"
 
 
 def _verdict_markdown(v: dict) -> str:

@@ -9,7 +9,9 @@
     agentctl issue validate N | queue N | create --from FILE [--queue] | render --from FILE
     agentctl approve N --kind lead_approval|lead_architecture_review [--note ...]
     agentctl requeue N | block N --reason ... | resume-pr N [--update-base] [--rereview --reason ...]
-    agentctl audit N                     the reconstructable timeline of one issue
+    agentctl audit N                     the reconstructable timeline of one issue (failure history, then raw events)
+    agentctl report N                    the Issue's work report (.agent/logs/reports/N.md): what was done per
+                                         attempt, the failure history, and the event timeline
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
     agentctl reconcile                   one reconciliation pass, printed
     agentctl doctor                      environment checks (gh auth, claude binary, config)
@@ -35,6 +37,7 @@ from agent_team.labels import ALL_LABELS, metadata_labels
 from agent_team.orchestrator import Orchestrator, OrchestratorAlreadyRunning
 from agent_team.resource_manager import ResourceManager
 from agent_team.state_store import StateStore, TransitionConflict
+from agent_team.work_reports import record_failure, render_report, report_path, write_report
 
 
 def _github(config: Config, *, require_auth: bool = True) -> GitHubClient:
@@ -275,6 +278,7 @@ def cmd_requeue(config: Config, args) -> int:
     except (TransitionConflict, Exception) as exc:  # noqa: BLE001
         print(f"cannot requeue: {exc}")
         return 1
+    write_report(store, config, args.number)
     try:
         gh = _github(config)
         gh.set_state_label(args.number, sm.QUEUED)
@@ -351,6 +355,7 @@ def cmd_resume_pr(config: Config, args) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"cannot resume: {exc}")
         return 1
+    write_report(store, config, args.number)
     try:
         _github(config).set_state_label(args.number, sm.PR_OPEN)
     except SystemExit:
@@ -371,10 +376,12 @@ def cmd_block(config: Config, args) -> int:
     except Exception as exc:  # noqa: BLE001
         print(f"cannot block: {exc}")
         return 1
+    text = record_failure(store, config, args.number, stage="owner", failure_class="LEAD_BLOCKED", attempt=rec.attempt_number,
+                          attempts_left=0, root_cause=args.reason, evidence_ref=None, next_action="blocked")
     try:
         gh = _github(config)
         gh.set_state_label(args.number, sm.BLOCKED)
-        gh.comment(args.number, f"**[agent-team]** Team Lead blocked this issue: {args.reason}")
+        gh.comment(args.number, f"**[agent-team]** {text}")
     except SystemExit:
         pass
     print(f"#{args.number} -> BLOCKED")
@@ -390,7 +397,20 @@ def cmd_audit(config: Config, args) -> int:
     print(f"#{rec.issue_id} {rec.title}\n state={rec.state} risk={rec.risk} class={rec.resource_class} attempt={rec.attempt_number} "
           f"pr={rec.pr_number} branch={rec.branch}\n worktree={rec.worktree}\n validated={rec.validated_commit} review={rec.review_verdict} "
           f"failure_class={rec.failure_class}\n last_error={rec.last_error}\n approvals={rec.approvals}\n")
-    for e in store.events(args.number, limit=args.limit):
+    events = store.events(args.number, limit=max(args.limit, 5000))
+    failures = [e for e in events if e["kind"] == "failure_record"]
+    print("failure history:")
+    if failures:
+        for e in failures:
+            p = e["payload"]
+            ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(e["ts"]))
+            print(f"  {ts}  {p.get('stage', ''):8s} {p.get('failure_class', ''):22s} attempt {p.get('attempt')}/"
+                  f"{p.get('attempt', 0) + p.get('attempts_left', 0)} -> {p.get('next_action', ''):10s} "
+                  f"root_cause={str(p.get('root_cause', ''))[:120]!r} evidence={p.get('evidence_ref', '')}")
+    else:
+        print("  (none)")
+    print()
+    for e in events[-args.limit:]:
         ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(e["ts"]))
         payload = json.dumps(e["payload"], ensure_ascii=False)
         print(f"{ts}  {e['kind']:18s} {payload[:200]}")
@@ -399,6 +419,16 @@ def cmd_audit(config: Config, args) -> int:
         print("\nrun records:")
         for p in sorted(runs.iterdir()):
             print("  ", p)
+    return 0
+
+
+def cmd_report(config: Config, args) -> int:
+    store = StateStore(config.state_db_path)
+    if store.get(args.number) is None:
+        print("not tracked")
+        return 1
+    path = report_path(config, args.number)
+    print(path.read_text(encoding="utf-8") if path.exists() else render_report(store, config, args.number))
     return 0
 
 
@@ -482,6 +512,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
+    s = sub.add_parser("report"); s.add_argument("number", type=int); s.set_defaults(fn=cmd_report)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
