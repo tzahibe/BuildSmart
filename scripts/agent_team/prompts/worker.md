@@ -63,6 +63,12 @@ Domains: {{domains}} · Risk: {{risk}} · Resource class: {{resource_class}}
    `status: "blocked"` naming the exact command and how long it needs. Commit early and often:
    the worktree is reused on a retry, but only committed work is visible to the report.
 
+# Merge left by the Team Lead
+If `git status` shows unmerged paths (a `MERGE_HEAD` exists), the Team Lead started a merge of the
+base branch into this branch because the base moved. Resolve every conflict keeping BOTH intents
+(the base's changes and this branch's), run the relevant tests, and `git commit` to complete the
+merge before continuing with the Acceptance Criteria.
+
 # Finish
 When done (or blocked), make sure every intended change is committed (`git status` clean apart
 from untracked build artefacts), then return the structured JSON report requested. The report
