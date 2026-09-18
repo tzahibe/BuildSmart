@@ -15,7 +15,7 @@ from agent_team.issue_contract import parse_budget_value, render_body
 from agent_team.labels import metadata_labels
 from agent_team.regression_budget import evaluate as evaluate_budget
 from agent_team.tests.helpers import KNOWN_LOCKS, make_contract
-from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _owner_merge, _tick, _worker_that_commits, env  # noqa: F401
+from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _owner_merge, _red, _tick, _worker_that_commits, env  # noqa: F401
 
 REVIEW_CTX = "agent-review-result"
 
@@ -256,6 +256,77 @@ def test_semantic_review_ac_not_met_downgrades_an_approve(env):
     _green(gh, head2)
     _tick(orch); _tick(orch)
     assert orch.store.get(8).review_verdict == f"APPROVE@{head2}" and _statuses(gh, head2) == "success"
+
+
+# ---------------------------------------------------------------------------------------------
+# 3b. reviewer integration: architectural reference, overfits_one_plan, red-gate authority
+# ---------------------------------------------------------------------------------------------
+
+def test_overfit_verdict_is_downgraded(env):
+    """A geometry/validator/backend PR gets the architectural reference block (rubric + anti-pattern
+    library + the six questions); an APPROVE that marks overfits_one_plan True is downgraded by the
+    orchestrator before it reaches GitHub, exactly like an unmet SEMANTIC_REVIEW AC."""
+    config, gh, clock, _ = env
+    c = make_contract(11, title="[agent] Task 11", domains="geometry")
+    gh.add_issue(11, c.title, render_body(c), ["agent:queued", "owner:approved", *metadata_labels(c.domains, c.risk, c.resource_class)])
+    overfit = {**APPROVE, "overfits_one_plan": True,
+               "architectural_assessment": {"A. Room Proportion & Aspect Ratio": "only fixes the repro context"}}
+    runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": overfit})
+    orch = _orch(config, gh, clock, runner)
+    _tick(orch); _tick(orch)
+    rec = orch.store.get(11)
+    head = gh.get_pr(rec.pr_number)["head"]["sha"]
+    _green(gh, head)
+    _tick(orch); _tick(orch)
+    reviewer_prompt = [call for call in runner.calls if call.role == "reviewer"][-1].prompt
+    assert "quality_rubric.md" in reviewer_prompt and "anti_patterns.md" in reviewer_prompt and "overfitting" in reviewer_prompt
+    rec = orch.store.get(11)
+    assert rec.state == sm.FIX_REQUIRED and rec.review_verdict == f"REQUEST_CHANGES@{head}"
+    assert _statuses(gh, head) == "failure"
+    ev = [e for e in orch.store.events(11) if e["kind"] == "review_verdict"][-1]
+    assert ev["payload"]["overfits_one_plan"] is True
+    # a domain outside geometry/validator/backend does not get the elaborated block
+    c2 = make_contract(12, title="[agent] Task 12", domains="knowledge")
+    gh.add_issue(12, c2.title, render_body(c2), ["agent:queued", "owner:approved", *metadata_labels(c2.domains, c2.risk, c2.resource_class)])
+    runner2 = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
+    orch2 = _orch(config, gh, clock, runner2)
+    _tick(orch2); _tick(orch2)
+    rec2 = orch2.store.get(12)
+    head2 = gh.get_pr(rec2.pr_number)["head"]["sha"]
+    _green(gh, head2)
+    _tick(orch2); _tick(orch2)
+    reviewer_prompt2 = [call for call in runner2.calls if call.role == "reviewer"][-1].prompt
+    assert "do not include geometry, validator or backend" in reviewer_prompt2
+    assert "A–O quality rubric" not in reviewer_prompt2                   # the elaborated block is domain-gated
+    assert orch2.store.get(12).review_verdict == f"APPROVE@{head2}"       # overfits_one_plan False: a real approval
+
+
+def test_review_never_overrides_a_red_gate(env):
+    """A red CI gate keeps the PR out of REVIEW and merge regardless of what a reviewer would say
+    — the reviewer never even runs — and merge_policy.decide() refuses on ci_green alone even when
+    an APPROVE is recorded for the exact head SHA."""
+    config, gh, clock, _ = env
+    _add_issue(gh, 13, risk="LOW")
+    runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
+    orch = _orch(config, gh, clock, runner)
+    _tick(orch); _tick(orch)                                  # -> PR_OPEN -> CI
+    rec = orch.store.get(13)
+    head = gh.get_pr(rec.pr_number)["head"]["sha"]
+    _red(gh, head)
+    assert _tick(orch).advanced[13] == "CI -> FIX_REQUIRED (IMPLEMENTATION_FAILURE)"
+    assert not [call for call in runner.calls if call.role == "reviewer"]     # the review never ran
+    assert orch.store.get(13).review_verdict is None
+    assert _statuses(gh, head) != "success"
+
+    from agent_team import merge_policy
+    from agent_team.ci_evidence import CiEvidence, FAILURE
+    orch.store.update(13, review_verdict=f"APPROVE@{head}")                   # simulate a recorded APPROVE anyway
+    rec = orch.store.get(13)
+    ev = CiEvidence(head_sha=head, status=FAILURE, checks={"agent-ci-result": {"status": "completed", "conclusion": "failure"}},
+                     statuses={"agent-review-result": {"state": "success"}})
+    d = merge_policy.decide(rec, ev, config, review_sha=head)
+    assert "reviewer_green" in d.satisfied                                    # the review itself checks out
+    assert not d.ok and "ci_green" in d.missing                               # but the red gate still blocks the merge
 
 
 # ---------------------------------------------------------------------------------------------

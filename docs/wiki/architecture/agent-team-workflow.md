@@ -177,6 +177,19 @@ review is stale for the new SHA and runs again), `success` only when the reviewe
 exact validated SHA, `failure` on REQUEST_CHANGES/BLOCK. Branch protection requires both
 `agent-ci-result` and `agent-review-result`.
 
+**Architectural reference** — a PR whose domains include `geometry`, `validator` or `backend`
+also gets an `# Architectural reference` block in the reviewer prompt pointing at
+`docs/architecture_reference/quality_rubric.md` (the A–O rubric) and `anti_patterns.md` (the
+anti-pattern library), and asking six explicit questions: does the change satisfy the Issue;
+does it improve the targeted principle; is it consistent with the rubric; does it avoid
+overfitting one plan; does the deterministic evidence support the behavior; are the regressions
+expected and within budget. The structured verdict carries `architectural_assessment` (rubric
+section → note) and `overfits_one_plan: bool`. The orchestrator downgrades an APPROVE with
+`overfits_one_plan: true` to REQUEST_CHANGES, the same way it downgrades an unmet SEMANTIC_REVIEW
+AC — this never upgrades a red deterministic gate: `ci_green`/`regression_green` are evaluated by
+`merge_policy.decide()` independently of the review verdict, so a red gate blocks the merge
+regardless of what the reviewer says.
+
 ## Failure classification and repair
 
 `failure_classifier.py` maps a red run to `IMPLEMENTATION_FAILURE`, `REGRESSION`,
