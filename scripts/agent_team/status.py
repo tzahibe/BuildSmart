@@ -1,6 +1,8 @@
 """The operator view: "What are my agents doing?" in one screen."""
 from __future__ import annotations
 
+import json
+
 import time
 
 from agent_team import state_machine as sm
@@ -44,6 +46,20 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
         lines.extend(("  " + r) for r in rows) if rows else lines.append("  (none)")
         lines.append("")
 
+    open_recs = [r for r in recs if r.state != sm.DONE]
+    roots: dict[int, list[IssueRecord]] = {}
+    for r in open_recs:
+        roots.setdefault(r.root, []).append(r)
+    root_rows = []
+    for root_n, members in sorted(roots.items()):
+        if len(members) == 1 and members[0].issue_id == root_n:
+            r = members[0]
+            root_rows.append(f"#{root_n} {_title(r, 60)} — {r.state}")
+        else:
+            states = ", ".join(f"#{m.issue_id} {m.state}" for m in members)
+            root_rows.append(f"#{root_n} — {len(members)} child task(s): {states}")
+    section("ROOT ISSUES", root_rows)
+
     section("RUNNING", [f"#{r.issue_id} {_dom(r)} / {r.assigned_agent or 'worker'} / {r.resource_class} / attempt {r.attempt_number} / "
                         f"{_age(r.started_at, now)} (heartbeat {_age(r.heartbeat_at, now)} ago) — {_title(r)}"
                         for r in by_state.get(sm.WORKING, [])])
@@ -64,20 +80,101 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
         verdict = (r.review_verdict or "pending").split("@")[0]
         approvals = ",".join(a["kind"] for a in r.approvals) or "none"
         review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / {r.risk} / review {verdict} / approvals {approvals} — {_title(r)}")
-    for r in by_state.get(sm.READY, []):
-        review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / READY to merge — {_title(r)}")
     for r in by_state.get(sm.MERGED, []):
-        review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / merged, smoke pending — {_title(r)}")
+        review_rows.append(f"#{r.issue_id} PR #{r.pr_number} / merged by the owner, smoke pending — {_title(r)}")
     section("REVIEW / MERGE", review_rows)
+    ready_rows = []
+    for r in by_state.get(sm.READY_FOR_OWNER, []):
+        sha = r.validated_commit or ""
+        note = store.notification(f"pr:{r.pr_number}:READY_FOR_OWNER:{sha}") if sha else None
+        if note is None:
+            tg = "Telegram: not queued" if not config.notify_ready_for_owner else "Telegram: PENDING"
+        elif note["status"] == "sent":
+            tg = "Telegram: SENT"
+        elif note["status"] == "failed":
+            tg = f"Telegram: FAILED after {note['attempts']} attempts — {note.get('last_error') or ''}"[:90]
+        else:
+            tg = f"Telegram: PENDING (attempt {note['attempts']} of {config.notify_max_attempts})" if note["attempts"] else "Telegram: PENDING (remote service not running?)"
+        verdict = (r.review_verdict or "-").split("@")[0]
+        ready_rows.append(f"#{r.issue_id} / PR #{r.pr_number} / SHA {sha[:12]}\n    CI: PASS  Regression: PASS  Review: {verdict}  {tg}\n    {_title(r, 60)}")
+    section("READY FOR OWNER", ready_rows)
     section("BLOCKED", [f"#{r.issue_id} / {r.failure_class or 'BLOCKED'} / {(r.last_error or '')[:80]} — {_title(r)}"
                         for r in by_state.get(sm.BLOCKED, [])])
     done = by_state.get(sm.DONE, [])
     section(f"DONE ({len(done)})", [f"#{r.issue_id} PR #{r.pr_number} `{(r.validated_commit or '')[:12]}` — {_title(r)}" for r in done[-5:]])
+    if store.get_meta("scheduler_paused", "0") == "1":
+        src = store.get_meta("scheduler_pause_source", "") or "owner"
+        lines.insert(0, f"*** SCHEDULER PAUSED ({'usage guard — resumes automatically' if src == 'usage_guard' else 'by the owner'}) — no new claims, no new repairs ***\n")
+    usage_raw = store.get_meta("usage_last")
+    if usage_raw:
+        try:
+            u = json.loads(usage_raw)
+            lines.append(f"USAGE\n  session {u.get('session_percent')}% (resets {u.get('session_resets') or '?'})  week {u.get('week_percent')}% (resets {u.get('week_resets') or '?'})\n")
+        except Exception:  # noqa: BLE001
+            pass
     snap = resources.snapshot(probe_machine=probe_machine)
     locks = store.locks_held()
-    section("RESOURCE", [snap.describe(config),
-                         "locks: " + (", ".join(f"{l.name}({l.mode})#{l.issue_id}" for l in locks) or "none"),
-                         "heavy jobs: " + (", ".join(f"{j.kind}#{j.issue_id}" for j in resources.heavy_jobs()) or "none")])
+    section("AVAILABLE WORKERS", [f"{max(0, config.max_worker_agents - snap.workers_running)} / {config.max_worker_agents}  "
+                                  f"(reviewers {snap.reviewers_running}/{config.max_reviewer_agents})"])
+    section("RESOURCES", [f"weighted capacity {snap.weighted_used} / {config.weighted_capacity}",
+                          f"heavy jobs {snap.heavy_running} / {config.heavy_job_concurrency}",
+                          snap.describe(config),
+                          "locks: " + (", ".join(f"{l.name}({l.mode})#{l.issue_id}" for l in locks) or "none")])
+    blockers = []
+    for r in by_state.get(sm.QUEUED, []):
+        deps = [d for d in r.dependencies if (store.get(d) is None or store.get(d).state != sm.DONE)]
+        if deps:
+            blockers.append(f"#{r.issue_id} waits for #{', #'.join(map(str, deps))}")
+    for l in locks:
+        blockers.append(f"{l.name} locked ({l.mode}) by #{l.issue_id}")
+    section("BLOCKERS", blockers)
     last = store.get_meta("last_tick")
     lines.append(f"last tick: {_age(float(last), now) + ' ago' if last else 'never'}")
     return "\n".join(lines)
+
+
+def render_compact(config: Config, store: StateStore, resources: ResourceManager, *, probe_machine: bool = False, now: float | None = None) -> str:
+    """The Telegram-sized status: one line per item."""
+    now = now or time.time()
+    recs = store.list()
+    by: dict[str, list[IssueRecord]] = {}
+    for r in recs:
+        by.setdefault(r.state, []).append(r)
+    out: list[str] = []
+    if store.get_meta("scheduler_paused", "0") == "1":
+        src = store.get_meta("scheduler_pause_source", "") or "owner"
+        out.append("⏸ מושהה אוטומטית — מכסת השימוש; יחודש לבד כשהיא תתחדש\n" if src == "usage_guard" else "⏸ מושהה — אין claims/תיקונים חדשים (/resume להמשך)\n")
+    usage_raw = store.get_meta("usage_last")
+    if usage_raw:
+        try:
+            u = json.loads(usage_raw)
+            out.append(f"מכסה: session {u.get('session_percent')}% · שבועי {u.get('week_percent')}% (מתחדש {u.get('week_resets') or '?'})\n")
+        except Exception:  # noqa: BLE001
+            pass
+
+    def block(title: str, rows: list[str]) -> None:
+        out.append(title)
+        out.extend(rows or ["(אין)"])
+        out.append("")
+
+    block("רץ עכשיו", [f"#{r.issue_id} {_title(r, 50)} / {(r.assigned_agent or 'worker').split(':')[-1]} / {r.risk} / {_age(r.started_at, now)}"
+                      for r in by.get(sm.WORKING, [])])
+    waiting = []
+    for r in by.get(sm.QUEUED, []):
+        deps = [d for d in r.dependencies if (store.get(d) is None or store.get(d).state != sm.DONE)]
+        waiting.append(f"#{r.issue_id} {_title(r, 45)} / " + (f"ממתין ל-#{', #'.join(map(str, deps))}" if deps else "ממתין למקום פנוי"))
+    for r in by.get(sm.FIX_REQUIRED, []):
+        waiting.append(f"#{r.issue_id} {_title(r, 45)} / ממתין לתיקון ({r.failure_class})")
+    block("ממתינים", waiting)
+    block("CI", [f"#{r.issue_id} / PR #{r.pr_number} / {r.state.lower().replace('_', ' ')}" for r in by.get(sm.PR_OPEN, []) + by.get(sm.CI, []) + by.get(sm.REVIEW, [])])
+    block("מוכן לאישורך (READY FOR OWNER)", [f"PR #{r.pr_number} / #{r.issue_id} {_title(r, 45)} / SHA {(r.validated_commit or '')[:8]}" for r in by.get(sm.READY_FOR_OWNER, [])])
+    block("מוזג (smoke רץ)", [f"#{r.issue_id} / PR #{r.pr_number}" for r in by.get(sm.MERGED, [])])
+    block("חסומים", [f"#{r.issue_id} / {r.failure_class or 'BLOCKED'}" for r in by.get(sm.BLOCKED, [])])
+    snap = resources.snapshot(probe_machine=probe_machine)
+    machine = "" if snap.free_memory_gb == float("inf") else f"\nCPU {snap.cpu_percent:.0f}%  free RAM {snap.free_memory_gb:.1f} GiB"
+    out.append(f"משאבים\nworkers {snap.workers_running}/{config.max_worker_agents}  reviewers {snap.reviewers_running}/{config.max_reviewer_agents}  "
+               f"heavy jobs {snap.heavy_running}/{config.heavy_job_concurrency}{machine}")
+    done = by.get(sm.DONE, [])
+    if done:
+        out.append(f"\nהושלמו: {len(done)} (אחרון #{done[-1].issue_id})")
+    return "\n".join(out).strip()

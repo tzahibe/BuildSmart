@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 
 from agent_team.config import DOMAINS, RESOURCE_CLASSES, RISKS
 
@@ -31,6 +31,8 @@ SECTION_LOCKS = "Required locks"
 SECTION_VERIFICATION = "Verification plan"
 SECTION_BUDGET = "Regression budget"
 SECTION_DOCS = "Expected documentation changes"
+SECTION_AUTHORIZATION = "Authorization"     # optional: a child Issue's inherited authorization
+SECTION_KNOWLEDGE = "Knowledge check"        # optional: what the Wiki/RAG already cover
 
 REQUIRED_SECTIONS = (
     SECTION_GOAL, SECTION_CURRENT, SECTION_REQUIRED, SECTION_AC, SECTION_OUT_OF_SCOPE,
@@ -128,6 +130,115 @@ class BudgetRule:
         return self.kind
 
 
+AUTH_SOURCES = ("owner", "inherited")
+_AUTH_KEYS = ("source", "root_issue", "parent_issue", "derived_by", "scope_inherited")
+_KV_RE = re.compile(r"^\s*[-*]?\s*`?([a-z_]+)`?\s*[:=]\s*(.+?)\s*$")
+
+
+@dataclass(frozen=True)
+class Authorization:
+    """Who authorized execution. A ROOT Issue is authorized by the owner's label; a child Issue is
+    authorized by inheritance from its ROOT (`source: inherited`, `root_issue: #N`)."""
+    source: str = "owner"
+    root_issue: int | None = None
+    parent_issue: int | None = None
+    derived_by: str = ""
+    scope_inherited: bool = False
+
+    @property
+    def inherited(self) -> bool:
+        return self.source == "inherited"
+
+    def render(self) -> str:
+        lines = [f"source: {self.source}"]
+        if self.root_issue:
+            lines.append(f"root_issue: #{self.root_issue}")
+        if self.parent_issue:
+            lines.append(f"parent_issue: #{self.parent_issue}")
+        if self.derived_by:
+            lines.append(f"derived_by: {self.derived_by}")
+        lines.append(f"scope_inherited: {'true' if self.scope_inherited else 'false'}")
+        return "\n".join(lines)
+
+
+def parse_authorization(text: str, problems: list[str] | None = None) -> Authorization:
+    """`### Authorization` body -> Authorization. Problems are appended (or raised when no list is given)."""
+    own: list[str] = [] if problems is None else problems
+    values: dict[str, str] = {}
+    for line in (text or "").splitlines():
+        m = _KV_RE.match(line)
+        if m and m.group(1) in _AUTH_KEYS:
+            values[m.group(1)] = m.group(2).strip().strip("`")
+    source = values.get("source", "owner").lower()
+    if source not in AUTH_SOURCES:
+        own.append(f"Authorization: source must be one of {', '.join(AUTH_SOURCES)}")
+        source = "owner"
+
+    def num(key: str) -> int | None:
+        v = values.get(key)
+        if v is None:
+            return None
+        m = re.fullmatch(r"#?(\d+)", v)
+        if not m:
+            own.append(f"Authorization: {key} must be an Issue number like #120")
+            return None
+        return int(m.group(1))
+
+    root = num("root_issue")
+    parent = num("parent_issue")
+    inherited_flag = values.get("scope_inherited", "").lower() in ("true", "yes", "1")
+    if source == "inherited":
+        if root is None:
+            own.append("Authorization: an inherited authorization needs root_issue: #N")
+        if not inherited_flag:
+            own.append("Authorization: an inherited authorization must state scope_inherited: true")
+    if problems is None and own:
+        raise ContractError(own)
+    return Authorization(source=source, root_issue=root, parent_issue=parent or root,
+                         derived_by=values.get("derived_by", ""), scope_inherited=inherited_flag)
+
+
+def child_scope_problems(child: "IssueContract", root: "IssueContract", *, effective=None) -> list[str]:
+    """Deterministic 'the child stays inside its ROOT' check. Decomposition may narrow a ROOT, never
+    widen it: domains, locks and the regression budget are bounded by the ROOT's own contract.
+    `effective(contract) -> locks` lets the caller compare the locks implied by domains too."""
+    problems: list[str] = []
+    extra_domains = [d for d in child.domains if d not in root.domains]
+    if extra_domains:
+        problems.append(f"domains outside the ROOT #{root.number}: {', '.join(extra_domains)} (ROOT has {', '.join(root.domains)})")
+    child_locks = effective(child) if effective else child.locks
+    root_locks = {l.name: l.mode for l in (effective(root) if effective else root.locks)}
+    for l in child_locks:
+        if l.name not in root_locks:
+            problems.append(f"lock {l.name} not declared by the ROOT #{root.number}")
+        elif l.mode == "exclusive" and root_locks[l.name] != "exclusive":
+            problems.append(f"lock {l.name} is exclusive in the child but {root_locks[l.name]} in the ROOT #{root.number}")
+    for key in ("LOST", "crashes", "status_changes", "refusal_code_changes", "primary_signature_changes"):
+        c, r = child.budget_rule(key), root.budget_rule(key)
+        if _budget_wider(c, r):
+            problems.append(f"regression budget {key}: child allows {c.spec()} but the ROOT #{root.number} allows {r.spec()}")
+    auth = child.authorization
+    if not auth.inherited or auth.root_issue != root.number:
+        problems.append(f"Authorization section must say source: inherited / root_issue: #{root.number}")
+    return problems
+
+
+def _budget_wider(child: "BudgetRule", root: "BudgetRule") -> bool:
+    if root.kind == "allowed":
+        return False
+    if child.kind == "allowed":
+        return True
+    if root.kind == "none":
+        return child.kind != "none"
+    if root.kind == "max":
+        if child.kind == "none":
+            return False
+        if child.kind == "max":
+            return child.limit > root.limit
+        return True          # tagged predicates are not comparable to a number: treat as wider
+    return child.kind != "tagged" and child.kind != "none"
+
+
 @dataclass(frozen=True)
 class IssueContract:
     number: int
@@ -181,6 +292,24 @@ class IssueContract:
         return any(t.kind == "regression" for t in self.verification) or any(
             d in regression_domains for d in self.domains
         )
+
+    @property
+    def authorization(self) -> Authorization:
+        text = self.extra_sections.get(SECTION_AUTHORIZATION)
+        if not text:
+            return Authorization()
+        return parse_authorization(text, problems=[])
+
+    @property
+    def root_issue(self) -> int:
+        """The ROOT this Issue executes under: its own number, or the inherited root."""
+        a = self.authorization
+        return a.root_issue if a.inherited and a.root_issue else self.number
+
+    def with_authorization(self, auth: Authorization) -> "IssueContract":
+        extra = dict(self.extra_sections)
+        extra[SECTION_AUTHORIZATION] = auth.render()
+        return replace(self, extra_sections=extra)
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -470,6 +599,10 @@ def parse_contract(number: int, title: str, body: str, *, known_locks: tuple[str
     verification = _parse_verification(values[SECTION_VERIFICATION], tuple(a.id for a in acs), problems,
                                        behavior_changing=behavior_changing)
     budget = _parse_budget(values[SECTION_BUDGET], problems, risk=risk)
+    if values.get(SECTION_AUTHORIZATION):
+        auth = parse_authorization(values[SECTION_AUTHORIZATION], problems)
+        if auth.inherited and auth.root_issue == number:
+            problems.append("Authorization: an Issue cannot inherit from itself")
 
     if problems:
         raise ContractError(problems)

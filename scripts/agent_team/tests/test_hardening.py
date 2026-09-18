@@ -17,7 +17,7 @@ from agent_team.issue_contract import numbered_title, parse_budget_value, render
 from agent_team.labels import metadata_labels
 from agent_team.regression_budget import evaluate as evaluate_budget
 from agent_team.tests.helpers import KNOWN_LOCKS, make_contract
-from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _tick, _worker_that_commits, env  # noqa: F401
+from agent_team.tests.test_orchestrator_lifecycle import APPROVE, _add_issue, _git, _green, _orch, _owner_merge, _tick, _worker_that_commits, env  # noqa: F401
 
 REVIEW_CTX = "agent-review-result"
 
@@ -47,8 +47,8 @@ def test_review_status_pending_then_success_on_validated_sha(env):
     _tick(orch)                                              # reviewer APPROVE -> success on the exact SHA
     assert _statuses(gh, head) == "success"
     assert gh.status_log[-1][:3] == (head, REVIEW_CTX, "success")
-    _tick(orch)                                              # -> READY
-    assert _tick(orch).advanced[1] == "READY -> MERGED"     # GitHub (fake protection) let it through
+    assert _tick(orch).advanced[1] == "REVIEW -> READY_FOR_OWNER"
+    assert _owner_merge(orch, 1)["result"] == "SUCCESS"      # GitHub (fake protection) let it through
     events = [e for e in orch.store.events(1) if e["kind"] == "merge_gate_audit"]
     assert events and events[-1]["payload"]["bypass"] is False
     assert events[-1]["payload"]["contexts"] == {"agent-ci-result": "success", REVIEW_CTX: "success"}
@@ -97,9 +97,9 @@ def test_sha_change_after_review_makes_status_stale_and_reruns_review(env):
     assert orch.store.get(3).review_verdict == f"APPROVE@{head2}" and _statuses(gh, head2) == "success"
 
 
-def test_merge_is_deferred_until_github_shows_every_required_context(env):
+def test_owner_merge_refused_until_github_shows_every_required_context(env):
     """Never merge through the admin exemption: if GitHub does not show the review status green,
-    the orchestrator waits (and re-publishes from the store) instead of merging."""
+    the owner's merge is refused (and the status re-published from the store) — never forced."""
     config, gh, clock, _ = env
     _add_issue(gh, 4, risk="LOW")
     orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE}))
@@ -108,21 +108,20 @@ def test_merge_is_deferred_until_github_shows_every_required_context(env):
     head = gh.get_pr(rec.pr_number)["head"]["sha"]
     _green(gh, head)
     _tick(orch); _tick(orch); _tick(orch)
-    assert orch.store.get(4).state == sm.READY
-    # simulate GitHub losing the status (or a failed publish): the store still says APPROVE@head
+    assert orch.store.get(4).state == sm.READY_FOR_OWNER
     gh.statuses[head].pop(REVIEW_CTX)
     real_set = gh.set_commit_status
     gh.set_commit_status = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("github down"))
-    out = _tick(orch).advanced[4]
-    assert out.startswith("merge deferred") and REVIEW_CTX + "=missing" in out
-    assert gh.merged == [] and orch.store.get(4).state == sm.READY
-    assert any(e["kind"] == "merge_deferred" for e in orch.store.events(4))
+    res = _owner_merge(orch, 4)
+    assert res["result"] == "REFUSED" and "gates not green" in res["reason"] and REVIEW_CTX + "=missing" in res["reason"]
+    assert gh.merged == [] and orch.store.get(4).state == sm.READY_FOR_OWNER
+    assert any(e["kind"] == "owner_merge_refused" for e in orch.store.events(4))
     gh.set_commit_status = real_set
-    assert _tick(orch).advanced[4] == "READY -> MERGED"     # re-published from the store, then merged
+    assert _owner_merge(orch, 4)["result"] == "SUCCESS"     # re-published from the store, then merged
     assert _statuses(gh, head) == "success"
 
 
-def test_ci_check_missing_on_github_defers_merge(env):
+def test_ci_check_missing_on_github_refuses_owner_merge(env):
     config, gh, clock, _ = env
     _add_issue(gh, 5, risk="LOW")
     orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE}))
@@ -131,11 +130,11 @@ def test_ci_check_missing_on_github_defers_merge(env):
     head = gh.get_pr(rec.pr_number)["head"]["sha"]
     _green(gh, head)
     _tick(orch); _tick(orch); _tick(orch)
-    assert orch.store.get(5).state == sm.READY
+    assert orch.store.get(5).state == sm.READY_FOR_OWNER
     gh.checks[head] = [c for c in gh.checks[head] if c["name"] != "agent-ci-result"]   # aggregate check vanished
-    out = _tick(orch).advanced[5]
-    assert "policy re-check failed" in out or out.startswith("merge deferred")
-    assert gh.merged == []
+    res = _owner_merge(orch, 5)
+    assert res["result"] == "REFUSED" and "gates not green" in res["reason"]
+    assert gh.merged == [] and orch.store.get(5).state == sm.READY_FOR_OWNER
 
 
 # ---------------------------------------------------------------------------------------------
@@ -173,11 +172,11 @@ def test_undeclared_lost_always_fails_ci_and_declared_lost_passes():
     assert not ev.ok and ev.violations[0].key == "LOST"
 
 
-def test_lost_allowance_needs_medium_risk_and_explicit_opus_approval(env):
+def test_lost_allowance_needs_medium_risk_and_explicit_acknowledgement(env):
     config, gh, clock, _ = env
     c = make_contract(6, title="[agent] Task 6", risk="MEDIUM", resource="MEDIUM")
     body = render_body(c).replace("LOST: 0", "LOST: tagged:bedrooms>=6")
-    gh.add_issue(6, c.title, body, ["agent:queued", *metadata_labels(c.domains, c.risk, c.resource_class)])
+    gh.add_issue(6, c.title, body, ["agent:queued", "owner:approved", *metadata_labels(c.domains, c.risk, c.resource_class)])
     runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
     orch = _orch(config, gh, clock, runner)
     _tick(orch); _tick(orch)
@@ -187,11 +186,9 @@ def test_lost_allowance_needs_medium_risk_and_explicit_opus_approval(env):
     _green(gh, head)
     _tick(orch); _tick(orch)
     out = _tick(orch).advanced[6]
-    assert "lead_approval" in out and "lost_allowance" in out
-    orch.store.add_approval(6, "lead_approval", "opus", "ok")
-    assert "awaiting lost_allowance" in _tick(orch).advanced[6]
+    assert "awaiting lost_allowance" in out and "lead_approval" not in out
     orch.store.add_approval(6, "lost_allowance", "opus", "6-bedroom contexts are intentionally refused now")
-    assert _tick(orch).advanced[6] == "REVIEW -> READY"
+    assert _tick(orch).advanced[6] == "REVIEW -> READY_FOR_OWNER"
 
 
 def test_low_risk_contract_with_lost_allowance_is_not_executable(env):
@@ -235,7 +232,7 @@ def test_semantic_review_ac_not_met_downgrades_an_approve(env):
     c = make_contract(8, title="[agent] Task 8", domains="knowledge")
     body = render_body(c).replace("- AC-2 -> ARTIFACT:grep:backend/README.md:agentctl status",
                                   "- AC-2 -> review:the section explains when to run dry-run")
-    gh.add_issue(8, c.title, body, ["agent:queued", *metadata_labels(c.domains, c.risk, c.resource_class)])
+    gh.add_issue(8, c.title, body, ["agent:queued", "owner:approved", *metadata_labels(c.domains, c.risk, c.resource_class)])
     verdict = {**APPROVE, "ac_assessment": [{"ac": "AC-1", "verdict": "MET", "note": ""}, {"ac": "AC-2", "verdict": "UNCLEAR", "note": "cannot tell"},
                                             {"ac": "AC-3", "verdict": "MET", "note": ""}]}
     runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": verdict})
@@ -294,13 +291,14 @@ def test_external_merge_with_green_gates_is_not_a_bypass(env):
     rec = orch.store.get(10)
     head = gh.get_pr(rec.pr_number)["head"]["sha"]
     _green(gh, head)
-    _tick(orch); _tick(orch); _tick(orch)                    # READY with review success published
-    pr = gh.get_pr(rec.pr_number)
-    pr["merged"] = True; pr["state"] = "closed"; pr["merge_commit_sha"] = "cafe"
-    _tick(orch)
+    _tick(orch); _tick(orch); _tick(orch)                    # READY_FOR_OWNER with review success published
+    gh.merge_pr(rec.pr_number)                               # the owner pressed Merge on GitHub (gates green)
+    _tick(orch)                                              # reconciliation sees the owner's merge -> smoke
     kinds = [e["kind"] for e in orch.store.events(10)]
     assert "merge_gate_audit" in kinds and "admin_bypass_detected" not in kinds
-    assert orch.store.get(10).state in (sm.MERGED, sm.DONE, sm.BLOCKED)
+    assert orch.store.get(10).state in (sm.MERGED, sm.DONE)
+    assert any(e["kind"] == "transition" and e["payload"].get("to") == "MERGED" and "owner on GitHub" in e["payload"].get("note", "")
+               for e in orch.store.events(10))
 
 
 def test_branch_protection_drift_is_audited(env):
@@ -372,3 +370,16 @@ def test_renumber_titles_idempotent(env, capsys):  # noqa: F811
     capsys.readouterr()
     assert cli.cmd_issue(config, args) == 0                     # second run: no further changes
     assert "no titles need renumbering" in capsys.readouterr().out
+
+
+def test_cli_issue_create_numbers_title(env, tmp_path, capsys):  # noqa: F811
+    config, gh, _, _ = env
+    cli._github = lambda c, require_auth=True: gh   # type: ignore[assignment]
+    c = make_contract(0, title="[agent] Work reports and structured failure recovery")
+    contract_file = tmp_path / "contract.md"
+    contract_file.write_text(f"# {c.title}\n\n{render_body(c)}")
+    args = type("A", (), {"issue_cmd": "create", "from_file": str(contract_file), "title": None, "queue": False})()
+    assert cli.cmd_issue(config, args) == 0
+    issue = gh.get_issue(gh.next_number - 1)
+    assert issue["title"] == numbered_title(issue["number"], "Work reports and structured failure recovery")
+    assert f"title={issue['title']!r}" in capsys.readouterr().out

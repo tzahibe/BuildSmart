@@ -17,7 +17,10 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Two full corpus snapshots (merge-base on a cache miss + head, ~23 min each on the shared
+    # runner) plus the corpus invariants (which may re-run the corpus): 60 min was cut short on
+    # PR #23 and the cancelled job never saved its base cache, so the re-run repeated everything.
+    timeout-minutes: 120
     env:
       OPENAI_API_KEY: not-a-real-key-ci-only   # import-time client construction; never used for a call
     steps:
@@ -39,7 +42,7 @@ jobs:
           echo "merge-base: $BASE"
       - name: Restore cached base snapshot
         id: cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .agent/ci/base_snapshot.json
           key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
@@ -50,6 +53,15 @@ jobs:
           cd ../base/backend
           uv sync --group dev
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" --workers 4
+      # Save the base snapshot as soon as it exists — the merge-base is immutable, so the cache is
+      # valid even if a later step fails or the job is cancelled (actions/cache@v4's post step
+      # would not save on a cancelled job).
+      - name: Save base snapshot cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .agent/ci/base_snapshot.json
+          key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
       - name: Head snapshot
         working-directory: backend
         run: |
@@ -59,6 +71,9 @@ jobs:
         working-directory: backend
         env:
           TEST_MODE: REGRESSION
+          # Regression-tier tests that need per-plan data read the head snapshot computed above
+          # instead of regenerating the corpus (a third corpus pass does not fit the budget).
+          CORPUS_SNAPSHOT: ${{ github.workspace }}/.agent/ci/head_snapshot.json
         run: uv run pytest -q -p no:cacheprovider tests/regression_corpus -n 4
       - name: Evaluate the regression budget
         env:

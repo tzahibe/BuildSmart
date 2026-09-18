@@ -41,14 +41,25 @@ def corpus_contexts(path: Path = CORPUS) -> list[dict]:
 
 def _run_one(ctx: dict) -> tuple[str, dict]:
     # Imported inside the worker so `--workers N` forks cleanly and the import cost is per process.
+    import dataclasses
+
     from app.demo import service as svc  # noqa: WPS433
+    from app.vertical_slice.quality_metrics import measure_design, wet_adjacency_counts  # noqa: WPS433
     from spikes.failure_log_sweep.sweep import key_of, project_from_context, signature  # noqa: WPS433
 
     key = key_of(ctx)
     t0 = time.perf_counter()
     try:
         res = svc.generate_demo_design(project_from_context(ctx))
-        out = {"status": "PLANNED", "sig": [list(s) for s in signature(res.design)], "area": res.design.gross_area_m2}
+        # Issue #17 (repair): the architectural-quality REGRESSION test reads `metrics` instead of
+        # replaying the corpus a third time in CI — see quality_metrics.py. `m5_wet_adjacent_count`
+        # / `m5_wet_total_count` are folded in alongside `measure_design`'s own fields (not part of
+        # `QualityMetrics`/`QualityOut`, only this snapshot's copy) so the corpus-level M5 share can
+        # be pooled exactly — a plan's own ratio alone loses the denominator a corpus pool needs.
+        metrics = dataclasses.asdict(measure_design(res.design))
+        metrics["m5_wet_adjacent_count"], metrics["m5_wet_total_count"] = wet_adjacency_counts(res.design)
+        out = {"status": "PLANNED", "sig": [list(s) for s in signature(res.design)], "area": res.design.gross_area_m2,
+               "metrics": metrics}
     except svc.DemoGenerationError as exc:
         out = {"status": "REFUSED", "code": exc.code + ("+outline" if "כן מתאפשר" in exc.message else "")}
     except Exception as exc:  # noqa: BLE001 — a crash is a result, not an abort

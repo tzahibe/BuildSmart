@@ -3,96 +3,23 @@
     .venv/bin/python3 spikes/failure_log_sweep/quality_metrics.py [--contexts gained.json] [--split-by-strategy]
 
 Reference values (21 professional plans, visual census) live in specs/005-hub-private-wing/spec.md §1.
+
+The M1–M6 computations themselves live in `app.vertical_slice.quality_metrics` (Issue #17) — this
+script is now just the corpus driver and the printed report around it.
 """
 from __future__ import annotations
 
 import argparse
 import json
-import statistics
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.demo import service as svc  # noqa: E402
+from app.vertical_slice.quality_metrics import summarize as measure  # noqa: E402
 from spikes.failure_log_sweep.sweep import StrategyRecorder, distinct_contexts, project_from_context  # noqa: E402
-
-HABITABLE = ("BED", "MASTER", "LIVING", "DINING", "KITCHEN", "STUDY", "FAMILY", "SAFE")
-WET = ("BATH", "TOILET", "WC")
-WET_NEIGHBOURS = WET + ("KITCHEN", "LAUNDRY")
-PUBLIC = ("LIVING", "DINING", "KITCHEN")
-
-
-def is_(kind, room_type: str) -> bool:
-    t = room_type.upper()
-    return any(k in t for k in kind)
-
-
-def measure(designs) -> dict:
-    aspects, by_type = [], defaultdict(list)
-    exposed = hab = 0
-    circ, hub_deg, hall_asp = [], [], []
-    wet_adj = wet_tot = 0
-    contig = pub_plans = 0
-    for d in designs:
-        rooms = {r.id: r for r in d.rooms}
-        halls = {r.id for r in d.rooms if is_(("HALL", "CIRC"), r.type)}
-        ext = set()
-        for w in d.walls:
-            if w.boundary_context == "EXTERIOR":
-                ext.update(w.room_ids)
-        for r in d.rooms:
-            if is_(HABITABLE, r.type):
-                a = max(r.width_m, r.depth_m) / max(min(r.width_m, r.depth_m), 1e-6)
-                aspects.append(a); by_type[r.type].append(a); hab += 1
-                exposed += r.id in ext
-        total = sum(r.width_m * r.depth_m for r in d.rooms)
-        circ.append(sum(r.width_m * r.depth_m for r in d.rooms if r.id in halls) / total)
-        hub_deg.append(sum(1 for dr in d.doors if not dr.is_entrance and (dr.a in halls or dr.b in halls)))
-        for h in halls:
-            r = rooms[h]
-            hall_asp.append(max(r.width_m, r.depth_m) / max(min(r.width_m, r.depth_m), 1e-6))
-        adj = defaultdict(set)
-        for w in d.walls:
-            if w.boundary_context == "INTERIOR" and len(w.room_ids) >= 2:
-                for rid in w.room_ids:
-                    adj[rid].update(x for x in w.room_ids if x != rid)
-        for r in d.rooms:
-            if is_(WET, r.type):
-                wet_tot += 1
-                wet_adj += any(is_(WET_NEIGHBOURS, rooms[n].type) for n in adj[r.id] if n in rooms)
-        pub = [r.id for r in d.rooms if is_(PUBLIC, r.type)]
-        if len(pub) >= 2:
-            pub_plans += 1
-            open_adj = defaultdict(set)
-            for o in d.open_interfaces:
-                for rid in o.room_ids:
-                    open_adj[rid].update(x for x in o.room_ids if x != rid)
-            for dr in d.doors:
-                if "CASED" in dr.kind.upper() or "OPEN" in dr.kind.upper():
-                    open_adj[dr.a].add(dr.b); open_adj[dr.b].add(dr.a)
-            seen, stack = set(), [pub[0]]
-            while stack:
-                n = stack.pop()
-                if n in seen:
-                    continue
-                seen.add(n); stack.extend(x for x in open_adj[n] if x in pub)
-            contig += all(p in seen for p in pub)
-    aspects.sort()
-    return dict(
-        n=len(designs),
-        aspect_median=statistics.median(aspects) if aspects else None,
-        aspect_p90=aspects[int(0.9 * len(aspects))] if aspects else None,
-        by_type={t: (round(statistics.median(v), 2), len(v)) for t, v in sorted(by_type.items())},
-        exposure=(exposed, hab),
-        circ_median=statistics.median(circ) if circ else None, circ_max=max(circ) if circ else None,
-        hall_doors_median=statistics.median(hub_deg) if hub_deg else None,
-        hall_doors_range=(min(hub_deg), max(hub_deg)) if hub_deg else None,
-        hall_aspect_median=statistics.median(hall_asp) if hall_asp else None,
-        hall_compact_share=(sum(1 for a in hall_asp if a <= 1.5), len(hall_asp)),
-        wet=(wet_adj, wet_tot), public_contig=(contig, pub_plans),
-    )
 
 
 def report(label: str, m: dict) -> None:

@@ -91,10 +91,18 @@ APPROVE = {"verdict": "APPROVE", "summary": "fine", "ac_assessment": [{"ac": "AC
            "tests_meaningful": True, "architecture_appropriate": True}
 
 
-def _add_issue(gh: FakeGitHub, number: int, **kw):
+def _add_issue(gh: FakeGitHub, number: int, approved: bool = True, **kw):
+    """A queued Issue. `approved=True` adds the owner's label — without it nothing may execute."""
     c = make_contract(number, title=f"[agent] Task {number}", **kw)
-    gh.add_issue(number, c.title, render_body(c), ["agent:queued", *metadata_labels(c.domains, c.risk, c.resource_class)])
+    labels = ["agent:queued", *metadata_labels(c.domains, c.risk, c.resource_class)] + (["owner:approved"] if approved else [])
+    gh.add_issue(number, c.title, render_body(c), labels)
     return c
+
+
+def _owner_merge(orch, issue_id: int, sha: str | None = None, **kw):
+    rec = orch.store.get(issue_id)
+    return orch.owner_merge(issue_id, sha or rec.validated_commit, source=kw.get("source", "test-owner"), owner_id=kw.get("owner_id", 1),
+                            command_id=kw.get("command_id", f"cmd-{issue_id}-{sha or rec.validated_commit}"))
 
 
 def _green(gh: FakeGitHub, sha: str):
@@ -121,7 +129,7 @@ def _tick(orch):
     return rep
 
 
-def test_happy_path_low_risk_auto_merges_and_closes(env):
+def test_happy_path_low_risk_ends_at_ready_for_owner_then_owner_merges(env):
     config, gh, clock, origin = env
     _add_issue(gh, 1, risk="LOW")
     runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
@@ -144,9 +152,18 @@ def test_happy_path_low_risk_auto_merges_and_closes(env):
     assert _tick(orch).advanced[1] == "review started"  # reviewer thread ran and approved
     assert orch.store.get(1).review_verdict == f"APPROVE@{sha}"
     assert any(r[0] == rec.pr_number and r[1] == "COMMENT" for r in gh.reviews)
-    assert _tick(orch).advanced[1] == "REVIEW -> READY"
-    assert _tick(orch).advanced[1] == "READY -> MERGED"
-    assert gh.merged == [rec.pr_number]
+    assert _tick(orch).advanced[1] == "REVIEW -> READY_FOR_OWNER"
+    # the orchestrator never merges: ticks leave it waiting, with the READY report + notification queued once
+    for _ in range(3):
+        assert _tick(orch).advanced[1] == "awaiting owner"
+    assert gh.merged == [] and orch.store.get(1).state == sm.READY_FOR_OWNER
+    assert "agent:ready-for-owner" in gh.issue_labels(1)
+    assert any("READY FOR OWNER" in c[1] and "Opus recommendation" in c[1] for c in gh.comments if c[0] == 1)
+    assert orch.store.notification(f"pr:{rec.pr_number}:READY_FOR_OWNER:{sha}") is not None
+    # explicit owner merge command
+    res = _owner_merge(orch, 1)
+    assert res["result"] == "SUCCESS" and res["actual_validated_sha"] == sha and gh.merged == [rec.pr_number]
+    assert orch.store.get(1).state == sm.MERGED
     assert _tick(orch).advanced[1] == "smoke started"
     final = orch.store.get(1)
     assert final.state == sm.DONE and gh.issues[1]["state"] == "closed"
@@ -159,19 +176,21 @@ def test_happy_path_low_risk_auto_merges_and_closes(env):
     assert any("Done." in c[1] for c in gh.comments if c[0] == 1)
 
 
-def test_medium_risk_waits_for_lead_approval(env):
+def test_medium_and_high_risk_end_at_ready_for_owner_and_never_auto_merge(env):
     config, gh, clock, _ = env
     _add_issue(gh, 2, risk="MEDIUM", resource="MEDIUM")
+    _add_issue(gh, 3, risk="HIGH", resource="MEDIUM", domains="qa", locks="none")
     runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
     orch = _orch(config, gh, clock, runner)
     _tick(orch); _tick(orch)
-    rec = orch.store.get(2)
-    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
-    _tick(orch); _tick(orch)
-    assert "awaiting lead_approval" in _tick(orch).advanced[2]
-    assert orch.store.get(2).state == sm.REVIEW
-    orch.store.add_approval(2, "lead_approval", "opus", "ok")
-    assert _tick(orch).advanced[2] == "REVIEW -> READY"
+    for n in (2, 3):
+        rec = orch.store.get(n)
+        _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+    for _ in range(7):                                        # one reviewer slot: reviews run one after the other
+        _tick(orch)
+    assert gh.merged == [] and {orch.store.get(n).state for n in (2, 3)} == {sm.READY_FOR_OWNER}
+    for risk in ("LOW", "MEDIUM", "HIGH"):
+        assert config.risk_policy[risk].auto_merge is False
 
 
 def test_ci_failure_repairs_then_blocks_after_budget(env):
@@ -361,16 +380,16 @@ def test_base_advanced_at_ready_revalidates(env):
     sha = gh.get_pr(rec.pr_number)["head"]["sha"]
     _green(gh, sha)
     _tick(orch); _tick(orch); _tick(orch)
-    assert orch.store.get(14).state == sm.READY
+    assert orch.store.get(14).state == sm.READY_FOR_OWNER
     other = config.repo_root.parent / "other"
     _git(["clone", "-q", str(origin), str(other)], config.repo_root.parent)
     _git(["config", "user.email", "o@example.com"], other)
     _git(["config", "user.name", "other"], other)
     (other / "other.txt").write_text("o")
     _git(["add", "."], other); _git(["commit", "-q", "-m", "other"], other); _git(["push", "-q", "origin", "main"], other)
-    assert _tick(orch).advanced[14] == "READY -> CI (base advanced)"
+    assert _tick(orch).advanced[14] == "READY_FOR_OWNER -> CI (base advanced, readiness invalidated)"
     assert (Path(rec.worktree) / "other.txt").exists()
-    assert any("re-running the gates" in c[1] for c in gh.comments if c[0] == 14)
+    assert any("Readiness for" in c[1] and "invalidated" in c[1] for c in gh.comments if c[0] == 14)
 
 
 def test_ci_timeout_reruns_once_then_blocks(env):
@@ -392,4 +411,6 @@ def test_status_renders(env):
     orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits()}))
     _tick(orch)
     text = render(config, orch.store, orch.resources, probe_machine=False, now=clock())
-    assert "RUNNING" in text and "#16 PR #" in text and "workers 0/2" in text and "weighted capacity 0/4" in text
+    assert "RUNNING" in text and "#16 PR #" in text and f"workers 0/{config.max_worker_agents}" in text
+    assert "ROOT ISSUES" in text and "AVAILABLE WORKERS" in text and f"{config.max_worker_agents} / {config.max_worker_agents}" in text
+    assert "RESOURCES" in text and f"weighted capacity 0 / {config.weighted_capacity}" in text and "BLOCKERS" in text

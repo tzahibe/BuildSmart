@@ -10,14 +10,17 @@ github:
   repo: tzahibe/BuildSmart          # origin still says "sddproject"; GitHub redirects the rename
   base_branch: main
   poll_interval_seconds: 120
-  poll_labels: [agent:queued]
+  # Any of these labels makes an open Issue a candidate; authorization is then decided per Issue:
+  # owner:approved = ROOT (the owner's product goal, executed in full), agent:queued = a ROOT or a
+  # child the Team Lead queued (a child inherits authorization from its owner-approved ROOT).
+  poll_labels: [agent:queued, owner:approved]
   # Trust boundary: only Issues opened by these author associations are executable. Any other
   # author's Issue is ignored even if it carries the labels (labels can be added by anyone with
   # triage, the body is untrusted text).
   executable_author_associations: [OWNER, MEMBER, COLLABORATOR]
   merge_method: squash              # squash | merge
   delete_branch_after_merge: true
-  ci_wait_seconds: 5400             # give up waiting for checks after 90 min -> INFRA_FAILURE
+  ci_wait_seconds: 9000             # give up waiting for checks after 150 min -> INFRA_FAILURE (gate-4 may take ~110 min cold)
   ci_poll_interval_seconds: 60
   # Deterministic CI: the aggregate GitHub Actions check (agent-ci.yml's last job). It fails when
   # any gate failed and passes when gate-4 was legitimately skipped for a non-regression PR.
@@ -117,10 +120,10 @@ claude:
   domain_lead_tools: [Read, Grep, Glob]
 
 resources:
-  max_worker_agents: 2
+  max_worker_agents: 3              # raised 2->3 on 2026-09-17 with the owner's permission (M1 Pro 10c/32GB); usage guard live
   max_reviewer_agents: 1
   max_domain_leads: 1
-  weighted_capacity: 4              # sum of weights of running agent jobs
+  weighted_capacity: 7              # sum of weights of running agent jobs (HEAVY 3 + MEDIUM 2 + MEDIUM 2)
   weights: {LIGHT: 1, MEDIUM: 2, HEAVY: 3}
   cpu_threshold_percent: 75         # do not spawn when the machine-wide CPU is above this
   min_free_memory_gb: 6
@@ -155,19 +158,89 @@ locks:
 repair:
   max_attempts: 2                   # automatic repair attempts after a red CI before agent:blocked
 
+# Subscription usage guard (owner rule, 2026-09-17): `claude -p /usage` is probed every tick (free);
+# at pause_at_percent (session or week) the scheduler pauses itself — no new claims, workers,
+# repairs or reviews — the owner is told on Telegram, and it resumes by itself once the window
+# resets / usage falls below resume_below_percent. A run that dies on a rate limit is requeued
+# without consuming a repair attempt.
+usage_guard:
+  enabled: true
+  pause_at_percent: 98
+  resume_below_percent: 90
+  probe_every_seconds: 120
+
+# Rolling backlog (owner rule): when every queued/active roadmap Issue has finished, the next
+# `batch_size` roadmap topics are drafted as agent:draft Issues (with a knowledge check) and the
+# owner is asked to approve them. Drafts only — nothing runs without owner:approved.
+roadmap:
+  file: docs/ROADMAP.md
+  auto_next_batch: true
+  batch_size: 5
+
+# Governance (owner-controlled backlog): every risk level ends at agent:ready-for-owner once its
+# requirements hold; the orchestrator recommends and NEVER merges. auto_merge must stay false —
+# the loader refuses a config that sets it true. Only the owner merges (Telegram CONFIRM MERGE or
+# the GitHub Merge button), and only the owner sets owner:approved on an Issue.
 risk_policy:
   LOW:
-    requires: [ci_green, reviewer_green]
-    auto_merge: true
+    requires: [ci_green, regression_green, reviewer_green]
+    auto_merge: false
     regression: required_if_backend   # regression gate still runs when backend code changed
   MEDIUM:
-    requires: [ci_green, regression_green, reviewer_green, lead_approval]
+    requires: [ci_green, regression_green, reviewer_green]
     auto_merge: false
     regression: required_if_backend
   HIGH:
-    requires: [ci_green, regression_green, reviewer_green, lead_architecture_review]
+    requires: [ci_green, regression_green, reviewer_green]
     auto_merge: false
     regression: always
+
+governance:
+  # GOVERNANCE (owner rule, 2026-09-18): the owner defines the product backlog by creating/approving
+  # ROOT Issues (this label; only the owner adds it — Telegram "approve"/"Create & Queue" or GitHub).
+  # Once a ROOT exists the Team Lead executes it in full without further approval: claim, queue,
+  # decompose into child Issues (authorization inherited — `### Authorization` section, agent:child),
+  # workers, branches/worktrees, PRs, CI, regression, review, repair, base updates. The ONLY
+  # owner-only action is MERGE TO MAIN (no auto-merge at any risk). `agent:hold` (owner) parks an
+  # authorized Issue.
+  owner_approval_label: owner:approved
+  # Concurrency: the owner sets the maxima (resources.max_worker_agents, weighted_capacity,
+  # heavy_job_concurrency above); within them the Team Lead/scheduler uses every slot that is safe.
+  # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
+  # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
+  max_active_issues: 3
+  # Locks are released when a PR reaches READY_FOR_OWNER (its code changes are done); a repair on
+  # that PR re-acquires them first. false = hold locks until merge (serializes on owner latency).
+  release_locks_at_ready: true
+  # SIGTERM / `agentctl stop` / launchd restart drain: running agents finish (up to this many
+  # seconds), nothing new starts, then the process exits. SIGINT or a second SIGTERM = stop now.
+  drain_timeout_seconds: 3900
+
+remote_control:
+  telegram:
+    enabled: true
+    mode: long_polling            # V1: the orchestrator machine polls api.telegram.org; no inbound port
+    token_env: AGENT_TELEGRAM_BOT_TOKEN
+    # Optional KEY=VALUE file (chmod 600) loaded into the remote service's environment only, so the
+    # bot token never has to live in a shell profile. Never committed, never printed.
+    env_file: ~/.agent-team/telegram.env
+    poll_timeout_seconds: 30
+    pairing_ttl_seconds: 600
+    merge_confirmation_ttl_seconds: 600
+    # Two-tier interpretation for fast replies: every message is first classified by the fast model
+    # (no tools, a few seconds); only drafting/answering actions then run the Team Lead model with
+    # read-only repository access.
+    interpreter_fast_model: sonnet
+    interpreter_model: opus       # drafts and evidence-based answers (read-only tools)
+    interpreter_timeout_seconds: 240
+    interpreter_fast_timeout_seconds: 60
+    transcription_provider: none  # none | openai (Whisper via OPENAI_API_KEY); voice never authorizes a merge
+
+notifications:
+  telegram:
+    ready_for_owner: true
+    max_attempts: 3               # bounded retries per notification (dedup key = PR + READY_FOR_OWNER + SHA)
+    retry_backoff_seconds: 120
 
 # Domains whose code changes make the regression gate mandatory.
 regression_domains: [backend, geometry, validator, ai]
