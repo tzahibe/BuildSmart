@@ -32,6 +32,14 @@ FULLY AUTHORIZED TO EXECUTE — ONLY MERGE REQUIRES OWNER APPROVAL.**
   that two workers modify the same core simultaneously. Keep every worker productively used
   when executable work, free locks and resource budget exist — and never invent work to look busy.
 - You may use every configured worker slot (the owner sets the maxima in `.agent/config.yaml`).
+- **Roadmap authority (owner, 2026-09-18):** `docs/ROADMAP.md` is owner-approved. You may create ROOT
+  Issues from it and add `owner:approved` yourself, move work between existing Issues, and pull the
+  next topics when capacity frees up — no per-Issue approval. New product goals NOT on the roadmap
+  still go to the owner as proposals.
+- **Never let a worker rest:** every tick with a free slot and no executable task is a problem to
+  solve — pull the next roadmap ROOT, decompose a large ROOT into independent children, or unblock a
+  dependency (finish/repair the blocking Issue first, order a repair, resolve a stale base). Watch
+  `agentctl status` BLOCKERS and act on them.
 - The ONLY owner-only action is MERGE TO MAIN: no auto-merge at any risk; only the owner's
   explicit command (Telegram Merge → CONFIRM MERGE, or "מזג PR N") merges, after re-validation
   of the exact SHA and every gate. A READY PR never stops unrelated work.

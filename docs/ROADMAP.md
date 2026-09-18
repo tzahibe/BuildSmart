@@ -1,107 +1,121 @@
-# BuildSmart — Proposed Roadmap (owner-maintained)
+# BuildSmart — Unified Product Roadmap (owner-approved)
 
-Status: PROPOSED ROADMAP, not a backlog. Written by the owner on 2026-09-17. Nothing here is an
-Issue. The owner decides, topic by topic, what enters the backlog (see "How this roadmap is used").
+Status: **OWNER-APPROVED ROADMAP** since 2026-09-18. The owner's roadmap task (EPIC 0 + 16 product Issues)
+and the earlier proposed roadmap (2026-09-17, 32 topics) are merged here; overlapping topics were unified
+into one ROOT Issue each. Every ROOT below carries `owner:approved`; the Team Lead executes them
+autonomously (decomposition into child Issues, workers, PRs, CI, regression, review, repair) and pulls the
+next ones from this list as capacity frees up (owner rule of 2026-09-18: "you may create Issues and approve
+them for work from the roadmap; use every worker; release blocked work"). **Only the owner merges to
+`main`** (normal periods: per PR; weekend/holiday periods: one rollup PR).
 
 ## How this roadmap is used
 
-1. The owner says, in the IDE or on Telegram, for example: "בוא נקדם Windows + Exterior Exposure".
-2. The Opus Team Lead investigates the current state (Wiki, code, tests, audit trail; a read-only
-   Sonnet domain lead when useful) and returns a **proposal**: 2–5 well-formed Issues, ordered,
-   with dependencies, risk/resource class, locks, regression budget and deterministic Acceptance
-   Criteria — in the PROPOSED FOLLOW-UP format. Proposals are text, never GitHub Issues.
-3. The owner approves what actually enters the backlog (Telegram: draft → Create only / Create &
-   Queue; or a contract file the owner approves). Only then does execution start, and only with
-   `owner:approved`.
-4. Nothing on this list is opened as an Issue on its own initiative; the list is never "worked
-   through" automatically.
+1. Priority and dependencies come from the DAG below, not from Issue numbers.
+2. A ROOT Issue is executed as one task or decomposed into `agent:child` Issues that inherit its
+   authorization and must stay inside its scope. Work a ROOT does not require is reported as a
+   PROPOSED PRODUCT FOLLOW-UP and waits for the owner.
+3. Topics in "Later / not yet a ROOT" are pulled by the Team Lead when their predecessors are done and
+   capacity is free — as ROOT Issues with a contract and a knowledge check, `owner:approved` on
+   creation (authorized by this roadmap).
+4. Every implementation asks "which generic architectural invariant or quality principle is missing?" —
+   topology, semantics, realized geometry, deterministic validation, quality metrics; never coordinate
+   hacks, screenshot special cases, arbitrary constants or renderer tricks.
 
-## P0 — must close before anything else
+## EPIC 0 — Architectural reference & quality benchmark (P0 / foundation) — ROOT #28 (decomposed)
 
-- **סגירת איכות התכנון הבסיסי** — לוודא שהתוכניות שאנחנו כבר יודעים לייצר הן ברמה אדריכלית
-  טובה: ניצול שטח, פרופורציות חדרים, מניעת dead space, adjacency נכון, circulation הגיוני, בלי חדר
-  בתוך חדר ובלי פתרונות שרשרת גרועים.
-- **Entrance / Exterior Door** — כניסה אמיתית לבית: דלת חיצונית, מיקום כניסה, foyer/מבואה במידת
-  הצורך, קשר נכון לאזור הציבורי ולא כניסה אקראית לתוך חדר.
-- **Entrance-to-Circulation Integration / no entrance dead-end walls** (added by the owner
-  2026-09-17; drafted as Issue #22, dependency #20) — הכניסה מתחברת ל-circulation אמיתי: דלת חיצונית → אזור
-  כניסה/מעבר → צומת ציבורי ראשי → מסדרון פרטי. לא קיר שרירותי מול הדלת ולא "כיס" מת ליד הכניסה:
-  נקודת הסיום של המסדרון נקבעת לפי טופולוגיה (אילו חדרים הוא משרת) ולא לפי גבול המגרש; זיהוי
-  dead-space pockets ליד הכניסה; מבואה מכוונת נשארת תקינה; בלי רגרסיה בנגישות. פתרון גנרי, לא
-  תיקון ל-fixture אחד. Risk MEDIUM. תלוי ב-Entrance / Exterior Door (#20).
-- **Doors + Access Topology** — להשלים חוקי דלתות: לכל חדר נגישות תקינה, בלי bedroom-to-bedroom
-  כפתרון רגיל, דלתות שירות, פתחים הגיוניים, בדיקות deterministic.
-- **Windows + Exterior Exposure** — חלונות כחלק אמיתי מהתכנון, לא ציור בלבד. אילו חדרים חייבים
-  קיר חיצוני, אילו חייבים חלון, מיקום חלון, וה-validator שמוודא את זה.
-- **Laundry Room semantics** — לסגור סופית את ההגדרה שכבר קבענו: חדר כביסה הוא חדר סגור שאפשר
-  להיכנס אליו, דלת, מקום שימושי למכונה, וחלון חיצוני חובה. לבדוק שה-generator וה-validator באמת
-  מבטיחים את זה.
-- **Exact Area / Room Area Fidelity** — המשתמש מבקש מטרים — התוכנית צריכה לכבד אותם. להגדיר
-  tolerance ברור, לבדוק שטח ממומש ולא רק target, ולהימנע מ-silent shrinking.
-- **Buildable Region / Site Constraints** — לעבור מתכנון בתוך מלבן מופשט לתכנון בתוך מגרש אמיתי:
-  parcel, setbacks, buildable polygon, orientation, footprint fit.
+| Child | Issue | Depends on |
+|---|---|---|
+| Quality rubric A–O + anti-pattern library | #29 | — |
+| Reference collection V1 (schema, rights policy, ≥30 entries) | #30 | — |
+| Reference annotations (WHY THIS PLAN WORKS) | #31 | #29, #30 |
+| Reference benchmark framework (plan vs rubric vs references) | #32 | #29, #30 |
+| Reviewer integration (rubric in reviews, overfit downgrade, deterministic stays authoritative) | #33 | #29 |
 
-## P1
+Merged from the old roadmap: "סגירת איכות התכנון הבסיסי" (measurement side; the M1–M6 baseline is #17,
+done) and "Plan Quality Evaluation / Benchmark" (P3).
 
-- **Multi-Level Phase 2** — להמשיך מה-Phase 1 שכבר קיים: חלוקת פונקציות בין קומות, stairs/core
-  אמיתי, קשר אנכי, footprint שונה בין קומות במידת הצורך, validation ברמת building ולא רק level.
-- **Stairs / Vertical Core** — גרם מדרגות כאלמנט גיאומטרי אמיתי עם שטח, רוחב, נחיתה, גישה ופתחים —
-  לא placeholder.
-- **Parking / Garage** — חניה פתוחה, חניה מקורה ו-Garage כחלק מה-site planning. מידות, גישה
-  מהרחוב, קשר לבית, orientation ומניעת חסימת כניסה.
-- **Balconies / Patios / Outdoor Connections** — מרפסות, יציאה לגינה, patio, וקשר בין
-  living/kitchen לשטח החוץ.
-- **Hallways / Circulation Quality** — לא רק "יש גישה", אלא איכות circulation: רוחבים, אורך
-  מסדרונות, מינימום שטח מבוזבז, junctions הגיוניים, dead-end detection.
-- **Storage / Closets / Utility Spaces** — ארונות, pantry, utility closet, mechanical/service
-  areas — אבל רק כאשר התוכנית או דרישת המשתמש מצדיקה אותם.
-- **Kitchen / Bathroom fixture-aware planning** — לעבור מחדר מלבני בשם KITCHEN/BATHROOM לתכנון
-  שיודע שיש fixtures וצריך clearance אמיתי סביבם.
-- **Alternative Plans / Diversity** — עבור אותו brief לייצר 2–3 תוכניות שבאמת שונות בקונספט, לא
-  אותה תוכנית עם mirror קטן. למשל central public zone, split-wing, L-massing וכו'.
-- **Concept Quality / Decomposition Engine** — כנראה אחד המנועים החשובים ביותר. לשפר את השלב שבו
-  מחליטים איך הבית מאורגן לפני שמתחילים לפתור coordinates.
-- **Massing selection quality** — Rectangle/L/irregular צריכים להיבחר בגלל איכות התוצאה ולא כי
-  "L יותר מעניין". לסגור גם את נושא eligibility-before-orientation שכבר זוהה.
+## P0 product ROOTs
 
-## P2
+| Owner item | ROOT | Status | Depends on | Merged old-roadmap topics |
+|---|---|---|---|---|
+| Issue 1 Circulation efficiency & corridor minimization | #36 | approved | #29 | Hallways / Circulation Quality |
+| Issue 2 Entrance & circulation integration | #22 (+ #20 entrance policy) | approved | #20 → (#17 ✓, #18); #22 → #20, #36 | Entrance / Exterior Door; Entrance Sequence Quality |
+| Issue 3 Realized area & dimension consistency | #34 | approved | — | Exact Area / Room Area Fidelity (display side; requested-vs-realized fidelity stays a later topic) |
+| Issue 4 Door placement / swing / clearance | #38 (after #18 access topology, in CI) | approved | #18 | Doors + Access Topology |
+| Issue 5 Window & exterior exposure semantics | #19 | approved | #17 ✓, #18 | Windows + Exterior Exposure; North/Orientation (orientation field only) |
+| Issue 6 Wet-room privacy & access quality | #37 | approved | #18 | — (wet-room quality tier is done) |
+| Issue 7 SAFE_ROOM / MAMAD preservation | #35 | approved | — | — |
+| Issue 8 Laundry room invariants | #21 | approved | #18, #19 | Laundry Room semantics |
 
-- **Seam / Shape Recovery** — לשפר מקרים שבהם concept טוב נכשל בגלל realization/partition seam
-  ולא בגלל שהתוכנית בלתי אפשרית.
-- **Entrance Sequence Quality** — מעבר מ-"יש דלת חיצונית" ל-arrival sequence אמיתי: street →
-  entrance → public circulation, בלי כניסה גרועה דרך אזור פרטי.
-- **North / Orientation / Solar reasoning** — חץ צפון, façade orientation, כיוון חלונות ואזורים
-  ציבוריים, וקבלת preference מהמשתמש בלי להמציא דרישה אם היא לא נמסרה.
-- **Regulation / Compliance Engine** — להפוך את ה-RAG/Knowledge לחוקי validation אמיתיים:
-  regulation source → typed rule → deterministic check → citation/report. ה-LLM לא מחליט אם תוכנית
-  חוקית.
-- **Clarification Agent** — לפני תכנון, לזהות מידע קריטי חסר ולשאול מעט שאלות טובות: מגרש, קומות,
-  כניסה, orientation, parking, safe room וכו'. לא לשאול עשרים שאלות על כל brief.
-- **Plan Editing / Conversational Changes** — "תזיז את חדר השינה מזרחה", "תגדיל מטבח ב-3 מ״ר",
-  "תחליף בין חדרים" → proposal → validation → confirmation → version חדש.
-- **Drag / Resize / Align UI** — עריכה חזותית שמשתמשת באותו deterministic spatial-edit API, ולא UI
-  שמצייר משהו שה-backend לא מכיר.
-- **ReviewPage completion** — לחבר את כל המידע החדש למשתמש: warnings, trade-offs, blocked
-  changes, realized vs requested area, reasons for refusal.
-- **Architectural Report / PDF output** — תוכנית + areas + orientation + assumptions + warnings +
-  regulatory evidence + version metadata. בסוף גם PDF מקצועי.
-- **SVG/DXF production quality** — קווים, wall thickness, doors, windows, dimensions, labels, north
-  arrow, scale — renderer לא ממציא כלום.
+## P1 product ROOTs
 
-## P3
+| Owner item | ROOT | Depends on | Merged old-roadmap topics |
+|---|---|---|---|
+| Issue 9 Architectural interior layout MVP | #39 | #19, #38 | Kitchen / Bathroom fixture-aware planning; Storage / Closets (objects only) |
+| Issue 10 Furnishability / usability validation | #40 | #39 | — |
+| Issue 11 Public-zone composition | #41 | #39 | Concept Quality (public-zone part) |
+| Issue 12 Master-suite access & privacy | #42 | #37, #38 | — |
+| Issue 13 Dead space / residual pocket detection | #43 | #36, #22 | Hallways / Circulation Quality (dead-end part) |
 
-- **Plan Retrieval / Reference Library** — מאגר גדול של תוכניות: retrieval לפי geometry/program
-  ולא רק area, ואז adaptation מבוקר. אחרי שה-generator הנוכחי יציב יותר.
-- **Plan Quality Evaluation / Benchmark** — benchmark קבוע שמודד לא רק planned/refused אלא
-  architectural quality: circulation, wasted area, proportions, exterior exposure, privacy,
-  adjacency ו-diversity.
-- **Performance / Runtime** — אחרי שהאיכות נכונה: profiling, caching, candidate pruning,
-  incremental validation, parallel execution איפה שבטוח.
-- **Knowledge system follow-ups** — verified_checksum, persistent embedding model, retrieval
-  latency, drift detection ושיפורי Knowledge נוספים — חשובים, אבל לא עוקפים את איכות המוצר.
+## P2 product ROOTs
 
-## INFRA
+| Owner item | ROOT | Depends on | Merged old-roadmap topics |
+|---|---|---|---|
+| Issue 14 Plumbing / wet-core efficiency | #44 | #37 | — |
+| Issue 15 Wall semantic model | #45 | #38, #19 | — |
+| Issue 16 Professional architectural drawing | #46 | #45, #39, #40 | SVG/DXF production quality (SVG part); Architectural Report / PDF (drawing part) |
 
-- **Agent-Team / Telegram operational hardening** — לסיים את Telegram control plane,
-  owner-controlled backlog, READY notifications, remote merge, pause/resume, audit ו-resource
-  management. אחרי שזה יציב — לא לתת לתשתית להפוך שוב לפרויקט המרכזי.
+## Dependency DAG (execution order)
+
+```
+#28 EPIC 0 ──┬─ #29 rubric ──┬─ #31 annotations (also #30)
+             ├─ #30 refs ────┤─ #32 benchmark (also #30)
+             │               └─ #33 reviewer integration
+             └─────────────────► #36 circulation ──► #22 entrance integration ──► #43 dead space
+#18 doors/access (CI) ──┬─ #20 entrance policy ──► #22
+                        ├─ #19 windows ──┬─ #21 laundry
+                        │                ├─ #39 interior layout ──┬─ #40 furnishability ──► #46 drawing
+                        │                │                        └─ #41 public-zone composition
+                        ├─ #37 wet privacy ──┬─ #42 master suite (also #38)
+                        │                    └─ #44 plumbing efficiency
+                        └─ #38 door swing ──┬─ #39, #42
+                                            └─ #45 wall model (also #19) ──► #46
+#34 area consistency (independent)      #35 safe room (independent)
+```
+
+## Execution waves (3 workers; locks serialize geometry-core / validator-core work)
+
+- **Wave 1 (now, parallel):** #29, #30 (docs, light), #34 area consistency, #35 safe room, #18 finishing
+  in CI; infra #24/#25.
+- **Wave 2:** #31, #32, #33 (after #29/#30), #36 circulation (after #29), #20 entrance policy, #19
+  windows, #37 wet privacy, #38 door swing (after #18).
+- **Wave 3:** #22 entrance integration (after #20, #36), #21 laundry (after #18, #19).
+- **Wave 4 (P1):** #39 → #40, #41; #42; #43.
+- **Wave 5 (P2):** #44, #45 → #46.
+
+## Later / not yet a ROOT (from the 2026-09-17 roadmap; pulled by the Team Lead when predecessors are done)
+
+- **Buildable Region / Site Constraints** — parcel, setbacks, buildable polygon, orientation, footprint fit
+  (feeds #46's plot context).
+- **Exact area fidelity vs the requested area** — tolerance, realized vs requested, no silent shrinking
+  (display consistency is #34).
+- **Multi-Level Phase 2**, **Stairs / Vertical Core**, **Parking / Garage**, **Balconies / Patios / Outdoor
+  Connections** (rubric section N), **Storage / Closets / Utility** beyond layout objects.
+- **Alternative Plans / Diversity**, **Concept Quality / Decomposition Engine**, **Massing selection
+  quality** (incl. the recorded L-orientation eligibility-ordering follow-up), **Seam / Shape Recovery**.
+- **North / Orientation / Solar reasoning** beyond the orientation field, **Regulation / Compliance
+  Engine** (separate corpus — never mixed with the architectural references), **Clarification Agent**,
+  **Plan Editing / Conversational Changes**, **Drag / Resize / Align UI**, **ReviewPage completion**,
+  **Architectural Report / PDF output**, **DXF output**.
+- **Plan Retrieval / Reference Library** (beyond the curated reference set), **Performance / Runtime**,
+  **Knowledge system follow-ups**.
+- **INFRA:** Agent-Team / Telegram operational hardening (ongoing: #24 work reports, #25 numbered titles).
+
+## Review principles for these Issues
+
+For geometry / circulation / interior PRs the independent reviewer evaluates: (1) does the implementation
+satisfy the Issue; (2) does it improve the identified architectural principle; (3) is it consistent with
+`docs/architecture_reference/quality_rubric.md`; (4) does it avoid overfitting one plan; (5) does
+deterministic evidence support the behavior; (6) are regressions expected and within budget. Deterministic
+tests remain authoritative for hard invariants — the semantic review never turns a failing deterministic
+validation into PASS.

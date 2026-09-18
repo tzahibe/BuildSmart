@@ -200,6 +200,11 @@ requires owner approval.**
 | TEAM LEAD (Opus) | everything else: claiming, queueing, investigation, decomposition into child Issues, the dependency DAG, worker assignment, branches/worktrees, code within scope, tests, PRs, CI, regression, independent review, repair/retry, base updates and conflicts, docs, closing children, resource allocation, pausing/restarting workers, implementation details |
 | Sonnet workers / reviewers | implementation / independent review |
 
+**Roadmap authority (2026-09-18).** `docs/ROADMAP.md` is owner-approved: the Team Lead creates ROOT
+Issues from it with `owner:approved`, moves work between Issues and pulls the next topics as capacity
+frees up; product goals not on the roadmap still need the owner. The Team Lead keeps every worker
+busy — free slot + no executable task ⇒ pull, decompose or unblock.
+
 **ROOT Issue = scope boundary.** A ROOT (owner-approved product goal) authorizes its own
 execution *and* any child Issue derived from it. A child carries a `### Authorization` section
 (`source: inherited`, `root_issue: #N`, `parent_issue: #N`, `derived_by: team-lead`,
