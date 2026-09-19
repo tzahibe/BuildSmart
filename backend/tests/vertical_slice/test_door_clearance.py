@@ -136,9 +136,10 @@ def test_conflict_classes_on_fixtures_and_none_on_canonical():
 def _row_with_two_doors_into_the_corner(room_a_beyond: bool):
     """ROOM_C (2x2 m) is entered by two doors, D1 from ROOM_A (west) and D2 from ROOM_B (north),
     both hinged at ROOM_C's own NW corner — by default BOTH swing into ROOM_C (the "smaller room
-    wins" rule, since ROOM_A/ROOM_B are both larger), which collide there exactly like
-    `test_door_door_conflict_detected` above. `room_a_beyond` controls whether ROOM_A has real
-    space for D1 to flip into (the resolvable case) or is absent entirely (the unresolvable one).
+    wins" rule, since ROOM_A/ROOM_B are both larger), which collide there exactly like the
+    door-door case in `test_conflict_classes_on_fixtures_and_none_on_canonical` above.
+    `room_a_beyond` controls whether ROOM_A has real space for D1 to flip into (the resolvable
+    case) or is absent entirely (the unresolvable one).
     """
     room_c = Rect(0, 0, m_to_u(2.0), m_to_u(2.0))
     rects = {"ROOM_C": room_c}
@@ -196,7 +197,7 @@ def test_c28_fails_door_door_and_door_fixture_and_engine_flips_swing_first():
 def test_c28_wired_into_validate_via_a_solved_fixture():
     """C28 is a real check on the report `validate()` returns, not just a standalone function —
     proven over one small solved fixture rather than the full canonical pipeline (already covered
-    by `test_canonical_fixtures_report_no_c28_defects`)."""
+    by the canonical-fixture check in `test_conflict_classes_on_fixtures_and_none_on_canonical`)."""
     from tests.vertical_slice.test_access_rules import _row_fixture, _HALL
 
     fixture = _row_fixture("C28_WIRING", [
