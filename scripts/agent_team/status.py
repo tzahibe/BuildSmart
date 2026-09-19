@@ -97,6 +97,8 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
     if store.get_meta("scheduler_paused", "0") == "1":
         src = store.get_meta("scheduler_pause_source", "") or "owner"
         lines.insert(0, f"*** SCHEDULER PAUSED ({'usage guard — resumes automatically' if src == 'usage_guard' else 'by the owner'}) — no new claims, no new repairs ***\n")
+    if store.get_meta("claims_frozen", "0") == "1":
+        lines.insert(0, "*** NEW CLAIMS FROZEN by the owner — in-flight work (reviews, repairs, integrations, rollup) continues ***\n")
     period_raw = store.get_meta("protected_period")
     rollup_raw = store.get_meta("rollup")
     if period_raw or rollup_raw:

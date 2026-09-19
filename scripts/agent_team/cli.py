@@ -546,6 +546,17 @@ def cmd_rollup(config: Config, args) -> int:
     return 1
 
 
+def cmd_freeze(config: Config, args) -> int:
+    """`freeze-claims` / `unfreeze-claims`: no new Issues are claimed; reviews, repairs, integrations and
+    the rollup validation of in-flight work keep going (unlike `pause`, which stops those too)."""
+    store = StateStore(config.state_db_path)
+    frozen = args.cmd == "freeze-claims"
+    store.set_meta("claims_frozen", "1" if frozen else "0")
+    store.record_event(None, "claims_frozen" if frozen else "claims_unfrozen", {"by": "team-lead", "reason": getattr(args, "reason", "") or ""})
+    print("new claims frozen — in-flight work continues" if frozen else "new claims allowed again")
+    return 0
+
+
 def cmd_locks(config: Config, args) -> int:
     """`locks list` / `locks release N --reason ...` — a Team Lead lever for a lock held by an Issue whose
     code changes are already on a PR (CI/review/waiting for the owner)."""
@@ -965,6 +976,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
     s = sub.add_parser("decide"); s.add_argument("text"); s.add_argument("--issue", type=int); s.set_defaults(fn=cmd_decide)
+    s = sub.add_parser("freeze-claims"); s.add_argument("--reason", default=""); s.set_defaults(fn=cmd_freeze)
+    s = sub.add_parser("unfreeze-claims"); s.set_defaults(fn=cmd_freeze)
     s = sub.add_parser("locks"); lsub = s.add_subparsers(dest="locks_cmd", required=True)
     lsub.add_parser("list"); lr = lsub.add_parser("release"); lr.add_argument("number", type=int); lr.add_argument("--reason", required=True); s.set_defaults(fn=cmd_locks)
     s = sub.add_parser("period"); psub = s.add_subparsers(dest="period_cmd", required=True)

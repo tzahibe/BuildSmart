@@ -569,6 +569,15 @@ class Orchestrator:
     def pause_source(self) -> str:
         return self.store.get_meta("scheduler_pause_source", "") or ""
 
+    def claims_frozen(self) -> bool:
+        """Owner mode "no new Issues": nothing new is claimed, while reviews, repairs, integrations and the
+        rollup validation of in-flight work continue (a pause stops those too)."""
+        return self.store.get_meta("claims_frozen", "0") == "1"
+
+    def set_claims_frozen(self, frozen: bool, *, who: str | None = None, reason: str = "") -> None:
+        self.store.set_meta("claims_frozen", "1" if frozen else "0")
+        self.store.record_event(None, "claims_frozen" if frozen else "claims_unfrozen", {"by": who, "reason": reason})
+
     # -- subscription usage guard -------------------------------------------------------------
     def check_usage(self, *, force: bool = False) -> UsageSnapshot | None:
         """Probe `/usage`; pause at the threshold, resume automatically after the window resets.
@@ -638,6 +647,8 @@ class Orchestrator:
             return [scheduler.Decision(rec.issue_id, "wait", "scheduler paused by the owner") for rec, _ in queued]
         if self._draining:
             return [scheduler.Decision(rec.issue_id, "wait", "draining for restart") for rec, _ in queued]
+        if self.claims_frozen():
+            return [scheduler.Decision(rec.issue_id, "wait", "new claims frozen by the owner (in-flight work continues)") for rec, _ in queued]
         active_roots = self.active_roots()
         free_roots = self.config.max_active_issues - len(active_roots)
         snap = self.resources.snapshot(probe_machine=True)

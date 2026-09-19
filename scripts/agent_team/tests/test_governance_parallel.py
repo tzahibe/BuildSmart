@@ -378,3 +378,18 @@ def test_decomposed_root_closes_when_every_child_is_done(env):
     assert gh.get_issue(ROOT)["state"] == "closed" and "agent:done" in gh.issue_labels(ROOT)
     assert any("ROOT #120 closed" in r for r in rep.reconciled) or orch.store.get_meta("root_closed:120") == "1"
     assert any(n == ROOT and "Every child Issue" in body for n, body in gh.comments)
+
+
+def test_frozen_claims_stop_new_issues_but_in_flight_work_continues(env):
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    _add_issue(gh, 80)
+    _tick(orch)                                              # #80 is in flight (PR open)
+    _add_issue(gh, 81)
+    orch.set_claims_frozen(True, who="owner", reason="review the app first")
+    rep = _tick(orch)
+    assert rep.started == [] and "frozen" in rep.waiting[81]
+    rec = _to_ready(orch, gh, 80)                            # CI + review of the in-flight PR still run
+    assert rec.state == sm.READY_FOR_OWNER
+    orch.set_claims_frozen(False)
+    assert _tick(orch).started == [81]
