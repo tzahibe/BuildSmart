@@ -60,7 +60,9 @@ never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future plann
 - **`ALLOWED_ENTERED_FROM`**: for every `ProgramRole`, the roles a room of that role may be
   entered FROM. PRIVATE rooms (BEDROOM, MASTER_BEDROOM, SAFE_ROOM, STUDY, DRESSING_ROOM): only
   HALL/CIRCULATION — never another PRIVATE room. Wet rooms (BATHROOM, TOILET): HALL/CIRCULATION,
-  plus the hosting bedroom for an ensuite. Narrow service rooms (LAUNDRY, STORAGE):
+  the hosting bedroom for an ensuite, or **LIVING** — the last public-access fallback per
+  `specs/009-guest-wc-placement` decision C (Issue #69); KITCHEN and DINING stay disallowed.
+  Narrow service rooms (LAUNDRY, STORAGE):
   HALL/CIRCULATION, plus the KITCHEN they serve. Public/circulation rooms
   (ENTRANCE/LIVING/DINING/KITCHEN/FAMILY_ROOM/FLEX/HALL/CIRCULATION/STAIRWELL): any other
   public-or-circulation room. `edge_role_pair_allowed` checks one edge's two zone role-sets
