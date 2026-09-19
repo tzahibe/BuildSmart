@@ -279,7 +279,7 @@ def test_gate1_accepts_an_integration_branch_base(repo_config):
 
 def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):
     from agent_team.ci.contract_check import evaluate
-    pr = {"head": {"ref": "integration/holiday-yom-kippur-2026"}, "base": {"ref": "main"}, "body": "Closes #61\n\n## summary"}
+    pr = {"head": {"ref": "integration/holiday-yom-kippur-2026"}, "base": {"ref": "main"}, "body": "Closes #61\n\n## מה בוצע ביום כיפור\n- x\n\n## Technical details\n"}
     rep = evaluate(pr, {"number": 61, "state": "open", "title": "[agent] Yom Kippur Integration", "body": "", "labels": [{"name": "agent:rollup"}, {"name": "agent:ci"}],
                         "author_association": "OWNER"}, repo_config)
     names = {c["name"]: c["ok"] for c in rep.checks}
