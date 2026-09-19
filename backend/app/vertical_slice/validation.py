@@ -368,6 +368,11 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     # limits) — an ordinary long corridor, the spine parti's by construction, is untouched. Reads
     # the SAME realized geometry every other check here does; the minimal `GeometricDesign` built
     # for it is measured and discarded, never the one the pipeline goes on to assemble and draw.
+    # `assemble` itself is a cheap, pure reformatting pass over already-solved rects/walls/doors
+    # (no solving, no I/O) — this second call costs microseconds, not a real duplicate-computation
+    # concern. Threading the assembled design back out of `validate()` instead would widen its
+    # return contract at both of its call sites (`general_pipeline.py` and `pipeline.py`) for a
+    # cost this check does not need to pay.
     circulation_design = assemble_design(fixture, rects, walls, 0, interior_doors, entrance_door,
                                          windows, furniture, site)
     circulation = circulation_metrics.measure(circulation_design)

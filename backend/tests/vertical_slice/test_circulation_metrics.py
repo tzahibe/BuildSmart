@@ -177,6 +177,24 @@ def test_measures_from_realized_geometry_on_the_canonical_fixture(canonical_desi
     assert metrics.duplicated_segment_count == 0  # a branching hall is not a duplicate of itself
 
 
+def test_measures_from_realized_geometry_on_the_l_fixture(l_design):
+    """AC-1's third named parti: a realized two-wing ("2W", L-massing) candidate — the SAME
+    `measure` function, reading only its `.roles`/`.rect_m`/`.wall_facts`/doors, produces sane,
+    non-degenerate numbers off a genuinely different massing than the spine/hub fixtures above."""
+    metrics = cm.measure(l_design)
+    assert metrics.area_m2 == pytest.approx(9.49, abs=0.05)
+    assert metrics.ratio == pytest.approx(metrics.area_m2 / l_design.net_area_m2, abs=1e-3)
+    assert metrics.longest_segment_m == pytest.approx(7.3, abs=0.05)
+    assert metrics.total_length_m == pytest.approx(metrics.longest_segment_m, abs=0.05)  # one run
+    assert metrics.narrowest_width_m == pytest.approx(1.3, abs=0.05)
+    assert metrics.dead_end_count == 1
+    # The L's own corner turns the entrance->farthest-room path once each way it bends — unlike
+    # the canonical spine (straight, turn_count == 0), this is the structural signal an L-massing
+    # candidate is expected to read as on this measure.
+    assert metrics.turn_count == 2
+    assert metrics.duplicated_segment_count == 0
+
+
 def test_no_circulation_room_measures_as_none_not_a_crash():
     design = GeometricDesign(
         plot_m=(0.0, 0.0, 10.0, 10.0), footprint_m=(0.0, 0.0, 10.0, 10.0),
@@ -197,11 +215,13 @@ def test_no_circulation_room_measures_as_none_not_a_crash():
 # --------------------------------------------------------------------------- AC-2
 
 
-def test_c26_fails_an_extreme_corridor_and_passes_compact_plans(canonical_design, hub_design):
+def test_c26_fails_an_extreme_corridor_and_passes_compact_plans(canonical_design, hub_design,
+                                                                 l_design):
     extreme = cm.measure(_long_corridor_design())
     assert cm.classify_extreme(extreme) is not None
     assert cm.classify_extreme(cm.measure(canonical_design)) is None
     assert cm.classify_extreme(cm.measure(hub_design)) is None
+    assert cm.classify_extreme(cm.measure(l_design)) is None
 
 
 def test_extreme_reason_names_every_limit_exceeded():
