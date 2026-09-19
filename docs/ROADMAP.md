@@ -46,7 +46,6 @@ done) and "Plan Quality Evaluation / Benchmark" (P3).
 | Issue 6 Wet-room privacy & access quality | #37 | approved | #18 | — (wet-room quality tier is done) |
 | Issue 7 SAFE_ROOM / MAMAD preservation | #35 | approved | — | — |
 | Issue 8 Laundry room invariants | #21 | approved | #18, #19 | Laundry Room semantics |
-
 | ReviewPage shows the quality data (pulled forward from P2 on 2026-09-19: the P0 wave is invisible without it) | #63 | approved | — | ReviewPage completion (data-display part) |
 
 ## P1 product ROOTs
