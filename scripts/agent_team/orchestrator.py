@@ -1152,6 +1152,11 @@ class Orchestrator:
         entry = {"issue": rec.issue_id, "pr": rec.pr_number, "sha": merge_sha, "head": head, "title": rec.title.replace("[agent] ", "", 1),
                  "root": rec.root, "review": verdict, "branch": p.branch, "ts": self.clock()}
         self._add_integration(entry)
+        info = self.rollup()
+        if info and info.get("period", {}).get("branch") == p.branch and rec.issue_id not in info.get("children", []):
+            # the period's rollup PR already exists (period re-opened / ended early): it carries this child too
+            info["children"] = info.get("children", []) + [rec.issue_id]
+            self.store.set_meta("rollup", json.dumps(info))
         self.store.record_event(rec.issue_id, "integrated", entry)
         self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — {im.period_hebrew(p)} mode: "
                                       f"CI, regression and independent review were green at `{head[:12]}`. Lands on main with the period's rollup PR.")
@@ -1230,6 +1235,13 @@ class Orchestrator:
         self.worktrees.base_override = None
         self._save_period(None)
         self.store.set_meta("period_closed_through", p.end.isoformat())
+        existing = self.rollup()
+        if existing and existing.get("period", {}).get("branch") == p.branch:
+            existing["children"] = [c["issue"] for c in children]
+            self.store.set_meta("rollup", json.dumps(existing))
+            self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": existing.get("pr"),
+                                                                      "rollup_issue": existing.get("issue"), "integrated": existing["children"], "reused": True})
+            return f"protected period ended: {p.label} -> existing rollup PR #{existing.get('pr')} refreshed"
         if not children:
             self.worktrees.delete_remote_branch(p.branch)
             self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": None, "integrated": 0})
