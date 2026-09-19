@@ -347,3 +347,19 @@ def test_semantic_ac_assessment_keyed_by_leading_id(env):
         _tick(orch)
     assert orch.store.get(90).state == sm.READY_FOR_OWNER
     assert orch.store.get(90).review_verdict.startswith("APPROVE")
+
+
+def test_gate4_skipped_caller_job_next_to_a_green_regression_job_is_green(repo_config):
+    """Regression (2026-09-19): three approved PRs sat at 'awaiting regression_green' because a cancelled
+    superseded run left `gate-4-regression: skipped` beside the completed run's `gate-4-regression / regression: success`."""
+    from agent_team import ci_evidence
+    from agent_team.merge_policy import regression_status
+    ev = ci_evidence.CiEvidence(head_sha="abc", status=ci_evidence.SUCCESS, checks={
+        "agent-ci-result": {"conclusion": "success", "status": "completed"},
+        "gate-4-regression": {"conclusion": "skipped", "status": "completed"},
+        "gate-4-regression / regression": {"conclusion": "success", "status": "completed"},
+    })
+    ok, why = regression_status(ev, repo_config)
+    assert ok and why == "gate-4 green"
+    ev.checks["gate-4-regression / regression"]["conclusion"] = "failure"
+    assert regression_status(ev, repo_config)[0] is False
