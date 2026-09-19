@@ -18,10 +18,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable, Protocol
 
+from . import access_rules
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .doors import Door
+from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
+from .geometry_adapter import envelope_sides
 from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import (
     ConnectionKind,
@@ -36,8 +39,9 @@ from .geometry_core.model import (
 )
 from .site import SitePlan
 from .spec import CorridorRequirement, WetRoomKind
+from . import wet_privacy as wet_privacy_module
 from .wet_rooms import ResolvedWetRoom
-from .windows import DAYLIGHT_ROLES, Window
+from .windows import DAYLIGHT_ROLES, Window, seam_sides_of
 
 TOL_M2 = 0.01
 
@@ -266,8 +270,9 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
             bad.append(f"{z.zone_id} aspect {aspect:.2f} > {z.max_aspect_ratio}")
     rep.add("C3", "room areas and dimensions valid", not bad, "; ".join(bad) or "all zones within spec")
 
-    # C20 — realized rooms within their TEMPLATE's aspect ratio. (C19 is reserved for the guest-WC
-    # access semantics of specs/009; this is the next free code.)
+    # C20 — realized rooms within their TEMPLATE's aspect ratio. (C19 is now the exterior-exposure
+    # check below — Issue #19; the guest-WC access semantics of specs/009, if implemented, need a
+    # different free code.)
     #
     # C3 holds every zone to its own ZoneSpec, and the ZoneSpec is authored by the same planner
     # that drew the rectangle. For a long time the planner set `max_aspect_ratio` to whatever the
@@ -359,6 +364,17 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
             "; ".join(unreachable) or
             f"all {len(all_zones)} zones reachable over {len(realized)} realized connections{seed_note}")
 
+    # C24 — access topology obeys the door rules (access_rules.py): every enclosed room has a
+    # declared door, every declared edge's role pair is one the table allows (which is what rules
+    # out a PRIVATE-to-PRIVATE door except an ensuite's own bedroom), and no room is reachable
+    # from the entrance only by continuing on through another PRIVATE room — the last of these
+    # walked over the same REALIZED `graph` C5 just built, not the declared topology, so a wall
+    # accidentally typed OPEN between two rooms cannot create a silent chain either.
+    access_defects = access_rules.check_access_topology(fixture, graph, entry_seed)
+    rep.add("C24", "access topology obeys the door rules", not access_defects,
+            "; ".join(access_defects) or "every enclosed room has a proper door from an allowed "
+                                         "role, no private-to-private chain")
+
     # C6 — no artificial doors in open-plan
     open_pairs = {frozenset((e.a, e.b)) for e in fixture.access.edges if e.kind is ConnectionKind.OPEN_CONNECTION}
     bad = [f"{d.a}-{d.b}" for d in interior_doors if frozenset((d.a, d.b)) in open_pairs]
@@ -376,6 +392,26 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     if not entrance_door.placeable:
         bad.append("entrance door not placeable on the street-facing wall")
     rep.add("C7", "doors physically placeable", not bad, "; ".join(bad) or f"{len(interior_doors) + 1} doors placeable")
+
+    # C19 — required rooms touch an exterior wall (exposure_policy.py, Issue #19). A GEOMETRIC
+    # fact only (`envelope_sides`), deliberately separate from C8 below: this is a planning-
+    # topology error (the room was placed with no exterior wall at all) rather than a
+    # window-sizing error (an exterior wall too short for the minimum window), and runs first so
+    # a refusal names the real cause. Fails closed, like C8.
+    seams = seam_sides_of(fixture)
+    exterior_required = {z.zone_id for z in fixture.zones if set(z.roles) & REQUIRED_EXTERIOR_ROLES}
+    interior = []
+    for zone_id in sorted(exterior_required):
+        rect = rects.get(zone_id)
+        if rect is None:
+            continue
+        sides = envelope_sides(rect, site.footprint, wings=site.wings,
+                               seam_sides=seams.get(zone_id, frozenset()))
+        if not sides:
+            interior.append(f"{zone_id} has no exterior wall (interior room)")
+    rep.add("C19", "required rooms touch an exterior wall", not interior,
+            "; ".join(interior) or
+            f"all {len(exterior_required)} exterior-required zones touch the envelope")
 
     # C8 — daylight/window exposure present where required
     windowed = {w.zone_id for w in windows if w.placeable}
@@ -549,6 +585,19 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                        f"{', '.join(entered_from) or 'nothing'}, required {expected}")
     rep.add("C17", "bathroom access matches the requirements", not bad,
             "; ".join(bad) or f"all {len(wet_rooms)} wet rooms entered as required")
+
+    # C29 — wet-room privacy (Issue #37). C17 above already fails closed on WHO may enter a wet
+    # room; this is the door's own relationship to the public part of the house once that access
+    # is legal. Fails closed ONLY on the hard rule (`wet_privacy.hard_violations`: entered directly
+    # from KITCHEN or DINING) — corridor access, however its facing geometry scores, is never
+    # refused here (see `wet_privacy.py`'s module docstring). Everything else is quality data on
+    # `QualityOut.wet_privacy` (`app.demo.contract`), never a gate.
+    privacy_records = wet_privacy_module.compute_wet_privacy(fixture, rects, walls, interior_doors,
+                                                             wet_rooms)
+    privacy_bad = wet_privacy_module.hard_violations(fixture, privacy_records)
+    rep.add("C29", "wet-room privacy", not privacy_bad,
+            "; ".join(privacy_bad) or
+            f"all {len(privacy_records)} wet rooms clear of a direct public-zone sight line")
 
     # C22 — declared wing seams are real (the spike's proof P9, ported). Multi-wing fixtures only:
     # a one-wing house has no seam to prove, and a check that did not run makes no claim — which

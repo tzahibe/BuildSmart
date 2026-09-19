@@ -28,6 +28,7 @@ from .geometry_adapter import wall_facts_for_room
 from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import Fixture, OutdoorRegion, Rect, Side, u_to_m
 from .site import SitePlan
+from .wet_privacy import WetPrivacy, compute_wet_privacy
 from .windows import Window, seam_sides_of
 
 #: (x, y, w, h) in metres.
@@ -111,6 +112,9 @@ class GeometricDesign:
     #: The footprint as its wings, one rectangle each, in metres (`footprint.py`). One entry —
     #: equal to `footprint_m` — for every house the engine plans today.
     footprints_m: tuple[RectM, ...] = ()
+    #: One `WetPrivacy` per wet room (Issue #37), additive. `()` for a caller that does not pass
+    #: `wet_rooms` to `assemble` — every production caller does.
+    wet_privacy: tuple[WetPrivacy, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.footprints_m:
@@ -146,7 +150,7 @@ def _outdoor_out(o: OutdoorRegion) -> OutdoorOut:
 def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iterations: int,
              interior_doors: list[Door], entrance_door: Door, windows: list[Window],
              furniture: list[FurnitureCheck], site: SitePlan,
-             over_preferred: bool = False) -> GeometricDesign:
+             over_preferred: bool = False, wet_rooms: tuple = ()) -> GeometricDesign:
     rooms = []
     net_total = 0.0
     seams = seam_sides_of(fixture)
@@ -182,4 +186,5 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
         open_groups=tuple(tuple(g) for g in fixture.open_groups),
         over_preferred=over_preferred,
         footprints_m=tuple(_rect_m(w) for w in site.wings),
+        wet_privacy=compute_wet_privacy(fixture, rects, walls, interior_doors, wet_rooms),
     )

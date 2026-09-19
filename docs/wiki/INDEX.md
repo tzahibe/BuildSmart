@@ -13,10 +13,14 @@ specific page below for your task.**
 
 ## Architecture
 
+- [Architectural Quality Rubric (A–O) and Anti-Pattern Library](../architecture_reference/quality_rubric.md)
+  — reference document (companion: [anti_patterns.md](../architecture_reference/anti_patterns.md)),
+  the canonical rubric every geometry/circulation/interior Issue and reviewer refers to
 - [Knowledge System](architecture/knowledge-system.md) — IMPLEMENTED_MERGED
 - [Requirements / Parsing Semantics](architecture/requirements-parsing.md) — IMPLEMENTED_MERGED
 - [Geometry / Validation](architecture/geometry-validation.md) — IMPLEMENTED_MERGED
 - [Autonomous Engineering Workflow (Agent Team)](architecture/agent-team-workflow.md) — LIVE (pilot passed 2026-09-17); owner-controlled governance + Telegram control plane
+  - [Issue title convention](agent-team.md) — short pointer page: `[agent] #N Title`, `renumber-titles`
 - [Product Roadmap (proposed, owner-maintained)](../ROADMAP.md) — PROPOSED, not a backlog
 
 ## Features

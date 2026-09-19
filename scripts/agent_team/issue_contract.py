@@ -130,7 +130,7 @@ class BudgetRule:
         return self.kind
 
 
-AUTH_SOURCES = ("owner", "inherited")
+AUTH_SOURCES = ("owner", "inherited", "rollup")   # rollup: the orchestrator's integration-period PR, authorized by its children's ROOTs
 _AUTH_KEYS = ("source", "root_issue", "parent_issue", "derived_by", "scope_inherited")
 _KV_RE = re.compile(r"^\s*[-*]?\s*`?([a-z_]+)`?\s*[:=]\s*(.+?)\s*$")
 
@@ -176,7 +176,7 @@ def parse_authorization(text: str, problems: list[str] | None = None) -> Authori
 
     def num(key: str) -> int | None:
         v = values.get(key)
-        if v is None:
+        if v is None or v.lower() in ("none", "-"):
             return None
         m = re.fullmatch(r"#?(\d+)", v)
         if not m:
@@ -320,10 +320,33 @@ class IssueContract:
 def slugify(title: str, max_len: int = 40) -> str:
     t = title.lower()
     t = re.sub(r"^\[agent\]\s*", "", t)
+    t = re.sub(r"^#\d+\s*", "", t)
     t = _SLUG_STRIP.sub("-", t).strip("-")
     if len(t) > max_len:
         t = t[:max_len].rstrip("-")
     return t or "task"
+
+
+_AGENT_PREFIX_RE = re.compile(r"^\[agent\]\s*")
+_TITLE_NUMBER_RE = re.compile(r"^#\d+\s*")
+
+
+def numbered_title(number: int, title: str) -> str:
+    """`[agent] <rest>` (with any existing `[agent]`/`#N` prefix stripped first) -> `[agent] #N <rest>`.
+    Idempotent: applying it again to its own output is a no-op."""
+    t = _AGENT_PREFIX_RE.sub("", title.strip(), count=1)
+    t = _TITLE_NUMBER_RE.sub("", t, count=1)
+    return f"[agent] #{number} {t}".rstrip()
+
+
+def strip_title_number(title: str) -> str:
+    """Display inverse of `numbered_title`: drop a `#N` that duplicates a number already shown
+    elsewhere (e.g. the `#{issue_id}` a status/list line prepends itself), leaving any `[agent] `
+    prefix in place."""
+    m = _AGENT_PREFIX_RE.match(title)
+    prefix, rest = (title[:m.end()], title[m.end():]) if m else ("", title)
+    rest = _TITLE_NUMBER_RE.sub("", rest, count=1)
+    return (prefix + rest).strip()
 
 
 # --------------------------------------------------------------------------------------------

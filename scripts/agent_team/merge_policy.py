@@ -45,7 +45,9 @@ def regression_status(ev: CiEvidence, config: Config) -> tuple[bool, str]:
     gate4 = [n for n in ev.checks if n.startswith("gate-4")]
     conclusions = {ev.checks[n].get("conclusion") for n in gate4}
     if gate4 and conclusions - {"skipped"}:
-        ok = conclusions == {"success"}
+        # A superseded (cancelled) run leaves its caller job `gate-4-regression` as "skipped" next to the
+        # real `gate-4-regression / regression` job of the run that completed: skipped entries are not evidence.
+        ok = (conclusions - {"skipped"}) == {"success"}
         return ok, "gate-4 " + ("green" if ok else "red")
     if gate4:
         # Skipped by ci/plan.py (no backend product code / not required). The aggregate check

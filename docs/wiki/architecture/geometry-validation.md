@@ -24,6 +24,10 @@ superseding an earlier declared-interface architecture.
   units}.py`.
 - `app/geometry/spatial_v2/` (the frozen domain model).
 - `app/vertical_slice/validation.py`, `building_validation.py` (the C/V check families).
+- `app/vertical_slice/access_rules.py` (door-rule table, door kinds/widths, C24 — Issue #18).
+- `app/vertical_slice/exposure_policy.py` (per-role exposure policy table, C19 — Issue #19),
+  `app/vertical_slice/windows.py` (`generate_windows`, derives `DAYLIGHT_ROLES`/
+  `WET_ROOM_PREFERRED_ROLES` from that table), `app.demo.contract.QualityOut.exposure`.
 - `docs/GEOMETRY_DERIVED_OPEN_INTERFACES_REPORT.md` (derived-interfaces architecture, 636 tests).
 - `app/vertical_slice/quality_metrics.py` (M1–M6, Issue #17), `app/demo/contract.py`'s
   `QualityOut.metrics`, `tests/regression_corpus/{quality_baseline.json,test_quality_baseline.py,
@@ -47,6 +51,113 @@ superseding an earlier declared-interface architecture.
 landed); `docs/GENERAL_GEOMETRY_ARCHITECTURE_REPORT.md` (research-only, superseded by
 `GENERAL_GEOMETRY_DOMAIN_V1_REPORT.md`); `docs/SPATIAL_ENGINE_RESEARCH.md` and
 `docs/SPATIAL_ENGINE_SPEC_V2.md` (both explicitly superseded by `SPATIAL_ENGINE_SPEC_V2_1.md`).
+
+## Access topology and door rules (C24)
+
+Issue #18 (2026-09-18). Interior doors were previously placed for every non-OPEN_CONNECTION edge
+declared in a fixture's `DesiredAccessTopology` with no rule saying which role pairs a door may
+legitimately connect — correct only because the planner (`concept_generator.py`) happened to
+never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future planner path did.
+`app/vertical_slice/access_rules.py` makes the rule explicit and machine-checked:
+
+- **`ALLOWED_ENTERED_FROM`**: for every `ProgramRole`, the roles a room of that role may be
+  entered FROM. PRIVATE rooms (BEDROOM, MASTER_BEDROOM, SAFE_ROOM, STUDY, DRESSING_ROOM): only
+  HALL/CIRCULATION — never another PRIVATE room. Wet rooms (BATHROOM, TOILET): HALL/CIRCULATION,
+  plus the hosting bedroom for an ensuite. Narrow service rooms (LAUNDRY, STORAGE):
+  HALL/CIRCULATION, plus the KITCHEN they serve. Public/circulation rooms
+  (ENTRANCE/LIVING/DINING/KITCHEN/FAMILY_ROOM/FLEX/HALL/CIRCULATION/STAIRWELL): any other
+  public-or-circulation room. `edge_role_pair_allowed` checks one edge's two zone role-sets
+  against the table (a zone can carry more than one role); this is what rules out a
+  bedroom-to-bedroom door — that pair is simply never in either room's allowed set — without the
+  code naming that pair specially.
+- **Door kinds/widths**: `DoorKind.ROOM_DOOR` (0.9 m, unchanged historic width), `SERVICE_DOOR`
+  (0.8 m, new — LAUNDRY/STORAGE/TOILET only; BATHROOM keeps ROOM_DOOR width), `ENTRANCE_DOOR`
+  (1.0 m, unchanged). `door_kind_for_zones` picks the class for one edge from its two zones'
+  roles. `doors.py::generate_interior_doors` now reads the width for each edge from
+  `access_rules.DOOR_WIDTH_M[door_kind_for_zones(...)]` instead of a single hard-coded constant —
+  realized door geometry is otherwise unchanged (same placement/swing logic, only the width value
+  for TOILET/LAUNDRY/STORAGE edges is narrower).
+- **C24 "access topology obeys the door rules"** (`check_access_topology`, wired into
+  `validation.py` next to C5): three defects, checked together, fail closed. (1) every enclosed
+  (non-open-plan) room has at least one DOOR/CASED_OPENING edge. (2) every such edge's role pair
+  is one `ALLOWED_ENTERED_FROM` permits — this alone also covers "no PRIVATE-to-PRIVATE door
+  except the ensuite host," since that pair is never allowed. (3) no room is reachable from the
+  entrance only by continuing on past another PRIVATE room (a private-room chain), walked over the
+  same REALIZED access graph C5 already builds — not the declared topology — so a wall accidentally
+  typed OPEN between two rooms cannot create a silent chain either. C24 is additive: it passes on
+  every existing corpus context and canonical fixture without changing any of them; it exists to
+  catch a FUTURE planner path that would otherwise silently emit a disallowed edge.
+
+## Windows and exterior exposure (C19/C8)
+
+Issue #19 (2026-09-18). A room's relationship to the building envelope is two separate questions
+that used to be conflated into one gate (C8 alone): must it TOUCH an exterior wall at all (a
+planning-TOPOLOGY fact), and does it need a WINDOW once it does (a sizing fact — does a window of
+at least the minimum width actually fit on that wall). An interior bedroom and an exterior
+bedroom whose only exterior wall is too short for a window both used to fail C8 identically, with
+no way to tell which defect a refusal names. Before this Issue only `DAYLIGHT_ROLES` — a
+hand-maintained, six-role subset (LIVING, DINING, KITCHEN, BEDROOM, MASTER_BEDROOM, SAFE_ROOM) —
+had any exposure rule at all; FAMILY_ROOM, STUDY, DRESSING_ROOM, LAUNDRY, STORAGE, CIRCULATION had
+none.
+
+**The policy table** (`app/vertical_slice/exposure_policy.py`, `EXPOSURE_POLICY`): one
+`ExposurePolicy(exterior_wall, window)` per `ProgramRole`, each field `REQUIRED | PREFERRED |
+NONE`. Every role has an entry — the policy covers every room type, not a subset. The owner's
+decision, recorded in the Issue #19 contract:
+
+| Tier | Roles |
+|---|---|
+| REQUIRED / REQUIRED | LIVING, DINING, KITCHEN, BEDROOM, MASTER_BEDROOM, SAFE_ROOM, FAMILY_ROOM, STUDY |
+| PREFERRED / PREFERRED | BATHROOM, TOILET, DRESSING_ROOM |
+| NONE / NONE | HALL, CIRCULATION, STORAGE, ENTRANCE, STAIRWELL, FLEX, LAUNDRY |
+
+LAUNDRY is deliberately NONE here — its own Issue owns that decision; NONE only preserves
+today's behaviour (skipped by `generate_windows` entirely) until it does. FAMILY_ROOM and STUDY
+moving from "no rule at all" to REQUIRED/REQUIRED is the one behaviour change with corpus
+consequences — see below.
+
+`windows.py`'s `DAYLIGHT_ROLES` (roles whose `window` policy is REQUIRED — what C8 gates on) and
+`WET_ROOM_PREFERRED_ROLES` (roles whose `window` policy is PREFERRED — attempted best-effort,
+never gating) are now DERIVED from this table rather than hand-maintained; `REQUIRED_EXTERIOR_ROLES`
+(what C19 gates on) is exported from `exposure_policy.py` directly.
+
+**C19 "required rooms touch an exterior wall"** (`validation.py`, runs immediately before C8):
+a purely GEOMETRIC check, via `envelope_sides` only (the same geometry-derived function
+`wall_facts_for_room` uses for `boundary_context` — never the raw solver `WallType`, which is
+also EXTERIOR-when-safe-room-precedence and would be wrong for that case). Fails closed on any
+`REQUIRED_EXTERIOR_ROLES` zone with no exterior side at all. **C8** keeps its original meaning
+unchanged — "a window of at least `WINDOW_MIN_WIDTH_M` is placed where the policy's `window` tier
+is REQUIRED" — so an exterior bedroom whose only exterior wall is shorter than the minimum window
+still fails C8 (not C19): the two checks name the topology defect and the sizing defect
+separately, and C19 running first means a refusal on an interior room always names the real
+cause.
+
+**The sizing constants are unchanged and still PARAMETER · UNVERIFIED**: `WINDOW_WALL_FRACTION`
+(0.4), `WINDOW_MIN_WIDTH_M` (0.9 m), `WINDOW_MAX_WIDTH_M` (2.0 m) for `DAYLIGHT_ROLES`;
+`WET_ROOM_WINDOW_WALL_FRACTION` (0.25), `WET_ROOM_WINDOW_MIN_WIDTH_M` (0.5 m),
+`WET_ROOM_WINDOW_MAX_WIDTH_M` (1.0 m) for `WET_ROOM_PREFERRED_ROLES` — plausible placeholders,
+not sourced from a specific glazing-ratio code requirement, same disclosure discipline as
+`geometry_core.model.WALL_THICKNESS_M`'s RC_SAFE_ROOM entry. This Issue only decoupled which
+rooms the constants apply to from what fact each check enforces; it did not touch the constants
+themselves.
+
+**Exposure report** (`app.demo.contract.QualityOut.exposure`, additive): one `ExposureOut` per
+room on every delivered `DemoDesign` — `exterior_sides`, and either the window that was placed
+(`window_side`/`window_width_m`) or `no_window_reason`: `NO_EXTERIOR_WALL` (C19's defect on this
+room, when its policy requires an exterior wall), `EXTERIOR_WALL_TOO_SHORT` (C8's defect, when its
+policy requires a window), or `WINDOW_NOT_REQUIRED` (the role's window policy is NONE). Computed
+in `contract.to_demo_design` off the raw solver output (`room.wall_facts`, `design.windows`), the
+same pattern M1–M6 uses for needing the fully-assembled shape.
+
+**Corpus impact measured**: the frozen 432-context regression corpus (`tests/regression_corpus/
+corpus.json`) has no request path that produces a FAMILY_ROOM or STUDY zone at all (its contexts
+vary only `bedrooms`/`wet_rooms`/`safe_room`/`open_plan`/plot and footprint dimensions) — so
+promoting those two roles to REQUIRED/REQUIRED changes zero corpus outcomes; LOST/GAINED/
+primary-signature stayed at 0 on the frozen corpus by construction, not by a planner-side fix.
+FAMILY_ROOM/STUDY REQUIRED/REQUIRED is proven instead by a dedicated fixture test
+(`test_exposure_policy.py::test_family_room_and_study_get_windows`). If a FUTURE corpus or a real
+request ever plans one of these roles fully interior, C19 will refuse it where nothing did
+before — the planner-side placement fix for that case is explicitly not this Issue's scope.
 
 ## Architectural-quality metrics (M1–M6) and the corpus baseline
 
@@ -178,6 +289,28 @@ together — so it costs no regression risk and exists specifically to catch a F
 the solver and this contract (or, in a test, a deliberately tampered fixture) before it reaches a
 person.
 
+## Architectural quality rubric and anti-pattern library
+
+The measured gaps above (circulation topology, wet-room adjacency, public-room strips) are three
+entries in the canonical, repo-wide quality rubric and anti-pattern library:
+`docs/architecture_reference/quality_rubric.md` (sections A–O) and
+`docs/architecture_reference/anti_patterns.md`. Every later geometry/circulation/interior Issue and
+every reviewer should consult those files rather than re-deriving quality judgments from this page
+alone.
+
+## Reference benchmark against curated plans (Issue #32)
+
+2026-09-18. `app/vertical_slice/reference_benchmark.py`'s `benchmark(design, references) ->
+BenchmarkReport` reports one deterministic `SectionFinding` per rubric section
+(`docs/architecture_reference/quality_rubric.md`) for a realized plan, comparing six of them
+(entrance, circulation, zoning, exposure, dead space, and a room-area consistency fact — see that
+module's own docstring for its own section-lettering, which does not match the rubric's A–O)
+against `docs/architecture_reference/references/index.json` entries of the same `footprint_family`
+— metadata and derived ratios only, never a reference plan's own geometry. The other nine rubric
+sections come back `not_measured`. `backend/scripts/reference_benchmark.py --context <id>` prints
+the report for one `tests/regression_corpus/corpus.json` context; not wired into
+`agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -208,6 +341,9 @@ professional plans' reference values) and `RESULTS.md` (why the hub parti was re
 
 ## Last verified against git
 
-`8bd17a2` (branch `agent/17-architectural-quality-baseline-m1-m6-as`, based on `origin/main`);
-the M1–M6 section above documents work landing on this branch (Issue #17), verified against this
-session's own implementation and test runs, not independently re-verified beyond that.
+`36b27e8` (branch `agent/19-windows-and-exterior-exposure-exposure-c`, based on
+`origin/integration/holiday-yom-kippur-2026`); the Windows and exterior exposure (C19/C8) section
+above documents work landing on this branch (Issue #19), verified against this session's own
+implementation and test runs. The Access topology and door rules (C24) section documents Issue
+#18, and the M1–M6 section documents Issue #17, both verified against their own sessions'
+implementation and test runs, not independently re-verified beyond that.

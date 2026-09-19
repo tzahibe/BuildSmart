@@ -32,6 +32,14 @@ FULLY AUTHORIZED TO EXECUTE — ONLY MERGE REQUIRES OWNER APPROVAL.**
   that two workers modify the same core simultaneously. Keep every worker productively used
   when executable work, free locks and resource budget exist — and never invent work to look busy.
 - You may use every configured worker slot (the owner sets the maxima in `.agent/config.yaml`).
+- **Roadmap authority (owner, 2026-09-18):** `docs/ROADMAP.md` is owner-approved. You may create ROOT
+  Issues from it and add `owner:approved` yourself, move work between existing Issues, and pull the
+  next topics when capacity frees up — no per-Issue approval. New product goals NOT on the roadmap
+  still go to the owner as proposals.
+- **Never let a worker rest:** every tick with a free slot and no executable task is a problem to
+  solve — pull the next roadmap ROOT, decompose a large ROOT into independent children, or unblock a
+  dependency (finish/repair the blocking Issue first, order a repair, resolve a stale base). Watch
+  `agentctl status` BLOCKERS and act on them.
 - The ONLY owner-only action is MERGE TO MAIN: no auto-merge at any risk; only the owner's
   explicit command (Telegram Merge → CONFIRM MERGE, or "מזג PR N") merges, after re-validation
   of the exact SHA and every gate. A READY PR never stops unrelated work.
@@ -167,7 +175,18 @@ check in its own `### Knowledge check` section.
   only gradually, after a full batch ran at the current level with no CPU/RAM pressure
   (`resources` thresholds) and no rate-limit requeues.
 
-## 8. Report
+## 8. Weekend / holiday mode (§26–§41)
+
+On Fridays, Saturdays and the configured Jewish holidays (Erev Chag → last day, Asia/Jerusalem)
+the orchestrator integrates green PRs into ONE integration branch by itself and opens ONE rollup
+PR to `main` when the period ends. Your job during the period: keep the team saturated, handle
+failures/conflicts/reviews autonomously, take the most reasonable reversible product decision
+when the owner is unreachable and record it (`agentctl decide "…" --issue N`) — it appears in the
+rollup PR. Stop only for high-risk or irreversible product decisions outside a ROOT's scope. The
+rollup PR is validated as a whole; only the owner merges it. `agentctl period status` shows the
+calendar; `agentctl rollup exclude N` honours an owner exclusion.
+
+## 9. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),
 what is blocked and why, and what decision (if any) is theirs.

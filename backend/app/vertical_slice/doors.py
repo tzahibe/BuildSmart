@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from . import access_rules
+from .access_rules import DoorKind
 from .geometry_core.model import (
     ConnectionKind,
     Fixture,
@@ -22,8 +24,10 @@ from .geometry_core.model import (
 from . import footprint as footprint_module
 from .site import EntranceWalk
 
-INTERIOR_DOOR_WIDTH_M = 0.9
-ENTRANCE_DOOR_WIDTH_M = 1.0
+#: Unchanged widths (`access_rules.DOOR_WIDTH_M`) kept as module constants so nothing else that
+#: imported them by name has to change.
+INTERIOR_DOOR_WIDTH_M = access_rules.DOOR_WIDTH_M[DoorKind.ROOM_DOOR]
+ENTRANCE_DOOR_WIDTH_M = access_rules.DOOR_WIDTH_M[DoorKind.ENTRANCE_DOOR]
 DOOR_MARGIN_M = 0.1  # clearance from a corner on each side of the door
 
 
@@ -103,9 +107,13 @@ def _swing(fixture: Fixture, rects: dict[str, Rect], a: str, b: str,
 
 
 def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Door]:
-    """One `Door` per non-OPEN_CONNECTION edge in the fixture's DesiredAccessTopology."""
+    """One `Door` per non-OPEN_CONNECTION edge in the fixture's DesiredAccessTopology.
+
+    Width comes from `access_rules.door_kind_for_zones` on the edge's two roles: SERVICE_DOOR
+    (0.8 m) for LAUNDRY/STORAGE/TOILET, ROOM_DOOR (0.9 m, `INTERIOR_DOOR_WIDTH_M`) otherwise.
+    """
     doors: list[Door] = []
-    width_u = m_to_u(INTERIOR_DOOR_WIDTH_M)
+    roles_of = {z.zone_id: z.roles for z in fixture.zones}
     margin_u = m_to_u(DOOR_MARGIN_M)
     for e in fixture.access.edges:
         if e.kind is ConnectionKind.OPEN_CONNECTION:
@@ -119,6 +127,9 @@ def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Do
         shared_u = ra.shared_edge_len_u(rb)
         if shared_u <= 0:
             continue
+        door_kind = access_rules.door_kind_for_zones(roles_of.get(e.a, ()), roles_of.get(e.b, ()))
+        width_m = access_rules.DOOR_WIDTH_M[door_kind]
+        width_u = m_to_u(width_m)
         placeable = shared_u >= width_u + 2 * margin_u
         if side in (Side.E, Side.W):
             lo, hi = max(ra.y, rb.y), min(ra.y2, rb.y2)
@@ -131,7 +142,7 @@ def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Do
             center = (mid_x, ra.y2 if side is Side.S else ra.y)
             orientation = "horizontal"
         swings_into, hinge_at = _swing(fixture, rects, e.a, e.b, center, orientation, width_u)
-        doors.append(Door(e.a, e.b, e.kind, INTERIOR_DOOR_WIDTH_M, center, orientation,
+        doors.append(Door(e.a, e.b, e.kind, width_m, center, orientation,
                            placeable, u_to_m(shared_u), swings_into, hinge_at))
     return doors
 

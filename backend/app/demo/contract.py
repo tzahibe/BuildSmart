@@ -17,7 +17,9 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import quality_metrics
+from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.concept_generator import (
     OVER_PREFERRED_NOTICE_RATIO,
@@ -164,6 +166,36 @@ class QualityMetricsOut(BaseModel):
     wasted_circulation_share: float = 0.0
 
 
+class WetPrivacyOut(BaseModel):
+    """One wet room's privacy standing (Issue #37) — see
+    `app.vertical_slice.wet_privacy.WetPrivacy` for what each field means and how it is computed.
+    Display/ranking data only; the one hard rule it backs (C29) lives in `validation.py`."""
+
+    zone_id: str
+    entered_from: str | None = None
+    entered_from_class: str
+    door_facing: str | None = None
+    direct_sight_line: bool
+    public_exposure_score: float
+    circulation_obstruction: bool
+    adjacency_quality: bool
+    privacy_score: float
+
+
+class ExposureOut(BaseModel):
+    """One room's exposure standing (Issue #19) — which sides are on the envelope, and either the
+    window that was placed or the reason none was: `NO_EXTERIOR_WALL` (a planning-topology
+    defect — C19 fails on this same room when its policy requires an exterior wall),
+    `EXTERIOR_WALL_TOO_SHORT` (a window-sizing defect — C8 fails when the policy requires a
+    window), or `WINDOW_NOT_REQUIRED` (the role's window policy is NONE)."""
+
+    room_id: str
+    exterior_sides: list[str] = []
+    window_side: str | None = None
+    window_width_m: float | None = None
+    no_window_reason: str | None = None
+
+
 class QualityOut(BaseModel):
     """Room-size quality, kept apart from validation on purpose: the preferred maximum is a soft
     target, the hard one is the gate (C21). Three tiers, thresholds beside the templates
@@ -192,6 +224,13 @@ class QualityOut(BaseModel):
     #: M1–M6 for this plan (Issue #17). `None` only for a payload built before this field existed
     #: — every plan `to_demo_design` produces from here on attaches one.
     metrics: QualityMetricsOut | None = None
+    #: One `ExposureOut` per room (Issue #19), additive. `[]` only for a payload built before
+    #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
+    #: per room.
+    exposure: list[ExposureOut] = []
+    #: One `WetPrivacyOut` per wet room (Issue #37), additive. `[]` for a plan with no wet rooms,
+    #: or one built before this field existed.
+    wet_privacy: list[WetPrivacyOut] = []
 
 
 class WindowOut(BaseModel):
@@ -741,6 +780,42 @@ def _metrics_out(m: quality_metrics.QualityMetrics) -> QualityMetricsOut:
     return QualityMetricsOut(**dataclasses.asdict(m))
 
 
+def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
+    """One `ExposureOut` per room, off the raw solver output — see `ExposureOut` for the reason
+    codes. Reads `room.wall_facts` (geometry-derived, never the raw solver `WallType`) for which
+    sides are on the envelope, and `design.windows` (placeable or not) for what `generate_windows`
+    actually attempted for that role's policy tier."""
+    window_of: dict[str, object] = {w.zone_id: w for w in design.windows}
+    out: list[ExposureOut] = []
+    for room in design.rooms:
+        exterior_sides = [side for side, facts in room.wall_facts.items()
+                          if facts.boundary_context is BoundaryContext.EXTERIOR]
+        policies = [EXPOSURE_POLICY[ProgramRole(r)] for r in room.roles if r in ProgramRole.__members__]
+        window_policy = ExposureRequirement.NONE
+        if any(p.window is ExposureRequirement.REQUIRED for p in policies):
+            window_policy = ExposureRequirement.REQUIRED
+        elif any(p.window is ExposureRequirement.PREFERRED for p in policies):
+            window_policy = ExposureRequirement.PREFERRED
+        window = window_of.get(room.zone_id)
+        placed = window is not None and window.placeable
+        reason = None
+        if not placed:
+            if window_policy is ExposureRequirement.NONE:
+                reason = "WINDOW_NOT_REQUIRED"
+            elif not exterior_sides:
+                reason = "NO_EXTERIOR_WALL"
+            else:
+                reason = "EXTERIOR_WALL_TOO_SHORT"
+        out.append(ExposureOut(
+            room_id=room.zone_id,
+            exterior_sides=exterior_sides,
+            window_side=window.side if placed else None,
+            window_width_m=window.width_m if placed else None,
+            no_window_reason=reason,
+        ))
+    return out
+
+
 def quality_of(design: SolvedDesign) -> QualityOut:
     """The three tiers of `QualityOut` from the realized rooms — see the class for the policy."""
     signal: list[QualitySignal] = []
@@ -870,8 +945,15 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # it runs on the raw solver output. Computed here, once the shape exists, and attached
     # additively onto the `quality` already built rather than threaded through `quality_of`.
     metrics = quality_metrics.measure_design(demo)
+    # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
+    # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
+    # same reason metrics is attached here rather than threaded through `quality_of`.
+    exposure = _exposure_of(design)
+    wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
     return demo.model_copy(update={
-        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics)})
+        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics),
+                                                    "exposure": exposure,
+                                                    "wet_privacy": wet_privacy})
     })
 
 
