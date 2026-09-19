@@ -1,0 +1,7 @@
+.room-details { margin-top: 12px; padding: 10px 14px; border: 1px solid #dfe4ea; border-radius: 8px; background: #fbfcfd; }
+.room-details-title { margin: 0 0 8px; font-size: 14px; }
+.room-details-facts { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0 0 8px; }
+.room-details-facts dt { font-size: 11px; color: #6b7683; }
+.room-details-facts dd { margin: 2px 0 0; font-size: 13px; }
+.room-details-doors { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.room-details-doors li { padding: 2px 0; }
