@@ -134,6 +134,39 @@ def test_c24_passes_on_canonical_fixtures(tmp_path):
     assert check2.passed, check2.detail
 
 
+def test_c24_allows_wet_room_from_living_but_not_kitchen_or_dining():
+    """spec 009 decision C: LIVING is the guest WC's last public-access fallback (after HALL/
+    circulation and the hosting bedroom); KITCHEN and DINING stay disallowed."""
+    living_ok = _row_fixture("LIVING_WC", [
+        ("LIVING", (ProgramRole.LIVING,), 16, 20, 26, 3.0),
+        ("TOILET_1", (ProgramRole.TOILET,), 2.2, 4.0, 6.0, 1.1),
+    ], (
+        DesiredAccessEdge("LIVING", "TOILET_1", ConnectionKind.DOOR),
+    ))
+    check = _c24(living_ok)
+    assert check.passed, check.detail
+
+    kitchen_bad = _row_fixture("KITCHEN_WC", [
+        ("KITCHEN", (ProgramRole.KITCHEN,), 10, 13, 18, 2.4),
+        ("TOILET_1", (ProgramRole.TOILET,), 2.2, 4.0, 6.0, 1.1),
+    ], (
+        DesiredAccessEdge("KITCHEN", "TOILET_1", ConnectionKind.DOOR),
+    ))
+    check = _c24(kitchen_bad)
+    assert not check.passed
+    assert "KITCHEN-TOILET_1" in check.detail
+
+    dining_bad = _row_fixture("DINING_WC", [
+        ("DINING", (ProgramRole.DINING,), 9, 11, 15, 2.4),
+        ("TOILET_1", (ProgramRole.TOILET,), 2.2, 4.0, 6.0, 1.1),
+    ], (
+        DesiredAccessEdge("DINING", "TOILET_1", ConnectionKind.DOOR),
+    ))
+    check = _c24(dining_bad)
+    assert not check.passed
+    assert "DINING-TOILET_1" in check.detail
+
+
 def _door_width_for(role: ProgramRole, band: tuple[float, float, float, float]) -> float:
     lo, target, hi, short = band
     fixture = _row_fixture(f"WIDTH_{role.value}", [
