@@ -6,6 +6,14 @@ deterministic; see tests/conftest.py's shared gating hook.
 Assertions are structural/quality invariants, not brittle full-payload byte-equality — the point
 is "does this context still reproduce the expected kind of outcome," not "is the JSON
 byte-identical to some frozen snapshot" (which would break on any legitimate improvement).
+
+**Snapshot mode (Issue #66)**: when `CORPUS_SNAPSHOT` names a file, the same two facts (`status`,
+and for refusals `code`) are asserted from that snapshot's own recorded entry instead of calling
+`generate_demo_design` again — see `spikes/failure_log_sweep/snapshot_invariants.py`. A stale or
+short snapshot FAILS loudly (never silently skipped). Without the env var this replays exactly as
+before. CI does not set this env var on the replay step (shadow mode: the old replay stays the
+ground truth; a separate step evaluates the same snapshot independently and the two verdicts are
+compared — see the gate-4 section of docs/wiki/architecture/agent-team-workflow.md).
 """
 
 import json
@@ -14,6 +22,7 @@ import os
 import pytest
 
 from app.demo.service import DemoGenerationError, generate_demo_design
+from spikes.failure_log_sweep import snapshot_invariants
 from spikes.failure_log_sweep.sweep import project_from_context
 
 _CORPUS_PATH = os.path.join(os.path.dirname(__file__), "corpus.json")
@@ -33,6 +42,22 @@ _CORPUS = _load_corpus()
 @pytest.mark.skipif(not _CORPUS["cases"], reason="corpus.json not yet generated — run freeze_corpus.py")
 @pytest.mark.parametrize("case", _CORPUS["cases"], ids=lambda c: c["source_key"])
 def test_frozen_context_reproduces_expected_outcome(case):
+    snapshot_path = os.environ.get("CORPUS_SNAPSHOT")
+    if snapshot_path:
+        with open(snapshot_path, encoding="utf-8") as f:
+            snapshot = json.load(f)
+        try:
+            snapshot_invariants.validate_snapshot(
+                snapshot, _CORPUS["cases"], expected_sha=snapshot_invariants.current_head_sha(),
+            )
+        except snapshot_invariants.SnapshotError as exc:
+            pytest.fail(str(exc))
+        report = snapshot_invariants.evaluate([case], snapshot)
+        if not report.ok:
+            m = report.mismatches[0]
+            pytest.fail(f"{m.reason} for {m.key}: expected={m.expected} actual={m.actual}")
+        return
+
     project = project_from_context(case["context"])
 
     if case["expected_outcome"] == "REFUSED":
