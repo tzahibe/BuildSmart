@@ -55,11 +55,21 @@ def env(tmp_path: Path):
     gh = FakeGitHub(repo=config.repo)
 
     def real_merge(pr):
-        """Fast-forward the PR branch into the temp origin's main, like GitHub would."""
+        """Squash-merge the PR branch into its base on the temp origin (main, or an integration
+        branch in weekend/holiday mode), like GitHub's squash merge: one new commit on the base."""
+        base = pr["base"]["ref"]
         _git(["fetch", "-q", "origin"], root)
-        _git(["push", "-q", "origin", f"origin/{pr['head']['ref']}:main"], root)
+        wt = tmp_path / f"_merge-{pr['number']}"
+        _git(["worktree", "add", "-q", "--detach", str(wt), f"origin/{base}"], root)
+        try:
+            _git(["merge", "--squash", f"origin/{pr['head']['ref']}"], wt)
+            _git(["-c", "user.email=t@example.com", "-c", "user.name=tester", "commit", "-q", "--allow-empty", "-m", f"{pr['title']}"], wt)
+            sha = _git(["rev-parse", "HEAD"], wt).stdout.strip()
+            _git(["push", "-q", "origin", f"HEAD:{base}"], wt)
+        finally:
+            _git(["worktree", "remove", "--force", str(wt)], root)
         _git(["fetch", "-q", "origin"], root)
-        return _git(["rev-parse", "origin/main"], root).stdout.strip()
+        return sha
 
     def real_head(branch):
         out = _git(["ls-remote", "--heads", str(origin), branch], root).stdout.split()
@@ -88,7 +98,7 @@ def _worker_that_commits(report_overrides=None):
 
 APPROVE = {"verdict": "APPROVE", "summary": "fine", "ac_assessment": [{"ac": "AC-1", "verdict": "MET", "note": ""}], "findings": [],
            "unrelated_changes": False, "hidden_behavior_changes": False, "tolerance_hacks": False, "silent_fallback": False,
-           "tests_meaningful": True, "architecture_appropriate": True}
+           "tests_meaningful": True, "architecture_appropriate": True, "architectural_assessment": {}, "overfits_one_plan": False}
 
 
 def _add_issue(gh: FakeGitHub, number: int, approved: bool = True, **kw):
@@ -274,9 +284,24 @@ def test_lock_conflict_serializes_issues(env):
     _add_issue(gh, 21, risk="LOW", locks="planner-core (exclusive)")
     runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
     orch = _orch(config, gh, clock, runner)
-    rep = _tick(orch)
+    # keep #20's worker "running" (its first run crashes) so its exclusive lock is still held when #21 is planned
+    calls = []
+    def worker(spec):
+        calls.append(spec.issue_id)
+        if spec.issue_id == 20 and calls.count(20) == 1:
+            raise RuntimeError("hold")
+        return _worker_that_commits()(spec)
+    runner.script["worker"] = worker
+    rep = orch.tick()
     assert rep.started == [20] and "planner-core(exclusive) held by #20" in rep.waiting[21]
     assert [l.issue_id for l in orch.store.locks_held()] == [20]
+    orch.wait_for_threads(timeout=30)
+    # #20 was requeued after the crash and runs again first (FIFO); once its PR is open its lock is
+    # released (release_locks_at: pr_open) and #21 starts in the same tick's follow-up plan
+    rep = _tick(orch)
+    assert 20 in rep.started
+    rep = _tick(orch)
+    assert rep.started == [21] and orch.store.get(20).state in (sm.PR_OPEN, sm.CI)
 
 
 def test_worker_blocked_status_blocks_issue(env):
@@ -414,3 +439,4 @@ def test_status_renders(env):
     assert "RUNNING" in text and "#16 PR #" in text and f"workers 0/{config.max_worker_agents}" in text
     assert "ROOT ISSUES" in text and "AVAILABLE WORKERS" in text and f"{config.max_worker_agents} / {config.max_worker_agents}" in text
     assert "RESOURCES" in text and f"weighted capacity 0 / {config.weighted_capacity}" in text and "BLOCKERS" in text
+    assert "[agent]" not in text and "Task 16" in text   # #25: the '[agent] ' tag is not repeated on every line

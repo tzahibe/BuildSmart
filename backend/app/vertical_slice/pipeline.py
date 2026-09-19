@@ -57,7 +57,8 @@ def run_once(spec: ArchitecturalSpec, render_path: str) -> VerticalSliceResult:
     )
 
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
-                       interior_doors, entrance_door, windows, furniture, site)
+                       interior_doors, entrance_door, windows, furniture, site,
+                       wet_rooms=resolve_wet_rooms(spec.program))
 
     render(design, render_path)
 

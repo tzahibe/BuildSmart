@@ -14,6 +14,7 @@ from app.demo.requirements_view import _laundry_of, spec_for
 from app.projects.models import Project, TaggedBool
 from app.vertical_slice import concept_generator as cg
 from app.vertical_slice import geometry_fixtures as F
+from app.vertical_slice import site as site_stage
 from app.vertical_slice.concept_generator import (
     ROOM_TEMPLATES,
     ZoneGroup,
@@ -25,15 +26,40 @@ from app.vertical_slice.concept_generator import (
     room_depth_band_m,
     target_gross_area_m2,
 )
+from app.vertical_slice.doors import Door
 from app.vertical_slice.general_pipeline import run_general_from_site
-from app.vertical_slice.geometry_core.model import ProgramRole
+from app.vertical_slice.geometry_adapter import envelope_sides
+from app.vertical_slice.geometry_core.model import (
+    ConnectionKind,
+    Cut,
+    DesiredAccessTopology,
+    Fixture,
+    Leaf,
+    ProgramRole,
+    Rect,
+    Side,
+    Split,
+    WallType,
+    Wing,
+    ZoneSpec,
+    furniture_envelope_fits,
+    m_to_u,
+    min_furniture_envelope_m,
+)
 from app.vertical_slice.safe_adapter import AdapterOutcome, adapt, build_buildable_region
+from app.vertical_slice.site import SitePlan
 from app.vertical_slice.spec import (
     ArchitecturalSpec,
     LaundryDemand,
     LaundryRequirement,
     PlotSpec,
     ProgramSpec,
+)
+from app.vertical_slice.validation import validate
+from app.vertical_slice.windows import (
+    LAUNDRY_WINDOW_MIN_WIDTH_M,
+    EXTERIOR_WINDOW,
+    generate_windows,
 )
 
 CIRCULATION = {ProgramRole.HALL, ProgramRole.CIRCULATION}
@@ -549,3 +575,137 @@ def test_a_low_safe_room_is_never_named_in_the_notice_with_or_without_laundry():
     assert notice is not None
     assert "רחצה" in notice
     assert 'ממ"ד' not in notice
+
+
+# ------------------------------------------------------------------ 6. exterior wall + window (Issue #21, AC-1)
+
+
+_GRID_LEG_M = 3.0
+_LOOSE = dict(net_area_min_m2=1.0, net_area_target_m2=9.0, net_area_max_m2=99.0,
+             min_short_side_m=0.1, max_aspect_ratio=99.0)
+
+
+def _grid_fixture(center_roles: tuple[ProgramRole, ...]) -> tuple[Fixture, dict[str, Rect], Rect]:
+    """A|TOP/CENTER/BOTTOM|C, each leg `_GRID_LEG_M`. CENTER touches none of the four wing edges —
+    the one genuinely INTERIOR room C19 exists to catch. Mirrors `test_exposure_policy.py`'s own
+    `_grid_fixture` (kept self-contained here rather than cross-imported, same reasoning as that
+    file's own module docstring)."""
+    leg_u = m_to_u(_GRID_LEG_M)
+    rects = {
+        "A": Rect(0, 0, leg_u, 3 * leg_u),
+        "TOP": Rect(leg_u, 0, leg_u, leg_u),
+        "CENTER": Rect(leg_u, leg_u, leg_u, leg_u),
+        "BOTTOM": Rect(leg_u, 2 * leg_u, leg_u, leg_u),
+        "C": Rect(2 * leg_u, 0, leg_u, 3 * leg_u),
+    }
+    footprint = Rect(0, 0, 3 * leg_u, 3 * leg_u)
+    tree = Split(Cut.V, Leaf("A"),
+                Split(Cut.V,
+                      Split(Cut.H, Leaf("TOP"), Split(Cut.H, Leaf("CENTER"), Leaf("BOTTOM"), None), None),
+                      Leaf("C"), None),
+                None)
+    wing = Wing("W", 0, 0, footprint.w, footprint.h, tree)
+    specs = (
+        ZoneSpec("A", (ProgramRole.STORAGE,), **_LOOSE),
+        ZoneSpec("TOP", (ProgramRole.STORAGE,), **_LOOSE),
+        ZoneSpec("CENTER", center_roles, **_LOOSE),
+        ZoneSpec("BOTTOM", (ProgramRole.STORAGE,), **_LOOSE),
+        ZoneSpec("C", (ProgramRole.STORAGE,), **_LOOSE),
+    )
+    fixture = Fixture("GRID", (wing,), specs, DesiredAccessTopology(()))
+    return fixture, rects, footprint
+
+
+def _validate_grid(center_roles: tuple[ProgramRole, ...]):
+    fixture, rects, footprint = _grid_fixture(center_roles)
+    walls = {
+        (zone_id, side): (WallType.EXTERIOR if side in envelope_sides(rect, footprint)
+                          else WallType.PARTITION)
+        for zone_id, rect in rects.items() for side in Side
+    }
+    windows = generate_windows(fixture, rects, footprint)
+    spec = ArchitecturalSpec(plot=PlotSpec(30.0, 30.0), program=ProgramSpec())
+    plot = Rect(0, 0, m_to_u(30.0), m_to_u(30.0))
+    entrance = site_stage.build_entrance(footprint, footprint.x + footprint.w // 2)
+    site = SitePlan(plot, footprint, (footprint.x, footprint.y), (), entrance,
+                    site_stage.classify_garden(spec, plot, footprint, ()))
+    dummy_entrance_door = Door("OUTSIDE", "A", ConnectionKind.DOOR, 1.0, (0, 0), "horizontal",
+                               False, 0.0)
+    return validate(fixture, rects, walls, [], dummy_entrance_door, windows, [], site,
+                    skip_site_checks=True)
+
+
+def _check(report, check_id: str):
+    return next(c for c in report.checks if c.check_id == check_id)
+
+
+def test_c19_fails_on_an_interior_laundry_room():
+    """AC-1: LAUNDRY is REQUIRED/REQUIRED in `exposure_policy.EXPOSURE_POLICY` — an interior
+    LAUNDRY room (no exterior wall at all) fails C19, exactly like the habitable roles Issue #19
+    already covers. Same grid fixture as `test_exposure_policy.py`'s C19 proof."""
+    report = _validate_grid((ProgramRole.LAUNDRY,))
+    c19 = _check(report, "C19")
+    assert not c19.passed
+    assert "CENTER" in c19.detail
+
+
+def test_c8_passes_with_a_service_sized_window_on_an_exterior_laundry_room():
+    """AC-1: a LAUNDRY room ON an exterior wall gets a real window — sized at the SERVICE-window
+    minimum (0.6 m, `LAUNDRY_WINDOW_MIN_WIDTH_M`), narrower than a habitable room's 0.9 m — and
+    `ventilation_status` reports `EXTERIOR_WINDOW`, the same status AC-1 requires a delivered
+    laundry room to always carry."""
+    fixture, rects, footprint = _grid_fixture((ProgramRole.STORAGE,))
+    # LAUNDRY on an exterior leg (`A`, full west envelope); CENTER stays STORAGE (no exposure
+    # requirement), so this fixture's only exterior-required room is the one under test.
+    exterior_fixture = Fixture("GRID_EXT", fixture.wings,
+                               tuple(ZoneSpec(z.zone_id, (ProgramRole.LAUNDRY,) if z.zone_id == "A"
+                                             else z.roles, **_LOOSE) for z in fixture.zones),
+                               DesiredAccessTopology(()))
+    windows = generate_windows(exterior_fixture, rects, footprint)
+    window = next(w for w in windows if w.zone_id == "A")
+    assert window.placeable, window
+    assert window.width_m >= LAUNDRY_WINDOW_MIN_WIDTH_M - 1e-9
+    assert window.ventilation_status == EXTERIOR_WINDOW
+
+    walls = {
+        (zone_id, side): (WallType.EXTERIOR if side in envelope_sides(rect, footprint)
+                          else WallType.PARTITION)
+        for zone_id, rect in rects.items() for side in Side
+    }
+    spec = ArchitecturalSpec(plot=PlotSpec(30.0, 30.0), program=ProgramSpec())
+    plot = Rect(0, 0, m_to_u(30.0), m_to_u(30.0))
+    entrance = site_stage.build_entrance(footprint, footprint.x + footprint.w // 2)
+    site = SitePlan(plot, footprint, (footprint.x, footprint.y), (), entrance,
+                    site_stage.classify_garden(spec, plot, footprint, ()))
+    dummy_entrance_door = Door("OUTSIDE", "A", ConnectionKind.DOOR, 1.0, (0, 0), "horizontal",
+                               False, 0.0)
+    report = validate(exterior_fixture, rects, walls, [], dummy_entrance_door, windows, [], site,
+                      skip_site_checks=True)
+    assert _check(report, "C19").passed
+    assert _check(report, "C8").passed
+
+
+# ------------------------------------------------------------------ 7. machine bay (Issue #21, AC-2)
+
+
+def test_template_short_side_is_the_machine_bay():
+    """AC-2: the LAUNDRY template's minimum short side is 1.7 m (0.6 m machine + 0.6 m optional
+    dryer + 0.5 m circulation)."""
+    assert ROOM_TEMPLATES[ProgramRole.LAUNDRY].min_short_side_m == 1.7
+
+
+def test_a_room_at_the_template_floor_always_inscribes_the_washing_machine_footprint():
+    """AC-2: any LAUNDRY room realized at (or above) its template's short-side floor always fits
+    the WASHING_MACHINE furniture envelope (0.6 m wide, 0.9 m clearance in front — C9's screen) —
+    guaranteed by construction now that the floor (1.7 m on both sides) exceeds the envelope's own
+    longer side (1.5 m), not left to chance at the solver."""
+    zone = ZoneSpec("LAUNDRY", (ProgramRole.LAUNDRY,), net_area_min_m2=2.5, net_area_target_m2=4.0,
+                    net_area_max_m2=8.0, min_short_side_m=1.7, max_aspect_ratio=3.0)
+    envelope = min_furniture_envelope_m(zone)
+    assert envelope == (0.6, 1.5)
+    # The floor shape (short side exactly at the template minimum, on both axes) always fits —
+    # 1.7 m exceeds the envelope's own longer side (1.5 m) in either orientation.
+    assert furniture_envelope_fits(zone, 1.7, 1.7) is True
+    # A room narrower than the envelope's longer side genuinely cannot inscribe it — the screen is
+    # a real check, not vacuously true regardless of the room's shape.
+    assert furniture_envelope_fits(zone, 1.4, 1.4) is False

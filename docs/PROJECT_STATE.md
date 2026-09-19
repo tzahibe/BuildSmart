@@ -40,8 +40,10 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   2026-09-18 (owner governance message): ROOT/child authorization model (`### Authorization`,
   `agent:child`, `agent:decomposed`, `agent:hold`), root-aware scheduler (work stealing, locks
   released at READY, READY never blocks unrelated work), graceful drain on SIGTERM, Team Lead
-  status view; 18 governance tests (`tests/test_governance_parallel.py`). #17 → PR #23 READY_FOR_OWNER
-  (CI/regression/review green at `d7c79a3`, owner merges); #18 waits for it.
+  status view; 18 governance tests (`tests/test_governance_parallel.py`). #17 merged (PR #23).
+  2026-09-18 (Fri): weekend/holiday integration mode live — first period Yom Kippur 2026
+  (`integration/holiday-yom-kippur-2026`); unified owner-approved roadmap (`docs/ROADMAP.md`, ROOTs
+  #28–#46 + #18–#22); 7 Issues integrated on day one; one rollup PR to main follows the period.
 
 - `integration/laundry-into-main` — landed: fast-forwarded onto `main` at `6499604`. No longer
   active work; kept for history. See the Laundry Wiki page.
@@ -58,11 +60,25 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - Room capacity constraint, plan-not-realizable root cause — no successor doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
 
+## Agent-team Issues
+
+- **#24 Work reports and structured failure records** — every failure transition (worker
+  failed/blocked, publish failed, CI red, review rejected, owner reject/change-request, a rate
+  limit, `agentctl block`) emits one structured `failure_record` event and a fixed-template
+  failure milestone comment; a per-Issue Markdown work report (`.agent/logs/reports/<issue>.md`,
+  `agentctl report N`) is regenerated on every state change with a "What was done" section per
+  attempt and a "Failure history" table; `agentctl audit N` shows the failure history before raw
+  events; the Telegram compact status (`status.render_compact`) appends the short root cause next
+  to a BLOCKED/repair-pending class. See the agent-team-workflow Wiki page's Observability section
+  (`work_reports.py`).
+
 ## Guardrails / do-not-change rules
 
 - **Agent PRs only through the workflow**: branches `agent/<issue>-<slug>` are owned by the
   orchestrator (`scripts/agentctl`); never push to them by hand, never merge them outside the
   merge policy. `.worktrees/` and `.agent/{state,logs,contracts}/` are local runtime state.
+- **Agent Issue titles carry their own number**: `[agent] #N Title` on every open Issue, kept
+  current with `agentctl issue renumber-titles` (see [wiki/agent-team.md](wiki/agent-team.md)).
 
 - **ReviewPage Generate guardrail**: preserve the blocking priority order and commit `8c4cdba`'s
   `disabledReason`/pending-message behavior. Don't change without a reproducible regression.

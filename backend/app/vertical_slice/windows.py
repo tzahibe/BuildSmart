@@ -7,41 +7,57 @@ min/max band. PARAMETER · UNVERIFIED: the fraction/min/max below are plausible 
 not sourced from a specific glazing-ratio code requirement (same disclosure discipline as
 `geometry_core.model.WALL_THICKNESS_M`'s RC_SAFE_ROOM entry).
 
-WET_ROOMS (bathrooms) are not REQUIRED to have a window in this scope, and stay OUT of
-`DAYLIGHT_ROLES` (validation's C8 gates only on that set, and must go on gating only that set —
-real codes often allow mechanical ventilation instead, and this slice does not attempt to model
-which one an authoritative rule would demand here). But a real exterior wall should not go to
-waste when a wet room happens to land on one — most already do, since a room at the outer edge
-of a west/east column borders the footprint's own exterior by construction. So `generate_windows`
-ALSO attempts a (smaller, PROVISIONAL — not sourced from any external tool or verified glazing
-code) window for `WET_ROOM_PREFERRED_ROLES`, best-effort: a real exterior wall and enough of it,
-or nothing, never fabricated, and never gating C8 either way. Circulation is not attempted at all
-— a corridor window is not this scope's concern.
+`DAYLIGHT_ROLES` and `WET_ROOM_PREFERRED_ROLES` below are DERIVED from `exposure_policy.py`
+(Issue #19) — that module is the single declared policy per `ProgramRole`; this module only
+consumes it. A role whose `window` policy is REQUIRED lands in `DAYLIGHT_ROLES` (validation's C8
+gates on that set); PREFERRED lands in `WET_ROOM_PREFERRED_ROLES` (best-effort, never gating —
+real codes often allow mechanical ventilation instead of a window, and this slice does not
+attempt to model which one an authoritative rule would demand for these roles). A real exterior
+wall should not go to waste when a PREFERRED-tier room happens to land on one — most wet rooms
+already do, since a room at the outer edge of a west/east column borders the footprint's own
+exterior by construction — so `generate_windows` attempts a (smaller, PROVISIONAL — not sourced
+from any external tool or verified glazing code) window for `WET_ROOM_PREFERRED_ROLES` too:
+a real exterior wall and enough of it, or nothing, never fabricated, and never gating C8 either
+way. A role whose policy is NONE (HALL, CIRCULATION, STORAGE, …) is not attempted at all.
 
 Every generated `Window` carries `ventilation_status`, a plain descriptive (non-regulatory) label
 — `EXTERIOR_WINDOW` when one was placed, `MECHANICAL_VENTILATION_REQUIRED` when it was not —
-useful for a caller to report which wet rooms got daylight and which did not, without asserting
+useful for a caller to report which rooms got daylight and which did not, without asserting
 that either state is itself what any code requires.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from .geometry_adapter import envelope_sides
 from .geometry_core.model import Fixture, ProgramRole, Rect, Side, m_to_u, u_to_m
 
-DAYLIGHT_ROLES = frozenset({
-    ProgramRole.LIVING, ProgramRole.DINING, ProgramRole.KITCHEN,
-    ProgramRole.BEDROOM, ProgramRole.MASTER_BEDROOM, ProgramRole.SAFE_ROOM,
-})
+#: Roles whose window policy is REQUIRED — validation's C8 gates on exactly this set.
+DAYLIGHT_ROLES = frozenset(
+    role for role, policy in EXPOSURE_POLICY.items()
+    if policy.window is ExposureRequirement.REQUIRED
+)
 
 WINDOW_WALL_FRACTION = 0.4
 WINDOW_MIN_WIDTH_M = 0.9
 WINDOW_MAX_WIDTH_M = 2.0
 
-#: Wet rooms that PREFER, but never require, an exterior window — see module docstring. Kept
-#: deliberately separate from `DAYLIGHT_ROLES` so C8 (`validation.py`) never gates on these.
-WET_ROOM_PREFERRED_ROLES = frozenset({ProgramRole.BATHROOM, ProgramRole.TOILET})
+#: LAUNDRY (Issue #21) is REQUIRED-tier like a habitable room — C8 gates on it — but its window is
+#: sized like a service room's, not a living room's: a 0.6 m minimum (the brief's "service-window
+#: minimum width"), same PLACEHOLDER disclosure as the constants above. Narrower than
+#: `WINDOW_MIN_WIDTH_M` (0.9 m, habitable rooms) and wider than `WET_ROOM_WINDOW_MIN_WIDTH_M`
+#: (0.5 m, PREFERRED-tier wet rooms) — a laundry window is expected to open, not just admit light.
+LAUNDRY_WINDOW_WALL_FRACTION = 0.25
+LAUNDRY_WINDOW_MIN_WIDTH_M = 0.6
+LAUNDRY_WINDOW_MAX_WIDTH_M = 1.2
+
+#: Roles whose window policy is PREFERRED — attempted best-effort, never required, never gating
+#: C8 (`validation.py`). See module docstring.
+WET_ROOM_PREFERRED_ROLES = frozenset(
+    role for role, policy in EXPOSURE_POLICY.items()
+    if policy.window is ExposureRequirement.PREFERRED
+)
 
 #: Smaller than a habitable room's window on purpose (a bathroom customarily takes a narrower,
 #: often frosted, opening) — PRODUCT POLICY placeholders, PROVISIONAL and unverified, same
@@ -99,7 +115,10 @@ def generate_windows(fixture: Fixture, rects: dict[str, Rect], footprint: Rect,
     windows: list[Window] = []
     for zone in fixture.zones:
         roles = set(zone.roles)
-        if roles & DAYLIGHT_ROLES:
+        if ProgramRole.LAUNDRY in roles:
+            min_m, max_m, fraction = (LAUNDRY_WINDOW_MIN_WIDTH_M, LAUNDRY_WINDOW_MAX_WIDTH_M,
+                                       LAUNDRY_WINDOW_WALL_FRACTION)
+        elif roles & DAYLIGHT_ROLES:
             min_m, max_m, fraction = WINDOW_MIN_WIDTH_M, WINDOW_MAX_WIDTH_M, WINDOW_WALL_FRACTION
         elif roles & WET_ROOM_PREFERRED_ROLES:
             min_m, max_m, fraction = (WET_ROOM_WINDOW_MIN_WIDTH_M, WET_ROOM_WINDOW_MAX_WIDTH_M,

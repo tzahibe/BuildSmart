@@ -125,6 +125,8 @@ UNQUEUE_ISSUE — "don't work on it yet" (args.number)
 MERGE_PR — the owner asks to merge a PR (args.pr). The gateway will ask for button confirmation.
 REJECT_PR — the owner rejects a PR (args.pr, args.reason)
 OWNER_CHANGE_REQUEST — the owner wants changes before merging (args.pr, args.feedback = the exact request)
+ROLLUP_STATUS — what went into the weekend/holiday integration bundle / rollup PR ("איזה PRs נכנסו לחבילת סוף השבוע?", "מה יש ב-rollup?")
+ROLLUP_EXCLUDE — the owner wants one Issue's change OUT of the rollup ("ב-PR של סוף השבוע אני לא רוצה את השינוי של Issue 84") (args.number = the Issue, args.reason)
 PAUSE_SCHEDULER — stop taking new work ("תעצור", "אל תיקח משימות חדשות")
 RESUME_SCHEDULER — continue ("תמשיך")
 HELP — how to use the bot
