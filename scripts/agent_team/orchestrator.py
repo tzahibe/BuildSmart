@@ -625,14 +625,17 @@ class Orchestrator:
     def rate_limited_run(self, result: AgentRunResult) -> bool:
         return (not result.ok) and looks_rate_limited(result.error or result.result_text)
 
-    ACTIVE_STATES = (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.MERGED)
+    #: States that hold a worker slot or are about to: what `max_active_issues` bounds. A PR sitting in
+    #: CI/REVIEW/READY holds no worker and must never keep a free worker idle (owner rule).
+    ACTIVE_STATES = (sm.CLAIMED, sm.WORKING, sm.FIX_REQUIRED)
 
     def active_issue_count(self) -> int:
         return len(self.store.list(self.ACTIVE_STATES))
 
     def active_roots(self) -> set[int]:
-        """ROOT Issues with work in flight. Children count toward their ROOT; READY_FOR_OWNER does not
-        count — a PR waiting for the owner's merge must never stop unrelated work."""
+        """ROOT Issues with a worker in flight (or a repair pending). Children count toward their ROOT;
+        PRs in CI/REVIEW/READY_FOR_OWNER do not count — waiting on GitHub or on the owner must never
+        stop unrelated work."""
         return {r.root for r in self.store.list(self.ACTIVE_STATES)}
 
     def schedule(self) -> list[scheduler.Decision]:

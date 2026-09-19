@@ -194,7 +194,8 @@ def test_multiple_workers_scheduled_from_one_root(env):
     assert all(orch.store.get(n).state in (sm.PR_OPEN, sm.CI) for n in (121, 122, 123))
     assert len({orch.store.get(n).branch for n in (121, 122, 123)}) == 3          # own branch + worktree each
     assert len({orch.store.get(n).worktree for n in (121, 122, 123)}) == 3
-    assert orch.active_roots() == {ROOT}
+    # the workers finished within the tick (PRs open): nothing holds a worker slot any more
+    assert orch.active_roots() == set()
 
 
 def test_dependency_aware_parallelism_follows_the_dag(env):
