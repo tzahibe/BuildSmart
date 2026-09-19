@@ -17,6 +17,7 @@ import DesignPage from './design/DesignPage'
 import ReviewPage from './design/ReviewPage'
 import DemoWorkspace from './design/DemoWorkspace'
 import type { DemoPlanSet, RequirementsReview, ReviewEdit } from './design/demoDesign'
+import RefusalNotice from './components/review/RefusalNotice'
 import FootprintSelection from './design/FootprintSelection'
 import {
   toSelectedFootprintPayload,
@@ -57,7 +58,7 @@ function App() {
   // the validated pipeline (POST /design/demo). Nothing here reuses the old solver route.
   const [review, setReview] = useState<RequirementsReview | null>(null)
   const [demoPlans, setDemoPlans] = useState<DemoPlanSet | null>(null)
-  const [demoError, setDemoError] = useState<{ message: string; detail: string } | null>(null)
+  const [demoError, setDemoError] = useState<{ code: string; message: string; detail: string } | null>(null)
   const [demoProgress, setDemoProgress] = useState<DemoProgress | null>(null)
   // THE OUTLINE IS THE ENGINE'S TO CHOOSE (feature 006). It used to be a screen of its own between
   // this form and generation; measured over the production log, the person's choice planned in 30 %
@@ -349,18 +350,18 @@ function App() {
       // arriving here indistinguishable from a real pipeline crash unless named separately — the
       // one case where the fix is "start the server", not "read the stack trace".
       const unreachable = error instanceof TypeError
+      const code =
+        error instanceof DemoPipelineError ? error.code : unreachable ? 'SERVER_UNREACHABLE' : 'GENERATE_FAILED'
       const failure =
         error instanceof DemoPipelineError
-          ? { message: error.message, detail: error.detail }
+          ? { code, message: error.message, detail: error.detail }
           : unreachable
-            ? { message: 'לא ניתן להתחבר לשרת. יש לוודא שהשרת פועל ולנסות שוב.', detail: '' }
-            : { message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
+            ? { code, message: 'לא ניתן להתחבר לשרת. יש לוודא שהשרת פועל ולנסות שוב.', detail: '' }
+            : { code, message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
       // The moment somebody does not get a drawing. Recorded from the UI as well as the API,
       // because a network failure or a response the client could not use never reaches the server
       // log at all — and it ends the journey just the same.
-      reportFailure(
-        error instanceof DemoPipelineError ? error.code : unreachable ? 'SERVER_UNREACHABLE' : 'GENERATE_FAILED',
-        failure.message, 'generate', failure.detail, { projectId: project.project_id })
+      reportFailure(code, failure.message, 'generate', failure.detail, { projectId: project.project_id })
       setDemoError(failure)
       setView('review')
     }
@@ -370,10 +371,7 @@ function App() {
     return (
       <>
         {demoError ? (
-          <div className="demo-error" role="alert">
-            <strong>{demoError.message}</strong>
-            {demoError.detail ? <span className="demo-error-detail">{demoError.detail}</span> : null}
-          </div>
+          <RefusalNotice code={demoError.code} message={demoError.message} detail={demoError.detail} />
         ) : null}
         <ReviewPage review={review} onConfirm={handleConfirmReview} onBack={() => setView('form')} />
       </>

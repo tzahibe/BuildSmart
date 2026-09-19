@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import type { DemoOutline, DemoPlanSet } from './demoDesign'
 import DemoPlan from './DemoPlan'
 import PlanLegend from './PlanLegend'
+import QualityPanel from '../components/review/QualityPanel'
+import RoomDetails from '../components/review/RoomDetails'
 import './DemoWorkspace.css'
 
 /** THE OUTLINE A PLAN OCCUPIES, in the person's terms (feature 006). Width, depth and area come
@@ -52,10 +54,16 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
   // are currently sitting in. Positions, not identities — see `swapWithLargePlan`.
   const [order, setOrder] = useState<number[]>(() => all.map((_, index) => index))
 
+  // Issue #63: which room's exposure/privacy/door facts `RoomDetails` shows, chosen from the room
+  // list below. `null` — nothing selected — is the default; a fresh generation clears it, since a
+  // room id from the old plan may not exist on the new one.
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null)
+
   // A fresh generation replaces the whole set. Without this the old order would be applied to new
   // plans, and after a regeneration that produced fewer alternatives it would index past the end.
   useEffect(() => {
     setOrder(all.map((_, index) => index))
+    setSelectedRoomId(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plans])
 
@@ -147,14 +155,29 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
         </dl>
 
         <h3 className="workspace-subtitle">חדרים</h3>
+        {/* Issue #63: hovering or clicking a room shows its exposure/privacy/door facts below —
+            selection persists on click so it survives the mouse leaving the list. */}
         <ul className="workspace-rooms">
           {rooms.map((room) => (
             <li key={room.id}>
-              <span>{room.name}</span>
-              <span className="workspace-room-area">{room.area_m2.toFixed(1)} מ״ר</span>
+              <button
+                type="button"
+                className="workspace-room-select"
+                aria-pressed={selectedRoomId === room.id}
+                onMouseEnter={() => setSelectedRoomId(room.id)}
+                onFocus={() => setSelectedRoomId(room.id)}
+                onClick={() => setSelectedRoomId(room.id)}
+              >
+                <span>{room.name}</span>
+                <span className="workspace-room-area">{room.area_m2.toFixed(1)} מ״ר</span>
+              </button>
             </li>
           ))}
         </ul>
+
+        <RoomDetails design={design} quality={design.quality} roomId={selectedRoomId} />
+
+        <QualityPanel quality={design.quality} />
 
         <PlanLegend design={design} />
 
