@@ -246,3 +246,12 @@ def test_gate1_accepts_an_integration_branch_base(repo_config):
     pr["base"]["ref"] = "feature/other"
     rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
     assert {c["name"]: c["ok"] for c in rep.checks}["PR targets base branch"] is False
+
+
+def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):
+    from agent_team.ci.contract_check import evaluate
+    pr = {"head": {"ref": "integration/holiday-yom-kippur-2026"}, "base": {"ref": "main"}, "body": "Closes #61\n\n## summary"}
+    rep = evaluate(pr, {"number": 61, "state": "open", "title": "[agent] Yom Kippur Integration", "body": "", "labels": [{"name": "agent:rollup"}, {"name": "agent:ci"}],
+                        "author_association": "OWNER"}, repo_config)
+    names = {c["name"]: c["ok"] for c in rep.checks}
+    assert names["rollup PR targets main"] and names["rollup PR closes its rollup Issue"] and "branch naming agent/<issue>-<slug>" not in names

@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   gate-1-contract:
-    if: startsWith(github.head_ref, 'agent/')
+    if: startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'integration/')
     uses: ./.github/workflows/agent-contract.yml
     secrets: inherit
 
@@ -158,7 +158,7 @@ jobs:
 
   agent-ci-result:
     needs: [gate-1-contract, gate-2-static, gate-3-verification, gate-4-regression]
-    if: always() && startsWith(github.head_ref, 'agent/')
+    if: always() && (startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'integration/'))
     runs-on: ubuntu-latest
     steps:
       - name: Aggregate

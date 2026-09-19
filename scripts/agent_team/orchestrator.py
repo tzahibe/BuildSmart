@@ -1229,7 +1229,7 @@ class Orchestrator:
         info = self.worktrees.ensure_named(n, p.branch)
         pr_body = im.rollup_pr_body(p, children, decisions=decisions, behavior_changes=[], regression=None, tests_ok=None, review=None,
                                     limitations=[], recommendation="pending: the combined state is being validated")
-        pr = self.github.create_pr(head=p.branch, base=self.config.base_branch, title=f"{title} (#{n})", body=pr_body)
+        pr = self.github.create_pr(head=p.branch, base=self.config.base_branch, title=f"{title} (#{n})", body=f"Closes #{n}\n\n" + pr_body)
         manifest = verification_manifest(contract, regression_domains=self.config.regression_domains)
         self.store.track(n, title=title, risk=contract.risk, resource_class=contract.resource_class, domains=list(contract.domains),
                          dependencies=[], contract=_contract_to_dict(contract), state=sm.PR_OPEN, kind="rollup", root_issue=n)
@@ -1257,7 +1257,7 @@ class Orchestrator:
                                      tests_ok=r.get("ci") == "PASS", review=r.get("review"), limitations=list(r.get("limitations") or []),
                                      recommendation="MERGE RECOMMENDED" if str(r.get("recommendation", "")).startswith("MERGE") else "CHANGES RECOMMENDED — " + str(r.get("recommendation", "")))
             try:
-                self.github.update_pr(rec.pr_number, body=body)
+                self.github.update_pr(rec.pr_number, body=f"Closes #{rec.issue_id}\n\n" + body)
             except Exception as exc:  # noqa: BLE001
                 log.warning("rollup PR body update failed: %s", exc)
             return im.rollup_notification(p, rec.pr_number, children, decisions=decisions, ci=r.get("ci", "?"), regression=r.get("regression", "?"),

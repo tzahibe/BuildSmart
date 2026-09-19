@@ -42,10 +42,16 @@ def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None 
     base_ok = base == config.base_branch or base.startswith("integration/")
     rep.add("PR targets base branch", base_ok, f"base={base!r}")
     rep.add("head branch is not the base branch", head != base and head != config.base_branch, f"head={head!r}")
-    issue_no = issue_from_branch(config, head)
-    rep.add("branch naming agent/<issue>-<slug>", issue_no is not None and bool(re.fullmatch(rf"{re.escape(config.branch_prefix)}\d+-[a-z0-9\-]+", head)), f"head={head!r}")
     linked = [int(n) for n in _CLOSES.findall(body)]
-    rep.add("PR body links its Issue", issue_no is not None and issue_no in linked, f"Closes: {linked or 'none'}; branch issue: {issue_no}")
+    if head.startswith("integration/"):
+        # the rollup PR of a weekend/holiday period: its Issue is the rollup Issue the body closes
+        issue_no = linked[0] if linked else None
+        rep.add("rollup PR targets main", base == config.base_branch, f"base={base!r}")
+        rep.add("rollup PR closes its rollup Issue", issue_no is not None, f"Closes: {linked or 'none'}")
+    else:
+        issue_no = issue_from_branch(config, head)
+        rep.add("branch naming agent/<issue>-<slug>", issue_no is not None and bool(re.fullmatch(rf"{re.escape(config.branch_prefix)}\d+-[a-z0-9\-]+", head)), f"head={head!r}")
+        rep.add("PR body links its Issue", issue_no is not None and issue_no in linked, f"Closes: {linked or 'none'}; branch issue: {issue_no}")
 
     if issue is None:
         rep.add("Issue exists", False, f"#{issue_no} not found")
@@ -99,6 +105,9 @@ def main() -> int:
     client = GitHubClient(config.repo, TokenTransport())
     head = pr.get("head", {}).get("ref", "")
     issue_no = issue_from_branch(config, head)
+    if issue_no is None and head.startswith("integration/"):
+        closes = _CLOSES.findall(pr.get("body") or "")
+        issue_no = int(closes[0]) if closes else None
     issue = None
     if issue_no is not None:
         try:
