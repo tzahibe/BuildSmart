@@ -111,6 +111,12 @@ done) and "Plan Quality Evaluation / Benchmark" (P3).
 - **Plan Retrieval / Reference Library** (beyond the curated reference set), **Performance / Runtime**,
   **Knowledge system follow-ups**.
 - **INFRA:** Agent-Team / Telegram operational hardening (ongoing: #24 work reports, #25 numbered titles).
+- **INFRA — CI optimization (owner-approved 2026-09-19, `docs/CI_OPTIMIZATION_PROPOSAL.md`):** #66 O1
+  invariants from the head snapshot → #67 O3 sharded corpus snapshot → #68 O2 trusted push-built snapshot
+  store (`docs/CI_SNAPSHOT_CACHE_DESIGN.md`); each in shadow mode (old + new paths, compare step) until
+  enough identical real runs, then the old path is removed gradually; then the risk-tier gate policy
+  (LOW no corpus unless the contract demands it, MEDIUM only on planner/geometry/validator/requirements
+  paths, HIGH + rollup always). Never a coverage or budget reduction.
 
 ## Review principles for these Issues
 
