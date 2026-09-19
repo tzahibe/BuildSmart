@@ -841,7 +841,7 @@ class Orchestrator:
             body = render_pr_body(contract, report, model=spec.model, session_id=result.session_id, attempt=spec.attempt)
             pr = self.github.find_pr_for_branch(rec.branch)
             if pr is None:
-                pr = self.github.create_pr(head=rec.branch, base=self.worktrees.base_branch(), title=f"{contract.title} (#{issue_id})", body=body)
+                pr = self.github.create_pr(head=rec.branch, base=self._pr_base_for_worktree(path), title=f"{contract.title} (#{issue_id})", body=body)
                 self._milestone(issue_id, f"PR opened: {pr.get('html_url', pr['number'])} (attempt {spec.attempt}, head `{head[:12]}`).")
             else:
                 self.github.update_pr(pr["number"], body=body)
@@ -1092,6 +1092,22 @@ class Orchestrator:
     def rollup(self) -> dict | None:
         raw = self.store.get_meta("rollup")
         return json.loads(raw) if raw else None
+
+    def _pr_base_for_worktree(self, path: Path) -> str:
+        """The branch a new PR targets: the current base (main, or the period's integration branch) — unless
+        the worktree's history already contains a pending rollup's integration branch (a child started on
+        it, or the period ended while the worker ran): then the PR targets that branch, because its commits
+        exist only there and the rollup re-validates the combined head."""
+        base = self.worktrees.base_branch()
+        info = self.rollup() or {}
+        ibranch = (info.get("period") or {}).get("branch")
+        if ibranch and ibranch != base:
+            try:
+                if run_git(["merge-base", "--is-ancestor", self.worktrees.base_ref(ibranch), "HEAD"], path, check=False).returncode == 0:
+                    return ibranch
+            except Exception:  # noqa: BLE001
+                pass
+        return base
 
     def _base_ref_for(self, rec: IssueRecord) -> str:
         """The base a record's PR targets: the rollup targets main; otherwise the PR's own base."""
