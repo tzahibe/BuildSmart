@@ -84,6 +84,54 @@ export interface DemoValidation {
   checks: Record<string, boolean>
 }
 
+/** M1–M6 for one plan — mirrors `app.demo.contract.QualityMetricsOut` (Issue #17). `null` only
+ * when the plan genuinely has no room of the kind that metric measures. */
+export interface DemoQualityMetrics {
+  m1_habitable_aspect_median: number | null
+  m1_habitable_aspect_max: number | null
+  m2_habitable_on_envelope_ratio: number | null
+  m3_circulation_share: number
+  m4_hall_door_count: number | null
+  m4_hall_aspect_median: number | null
+  m5_wet_adjacency_ratio: number | null
+  m6_public_zone_contiguous: boolean | null
+  dead_space_m2: number
+  wasted_circulation_share: number
+  /** Corpus-level medians for context beside this plan's own M3/M4/M5/M6 (the same four stats
+   *  `tests/regression_corpus/quality_baseline.json` freezes). Optional and absent from today's
+   *  payload — shown only when a future backend attaches one; never computed here. */
+  corpus_median?: {
+    m3_circulation_share_median?: number | null
+    m4_hall_aspect_median?: number | null
+    m5_wet_adjacency_share?: number | null
+    m6_public_contiguous_share?: number | null
+  } | null
+}
+
+/** One room's exposure standing — mirrors `app.demo.contract.ExposureOut` (Issue #19). Which
+ * sides sit on the envelope, and either the window that was placed or why none was. */
+export interface DemoExposure {
+  room_id: string
+  exterior_sides: string[]
+  window_side: string | null
+  window_width_m: number | null
+  no_window_reason: 'NO_EXTERIOR_WALL' | 'EXTERIOR_WALL_TOO_SHORT' | 'WINDOW_NOT_REQUIRED' | string | null
+}
+
+/** One wet room's privacy standing — mirrors `app.demo.contract.WetPrivacyOut` (Issue #37).
+ * Display data only; the one hard rule it backs (C29) lives on the backend. */
+export interface DemoWetPrivacy {
+  zone_id: string
+  entered_from: string | null
+  entered_from_class: string
+  door_facing: string | null
+  direct_sight_line: boolean
+  public_exposure_score: number
+  circulation_obstruction: boolean
+  adjacency_quality: boolean
+  privacy_score: number
+}
+
 /**
  * Room-size quality, kept apart from validation: the preferred maximum is a soft target, the hard
  * one is the gate (C21). Every room above preferred is on its room as `over_preferred_ratio`;
@@ -94,6 +142,15 @@ export interface DemoQuality {
   over_preferred: boolean
   signal: { room_id: string; ratio: number }[]
   notices: string[]
+  /** Issue #21 — a room realized materially below its own template target in a plan with an
+   *  explicitly requested LAUNDRY room. Never a validation failure, never a refusal. */
+  laundry_notice?: string | null
+  /** M1–M6 for this plan (Issue #17). Absent only for a payload built before this field existed. */
+  metrics?: DemoQualityMetrics | null
+  /** One entry per room (Issue #19). Absent/empty for a payload built before this field existed. */
+  exposure?: DemoExposure[]
+  /** One entry per wet room (Issue #37). Empty for a plan with no wet rooms. */
+  wet_privacy?: DemoWetPrivacy[]
 }
 
 /** Requested vs REALIZED corridor width — `realized_width_m` is measured off the plan. */
