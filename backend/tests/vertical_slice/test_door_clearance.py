@@ -44,11 +44,15 @@ def _fixture(zones: list[ZoneSpec]) -> Fixture:
 
 # ------------------------------------------------------------------ AC-1: one fixture per defect class
 
-def test_door_door_conflict_detected():
-    """Two doors hinged at the SAME corner of the room they both swing into: their swing
-    envelopes are identical quarter-discs, so they collide outright — the "two doors in a
-    corner" case. Both doors' `a` is `OUTSIDE`, so `resolve_swings` cannot flip either away,
-    isolating the DETECTION from the resolution this test is not about."""
+def test_conflict_classes_on_fixtures_and_none_on_canonical():
+    """AC-1: door_clearance detects each conflict class (door-door, door-fixture, door-wall,
+    access-width) on a hand-built fixture isolating that class, and reports none on the demo
+    pipeline's own canonical fixture."""
+
+    # --- door-door: two doors hinged at the SAME corner of the room they both swing into — their
+    # swing envelopes are identical quarter-discs, so they collide outright, the "two doors in a
+    # corner" case. Both doors' `a` is `OUTSIDE`, so `resolve_swings` cannot flip either away,
+    # isolating the DETECTION from the resolution AC-2 covers.
     room_c = Rect(0, 0, m_to_u(2.0), m_to_u(2.0))
     zones = [ZoneSpec("ROOM_C", (ProgramRole.LIVING,), 3, 4, 8, 1.5)]
     fixture = _fixture(zones)
@@ -68,12 +72,11 @@ def test_door_door_conflict_detected():
     # Unresolvable: both hinge on the street ("OUTSIDE"), so there is no other side to flip to.
     assert resolve_swings(fixture, rects, walls, [d1, d2]) == [d1, d2]
 
-
-def test_door_fixture_conflict_detected():
-    """A minimal WC whose only door swings across almost the whole room: the swing envelope
-    reaches the fixture footprint anchored in the far corner. `a="OUTSIDE"` again isolates
-    detection from resolution (a real ensuite/WC's only other side is its host or the hall; using
-    `OUTSIDE` just means "nothing to flip to" without asserting which real role that is)."""
+    # --- door-fixture: a minimal WC whose only door swings across almost the whole room — the
+    # swing envelope reaches the fixture footprint anchored in the far corner. `a="OUTSIDE"` again
+    # isolates detection from resolution (a real ensuite/WC's only other side is its host or the
+    # hall; using `OUTSIDE` just means "nothing to flip to" without asserting which real role
+    # that is).
     room = Rect(0, 0, m_to_u(0.8), m_to_u(1.0))
     zones = [ZoneSpec("TOILET_1", (ProgramRole.TOILET,), 0.8, 1.0, 2.0, 0.8)]
     fixture = _fixture(zones)
@@ -88,10 +91,8 @@ def test_door_fixture_conflict_detected():
     assert any("fixture footprint" in d for d in defects), defects
     assert resolve_swings(fixture, rects, walls, [door]) == [door]
 
-
-def test_door_wall_conflict_detected():
-    """A strip room only 0.8 m deep in the direction the door swings: the leaf cannot reach 90
-    degrees without hitting the room's own far wall."""
+    # --- door-wall: a strip room only 0.8 m deep in the direction the door swings — the leaf
+    # cannot reach 90 degrees without hitting the room's own far wall.
     room = Rect(0, 0, m_to_u(3.0), m_to_u(0.8))
     zones = [ZoneSpec("STRIP", (ProgramRole.STORAGE,), 2, 2.4, 5, 0.8)]
     fixture = _fixture(zones)
@@ -105,11 +106,10 @@ def test_door_wall_conflict_detected():
     defects = check_doors_usable(fixture, rects, walls, [door])
     assert any("depth in the swing direction" in d for d in defects), defects
 
-
-def test_access_width_conflict_detected():
-    """A door narrower than the access-rules width for its own role pair (a `ROOM_DOOR` pair
-    realized at 0.7 m) — normally unreachable through `generate_interior_doors`, which is exactly
-    why this check exists: to catch it if some future path ever drifts."""
+    # --- access-width: a door narrower than the access-rules width for its own role pair (a
+    # `ROOM_DOOR` pair realized at 0.7 m) — normally unreachable through
+    # `generate_interior_doors`, which is exactly why this check exists: to catch it if some
+    # future path ever drifts.
     zones = [
         ZoneSpec("HALL", (ProgramRole.HALL, ProgramRole.CIRCULATION), 6, 8, 15, 1.5),
         ZoneSpec("BEDROOM_1", (ProgramRole.BEDROOM,), 9, 10.5, 14, 2.6),
@@ -121,10 +121,9 @@ def test_access_width_conflict_detected():
     defects = check_doors_usable(fixture, {}, {}, [door])
     assert any("access width" in d for d in defects), defects
 
-
-def test_canonical_fixtures_report_no_c28_defects():
-    """The demo pipeline's own canonical fixture (`pipeline.run_demo`) — C28 must be clean on it,
-    the same "additive, does not touch what already plans" bar C24 was held to."""
+    # --- none on canonical: the demo pipeline's own canonical fixture (`pipeline.run_demo`) — C28
+    # must be clean on it, the same "additive, does not touch what already plans" bar C24 was
+    # held to.
     import tempfile, os
     with tempfile.TemporaryDirectory() as d:
         result = run_demo(os.path.join(d, "canonical.svg"))
