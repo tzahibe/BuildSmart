@@ -1,0 +1,84 @@
+# O2 design — a trusted, shared corpus-snapshot store (gate-4 base snapshots)
+
+Status: design for the owner's approval before implementation (2026-09-19). Follows the CI
+optimization proposal (`docs/CI_OPTIMIZATION_PROPOSAL.md`, O2).
+
+## 1. The problem, verified
+
+GitHub's cache access rules (docs, "Restrictions for accessing a cache"):
+
+- a cache created by a `pull_request` run is created for the merge ref `refs/pull/N/merge` and
+  "can only be restored by re-runs of the pull request";
+- a PR run *can* restore caches created **in its base branch** (and the default branch);
+- only trusted triggers (`push`, `workflow_dispatch`, `schedule`, …) running **on a branch** create
+  caches in that branch's scope.
+
+Our repository confirms it: every `corpus-snapshot-v1-*` cache entry is scoped to `refs/pull/N/merge`;
+the same base SHA `f0487088` was recomputed by PRs #56, #58 and #59 (23 min each), `1031418c` by #55
+and #65. The current cache only ever helps a re-run of the same PR. O2 as first written ("save the head
+snapshot under its own SHA's key") would have changed nothing for the next PR.
+
+## 2. Mechanism: snapshots of SHAs that reached `main` / `integration/**` are produced by a trusted trigger
+
+Two layers, both trusted, both keyed by immutable content:
+
+**Layer A — `push`-triggered snapshot workflow (`agent-snapshot.yml`).**
+`on: push: branches: [main, "integration/**"]`. For the pushed SHA it computes the corpus snapshot
+(same `corpus_snapshot.py --save --workers 4`, sharded — see O3) and:
+
+1. saves it to the Actions cache under `corpus-snapshot-v2-<sha>-<corpus-hash>` — a `push` run on
+   `main` creates the entry in `main`'s scope, on `integration/x` in that branch's scope; a PR whose
+   base is that branch **restores it by the documented base-branch rule**;
+2. uploads the same JSON as a workflow artifact `corpus-snapshot-<sha>` (retention 30 days) —
+   independent of cache eviction (7 days unused / 10 GB repo cap).
+
+Every merge into `main` or an integration branch is a `push`, so **the merge-base of every later PR
+already has a trusted snapshot by the time that PR opens** (it takes ~6 min with sharding, less than
+the PR's own gates 1–3 + its head snapshot). The same workflow also ends the "cold cache" case for the
+rollup PR: the `main` merge-base is snapshotted the moment it lands.
+
+**Layer B — gate-4 lookup order** (replaces the single `actions/cache/restore`):
+
+1. `actions/cache/restore` with the v2 key (base-branch scope → hit for any PR whose merge-base was
+   pushed to its base);
+2. on a miss: the `corpus-snapshot-<sha>` artifact of the `push` run for that SHA (via
+   `actions/download-artifact` with `run-id` looked up by `gh api …/actions/runs?head_sha=`);
+3. on a miss: compute the base snapshot as today (never blocks; the optimization only removes work).
+
+**Trust boundary.** A snapshot is trusted only if it was produced by a run of `agent-snapshot.yml` on a
+`push` event of a protected ref — gate-4 checks, before using a restored/downloaded snapshot, that its
+embedded `head_sha` equals the merge-base and its `corpus_hash` equals the current corpus hash; a
+mismatch discards it and falls back to computing. A PR run never writes to the base-branch scope
+(it cannot — GitHub forbids it), so a PR cannot poison the store. The artifact route additionally
+verifies the producing run's `event == "push"` and `head_branch` ∈ {main, integration/*}.
+
+**Cache hygiene.** The v2 key is per SHA; old entries expire unused after 7 days and cost nothing
+after that. Each snapshot is ~55 KB; even 1 000 entries are 55 MB — far under the 10 GB cap.
+
+## 3. Coverage and correctness guarantees
+
+- No sampling anywhere: a snapshot is always the full 432-context replay on the exact SHA.
+- The gate-4 comparison keeps its existing assertions (`corpus replayed: N contexts`, budget rules)
+  and gains two: `before.head_sha == merge-base` and `before.context_count == 432` (shard merge
+  asserts uniqueness and count too — O3).
+- The `push` snapshot of `main` is also the natural baseline for the frozen-corpus invariants (O1).
+- Developer runs are unaffected (they never used the cache).
+
+## 4. Rollout with old-vs-new verdict comparison (the owner's requirement)
+
+Before removing any old path, both paths run side by side and must agree:
+
+1. Ship O1 (invariants from snapshot) **additively**: the old replay stays in place; the new evaluation
+   runs first and its verdict is written to the report; a `compare` step fails the job if the two
+   verdicts differ. Collect ≥ 5 real PRs (the P0 wave provides them) with identical verdicts, then remove
+   the old replay in a follow-up PR.
+2. Ship O3 (sharding) the same way: sharded snapshot **and** the single-node snapshot both run; the
+   merged shard JSON must be byte-identical (after key sort) to the single-node JSON on ≥ 3 PRs; then
+   drop the single-node path.
+3. Ship O2 (trusted store) the same way: on a cache/artifact hit, gate-4 still computes the base
+   snapshot once more and asserts equality with the restored one on ≥ 3 PRs; then the fallback becomes
+   miss-only.
+
+Each step is its own Issue (infra, LOW risk, deterministic ACs) and its own PR to `main`, merged by the
+owner. The comparison evidence (per-PR verdict pairs) is attached to the PR as the `agent-regression`
+artifact plus a summary table in the PR body.
