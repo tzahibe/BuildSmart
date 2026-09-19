@@ -232,6 +232,9 @@ class GitHubClient:
             body["sha"] = sha
         return self.transport.request("PUT", f"/repos/{self.repo}/pulls/{number}/merge", body=body)
 
+    def rerun_workflow(self, run_id: int) -> None:
+        self.transport.request("POST", f"/repos/{self.repo}/actions/runs/{run_id}/rerun")
+
     def delete_branch(self, branch: str) -> bool:
         try:
             self.transport.request("DELETE", f"/repos/{self.repo}/git/refs/heads/{branch}")
@@ -463,6 +466,9 @@ class FakeGitHub:
         self.merged.append(number)
         self.default_branch_sha = pr["merge_commit_sha"]
         return {"merged": True, "sha": pr["merge_commit_sha"]}
+
+    def rerun_workflow(self, run_id: int) -> None:
+        self.reruns = getattr(self, "reruns", []) + [run_id]
 
     def delete_branch(self, branch: str) -> bool:
         self.deleted_branches.append(branch)

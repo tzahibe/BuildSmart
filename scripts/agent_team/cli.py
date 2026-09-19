@@ -466,12 +466,28 @@ def cmd_resume_pr(config: Config, args) -> int:
                 except SystemExit:
                     pass
         print(f"#{args.number}: cleared review_verdict ({previous_verdict}) and ordered a fresh review: {args.reason}")
+    if getattr(args, "rerun_ci", False):
+        # The head did not move (e.g. only the contract was amended): GitHub will not start a new run, and
+        # the orchestrator would re-read the old red run. Re-run the latest workflow run for the head.
+        try:
+            gh = _github(config)
+            head = gh.get_pr(rec.pr_number)["head"]["sha"]
+            runs = gh.workflow_runs(head)
+            if runs:
+                gh.rerun_workflow(runs[0]["id"])
+                print(f"#{args.number}: re-running workflow run {runs[0]['id']} for head {head[:12]}")
+            else:
+                print(f"#{args.number}: no workflow run found for head {head[:12]} — nothing to re-run")
+        except SystemExit:
+            pass
     try:
         note = "resumed at PR by lead"
         if args.update_base:
             note += " (base updated)"
         if args.rereview:
             note += " (re-review ordered)"
+        if getattr(args, "rerun_ci", False):
+            note += " (CI re-run)"
         store.transition(args.number, sm.PR_OPEN, allowed_from=(sm.BLOCKED,), failure_class=None, last_error=None,
                          validated_commit=None, note=note)
     except Exception as exc:  # noqa: BLE001
@@ -1028,6 +1044,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
     s.set_defaults(fn=cmd_requeue)
     s = sub.add_parser("resume-pr"); s.add_argument("number", type=int); s.add_argument("--update-base", action="store_true")
+    s.add_argument("--rerun-ci", dest="rerun_ci", action="store_true", help="re-run the latest workflow run of the PR head (contract amended, head unchanged)")
     s.add_argument("--rereview", action="store_true"); s.add_argument("--reason")
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
