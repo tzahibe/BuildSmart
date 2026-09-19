@@ -147,12 +147,21 @@ def generate_interior_doors(fixture: Fixture, rects: dict[str, Rect]) -> list[Do
     return doors
 
 
-#: Which zones a front door may open into, best first. A person enters a house through its
-#: circulation or its public rooms — never straight into a bedroom, a bathroom or the safe room.
+#: Which zones a front door may open into, best first — the ARRIVAL-ROOM POLICY (Issue #20). A
+#: visitor enters a house through its circulation or the living room — never straight into a
+#: kitchen or dining room (a plan whose only street-fronting public room was the dining room used
+#: to get its front door there, which reads as a random room, not an entrance) and never into a
+#: private room (BEDROOM, MASTER_BEDROOM, SAFE_ROOM, STUDY, DRESSING_ROOM) or a wet/service room —
+#: neither of which was ever in this tuple. `resolve_entrance` returns `None`, not a lesser zone,
+#: when nothing in this tuple fronts the street.
 ENTRANCE_ZONE_PRIORITY = (
-    ProgramRole.HALL, ProgramRole.CIRCULATION,
-    ProgramRole.LIVING, ProgramRole.DINING, ProgramRole.KITCHEN,
+    ProgramRole.HALL, ProgramRole.CIRCULATION, ProgramRole.LIVING,
 )
+
+#: The same roles as a set, for a plain "is this an allowed arrival room?" test — C23 (defense in
+#: depth on every realized plan, whichever path produced it) reads this rather than re-deriving it
+#: from the priority tuple above.
+ALLOWED_ENTRANCE_ROLES = frozenset(ENTRANCE_ZONE_PRIORITY)
 
 
 def resolve_entrance(fixture: Fixture, rects: dict[str, Rect],
@@ -213,6 +222,39 @@ def resolve_entrance(fixture: Fixture, rects: dict[str, Rect],
     if low > high:
         return None
     return zone_id, low, high
+
+
+def street_fronting_roles(fixture: Fixture, rects: dict[str, Rect], footprint: Rect,
+                          wings: tuple[Rect, ...] = ()) -> tuple[str, ...]:
+    """Every distinct role of a zone that fronts the street with enough frontage for a door —
+    WHATEVER that role is, allowed or not by the arrival-room policy above.
+
+    Used to report what a refused entrance found: `resolve_entrance` returns `None` when nothing
+    ALLOWED fronts the street, and a refusal that just says "no entrance" without saying what WAS
+    there (a kitchen, a dining room) is not something a person can act on — see the fixture test
+    in `test_entrance_policy.py` for that use.
+
+    `app.demo.service._street_fronting_roles` is a SEPARATE implementation of the same idea, not
+    this function reused: the product refusal path works off `DemoDesign` (metre-scale, already
+    realized) rather than this engine-level `Fixture`/`Rect` (grid-unit, pre-realization) pair, so
+    it cannot call this one without threading grid-unit wing geometry back through the product
+    layer for a message-text nicety. See that function's own docstring for the deliberate
+    difference in strictness (it does not require full door-width frontage, since it only NAMES
+    rooms for an already-gated message and can safely be coarser, never stricter, than this one).
+    """
+    roles_of = {z.zone_id: z.roles for z in fixture.zones}
+    width_u = m_to_u(ENTRANCE_DOOR_WIDTH_M)
+    wings = wings or (footprint,)
+    found: set[str] = set()
+    for zone_id, rect in rects.items():
+        if rect.y != footprint.y:
+            continue
+        wing = footprint_module.wing_of(wings, rect)
+        span_start, span_end = max(rect.x, wing.x), min(rect.x2, wing.x2)
+        if span_end - span_start < width_u:
+            continue
+        found.update(r.value for r in roles_of.get(zone_id, ()))
+    return tuple(sorted(found))
 
 
 def build_entrance_door(entrance: EntranceWalk, footprint: Rect,
