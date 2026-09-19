@@ -246,6 +246,19 @@ entries in the canonical, repo-wide quality rubric and anti-pattern library:
 every reviewer should consult those files rather than re-deriving quality judgments from this page
 alone.
 
+## Reference benchmark against curated plans (Issue #32)
+
+2026-09-18. `app/vertical_slice/reference_benchmark.py`'s `benchmark(design, references) ->
+BenchmarkReport` reports one deterministic `SectionFinding` per rubric section
+(`docs/architecture_reference/quality_rubric.md`) for a realized plan, comparing six of them
+(entrance, circulation, zoning, exposure, dead space, and a room-area consistency fact — see that
+module's own docstring for its own section-lettering, which does not match the rubric's A–O)
+against `docs/architecture_reference/references/index.json` entries of the same `footprint_family`
+— metadata and derived ratios only, never a reference plan's own geometry. The other nine rubric
+sections come back `not_measured`. `backend/scripts/reference_benchmark.py --context <id>` prints
+the report for one `tests/regression_corpus/corpus.json` context; not wired into
+`agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
