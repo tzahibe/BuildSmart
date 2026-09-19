@@ -41,6 +41,25 @@ peers already tied on the person's garden/street preference and on `LQuality`'s 
 comparison. Not wired into `concept_generator.py`'s row-proportion quality tier — that stage runs
 BEFORE doors exist, so no privacy signal could be computed there at all.
 
+**Plumbing / wet-core efficiency (Issue #44, `wet_core.py`)**: a SOFT preference, never a hard
+constraint — no check gates on it, and no candidate is refused for it. Per realized plan, a
+`WetCore` record: `shared_wall_length_m` (interior wall shared between two wet rooms only),
+`clusters`/`cluster_count` (wet rooms connected wall-to-wall through other wet rooms — one
+plumbing stack could plausibly serve a whole cluster), `kitchen_adjacent_count` (wet rooms sharing
+a wall with the kitchen) and `plumbing_complexity_index` (an ESTIMATE of independent plumbing
+stacks/runs: connected components over wet rooms *and* the kitchen together — a wet cluster that
+also touches the kitchen shares its run rather than adding one; lower is better). On
+`QualityOut.metrics.wet_core` (`app.demo.contract`), additive and read-only. A ranking preference,
+`wet_core.candidate_wet_core_key`/`better_candidate` (LOWER IS BETTER: fewer stacks first, then
+more shared wet wall), mirrors `wet_privacy.candidate_privacy_key`/`better_candidate` — no caller
+is wired to it by this Issue; it exists for a future one comparing otherwise-equal candidates, the
+same way `wet_privacy`'s key existed before `_break_l_tie` used it. `wet_core_alignment` is a
+separate, optional multi-level fact: given the realized wet rooms of two levels, how many of the
+upper level's overlap a wet room on the level below (footprint overlap on the shared plot-absolute
+grid, the same fact `building_validation.py`'s V2 already relies on) — not wired into any
+single-level pipeline call (`design_output.assemble` only ever sees one level), for a future
+caller that has both levels' realized geometry to call directly.
+
 ## Authoritative implementation
 
 - `app/requirements/wet_room_normalizer.py` (deterministic rules R1–R5), `app/requirements/parser.py`
@@ -50,8 +69,11 @@ BEFORE doors exist, so no privacy signal could be computed there at all.
 - Wet-room quality-tier extension: commit `f2092af`.
 - Wet-room privacy and access quality (Issue #37): `app/vertical_slice/wet_privacy.py`; wired into
   `validation.py` (C29) and `design_output.py`/`contract.py` (`QualityOut.wet_privacy`).
+- Plumbing / wet-core efficiency (Issue #44): `app/vertical_slice/wet_core.py`; wired into
+  `design_output.py` (`GeometricDesign.wet_core`) and `contract.py`
+  (`QualityOut.metrics.wet_core`) only — no `validation.py` check.
 - Tests: `tests/wet_room_corpus/` (61 hand-labelled briefs), `tests/vertical_slice/test_quality_repartition.py`,
-  `tests/vertical_slice/test_wet_privacy.py`.
+  `tests/vertical_slice/test_wet_privacy.py`, `tests/vertical_slice/test_wet_core.py`.
 
 ## Current constraints/invariants
 
@@ -62,6 +84,11 @@ BEFORE doors exist, so no privacy signal could be computed there at all.
 - `LAUNDRY` is excluded from the quality-tier extension — the capability is implemented on `main`
   (see the Laundry page), but it's intentionally not part of `_QUALITY_TIER_GROUP`: a quality-tier
   scope decision, not an absence of the capability.
+- Wet-core (Issue #44) adds no check to `validation.py` and no ranking caller — it does not touch
+  tier-1 row rescue, `concept_generator.py`'s quality tier, or the L-massing tiebreak `wet_privacy`
+  is wired into. `wet_core_alignment` is computed and tested standalone; no product call site
+  passes it two levels' realized geometry today (Multi-Level is IMPLEMENTED_MERGED at the module
+  level but not wired to the live product path — see the Multi-Level Wiki page).
 
 ## Supersedes
 
@@ -82,6 +109,13 @@ unimplemented (spec only): today every non-ensuite wet room is still planned in 
 entered only from `HALL`/`CIRCULATION` (C17's own invariant), so C29's `LIVING`-is-not-a-hard-fail
 carve-out has no real plan to apply to yet — it anticipates that spec's decision C rather than
 reacting to shipped behavior.
+
+`wet_core.candidate_wet_core_key`/`better_candidate` (Issue #44) has no caller wired in — a future
+Issue choosing between otherwise-equal candidates (the way `_break_l_tie` already does for
+privacy) is the natural next step, not part of this Issue's scope. `wet_core_alignment` likewise
+has no caller: it needs two levels' realized geometry, which no single-level pipeline call
+provides today (Multi-Level Phase 1 is backend-only — see the Multi-Level Wiki page); wiring it in
+is future work for whenever Multi-Level reaches the live product path.
 
 ## Evidence/history
 
