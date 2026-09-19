@@ -229,9 +229,18 @@ def street_fronting_roles(fixture: Fixture, rects: dict[str, Rect], footprint: R
     """Every distinct role of a zone that fronts the street with enough frontage for a door —
     WHATEVER that role is, allowed or not by the arrival-room policy above.
 
-    Used only to report what a refused entrance found: `resolve_entrance` returns `None` when
-    nothing ALLOWED fronts the street, and a refusal that just says "no entrance" without saying
-    what WAS there (a kitchen, a dining room) is not something a person can act on.
+    Used to report what a refused entrance found: `resolve_entrance` returns `None` when nothing
+    ALLOWED fronts the street, and a refusal that just says "no entrance" without saying what WAS
+    there (a kitchen, a dining room) is not something a person can act on — see the fixture test
+    in `test_entrance_policy.py` for that use.
+
+    `app.demo.service._street_fronting_roles` is a SEPARATE implementation of the same idea, not
+    this function reused: the product refusal path works off `DemoDesign` (metre-scale, already
+    realized) rather than this engine-level `Fixture`/`Rect` (grid-unit, pre-realization) pair, so
+    it cannot call this one without threading grid-unit wing geometry back through the product
+    layer for a message-text nicety. See that function's own docstring for the deliberate
+    difference in strictness (it does not require full door-width frontage, since it only NAMES
+    rooms for an already-gated message and can safely be coarser, never stricter, than this one).
     """
     roles_of = {z.zone_id: z.roles for z in fixture.zones}
     width_u = m_to_u(ENTRANCE_DOOR_WIDTH_M)

@@ -878,7 +878,19 @@ def realized_corridor_width_m_of(design) -> float:
 def _street_fronting_roles(design) -> frozenset[str]:
     """Every role of a room whose rectangle touches the building's own street-facing wall (the
     footprint's y = min line) — used only to name what a refused entrance found on the street, so
-    `ENTRANCE_NO_ARRIVAL_ROOM` can say "the street only reaches the kitchen" instead of nothing."""
+    `ENTRANCE_NO_ARRIVAL_ROOM` can say "the street only reaches the kitchen" instead of nothing.
+
+    DELIBERATELY SEPARATE from `doors.street_fronting_roles`, not a missed sharing opportunity:
+    that one reads the ENGINE's pre-realization grid-unit types (`Fixture`/`Rect` in plot units)
+    and exists to GATE a decision (`resolve_entrance`'s own frontage-for-a-door test, in
+    `ENTRANCE_DOOR_WIDTH_M` units), so it must require enough frontage to actually place a door.
+    This one reads the PRODUCT's post-realization metre-scale `DemoDesign` and only NAMES rooms
+    for a message that is already gated elsewhere (`ENTRANCE_NO_ARRIVAL_ROOM` only fires when an
+    entrance-related check has already failed) — a coarser "touches the street at all" test here
+    can only make the message list an EXTRA room a real door could not fit on, never omit one that
+    matters, and never changes whether the refusal fires. Unifying the two would mean threading
+    grid-unit wing geometry through the product layer for a message-text nicety; not worth it.
+    """
     street_y = design.footprint_m[1]
     return frozenset(str(getattr(role, "value", role)) for room in design.rooms
                      if abs(room.rect_m[1] - street_y) < 1e-6 for role in room.roles)

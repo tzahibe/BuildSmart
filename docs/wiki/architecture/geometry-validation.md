@@ -132,8 +132,8 @@ not an entrance.
   the RANKING taking effect among candidates that already validate: 17 contexts' primary moved
   from a LIVING entrance to a HALL/CIRCULATION one; 2 contexts kept a LIVING entrance (no better
   candidate exists) but the same ranking mechanism still changed which validating candidate is
-  first-found, so their geometry signature differs too. See the Issue #20 PR body for the full
-  per-context before/after list.
+  first-found, so their geometry signature differs too. The full per-context before/after list
+  is committed at `docs/reports/issue-20-entrance-signature-changes.md`.
 
 **PROPOSED, not scheduled — foyer synthesis.** A context whose EVERY candidate's only
 street-fronting public room is the kitchen or dining room (none measured in the frozen corpus, but

@@ -100,6 +100,46 @@ def test_c23_fails_closed_on_disallowed_entrance_room():
     assert "BEDROOM" in c23.detail
 
 
+def test_frozen_pipeline_fallback_to_a_disallowed_room_is_caught_by_c23():
+    """`pipeline.py::run_once` falls back to `concept.entrance_zone_id` whenever `resolve_entrance`
+    returns `None` (see that call site's ENTRANCE POLICY comment) — a real trigger, since the
+    frozen `demo_spec()` concept never exercises it (its HALL genuinely fronts the street; see
+    `test_c23_passes_on_the_frozen_baseline`), but a future concept or a bug could. This proves
+    the fallback ITSELF is safe if it ever WERE hit with a disallowed target: build a fixture
+    whose only street-fronting room is disallowed (so `resolve_entrance` returns `None`, exactly
+    `run_once`'s trigger), apply `run_once`'s own fallback expression verbatim, and confirm C23
+    still fails closed rather than silently validating a bedroom entrance."""
+    zones = (_z("BEDROOM", ProgramRole.BEDROOM), _z("HALL", ProgramRole.HALL))
+    tree = Split(Cut.H, Leaf("BEDROOM"), Leaf("HALL"), fixed_at_u=m_to_u(3.0))
+    wing = Wing("A", 0, 0, m_to_u(6.0), m_to_u(8.0), tree)
+    access = DesiredAccessTopology((DesiredAccessEdge("BEDROOM", "HALL", ConnectionKind.DOOR),))
+    fixture = Fixture("FALLBACK_TO_DISALLOWED", (wing,), zones, access)
+
+    solve = solve_fixture(fixture)
+    footprint = footprint_module.bounding_box((wing.rect(),))
+    resolved = doors_stage.resolve_entrance(fixture, solve.rects, footprint)
+    assert resolved is None  # BEDROOM fronts the street; HALL sits behind it — nothing allowed does
+
+    # `pipeline.py::run_once`'s exact fallback expression: `concept_entrance_zone_id` stands in
+    # for `concept.entrance_zone_id`, a hardcoded name the concept authored independently of the
+    # realized geometry — here, deliberately, a disallowed one.
+    concept_entrance_zone_id = "BEDROOM"
+    entrance_zone_id = resolved[0] if resolved else concept_entrance_zone_id
+
+    spec = ArchitecturalSpec(plot=PlotSpec(width_m=16.0, depth_m=16.0),
+                             program=ProgramSpec(bedrooms=1, safe_room=False, wet_rooms=0,
+                                                 parking_spaces=0))
+    site = _site_plan_for(spec, footprint)
+    interior = doors_stage.generate_interior_doors(fixture, solve.rects)
+    entrance = doors_stage.build_entrance_door(site.entrance, footprint, entrance_zone_id)
+    windows = windows_stage.generate_windows(fixture, solve.rects, footprint)
+    furniture = furniture_stage.check_furniture_feasibility(fixture, solve.rects, solve.walls)
+    report = validation_stage.validate(fixture, solve.rects, solve.walls, interior, entrance,
+                                       windows, furniture, site)
+    c23 = next(c for c in report.checks if c.check_id == "C23")
+    assert not c23.passed, "C23 must catch a frozen-pipeline-style fallback to a disallowed room"
+
+
 def test_c23_passes_on_the_frozen_baseline(tmp_path):
     """Every plan on the frozen corpus that still plans passes C23 (AC-2's regression half): the
     canonical single-level baseline is the cheapest witness available in a unit test."""
