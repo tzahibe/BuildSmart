@@ -123,11 +123,55 @@ class WorktreeManager:
         proc = run_git(["fetch", "--prune", self.remote], self.root, check=False, timeout=300)
         return proc.returncode == 0
 
-    def base_ref(self) -> str:
-        base = self.config.base_branch
+    #: Weekend/holiday mode: new work starts from (and PRs target) the period's integration branch.
+    base_override: str | None = None
+
+    def base_branch(self) -> str:
+        return self.base_override or self.config.base_branch
+
+    def base_ref(self, branch: str | None = None) -> str:
+        base = branch or self.base_branch()
         if self.has_remote() and self.branch_exists(base, remote=True):
             return f"{self.remote}/{base}"
         return base
+
+    def create_branch_from(self, name: str, source_ref: str) -> str:
+        """Create `name` on the remote at `source_ref` (no-op when it exists). Returns its SHA."""
+        self.fetch()
+        if not self.branch_exists(name, remote=True):
+            sha = run_git(["rev-parse", source_ref], self.root).stdout.strip()
+            run_git(["push", self.remote, f"{sha}:refs/heads/{name}"], self.root, timeout=300)
+            self.fetch()
+        return run_git(["rev-parse", f"{self.remote}/{name}"], self.root).stdout.strip()
+
+    def delete_remote_branch(self, name: str) -> bool:
+        proc = run_git(["push", self.remote, "--delete", name], self.root, check=False, timeout=300)
+        self.fetch()
+        return proc.returncode == 0
+
+    def ensure_named(self, issue_id: int, branch: str, slug: str = "rollup") -> WorktreeInfo:
+        """A worktree for an existing branch that does not follow the issue naming (the rollup PR
+        of an integration branch)."""
+        path = worktree_path(self.config, issue_id, slug)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.fetch()
+        registered = {e.path.resolve(): e for e in self.list_worktrees()}
+        entry = registered.get(path.resolve())
+        if entry is None:
+            # git allows one checkout per branch: reuse whichever worktree already holds it
+            entry = next((e for e in registered.values() if e.branch == branch), None)
+            if entry is not None:
+                path = entry.path
+        if entry is not None:
+            if entry.branch != branch:
+                raise GitError(f"worktree {path} is registered on branch {entry.branch!r}, expected {branch!r}")
+            run_git(["pull", "--ff-only", "-q", self.remote, branch], path, check=False)
+            return WorktreeInfo(issue_id, branch, path, self.head_sha(path), created=False, reconciled=True, note="existing worktree reused")
+        if self.branch_exists(branch):
+            run_git(["worktree", "add", str(path), branch], self.root)
+        else:
+            run_git(["worktree", "add", "--track", "-b", branch, str(path), f"{self.remote}/{branch}"], self.root)
+        return WorktreeInfo(issue_id, branch, path, self.head_sha(path), created=True, reconciled=False, note="worktree created")
 
     def base_sha(self) -> str:
         return run_git(["rev-parse", self.base_ref()], self.root).stdout.strip()
@@ -159,8 +203,8 @@ class WorktreeManager:
     def merge_base(self, path: Path) -> str:
         return run_git(["merge-base", self.base_ref(), "HEAD"], path).stdout.strip()
 
-    def behind_base(self, path: Path) -> int:
-        out = run_git(["rev-list", "--count", f"HEAD..{self.base_ref()}"], path).stdout.strip()
+    def behind_base(self, path: Path, base: str | None = None) -> int:
+        out = run_git(["rev-list", "--count", f"HEAD..{self.base_ref(base)}"], path).stdout.strip()
         return int(out or 0)
 
     # -- lifecycle ----------------------------------------------------------------------------
@@ -248,10 +292,10 @@ class WorktreeManager:
         proc = run_git(["push", "-u", self.remote, f"{branch}:{branch}"], path, timeout=300)
         return (proc.stdout + proc.stderr).strip()
 
-    def update_from_base(self, path: Path) -> str:
+    def update_from_base(self, path: Path, base: str | None = None) -> str:
         """Merge the (fetched) base into the branch inside its own worktree. Raises MergeConflict."""
         self.fetch()
-        base = self.base_ref()
+        base = self.base_ref(base)
         proc = run_git(["merge", "--no-edit", base], path, check=False)
         if proc.returncode != 0:
             run_git(["merge", "--abort"], path, check=False)

@@ -7,11 +7,13 @@ from pathlib import Path
 
 import pytest
 
+from agent_team import cli
 from agent_team import state_machine as sm
 from agent_team.agent_runner import FakeAgentRunner
 from agent_team.ci import verify
 from agent_team.ci.regression_gate import evaluate as gate4_evaluate
-from agent_team.issue_contract import parse_budget_value, render_body
+from agent_team.github_client import FakeGitHub
+from agent_team.issue_contract import numbered_title, parse_budget_value, render_body
 from agent_team.labels import metadata_labels
 from agent_team.regression_budget import evaluate as evaluate_budget
 from agent_team.tests.helpers import KNOWN_LOCKS, make_contract
@@ -399,3 +401,104 @@ def test_protect_main_records_break_glass_note(env, capsys):
     from agent_team.state_store import StateStore
     events = StateStore(config.state_db_path).events(None, limit=5)
     assert events[-1]["kind"] == "protection_set" and events[-1]["payload"]["enforce_admins"] is False
+
+
+# ---------------------------------------------------------------------------------------------
+# 5. Issue titles carry their own number (#25)
+# ---------------------------------------------------------------------------------------------
+
+def test_update_issue_patches_title():
+    gh = FakeGitHub()
+    gh.add_issue(24, "[agent] Old title", "body", ["agent:working"])
+    gh.update_issue(24, title="[agent] #24 New title")
+    assert gh.get_issue(24)["title"] == "[agent] #24 New title"
+    assert gh.get_issue(24)["body"] == "body"                # body untouched: only the given field is patched
+
+
+def test_renumber_titles_idempotent(env, capsys):  # noqa: F811
+    config, gh, _, _ = env
+    gh.add_issue(17, "[agent] Unnumbered title", "b", ["agent:working"])
+    gh.add_issue(18, "[agent] #18 Already numbered", "b", ["agent:queued"])
+    gh.add_issue(19, "[agent] #5 Stale number", "b", ["agent:blocked"])
+    gh.add_issue(20, "Not an agent issue", "b", [])
+    cli._github = lambda c, require_auth=True: gh   # type: ignore[assignment]
+
+    args = type("A", (), {"issue_cmd": "renumber-titles", "dry_run": True, "all_states": False})()
+    assert cli.cmd_issue(config, args) == 0
+    out = capsys.readouterr().out
+    assert "#17: '[agent] Unnumbered title' -> '[agent] #17 Unnumbered title'" in out
+    assert "#19: '[agent] #5 Stale number' -> '[agent] #19 Stale number'" in out
+    assert "#18" not in out and "#20" not in out
+    assert gh.get_issue(17)["title"] == "[agent] Unnumbered title"    # --dry-run touched nothing
+
+    args = type("A", (), {"issue_cmd": "renumber-titles", "dry_run": False, "all_states": False})()
+    assert cli.cmd_issue(config, args) == 0
+    assert gh.get_issue(17)["title"] == numbered_title(17, "Unnumbered title")
+    assert gh.get_issue(18)["title"] == "[agent] #18 Already numbered"    # untouched
+    assert gh.get_issue(19)["title"] == numbered_title(19, "Stale number")
+    assert gh.get_issue(20)["title"] == "Not an agent issue"              # untouched: no agent label
+
+    capsys.readouterr()
+    assert cli.cmd_issue(config, args) == 0                     # second run: no further changes
+    assert "no titles need renumbering" in capsys.readouterr().out
+
+
+def test_renumber_titles_all_states(env, capsys):  # noqa: F811
+    config, gh, _, _ = env
+    gh.add_issue(21, "[agent] Closed unnumbered title", "b", ["agent:done"], state="closed")
+    cli._github = lambda c, require_auth=True: gh   # type: ignore[assignment]
+
+    args = type("A", (), {"issue_cmd": "renumber-titles", "dry_run": False, "all_states": False})()
+    assert cli.cmd_issue(config, args) == 0
+    assert gh.get_issue(21)["title"] == "[agent] Closed unnumbered title"    # closed, not touched without --all-states
+
+    args = type("A", (), {"issue_cmd": "renumber-titles", "dry_run": False, "all_states": True})()
+    assert cli.cmd_issue(config, args) == 0
+    assert gh.get_issue(21)["title"] == numbered_title(21, "Closed unnumbered title")    # --all-states covers it
+
+
+def test_cli_issue_create_numbers_title(env, tmp_path, capsys):  # noqa: F811
+    config, gh, _, _ = env
+    cli._github = lambda c, require_auth=True: gh   # type: ignore[assignment]
+    c = make_contract(0, title="[agent] Work reports and structured failure recovery")
+    contract_file = tmp_path / "contract.md"
+    contract_file.write_text(f"# {c.title}\n\n{render_body(c)}")
+    args = type("A", (), {"issue_cmd": "create", "from_file": str(contract_file), "title": None, "queue": False})()
+    assert cli.cmd_issue(config, args) == 0
+    issue = gh.get_issue(gh.next_number - 1)
+    assert issue["title"] == numbered_title(issue["number"], "Work reports and structured failure recovery")
+    assert f"title={issue['title']!r}" in capsys.readouterr().out
+
+def test_semantic_ac_assessment_keyed_by_leading_id(env):
+    """Regression (#18, 2026-09-18): a reviewer wrote `ac: "AC-3: C24 green on every corpus context"` and
+    the orchestrator downgraded its APPROVE because the id did not match exactly."""
+    config, gh, clock, origin = env
+    c = _add_issue(gh, 90, risk="LOW")
+    verbose = {**APPROVE, "ac_assessment": [{"ac": f"{ac}: {c.acceptance_criteria[i].text[:30]}", "verdict": "MET", "note": ""}
+                                            for i, ac in enumerate(c.ac_ids)]}
+    orch = _orch(config, gh, clock, FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": verbose}))
+    _tick(orch)
+    for _ in range(5):
+        rec = orch.store.get(90)
+        if rec.state == sm.READY_FOR_OWNER:
+            break
+        _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+        _tick(orch)
+    assert orch.store.get(90).state == sm.READY_FOR_OWNER
+    assert orch.store.get(90).review_verdict.startswith("APPROVE")
+
+
+def test_gate4_skipped_caller_job_next_to_a_green_regression_job_is_green(repo_config):
+    """Regression (2026-09-19): three approved PRs sat at 'awaiting regression_green' because a cancelled
+    superseded run left `gate-4-regression: skipped` beside the completed run's `gate-4-regression / regression: success`."""
+    from agent_team import ci_evidence
+    from agent_team.merge_policy import regression_status
+    ev = ci_evidence.CiEvidence(head_sha="abc", status=ci_evidence.SUCCESS, checks={
+        "agent-ci-result": {"conclusion": "success", "status": "completed"},
+        "gate-4-regression": {"conclusion": "skipped", "status": "completed"},
+        "gate-4-regression / regression": {"conclusion": "success", "status": "completed"},
+    })
+    ok, why = regression_status(ev, repo_config)
+    assert ok and why == "gate-4 green"
+    ev.checks["gate-4-regression / regression"]["conclusion"] = "failure"
+    assert regression_status(ev, repo_config)[0] is False

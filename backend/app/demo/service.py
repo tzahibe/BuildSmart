@@ -42,7 +42,7 @@ from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import doors as doors_stage
 from app.vertical_slice import l_massing_guard
 from app.vertical_slice.hub_guard import proportions_of
-from app.vertical_slice.spec import HouseConcept, PublicOpenSide, RelationStrength
+from app.vertical_slice.spec import HouseConcept, LaundryDemand, PublicOpenSide, RelationStrength
 from app.vertical_slice.general_pipeline import (
     ALTERNATIVE_PLAN_LIMIT,
     GeneralSliceResult,
@@ -51,6 +51,7 @@ from app.vertical_slice.general_pipeline import (
 )
 from app.vertical_slice.safe_adapter import AdapterOutcome
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
+from app.vertical_slice.wet_privacy import candidate_privacy_key
 
 from app.vertical_slice.building import Building
 
@@ -80,6 +81,7 @@ _FEASIBILITY_CODES = frozenset({
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
     "ENTRANCE_NO_ARRIVAL_ROOM",
+    "LAUNDRY_UNPLACEABLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
     "SITE_GEOMETRY_REQUIRED",
@@ -612,6 +614,14 @@ def _l_quality_of_plan(plan) -> LQuality:
     return l_quality_of(plan.design)
 
 
+def _privacy_key_of_plan(plan) -> tuple[float, float]:
+    """`plan`'s wet-room privacy, as a sortable key — LOWER IS BETTER (Issue #37,
+    `wet_privacy.candidate_privacy_key`). A thin, one-line seam over `.design`-reading logic, the
+    same role `_l_quality_of_plan` already plays: a test can stand in for it without building
+    full geometry."""
+    return candidate_privacy_key(plan.design.wet_privacy)
+
+
 def _l_massing_eligible(rect_plan, l_plan) -> str | None:
     """Whether `l_plan` (an engine-generated non-rectangle massing) earns a representation slot
     against `rect_plan` (the best rectangle plan available) — `None` if it may take the slot,
@@ -645,7 +655,13 @@ def _band_faces_garden(orr: OutlineResult) -> bool | None:
 
 
 def _break_l_tie(peers: list, concept: HouseConcept):
-    """Which of several otherwise-tied plans of one L massing is shown. `peers` in pool order."""
+    """Which of several otherwise-tied plans of one L massing is shown. `peers` in pool order.
+
+    THE PRIVACY TIEBREAK (Issue #37, the last step before pool order): peers already tied on the
+    person's garden/street preference AND on `LQuality`'s Pareto comparison are compared once
+    more on their wet rooms' privacy — `_privacy_key_of_plan`, lower is better. Strictly a further
+    refinement of an already-arbitrary tie, never a first-order ranking signal: it can only choose
+    between peers `_pareto_better` already found neither better nor worse than the other."""
     if len(peers) == 1:
         return peers[0]
     if concept.public_open_side is not PublicOpenSide.ENGINE:
@@ -661,6 +677,12 @@ def _break_l_tie(peers: list, concept: HouseConcept):
                               if other_item is not item)]
     if len(undominated) == 1:
         return undominated[0]
+    if undominated:
+        best_key = min(_privacy_key_of_plan(item[1]) for item in undominated)
+        by_privacy = [item for item in undominated if _privacy_key_of_plan(item[1]) == best_key]
+        if len(by_privacy) == 1:
+            return by_privacy[0]
+        undominated = by_privacy
     return (undominated or peers)[0]      # exact tie: pool order (outline.order, index) decides
 
 
@@ -877,6 +899,91 @@ def _plan(spec, project: Project, on_stage=None, *,
     )
 
 
+#: The three validation checks that can name the LAUNDRY room's own guarantee — exterior wall
+#: (C19), window (C8), machine bay (C3, where a too-narrow short side shows up). Issue #21,
+#: AC-3: `LAUNDRY_UNPLACEABLE` fires only when every outline this brief tried failed for one of
+#: these reasons, naming the LAUNDRY zone specifically — never when an unrelated room or the
+#: footprint itself was in the mix, so the refusal never blames laundry for someone else's defect.
+_LAUNDRY_REQUIREMENT_CHECKS = ("C19", "C8", "C3")
+
+_LAUNDRY_ZONE_ID = "LAUNDRY"
+
+
+def _laundry_failed_requirement(check_id: str) -> str:
+    if check_id == "C19":
+        return "קיר חיצוני (החדר תוכנן ללא גישה לקיר חיצוני)"
+    if check_id == "C8":
+        return "חלון (הקיר החיצוני הפנוי קצר מדי לחלון שירות של 0.6 מ׳)"
+    return "מרחב למכונת הכביסה (0.6 מ׳ מכונה + 0.6 מ׳ מייבש אופציונלי + 0.5 מ׳ מעבר = 1.7 מ׳)"
+
+
+def _check_detail_zone_ids(detail: str) -> set[str]:
+    """The zone id each `'; '`-separated clause of a C19/C8/C3 failure `detail` leads with.
+
+    All three checks format `detail` as one clause per offending zone — `f"{zone_id} ..."` for
+    C19/C3, the bare `zone_id` for C8 (`validation.py`) — joined by `'; '`. A single check can
+    fail for SEVERAL zones at once in the same outline (e.g. a BEDROOM and LAUNDRY both losing
+    their exterior wall to the same parti), and `detail` then names all of them in one string.
+    Extracting the leading zone id from each clause is what lets the caller tell "this check named
+    LAUNDRY and ONLY LAUNDRY" from "this check named LAUNDRY among others" — a plain substring
+    check on the whole joined string cannot make that distinction and mis-fires on the second
+    case, wrongly refusing LAUNDRY_UNPLACEABLE for a defect that also hits another room.
+    """
+    return {clause.strip().split(" ", 1)[0] for clause in detail.split("; ") if clause.strip()}
+
+
+def _rejection_reason_names_only_laundry_shape(reason: str) -> bool:
+    """Whether a pre-solve `rejection_reasons` entry (`f"{strategy}/{reason}: {detail}"`, built in
+    `general_pipeline.run_general`) diagnoses the LAUNDRY room's own shape and nothing else.
+
+    Only `ROOM_SHAPE_INFEASIBLE`'s `detail` (`concept_generator._shape_failure`) always names
+    exactly the ONE room whose width leaves no depth satisfying its template — every other reason
+    this generator emits (`COLUMN_DEPTH_EXCEEDED`, `ROW_WIDTH_EXCEEDED`, …) can list SEVERAL rooms
+    in its own `detail` (e.g. "west column needs 15.97 m ... [LIVING ...; KITCHEN ...; LAUNDRY
+    ...]"), and a substring check there would misattribute a whole-column capacity defect to
+    LAUNDRY alone the same way a joined C19/C8/C3 `detail` can (see `_check_detail_zone_ids`).
+    """
+    head, _, detail = reason.partition(": ")
+    _, _, reason_name = head.partition("/")
+    if reason_name != RejectionReason.ROOM_SHAPE_INFEASIBLE.value:
+        return False
+    detail = detail.strip()
+    return bool(detail) and detail.split(" ", 1)[0] == _LAUNDRY_ZONE_ID
+
+
+def _laundry_unplaceable_message(spec, outlines: list["OutlineResult"] | None) -> str | None:
+    """None unless EVERY outline this brief tried failed for a reason that names the LAUNDRY
+    room's own exterior-wall/window/bay guarantee specifically (see `_LAUNDRY_REQUIREMENT_CHECKS`)
+    and NOTHING ELSE — a check or a pre-solve rejection that also names a different room never
+    counts, so this never blames laundry for a defect that hit another room too.
+    A brief with no explicit laundry-room request never reaches here."""
+    if spec.program.laundry.demand is not LaundryDemand.ROOM or not outlines:
+        return None
+    failed: set[str] = set()
+    for outline in outlines:
+        r = outline.result
+        if r.validation is not None:
+            failing = r.validation.failures()
+            if not failing or any(c.check_id not in _LAUNDRY_REQUIREMENT_CHECKS
+                                  or _check_detail_zone_ids(c.detail) != {_LAUNDRY_ZONE_ID}
+                                  for c in failing):
+                return None
+            failed.update(_laundry_failed_requirement(c.check_id) for c in failing)
+        else:
+            reasons = r.metrics.rejection_reasons or r.notes
+            if not reasons or not all(_rejection_reason_names_only_laundry_shape(reason)
+                                      for reason in reasons):
+                return None
+            failed.add(_laundry_failed_requirement("C3"))
+    if not failed:
+        return None
+    return (
+        "לא הצלחנו למקם את חדר הכביסה כחדר סגור עם דלת, מרחב מתאים למכונת כביסה וחלון בקיר "
+        f"חיצוני — הדרישה שלא התקיימה: {'; '.join(sorted(failed))}. "
+        "אפשר להגדיל את שטח הבנייה, לשנות את המתאר שנבחר, או לוותר על חדר כביסה נפרד — "
+        "לא נציג תוכנית עם חדר כביסה חסר חלון או צר מדי למכונה.")
+
+
 def _finish(project: Project, spec, result, preference_dropped: bool,
             outlines: list[OutlineResult] | None = None) -> DemoResult:
     """The refusal path: every outline was planned and none produced a validated plan. `result`
@@ -934,6 +1041,14 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                 f"והיעד שהוזן הוא {spec.program.target_built_area_m2:.0f} מ\"ר. "
                 f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
                 reasons, diagnostics=_diagnostics(result, spec, outlines))
+
+        # Issue #21, AC-3: the LAUNDRY room's own guarantee (exterior wall / window / bay) is a
+        # more specific, more actionable diagnosis than the generic message below — fires only
+        # when it genuinely was the ONLY thing every outline failed on.
+        laundry_message = _laundry_unplaceable_message(spec, outlines)
+        if laundry_message is not None:
+            raise DemoGenerationError("LAUNDRY_UNPLACEABLE", laundry_message, reasons,
+                                      diagnostics=_diagnostics(result, spec, outlines))
 
         # No "try X×Y instead": every feasible outline of this area has already been planned
         # (feature 006), so a shape that worked would be a plan on the screen, not a hint.
@@ -998,6 +1113,12 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                 f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
                 f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
                 failures, diagnostics=_diagnostics(result, spec, outlines))
+
+        laundry_message = _laundry_unplaceable_message(spec, outlines)
+        if laundry_message is not None:
+            raise DemoGenerationError("LAUNDRY_UNPLACEABLE", laundry_message, failures,
+                                      diagnostics=_diagnostics(result, spec, outlines))
+
         raise DemoGenerationError(
             "PLAN_FAILED_VALIDATION",
             "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",

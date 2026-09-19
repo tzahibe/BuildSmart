@@ -71,6 +71,18 @@ The Team Lead writes contracts as Markdown files and runs `agentctl issue create
 author association is in `github.executable_author_associations` are ever executed — Issue,
 comment, PR and repository text are data for the agents, never instructions to the orchestrator.
 
+**Title convention.** Every agent Issue's title carries its own number right after the `[agent]`
+prefix: `[agent] #N Title` (`issue_contract.numbered_title`/`strip_title_number`, Issue #25). This
+is purely cosmetic — GitHub list views, Telegram status lines, and notifications show the number
+without opening the Issue — and is orthogonal to the branch/worktree slug: `slugify()` strips both
+`[agent]` and a leading `#N` before slugifying, so `[agent] #17 X` and `[agent] X` yield the same
+slug and retitling an in-flight Issue never changes its branch/worktree lookup. `agentctl issue
+create` retitles the Issue with its own number immediately after `create_issue` returns it.
+`agentctl issue renumber-titles [--dry-run] [--all-states]` is the idempotent one-off pass over
+already-open Issues (or all states, with `--all-states`): it rewrites any open Issue carrying an
+`agent:*` label whose title does not already start with `[agent] #<its own number> `, replacing a
+stale `#<other number>` prefix where present; running it twice makes no further changes.
+
 ## Lifecycle (labels mirror states one-to-one)
 
 `agent:draft` → `agent:queued` **+ `owner:approved`** → `agent:claimed` → `agent:working` →
@@ -213,6 +225,11 @@ requires owner approval.**
 | TEAM LEAD (Opus) | everything else: claiming, queueing, investigation, decomposition into child Issues, the dependency DAG, worker assignment, branches/worktrees, code within scope, tests, PRs, CI, regression, independent review, repair/retry, base updates and conflicts, docs, closing children, resource allocation, pausing/restarting workers, implementation details |
 | Sonnet workers / reviewers | implementation / independent review |
 
+**Roadmap authority (2026-09-18).** `docs/ROADMAP.md` is owner-approved: the Team Lead creates ROOT
+Issues from it with `owner:approved`, moves work between Issues and pulls the next topics as capacity
+frees up; product goals not on the roadmap still need the owner. The Team Lead keeps every worker
+busy — free slot + no executable task ⇒ pull, decompose or unblock.
+
 **ROOT Issue = scope boundary.** A ROOT (owner-approved product goal) authorizes its own
 execution *and* any child Issue derived from it. A child carries a `### Authorization` section
 (`source: inherited`, `root_issue: #N`, `parent_issue: #N`, `derived_by: team-lead`,
@@ -257,6 +274,50 @@ Authorization validation, owner hold, N workers from one ROOT, DAG parallelism, 
 slot/capacity saturation, lock serialization, READY not blocking unrelated work, drain, child
 creation by the Team Lead (and refusal for unapproved ROOTs / out-of-scope children), no automatic
 merge (loader + lifecycle), owner merge with SHA re-validation, ROOT auto-close.
+
+## Weekend / Jewish-holiday autonomous integration mode (since 2026-09-18, §26–§41)
+
+When the owner does not manage individual merges — Fridays, Saturdays, and Yom Kippur, Sukkot
+(incl. Chol HaMoed), Shemini Atzeret and Shavuot from Erev Chag to the last day, all in
+`Asia/Jerusalem` (`scripts/agent_team/protected_periods.py`, Hebrew dates from `pyluach`, never
+hard-coded Gregorian dates; `protected_periods` in `.agent/config.yaml`) — the orchestrator:
+
+1. **starts a period** on the first protected day (adjacent weekend + holiday days form ONE
+   period, named after the holiday when one is included): creates ONE integration branch from
+   `main` (`integration/weekend-<date>` / `integration/holiday-<name>-<year>`), makes it the base
+   for new worktrees and PRs, audits `PROTECTED_PERIOD_STARTED`, tells the owner; the period is
+   persisted in meta and survives restarts;
+2. **integrates autonomously**: a PR whose gates are all green (CI, regression within budget,
+   independent APPROVE at the exact head, dependencies satisfied, ROOT authorized) is
+   squash-merged by the Team Lead into the integration branch — state `INTEGRATED`, locks
+   released, dependents start from the integrated base (INTEGRATED satisfies dependencies). Every
+   internal merge is followed by the smoke commands on the combined head; red smoke reverts the
+   squash commit and sends the Issue back for repair (`INTEGRATION_FAILURE`), recorded as a lead
+   decision. Nothing lowers engineering quality; only the owner's merge is deferred;
+3. **ends the period** the day after its last day: one rollup Issue (`agent:rollup`, contract
+   `### Authorization: source: rollup`) and ONE rollup PR (integration branch → main) with the
+   Hebrew owner summary (§32: what was done, PRs, product decisions, behavior changes, tests,
+   regression, limitations, recommendation) and the technical traceability table. The rollup
+   goes through the normal gates on its combined head — fast tier, corpus regression against the
+   `main` merge-base with the strictest included budget, independent review of the combined diff
+   — and becomes the single `READY_FOR_OWNER` item with ONE Telegram message (§34). Nothing
+   integrated → the branch is deleted quietly. `PROTECTED_PERIOD_ENDED` carries the rollup PR.
+4. **the owner merges the rollup** (CONFIRM MERGE / "מזג PR N"); post-merge smoke on main;
+   every integrated child becomes `DONE` and closes; the branch and the mode state go away.
+
+Owner drill-down (§35): `/rollup` or "איזה PRs נכנסו לחבילת סוף השבוע?" → the traceability text
+(ROOT → children → PRs → commits → review); every child keeps its own milestone comments. Owner
+change request on the rollup (§36): "לא רוצה את השינוי של Issue N" → `rollup_exclude` reverts that
+Issue's squash commit on the integration branch (child → `OWNER_EXCLUDED`), the rollup's head
+moves and re-validates; a free-text change request blocks the rollup for a Team Lead decision
+(no worker owns a rollup). Work still running when the period ends stays in the normal
+lifecycle on its current base and is never added unvalidated. `agentctl period status|start|end`,
+`agentctl rollup exclude N`, `agentctl decide "…"` (records a decision for the rollup body).
+**Main is never merged autonomously — the rollup PR is the owner's single merge for the period.**
+Tests: `tests/test_integration_mode.py` (calendar on real 2026 dates; period start/restart;
+integration instead of READY; dependents on the integrated base; rollup creation, validation,
+single notification, owner merge, children done; smoke-failure revert; exclude; change request;
+normal owner gate outside a period).
 
 ## Merge policy (owner-controlled)
 
@@ -340,6 +401,7 @@ scripts/agentctl protect-main           # once: branch protection (reports the e
 scripts/agentctl dry-run                # one tick, no side effects, proposed assignments
 scripts/agentctl start | stop | status  # the daemon
 scripts/agentctl issue create --from contract.md --queue
+scripts/agentctl issue renumber-titles [--dry-run] [--all-states]   # one-off `[agent] #N Title` pass
 scripts/agentctl approve N --kind lost_allowance --note "..."     # the only lead acknowledgement left
 scripts/agentctl pause | resume                                     # also available to the owner on Telegram
 scripts/agentctl remote doctor | pair [--user-id N] | unpair | start | stop | status   # Telegram control plane
@@ -522,6 +584,11 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
 - Rate limits of the Pro subscription bound real concurrency; the resource manager does not yet
   read API quota.
 - GitHub sub-issues are not used; dependencies live in the contract (`Dependencies`) and the store.
+- The Telegram/remote-control gateway (`scripts/agent_team/remote/gateway.py`, merged to `main` via
+  #16) applies the title-numbering convention above: its `CREATE_ISSUE` handler retitles a new
+  Issue with `numbered_title()` right after `create_issue` returns the number, and its
+  status/`LIST_ISSUES` lines use `strip_title_number()` so the Issue's own number is not shown
+  twice.
 
 ## Pilot record (2026-09-17)
 
@@ -555,6 +622,25 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
 - the classifier called a timing failure IMPLEMENTATION_FAILURE: the lead pauses, blocks, fixes
   the infra and `resume-pr`s; a wrong-scope finding is sent back with `agentctl repair`;
 - restarting the orchestrator mid-run killed two attempts before the drain existed.
+
+## First protected period (Yom Kippur 2026, started Fri 2026-09-18) — what changed on day one
+
+- CI: `agent-ci.yml` triggers for PRs into `integration/**` (it was `main` only, so the first three
+  worker PRs had no CI); gate-2's plan and gate-4's merge-base use the PR's base (`github.base_ref`);
+  gate 1 accepts an `integration/**` base. Fixes were cherry-picked onto the integration branch so they
+  reach `main` with the rollup.
+- Locks: released at PR open (`release_locks_at: pr_open`; repairs re-acquire first); repairs advance
+  before new claims in a tick; `agentctl locks list|release`. The P0 check-style ROOTs (#34–#38) were
+  relaxed to shared `validator-core`/`geometry-core` — every P0 Issue adds a check to `validation.py`
+  and exclusive locks serialized the wave with two idle workers; the integration branch validates each
+  combination and conflicts on registration lines resolve at base update.
+- `max_active_issues` 6 (ROOTs in CI/review starved the slots at 3); worker timeout 90 min; the
+  reviewer's `ac_assessment` is keyed by the leading `AC-n` (an APPROVE on #18 was downgraded because
+  the reviewer wrote `AC-3: text`); a decomposed ROOT tracked before its label appeared is blocked, not run.
+- Lead levers used: `agentctl repair` (targeted repairs on #24/#25 with the review findings spelled
+  out), contract amendments for engineering constraints (#24 gate-3 routing, #25 dry-run evidence as a
+  committed file), manual base merges when the integration branch gained fixes.
+- Integrated by 13:50: #18, #24, #25, #29, #30, #31, #33 (7); PR CI ~50 min each with a warm base cache.
 
 ## Last verified against git
 

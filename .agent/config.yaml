@@ -57,7 +57,7 @@ claude:
   # "auto" resolves: $CLAUDE_BIN, then `claude` on PATH, then the newest VS Code extension binary.
   binary: auto
   effort: high
-  worker_timeout_seconds: 3600
+  worker_timeout_seconds: 5400              # HEAVY Issues (validator + corpus) need more than an hour; the usage guard bounds cost
   repair_timeout_seconds: 2400
   reviewer_timeout_seconds: 1200
   domain_lead_timeout_seconds: 1200
@@ -163,6 +163,17 @@ repair:
 # repairs or reviews — the owner is told on Telegram, and it resumes by itself once the window
 # resets / usage falls below resume_below_percent. A run that dies on a rate limit is requeued
 # without consuming a repair attempt.
+# Weekend / Jewish-holiday autonomous integration mode (owner governance §26–§41). During a
+# protected period the Team Lead merges fully validated PRs into ONE temporary integration
+# branch (integration/weekend-<date> or integration/holiday-<name>-<year>) and, when it ends,
+# opens ONE rollup PR to main that is validated as a whole. main is never merged autonomously.
+protected_periods:
+  enabled: true
+  timezone: Asia/Jerusalem
+  weekdays: [fri, sat]
+  # keys: yom_kippur, sukkot (incl. Chol HaMoed), shemini_atzeret, shavuot, rosh_hashanah, pesach
+  holidays: [yom_kippur, sukkot, shemini_atzeret, shavuot]
+  erev: true                          # the period starts on Erev Chag
 usage_guard:
   enabled: true
   pause_at_percent: 98
@@ -208,10 +219,13 @@ governance:
   # heavy_job_concurrency above); within them the Team Lead/scheduler uses every slot that is safe.
   # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
   # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
-  max_active_issues: 3
-  # Locks are released when a PR reaches READY_FOR_OWNER (its code changes are done); a repair on
-  # that PR re-acquires them first. false = hold locks until merge (serializes on owner latency).
-  release_locks_at_ready: true
+  max_active_issues: 6
+  # When an Issue's domain locks are released: pr_open (the code changes are done — CI/review hold
+  # nothing, the next Issue on the same core starts at once; a repair re-acquires the locks first;
+  # conflicts surface as base updates), ready (held through CI/review, released at READY_FOR_OWNER),
+  # merge (held until the merge — serializes on owner latency). Owner rule 2026-09-18: never let a
+  # worker rest -> pr_open.
+  release_locks_at: pr_open
   # SIGTERM / `agentctl stop` / launchd restart drain: running agents finish (up to this many
   # seconds), nothing new starts, then the process exits. SIGINT or a second SIGTERM = stop now.
   drain_timeout_seconds: 3900
