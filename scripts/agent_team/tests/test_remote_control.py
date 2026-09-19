@@ -701,3 +701,35 @@ def test_claude_interpreter_answer_uses_the_fast_tier(tmp_path):
         monkey.undo()
     assert interp.answer("מה קרה?", "evidence", ConversationContext(chat_id=1)) == "תשובה"
     assert seen[0].model == "sonnet" and seen[0].tools == () and seen[0].timeout_seconds == 60
+
+
+def test_handler_thread_is_restarted_when_it_dies_and_replaced_when_stalled(remote, monkeypatch):
+    """Regression (2026-09-19): the bot received the owner's button presses but its single handler
+    thread had died/wedged, so every later press vanished silently."""
+    import threading, time as _time
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    svc.threaded = True
+    svc._ensure_worker()
+    first = svc._worker
+    assert first.is_alive()
+    # a dead thread is restarted on the next tick
+    svc._stop.set(); first.join(timeout=3); svc._stop.clear()
+    assert not first.is_alive()
+    svc.tick()
+    assert svc._worker is not first and svc._worker.is_alive()
+    # a stalled thread (one update stuck) is abandoned and replaced, and the owner is told
+    gate = threading.Event()
+    monkeypatch.setattr(svc, "handle_update", lambda u: gate.wait(30))
+    svc._queue.put({"update_id": 1, "message": {}})
+    for _ in range(50):
+        if svc._busy_since is not None:
+            break
+        _time.sleep(0.05)
+    stuck = svc._worker
+    monkeypatch.setattr(svc, "_busy_since", _time.monotonic() - svc.HANDLER_STALL_SECONDS - 1)
+    svc.tick()
+    assert svc._worker is not stuck and svc._worker.is_alive()
+    assert any("נתקעה" in t for t in tg.texts())
+    assert any(e["kind"] == "remote_handler_stalled" for e in orch.store.events(None, limit=20))
+    gate.set(); svc._stop.set()

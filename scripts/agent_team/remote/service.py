@@ -53,6 +53,8 @@ class RemoteService:
     threaded: bool = False
     _queue: "queue.Queue[dict]" = field(default_factory=queue.Queue)
     _worker: threading.Thread | None = None
+    _busy_since: float | None = None      # monotonic time the handler started the current update
+    _current: dict | None = None
 
     # -- singleton ------------------------------------------------------------------------
     def acquire_singleton(self) -> None:
@@ -136,12 +138,45 @@ class RemoteService:
                 u = self._queue.get(timeout=1)
             except queue.Empty:
                 continue
+            self._busy_since = time.monotonic()
+            self._current = u
             try:
                 self.handle_update(u)
-            except Exception:  # noqa: BLE001
+            except BaseException:  # noqa: BLE001 — the handler thread must survive anything
                 log.exception("update handling failed")
+            finally:
+                self._busy_since = None
+                self._current = None
+
+    #: One update may legitimately take a couple of minutes (an Opus draft); beyond this the handler
+    #: is considered wedged (a hung subprocess) and is replaced so later presses get served.
+    HANDLER_STALL_SECONDS = 420
+
+    def _ensure_worker(self) -> None:
+        """Self-healing for the handler thread: restart it if it died; replace it when one update has
+        been stuck longer than HANDLER_STALL_SECONDS (the stuck thread is abandoned; the owner is told)."""
+        w = self._worker
+        stalled = self._busy_since is not None and time.monotonic() - self._busy_since > self.HANDLER_STALL_SECONDS
+        if w is not None and w.is_alive() and not stalled:
+            return
+        if w is not None and w.is_alive() and stalled:
+            cur = self._current or {}
+            log.error("telegram handler stalled on update %s for >%ss — replacing the handler thread", cur.get("update_id"), self.HANDLER_STALL_SECONDS)
+            self.store.record_event(None, "remote_handler_stalled", {"update_id": cur.get("update_id"), "seconds": self.HANDLER_STALL_SECONDS})
+            chat = self.gateway.owner_chat_id()
+            if chat:
+                self._reply(chat, "⚠️ פקודה קודמת נתקעה ונזנחה; ממשיך לטפל בפקודות הבאות. אם היא הייתה חשובה — שלח אותה שוב.")
+        elif w is not None:
+            log.error("telegram handler thread died — restarting it")
+            self.store.record_event(None, "remote_handler_restarted", {})
+        self._busy_since = None
+        self._current = None
+        self._worker = threading.Thread(target=self._worker_loop, name="telegram-handler", daemon=True)
+        self._worker.start()
 
     def tick(self) -> None:
+        if self.threaded:
+            self._ensure_worker()
         self.drain_outbox()
         self.poll_once()
 
@@ -153,8 +188,7 @@ class RemoteService:
                 previous[sig] = signal.signal(sig, lambda *_: self._stop.set())
             log.info("telegram service started (long polling, timeout %ss)", self.config.telegram_poll_timeout_seconds)
             self.threaded = True
-            self._worker = threading.Thread(target=self._worker_loop, name="telegram-handler", daemon=True)
-            self._worker.start()
+            self._ensure_worker()
             while not self._stop.is_set():
                 try:
                     self.tick()
