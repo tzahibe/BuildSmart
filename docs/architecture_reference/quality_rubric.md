@@ -218,14 +218,23 @@ into.
 - **Deterministic signal**: C13 (declared access topology is physically realized) and C17
   (bathroom access matches requirements) cover declared-vs-realized correctness; no check exists
   yet specifically for the bedroom-to-bedroom anti-pattern or general door-topology quality.
-  Planned: ROADMAP P0 "Doors + Access Topology" (no Issue number assigned yet).
+  Planned: ROADMAP P0 "Doors + Access Topology" (no Issue number assigned yet). **Wet-room privacy
+  and access quality (Issue #37, `wet_privacy.py`)**: per wet room, a `WetPrivacy` record —
+  entered-from zone class (private/circulation/public), door facing, a real segment test for a
+  direct sight line from a facing public room, `public_exposure_score`, `circulation_obstruction`
+  (door leaf vs. corridor width) and `adjacency_quality` (F's own relation, read per-room). C29
+  fails closed only on a wet room entered directly from KITCHEN or DINING; a corridor-access wet
+  room, however its facing geometry scores, is never refused — that score joins ranking
+  (`candidate_privacy_key`) as a soft signal instead, on `QualityOut.wet_privacy`.
 - **Reference comparison**: none of the 21 reference plans route through a bedroom to reach another
   room; this is a hard convention in professional practice, not merely a preference.
 - **Semantic review**: whether a door's swing direction and hardware side make sense for the room
   (does it block a fixture or a wardrobe when open) — see also anti-pattern "door-fixture clash" in
   `anti_patterns.md`.
 - **How a reviewer applies it**: for every private room, list what other rooms are reachable only
-  by passing through it; any non-empty list for a bedroom is a flag.
+  by passing through it; any non-empty list for a bedroom is a flag. For every wet room, read its
+  `WetPrivacy` record before judging the drawing by eye: a high `public_exposure_score` on a
+  corridor-access room (never refused by C29) is exactly the case worth a second look.
 
 ## J. Adjacency & Privacy Zoning
 

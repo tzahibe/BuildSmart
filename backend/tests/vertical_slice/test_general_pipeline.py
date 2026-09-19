@@ -57,8 +57,9 @@ def test_all_slice_checks_still_pass(cases, case_id):
     report = cases[case_id].validation
     # C14/C15 only run when a corridor width or a relationship was requested; C16, C17 (bathroom
     # access against the programme's requirements), C18, C19 (exterior exposure), C20 (template
-    # aspect), C21 (template maximum area) and C24 (access topology obeys the door rules) always do.
-    assert len(report.checks) == 20
+    # aspect), C21 (template maximum area), C24 (access topology obeys the door rules) and C29
+    # (Issue #37, wet-room privacy) always do.
+    assert len(report.checks) == 21
     assert report.ok, "; ".join(f"{c.check_id}: {c.detail}" for c in report.failures())
 
 

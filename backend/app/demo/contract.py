@@ -137,6 +137,22 @@ class QualityMetricsOut(BaseModel):
     wasted_circulation_share: float = 0.0
 
 
+class WetPrivacyOut(BaseModel):
+    """One wet room's privacy standing (Issue #37) — see
+    `app.vertical_slice.wet_privacy.WetPrivacy` for what each field means and how it is computed.
+    Display/ranking data only; the one hard rule it backs (C29) lives in `validation.py`."""
+
+    zone_id: str
+    entered_from: str | None = None
+    entered_from_class: str
+    door_facing: str | None = None
+    direct_sight_line: bool
+    public_exposure_score: float
+    circulation_obstruction: bool
+    adjacency_quality: bool
+    privacy_score: float
+
+
 class ExposureOut(BaseModel):
     """One room's exposure standing (Issue #19) — which sides are on the envelope, and either the
     window that was placed or the reason none was: `NO_EXTERIOR_WALL` (a planning-topology
@@ -183,6 +199,9 @@ class QualityOut(BaseModel):
     #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
     #: per room.
     exposure: list[ExposureOut] = []
+    #: One `WetPrivacyOut` per wet room (Issue #37), additive. `[]` for a plan with no wet rooms,
+    #: or one built before this field existed.
+    wet_privacy: list[WetPrivacyOut] = []
 
 
 class WindowOut(BaseModel):
@@ -895,9 +914,11 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
     exposure = _exposure_of(design)
+    wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
     return demo.model_copy(update={
         "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics),
-                                                    "exposure": exposure})
+                                                    "exposure": exposure,
+                                                    "wet_privacy": wet_privacy})
     })
 
 

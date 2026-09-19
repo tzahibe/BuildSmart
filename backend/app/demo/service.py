@@ -50,6 +50,7 @@ from app.vertical_slice.general_pipeline import (
 )
 from app.vertical_slice.safe_adapter import AdapterOutcome
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
+from app.vertical_slice.wet_privacy import candidate_privacy_key
 
 from app.vertical_slice.building import Building
 
@@ -611,6 +612,14 @@ def _l_quality_of_plan(plan) -> LQuality:
     return l_quality_of(plan.design)
 
 
+def _privacy_key_of_plan(plan) -> tuple[float, float]:
+    """`plan`'s wet-room privacy, as a sortable key — LOWER IS BETTER (Issue #37,
+    `wet_privacy.candidate_privacy_key`). A thin, one-line seam over `.design`-reading logic, the
+    same role `_l_quality_of_plan` already plays: a test can stand in for it without building
+    full geometry."""
+    return candidate_privacy_key(plan.design.wet_privacy)
+
+
 def _l_massing_eligible(rect_plan, l_plan) -> str | None:
     """Whether `l_plan` (an engine-generated non-rectangle massing) earns a representation slot
     against `rect_plan` (the best rectangle plan available) — `None` if it may take the slot,
@@ -644,7 +653,13 @@ def _band_faces_garden(orr: OutlineResult) -> bool | None:
 
 
 def _break_l_tie(peers: list, concept: HouseConcept):
-    """Which of several otherwise-tied plans of one L massing is shown. `peers` in pool order."""
+    """Which of several otherwise-tied plans of one L massing is shown. `peers` in pool order.
+
+    THE PRIVACY TIEBREAK (Issue #37, the last step before pool order): peers already tied on the
+    person's garden/street preference AND on `LQuality`'s Pareto comparison are compared once
+    more on their wet rooms' privacy — `_privacy_key_of_plan`, lower is better. Strictly a further
+    refinement of an already-arbitrary tie, never a first-order ranking signal: it can only choose
+    between peers `_pareto_better` already found neither better nor worse than the other."""
     if len(peers) == 1:
         return peers[0]
     if concept.public_open_side is not PublicOpenSide.ENGINE:
@@ -660,6 +675,12 @@ def _break_l_tie(peers: list, concept: HouseConcept):
                               if other_item is not item)]
     if len(undominated) == 1:
         return undominated[0]
+    if undominated:
+        best_key = min(_privacy_key_of_plan(item[1]) for item in undominated)
+        by_privacy = [item for item in undominated if _privacy_key_of_plan(item[1]) == best_key]
+        if len(by_privacy) == 1:
+            return by_privacy[0]
+        undominated = by_privacy
     return (undominated or peers)[0]      # exact tie: pool order (outline.order, index) decides
 
 

@@ -36,6 +36,10 @@ class _Plan:
     massing: str = "1W"
     #: realized quality for the L tiebreak (bedroom-class aspect, wet share, two-sided share)
     quality: tuple = (1.5, 1.0, 0.5)
+    #: wet-room privacy for the L tiebreak (Issue #37) — `svc._privacy_key_of_plan`'s stand-in
+    #: value; `(0.0, 0.0)` (lower is better) never distinguishes two plans, matching the pool's
+    #: behaviour before this tiebreak existed for every test that does not set it explicitly.
+    privacy: tuple = (0.0, 0.0)
 
     @property
     def concept(self) -> _Concept:
@@ -421,6 +425,13 @@ def _stub_l_quality(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _stub_privacy_key(monkeypatch):
+    """The privacy tiebreak (Issue #37) reads `plan.design.wet_privacy`; the stand-ins carry the
+    already-computed key directly, exactly like `_stub_l_quality` above."""
+    monkeypatch.setattr(svc, "_privacy_key_of_plan", lambda plan: plan.privacy)
+
+
+@pytest.fixture(autouse=True)
 def _stub_l_eligibility(monkeypatch):
     """The representation gate (`_l_massing_eligible`) reads realized `PlanProportions`/
     `ExposureProportions` off `plan.design` — none of these stand-ins have one. Every test in
@@ -462,6 +473,22 @@ def test_engine_selects_the_better_realized_l_when_quality_differs():
     # Better on one measure, worse on another: no dominance, order decides (rear is order 4).
     assert _shown_l(svc._select_plans(_tied_ls(rear_quality=(1.2, 1.0, 0.5), front_quality=(1.5, 1.0, 0.8)),
                                       200.0, ENGINE)) == "rear"
+
+
+def test_the_privacy_tiebreak_decides_an_otherwise_exact_quality_tie():
+    """Issue #37: two L peers tied on the garden/street preference AND on `LQuality` — the one
+    with the better (lower) wet-room privacy key wins, ahead of the pool-order fallback that
+    would otherwise pick the rear arm (see the test right below this one)."""
+    assert _shown_l(svc._select_plans(
+        _tied_ls(), 200.0, ENGINE)) == "rear"  # unchanged: both peers privacy-tied at (0.0, 0.0)
+    results = [
+        _OutlineResult(_outline(0), (_Plan(196.0, 0, "F1"),)),
+        _OutlineResult(_outline(4, arm_end="rear"),
+                      (_Plan(161.5, 0, "L-rear", massing="2W", privacy=(0.7, 0.7)),)),
+        _OutlineResult(_outline(5, arm_end="front"),
+                      (_Plan(161.5, 0, "L-front", massing="2W", privacy=(0.2, 0.2)),)),
+    ]
+    assert _shown_l(svc._select_plans(results, 200.0, ENGINE)) == "front"
 
 
 def test_an_exact_quality_tie_falls_back_to_outline_order_deterministically():
