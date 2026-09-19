@@ -1045,8 +1045,14 @@ class Orchestrator:
         decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha,
                                        lost_allowance=self._contract(rec).lost_allowance)
         if decision.ok:
-            if self.period is not None and rec.kind != "rollup":
-                return self._integrate(rec, head, ev, verdict)
+            pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+            late_integration = rec.kind != "rollup" and self.period is None and pr_base.startswith("integration/") and \
+                bool(self.rollup()) and self.rollup().get("period", {}).get("branch") == pr_base
+            if (self.period is not None and rec.kind != "rollup") or late_integration:
+                # A PR opened during the period whose validation finished after it ended still targets the
+                # integration branch: it joins the pending rollup (which re-validates the combined head) —
+                # the owner merges main only through the rollup PR.
+                return self._integrate(rec, head, ev, verdict, branch=pr_base)
             self._set_state(self.store, rec.issue_id, sm.READY_FOR_OWNER, note=f"every gate green: {decision.describe()}")
             self.store.record_event(rec.issue_id, "ready_for_owner", {"head": head, "policy": decision.describe()})
             if self.config.release_locks_at in ("ready", "pr_open"):
@@ -1135,9 +1141,12 @@ class Orchestrator:
         log.info("protected period started: %s (%s)", p.label, p.branch)
         return f"protected period started: {p.label} -> {p.branch}"
 
-    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str) -> str:
+    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str, branch: str | None = None) -> str:
         """Team-Lead merge into the period's integration branch (never main) after every gate is green."""
         p = self.period
+        if p is None:
+            info = self.rollup() or {}
+            p = Period.from_dict(info["period"]) if info.get("period") else None
         assert p is not None
         pr = self.github.get_pr(rec.pr_number)
         if (pr.get("base") or {}).get("ref") != p.branch:

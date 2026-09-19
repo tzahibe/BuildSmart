@@ -353,3 +353,28 @@ def test_a_period_ended_early_is_not_re_entered_and_another_process_sees_the_end
     clock.t = _at("2026-09-25")                              # the next real period (Sukkot) still starts
     _tick(orch)
     assert orch.period is not None and orch.period.name == "Succos"
+
+
+def test_a_pr_validated_after_the_period_ended_joins_the_pending_rollup(env):
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    p = _enter_period(orch, clock)
+    _add_issue(gh, 70)
+    _add_issue(gh, 71)
+    _tick(orch)
+    _to_ready_or_integrated(orch, gh, 70)                    # #70 integrated during the period
+    rec71 = orch.store.get(71)
+    assert rec71.state in (sm.PR_OPEN, sm.CI)                # #71 still in CI when the period ends
+    _green(gh, gh.get_pr(rec71.pr_number)["head"]["sha"])    # its gates go green while the period ends
+    clock.t = _at("2026-09-22")
+    orch._ci_started[71] = clock.t                           # (the fake clock jump must not read as a CI timeout)
+    _tick(orch)
+    ru = orch.rollup()
+    assert ru and ru["children"] == [70]
+    rec = _to_ready_or_integrated(orch, gh, 71)              # its review finishes afterwards
+    assert rec.state == sm.INTEGRATED                        # not READY against the integration branch
+    assert gh.get_pr(rec.pr_number)["base"]["ref"] == p.branch and rec.pr_number in gh.merged
+    assert orch.rollup()["children"] == [70, 71]             # the pending rollup carries it; main untouched
+    root = config.repo_root
+    _git(["fetch", "-q", "origin"], root)
+    assert "work-71.txt" not in _git(["ls-tree", "--name-only", "origin/main"], root).stdout
