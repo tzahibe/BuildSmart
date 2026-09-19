@@ -331,3 +331,25 @@ def test_no_period_means_the_normal_owner_gate(env):
     assert orch.period is None and gh.get_pr(orch.store.get(70).pr_number)["base"]["ref"] == "main"
     rec = _to_ready_or_integrated(orch, gh, 70)
     assert rec.state == sm.READY_FOR_OWNER and gh.merged == []
+
+
+def test_a_period_ended_early_is_not_re_entered_and_another_process_sees_the_end(env):
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    p = _enter_period(orch, clock)
+    _add_issue(gh, 70)
+    _tick(orch)
+    _to_ready_or_integrated(orch, gh, 70)
+    other = _orch(config, gh, clock, _runner())              # e.g. `agentctl period end` in another process
+    assert other.period == p
+    other.end_period()
+    assert other.rollup() is not None
+    rep = _tick(orch)                                        # the daemon follows the persisted end, no new period
+    assert orch.period is None and orch.worktrees.base_override is None
+    assert not any("started" in r for r in rep.reconciled)
+    clock.t = _at("2026-09-21")                              # still inside the calendar span
+    _tick(orch)
+    assert orch.period is None
+    clock.t = _at("2026-09-25")                              # the next real period (Sukkot) still starts
+    _tick(orch)
+    assert orch.period is not None and orch.period.name == "Succos"

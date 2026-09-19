@@ -1067,9 +1067,15 @@ class Orchestrator:
         if not self.config.protected_periods_enabled or self.dry_run:
             return None
         today = self.calendar.today(self.clock)
+        # another process (agentctl period end) may have ended the period: follow the persisted state
+        persisted = self._load_period()
+        if self.period is not None and persisted is None:
+            self.period = None
+            self.worktrees.base_override = None
         if self.period is None:
             p = self.calendar.period_containing(today)
-            if p:
+            closed = self.store.get_meta("period_closed_through") or ""
+            if p and p.end.isoformat() > closed:      # a period ended early is not re-entered
                 return self.start_period(p)
             return None
         if today > self.period.end:
@@ -1188,6 +1194,7 @@ class Orchestrator:
         self.period = None
         self.worktrees.base_override = None
         self._save_period(None)
+        self.store.set_meta("period_closed_through", p.end.isoformat())
         if not children:
             self.worktrees.delete_remote_branch(p.branch)
             self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": None, "integrated": 0})
