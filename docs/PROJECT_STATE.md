@@ -59,6 +59,9 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 
 - Room capacity constraint, plan-not-realizable root cause — no successor doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
+- Concept Engine v2 (why concepts converge to one spine parti; generative vs retrieval vs hybrid) —
+  `CONCEPT_ENGINE_V2_INVESTIGATION.md` (2026-09-20, proposal: hybrid, ROOT + 5 children in
+  `.agent/proposals/roadmap/cev2-*.md`; awaiting the owner's approval, nothing implemented).
 
 ## Agent-team Issues
 
