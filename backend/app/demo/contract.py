@@ -185,20 +185,6 @@ class ExposureOut(BaseModel):
     no_window_reason: str | None = None
 
 
-class ExposureOut(BaseModel):
-    """One room's exposure standing (Issue #19) — which sides are on the envelope, and either the
-    window that was placed or the reason none was: `NO_EXTERIOR_WALL` (a planning-topology
-    defect — C19 fails on this same room when its policy requires an exterior wall),
-    `EXTERIOR_WALL_TOO_SHORT` (a window-sizing defect — C8 fails when the policy requires a
-    window), or `WINDOW_NOT_REQUIRED` (the role's window policy is NONE)."""
-
-    room_id: str
-    exterior_sides: list[str] = []
-    window_side: str | None = None
-    window_width_m: float | None = None
-    no_window_reason: str | None = None
-
-
 class QualityOut(BaseModel):
     """Room-size quality, kept apart from validation on purpose: the preferred maximum is a soft
     target, the hard one is the gate (C21). Three tiers, thresholds beside the templates
@@ -781,42 +767,6 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
 
 def _metrics_out(m: quality_metrics.QualityMetrics, wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
     return QualityMetricsOut(**dataclasses.asdict(m), wet_core=wet_core)
-
-
-def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
-    """One `ExposureOut` per room, off the raw solver output — see `ExposureOut` for the reason
-    codes. Reads `room.wall_facts` (geometry-derived, never the raw solver `WallType`) for which
-    sides are on the envelope, and `design.windows` (placeable or not) for what `generate_windows`
-    actually attempted for that role's policy tier."""
-    window_of: dict[str, object] = {w.zone_id: w for w in design.windows}
-    out: list[ExposureOut] = []
-    for room in design.rooms:
-        exterior_sides = [side for side, facts in room.wall_facts.items()
-                          if facts.boundary_context is BoundaryContext.EXTERIOR]
-        policies = [EXPOSURE_POLICY[ProgramRole(r)] for r in room.roles if r in ProgramRole.__members__]
-        window_policy = ExposureRequirement.NONE
-        if any(p.window is ExposureRequirement.REQUIRED for p in policies):
-            window_policy = ExposureRequirement.REQUIRED
-        elif any(p.window is ExposureRequirement.PREFERRED for p in policies):
-            window_policy = ExposureRequirement.PREFERRED
-        window = window_of.get(room.zone_id)
-        placed = window is not None and window.placeable
-        reason = None
-        if not placed:
-            if window_policy is ExposureRequirement.NONE:
-                reason = "WINDOW_NOT_REQUIRED"
-            elif not exterior_sides:
-                reason = "NO_EXTERIOR_WALL"
-            else:
-                reason = "EXTERIOR_WALL_TOO_SHORT"
-        out.append(ExposureOut(
-            room_id=room.zone_id,
-            exterior_sides=exterior_sides,
-            window_side=window.side if placed else None,
-            window_width_m=window.width_m if placed else None,
-            no_window_reason=reason,
-        ))
-    return out
 
 
 def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:

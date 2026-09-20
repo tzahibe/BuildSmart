@@ -194,6 +194,39 @@ def test_c28_fails_door_door_and_door_fixture_and_engine_flips_swing_first():
     assert any("fixture footprint" in d for d in defects), defects
 
 
+def test_resolve_swings_never_flips_into_circulation():
+    """Independent review of #38 fix-1: `_flip` must not undo `doors.py`'s `_swing` invariant that
+    a door never swings into a HALL/CIRCULATION zone. Same corner-conflict shape as
+    `_row_with_two_doors_into_the_corner`, but D1's only flip target is a HALL — resolve_swings
+    must refuse that flip (leaving C28 failing closed) rather than silently swinging D1 open into
+    the corridor just to make the conflict count go away."""
+    room_c = Rect(0, 0, m_to_u(2.0), m_to_u(2.0))
+    hall = Rect(-m_to_u(4.0), 0, m_to_u(4.0), m_to_u(4.0))
+    zones = [
+        ZoneSpec("ROOM_C", (ProgramRole.LIVING,), 3, 4, 8, 1.5),
+        ZoneSpec("HALL", (ProgramRole.HALL, ProgramRole.CIRCULATION), 10, 14, 20, 3.0),
+    ]
+    fixture = _fixture(zones)
+    rects = {"ROOM_C": room_c, "HALL": hall}
+    walls = _open_walls(list(rects))
+
+    width_u = m_to_u(0.9)
+    # D1: HALL <-> ROOM_C, already swinging into ROOM_C (the correct default — never into HALL).
+    d1 = Door("HALL", "ROOM_C", ConnectionKind.DOOR, 0.9, (0, width_u // 2), "vertical",
+             True, 2.0, "ROOM_C", (0, 0), 0.0)
+    # D2: unflippable ("OUTSIDE"), hinged at the same corner — collides with D1 exactly like the
+    # door-door case above, so the ONLY way to resolve the conflict is flipping D1 into the HALL.
+    d2 = Door("OUTSIDE", "ROOM_C", ConnectionKind.DOOR, 0.9, (width_u // 2, 0), "horizontal",
+             True, 2.0, "ROOM_C", (0, 0), 90.0)
+
+    assert check_doors_usable(fixture, rects, walls, [d1, d2]), "fixture must start in conflict"
+    resolved = resolve_swings(fixture, rects, walls, [d1, d2])
+    d1_resolved = next(d for d in resolved if d.orientation == "vertical")
+    assert d1_resolved.swings_into == "ROOM_C", "must never flip a door into a HALL/CIRCULATION zone"
+    defects = check_doors_usable(fixture, rects, walls, resolved)
+    assert any("swing envelopes overlap" in d for d in defects), defects
+
+
 def test_c28_wired_into_validate_via_a_solved_fixture():
     """C28 is a real check on the report `validate()` returns, not just a standalone function —
     proven over one small solved fixture rather than the full canonical pipeline (already covered

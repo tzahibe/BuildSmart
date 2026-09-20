@@ -221,13 +221,25 @@ def check_doors_usable(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
 
 # --------------------------------------------------------------------------- swing resolution
 
-def _flip(rects: dict[str, Rect], door: Door) -> Door | None:
+def _flip(roles_of: dict[str, tuple[ProgramRole, ...]], rects: dict[str, Rect],
+         door: Door) -> Door | None:
     """The same door, hung the other way — swinging into whichever of `a`/`b` it does NOT swing
     into today. `None` for the entrance door (`a == "OUTSIDE"`): there is no other side to flip
-    to, the street is not a room."""
+    to, the street is not a room. Also `None` when the flip would swing the door INTO a
+    HALL/CIRCULATION zone while the side it swings into today is not circulation — `doors.py`'s
+    `_swing` refuses that by default (a leaf opening into a corridor blocks the corridor), and
+    conflict resolution must not undo that guarantee just to shave a conflict count elsewhere.
+    Flipping between two circulation zones (both sides already circulation, the one case `_swing`
+    itself cannot avoid) is still allowed, since it is no worse than the default."""
     if door.a == "OUTSIDE":
         return None
     other = door.b if door.swings_into == door.a else door.a
+
+    def is_circulation(zone_id: str) -> bool:
+        return any(r in _CIRCULATION_ROLES for r in roles_of.get(zone_id, ()))
+
+    if is_circulation(other) and not is_circulation(door.swings_into):
+        return None
     width_u = m_to_u(door.width_m)
     hinge_at = hinge_at_for(rects, other, door.center_u, door.orientation, width_u)
     swing_deg = swing_deg_for(rects, other, door.center_u, door.orientation)
@@ -257,13 +269,14 @@ def resolve_swings(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     doors = list(doors)
     if _conflict_count(fixture, rects, walls, doors) == 0:
         return doors
+    roles_of = {z.zone_id: z.roles for z in fixture.zones}
     for _ in range(len(doors)):
         current = _conflict_count(fixture, rects, walls, doors)
         if current == 0:
             break
         improved = False
         for i, d in enumerate(doors):
-            flipped = _flip(rects, d)
+            flipped = _flip(roles_of, rects, d)
             if flipped is None:
                 continue
             trial = list(doors)
