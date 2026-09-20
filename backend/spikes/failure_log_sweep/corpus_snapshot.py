@@ -16,16 +16,34 @@ The report is what `scripts/agent_team/regression_budget.py` evaluates:
 
     before/after planned, refused, crashes · LOST · GAINED · new crashes · status changes
     (REFUSED<->CRASH) · refusal-code changes · primary-signature changes, each with the context.
+
+**Sharding (Issue #67, O3)**: `--shard I/N` replays only the I-th of N deterministic partitions of
+the corpus (by sorted context key, `index % N == I`), so gate-4's ~23-minute single-node snapshot
+can be computed by N parallel runner jobs instead. `--merge OUT.json IN1.json IN2.json ...` takes
+each shard's `--save` output and writes one document in the same shape `--save` would have produced
+for the whole corpus — refusing to merge (raising `ShardMergeError`, never silently) a shard set
+that is missing a context, duplicates one, or disagrees on `head_sha`/`corpus_hash`:
+
+    .venv/bin/python3 spikes/failure_log_sweep/corpus_snapshot.py --shard 0/4 --save shard-0.json
+    ...one such run per shard 0..N-1, typically in parallel CI jobs...
+    .venv/bin/python3 spikes/failure_log_sweep/corpus_snapshot.py --merge head_snapshot.json shard-0.json shard-1.json shard-2.json shard-3.json
+
+Shipped additively in shadow mode: the single-node path still runs, and a workflow-level compare
+step fails the job if the merged and single-node snapshots ever disagree (see
+docs/wiki/architecture/agent-team-workflow.md, gate-4 section). The single-node path is removed
+only once several real PRs show them identical.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import multiprocessing as mp
 import os
 import sys
 import time
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -37,6 +55,131 @@ def corpus_contexts(path: Path = CORPUS) -> list[dict]:
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     return [case["context"] for case in data["cases"]]
+
+
+class ShardMergeError(Exception):
+    """A shard set cannot be safely merged — `--merge` must never merge silently."""
+
+
+def parse_shard_spec(spec: str) -> tuple[int, int]:
+    try:
+        i_str, n_str = spec.split("/")
+        i, n = int(i_str), int(n_str)
+    except ValueError as exc:
+        raise ValueError(f"invalid --shard {spec!r}: expected format I/N") from exc
+    if n <= 0 or not (0 <= i < n):
+        raise ValueError(f"invalid --shard {spec!r}: need 0 <= I < N and N > 0")
+    return i, n
+
+
+def sorted_context_keys(corpus: Path = CORPUS) -> list[str]:
+    from spikes.failure_log_sweep.sweep import key_of  # noqa: WPS433 — see _run_one
+
+    return sorted(key_of(c) for c in corpus_contexts(corpus))
+
+
+def shard_contexts(spec: str, corpus: Path = CORPUS) -> list[dict]:
+    """The I-th of N deterministic partitions of the corpus: sort all contexts by their context
+    key, then take every context whose position in that order satisfies `index % N == I`. Depends
+    only on the corpus content, never on file order, so a shard's contents are stable across runs
+    and every context key lands in exactly one shard."""
+    from spikes.failure_log_sweep.sweep import key_of  # noqa: WPS433 — see _run_one
+
+    i, n = parse_shard_spec(spec)
+    ordered = sorted(corpus_contexts(corpus), key=key_of)
+    return [c for idx, c in enumerate(ordered) if idx % n == i]
+
+
+def _corpus_hash(corpus: Path = CORPUS) -> str:
+    return hashlib.sha256(corpus.read_bytes()).hexdigest()
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def merge_shards(shard_docs: list[dict], corpus: Path = CORPUS) -> dict:
+    """Union of N `--shard`/`--save` documents into one document in the same shape `--save` would
+    have produced for the whole corpus. Raises `ShardMergeError`, naming the problem, rather than
+    ever merging an unsafe shard set: a `head_sha` disagreement, a `corpus_hash` disagreement, a
+    context key produced by more than one shard, or a context key produced by none."""
+    if not shard_docs:
+        raise ShardMergeError("no shard documents given to merge")
+
+    shas = {d.get("sha") for d in shard_docs}
+    if len(shas) > 1:
+        raise ShardMergeError(f"shard head_sha mismatch across shards: {sorted(s for s in shas if s)}")
+
+    hashes = {d.get("corpus_hash") for d in shard_docs}
+    if len(hashes) > 1:
+        raise ShardMergeError(f"shard corpus_hash mismatch across shards: {sorted(h for h in hashes if h)}")
+
+    merged: dict[str, dict] = {}
+    for doc in shard_docs:
+        for key, value in doc.get("results", {}).items():
+            if key in merged:
+                raise ShardMergeError(f"duplicate context key across shards: {key}")
+            merged[key] = value
+
+    expected = set(sorted_context_keys(corpus))
+    missing = expected - merged.keys()
+    if missing:
+        raise ShardMergeError(
+            f"missing shard(s): {len(missing)} context key(s) never produced by any shard, "
+            f"e.g. {sorted(missing)[:3]}"
+        )
+    unexpected = merged.keys() - expected
+    if unexpected:
+        raise ShardMergeError(f"{len(unexpected)} context key(s) not present in the corpus, e.g. {sorted(unexpected)[:3]}")
+
+    # The shards ran in parallel (typically as matrix CI jobs), so the wall-clock cost of the
+    # sharded path is the slowest shard, not the sum of them — preserving that per-shard timing
+    # information rather than discarding it.
+    slowest_shard = round(max(float(d.get("seconds") or 0) for d in shard_docs), 1)
+    return {
+        "version": 1,
+        "sha": next(iter(shas)),
+        "corpus": shard_docs[0].get("corpus", str(corpus)),
+        "corpus_hash": next(iter(hashes)),
+        "workers": shard_docs[0].get("workers"),
+        "seconds": slowest_shard,
+        "written_at": _now_iso(),
+        "results": dict(sorted(merged.items())),
+    }
+
+
+def normalize_for_compare(doc: dict) -> dict:
+    """Strip the fields two equivalent snapshot runs may legitimately differ on — per-run timings
+    (top-level `seconds`, per-context `ms`) and the writer timestamp — so the rest (`sha`, `corpus`,
+    `corpus_hash`, `workers`, and each context's `status`/`code`/`sig`/`area`/`metrics`) can be
+    compared for exact equality."""
+    doc = dict(doc)
+    doc.pop("seconds", None)
+    doc.pop("written_at", None)
+    doc.pop("shard", None)
+    doc["results"] = {k: {kk: vv for kk, vv in v.items() if kk != "ms"} for k, v in doc.get("results", {}).items()}
+    return doc
+
+
+def snapshots_equal(a: dict, b: dict) -> bool:
+    return normalize_for_compare(a) == normalize_for_compare(b)
+
+
+def describe_snapshot_diff(a: dict, b: dict) -> list[str]:
+    """Human-readable mismatch descriptions between two snapshots (after normalizing volatile
+    fields) — empty means they are equivalent."""
+    na, nb = normalize_for_compare(a), normalize_for_compare(b)
+    diffs = []
+    for field in ("sha", "corpus_hash", "workers"):
+        if na.get(field) != nb.get(field):
+            diffs.append(f"{field}: {na.get(field)!r} != {nb.get(field)!r}")
+    keys_a, keys_b = set(na["results"]), set(nb["results"])
+    if keys_a != keys_b:
+        diffs.append(f"context keys differ: only in A={sorted(keys_a - keys_b)[:5]} only in B={sorted(keys_b - keys_a)[:5]}")
+    for key in sorted(keys_a & keys_b):
+        if na["results"][key] != nb["results"][key]:
+            diffs.append(f"{key}: {na['results'][key]} != {nb['results'][key]}")
+    return diffs
 
 
 def _run_one(ctx: dict) -> tuple[str, dict]:
@@ -71,8 +214,8 @@ def _run_one(ctx: dict) -> tuple[str, dict]:
     return key, out
 
 
-def run_all(workers: int = 1, corpus: Path = CORPUS) -> dict:
-    contexts = corpus_contexts(corpus)
+def run_all(workers: int = 1, corpus: Path = CORPUS, shard: str | None = None) -> dict:
+    contexts = shard_contexts(shard, corpus) if shard else corpus_contexts(corpus)
     if workers <= 1:
         results = [_run_one(c) for c in contexts]
     else:
@@ -90,11 +233,14 @@ def _git_sha() -> str | None:
         return None
 
 
-def save(path: Path, workers: int, corpus: Path = CORPUS) -> dict:
+def save(path: Path, workers: int, corpus: Path = CORPUS, shard: str | None = None) -> dict:
     t0 = time.time()
-    results = run_all(workers, corpus)
-    doc = {"version": 1, "sha": _git_sha(), "corpus": str(corpus), "workers": workers,
-           "seconds": round(time.time() - t0, 1), "results": results}
+    results = run_all(workers, corpus, shard=shard)
+    doc = {"version": 1, "sha": _git_sha(), "corpus": str(corpus), "corpus_hash": _corpus_hash(corpus),
+           "workers": workers, "seconds": round(time.time() - t0, 1), "written_at": _now_iso(),
+           "results": results}
+    if shard:
+        doc["shard"] = shard
     with open(path, "w", encoding="utf-8") as f:
         json.dump(doc, f)
     return doc
@@ -179,15 +325,50 @@ def main() -> int:
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--save", metavar="OUT.json")
     g.add_argument("--compare", nargs=2, metavar=("BEFORE.json", "AFTER.json"))
+    g.add_argument("--merge", nargs="+", metavar="FILE",
+                   help="--merge OUT.json IN1.json IN2.json ... : union of N --shard/--save documents")
+    g.add_argument("--assert-equal", nargs=2, metavar=("A.json", "B.json"),
+                   help="fail (exit 1) unless the two snapshots are equal after normalising volatile fields")
+    ap.add_argument("--shard", metavar="I/N", help="with --save: replay only the I-th of N corpus shards")
     ap.add_argument("--report", metavar="REPORT.json", help="with --compare: write the machine-readable report here")
     ap.add_argument("--workers", type=int, default=max(1, min(4, (os.cpu_count() or 2) // 2)))
     ap.add_argument("--corpus", type=Path, default=CORPUS)
     args = ap.parse_args()
+    if args.shard and not args.save:
+        ap.error("--shard is only meaningful together with --save")
     if args.save:
-        doc = save(Path(args.save), args.workers, args.corpus)
+        doc = save(Path(args.save), args.workers, args.corpus, shard=args.shard)
         counts = _status_counts(doc["results"])
-        print(f"saved {counts['total']} scenarios: planned {counts['planned']} refused {counts['refused']} "
+        shard_note = f" (shard {args.shard})" if args.shard else ""
+        print(f"saved {counts['total']} scenarios{shard_note}: planned {counts['planned']} refused {counts['refused']} "
               f"crashes {counts['crashes']} in {doc['seconds']}s ({args.workers} workers)")
+        return 0
+    if args.merge:
+        if len(args.merge) < 2:
+            ap.error("--merge needs an output file and at least one shard file")
+        out_path, *in_paths = args.merge
+        shard_docs = [json.load(open(p, encoding="utf-8")) for p in in_paths]
+        try:
+            doc = merge_shards(shard_docs, args.corpus)
+        except ShardMergeError as exc:
+            print(f"merge refused: {exc}", file=sys.stderr)
+            return 2
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+        counts = _status_counts(doc["results"])
+        print(f"merged {len(in_paths)} shard(s) into {counts['total']} scenarios: planned {counts['planned']} "
+              f"refused {counts['refused']} crashes {counts['crashes']}")
+        return 0
+    if args.assert_equal:
+        a = json.load(open(args.assert_equal[0], encoding="utf-8"))
+        b = json.load(open(args.assert_equal[1], encoding="utf-8"))
+        diffs = describe_snapshot_diff(a, b)
+        if diffs:
+            print(f"snapshots differ ({len(diffs)} difference(s)):")
+            for d in diffs[:20]:
+                print(f"  {d}")
+            return 1
+        print(f"snapshots match: {len(normalize_for_compare(a)['results'])} context(s) identical")
         return 0
     before = json.load(open(args.compare[0], encoding="utf-8"))
     after = json.load(open(args.compare[1], encoding="utf-8"))

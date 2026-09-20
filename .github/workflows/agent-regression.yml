@@ -1,7 +1,18 @@
 # GATE 4 — corpus regression with a declared budget (reusable; called by agent-ci.yml).
-# Replays the frozen 432-context corpus at the merge-base and at the PR head in two clean
-# checkouts, compares primary signatures/outcomes/refusal codes, and fails on any change outside
-# the Issue's regression budget. The merge-base snapshot is cached by SHA.
+# Replays the frozen 432-context corpus at the merge-base and at the PR head, compares primary
+# signatures/outcomes/refusal codes, and fails on any change outside the Issue's regression budget.
+# The merge-base snapshot is cached by SHA.
+#
+# O3 (Issue #67), shadow mode: each corpus snapshot is ALSO computed by N=4 parallel matrix jobs
+# (`snapshot`, sharded by `--shard I/N`, deterministic partition by sorted context key) and merged
+# (`merge`) into `head_snapshot.json` / `base_snapshot.json` — the files every downstream step
+# (invariants, budget evaluation) consumes. The pre-existing single-node computation still runs,
+# concurrently, in `single_node`, writing `*_snapshot_single.json`; a "Compare * snapshots" step in
+# the final `regression` job fails the whole gate if the merged and single-node documents ever
+# differ (after normalising volatile fields: `ms`/`seconds` timings, `written_at`). This is shadow
+# mode, not a replacement: the single-node path is removed only once several real PRs show the two
+# always agree — see docs/wiki/architecture/agent-team-workflow.md, gate-4 section. The shard count
+# (N = 4) is a workflow constant; see the same Wiki page to change it.
 name: agent-regression
 
 on:
@@ -18,15 +29,176 @@ on:
 permissions:
   contents: read
 
+env:
+  OPENAI_API_KEY: not-a-real-key-ci-only   # import-time client construction; never used for a call
+
 jobs:
-  regression:
+  # Resolves the merge-base once and checks (lookup-only) whether its snapshot is already cached,
+  # so the matrix job below knows whether it needs to shard the base corpus too.
+  resolve:
     runs-on: ubuntu-latest
-    # Two full corpus snapshots (merge-base on a cache miss + head, ~23 min each on the shared
-    # runner) plus the corpus invariants (which may re-run the corpus): 60 min was cut short on
-    # PR #23 and the cancelled job never saved its base cache, so the re-run repeated everything.
-    timeout-minutes: 120
-    env:
-      OPENAI_API_KEY: not-a-real-key-ci-only   # import-time client construction; never used for a call
+    timeout-minutes: 10
+    outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+      cache_hit: ${{ steps.cache.outputs.cache-hit }}
+      refs: ${{ steps.refs.outputs.refs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+      - name: Resolve merge-base
+        id: base
+        run: |
+          git fetch --no-tags origin "${{ inputs.base_ref }}"
+          BASE=$(git merge-base "origin/${{ inputs.base_ref }}" HEAD)
+          echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+          echo "merge-base: $BASE"
+      - name: Check cached base snapshot (lookup only)
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .agent/ci/base_snapshot.json
+          key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+          lookup-only: true
+      - name: Decide which refs need sharding
+        id: refs
+        run: |
+          if [ "${{ steps.cache.outputs.cache-hit }}" == "true" ]; then
+            echo 'refs=["head"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'refs=["head","base"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  # O3: N=4 parallel shards per ref that needs a fresh snapshot (head always; base only on a cache
+  # miss). Each shard replays disjoint contexts (`--shard I/N`, index % N == I by sorted context
+  # key) and uploads its own result document.
+  snapshot:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ fromJson(needs.resolve.outputs.refs) }}
+        shard: [0, 1, 2, 3]   # N = 4 — a workflow constant, see docs/wiki/architecture/agent-team-workflow.md
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref == 'head' && inputs.head_sha || needs.resolve.outputs.base_sha }}
+      - uses: astral-sh/setup-uv@v6
+      - name: Shard snapshot
+        working-directory: backend
+        run: |
+          uv sync --group dev
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py \
+            --shard ${{ matrix.shard }}/4 --workers 4 \
+            --save "$GITHUB_WORKSPACE/.agent/ci/shard-${{ matrix.ref }}-${{ matrix.shard }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-shard-${{ matrix.ref }}-${{ matrix.shard }}
+          path: .agent/ci/shard-${{ matrix.ref }}-${{ matrix.shard }}.json
+
+  # Merges the 4 head shards (and the 4 base shards, on a cache miss) into one document each, in
+  # the same shape a single-node `--save` would have produced.
+  merge:
+    needs: [resolve, snapshot]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: snapshot-shard-head-*
+          path: .agent/ci
+          merge-multiple: true
+      - name: Merge head shards
+        working-directory: backend
+        run: |
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --merge \
+            "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" \
+            $GITHUB_WORKSPACE/.agent/ci/shard-head-*.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: head-snapshot-merged
+          path: .agent/ci/head_snapshot.json
+      - name: Download base shards
+        if: needs.resolve.outputs.cache_hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: snapshot-shard-base-*
+          path: .agent/ci
+          merge-multiple: true
+      - name: Merge base shards
+        if: needs.resolve.outputs.cache_hit != 'true'
+        working-directory: backend
+        run: |
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --merge \
+            "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" \
+            $GITHUB_WORKSPACE/.agent/ci/shard-base-*.json
+      - name: Upload merged base snapshot
+        if: needs.resolve.outputs.cache_hit != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: base-snapshot-merged
+          path: .agent/ci/base_snapshot.json
+      - name: Record sharded wall time
+        env:
+          CACHE_HIT: ${{ needs.resolve.outputs.cache_hit }}
+        run: |
+          HEAD_SECONDS=$(python3 -c "import json; print(json.load(open('.agent/ci/head_snapshot.json'))['seconds'])")
+          {
+            echo "### O3 sharded snapshot timing (shadow mode)"
+            echo "- head snapshot: slowest of 4 shards finished in ${HEAD_SECONDS}s (shards ran in parallel matrix jobs)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$CACHE_HIT" != "true" ]; then
+            BASE_SECONDS=$(python3 -c "import json; print(json.load(open('.agent/ci/base_snapshot.json'))['seconds'])")
+            echo "- base snapshot (cache miss): slowest of 4 shards finished in ${BASE_SECONDS}s" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  # The pre-existing single-node computation, unchanged, kept as shadow mode's ground truth. Runs
+  # concurrently with `snapshot`/`merge` (both depend only on `resolve`), so sharding adds no wall
+  # time of its own while shadow mode is on.
+  single_node:
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_sha }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - name: Base snapshot (clean checkout at merge-base, single-node ground truth)
+        if: needs.resolve.outputs.cache_hit != 'true'
+        run: |
+          git fetch --no-tags origin "${{ inputs.base_ref }}"
+          git worktree add --detach ../base "${{ needs.resolve.outputs.base_sha }}"
+          cd ../base/backend
+          uv sync --group dev
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/base_snapshot_single.json" --workers 4
+      - uses: actions/upload-artifact@v4
+        if: needs.resolve.outputs.cache_hit != 'true'
+        with:
+          name: base-snapshot-single
+          path: .agent/ci/base_snapshot_single.json
+      - name: Head snapshot (single-node ground truth)
+        working-directory: backend
+        run: |
+          uv sync --group dev
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/head_snapshot_single.json" --workers 4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: head-snapshot-single
+          path: .agent/ci/head_snapshot_single.json
+
+  regression:
+    needs: [resolve, merge, single_node]
+    runs-on: ubuntu-latest
+    # A single full corpus replay (the O1 shadow-mode invariants pass) plus fast steps — the two
+    # snapshot passes now happen in `merge`/`single_node` above.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,44 +209,57 @@ jobs:
         with:
           name: agent-contract
           path: .agent/ci
-      - name: Resolve merge-base
-        id: base
+      - name: Download merged + single-node head snapshots
+        uses: actions/download-artifact@v4
+        with:
+          pattern: head-snapshot-*
+          path: .agent/ci
+          merge-multiple: true
+      - name: Compare head snapshots
+        working-directory: backend
         run: |
-          git fetch --no-tags origin "${{ inputs.base_ref }}"
-          BASE=$(git merge-base "origin/${{ inputs.base_ref }}" HEAD)
-          echo "sha=$BASE" >> "$GITHUB_OUTPUT"
-          echo "merge-base: $BASE"
+          set +e
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --assert-equal \
+            "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" "$GITHUB_WORKSPACE/.agent/ci/head_snapshot_single.json" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
       - name: Restore cached base snapshot
         id: cache
+        if: needs.resolve.outputs.cache_hit == 'true'
         uses: actions/cache/restore@v4
         with:
           path: .agent/ci/base_snapshot.json
-          key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
-      - name: Base snapshot (clean checkout at merge-base)
-        if: steps.cache.outputs.cache-hit != 'true'
+          key: corpus-snapshot-v1-${{ needs.resolve.outputs.base_sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+      - name: Download merged + single-node base snapshots
+        if: needs.resolve.outputs.cache_hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: base-snapshot-*
+          path: .agent/ci
+          merge-multiple: true
+      - name: Compare base snapshots
+        if: needs.resolve.outputs.cache_hit != 'true'
+        working-directory: backend
         run: |
-          git worktree add --detach ../base "${{ steps.base.outputs.sha }}"
-          cd ../base/backend
-          uv sync --group dev
-          uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" --workers 4
-      # Save the base snapshot as soon as it exists — the merge-base is immutable, so the cache is
-      # valid even if a later step fails or the job is cancelled (actions/cache@v4's post step
-      # would not save on a cancelled job).
+          set +e
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --assert-equal \
+            "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" "$GITHUB_WORKSPACE/.agent/ci/base_snapshot_single.json" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
+      # Save the base snapshot cache only after it has been proven equivalent to the single-node
+      # ground truth above — the merge-base is immutable, so the cache is valid even if a later
+      # step fails or the job is cancelled (actions/cache@v4's post step would not save on a
+      # cancelled job).
       - name: Save base snapshot cache
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: needs.resolve.outputs.cache_hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: .agent/ci/base_snapshot.json
-          key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
-      - name: Head snapshot
-        working-directory: backend
-        run: |
-          uv sync --group dev
-          uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" --workers 4
+          key: corpus-snapshot-v1-${{ needs.resolve.outputs.base_sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
       # O1 (Issue #66), shadow mode: the frozen-outcome invariants (status + refusal code per
-      # context) are evaluated straight from the head snapshot above — no corpus replay. The old
-      # replay stays below as the ground truth; "Compare invariants verdicts" fails the job if the
-      # two ever disagree. The replay is only removed once several real PRs prove they always
+      # context) are also evaluated straight from the head snapshot above — no corpus replay. The
+      # old replay stays below as the ground truth; "Compare invariants verdicts" fails the job if
+      # the two ever disagree. The replay is only removed once several real PRs prove they always
       # match — see docs/wiki/architecture/agent-team-workflow.md, gate-4 section.
       - name: Corpus outcome invariants (from snapshot)
         id: from_snapshot
@@ -147,4 +332,6 @@ jobs:
             .agent/ci/regression_gate_report.json
             .agent/ci/invariants_from_snapshot.json
             .agent/ci/invariants_replay.json
+            .agent/ci/head_snapshot.json
+            .agent/ci/head_snapshot_single.json
           if-no-files-found: warn

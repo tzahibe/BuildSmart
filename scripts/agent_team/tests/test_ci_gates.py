@@ -299,6 +299,50 @@ def test_regression_workflow_runs_shadow_mode_invariants_and_compares_them():
     assert "invariants_from_snapshot.json" in upload_paths and "invariants_replay.json" in upload_paths
 
 
+def test_regression_workflow_shards_the_corpus_snapshot_across_matrix_jobs():
+    """Issue #67 (O3): gate-4 computes each corpus snapshot both by a single-node replay (ground
+    truth) and by N=4 parallel matrix jobs merged into one document; a compare step fails the job
+    if the two ever disagree. Parses the real workflow YAML, not a copy of it."""
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-regression.yml").read_text())
+    jobs = doc["jobs"]
+
+    # the matrix shard job
+    snapshot_job = jobs["snapshot"]
+    matrix = snapshot_job["strategy"]["matrix"]
+    assert matrix["shard"] == [0, 1, 2, 3]
+    shard_step = next(s for s in snapshot_job["steps"] if "run" in s and "--shard" in s["run"])
+    assert "--shard" in shard_step["run"] and "corpus_snapshot.py" in shard_step["run"]
+
+    # the merge job
+    merge_job = jobs["merge"]
+    assert merge_job["needs"] == ["resolve", "snapshot"]
+    merge_steps = {s.get("name"): s for s in merge_job["steps"] if "name" in s}
+    assert "--merge" in merge_steps["Merge head shards"]["run"]
+
+    # the single-node step stays, now in its own job
+    single_node_job = jobs["single_node"]
+    single_steps = {s.get("name"): s for s in single_node_job["steps"] if "name" in s}
+    assert "Head snapshot (single-node ground truth)" in single_steps
+    assert "--shard" not in single_steps["Head snapshot (single-node ground truth)"]["run"]
+
+    # the compare step, and it fails the job on a difference
+    regression_job = jobs["regression"]
+    assert regression_job["needs"] == ["resolve", "merge", "single_node"]
+    reg_steps = {s.get("name"): s for s in regression_job["steps"] if "name" in s}
+    compare_step = reg_steps["Compare head snapshots"]
+    assert "--assert-equal" in compare_step["run"]
+    assert "PIPESTATUS" in compare_step["run"] and 'exit "${PIPESTATUS[0]}"' in compare_step["run"]
+
+    base_compare_step = reg_steps["Compare base snapshots"]
+    assert base_compare_step.get("if") == "needs.resolve.outputs.cache_hit != 'true'"
+    assert "--assert-equal" in base_compare_step["run"]
+
+    # budget evaluation and the invariants steps still consume the canonical (merged) filenames
+    budget_step = reg_steps["Evaluate the regression budget"]
+    assert "base_snapshot.json" in budget_step["run"] and "head_snapshot.json" in budget_step["run"]
+    assert "head_snapshot_single.json" not in budget_step["run"]
+
+
 def test_fake_github_state_label_is_idempotent():
     gh = FakeGitHub()
     gh.add_issue(1, "t", "b", ["agent:queued", "domain:qa"])
