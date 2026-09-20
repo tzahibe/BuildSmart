@@ -21,7 +21,7 @@ from typing import Iterable, Protocol
 from . import access_rules
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
-from .doors import Door
+from .doors import ALLOWED_ENTRANCE_ROLES, Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
 from .geometry_adapter import envelope_sides
@@ -481,6 +481,20 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                     f"entrance at x={u_to_m(x):.2f} m on the street wall; {target} spans "
                     f"{u_to_m(zone.x):.2f}-{u_to_m(zone.x2):.2f} m"
                     + ("" if on_zone_wall else " — the door is not on that room's wall"))
+
+        # C23 — the entrance opens into an ALLOWED ARRIVAL ROOM (Issue #20): HALL, CIRCULATION or
+        # LIVING — never a kitchen, dining room, a private room (bedroom, master bedroom, safe
+        # room, study, dressing room) or a wet/service room. Defense in depth, independent of HOW
+        # `entrance_zone_id` was chosen: C16 above already proves the door sits on the named
+        # room's OWN wall; this proves that room's ROLE is one a visitor may actually arrive in,
+        # so a caller that hardcodes an entrance zone or a future bug in `resolve_entrance` cannot
+        # silently put the front door in a bedroom or a kitchen and still pass validation.
+        target_roles = {z.zone_id: z.roles for z in fixture.zones}.get(target, ())
+        entrance_ok = any(r in ALLOWED_ENTRANCE_ROLES for r in target_roles)
+        role_list = ", ".join(r.value for r in target_roles) or "none"
+        rep.add("C23", "entrance opens into an allowed arrival room", entrance_ok,
+                f"{target} role(s) {role_list}"
+                + ("" if entrance_ok else " — not HALL, CIRCULATION or LIVING"))
 
     # C13 — every DECLARED access edge is physically realized.
     #

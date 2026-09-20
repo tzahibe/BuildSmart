@@ -28,6 +28,7 @@ from .geometry_adapter import wall_facts_for_room
 from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import Fixture, OutdoorRegion, Rect, Side, u_to_m
 from .site import SitePlan
+from .wet_core import WetCore, compute_wet_core
 from .wet_privacy import WetPrivacy, compute_wet_privacy
 from .windows import Window, seam_sides_of
 
@@ -115,6 +116,9 @@ class GeometricDesign:
     #: One `WetPrivacy` per wet room (Issue #37), additive. `()` for a caller that does not pass
     #: `wet_rooms` to `assemble` — every production caller does.
     wet_privacy: tuple[WetPrivacy, ...] = ()
+    #: Plumbing-efficiency standing (Issue #44), additive. `None` only for a `GeometricDesign`
+    #: built before this field existed — `assemble` always computes one.
+    wet_core: WetCore | None = None
 
     def __post_init__(self) -> None:
         if not self.footprints_m:
@@ -187,4 +191,5 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
         over_preferred=over_preferred,
         footprints_m=tuple(_rect_m(w) for w in site.wings),
         wet_privacy=compute_wet_privacy(fixture, rects, walls, interior_doors, wet_rooms),
+        wet_core=compute_wet_core(fixture, rects, walls),
     )

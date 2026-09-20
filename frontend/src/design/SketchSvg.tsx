@@ -13,7 +13,7 @@ interface SketchSvgProps {
   geometricDesign?: GeometricDesign | null
 }
 
-// Real-world-ish constants (meters) purely for how the LEGACY drawing reads — walls, door swings, and
+// Real-world-ish constants (meters) purely for how the LEGACY drawing reads — walls and
 // dimension-line offsets. These are drafting conventions, not measured data: the underlying room
 // geometry (position/size) still comes entirely from the backend Geometry Solver; nothing here invents
 // or adjusts a room's actual size or position. Only used by `LegacyFloorPlan` below — see this file's

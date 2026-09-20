@@ -244,7 +244,19 @@ happening at a clear boundary (a hall, a hub) rather than interleaved room by ro
 
 - **Deterministic signal**: `ZoneGroup` (`PUBLIC`/`SERVICE`/private, `concept_generator.py`)
   already exists as a planner-side concept; no deterministic realized-geometry check measures
-  whether the *delivered* zoning stayed coherent (as opposed to what the planner intended).
+  whether the *delivered* zoning stayed coherent (as opposed to what the planner intended). **Wet-
+  core / plumbing efficiency (Issue #44, `wet_core.py`)** covers the SERVICE half of this section
+  for wet rooms specifically: `shared_wall_length_m` (total interior wall shared between two wet
+  rooms), `clusters`/`cluster_count` (every group of wet rooms connected wall-to-wall through other
+  wet rooms — a coherent SERVICE sub-zone reads as one cluster, a scattered one as several),
+  `kitchen_adjacent_count` (wet rooms sharing a wall with the kitchen, this section's PUBLIC/
+  SERVICE boundary case) and `plumbing_complexity_index` (an estimate of independent plumbing
+  stacks/runs — connected components over wet rooms *and* the kitchen; lower is better). A soft
+  ranking preference only (`candidate_wet_core_key`/`better_candidate`), never a gate — no plan is
+  refused for a low cluster count. `wet_core_alignment` extends the same idea across levels: how
+  many of an upper level's wet rooms sit directly over a wet room below (a real vertical-stack
+  check on the REALIZED footprints of two levels), read-only data, not wired into any single-level
+  pipeline call. On `QualityOut.metrics.wet_core` (`app.demo.contract`).
 - **Reference comparison**: the guest-WC spec's `PublicAccess` vocabulary
   (`specs/009-guest-wc-placement/spec.md`) already encodes an ordered zone-access preference
   (foyer/hall → public circulation → living room, never through a bedroom or kitchen) for one
