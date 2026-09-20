@@ -692,6 +692,12 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
   findings `["a"]`, 40+ turns, ~$0.7 each) on long prose-heavy questions while the geometry/backend leads
   answered fully. Until the runner rejects placeholder JSON (a follow-up), treat a domain-lead brief with
   one-word fields as a failed run and do the reading yourself.
+- The Telegram service is a long-lived orchestrator instance that never ticks: it kept the ENDED period's
+  (deleted) integration branch as `base_override` and refused the owner's merge of PR #71 with "base advanced
+  by 56 commits" (the deleted branch's history vs the branch), and every retry of the used CONFIRM button
+  read "stale/expired". Fix: `Orchestrator.sync_period()` before every remote command and in `owner_merge`,
+  which now measures "behind" against the PR's OWN base; the refusal reply says what happens next
+  (`tests/test_remote_control.py::test_owner_merge_measures_behind_against_the_prs_own_base…`).
 - The Concept Engine v2 investigation ran on the main checkout read-only with `cwd=` overridden (the
   domain leads read `main`, not the home branch); the dry-run store (`dry-run.sqlite3`) had never been
   migrated, and three simultaneous starts raced on `ALTER TABLE` (harmless; stagger parallel
