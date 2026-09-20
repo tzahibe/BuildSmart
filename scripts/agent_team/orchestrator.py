@@ -27,6 +27,7 @@ import os
 import signal
 import threading
 import time
+import dataclasses
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -1930,6 +1931,10 @@ class Orchestrator:
                             json_schema=DOMAIN_LEAD_BRIEF_SCHEMA, tools=self.config.domain_lead_tools, restricted=True,
                             effort=self.config.claude_effort, session_name=f"agent-domain-lead-{domain}", persist_session=False)
         result = self.runner.run(spec)
+        if result.ok and _placeholder_brief(result.structured):
+            # seen twice on 2026-09-20 (knowledge domain): 40+ turns of reading, then a schema-shaped
+            # brief whose every field is "test"/"a" — a failed run, not a brief
+            result = dataclasses.replace(result, ok=False, error="placeholder brief (every field is filler text); treat as a failed run")
         audit.write_run_record(self.config, spec, result, extra={"domain": domain, "question": question})
         return result
 
@@ -1937,6 +1942,19 @@ class Orchestrator:
 # --------------------------------------------------------------------------------------------
 # module helpers
 # --------------------------------------------------------------------------------------------
+
+def _placeholder_brief(structured: dict | None) -> bool:
+    """A structured brief whose text fields are all filler (≤ 4 characters) is not an investigation."""
+    if not structured:
+        return False
+    texts: list[str] = []
+    for v in structured.values():
+        if isinstance(v, str):
+            texts.append(v)
+        elif isinstance(v, list):
+            texts.extend(x for x in v if isinstance(x, str))
+    return bool(texts) and all(len(x.strip()) <= 4 for x in texts)
+
 
 def _sh(cmd: str, cwd: Path, timeout: int, extra_env: dict[str, str] | None = None):
     import subprocess
