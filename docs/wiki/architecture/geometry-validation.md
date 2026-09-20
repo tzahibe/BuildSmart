@@ -300,6 +300,67 @@ already at reference level — NOT gaps. Three real gaps, ranked:
    kitchens as an L-counter inside one open volume, not a room with its own shape (M1, public
    rooms).
 
+## Typed constraints and the SAFE_ROOM/MAMAD refusal (Issue #35)
+
+Before this, "is there a safe room" was a single `bool` (`ProgramSpec.safe_room`) read
+independently by `concept_generator.py`, C4, the contract and the hub/L-massing guards — nothing
+carried WHY the room exists and nothing PROVED it was still there by the time C4 ran; a fallback
+ladder, a candidate swap or an alternative selection could in principle drop the room and C4's own
+loop (only ever looking at zones that ARE safe rooms) would find nothing to check and report "safe
+room compliant" — a false pass, not a caught defect.
+
+`app/vertical_slice/constraints.py` now derives one `TypedConstraint(kind=SAFE_ROOM,
+source=USER|COMPLIANCE|NONE, authoritative, min_area_m2)` per spec, ONCE, from the resolved
+requirement bool (`ArchitecturalSpec.safe_room_constraint`, derived from `program.safe_room`, never
+stored so it cannot drift). `ConstraintSource.COMPLIANCE` is reserved for a future legal-
+applicability rule — nothing in this codebase derives it today, and a brief without a safe-room
+requirement always resolves to `NONE`/not-authoritative, never inventing the room or a compliance
+warning.
+
+**Checked, not merely carried**, at two stages:
+
+1. **After concept generation** — `generate_concepts` asserts the room programme it is about to
+   build candidates from still carries SAFE_ROOM whenever the constraint is authoritative
+   (`assert_realized`, raising `SafeRoomDropped`).
+2. **In the validator** — C4 ("safe room valid ... an authoritative SAFE_ROOM constraint is
+   realized") additionally fails, independent of its existing RC-envelope/regulated-minimum checks,
+   when an authoritative constraint has no zone that is both a safe room AND has a REALIZED rect
+   (`zone_id in rects` — a zone the concept declared but the solver never gave a rectangle to is
+   exactly as dropped as one never declared). This is what actually gates delivery: every plan
+   `app/demo/service.py` delivers (primary and every alternative) is asserted `validation.ok`, so a
+   candidate or alternative that lost the room during geometry realization or a repartition/quality-
+   tier swap never reaches the screen — it simply fails C4 like any other hard check.
+
+`app/demo/service.py` turns both signals into the same product refusal, code `SAFE_ROOM_DROPPED`,
+never a plan without the room: `generate_demo_design` catches `SafeRoomDropped` from the concept
+stage directly; `_finish` (the terminal refusal once every outline has been tried) checks first,
+before its other check-specific diagnoses, whether the final result's C4 failure names the same
+detail string (`SAFE_ROOM_NOT_REALIZED_DETAIL`) and raises the same code if so.
+
+`app/demo/contract.py`'s `QualityOut.constraints` (a `list[ConstraintOut]`, `kind`/`source`/
+`authoritative`/`min_area_m2`) carries the constraint through to the contract whenever the brief's
+source is not `NONE` — attached in `to_demo_design` via a new, additive `constraint` parameter — so
+the screen/support tooling can show WHERE the requirement came from (a person asked vs. a future
+compliance rule), never an empty guess. A brief without one gets an empty list, never a `NONE`-
+source entry.
+
+**Authoritative implementation**: `app/vertical_slice/constraints.py` (`TypedConstraint`,
+`derive_safe_room_constraint`, `assert_realized`, `SafeRoomDropped`,
+`SAFE_ROOM_NOT_REALIZED_DETAIL`), `app/vertical_slice/spec.py`
+(`ArchitecturalSpec.safe_room_constraint`), `app/vertical_slice/concept_generator.py`
+(`generate_concepts`'s stage-1 assertion, `GenerationResult.constraints`),
+`app/vertical_slice/validation.py` (C4's `constraint` parameter),
+`app/vertical_slice/general_pipeline.py` (`_realize` passes `spec.safe_room_constraint` into
+`validate`), `app/demo/service.py` (`generate_demo_design`'s `SafeRoomDropped` catch, `_finish`'s
+C4-detail escalation, both to code `SAFE_ROOM_DROPPED`), `app/demo/contract.py` (`ConstraintOut`,
+`QualityOut.constraints`, `to_demo_design`'s `constraint` parameter).
+`backend/tests/vertical_slice/test_safe_room_constraint.py`,
+`backend/tests/test_demo_quality.py::test_safe_room_constraint_survives_to_the_contract`.
+
+**Out of scope, deliberately untouched**: legal applicability (whether the law requires a safe room
+for a given brief — `ConstraintSource.COMPLIANCE` stays unused), RC envelope sizing, multi-level
+safe-room placement policy, the hub/L-massing guards' existing safe-room aspect term.
+
 ## Dedicated circulation metrics and C26 (Issue #36)
 
 Issue #36 (2026-09-18). M3/M4 above measure a plan's circulation SHARE and the hall's own
@@ -431,6 +492,12 @@ the Access topology and door rules (C24) section above documents work landing on
 documents Issue #17, verified against that session's implementation and test runs, not
 independently re-verified beyond that.
 
+The Typed constraints / SAFE_ROOM_DROPPED section documents Issue #35, landed on branch
+`agent/35-safe-room-mamad-requirement-preservation` (based on `4aade91`), verified against this
+session's own implementation and test runs (`test_safe_room_constraint.py`,
+`test_demo_quality.py::test_safe_room_constraint_survives_to_the_contract`, the FAST suite, and the
+432-context regression corpus), not independently re-verified beyond that.
+
 `36b27e8` (branch `agent/19-windows-and-exterior-exposure-exposure-c`, based on
 `origin/integration/holiday-yom-kippur-2026`); the Windows and exterior exposure (C19/C8) section
 above documents work landing on this branch (Issue #19), verified against this session's own
@@ -442,6 +509,12 @@ merge): the Entrance / arrival-room policy (C23) section above documents Issue #
 against this session's own implementation and test runs, including this merge's conflict
 resolution (combined check count, both new-section additions kept intact).
 
+Branch `agent/35-safe-room-mamad-requirement-preservation` merged `origin/main` at `648292f`
+(the Yom Kippur integration rollup, 2026-09-20): resolved textual conflicts in this page,
+`contract.py`, `validation.py`, `test_demo_p0.py` and `test_demo_quality.py` by keeping both
+sides' additive sections/fields (Issue #35 alongside #19/#20/#32/#37/#69); the fast tier and this
+Issue's own targets were re-run against the merged tree.
+
 Branch `agent/36-circulation-efficiency-dedicated-circula`, based on
 `origin/integration/holiday-yom-kippur-2026` (merged forward to `main` at `648292f` after the
 integration branch's squash-merge, #18/#19/#20/#21/#24/#25/#29–#33/#37/#44/#63/#69 all already
@@ -451,3 +524,8 @@ green; the 432-context regression corpus was run separately — see the Issue's 
 outcome), including this merge's own conflict resolution (main's version taken for every
 shared/unrelated file; C26 and the circulation fields re-applied on top of C23/C29/wet-core exactly
 as they existed pre-merge; combined check count).
+
+`14d94d9` (branch `agent/35-safe-room-mamad-requirement-preservation`, based on `dac6c41`): merged
+`origin/main` a second time to pick up `6d18c1f` (Issue #36, circulation metrics); resolved textual
+conflicts in this page, `contract.py` and `validation.py` by keeping both sides' additive
+sections/fields, then re-ran this Issue's own targets against the merged tree.
