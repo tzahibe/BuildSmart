@@ -133,6 +133,15 @@ class Orchestrator:
         if self.period:
             self.worktrees.base_override = self.period.branch
 
+    def sync_period(self) -> Period | None:
+        """Adopt the persisted period state. The orchestrator process keeps `self.period` current in its
+        tick; a long-lived process that never ticks (the Telegram service) must call this before acting
+        on a base — the remote service once refused an owner merge with "base advanced by 56 commits"
+        because it still carried the ended period's (deleted) integration branch as `base_override`."""
+        self.period = self._load_period()
+        self.worktrees.base_override = self.period.branch if self.period else None
+        return self.period
+
     # -- process singleton --------------------------------------------------------------------
     def acquire_singleton(self) -> None:
         path = self.config.path(self.config.state_dir) / ("dry-run.lock" if self.dry_run else "orchestrator.lock")
@@ -1723,13 +1732,16 @@ class Orchestrator:
                                        require_github_gates=True)
         if not decision.ok:
             return refuse(f"השערים אינם ירוקים ל-{head[:12]} (gates not green): {decision.describe()}")
+        self.sync_period()
         self.worktrees.fetch()
+        pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
         try:
-            behind = self.worktrees.behind_base(Path(rec.worktree))
+            behind = self.worktrees.behind_base(Path(rec.worktree), pr_base)
         except GitError:
             behind = 0
         if behind > 0:
-            return refuse(f"ה-base התקדם ב-{behind} קומיט(ים) — נדרש אימות מחדש על base עדכני (base advanced; האורקסטרטור יעדכן את הענף)")
+            self._wake.set()
+            return refuse(f"ה-base ({pr_base}) התקדם ב-{behind} קומיט(ים) — האורקסטרטור מעדכן את הענף ומריץ שוב את השערים; תקבל הודעת READY חדשה (base advanced)")
         _, gate_states = ev.required_contexts_green(self.config.protection_required_contexts)
         try:
             res = self.github.merge_pr(rec.pr_number, method=self.config.merge_method, title=f"{rec.title} (#{rec.pr_number})", sha=head)

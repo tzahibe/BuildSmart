@@ -462,6 +462,26 @@ def test_stale_base_blocks_owner_merge(remote):
     assert res["result"] == "REFUSED" and "base advanced" in res["reason"] and gh.merged == []
 
 
+def test_owner_merge_measures_behind_against_the_prs_own_base_not_a_stale_period_override(remote):
+    """2026-09-20: the Telegram service refused a merge with "base advanced by 56 commits" because its
+    long-lived orchestrator still carried the ENDED period's (deleted) integration branch as the base."""
+    orch, gh, clock, tg, interp, gw, svc, origin = remote
+    _pair(remote)
+    rec, head = _ready(remote, 16)
+    # a stale override pointing at a branch with commits main does not have (a period that ended elsewhere)
+    other = orch.config.repo_root.parent / "other2"
+    _git(["clone", "-q", str(origin), str(other)], orch.config.repo_root.parent)
+    _git(["config", "user.email", "o@example.com"], other); _git(["config", "user.name", "other"], other)
+    _git(["checkout", "-q", "-b", "integration/stale-period"], other)
+    (other / "stale.txt").write_text("s\n"); _git(["add", "stale.txt"], other); _git(["commit", "-q", "-m", "stale"], other)
+    _git(["push", "-q", "origin", "integration/stale-period"], other)
+    orch.worktrees.base_override = "integration/stale-period"
+    assert orch.store.get_meta("protected_period") in (None, "")            # no period persisted: the override is stale
+    res = orch.owner_merge(16, head, source="telegram", owner_id=OWNER, command_id="s2")
+    assert res["result"] == "SUCCESS", res.get("reason")
+    assert orch.worktrees.base_override is None                             # the merge path re-synced the period
+
+
 def test_reject_and_change_request(remote):
     orch, gh, clock, tg, interp, gw, svc, _ = remote
     _pair(remote)
