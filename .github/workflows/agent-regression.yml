@@ -86,14 +86,25 @@ jobs:
         continue-on-error: true
         env:
           TEST_MODE: REGRESSION
-          # Regression-tier tests that need per-plan data (test_quality_baseline.py) read the head
-          # snapshot computed above instead of regenerating the corpus. CORPUS_SNAPSHOT is
-          # deliberately NOT set here: this step must keep actually replaying
-          # test_frozen_regression_corpus.py (the old ground truth) even though that test now also
-          # supports a snapshot mode (see snapshot_invariants.py's docstring).
+        # test_frozen_regression_corpus.py now also supports a CORPUS_SNAPSHOT mode (see
+        # snapshot_invariants.py's docstring), but this step must keep it genuinely replaying (the
+        # old ground truth for the comparison below) — so it runs in its own invocation with
+        # CORPUS_SNAPSHOT unset. test_quality_baseline.py's own, separately-existing snapshot mode
+        # (Issue #17: reads the head snapshot instead of a second full replay for its metrics)
+        # still needs CORPUS_SNAPSHOT — it runs in a second invocation, scoped to just that
+        # variable, so it is unaffected by the first invocation's env.
         run: |
-          uv run pytest -q -p no:cacheprovider tests/regression_corpus -n 4 \
+          set +e
+          uv run pytest -q -p no:cacheprovider tests/regression_corpus/test_frozen_regression_corpus.py -n 4 \
             --junitxml="$GITHUB_WORKSPACE/.agent/ci/regression_junit.xml"
+          FROZEN_STATUS=$?
+          CORPUS_SNAPSHOT="$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" \
+            uv run pytest -q -p no:cacheprovider tests/regression_corpus \
+              --ignore=tests/regression_corpus/test_frozen_regression_corpus.py -n 4
+          REST_STATUS=$?
+          if [ "$FROZEN_STATUS" -ne 0 ] || [ "$REST_STATUS" -ne 0 ]; then
+            exit 1
+          fi
       - name: Record replay verdict
         working-directory: backend
         run: |

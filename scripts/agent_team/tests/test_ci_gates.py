@@ -243,9 +243,16 @@ def test_regression_workflow_runs_shadow_mode_invariants_and_compares_them():
 
     replay_step = by_name["Corpus outcome invariants (TEST_MODE=REGRESSION)"]
     assert replay_step.get("id") == "replay"
-    assert "tests/regression_corpus" in replay_step["run"] and "--junitxml" in replay_step["run"]
-    # shadow mode: this step must keep actually replaying, so CORPUS_SNAPSHOT is not set on it
+    rep_run = replay_step["run"]
+    assert "tests/regression_corpus/test_frozen_regression_corpus.py" in rep_run and "--junitxml" in rep_run
+    # shadow mode: the frozen-outcome file's own invocation must keep actually replaying, so
+    # CORPUS_SNAPSHOT is not set step-wide...
     assert "CORPUS_SNAPSHOT" not in (replay_step.get("env") or {})
+    # ...but Issue #17's snapshot mode for test_quality_baseline.py must still run (the rest of the
+    # directory, excluding the frozen file, in its own invocation with CORPUS_SNAPSHOT set) — a
+    # step-wide removal of the env var would silently reintroduce a second full corpus replay here.
+    assert "--ignore=tests/regression_corpus/test_frozen_regression_corpus.py" in rep_run
+    assert "CORPUS_SNAPSHOT=" in rep_run and "head_snapshot.json" in rep_run
 
     verdict_step = by_name["Record replay verdict"]
     assert "snapshot_invariants.py from-junit" in verdict_step["run"]

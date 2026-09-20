@@ -11,9 +11,12 @@ byte-identical to some frozen snapshot" (which would break on any legitimate imp
 and for refusals `code`) are asserted from that snapshot's own recorded entry instead of calling
 `generate_demo_design` again — see `spikes/failure_log_sweep/snapshot_invariants.py`. A stale or
 short snapshot FAILS loudly (never silently skipped). Without the env var this replays exactly as
-before. CI does not set this env var on the replay step (shadow mode: the old replay stays the
-ground truth; a separate step evaluates the same snapshot independently and the two verdicts are
-compared — see the gate-4 section of docs/wiki/architecture/agent-team-workflow.md).
+before. CI runs this file in its own pytest invocation with `CORPUS_SNAPSHOT` unset, so it keeps
+genuinely replaying as the shadow-mode ground truth; a separate step evaluates the same head
+snapshot independently and the two verdicts are compared — see the gate-4 section of
+docs/wiki/architecture/agent-team-workflow.md. `test_quality_baseline.py`'s own, separately-existing
+`CORPUS_SNAPSHOT` usage (Issue #17) is unaffected — it runs in a second invocation in the same CI
+step, scoped to just that command.
 """
 
 import json

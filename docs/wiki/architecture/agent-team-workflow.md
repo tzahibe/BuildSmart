@@ -172,8 +172,11 @@ Fail-fast, for PRs from `agent/**` to `main`:
    verdicts (pass/fail + the set of failing contexts) ever disagree, or if the replay itself
    failed. `test_frozen_context_reproduces_expected_outcome` now also supports a `CORPUS_SNAPSHOT`
    env-var snapshot mode (failing loudly on a stale/short snapshot) for exactly this purpose, but
-   CI deliberately does not set that var on the replay step — only removing the replay step once
-   several real PRs show identical verdicts turns that mode on for CI.
+   the replay step runs `test_frozen_regression_corpus.py` in its own pytest invocation with
+   `CORPUS_SNAPSHOT` unset, so it keeps genuinely replaying; `test_quality_baseline.py`'s own,
+   pre-existing snapshot mode (Issue #17) still gets `CORPUS_SNAPSHOT` via a second invocation in
+   the same step, scoped to just that command — only removing the first invocation's replay once
+   several real PRs show identical verdicts turns the frozen test's snapshot mode on for CI too.
 5. **agent-ci-result** — the single required status check; red if any gate failed, green when
    gate 4 was legitimately skipped (recorded in the job summary).
 

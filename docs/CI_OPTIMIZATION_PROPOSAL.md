@@ -1,11 +1,11 @@
 # CI Optimization Proposal — gate-4 corpus regression cost
 
-Owner-approved 2026-09-19: a risk-tier policy plus three optimizations to gate-4
-(`agent-regression.yml`), landed in order **O1 -> O3 -> O2**, each shipped additively (old path
-kept, a comparison step catches any divergence) so coverage and the regression budget are never
-weakened. This is a proposal-tracking document, not a spec — the authoritative behavior is always
-the workflow file and the code it runs; see `docs/wiki/architecture/agent-team-workflow.md`
-(gate-4 section) for the current, canonical description.
+A risk-tier policy plus three optimizations to gate-4 (`agent-regression.yml`), proposed in order
+**O1 -> O3 -> O2**, each shipped additively (old path kept, a comparison step catches any
+divergence) so coverage and the regression budget are never weakened. This is a
+proposal-tracking document, not a spec — the authoritative behavior is always the workflow file
+and the code it runs; see `docs/wiki/architecture/agent-team-workflow.md` (gate-4 section) for the
+current, canonical description.
 
 ## Why
 
