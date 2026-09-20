@@ -207,8 +207,11 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # `metrics` (Issue #17, M1–M6) is additive and always present on a delivered plan.
     # `constraints` (Issue #35) is additive too — one entry for a brief with an authoritative
     # SAFE_ROOM requirement, empty for a brief without one.
+    # `exposure` (Issue #19) is additive too — one entry per room.
+    # `wet_privacy` (Issue #37) is additive too — one entry per wet room.
     assert "quality" in body and set(body["quality"]) == {
-        "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints"}
+        "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints",
+        "exposure", "wet_privacy"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 

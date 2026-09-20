@@ -6,7 +6,10 @@ legitimately connect, or how wide a door should be for the room it serves. Both 
 
   * `ALLOWED_ENTERED_FROM` — for every `ProgramRole`, which roles the room may be entered FROM.
     A PRIVATE room (bedroom-class) is entered only from circulation; a wet room (BATHROOM/
-    TOILET) additionally from its own hosting bedroom (an ensuite); a narrow SERVICE room
+    TOILET) additionally from its own hosting bedroom (an ensuite) and, as the last public-access
+    fallback, from LIVING — `specs/009-guest-wc-placement` decision C names HALL/circulation, then
+    the hosting bedroom, then LIVING as the guest WC's third-choice public-access zone; KITCHEN and
+    DINING stay disallowed, decision C excludes them explicitly; a narrow SERVICE room
     (LAUNDRY/STORAGE) additionally from the kitchen; a public room from any public/circulation
     room. `edge_role_pair_allowed` checks one edge against the table; together these are what
     rules out a bedroom-to-bedroom door without naming that pair specially — it is simply never
@@ -72,7 +75,8 @@ PRIVATE_ROLES = frozenset({
 })
 #: The bedroom-class roles that may host an ensuite.
 BEDROOM_HOST_ROLES = frozenset({ProgramRole.BEDROOM, ProgramRole.MASTER_BEDROOM})
-#: Wet rooms: circulation, or (for an ensuite) their own hosting bedroom.
+#: Wet rooms: circulation, or (for an ensuite) their own hosting bedroom, or (last public-access
+#: fallback, specs/009-guest-wc-placement decision C) LIVING. KITCHEN and DINING stay disallowed.
 WET_ROLES = frozenset({ProgramRole.BATHROOM, ProgramRole.TOILET})
 #: Narrow service rooms: circulation, or the kitchen they serve.
 SERVICE_ROLES = frozenset({ProgramRole.LAUNDRY, ProgramRole.STORAGE})
@@ -87,7 +91,7 @@ ALLOWED_ENTERED_FROM: dict[ProgramRole, frozenset[ProgramRole]] = {
     ProgramRole.CIRCULATION: PUBLIC_OR_CIRCULATION,
     ProgramRole.STAIRWELL: PUBLIC_OR_CIRCULATION,
     **{role: CIRCULATION_ROLES for role in PRIVATE_ROLES},
-    **{role: CIRCULATION_ROLES | BEDROOM_HOST_ROLES for role in WET_ROLES},
+    **{role: CIRCULATION_ROLES | BEDROOM_HOST_ROLES | {ProgramRole.LIVING} for role in WET_ROLES},
     **{role: CIRCULATION_ROLES | {ProgramRole.KITCHEN} for role in SERVICE_ROLES},
 }
 

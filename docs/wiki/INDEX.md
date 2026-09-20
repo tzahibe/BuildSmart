@@ -30,6 +30,7 @@ specific page below for your task.**
 - [Wet Rooms](features/wet-rooms.md) — IMPLEMENTED_MERGED
 - [Room Proportion / Quality Tier](features/room-proportion-quality-tier.md) — IMPLEMENTED_MERGED
 - [Laundry](features/laundry.md) — INTEGRATED on `integration/laundry-into-main`, not yet on `main` (see page)
+- [Review Page — Quality Panel, Room Details, Refusal Notice](features/review-page.md) — IMPLEMENTED_MERGED
 
 ## Decisions
 

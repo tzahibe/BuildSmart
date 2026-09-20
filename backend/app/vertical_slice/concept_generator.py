@@ -222,9 +222,11 @@ ROOM_TEMPLATES: dict[ProgramRole, RoomTemplate] = {
     # than the bathroom next to it. min_short_side_m 1.5 = a 0.6 hanging rail plus a 0.9 passage,
     # which is what separates a room you walk into from a cupboard.
     ProgramRole.DRESSING_ROOM: RoomTemplate(3.0, 5.0, 9.0, 1.5, 3.0, elasticity=0.12),
-    # Service tier, level with TOILET. Same 1.5 m short side, arrived at independently: a 0.6
-    # appliance plus the 0.9 to stand in front of it and open its door.
-    ProgramRole.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.5, 3.0, elasticity=0.10),
+    # Service tier. min_short_side_m 1.7 (Issue #21) is the machine BAY, not the furniture-envelope
+    # passage TOILET/DRESSING_ROOM use theirs for: 0.6 m washing machine + 0.6 m optional dryer
+    # beside it + 0.5 m circulation in front of both = 1.7 m, wide enough to actually stand a
+    # machine (and dryer) against a wall with room to work, not just wide enough to open a door.
+    ProgramRole.LAUNDRY: RoomTemplate(2.5, 4.0, 8.0, 1.7, 3.0, elasticity=0.10),
     # The lowest expansion priority of any FURNISHED role in this table. A store that grows because
     # the house had area left over is the exact defect the caps work exists to prevent.
     ProgramRole.STORAGE: RoomTemplate(1.5, 3.0, 6.0, 1.0, 4.0, elasticity=0.05),

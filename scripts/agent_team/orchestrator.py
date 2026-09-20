@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import fcntl
 import json
+import re
 import logging
 import os
 import signal
@@ -37,13 +38,16 @@ from agent_team.failure_classifier import (
     ENVIRONMENT_FAILURE, FLAKY_TEST, INFRA_FAILURE, MERGE_CONFLICT, REVIEW_REJECTED, Classification, FailureInput, classify,
 )
 from agent_team.issue_contract import ContractError, IssueContract, parse_contract, verification_manifest, child_scope_problems
-from agent_team.labels import DECOMPOSED_LABEL, HOLD_LABEL, STATE_LABEL_PREFIX
+from agent_team import integration_mode as im
+from agent_team.labels import DECOMPOSED_LABEL, HOLD_LABEL, ROLLUP_LABEL, STATE_LABEL_PREFIX, metadata_labels
+from agent_team.protected_periods import Calendar, Period
 from agent_team.locks import LockManager, effective_locks
 from agent_team.pr_body import render_pr_body
 from agent_team.resource_manager import ResourceManager, ResourceProbe
 from agent_team.schemas import DOMAIN_LEAD_BRIEF_SCHEMA, REVIEW_VERDICT_SCHEMA, WORKER_REPORT_SCHEMA
 from agent_team.state_store import IssueRecord, StateStore, TransitionConflict
 from agent_team.usage_guard import UsageGuard, UsageSnapshot, looks_rate_limited, probe_usage
+from agent_team.github_client import GitHubError
 from agent_team.worktree_manager import GitError, MergeConflict, WorktreeManager, run_git
 
 log = logging.getLogger("agent_team.orchestrator")
@@ -114,6 +118,12 @@ class Orchestrator:
         self.usage = UsageGuard(config.usage_pause_at_percent, config.usage_resume_below_percent, enabled=config.usage_guard_enabled)
         self.usage_prober = None          # callable() -> UsageSnapshot; None = the real `claude -p /usage`
         self._last_usage_probe = 0.0
+        # Weekend / holiday integration mode (governance §26–§41). The active period is persisted in
+        # meta so a restart resumes it; the integration branch becomes the base for new work.
+        self.calendar = Calendar.from_config(config.protected_periods_raw)
+        self.period: Period | None = self._load_period()
+        if self.period:
+            self.worktrees.base_override = self.period.branch
 
     # -- process singleton --------------------------------------------------------------------
     def acquire_singleton(self) -> None:
@@ -283,19 +293,19 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.warning("usage probe failed: %s", exc)
         try:
+            changed = self.check_period()
+            if changed:
+                report.reconciled.append(changed)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("protected-period check failed")
+            report.errors[-2] = f"period: {exc}"
+        try:
             report.polled = self.poll()
         except Exception as exc:  # noqa: BLE001
             log.exception("poll failed")
             report.errors[0] = f"poll: {exc}"
-        try:
-            for d in self.schedule():
-                if d.starts:
-                    report.started.append(d.issue_id)
-                else:
-                    report.waiting[d.issue_id] = d.reason
-        except Exception as exc:  # noqa: BLE001
-            log.exception("schedule failed")
-            report.errors[-1] = f"schedule: {exc}"
+        # In-flight Issues first — a repair re-acquires its locks before new claims compete for them
+        # (finish what was started); then new claims fill the remaining slots.
         for rec in self.store.list((sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)):
             try:
                 outcome = self.advance(rec)
@@ -306,6 +316,15 @@ class Orchestrator:
             except Exception as exc:  # noqa: BLE001
                 log.exception("advance #%s failed", rec.issue_id)
                 report.errors[rec.issue_id] = str(exc)[:200]
+        try:
+            for d in self.schedule():
+                if d.starts:
+                    report.started.append(d.issue_id)
+                else:
+                    report.waiting[d.issue_id] = d.reason
+        except Exception as exc:  # noqa: BLE001
+            log.exception("schedule failed")
+            report.errors[-1] = f"schedule: {exc}"
         try:
             report.reconciled.extend(self.close_completed_roots())
         except Exception as exc:  # noqa: BLE001
@@ -436,7 +455,12 @@ class Orchestrator:
                 continue
             labels = {l["name"] for l in issue.get("labels", [])}
             if DECOMPOSED_LABEL in labels:
-                continue  # a ROOT executed through its children is never run as a task itself
+                # a ROOT executed through its children is never run as a task itself — including one
+                # that was tracked before the label appeared
+                if existing is not None and existing.state == sm.QUEUED:
+                    self._set_state(self.store, number, sm.BLOCKED, note="decomposed ROOT: executed through its children",
+                                    failure_class="DECOMPOSED")
+                continue
             try:
                 contract = parse_contract(number, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
                                           behavior_domains=self.config.behavior_domains)
@@ -546,6 +570,15 @@ class Orchestrator:
     def pause_source(self) -> str:
         return self.store.get_meta("scheduler_pause_source", "") or ""
 
+    def claims_frozen(self) -> bool:
+        """Owner mode "no new Issues": nothing new is claimed, while reviews, repairs, integrations and the
+        rollup validation of in-flight work continue (a pause stops those too)."""
+        return self.store.get_meta("claims_frozen", "0") == "1"
+
+    def set_claims_frozen(self, frozen: bool, *, who: str | None = None, reason: str = "") -> None:
+        self.store.set_meta("claims_frozen", "1" if frozen else "0")
+        self.store.record_event(None, "claims_frozen" if frozen else "claims_unfrozen", {"by": who, "reason": reason})
+
     # -- subscription usage guard -------------------------------------------------------------
     def check_usage(self, *, force: bool = False) -> UsageSnapshot | None:
         """Probe `/usage`; pause at the threshold, resume automatically after the window resets.
@@ -615,6 +648,8 @@ class Orchestrator:
             return [scheduler.Decision(rec.issue_id, "wait", "scheduler paused by the owner") for rec, _ in queued]
         if self._draining:
             return [scheduler.Decision(rec.issue_id, "wait", "draining for restart") for rec, _ in queued]
+        if self.claims_frozen():
+            return [scheduler.Decision(rec.issue_id, "wait", "new claims frozen by the owner (in-flight work continues)") for rec, _ in queued]
         active_roots = self.active_roots()
         free_roots = self.config.max_active_issues - len(active_roots)
         snap = self.resources.snapshot(probe_machine=True)
@@ -803,7 +838,7 @@ class Orchestrator:
             body = render_pr_body(contract, report, model=spec.model, session_id=result.session_id, attempt=spec.attempt)
             pr = self.github.find_pr_for_branch(rec.branch)
             if pr is None:
-                pr = self.github.create_pr(head=rec.branch, base=self.config.base_branch, title=f"{contract.title} (#{issue_id})", body=body)
+                pr = self.github.create_pr(head=rec.branch, base=self.worktrees.base_branch(), title=f"{contract.title} (#{issue_id})", body=body)
                 self._milestone(issue_id, f"PR opened: {pr.get('html_url', pr['number'])} (attempt {spec.attempt}, head `{head[:12]}`).")
             else:
                 self.github.update_pr(pr["number"], body=body)
@@ -811,6 +846,11 @@ class Orchestrator:
             store.update(issue_id, agent_pid=None, assigned_agent=None)
             self._set_state(store, issue_id, sm.PR_OPEN, note="PR ready", pr_number=pr["number"], pr_url=pr.get("html_url"),
                             validated_commit=None)
+            if self.config.release_locks_at == "pr_open":
+                # The code changes are done: CI/review hold no locks, so the next Issue on the same core can
+                # start now (owner rule: never let a worker rest). A repair re-acquires them first.
+                self.locks.release(issue_id, "pr-open")
+                self._wake.set()
             store.record_event(issue_id, "worker_report", {"report": report, "attempt": spec.attempt})
             work_reports.write_report(store, self.config, issue_id)
             self._publish_review_status(store, issue_id, head, "pending", "independent review not yet run (awaiting CI gates)")
@@ -892,7 +932,7 @@ class Orchestrator:
             return self.github.pr_files(rec.pr_number)
         except Exception:  # noqa: BLE001
             try:
-                return self.worktrees.changed_files(Path(rec.worktree), self.worktrees.base_ref())
+                return self.worktrees.changed_files(Path(rec.worktree), self._base_ref_for(rec))
             except Exception:  # noqa: BLE001
                 return []
 
@@ -1002,13 +1042,318 @@ class Orchestrator:
         decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha,
                                        lost_allowance=self._contract(rec).lost_allowance)
         if decision.ok:
+            if self.period is not None and rec.kind != "rollup":
+                return self._integrate(rec, head, ev, verdict)
             self._set_state(self.store, rec.issue_id, sm.READY_FOR_OWNER, note=f"every gate green: {decision.describe()}")
             self.store.record_event(rec.issue_id, "ready_for_owner", {"head": head, "policy": decision.describe()})
-            if self.config.release_locks_at_ready:
+            if self.config.release_locks_at in ("ready", "pr_open"):
                 self.locks.release(rec.issue_id, "ready-for-owner")
             self._publish_ready_report(self.store.get(rec.issue_id), head, ev)
             return "REVIEW -> READY_FOR_OWNER"
         return f"awaiting {', '.join(decision.missing)}"
+
+    # -- weekend / holiday integration mode (§26–§41) -------------------------------------------
+    def _load_period(self) -> Period | None:
+        raw = self.store.get_meta("protected_period")
+        return Period.from_dict(json.loads(raw)) if raw else None
+
+    def _save_period(self, p: Period | None) -> None:
+        self.store.set_meta("protected_period", json.dumps(p.to_dict()) if p else "")
+
+    def integrations(self) -> list[dict]:
+        raw = self.store.get_meta("integrations")
+        return json.loads(raw) if raw else []
+
+    def _add_integration(self, entry: dict) -> None:
+        items = [i for i in self.integrations() if i["issue"] != entry["issue"]]
+        items.append(entry)
+        self.store.set_meta("integrations", json.dumps(items))
+
+    def decisions(self, since: float | None = None) -> list[dict]:
+        out = []
+        for e in self.store.events(None, limit=1000):
+            if e["kind"] == "lead_decision" and (since is None or e["ts"] >= since):
+                out.append({"ts": e["ts"], "issue": e["issue_id"], "text": e["payload"].get("text", ""), "by": e["payload"].get("by", "")})
+        return out
+
+    def record_decision(self, text: str, *, issue_id: int | None = None, by: str = "team-lead") -> None:
+        """A product/engineering decision the Team Lead took autonomously — listed in the rollup PR."""
+        self.store.record_event(issue_id, "lead_decision", {"text": text[:1000], "by": by})
+
+    def rollup(self) -> dict | None:
+        raw = self.store.get_meta("rollup")
+        return json.loads(raw) if raw else None
+
+    def _base_ref_for(self, rec: IssueRecord) -> str:
+        """The base a record's PR targets: the rollup targets main; otherwise the PR's own base."""
+        if rec.kind == "rollup":
+            return self.worktrees.base_ref(self.config.base_branch)
+        if rec.pr_number:
+            try:
+                base = (self.github.get_pr(rec.pr_number).get("base") or {}).get("ref")
+                if base:
+                    return self.worktrees.base_ref(base)
+            except Exception:  # noqa: BLE001
+                pass
+        return self.worktrees.base_ref()
+
+    def check_period(self) -> str | None:
+        """Start the period when today is protected (Asia/Jerusalem), end it the day after it ends."""
+        if not self.config.protected_periods_enabled or self.dry_run:
+            return None
+        today = self.calendar.today(self.clock)
+        # another process (agentctl period end) may have ended the period: follow the persisted state
+        persisted = self._load_period()
+        if self.period is not None and persisted is None:
+            self.period = None
+            self.worktrees.base_override = None
+        if self.period is None:
+            p = self.calendar.period_containing(today)
+            closed = self.store.get_meta("period_closed_through") or ""
+            if p and p.end.isoformat() > closed:      # a period ended early is not re-entered
+                return self.start_period(p)
+            return None
+        if today > self.period.end:
+            return self.end_period()
+        return None
+
+    def start_period(self, p: Period) -> str:
+        base = self.worktrees.base_ref(self.config.base_branch)
+        sha = self.worktrees.create_branch_from(p.branch, base)
+        self.period = p
+        self.worktrees.base_override = p.branch
+        self._save_period(p)
+        self.store.set_meta("period_started_at", str(self.clock()))
+        self.store.record_event(None, "PROTECTED_PERIOD_STARTED", {"type": p.kind, "name": p.name, "integration_branch": p.branch,
+                                                                    "start": p.start.isoformat(), "end": p.end.isoformat(), "base_sha": sha})
+        self._owner_notice(f"period_start:{p.branch}",
+                           f"📅 נכנסנו למצב {im.period_hebrew(p)} ({p.start} → {p.end}): PRs שעוברים את כל השערים מתמזגים על ידי ה-team lead "
+                           f"ל-`{p.branch}` — לא ל-main. בסוף התקופה תקבל rollup PR אחד לאישור. main נשאר שלך.")
+        log.info("protected period started: %s (%s)", p.label, p.branch)
+        return f"protected period started: {p.label} -> {p.branch}"
+
+    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str) -> str:
+        """Team-Lead merge into the period's integration branch (never main) after every gate is green."""
+        p = self.period
+        assert p is not None
+        pr = self.github.get_pr(rec.pr_number)
+        if (pr.get("base") or {}).get("ref") != p.branch:
+            self.github.update_pr(rec.pr_number, base=p.branch)
+        try:
+            res = self.github.merge_pr(rec.pr_number, method=self.config.merge_method, sha=head, title=f"{rec.title} (#{rec.issue_id})")
+        except GitHubError as exc:
+            self.locks.release(rec.issue_id, "integration-failed")
+            self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="integration merge refused", failure_class="INTEGRATION_FAILURE", last_error=str(exc)[:1000])
+            self._milestone(rec.issue_id, f"Integration merge into `{p.branch}` refused by GitHub: {str(exc)[:300]}. Team Lead attention required.")
+            return "REVIEW -> BLOCKED (integration merge refused)"
+        merge_sha = res.get("sha") or res.get("merge_commit_sha") or ""
+        self._set_state(self.store, rec.issue_id, sm.INTEGRATED, note=f"integrated into {p.branch}", validated_commit=merge_sha)
+        self.locks.release(rec.issue_id, "integrated")
+        entry = {"issue": rec.issue_id, "pr": rec.pr_number, "sha": merge_sha, "head": head, "title": rec.title.replace("[agent] ", "", 1),
+                 "root": rec.root, "review": verdict, "branch": p.branch, "ts": self.clock()}
+        self._add_integration(entry)
+        self.store.record_event(rec.issue_id, "integrated", entry)
+        self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — {im.period_hebrew(p)} mode: "
+                                      f"CI, regression and independent review were green at `{head[:12]}`. Lands on main with the period's rollup PR.")
+        self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
+                           f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup בסוף {im.period_hebrew(p)}.")
+        self._wake.set()
+        if not self.dry_run:
+            job = self.resources.try_acquire_heavy(rec.issue_id, "integration-smoke")
+            if job is not None:
+                self._spawn(f"smoke:{rec.issue_id}", self._integration_smoke_run, rec.issue_id, job, p.branch, merge_sha)
+        return f"REVIEW -> INTEGRATED ({p.branch})"
+
+    def _integration_smoke_run(self, issue_id: int, job, branch: str, merge_sha: str) -> None:
+        """Integration-aware validation (§30): smoke on the combined branch head right after the merge.
+        Red smoke reverts the merge and sends the Issue back for repair — recorded as a decision."""
+        store = self.thread_store()
+        results: list[str] = []
+        ok = True
+        path = None
+        try:
+            self.worktrees.fetch()
+            path = self.worktrees.validation_worktree(self.worktrees.base_ref(branch))
+            for cmd in self.config.worktree_setup.get("always", ()):
+                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
+                if proc.returncode != 0:
+                    raise RuntimeError(f"setup `{cmd.cmd}` failed: {proc.stderr[-500:]}")
+            for cmd in self.config.smoke:
+                self.resources.heartbeat_heavy(job)
+                proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
+                tail = (proc.stdout.strip().splitlines() or [""])[-1][:200]
+                results.append(f"{'✅' if proc.returncode == 0 else '❌'} `{cmd.cmd}` — {tail or proc.stderr[-200:]}")
+                if proc.returncode != 0:
+                    ok = False
+        except Exception as exc:  # noqa: BLE001
+            ok = False
+            results.append(f"❌ integration smoke setup failed: {str(exc)[:300]}")
+        finally:
+            if path is not None:
+                try:
+                    self.worktrees.remove_validation_worktree(path)
+                except Exception:  # noqa: BLE001
+                    pass
+            self.resources.release_heavy(job, "done" if ok else "failed")
+        summary = "\n".join(results)
+        store.record_event(issue_id, "integration_smoke", {"ok": ok, "branch": branch, "results": results})
+        if ok:
+            return
+        # revert the squash commit on the integration branch and send the Issue back for repair
+        try:
+            wt = self.worktrees.ensure_named(0, branch, slug="integration")
+            proc = run_git(["revert", "--no-edit", merge_sha], wt.path, check=False)
+            if proc.returncode != 0:
+                run_git(["revert", "--abort"], wt.path, check=False)
+                raise RuntimeError(proc.stderr[-400:])
+            self.worktrees.push(wt.path, branch)
+            reverted = self.worktrees.head_sha(wt.path)
+        except Exception as exc:  # noqa: BLE001
+            self._set_state(store, issue_id, sm.BLOCKED, note="integration smoke failed; revert failed", failure_class="INTEGRATION_FAILURE",
+                            last_error=(summary + "\nrevert failed: " + str(exc))[:1000])
+            self._milestone(issue_id, f"Integration smoke FAILED on `{branch}` and the revert of `{merge_sha[:12]}` failed too:\n{summary}\n{exc}\nTeam Lead attention required.")
+            return
+        self.store.set_meta("integrations", json.dumps([i for i in self.integrations() if i["issue"] != issue_id]))
+        work_reports.save_evidence_note(self.config, issue_id, store.get(issue_id).attempt_number, f"INTEGRATION SMOKE FAILED on {branch} after merging this PR (reverted as {reverted[:12]}):\n\n{summary}")
+        self._set_state(store, issue_id, sm.FIX_REQUIRED, note="integration smoke failed; merge reverted", failure_class="INTEGRATION_FAILURE",
+                        last_error=summary[:1000], validated_commit=None)
+        self.record_decision(f"#{issue_id}: reverted from {branch} — integration smoke failed after the merge ({summary[:120]}); sent back for repair", issue_id=issue_id, by="orchestrator")
+        self._milestone(issue_id, f"Integration smoke FAILED on `{branch}` after merging this PR — merge `{merge_sha[:12]}` reverted (`{reverted[:12]}`); "
+                                  f"a repair run gets the smoke output as evidence.\n{summary}")
+
+    def end_period(self) -> str:
+        """Period over: one rollup PR (integration branch -> main) validated as a whole, or nothing."""
+        p = self.period
+        assert p is not None
+        children = [i for i in self.integrations() if i.get("branch") == p.branch]
+        self.period = None
+        self.worktrees.base_override = None
+        self._save_period(None)
+        self.store.set_meta("period_closed_through", p.end.isoformat())
+        if not children:
+            self.worktrees.delete_remote_branch(p.branch)
+            self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": None, "integrated": 0})
+            self._owner_notice(f"period_end:{p.branch}", f"📅 {im.period_hebrew(p)} הסתיים — לא אוחדה עבודה ב-`{p.branch}`; הענף נמחק. חוזרים למצב הרגיל.")
+            return f"protected period ended: {p.label} (nothing integrated)"
+        started = float(self.store.get_meta("period_started_at") or 0) or None
+        decisions = self.decisions(since=started)
+        recs = [self.store.get(c["issue"]) for c in children]
+        domains = sorted({d for r in recs if r for d in r.domains})
+        risk = "HIGH" if any(r and r.risk == "HIGH" for r in recs) else ("MEDIUM" if any(r and r.risk == "MEDIUM" for r in recs) else "LOW")
+        primary = "none"
+        limits = []
+        for r in recs:
+            if not r:
+                continue
+            try:
+                rule = self._contract(r).budget_rule("primary_signature_changes")
+            except Exception:  # noqa: BLE001
+                continue
+            if rule.kind == "max" and rule.limit > 0:
+                primary = str(max(int(primary) if primary.isdigit() else 0, rule.limit))
+            elif rule.kind == "tagged":
+                limits.append(rule.spec())
+        if limits and primary == "none":
+            primary = limits[0]
+        title = f"[agent] {im.period_title(p)}"
+        body = im.rollup_contract_body(p, children, domains=domains or ["infra"], risk=risk, primary_changes=primary, decisions=decisions)
+        contract = parse_contract(0, title, body, known_locks=self.config.known_locks, behavior_domains=self.config.behavior_domains)
+        issue = self.github.create_issue(title, body, [ROLLUP_LABEL, "agent:pr-open", *metadata_labels(contract.domains, contract.risk, contract.resource_class)])
+        n = issue["number"]
+        contract = parse_contract(n, title, body, known_locks=self.config.known_locks, behavior_domains=self.config.behavior_domains)
+        info = self.worktrees.ensure_named(n, p.branch)
+        pr_body = im.rollup_pr_body(p, children, decisions=decisions, behavior_changes=[], regression=None, tests_ok=None, review=None,
+                                    limitations=[], recommendation="pending: the combined state is being validated")
+        pr = self.github.create_pr(head=p.branch, base=self.config.base_branch, title=f"{title} (#{n})", body=f"Closes #{n}\n\n" + pr_body)
+        manifest = verification_manifest(contract, regression_domains=self.config.regression_domains)
+        self.store.track(n, title=title, risk=contract.risk, resource_class=contract.resource_class, domains=list(contract.domains),
+                         dependencies=[], contract=_contract_to_dict(contract), state=sm.PR_OPEN, kind="rollup", root_issue=n)
+        audit.write_contract_snapshot(self.config, n, contract.to_dict(), manifest)
+        self.store.update(n, branch=p.branch, worktree=str(info.path), pr_number=pr["number"], pr_url=pr.get("html_url"),
+                          base_sha=self.worktrees.base_sha(), review_verdict=None)
+        self.store.set_meta("rollup", json.dumps({"issue": n, "pr": pr["number"], "period": p.to_dict(), "children": [c["issue"] for c in children]}))
+        self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": pr["number"], "rollup_issue": n,
+                                                                  "integrated": [c["issue"] for c in children]})
+        for c in children:
+            self._milestone(c["issue"], f"Included in the {im.period_title(p)} rollup: Issue #{n} / PR #{pr['number']} — the owner merges that PR; this Issue closes with it.")
+        self._owner_notice(f"period_end:{p.branch}",
+                           f"📦 {im.period_hebrew(p)} הסתיים: {len(children)} Issues אוחדו ב-`{p.branch}`. פתחתי rollup PR #{pr['number']} ל-main; "
+                           f"עכשיו רץ אימות של המצב המשולב (CI, רגרסיה מול main, review של ה-diff המשולב). תקבל הודעה אחת כשהוא מוכן.")
+        log.info("protected period ended: %s -> rollup PR #%s (Issue #%s)", p.label, pr["number"], n)
+        return f"protected period ended: {p.label} -> rollup PR #{pr['number']}"
+
+    def _rollup_ready(self, rec: IssueRecord, r: dict, head: str) -> str:
+        info = self.rollup() or {}
+        p = Period.from_dict(info["period"]) if info.get("period") else None
+        children = [i for i in self.integrations() if p is None or i.get("branch") == p.branch]
+        decisions = self.decisions(since=float(self.store.get_meta("period_started_at") or 0) or None)
+        if p is not None:
+            body = im.rollup_pr_body(p, children, decisions=decisions, behavior_changes=[], regression=r.get("regression"),
+                                     tests_ok=r.get("ci") == "PASS", review=r.get("review"), limitations=list(r.get("limitations") or []),
+                                     recommendation="MERGE RECOMMENDED" if str(r.get("recommendation", "")).startswith("MERGE") else "CHANGES RECOMMENDED — " + str(r.get("recommendation", "")))
+            try:
+                self.github.update_pr(rec.pr_number, body=f"Closes #{rec.issue_id}\n\n" + body)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("rollup PR body update failed: %s", exc)
+            return im.rollup_notification(p, rec.pr_number, children, decisions=decisions, ci=r.get("ci", "?"), regression=r.get("regression", "?"),
+                                          review=r.get("review", "?"), head=head, pr_url=r.get("pr_url") or "")
+        return render_ready_notification(r)
+
+    def _finish_rollup(self, store: StateStore, rec: IssueRecord) -> None:
+        """The owner merged the rollup: every integrated child is done, the branch and the mode state go away."""
+        info = self.rollup() or {}
+        children = info.get("children") or [i["issue"] for i in self.integrations()]
+        for n in children:
+            c = store.get(n)
+            if c is None or c.state != sm.INTEGRATED:
+                continue
+            self._set_state(store, n, sm.DONE, note="rollup merged by the owner")
+            self._milestone(n, f"Done — landed on main with rollup PR #{rec.pr_number} (`{str(rec.validated_commit)[:12]}`).")
+            if not self.dry_run:
+                try:
+                    self.github.close_issue(n)
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("could not close #%s: %s", n, exc)
+        branch = info.get("period", {}).get("branch") or rec.branch
+        if branch and not self.dry_run:
+            try:
+                self.worktrees.delete_remote_branch(branch)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not delete %s: %s", branch, exc)
+        store.set_meta("rollup", "")
+        store.set_meta("integrations", json.dumps([i for i in self.integrations() if i.get("branch") != branch]))
+        store.record_event(rec.issue_id, "ROLLUP_MERGED", {"children": children, "branch": branch, "merge_commit": rec.validated_commit})
+
+    def rollup_exclude(self, child_issue: int, *, source: str, who, reason: str = "") -> dict:
+        """Owner change request on the rollup (§36): take one Issue's change out of the integration
+        branch by reverting its squash commit; the rollup re-validates from the new head."""
+        info = self.rollup()
+        entry = next((i for i in self.integrations() if i["issue"] == child_issue), None)
+        if info is None or entry is None:
+            return {"result": "REFUSED", "reason": f"#{child_issue} אינו חלק מחבילת האינטגרציה"}
+        branch = entry["branch"]
+        try:
+            wt = self.worktrees.ensure_named(0, branch, slug="integration")
+            proc = run_git(["revert", "--no-edit", entry["sha"]], wt.path, check=False)
+            if proc.returncode != 0:
+                run_git(["revert", "--abort"], wt.path, check=False)
+                return {"result": "REFUSED", "reason": f"ה-revert של #{child_issue} מתנגש עם שינויים מאוחרים יותר ({proc.stderr[-200:]}) — נדרשת החלטה של ה-team lead"}
+            self.worktrees.push(wt.path, branch)
+            reverted = self.worktrees.head_sha(wt.path)
+        except Exception as exc:  # noqa: BLE001
+            return {"result": "REFUSED", "reason": str(exc)[:300]}
+        self.store.set_meta("integrations", json.dumps([i for i in self.integrations() if i["issue"] != child_issue]))
+        info["children"] = [c for c in info.get("children", []) if c != child_issue]
+        self.store.set_meta("rollup", json.dumps(info))
+        rec = self.store.get(child_issue)
+        if rec is not None and rec.state == sm.INTEGRATED:
+            self._set_state(self.store, child_issue, sm.BLOCKED, note="excluded from the rollup by the owner", failure_class="OWNER_EXCLUDED",
+                            last_error=reason[:500] or "excluded by the owner", validated_commit=None)
+        self.record_decision(f"#{child_issue} excluded from {branch} on the owner's request ({reason or 'no reason given'}); reverted as {reverted[:12]}",
+                             issue_id=child_issue, by=f"owner:{source}")
+        self.store.record_event(child_issue, "rollup_excluded", {"source": source, "owner_id": who, "reason": reason, "reverted": reverted})
+        self._milestone(child_issue, f"Excluded from the rollup on the owner's request: its integration commit was reverted on `{branch}` (`{reverted[:12]}`). The rollup re-validates from the new head.")
+        return {"result": "SUCCESS", "issue": child_issue, "reverted": reverted, "rollup_pr": info.get("pr")}
 
     # -- READY FOR OWNER ----------------------------------------------------------------------
     def ready_report(self, rec: IssueRecord, head: str, ev: ci_evidence.CiEvidence | None = None) -> dict:
@@ -1056,12 +1401,15 @@ class Orchestrator:
         r = self.ready_report(rec, head, ev)
         text = render_ready_report(r)
         self._milestone(rec.issue_id, text)
+        notification = render_ready_notification(r)
+        if rec.kind == "rollup":
+            notification = self._rollup_ready(rec, r, head)
         if self.config.notify_ready_for_owner:
             key = f"pr:{rec.pr_number}:READY_FOR_OWNER:{head}"
-            buttons = [[{"text": "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
+            buttons = [[{"text": "סיכום" if rec.kind == "rollup" else "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
                         {"text": "מזג", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "דחה", "data": f"v1|REJECT_PR|{rec.pr_number}|{head[:8]}|"}]]
-            created = self.store.enqueue_notification("ready_for_owner", key, rec.issue_id, render_ready_notification(r), buttons)
+                        {"text": "בקש שינוי" if rec.kind == "rollup" else "דחה", "data": f"v1|{'OWNER_CHANGE_REQUEST' if rec.kind == 'rollup' else 'REJECT_PR'}|{rec.pr_number}|{head[:8]}|"}]]
+            created = self.store.enqueue_notification("ready_for_owner", key, rec.issue_id, notification, buttons)
             if not created:
                 log.info("#%s: READY notification for %s already queued/sent (dedup)", rec.issue_id, head[:12])
 
@@ -1078,8 +1426,9 @@ class Orchestrator:
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
         worker_report = _last_worker_report(store, issue_id)
         try:
-            files = "\n".join(self.worktrees.changed_files(path, self.worktrees.base_ref()))
-            diff = self.worktrees.diff(path, self.worktrees.base_ref())
+            base_ref = self._base_ref_for(rec)
+            files = "\n".join(self.worktrees.changed_files(path, base_ref))
+            diff = self.worktrees.diff(path, base_ref)
         except GitError as exc:
             files, diff = "", f"(diff unavailable: {exc})"
         prompt = prompts.reviewer_prompt(contract, ci_evidence=ev.summary_markdown(), regression_report=ev.regression_markdown(),
@@ -1117,7 +1466,14 @@ class Orchestrator:
             verdict = {**verdict, "verdict": v, "summary": "downgraded by the orchestrator: overfits_one_plan is true. " + verdict.get("summary", "")}
         # SEMANTIC_REVIEW criteria are evidence only when the reviewer marked them MET.
         semantic = contract.semantic_review_acs
-        assessed = {a.get("ac"): a.get("verdict") for a in verdict.get("ac_assessment", []) if isinstance(a, dict)}
+        # Reviewers write the id alone ("AC-3") or with the criterion text ("AC-3: C24 green …"):
+        # key the assessment by the leading AC id.
+        assessed = {}
+        for a in verdict.get("ac_assessment", []):
+            if isinstance(a, dict):
+                m = re.match(r"\s*(AC-\d+)", str(a.get("ac", "")))
+                if m:
+                    assessed[m.group(1)] = a.get("verdict")
         unmet = [ac for ac in semantic if assessed.get(ac) != "MET"]
         if v == "APPROVE" and unmet:
             v = "REQUEST_CHANGES"
@@ -1185,15 +1541,16 @@ class Orchestrator:
             return "READY_FOR_OWNER -> CI (head moved, readiness invalidated)"
         path = Path(rec.worktree)
         self.worktrees.fetch()
+        pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
         try:
-            behind = self.worktrees.behind_base(path)
+            behind = self.worktrees.behind_base(path, pr_base)
         except GitError:
             behind = 0
         if behind > 0:
             if self.dry_run:
                 return f"DRY-RUN would update branch ({behind} behind) and re-validate"
             try:
-                self.worktrees.update_from_base(path)
+                self.worktrees.update_from_base(path, pr_base)
                 self.worktrees.push(path, rec.branch)
             except MergeConflict as exc:
                 self.locks.release(rec.issue_id, "merge-conflict")
@@ -1288,6 +1645,14 @@ class Orchestrator:
             return {"result": "REFUSED", "reason": f"issue is {rec.state if rec else 'untracked'}"}
         store.record_event(issue_id, "owner_change_request", {"source": source, "owner_id": owner_id, "feedback": feedback[:2000]})
         work_reports.save_evidence_note(self.config, issue_id, rec.attempt_number, f"OWNER CHANGE REQUEST ({source}):\n\n{feedback}")
+        if rec.kind == "rollup":
+            # No single worker owns a rollup: the Team Lead decides (exclude a child, return a worker
+            # to implementation, or modify the integration branch) and the rollup re-validates.
+            self._set_state(store, issue_id, sm.BLOCKED, note="owner change request on the rollup", failure_class="OWNER_CHANGE_REQUEST",
+                            last_error=feedback[:1000])
+            self._milestone(issue_id, f"Owner change request on the rollup ({source}): {feedback[:400]}\n\nTeam Lead decision required "
+                                      f"(rollup_exclude / return a worker / modify the integration branch), then `resume-pr`.")
+            return {"result": "SUCCESS", "issue": issue_id, "pr": rec.pr_number, "rollup": True}
         self._set_state(store, issue_id, sm.FIX_REQUIRED, note="owner change request", failure_class="OWNER_CHANGE_REQUEST",
                         last_error=feedback[:1000])
         attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
@@ -1320,11 +1685,12 @@ class Orchestrator:
         path = None
         try:
             self.worktrees.fetch()
-            path = self.worktrees.validation_worktree(self.worktrees.base_ref())
+            main_ref = self.worktrees.base_ref(self.config.base_branch)
+            path = self.worktrees.validation_worktree(main_ref)
             if rec.validated_commit:
                 anc = run_git(["merge-base", "--is-ancestor", rec.validated_commit, "HEAD"], path, check=False)
                 if anc.returncode != 0:
-                    raise RuntimeError(f"merge commit {rec.validated_commit[:12]} is not on {self.worktrees.base_ref()} yet")
+                    raise RuntimeError(f"merge commit {rec.validated_commit[:12]} is not on {main_ref} yet")
             for cmd in self.config.worktree_setup.get("always", ()):
                 proc = _sh(cmd.cmd, path / cmd.cwd, self.config.command_timeout_seconds, self.config.command_env)
                 if proc.returncode != 0:
@@ -1363,6 +1729,8 @@ class Orchestrator:
                   f"- review: {rec.review_verdict}\n- post-merge smoke:\n{smoke_summary}\n- completed: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(self.clock()))}")
         self._set_state(store, rec.issue_id, sm.DONE, note="smoke green")
         self._milestone(rec.issue_id, record)
+        if rec.kind == "rollup":
+            self._finish_rollup(store, rec)
         try:
             self.github.close_issue(rec.issue_id)
         except Exception as exc:  # noqa: BLE001

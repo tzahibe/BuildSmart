@@ -17,8 +17,10 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import quality_metrics
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
+from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.concept_generator import (
     OVER_PREFERRED_NOTICE_RATIO,
@@ -115,6 +117,18 @@ class QualitySignal(BaseModel):
     ratio: float
 
 
+class WetCoreOut(BaseModel):
+    """One plan's plumbing-efficiency standing (Issue #44) — see
+    `app.vertical_slice.wet_core.WetCore` for what each field means and how it is computed.
+    Display/ranking data only, exactly like `WetPrivacyOut`; no check gates on it."""
+
+    shared_wall_length_m: float
+    clusters: list[list[str]] = []
+    cluster_count: int
+    kitchen_adjacent_count: int
+    plumbing_complexity_index: int
+
+
 class QualityMetricsOut(BaseModel):
     """M1–M6 for this one plan (Issue #17), read-only — never an input to ranking or validation.
 
@@ -134,6 +148,39 @@ class QualityMetricsOut(BaseModel):
     m6_public_zone_contiguous: bool | None = None
     dead_space_m2: float = 0.0
     wasted_circulation_share: float = 0.0
+    #: Plumbing-efficiency standing (Issue #44), additive. `None` only for a payload built before
+    #: this field existed — every plan `to_demo_design` produces from here on attaches one.
+    wet_core: WetCoreOut | None = None
+
+
+class WetPrivacyOut(BaseModel):
+    """One wet room's privacy standing (Issue #37) — see
+    `app.vertical_slice.wet_privacy.WetPrivacy` for what each field means and how it is computed.
+    Display/ranking data only; the one hard rule it backs (C29) lives in `validation.py`."""
+
+    zone_id: str
+    entered_from: str | None = None
+    entered_from_class: str
+    door_facing: str | None = None
+    direct_sight_line: bool
+    public_exposure_score: float
+    circulation_obstruction: bool
+    adjacency_quality: bool
+    privacy_score: float
+
+
+class ExposureOut(BaseModel):
+    """One room's exposure standing (Issue #19) — which sides are on the envelope, and either the
+    window that was placed or the reason none was: `NO_EXTERIOR_WALL` (a planning-topology
+    defect — C19 fails on this same room when its policy requires an exterior wall),
+    `EXTERIOR_WALL_TOO_SHORT` (a window-sizing defect — C8 fails when the policy requires a
+    window), or `WINDOW_NOT_REQUIRED` (the role's window policy is NONE)."""
+
+    room_id: str
+    exterior_sides: list[str] = []
+    window_side: str | None = None
+    window_width_m: float | None = None
+    no_window_reason: str | None = None
 
 
 class ConstraintOut(BaseModel):
@@ -185,6 +232,13 @@ class QualityOut(BaseModel):
     #: Typed constraints this plan's brief carries and that were proven realized (Issue #35).
     #: Empty for a brief with none — never invented.
     constraints: list[ConstraintOut] = []
+    #: One `ExposureOut` per room (Issue #19), additive. `[]` only for a payload built before
+    #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
+    #: per room.
+    exposure: list[ExposureOut] = []
+    #: One `WetPrivacyOut` per wet room (Issue #37), additive. `[]` for a plan with no wet rooms,
+    #: or one built before this field existed.
+    wet_privacy: list[WetPrivacyOut] = []
 
 
 class WindowOut(BaseModel):
@@ -730,8 +784,44 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
-def _metrics_out(m: quality_metrics.QualityMetrics) -> QualityMetricsOut:
-    return QualityMetricsOut(**dataclasses.asdict(m))
+def _metrics_out(m: quality_metrics.QualityMetrics, wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
+    return QualityMetricsOut(**dataclasses.asdict(m), wet_core=wet_core)
+
+
+def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
+    """One `ExposureOut` per room, off the raw solver output — see `ExposureOut` for the reason
+    codes. Reads `room.wall_facts` (geometry-derived, never the raw solver `WallType`) for which
+    sides are on the envelope, and `design.windows` (placeable or not) for what `generate_windows`
+    actually attempted for that role's policy tier."""
+    window_of: dict[str, object] = {w.zone_id: w for w in design.windows}
+    out: list[ExposureOut] = []
+    for room in design.rooms:
+        exterior_sides = [side for side, facts in room.wall_facts.items()
+                          if facts.boundary_context is BoundaryContext.EXTERIOR]
+        policies = [EXPOSURE_POLICY[ProgramRole(r)] for r in room.roles if r in ProgramRole.__members__]
+        window_policy = ExposureRequirement.NONE
+        if any(p.window is ExposureRequirement.REQUIRED for p in policies):
+            window_policy = ExposureRequirement.REQUIRED
+        elif any(p.window is ExposureRequirement.PREFERRED for p in policies):
+            window_policy = ExposureRequirement.PREFERRED
+        window = window_of.get(room.zone_id)
+        placed = window is not None and window.placeable
+        reason = None
+        if not placed:
+            if window_policy is ExposureRequirement.NONE:
+                reason = "WINDOW_NOT_REQUIRED"
+            elif not exterior_sides:
+                reason = "NO_EXTERIOR_WALL"
+            else:
+                reason = "EXTERIOR_WALL_TOO_SHORT"
+        out.append(ExposureOut(
+            room_id=room.zone_id,
+            exterior_sides=exterior_sides,
+            window_side=window.side if placed else None,
+            window_width_m=window.width_m if placed else None,
+            no_window_reason=reason,
+        ))
+    return out
 
 
 def quality_of(design: SolvedDesign) -> QualityOut:
@@ -864,9 +954,18 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     constraints_out = ([_constraint_out(constraint)]
                        if constraint is not None and constraint.source is not ConstraintSource.NONE
                        else [])
+    # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
+    # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
+    # same reason metrics is attached here rather than threaded through `quality_of`.
+    exposure = _exposure_of(design)
+    wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
+    wet_core = (WetCoreOut(**dataclasses.asdict(design.wet_core))
+               if design.wet_core is not None else None)
     return demo.model_copy(update={
-        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics),
-                                                    "constraints": constraints_out})
+        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics, wet_core),
+                                                    "constraints": constraints_out,
+                                                    "exposure": exposure,
+                                                    "wet_privacy": wet_privacy})
     })
 
 
