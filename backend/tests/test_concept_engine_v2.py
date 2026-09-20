@@ -83,6 +83,21 @@ def _shown_designs(flag_on, recorder):
     return [result.design, *result.alternatives]
 
 
+def test_flag_off_never_calls_plans_per_class(monkeypatch: pytest.MonkeyPatch):
+    """The gate mechanism itself (the `LAUNDRY_ROOM_ENABLED` pattern): with the flag at its default
+    (off), `run_general` never reaches `concept_engine_v2.plans_per_class` at all — the alternatives
+    come from `_alternative_plans` alone, whatever this module does or does not implement."""
+    assert gp.CONCEPT_ENGINE_V2_ENABLED is False
+
+    def _fail(*args, **kwargs):
+        raise AssertionError("plans_per_class must not be called while the flag is off")
+
+    monkeypatch.setattr(gp.concept_engine_v2, "plans_per_class", _fail)
+    project = project_from_context(_MULTI_CLASS_CONTEXT)
+    result = svc.generate_demo_design(project)
+    assert result.design is not None
+
+
 def test_multi_class_context_actually_shows_two_classes(flag_on, recorder):
     """Guards the fixture context itself: if the corpus/pipeline ever changes so this context no
     longer demonstrates diversity, the two tests below would otherwise pass vacuously."""
