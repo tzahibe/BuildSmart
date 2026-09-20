@@ -148,6 +148,91 @@ rather than fabricate an entrance. The fix is a small street-side foyer the plan
 existing area budget — a new zone, which is planner/generator work, not a validation or ranking
 change — deliberately left for a future Issue rather than attempted here.
 
+## Entrance-to-circulation integration (C25)
+
+Issue #22 (2026-09-20). C23 above decides WHICH room the door opens into; it says nothing about
+whether that room actually LEADS anywhere, or whether a different circulation zone happens to
+touch the street uselessly beside it. `app.vertical_slice.entrance_sequence` measures the entrance
+SEQUENCE off realized geometry (`GeometricDesign`, the same input `circulation_metrics.py`/C26
+reads), the same "measure real plans, then set the limit with headroom above them" discipline C26
+uses:
+
+- **POCKET** (blocking): the walking distance from the entrance door to the NEAREST other opening
+  (a door, or an open-plan join) reachable from the arrival zone — dead space directly behind the
+  front door with no function. Measured "nearest in any direction", not "the far wall straight
+  ahead": an ordinary spine hall's own far end (opposite the entrance) is a KNOWN, ACCEPTED dead
+  end by construction (`circulation_metrics.dead_end_count` tolerates exactly one), and a compact
+  hub with doors branching off near the entrance is the architecturally preferred topology
+  (specs/005) — neither is a pocket.
+- **STRAY POCKET** (blocking, the OTHER shape the Issue's "Current behavior" names: "leaving the
+  corridor's street-facing end as a blind pocket beside the entrance"): any OTHER circulation zone
+  (not the arrival zone) that independently fronts the street with more than
+  `ENTRANCE_POCKET_MAX_M` of unserved depth before its own first opening, measured from its own
+  street-wall midpoint.
+- **NO PUBLIC OPENING** (blocking): no PUBLIC-group room is reachable from the arrival zone at all,
+  through further circulation.
+- **TUNNEL** (`classify_tunnel`, NON-BLOCKING): the walking distance from the entrance to the
+  first PUBLIC-group room reached, threading only through further circulation, plus how many
+  PRIVATE rooms' doors were passed on the way. Reported and available as a candidate tiebreak
+  (`entrance_sequence_prefers`, `hub_guard`/`circulation_prefers`-style, tested directly), never a
+  gate — fixing a genuine tunnel is a parti change (a future "Entrance Sequence Quality" Issue),
+  and a blocking check there would violate LOST = 0. NOT wired into
+  `general_pipeline._guard_demoted_hub`: that function's own existing test mocks `plan.design` as
+  a bare `SimpleNamespace(gross_area_m2=...)`, which `entrance_sequence.measure` cannot read
+  (`.entrance_door` missing) — wiring it there means editing Issue #36's own test fixture for a
+  hub-only path already unreachable on the corpus (`row-sharing-topology-limit` memory), not worth
+  the risk. The ranking function itself is real and tested
+  (`test_tunnel_sequence_is_reported_and_ranked_down_but_not_refused`); wiring it into a live
+  candidate-selection path is left for whichever future Issue makes a hub candidate reachable
+  again.
+
+**`ENTRANCE_POCKET_MAX_M` (4.0 m) and `ENTRANCE_TUNNEL_MAX_M` (4.0 m)** are both PARAMETER ·
+UNVERIFIED, calibrated on `scripts/entrance_sequence_sweep.py`'s sweep of the full 432-context
+frozen regression corpus plus geometry fixtures (`docs/ENTRANCE_CIRCULATION_SWEEP.md`) — not a
+code minimum, the same discipline `circulation_metrics.EXTREME_RATIO`/
+`EXTREME_LONGEST_SEGMENT_M` use. The Issue's own illustrative default (0.6 m) does not survive
+contact with real plans: `pocket_length_m` measures 0.00-3.28 m across the corpus's 404 PLANNED
+contexts (mean 1.82 m — an ordinary hall's own width plus jamb clearance before the first room off
+it), so 0.6 m would refuse most plans in the corpus. 4.0 m sits with real headroom above every
+measured NORMAL plan while still catching a genuinely dead stub (0 pocket failures on the full
+corpus, 0 "no public opening" failures; 342/404 contexts DO show a TUNNEL signal — a real, common,
+non-blocking fact about this generator's spine parti, not a defect) — a decision the owner may
+revisit.
+
+**C25 "no dead-space pocket at the entrance"** (`validation.py`, next to C23, under the same
+`skip_site_checks` gate): fails closed on either blocking condition above, reusing the SAME minimal
+`GeometricDesign` C26 already assembles for this plan (never a second build). The demo path refuses
+with **`ENTRANCE_DEAD_END`** (`app.demo.service._finish`) when C25 is the ONLY failing check — the
+same "one specific reason at a time" discipline `ENTRANCE_NO_ARRIVAL_ROOM`/`LAUNDRY_UNPLACEABLE`
+follow.
+
+**The engine topology invariant (AC-3), verified rather than newly enforced.** The Issue's
+"required behavior" asks that the corridor's endpoint be derived from the last door it serves,
+never the footprint boundary, as an ENGINE change (`concept_generator.py`/`l_parti.py`). The sweep
+found this already holds today for every real candidate measured (spine and L parti): a spine
+column's rows sum to exactly the wing's own depth by construction (`_row_depths`), so the hall's
+far end always coincides with the last row's own boundary; the L parti's hall sits inside
+`H(band, V(column, HALL))`, never touching the street independently of the band. No context in the
+432-context corpus, the canonical baseline, or a real L-massing candidate
+(`l_shaped_site_front_arm`) shows a stub, matching `circulation_metrics.py`'s own C26 EXTREME-case
+precedent (a fixture that codebase's generator does not currently produce by accident). No
+`concept_generator.py`/`l_parti.py` code change was made; `test_entrance_circulation.py`'s
+`test_corridor_ends_at_the_last_served_door_not_at_the_boundary` proves the invariant against REAL
+realized spine and L candidates so a FUTURE regression is caught — the same additive,
+defense-in-depth spirit C24/C25/C26 all follow.
+
+**`QualityOut.entrance_sequence`** (additive): arrival zone, pocket length, whether a public
+opening exists, distance to it, private doors passed, the foyer heuristic, and the tunnel text —
+computed in `contract.to_demo_design` off the same raw `SolvedDesign` C25/M1–M6 already read.
+
+**Intentional foyer.** A HALL zone with its own program area and a nearby opening onward passes
+C25 cleanly and is reported `foyer=True` — never flagged as a pocket; `foyer` is a reporting-only
+heuristic (HALL role + a clean sequence), never a gate.
+
+**Out of scope, deliberately** (per the Issue): the arrival-room policy itself (#20, C23 above),
+furniture/decorative foyer design, and fixing a genuine tunnel by changing the parti (a future
+Issue) — a blocking check for the tunnel would violate LOST = 0.
+
 ## Windows and exterior exposure (C19/C8)
 
 Issue #19 (2026-09-18). A room's relationship to the building envelope is two separate questions
@@ -413,7 +498,11 @@ the report for one `tests/regression_corpus/corpus.json` context; not wired into
 
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
 A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
-above.
+above. A fourth, from Issue #22: **Entrance Sequence Quality** — fixing a genuine TUNNEL (a long
+walk past bedroom doors before the first public room, measured on 342/404 corpus contexts today,
+see the Entrance-to-circulation integration section above) is a parti change, not a validation
+change; `entrance_sequence_prefers` exists and is tested but is not wired into a live
+candidate-selection path yet.
 
 ## Evidence/history
 
@@ -451,3 +540,8 @@ green; the 432-context regression corpus was run separately — see the Issue's 
 outcome), including this merge's own conflict resolution (main's version taken for every
 shared/unrelated file; C26 and the circulation fields re-applied on top of C23/C29/wet-core exactly
 as they existed pre-merge; combined check count).
+
+`6d18c1f` (branch `agent/22-entrance-to-circulation-integration-the`, based on `origin/main`); the
+Entrance-to-circulation integration (C25) section above documents Issue #22, verified against this
+session's own implementation, the full 432-context corpus sweep (`docs/ENTRANCE_CIRCULATION_SWEEP.md`)
+and test runs (`test_entrance_circulation.py`, targeted AC-8 suites green).

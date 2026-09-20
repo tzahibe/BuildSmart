@@ -88,6 +88,11 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   stash/checkout/reset from a session.
 - **Corridor opening** (hall↔LDK) is a contract-level post-process (`app/demo/contract.py`), not
   an engine change.
+- **Corridor-endpoint invariant (C25, Issue #22)**: a circulation zone's own endpoint must be
+  derived from the last door it serves, never extend past it for no reason — verified against real
+  spine/L candidates (`test_entrance_circulation.py`), no live corpus/fixture violation found
+  (see `docs/ENTRANCE_CIRCULATION_SWEEP.md`). `ENTRANCE_DEAD_END` is the demo refusal code when C25
+  alone fails.
 - **Do not treat the production OpenAI parser as a source of truth for AI-test expected
   behavior.** It is an implementation under test, exactly like local Ollama models. Authoritative
   expected behavior is: approved product/architecture semantics, versioned golden expected outputs,

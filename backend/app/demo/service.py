@@ -81,6 +81,7 @@ _FEASIBILITY_CODES = frozenset({
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
     "ENTRANCE_NO_ARRIVAL_ROOM",
+    "ENTRANCE_DEAD_END",
     "LAUNDRY_UNPLACEABLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
@@ -1106,6 +1107,22 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                     f"ישירות מהרחוב. בתצורה שנוצרה עבור הבקשה הזו, הרחוב פונה רק אל: {named}.",
                     "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
                     diagnostics=_diagnostics(result, spec, outlines))
+
+    # ENTRANCE-TO-CIRCULATION INTEGRATION (Issue #22). C25 alone failing means the front door
+    # lands in a dead-space pocket — an unserved corridor stub directly beyond the door, or an
+    # arrival zone with no path onward to a public room — rather than a generic planning defect.
+    # Gated on C25 being the ONLY failure so an unrelated defect (furniture, corridor width, ...)
+    # is never misdiagnosed as an entrance problem.
+    if (result.design is not None and result.validation is not None and not result.validation.ok
+            and [c.check_id for c in result.validation.failures()] == ["C25"]):
+        detail = next(c.detail for c in result.validation.failures() if c.check_id == "C25")
+        raise DemoGenerationError(
+            "ENTRANCE_DEAD_END",
+            "הכניסה לבית נפתחת אל מרחב תנועה ללא המשך — קטע מסדרון סתום ליד הדלת, או הול כניסה "
+            "שאין ממנו מעבר לחלל ציבורי. אפשר להגדיל את שטח הבנייה או לשנות את המתאר שנבחר — לא "
+            "נציג תוכנית עם כניסה שמובילה למבוי סתום.",
+            f"C25: {detail}",
+            diagnostics=_diagnostics(result, spec, outlines))
 
     # HARD GATE. A plan is never returned as successful while a validation check is failing —
     # including C13, the realized-connectivity invariant.
