@@ -5,7 +5,8 @@ plan, compared against the matching-footprint-family entries of the curated refe
     benchmark(design, references) -> BenchmarkReport
 
 `design` is duck-typed against `app.demo.contract.DemoDesign`'s shape, the same convention
-`quality_metrics.py` already uses: `.rooms` (`.id`, `.type`, `.width_m`, `.depth_m`, `.area_m2`),
+`quality_metrics.py` already uses: `.rooms` (`.id`, `.type`, `.width_m`, `.depth_m`, `.area_m2`,
+`.gross_width_m`, `.gross_depth_m`, `.gross_area_m2`),
 `.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`), `.doors` (`.a`, `.b`,
 `.is_entrance`), `.windows` (`.room_id`, `.width_m`), `.footprint` (`.width_m`, `.depth_m`), and
 optionally `.outline` (`.shape`) and `.validation` (`.checks`, a dict of check-id -> bool). Nothing
@@ -36,8 +37,8 @@ those nine collide with the six this module defines its own way.
     C  zoning      — is each of PUBLIC / PRIVATE / SERVICE a spatially contiguous group
     H  exposure    — share of daylight-required rooms that got a window (C8's own data)
     K  dead space  — residual interior area (C2; always 0 today — a correctness floor, not a band)
-    L  consistency — how far each room's declared area_m2 sits from its own width_m x depth_m
-                     (net finished area vs. gross rect — expected to differ a little by wall
+    L  consistency — how far each room's declared area_m2 (net) sits from its own
+                     gross_width_m x gross_depth_m (gross rect — expected to differ a little by wall
                      thickness; reported as a measured fact, not a pass/fail gate)
 """
 from __future__ import annotations
@@ -210,8 +211,8 @@ def _section_a(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 def _section_b(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
     metrics = qm.measure_design(design)
     halls = [r for r in design.rooms if qm.is_(qm.HALL, r.type)]
-    circulation_area_m2 = sum(r.width_m * r.depth_m for r in halls)
-    corridor_length_m = max((max(r.width_m, r.depth_m) for r in halls), default=0.0)
+    circulation_area_m2 = sum(r.gross_width_m * r.gross_depth_m for r in halls)
+    corridor_length_m = max((max(r.gross_width_m, r.gross_depth_m) for r in halls), default=0.0)
     ratio = metrics.m3_circulation_share
     matching = _matching_entries(references, family)
     entries = [e["id"] for e in matching]
@@ -304,7 +305,7 @@ def _section_k(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 def _section_l(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
     gaps = []
     for r in design.rooms:
-        gross = r.width_m * r.depth_m
+        gross = r.gross_width_m * r.gross_depth_m
         if gross <= 0:
             continue
         gaps.append(abs(gross - r.area_m2) / gross)
