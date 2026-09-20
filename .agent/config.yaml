@@ -124,7 +124,7 @@ resources:
   max_worker_agents: 3              # raised 2->3 on 2026-09-17 with the owner's permission (M1 Pro 10c/32GB); usage guard live
   max_reviewer_agents: 1
   max_domain_leads: 1
-  weighted_capacity: 7              # sum of weights of running agent jobs (HEAVY 3 + MEDIUM 2 + MEDIUM 2)
+  weighted_capacity: 9              # 3 HEAVY runs may overlap (owner 2026-09-20: never let a worker rest; the fixers waited on 5+3 > 7)
   weights: {LIGHT: 1, MEDIUM: 2, HEAVY: 3}
   cpu_threshold_percent: 75         # do not spawn when the machine-wide CPU is above this
   min_free_memory_gb: 6
