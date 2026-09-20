@@ -71,14 +71,65 @@ jobs:
         run: |
           uv sync --group dev
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" --workers 4
-      - name: Corpus outcome invariants (TEST_MODE=REGRESSION)
+      # O1 (Issue #66), shadow mode: the frozen-outcome invariants (status + refusal code per
+      # context) are evaluated straight from the head snapshot above — no corpus replay. The old
+      # replay stays below as the ground truth; "Compare invariants verdicts" fails the job if the
+      # two ever disagree. The replay is only removed once several real PRs prove they always
+      # match — see docs/wiki/architecture/agent-team-workflow.md, gate-4 section.
+      - name: Corpus outcome invariants (from snapshot)
+        id: from_snapshot
         working-directory: backend
+        continue-on-error: true
+        run: |
+          uv run python spikes/failure_log_sweep/snapshot_invariants.py evaluate \
+            --snapshot "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" \
+            --report "$GITHUB_WORKSPACE/.agent/ci/invariants_from_snapshot.json"
+      - name: Corpus outcome invariants (TEST_MODE=REGRESSION)
+        id: replay
+        working-directory: backend
+        continue-on-error: true
         env:
           TEST_MODE: REGRESSION
-          # Regression-tier tests that need per-plan data read the head snapshot computed above
-          # instead of regenerating the corpus (a third corpus pass does not fit the budget).
-          CORPUS_SNAPSHOT: ${{ github.workspace }}/.agent/ci/head_snapshot.json
-        run: uv run pytest -q -p no:cacheprovider tests/regression_corpus -n 4
+        # test_frozen_regression_corpus.py now also supports a CORPUS_SNAPSHOT mode (see
+        # snapshot_invariants.py's docstring), but this step must keep it genuinely replaying (the
+        # old ground truth for the comparison below) — so it runs in its own invocation with
+        # CORPUS_SNAPSHOT unset. test_quality_baseline.py's own, separately-existing snapshot mode
+        # (Issue #17: reads the head snapshot instead of a second full replay for its metrics)
+        # still needs CORPUS_SNAPSHOT — it runs in a second invocation, scoped to just that
+        # variable, so it is unaffected by the first invocation's env.
+        run: |
+          set +e
+          uv run pytest -q -p no:cacheprovider tests/regression_corpus/test_frozen_regression_corpus.py -n 4 \
+            --junitxml="$GITHUB_WORKSPACE/.agent/ci/regression_junit.xml"
+          FROZEN_STATUS=$?
+          CORPUS_SNAPSHOT="$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" \
+            uv run pytest -q -p no:cacheprovider tests/regression_corpus \
+              --ignore=tests/regression_corpus/test_frozen_regression_corpus.py -n 4
+          REST_STATUS=$?
+          if [ "$FROZEN_STATUS" -ne 0 ] || [ "$REST_STATUS" -ne 0 ]; then
+            exit 1
+          fi
+      - name: Record replay verdict
+        working-directory: backend
+        run: |
+          uv run python spikes/failure_log_sweep/snapshot_invariants.py from-junit \
+            --junit "$GITHUB_WORKSPACE/.agent/ci/regression_junit.xml" \
+            --report "$GITHUB_WORKSPACE/.agent/ci/invariants_replay.json"
+      - name: Compare invariants verdicts
+        working-directory: backend
+        env:
+          REPLAY_OUTCOME: ${{ steps.replay.outcome }}
+        run: |
+          set +e
+          uv run python spikes/failure_log_sweep/snapshot_invariants.py compare \
+            --from-snapshot "$GITHUB_WORKSPACE/.agent/ci/invariants_from_snapshot.json" \
+            --from-replay "$GITHUB_WORKSPACE/.agent/ci/invariants_replay.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          COMPARE_STATUS=${PIPESTATUS[0]}
+          if [ "$REPLAY_OUTCOME" != "success" ]; then
+            echo "the replay step itself failed (outcome=$REPLAY_OUTCOME) — gate-4 stays red" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          exit "$COMPARE_STATUS"
       - name: Evaluate the regression budget
         env:
           PYTHONPATH: scripts
@@ -94,4 +145,6 @@ jobs:
           path: |
             .agent/ci/regression_report.json
             .agent/ci/regression_gate_report.json
+            .agent/ci/invariants_from_snapshot.json
+            .agent/ci/invariants_replay.json
           if-no-files-found: warn
