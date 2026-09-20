@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable, Protocol
 
 WORKER = "worker"
+FIXER = "fixer"          # fix-and-resubmit worker: CI red / review findings / merge conflicts / amended contract
 REVIEWER = "reviewer"
 DOMAIN_LEAD = "domain_lead"
 
@@ -299,6 +300,8 @@ class FakeAgentRunner:
             heartbeat(4242)
             self.heartbeats += 1
         entry = self.script.get((spec.role, spec.issue_id), self.script.get(spec.role))
+        if entry is None and spec.role == FIXER:      # tests script "worker" once for both roles
+            entry = self.script.get((WORKER, spec.issue_id), self.script.get(WORKER))
         if callable(entry):
             entry = entry(spec)
         if isinstance(entry, AgentRunResult):

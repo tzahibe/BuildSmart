@@ -35,7 +35,10 @@ CLASSES = (IMPLEMENTATION_FAILURE, REGRESSION, TEST_FAILURE, ENVIRONMENT_FAILURE
            MERGE_CONFLICT, INFRA_FAILURE, REVIEW_REJECTED)
 
 #: Classes a worker may try to repair. The others need the Team Lead (or a re-run) first.
-REPAIRABLE = (IMPLEMENTATION_FAILURE, TEST_FAILURE, REGRESSION, REVIEW_REJECTED)
+# What the FIXER (fix-and-resubmit worker, owner rule 2026-09-20) takes automatically. SPEC_MISMATCH only when the
+# live Issue contract still parses (the orchestrator checks) — then the PR is what must catch up with the contract;
+# MERGE_CONFLICT after the orchestrator has started the merge in the worktree (the fixer resolves the markers).
+REPAIRABLE = (IMPLEMENTATION_FAILURE, TEST_FAILURE, REGRESSION, REVIEW_REJECTED, SPEC_MISMATCH, MERGE_CONFLICT)
 
 _INFRA_PATTERNS = [
     r"The runner has received a shutdown signal", r"No space left on device", r"lost communication with the server",

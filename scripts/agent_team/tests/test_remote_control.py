@@ -361,7 +361,7 @@ def test_status_blocked_line_includes_root_cause(remote):
     _add_issue(gh, 9, risk="LOW")
     failing = FakeAgentRunner(script={"worker": AgentRunResult(ok=False, exit_code=1, error="boom: pytest failed on test_x")})
     orch2 = _orch(orch.config, gh, clock, failing)
-    for _ in range(3):     # max_repair_attempts=2: 3 straight worker failures exhaust the budget
+    for _ in range(4):     # max_repair_attempts=3: 4 straight worker failures exhaust the budget
         _tick(orch2)
     rec = orch2.store.get(9)
     assert rec.state == sm.BLOCKED and rec.failure_class == "WORKER_FAILED"

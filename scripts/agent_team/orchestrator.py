@@ -33,10 +33,10 @@ from pathlib import Path
 
 from agent_team import audit, ci_evidence, merge_policy, prompts, scheduler, work_reports
 from agent_team import state_machine as sm
-from agent_team.agent_runner import DOMAIN_LEAD, REVIEWER, WORKER, AgentRunner, AgentRunResult, AgentRunSpec
+from agent_team.agent_runner import DOMAIN_LEAD, FIXER, REVIEWER, WORKER, AgentRunner, AgentRunResult, AgentRunSpec
 from agent_team.config import Config
 from agent_team.failure_classifier import (
-    ENVIRONMENT_FAILURE, FLAKY_TEST, INFRA_FAILURE, MERGE_CONFLICT, REVIEW_REJECTED, Classification, FailureInput, classify,
+    ENVIRONMENT_FAILURE, FLAKY_TEST, INFRA_FAILURE, MERGE_CONFLICT, REVIEW_REJECTED, SPEC_MISMATCH, Classification, FailureInput, classify,
 )
 from agent_team.issue_contract import ContractError, IssueContract, parse_contract, verification_manifest, child_scope_problems
 from agent_team import integration_mode as im
@@ -765,10 +765,12 @@ class Orchestrator:
         contract = self._contract(rec)
         src = sm.FIX_REQUIRED if repair else sm.CLAIMED
         attempt = rec.attempt_number + 1
+        role = FIXER if repair else WORKER
+        model = self.config.models["fixer" if repair else "worker"]
         try:
             rec = store.transition(issue_id, sm.WORKING, allowed_from=(src,), attempt_number=attempt,
-                                   assigned_agent=f"{WORKER}:{self.config.models['worker']}", started_at=self.clock(),
-                                   heartbeat_at=self.clock(), note=("repair" if repair else "worker") + f" attempt {attempt}")
+                                   assigned_agent=f"{role}:{model}", started_at=self.clock(),
+                                   heartbeat_at=self.clock(), note=("fix" if repair else "worker") + f" attempt {attempt}")
         except TransitionConflict as exc:
             log.warning("#%s worker not started: %s", issue_id, exc)
             return
@@ -781,10 +783,16 @@ class Orchestrator:
         ib = self.root_integration_for(rec)
         base_ref = self.worktrees.base_ref(ib["branch"]) if ib else self.worktrees.base_ref()
         if repair:
-            prompt = prompts.repair_prompt(contract, worktree=str(path), branch=rec.branch, attempt=attempt - 1,
-                                           max_attempts=self.config.max_repair_attempts, failure_class=rec.failure_class or "UNKNOWN",
-                                           failure_summary=rec.last_error or "",
-                                           evidence=work_reports.load_latest_evidence_note(self.config, issue_id))
+            # The FIXER (owner rule 2026-09-20): a dedicated fix-and-resubmit worker — fresh context, the failure
+            # evidence, class-specific instructions and the LIVE contract (a contract amended after the first
+            # attempt started is what gate 1 validates against).
+            live = self.refresh_contract(store, rec)
+            if live is not None:
+                contract = live
+            prompt = prompts.fixer_prompt(contract, worktree=str(path), branch=rec.branch, attempt=attempt - 1,
+                                          max_attempts=self.config.max_repair_attempts, failure_class=rec.failure_class or "UNKNOWN",
+                                          failure_summary=rec.last_error or "",
+                                          evidence=work_reports.load_latest_evidence_note(self.config, issue_id))
             timeout = self.config.repair_timeout_seconds
         else:
             prompt = prompts.worker_prompt(contract, worktree=str(path), branch=rec.branch, base_ref=base_ref)
@@ -792,11 +800,11 @@ class Orchestrator:
                 prompt += "\n\nNOTE: this worktree may hold committed or uncommitted work from an earlier attempt that did not finish. Inspect `git log`, `git status` and `git diff` first and continue from it rather than starting over."
             timeout = self.config.worker_timeout_seconds
         spec = AgentRunSpec(
-            role=WORKER, issue_id=issue_id, attempt=attempt, model=self.config.models["worker"], cwd=path, prompt=prompt,
-            timeout_seconds=timeout, system_prompt=prompts.ROLE_SYSTEM_PROMPTS[WORKER], json_schema=WORKER_REPORT_SCHEMA,
+            role=role, issue_id=issue_id, attempt=attempt, model=model, cwd=path, prompt=prompt,
+            timeout_seconds=timeout, system_prompt=prompts.ROLE_SYSTEM_PROMPTS[role], json_schema=WORKER_REPORT_SCHEMA,
             allowed_tools=self.config.worker_allowed_tools, disallowed_tools=self.config.worker_disallowed_tools,
             permission_mode=self.config.worker_permission_mode, add_dirs=(path,), effort=self.config.claude_effort,
-            resume_session_id=rec.session_id if repair else None, session_name=f"agent-{issue_id}-worker-{attempt}",
+            resume_session_id=None, session_name=f"agent-{issue_id}-{role}-{attempt}",
             extra_env=tuple(self.config.command_env.items()),
         )
 
@@ -852,6 +860,8 @@ class Orchestrator:
                 attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=root_cause,
                 evidence_ref=run_record, next_action="blocked")
             self._milestone(issue_id, f"{text}\n\nBlockers:\n{blockers}")
+            self._blocked_notice(store.get(issue_id), "NEEDS_DECISION" if status == "needs_decision" else "WORKER_BLOCKED",
+                                 f"the {'fixer' if repair else 'worker'} reported {status}: {str(root_cause)[:120]}")
             return
         path = Path(rec.worktree)
         try:
@@ -983,21 +993,39 @@ class Orchestrator:
             if rerun_ok:
                 self._ci_started[rec.issue_id] = self.clock()
                 return f"CI red ({cls.kind}) -> rerun requested"
-        if cls.repairable and self.attempts_remaining(rec):
+        fixable = cls.repairable
+        if cls.kind == SPEC_MISMATCH:
+            # the PR must catch up with the LIVE contract — unless the contract itself no longer parses
+            try:
+                issue = self.github.get_issue(rec.issue_id)
+                parse_contract(rec.issue_id, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
+                               behavior_domains=self.config.behavior_domains)
+            except Exception:  # noqa: BLE001 — invalid live contract (or unreadable): a lead decision, not a fix
+                fixable = False
+        if fixable and self.attempts_remaining(rec):
             self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=cls.kind, failure_class=cls.kind, last_error=cls.summary[:1000])
             text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
                                                attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
                                                evidence_ref=evidence_ref, next_action="repair")
-            self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nDispatching the fixer: fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
             return f"CI -> FIX_REQUIRED ({cls.kind})"
         self.locks.release(rec.issue_id, "blocked")
         self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=cls.kind, failure_class=cls.kind, last_error=cls.summary[:1000])
-        why = "not automatically repairable" if not cls.repairable else "retry budget exhausted"
+        why = "not automatically fixable" if not fixable else "fix budget exhausted"
         text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
                                            attempt=rec.attempt_number, attempts_left=0, root_cause=cls.summary,
                                            evidence_ref=evidence_ref, next_action="blocked")
         self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nBlocked ({why}). Team Lead decision required.")
+        self._blocked_notice(rec, cls.kind, why)
         return f"CI -> BLOCKED ({cls.kind})"
+
+    def _blocked_notice(self, rec: IssueRecord, kind: str, why: str) -> None:
+        """ONE Telegram line when an Issue leaves the automatic fix loop — the owner asked to know when a
+        blockage needs a decision instead of another fixer run."""
+        fixes = max(0, rec.attempt_number - 1)
+        self._owner_notice(f"blocked:{rec.issue_id}:{rec.attempt_number}:{kind}",
+                           f"🧱 #{rec.issue_id} נחסם ({kind}) אחרי {fixes} תיקונים אוטומטיים — {why}. "
+                           f"נדרשת החלטה של ה-team lead (repair / requeue / block). {rec.title[:60]}")
 
     def _rerun_ci(self, ev: ci_evidence.CiEvidence) -> bool:
         ok = False
@@ -1636,12 +1664,14 @@ class Orchestrator:
         cls = Classification(REVIEW_REJECTED, f"independent review {v}: {verdict.get('summary', '')[:300]}", body[:3000], "review")
         evidence_ref = work_reports.save_evidence_note(self.config, issue_id, rec.attempt_number, body)
         attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
-        if v == "REQUEST_CHANGES" and self.attempts_remaining(rec):
+        # Owner rule 2026-09-20: a review blockage (REQUEST_CHANGES or BLOCK) is fixed and resubmitted by the
+        # FIXER while the fix budget lasts; only an exhausted budget hands the Issue to the Team Lead.
+        if v in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec):
             self._set_state(store, issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
             text = work_reports.record_failure(store, self.config, issue_id, stage="review", failure_class=REVIEW_REJECTED,
                                                attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
                                                evidence_ref=evidence_ref, next_action="repair")
-            self._milestone(issue_id, f"{text}\n\nIndependent review: **REQUEST_CHANGES** — {verdict.get('summary', '')[:400]}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            self._milestone(issue_id, f"{text}\n\nIndependent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nDispatching the fixer: fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
         else:
             self.locks.release(issue_id, "review-blocked")
             self._set_state(store, issue_id, sm.BLOCKED, note=f"review {v}", failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
@@ -1649,8 +1679,39 @@ class Orchestrator:
                                                attempt=rec.attempt_number, attempts_left=0, root_cause=cls.summary,
                                                evidence_ref=evidence_ref, next_action="blocked")
             self._milestone(issue_id, f"{text}\n\nIndependent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nBlocked; Team Lead decision required.")
+            self._blocked_notice(store.get(issue_id), REVIEW_REJECTED, "fix budget exhausted")
 
     # -- ready / merge ------------------------------------------------------------------------
+    def _merge_conflict(self, rec: IssueRecord, path: Path, pr_base: str, detail: str, *, from_state: str) -> str:
+        """The base advanced and the branch conflicts: start the merge in the worktree, leave the conflict
+        markers, and dispatch the FIXER to resolve them (owner rule 2026-09-20) — the fixer's tools cannot
+        run `git merge` themselves. Out of budget -> BLOCKED for the Team Lead."""
+        conflicted: list[str] = []
+        if self.attempts_remaining(rec):
+            try:
+                conflicted = self.worktrees.begin_merge(path, pr_base)
+            except GitError as exc:
+                detail = f"{detail}; begin_merge failed: {str(exc)[:300]}"
+        if conflicted:
+            summary = f"base {pr_base} advanced and the merge conflicts in {len(conflicted)} file(s)"
+            evidence = (f"MERGE IN PROGRESS in the worktree (`git merge {pr_base}` started by the orchestrator). Conflicted files:\n"
+                        + "\n".join(f"- {f}" for f in conflicted)
+                        + "\n\nResolve every conflict marker keeping both sides' intent, run the relevant tests, then `git add -A && git commit`.")
+            evidence_ref = work_reports.save_evidence_note(self.config, rec.issue_id, rec.attempt_number, evidence)
+            self.store.record_event(rec.issue_id, "merge_conflict", {"base": pr_base, "files": conflicted})
+            self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT,
+                            last_error=summary, validated_commit=None)
+            text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="merge", failure_class=MERGE_CONFLICT,
+                                               attempt=rec.attempt_number, attempts_left=self.config.max_repair_attempts - max(0, rec.attempt_number - 1),
+                                               root_cause=summary, evidence_ref=evidence_ref, next_action="repair")
+            self._milestone(rec.issue_id, f"{text}\n\n{evidence}\n\nDispatching the fixer: fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            return f"{from_state} -> FIX_REQUIRED (merge conflict, fixer dispatched)"
+        self.locks.release(rec.issue_id, "merge-conflict")
+        self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT, last_error=detail[:1000])
+        self._milestone(rec.issue_id, f"Blocked: base advanced and the branch conflicts — {detail[:400]}")
+        self._blocked_notice(rec, MERGE_CONFLICT, "fix budget exhausted" if not self.attempts_remaining(rec) else "the merge could not be started")
+        return f"{from_state} -> BLOCKED (merge conflict)"
+
     def _step_ready_for_owner(self, rec: IssueRecord) -> str:
         """Wait for the owner. Keep the readiness honest: a moved head or an advanced base invalidates
         it (back to CI, new SHA -> new validation -> new notification); an owner merge on GitHub is
@@ -1682,10 +1743,7 @@ class Orchestrator:
                 self.worktrees.update_from_base(path, pr_base)
                 self.worktrees.push(path, rec.branch)
             except MergeConflict as exc:
-                self.locks.release(rec.issue_id, "merge-conflict")
-                self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT, last_error=str(exc)[:1000])
-                self._milestone(rec.issue_id, f"Blocked: base advanced and the branch conflicts — {str(exc)[:400]}")
-                return "READY_FOR_OWNER -> BLOCKED (merge conflict)"
+                return self._merge_conflict(rec, path, pr_base, str(exc), from_state="READY_FOR_OWNER")
             new_head = self.worktrees.head_sha(path)
             self._invalidate_readiness(rec, new_head, f"base advanced by {behind} commit(s); merged base into the branch")
             return "READY_FOR_OWNER -> CI (base advanced, readiness invalidated)"

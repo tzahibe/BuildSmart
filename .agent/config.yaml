@@ -51,6 +51,7 @@ models:
   master_team_lead: opus
   domain_lead: sonnet
   worker: sonnet
+  fixer: sonnet                     # the fix-and-resubmit worker (CI red, review findings, merge conflicts, amended contract)
   reviewer: sonnet
 
 claude:
@@ -156,7 +157,11 @@ locks:
   stale_after_seconds: 7200
 
 repair:
-  max_attempts: 2                   # automatic repair attempts after a red CI before agent:blocked
+  # Automatic FIX attempts per Issue (owner rule 2026-09-20: a blockage in review or a red CI is fixed and the
+  # PR resubmitted by the fixer): CI red (implementation/test/regression), review REQUEST_CHANGES or BLOCK,
+  # gate-1 SPEC_MISMATCH against a valid live contract, merge conflicts at base update. Then agent:blocked +
+  # one Telegram line for the owner.
+  max_attempts: 3
 
 # Subscription usage guard (owner rule, 2026-09-17): `claude -p /usage` is probed every tick (free);
 # at pause_at_percent (session or week) the scheduler pauses itself — no new claims, workers,

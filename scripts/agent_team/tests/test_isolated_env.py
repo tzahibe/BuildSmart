@@ -155,11 +155,17 @@ def _run_to_blocked_review_rejection(env, number):
     _tick(orch); _tick(orch)
     assert orch.store.get(number).state == sm.FIX_REQUIRED
     runner.script["reviewer"] = {**APPROVE, "verdict": "BLOCK", "summary": "still wrong", "hidden_behavior_changes": True}
-    _tick(orch)                                          # repair -> PR_OPEN
-    _tick(orch)                                          # -> CI
-    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])   # new head after the repair push
-    _tick(orch)                                          # -> REVIEW
-    _tick(orch)                                          # reviewer BLOCK -> BLOCKED
+    # every review blockage is fixed and resubmitted by the fixer while the budget (3) lasts; only then BLOCKED
+    for _ in range(3):
+        rec = orch.store.get(number)
+        if rec.state == sm.BLOCKED:
+            break
+        assert rec.state == sm.FIX_REQUIRED
+        _tick(orch)                                      # fixer -> PR_OPEN
+        _tick(orch)                                      # -> CI
+        _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])   # new head after the fix push
+        _tick(orch)                                      # -> REVIEW
+        _tick(orch)                                      # reviewer BLOCK -> fixer again, or BLOCKED once the budget is gone
     rec = orch.store.get(number)
     assert rec.state == sm.BLOCKED and rec.review_verdict and rec.review_verdict.startswith("BLOCK@")
     return orch, gh, rec

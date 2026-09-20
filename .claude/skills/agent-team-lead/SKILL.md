@@ -186,6 +186,18 @@ rollup PR. Stop only for high-risk or irreversible product decisions outside a R
 rollup PR is validated as a whole; only the owner merges it. `agentctl period status` shows the
 calendar; `agentctl rollup exclude N` honours an owner exclusion.
 
+## 8a. The fixer loop — do not hand-hold what the fixer handles
+
+A red CI (implementation / test / regression), a review REQUEST_CHANGES or BLOCK, a gate-1
+SPEC_MISMATCH against a valid live contract, and a merge conflict at base update are all fixed and
+resubmitted automatically by the FIXER (fresh session, failure evidence, live contract) — up to
+`repair.max_attempts` (3) per Issue. Your job starts when the Issue is `agent:blocked` (you get one
+Telegram line): read `agentctl audit N`, decide (`agentctl repair N --class … --summary …` with the
+diagnosis, `requeue --reset-attempts`, a contract amendment + `resume-pr --rerun-ci`, or `block`).
+For a merge conflict the orchestrator has already left the merge in progress in the worktree; if you
+order a repair yourself, do the same (`git merge origin/<base>` in the agent worktree, leave the
+markers) — the fixer's tools cannot run `git merge`.
+
 ## 8b. ROOT-scoped integration branches (§42) and the owner's priority order
 
 A ROOT may have its own integration branch (Concept Engine v2: `integration/concept-engine-v2`,

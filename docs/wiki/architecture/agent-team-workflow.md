@@ -29,6 +29,7 @@ dependencies), configured by `.agent/config.yaml`, operated through `scripts/age
 | Domain Lead | Sonnet | on demand: `agentctl investigate --domain <d> "<question>"` (read-only) | investigate a domain and propose acceptance criteria / verification targets |
 | Worker | Sonnet | `claude -p` in the Issue's worktree, spawned by the orchestrator | edit files, run tests, commit on its branch. **Never** push, open PRs, switch branches, touch GitHub, or weaken tests |
 | Independent Reviewer | Sonnet | `claude -p --restricted` (Read/Grep/Glob only), a fresh session, never the worker's | APPROVE / REQUEST_CHANGES / BLOCK with per-AC assessment; may block, may never override a deterministic gate |
+| **Fixer** (since 2026-09-20, owner rule) | Sonnet (`models.fixer`) | `claude -p` in the Issue's worktree, a FRESH session with the failure evidence and the LIVE contract (`prompts/fixer.md`) | fix and resubmit the same PR after a red CI (implementation / test / regression), a review REQUEST_CHANGES or BLOCK, a gate-1 SPEC_MISMATCH against a valid live contract, or a merge conflict at base update (the orchestrator starts the merge and leaves the markers); same tool limits as the worker; `repair.max_attempts` (3) fix runs per Issue, then `agent:blocked` + one Telegram line |
 
 The orchestrator (a Python process, `agentctl run`/`start`) pushes branches, opens PRs, posts
 milestones, runs the gates' evidence collection, applies the merge policy, merges, runs smoke,
@@ -208,11 +209,26 @@ regardless of what the reviewer says.
 `TEST_FAILURE`, `ENVIRONMENT_FAILURE`, `FLAKY_TEST`, `SPEC_MISMATCH`, `MERGE_CONFLICT`,
 `INFRA_FAILURE` (plus `REVIEW_REJECTED` for gate 5) from gate results, uploaded reports, failed-job
 logs and the PR's changed files — a missing optional `torch` is an ENVIRONMENT_FAILURE, not a
-reason to change product code. Repairable classes (IMPLEMENTATION, TEST, REGRESSION,
-REVIEW_REJECTED) get at most `repair.max_attempts` (2) repair runs, each resuming the worker's
-session with the exact evidence; INFRA/FLAKY get one CI re-run; everything else and every
-exhausted budget becomes `agent:blocked` for the Team Lead. The class is persisted on the Issue
-record and posted as a milestone comment.
+reason to change product code.
+
+**The fixer loop (owner rule 2026-09-20: "a blockage in review or a red CI gets a worker whose job is
+to fix and resubmit the PR").** Fixable classes go to the FIXER automatically, without a Team Lead
+decision, while the Issue's fix budget (`repair.max_attempts`, 3) lasts:
+
+| Trigger | Class | What the fixer gets |
+|---|---|---|
+| CI red: implementation / test / regression | IMPLEMENTATION_FAILURE, TEST_FAILURE, REGRESSION | the failing check's logs and report |
+| independent review REQUEST_CHANGES **or BLOCK** | REVIEW_REJECTED | the reviewer's findings (severity, file, summary) |
+| gate 1 red while the live Issue contract still parses (the contract was amended after the attempt started) | SPEC_MISMATCH | the live contract; the PR body/evidence table is re-rendered from it at publish |
+| the base advanced and the branch conflicts (readiness invalidation) | MERGE_CONFLICT | the merge already started in the worktree with the conflict markers and the file list (`WorktreeManager.begin_merge`) — the fixer resolves, commits, never runs `git merge` |
+
+The fixer is a fresh `claude -p` session (no resume) with `prompts/fixer.md`, the same tool limits as
+the worker, and the LIVE contract (`refresh_contract`); when it commits, the orchestrator pushes the
+branch — the same PR is re-validated (CI, regression, review). INFRA/FLAKY still get one CI re-run
+first; an invalid live contract, an environment failure, a worker/fixer that reports `blocked`, or an
+exhausted budget becomes `agent:blocked` for the Team Lead — and the owner gets ONE Telegram line
+(`_blocked_notice`) saying why a decision is needed (`agentctl repair | requeue | block`). The class
+is persisted on the Issue record and posted as a milestone comment.
 
 ## Governance: owner vs Team Lead authority (since 2026-09-18)
 

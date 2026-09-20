@@ -27,7 +27,7 @@ from agent_team.state_store import StateStore
 
 #: `stage` values a failure_record may carry: worker/publish/ci/review are worker-lifecycle
 #: failures, `owner` is an owner reject/change-request, `usage` is a rate-limit pause.
-FAILURE_STAGES = ("worker", "publish", "ci", "review", "owner", "usage")
+FAILURE_STAGES = ("worker", "publish", "ci", "review", "merge", "owner", "usage")
 NEXT_ACTIONS = ("requeue", "repair", "rerun_ci", "blocked", "paused")
 
 _ROOT_CAUSE_LIMIT = 500

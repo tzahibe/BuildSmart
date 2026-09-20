@@ -294,6 +294,21 @@ class WorktreeManager:
         proc = run_git(["push", "-u", self.remote, f"{branch}:{branch}"], path, timeout=300)
         return (proc.stdout + proc.stderr).strip()
 
+    def begin_merge(self, path: Path, base: str | None = None) -> list[str]:
+        """Merge the base into the branch and, on conflict, LEAVE the merge in progress (conflict markers
+        in the files) so the fixer can resolve it — the fixer's tools cannot run `git merge` themselves.
+        Returns the conflicted paths (empty when the merge completed cleanly)."""
+        self.fetch()
+        base = self.base_ref(base)
+        proc = run_git(["merge", "--no-edit", base], path, check=False)
+        if proc.returncode == 0:
+            return []
+        conflicted = [l for l in run_git(["diff", "--name-only", "--diff-filter=U"], path, check=False).stdout.splitlines() if l.strip()]
+        if not conflicted:                       # failed for another reason: do not leave a half state behind
+            run_git(["merge", "--abort"], path, check=False)
+            raise GitError(proc.stderr[-800:])
+        return conflicted
+
     def update_from_base(self, path: Path, base: str | None = None) -> str:
         """Merge the (fetched) base into the branch inside its own worktree. Raises MergeConflict."""
         self.fetch()

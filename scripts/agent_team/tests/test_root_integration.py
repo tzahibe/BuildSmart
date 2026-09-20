@@ -5,6 +5,7 @@ final rollup PR the owner merges. Also the owner's ROOT priority order and per-d
 from __future__ import annotations
 
 import dataclasses
+from pathlib import Path
 
 from agent_team import state_machine as sm
 from agent_team.tests.helpers import make_contract
@@ -85,3 +86,47 @@ def test_owner_priority_order_and_per_domain_caps(env):
     rep = _tick(orch)
     assert rep.started == [302]                                  # priority first, and only ONE qa Issue in flight
     assert all("domain cap" in v for k, v in rep.waiting.items() if k in (300, 301)), rep.waiting
+
+
+# ---------------------------------------------------------------------------------------------
+# the FIXER (owner rule 2026-09-20): merge conflicts and an amended contract are fixed and resubmitted
+# ---------------------------------------------------------------------------------------------
+
+def test_merge_conflict_at_base_update_is_handed_to_the_fixer_with_the_merge_in_progress(env):
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    _add_issue(gh, 400)
+    _tick(orch)
+    rec = orch.store.get(400)
+    from agent_team.tests.test_integration_mode import _to_ready_or_integrated
+    _to_ready_or_integrated(orch, gh, 400)
+    assert orch.store.get(400).state == sm.READY_FOR_OWNER
+    # main advances with a conflicting edit of the worker's own file
+    other = config.repo_root.parent / "conflicting"
+    _git(["clone", "-q", str(origin), str(other)], config.repo_root.parent)
+    _git(["config", "user.email", "o@example.com"], other); _git(["config", "user.name", "other"], other)
+    (other / "work-400.txt").write_text("someone else's version\n")
+    _git(["add", "work-400.txt"], other); _git(["commit", "-q", "-m", "conflict"], other); _git(["push", "-q", "origin", "main"], other)
+    rep = _tick(orch)
+    assert rep.advanced[400] == "READY_FOR_OWNER -> FIX_REQUIRED (merge conflict, fixer dispatched)"
+    rec = orch.store.get(400)
+    assert rec.failure_class == "MERGE_CONFLICT"
+    wt = rec.worktree
+    assert "work-400.txt" in _git(["diff", "--name-only", "--diff-filter=U"], wt).stdout      # the merge is in progress
+    assert "<<<<<<<" in (Path(wt) / "work-400.txt").read_text()
+    assert any(e["kind"] == "merge_conflict" and e["payload"]["files"] == ["work-400.txt"] for e in orch.store.events(400))
+    # the fixer resolves and commits; the PR is resubmitted and re-validated
+    def resolve(spec):
+        p = Path(spec.cwd) / "work-400.txt"
+        p.write_text("resolved\n")
+        _git(["add", "-A"], spec.cwd); _git(["commit", "-q", "-m", "resolve"], spec.cwd)
+        return {"status": "done", "summary": "resolved", "what_changed": ["merge resolved"], "why": "conflict",
+                "implementation": "kept both", "ac_evidence": [{"ac": "AC-1", "evidence": "grep", "result": "PASS"}],
+                "tests_run": [{"command": "pytest", "result": "1 passed"}], "regression": "n/a", "known_limitations": [],
+                "files_changed": ["work-400.txt"], "blockers": []}
+    orch.runner.script["fixer"] = resolve
+    rep = _tick(orch)
+    rec = orch.store.get(400)
+    assert rec.state == sm.PR_OPEN and rec.attempt_number == 2
+    assert orch.runner.calls[-1].role == "fixer" and "MERGE_CONFLICT" in orch.runner.calls[-1].prompt
+    assert not _git(["diff", "--name-only", "--diff-filter=U"], wt).stdout.strip()                # merge committed

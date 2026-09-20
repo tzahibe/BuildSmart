@@ -266,7 +266,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         state_dir=Path(str(_need(paths, "state_dir", "paths"))),
         logs_dir=Path(str(_need(paths, "logs_dir", "paths"))),
         contracts_dir=Path(str(_need(paths, "contracts_dir", "paths"))),
-        models={k: str(v) for k, v in models.items()},
+        models={"fixer": str(models.get("fixer", models["worker"])), **{k: str(v) for k, v in models.items()}},
         claude_binary=str(cl.get("binary", "auto")),
         claude_effort=str(cl.get("effort", "high")),
         worker_timeout_seconds=int(_need(cl, "worker_timeout_seconds", "claude")),

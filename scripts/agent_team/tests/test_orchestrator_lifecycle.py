@@ -218,18 +218,22 @@ def test_ci_failure_repairs_then_blocks_after_budget(env):
     assert _tick(orch).advanced[3] == "FIX_REQUIRED -> WORKING (repair)"
     rec = orch.store.get(3)
     assert rec.state == sm.PR_OPEN and rec.attempt_number == 2
-    repair_spec = runner.calls[-1]
-    assert "repair attempt 1 of 2" in repair_spec.prompt and repair_spec.resume_session_id == "fake-worker-3-1"
-    _tick(orch)                                          # -> CI
-    _red(gh, gh.get_pr(rec.pr_number)["head"]["sha"])     # the repair push moved the head; CI red again
-    assert _tick(orch).advanced[3] == "CI -> FIX_REQUIRED (IMPLEMENTATION_FAILURE)"
-    _tick(orch)                                          # second repair -> PR_OPEN (attempt 3)
-    assert orch.store.get(3).attempt_number == 3
+    fix_spec = runner.calls[-1]
+    # the FIXER: its own role and prompt, a fresh session with the failure evidence, the same PR resubmitted
+    assert fix_spec.role == "fixer" and "fix attempt 1 of 3" in fix_spec.prompt and fix_spec.resume_session_id is None
+    assert "IMPLEMENTATION_FAILURE" in fix_spec.prompt
+    for n in (3, 4):                                     # fix attempts 2 and 3 of the budget of 3
+        _tick(orch)                                      # -> CI
+        _red(gh, gh.get_pr(rec.pr_number)["head"]["sha"]) # the fix push moved the head; CI red again
+        assert _tick(orch).advanced[3] == "CI -> FIX_REQUIRED (IMPLEMENTATION_FAILURE)"
+        _tick(orch)                                      # next fix -> PR_OPEN
+        assert orch.store.get(3).attempt_number == n
     _tick(orch)                                          # -> CI
     _red(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
-    assert _tick(orch).advanced[3] == "CI -> BLOCKED (IMPLEMENTATION_FAILURE)"
+    assert _tick(orch).advanced[3] == "CI -> BLOCKED (IMPLEMENTATION_FAILURE)"   # budget exhausted: the lead decides
     assert orch.store.get(3).state == sm.BLOCKED and orch.store.locks_held() == []
     assert gh.issue_labels(3).count("agent:blocked") == 1
+    assert any(n["text"].startswith("🧱 #3") for n in orch.store.due_notifications(50))   # the owner hears it once
 
 
 def test_reviewer_request_changes_and_block(env):
@@ -245,12 +249,22 @@ def test_reviewer_request_changes_and_block(env):
     assert orch.store.get(4).state == sm.FIX_REQUIRED and orch.store.get(4).failure_class == "REVIEW_REJECTED"
     assert any(r[1] == "REQUEST_CHANGES" for r in gh.reviews)
     runner.script["reviewer"] = {**APPROVE, "verdict": "BLOCK", "summary": "hidden behavior change", "hidden_behavior_changes": True}
-    _tick(orch)                                          # repair -> PR_OPEN
+    _tick(orch)                                          # fixer -> PR_OPEN
+    fix_spec = runner.calls[-1]
+    assert fix_spec.role == "fixer" and "REVIEW_REJECTED" in fix_spec.prompt and "tautological" in fix_spec.prompt
     _tick(orch)                                          # -> CI
-    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])   # new head after the repair push
+    _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])   # new head after the fix push
     _tick(orch)                                          # -> REVIEW
-    _tick(orch)                                          # reviewer BLOCK
-    assert orch.store.get(4).state == sm.BLOCKED
+    _tick(orch)                                          # reviewer BLOCK -> the fixer again (a review blockage is fixed, not parked)
+    assert orch.store.get(4).state == sm.FIX_REQUIRED and orch.store.get(4).failure_class == "REVIEW_REJECTED"
+    for n in (3, 4):                                     # fix attempts 2 and 3; every BLOCK verdict is fixed while the budget lasts
+        _tick(orch)                                      # fixer -> PR_OPEN
+        assert orch.store.get(4).attempt_number == n
+        _tick(orch)                                      # -> CI
+        _green(gh, gh.get_pr(rec.pr_number)["head"]["sha"])
+        _tick(orch)                                      # -> REVIEW
+        _tick(orch)                                      # reviewer BLOCK
+    assert orch.store.get(4).state == sm.BLOCKED         # budget of 3 exhausted -> BLOCKED for the lead
 
 
 def test_duplicate_polling_never_starts_twice(env):
@@ -324,6 +338,8 @@ def test_worker_crash_requeues_then_blocks(env):
     assert orch.store.get(7).state == sm.QUEUED and orch.store.get(7).attempt_number == 1
     _tick(orch)
     assert orch.store.get(7).state == sm.QUEUED and orch.store.get(7).attempt_number == 2
+    _tick(orch)
+    assert orch.store.get(7).state == sm.QUEUED and orch.store.get(7).attempt_number == 3   # budget of 3 retries
     _tick(orch)
     assert orch.store.get(7).state == sm.BLOCKED
     assert len(orch.worktrees.agent_worktrees()) == 1   # reconciled, never duplicated
