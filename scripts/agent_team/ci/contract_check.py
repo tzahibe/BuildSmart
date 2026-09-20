@@ -120,6 +120,17 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"could not fetch issue #{issue_no}: {exc}", file=sys.stderr)
     rep = evaluate(pr, issue, config)
+    label_only = [c["name"] for c in rep.checks if not c["ok"]] == ["Issue carries an executable agent:* label"]
+    if label_only and issue_no is not None:
+        # the orchestrator swaps the state label right after the push that triggered this run; a
+        # read inside that window sees no state label — wait once and read again before failing
+        import time as _time
+        _time.sleep(20)
+        try:
+            issue = client.get_issue(issue_no)
+            rep = evaluate(pr, issue, config)
+        except Exception as exc:  # noqa: BLE001
+            print(f"could not re-fetch issue #{issue_no}: {exc}", file=sys.stderr)
     out_dir = root / ".agent" / "ci"
     write_report(rep, out_dir / "contract_report.json")
     if "manifest" in rep.extra:

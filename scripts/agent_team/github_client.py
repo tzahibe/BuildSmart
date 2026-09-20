@@ -166,11 +166,13 @@ class GitHubClient:
         that also live under `agent:` (child, decomposed, hold, rollup) are left alone."""
         target = state_to_label(state)
         current = self.issue_labels(number)
+        # add first, remove second: gate 1 reads the Issue's labels within seconds of a push and once
+        # saw NO state label in the swap window (#67, 2026-09-20) — a brief window with two is harmless
+        if target not in current:
+            self.add_labels(number, [target])
         for l in current:
             if l in STATE_LABEL_NAMES and l != target:
                 self.remove_label(number, l)
-        if target not in current:
-            self.add_labels(number, [target])
         return target
 
     def comment(self, number: int, body: str) -> dict:
@@ -385,11 +387,11 @@ class FakeGitHub:
 
     def set_state_label(self, number: int, state: str) -> str:
         target = state_to_label(state)
+        if target not in self.issue_labels(number):
+            self.add_labels(number, [target])
         for l in self.issue_labels(number):
             if l in STATE_LABEL_NAMES and l != target:
                 self.remove_label(number, l)
-        if target not in self.issue_labels(number):
-            self.add_labels(number, [target])
         return target
 
     def comment(self, number: int, body: str) -> dict:
