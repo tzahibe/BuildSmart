@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { DemoOutline, DemoPlanSet } from './demoDesign'
+import ConceptLabel from './ConceptLabel'
 import DemoPlan from './DemoPlan'
 import PlanLegend from './PlanLegend'
 import QualityPanel from '../components/review/QualityPanel'
@@ -117,7 +118,10 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
                     data-testid={`plan-option-${planIndex}`}
                   >
                     <DemoPlan design={all[planIndex]} />
-                    <span className="workspace-option-label">{labelFor(planIndex)}</span>
+                    <span className="workspace-option-label">
+                      {labelFor(planIndex)}
+                      <ConceptLabel concept={all[planIndex].concept} />
+                    </span>
                     {all[planIndex].outline ? (
                       <span className="workspace-option-outline">
                         {all[planIndex].outline!.width_m.toFixed(2)} × {all[planIndex].outline!.depth_m.toFixed(2)} מ׳
@@ -132,7 +136,10 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
       </main>
 
       <aside className="workspace-side" aria-label="פרטי התוכנית">
-        <h2 className="workspace-title">התוכנית שלך</h2>
+        <h2 className="workspace-title">
+          התוכנית שלך
+          <ConceptLabel concept={design.concept} />
+        </h2>
         {order.length > 1 ? (
           <p className="workspace-shown" data-testid="plan-shown">{labelFor(order[0])}</p>
         ) : null}

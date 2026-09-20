@@ -31,9 +31,18 @@ until Issue #63 reached zero frontend files.
 Nothing here changes the plan drawing itself (`DemoPlan.tsx`, untouched) or `DemoWorkspace`'s
 existing validation/warnings/legend sections.
 
+- **`ConceptLabel`** (`frontend/src/design/ConceptLabel.tsx`, Issue #78): a small badge beside a
+  plan's title — the large plan's title in the side panel, and each thumbnail's label in the
+  options strip — read verbatim off `design.concept` (`DemoDesign.concept`, a Hebrew label and a
+  one-sentence rationale as the badge's hover title). Renders nothing when `concept` is absent,
+  which is every payload today: the backend only attaches it when
+  `general_pipeline.CONCEPT_ENGINE_V2_ENABLED` is on, and that flag currently defaults to `False`
+  (see [Concept Engine v2](concept-engine-v2.md)).
+
 ## Authoritative implementation
 
 - `frontend/src/components/review/{QualityPanel,RoomDetails,RefusalNotice}.tsx` (+ `.css`).
+- `frontend/src/design/ConceptLabel.tsx` (+ `.css`), wired into `DemoWorkspace.tsx` (Issue #78).
 - `frontend/src/design/demoDesign.ts`: `DemoQualityMetrics`, `DemoExposure`, `DemoWetPrivacy`
   types and the corresponding fields added to `DemoQuality` — mirror `app.demo.contract`'s
   `QualityMetricsOut`/`ExposureOut`/`WetPrivacyOut`/`QualityOut`.
