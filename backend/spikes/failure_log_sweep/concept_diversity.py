@@ -28,9 +28,10 @@ from app.vertical_slice import general_pipeline as gp  # noqa: E402
 from app.vertical_slice.concept_spec import CirculationClass  # noqa: E402
 from spikes.failure_log_sweep.sweep import project_from_context  # noqa: E402
 
-_CORPUS_PATH = Path(__file__).resolve().parents[2] / "tests" / "regression_corpus" / "corpus.json"
-_REPORT_PATH = (Path(__file__).resolve().parents[2] / "docs" / "reports"
-               / "concept-engine-v2-diversity-baseline.md")
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_REPO_ROOT = _BACKEND_DIR.parent
+_CORPUS_PATH = _BACKEND_DIR / "tests" / "regression_corpus" / "corpus.json"
+_REPORT_PATH = _REPO_ROOT / "docs" / "reports" / "concept-engine-v2-diversity-baseline.md"
 
 
 def _layout_signature_of_rooms(rooms) -> tuple:
