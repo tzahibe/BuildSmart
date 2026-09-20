@@ -32,6 +32,10 @@ superseding an earlier declared-interface architecture.
 - `app/vertical_slice/quality_metrics.py` (M1–M6, Issue #17), `app/demo/contract.py`'s
   `QualityOut.metrics`, `tests/regression_corpus/{quality_baseline.json,test_quality_baseline.py,
   freeze_quality_baseline.py}` — see the dedicated section below.
+- `app/vertical_slice/circulation_metrics.py` (dedicated-circulation metrics, C26, the ranking
+  term — Issue #36), wired into `app/vertical_slice/validation.py` (C26) and
+  `app/vertical_slice/general_pipeline.py`'s `_guard_demoted_hub` — see the dedicated section
+  below.
 
 ## Current constraints/invariants
 
@@ -357,6 +361,77 @@ C4-detail escalation, both to code `SAFE_ROOM_DROPPED`), `app/demo/contract.py` 
 for a given brief — `ConstraintSource.COMPLIANCE` stays unused), RC envelope sizing, multi-level
 safe-room placement policy, the hub/L-massing guards' existing safe-room aspect term.
 
+## Dedicated circulation metrics and C26 (Issue #36)
+
+Issue #36 (2026-09-18). M3/M4 above measure a plan's circulation SHARE and the hall's own
+long/short ratio; nothing measured a corridor's LENGTH, its dead ends, how many turns a person
+walks through it, or whether two segments duplicate each other — so nothing could tell an ordinary
+long corridor (the spine parti's, by construction — `concept_generator._concept_from`) apart from
+an EXTREME one.
+
+**Measurement**: `app/vertical_slice/circulation_metrics.py`, `measure(design) -> CirculationMetrics`
+— pure and deterministic, reading a realized `GeometricDesign` (`design_output.py`) alone (rooms'
+roles/`rect_m`/`wall_facts`, doors, `open_groups`), never a fixture, a zone_id or a coordinate
+literal. Circulation rooms are every room whose roles include `HALL`/`CIRCULATION` (mirrors
+`quality_metrics.HALL`). Per plan:
+
+- **area/ratio**: total circulation NET area, and its share of the plan's total room NET area.
+- **longest_segment_m/total_length_m/narrowest_width_m**: each circulation room's own long
+  (walking) dimension — the longest across the plan, the sum across every circulation room (a
+  branching hub sums both arms), and the narrowest short dimension.
+- **dead_end_count**: circulation-room ends (the two faces along a room's own long axis) with
+  neither a placeable door nor an open-plan join (`WallFacts.construction is Construction.NONE`)
+  at that end — space that leads nowhere.
+- **turn_count**: direction changes (long/short axis of the center-to-center vector) along the
+  realized entrance → farthest-room path, walked over doors/open-plan joins with a deterministic
+  BFS (sorted-neighbour order; farthest = greatest hop count).
+- **duplicated_segment_count/duplicated_area_m2**: circulation-room pairs that are NOT directly
+  joined to each other (so not one branching hub's own arms) but serve an overlapping set of
+  non-circulation rooms — two parallel corridors doing the same job.
+
+**C26 "no extreme dedicated circulation"** (`validation.py`, next to C9): fails closed only when
+ratio, longest segment or dead-end count exceed the calibrated `EXTREME_RATIO` (0.24),
+`EXTREME_LONGEST_SEGMENT_M` (20.0 m) or `EXTREME_DEAD_END_COUNT` (2) constants — turn/duplication
+are reported, never gated. Calibrated on a sweep through `generate_demo_design` (varied
+footprints/bedroom/wet-room counts, including narrow-deep footprints down to 8 x 28 m — deeper than
+the frozen regression corpus's own deepest footprint, 24 m): worst measured ratio 0.180, worst
+measured longest segment 17.3 m; both constants sit with real headroom above every measured plan.
+C26 runs on a `GeometricDesign` `validate()` assembles ONLY for this measurement
+(`design_output.assemble`, `wall_iterations=0` — unused by circulation) since `validate()` itself
+runs before the pipeline's own `assemble()` call; the design measured and the design drawn are
+built by the identical function, so a check and the drawing can never disagree about the geometry,
+only about when it was built.
+
+**The ranking term** (`circulation_prefers(current, current_area_m2, candidate, candidate_area_m2)`,
+hub_guard-style): `None` when `candidate`'s circulation earns it the primary over `current` — better
+on at least one of ratio/longest-segment/dead-ends and not under `hub_guard.AREA_KEEP_RATIO` (0.85)
+of `current`'s area, the identical correctness-then-area-floor pattern `hub_guard.hub_keeps_primary`
+and `l_massing_guard.l_earns_representation_slot` already use. Turn count is deliberately never
+compared: a turn is how a branching/compact hub reads on this measure (specs/005), and scoring
+"fewer turns" as better would bias the ranking term back toward the straight spine the hub parti
+exists to move away from.
+
+**Wired into `general_pipeline._guard_demoted_hub`**: when `hub_guard.hub_keeps_primary` says a
+demoted hub's bedroom/wet proportions earn it the stay, `circulation_prefers` additionally requires
+the hub's own circulation not be beaten by the replacement's — a hub that wins on proportions but
+delivers worse circulation than the replacement still loses. This only NARROWS `hub_guard`'s
+decision (a hub is never handed the primary FOR its circulation when `hub_guard` already said the
+replacement wins on proportions) and costs nothing extra to solve (reuses the same realized
+`hub_plan`/`plan` the existing comparison already built). **Corpus impact today: none by
+construction** — on this branch every swept brief's `HUB_PRIVATE_WING` candidate is rejected before
+solving (`ROOM_ABOVE_MAXIMUM_AREA`/`FOOTPRINT_BELOW_MINIMUM_WIDTH`, the room-area two-level maxima
+work, 2026-09-15 — the same pre-existing state `test_hub_guard.py::NARROW_DEEP`'s own `xfail`
+documents), so `_guard_demoted_hub`'s `demoted` list is always empty on the corpus and this new
+branch is never reached; the wiring is real and tested (fixture-level and a mocked
+`_guard_demoted_hub` call), ready for whenever a hub candidate is reachable again.
+
+**Additive to `QualityOut.metrics`**: `QualityMetricsOut` gains `circulation_area_m2`,
+`circulation_ratio`, `circulation_longest_segment_m`, `circulation_total_length_m`,
+`circulation_narrowest_width_m`, `circulation_dead_end_count`, `circulation_turn_count`,
+`circulation_duplicated_segment_count`, `circulation_duplicated_area_m2` — computed in
+`contract.to_demo_design` off the same raw `SolvedDesign` M1–M6 and C26 already read, independently
+of M3 (`quality_metrics.py` itself is untouched).
+
 ## Architectural quality rubric and anti-pattern library
 
 The measured gaps above (circulation topology, wet-room adjacency, public-room strips) are three
@@ -439,3 +514,18 @@ Branch `agent/35-safe-room-mamad-requirement-preservation` merged `origin/main` 
 `contract.py`, `validation.py`, `test_demo_p0.py` and `test_demo_quality.py` by keeping both
 sides' additive sections/fields (Issue #35 alongside #19/#20/#32/#37/#69); the fast tier and this
 Issue's own targets were re-run against the merged tree.
+
+Branch `agent/36-circulation-efficiency-dedicated-circula`, based on
+`origin/integration/holiday-yom-kippur-2026` (merged forward to `main` at `648292f` after the
+integration branch's squash-merge, #18/#19/#20/#21/#24/#25/#29–#33/#37/#44/#63/#69 all already
+landed): the Dedicated circulation metrics and C26 section above documents Issue #36, verified
+against this session's own implementation and test runs (full `vertical_slice`/fast-tier suites
+green; the 432-context regression corpus was run separately — see the Issue's own PR for the
+outcome), including this merge's own conflict resolution (main's version taken for every
+shared/unrelated file; C26 and the circulation fields re-applied on top of C23/C29/wet-core exactly
+as they existed pre-merge; combined check count).
+
+`14d94d9` (branch `agent/35-safe-room-mamad-requirement-preservation`, based on `dac6c41`): merged
+`origin/main` a second time to pick up `6d18c1f` (Issue #36, circulation metrics); resolved textual
+conflicts in this page, `contract.py` and `validation.py` by keeping both sides' additive
+sections/fields, then re-ran this Issue's own targets against the merged tree.
