@@ -164,6 +164,28 @@ def test_c29_fails_dining_facing_wc_and_passes_corridor_access():
     assert c29.passed, c29.detail
 
 
+def test_living_entered_wc_scores_public_soft_exposure():
+    """Pin: C24 (Issue #69) now allows LIVING as a wet room's entered-from role, but this module's
+    own scoring is unchanged — LIVING reads PUBLIC and scores the soft band, never the C29 hard-fail
+    band reserved for KITCHEN/DINING (specs/009-guest-wc-placement decision C)."""
+    living_spec = ZoneSpec("LIVING", (ProgramRole.LIVING,), 16, 20, 26, 3.0)
+    tree = Split(Cut.V, Leaf("LIVING"), Leaf("BATH_1"), None)
+    wing = Wing("W", 0, 0, m_to_u(10.0), m_to_u(4.0), tree)
+    access = DesiredAccessTopology((DesiredAccessEdge("LIVING", "BATH_1", ConnectionKind.DOOR),))
+    fixture = Fixture("LIVING_WC", (wing,), (living_spec, _TOILET_SPEC), access)
+    rects, walls, doors = _rects_and_doors(fixture)
+    records = compute_wet_privacy(fixture, rects, walls, doors, (_req(WetRoomKind.GUEST_WC, None),))
+    assert len(records) == 1
+    record = records[0]
+    assert record.entered_from == "LIVING"
+    assert record.entered_from_class is ZoneClass.PUBLIC
+    assert record.public_exposure_score == 0.7
+
+    report = _validate(fixture, rects, walls, doors, (_req(WetRoomKind.GUEST_WC, None),))
+    c29 = next(c for c in report.checks if c.check_id == "C29")
+    assert c29.passed, c29.detail
+
+
 # --------------------------------------------------------------------------- AC-3
 
 

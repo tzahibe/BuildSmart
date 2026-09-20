@@ -39,6 +39,7 @@ from app.vertical_slice.concept_generator import (
 )
 from app.vertical_slice.relationships import describe
 from app.geometry_domain.walls import BoundaryContext
+from app.vertical_slice import doors as doors_stage
 from app.vertical_slice import l_massing_guard
 from app.vertical_slice.hub_guard import proportions_of
 from app.vertical_slice.spec import HouseConcept, LaundryDemand, PublicOpenSide, RelationStrength
@@ -79,6 +80,7 @@ _FEASIBILITY_CODES = frozenset({
     "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
+    "ENTRANCE_NO_ARRIVAL_ROOM",
     "LAUNDRY_UNPLACEABLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
@@ -873,6 +875,27 @@ def realized_corridor_width_m_of(design) -> float:
     return round(min(widths), 2) if widths else 0.0
 
 
+def _street_fronting_roles(design) -> frozenset[str]:
+    """Every role of a room whose rectangle touches the building's own street-facing wall (the
+    footprint's y = min line) — used only to name what a refused entrance found on the street, so
+    `ENTRANCE_NO_ARRIVAL_ROOM` can say "the street only reaches the kitchen" instead of nothing.
+
+    DELIBERATELY SEPARATE from `doors.street_fronting_roles`, not a missed sharing opportunity:
+    that one reads the ENGINE's pre-realization grid-unit types (`Fixture`/`Rect` in plot units)
+    and exists to GATE a decision (`resolve_entrance`'s own frontage-for-a-door test, in
+    `ENTRANCE_DOOR_WIDTH_M` units), so it must require enough frontage to actually place a door.
+    This one reads the PRODUCT's post-realization metre-scale `DemoDesign` and only NAMES rooms
+    for a message that is already gated elsewhere (`ENTRANCE_NO_ARRIVAL_ROOM` only fires when an
+    entrance-related check has already failed) — a coarser "touches the street at all" test here
+    can only make the message list an EXTRA room a real door could not fit on, never omit one that
+    matters, and never changes whether the refusal fires. Unifying the two would mean threading
+    grid-unit wing geometry through the product layer for a message-text nicety; not worth it.
+    """
+    street_y = design.footprint_m[1]
+    return frozenset(str(getattr(role, "value", role)) for room in design.rooms
+                     if abs(room.rect_m[1] - street_y) < 1e-6 for role in room.roles)
+
+
 def _plan(spec, project: Project, on_stage=None, *,
           max_alternatives: int = ALTERNATIVE_PLAN_LIMIT, outline: "Outline | None" = None):
     # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
@@ -1061,6 +1084,28 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
             f"{realized:.2f} מ׳ בלבד. אפשר להגדיל את שטח הבנייה, להוריד חדר, או לצמצם את רוחב "
             f"המסדרון — לא נציג תוכנית שלא עומדת בדרישה שביקשת.",
             "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()))
+
+    # ENTRANCE POLICY (Issue #20). A plan whose front door has nowhere legitimate to open into —
+    # the street fronts a kitchen or a dining room, but nothing allowed — is refused with this
+    # specific reason instead of the generic "did not pass planning checks". Gated on an
+    # ENTRANCE-related check actually failing (C16/C23, and C7/C11 which the entrance door itself
+    # can also fail) so an unrelated validation failure (furniture, corridor, ...) is never
+    # misdiagnosed as an entrance problem, AND on the street genuinely fronting something
+    # (disallowed) — a plan where NOTHING fronts the street at all is a different, pre-existing
+    # geometry defect, not this Issue's policy, and must keep whatever code it already had.
+    if result.design is not None and result.validation is not None and not result.validation.ok:
+        failing_ids = {c.check_id for c in result.validation.failures()}
+        if failing_ids & {"C16", "C23", "C7", "C11"}:
+            fronting = _street_fronting_roles(result.design)
+            allowed = {r.value for r in doors_stage.ENTRANCE_ZONE_PRIORITY}
+            if fronting and not (fronting & allowed):
+                named = ", ".join(sorted(fronting))
+                raise DemoGenerationError(
+                    "ENTRANCE_NO_ARRIVAL_ROOM",
+                    f"הכניסה לבית חייבת להיפתח למסדרון, הול או סלון — חדר שאפשר להגיע אליו "
+                    f"ישירות מהרחוב. בתצורה שנוצרה עבור הבקשה הזו, הרחוב פונה רק אל: {named}.",
+                    "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
+                    diagnostics=_diagnostics(result, spec, outlines))
 
     # HARD GATE. A plan is never returned as successful while a validation check is failing —
     # including C13, the realized-connectivity invariant.

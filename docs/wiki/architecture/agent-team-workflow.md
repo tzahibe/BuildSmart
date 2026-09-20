@@ -642,6 +642,24 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
   committed file), manual base merges when the integration branch gained fixes.
 - Integrated by 13:50: #18, #24, #25, #29, #30, #31, #33 (7); PR CI ~50 min each with a warm base cache.
 
+## After the first rollup (2026-09-20) — lessons
+
+- The rollup merge (#62 → `648292f2`) deleted the integration branch, and GitHub auto-closed every open
+  PR that still targeted it (#34/#36/#38 and the blocked #35). Their commits exist only on their own
+  branches: `agentctl repair N --class MERGE_CONFLICT` merges `origin/main` in the worktree and the
+  orchestrator opens a fresh PR against `main` (#72/#73). Rule: before ending a period, list the open
+  PRs on the integration base — a PR that cannot make the rollup should be retargeted or repaired first.
+- A PR that was READY_FOR_OWNER when the base moved is invalidated back to CI (base merged into the
+  branch) and needs a fresh review at the new head (#66).
+- `agentctl investigate --domain knowledge` twice returned a placeholder brief (`summary: "test"`,
+  findings `["a"]`, 40+ turns, ~$0.7 each) on long prose-heavy questions while the geometry/backend leads
+  answered fully. Until the runner rejects placeholder JSON (a follow-up), treat a domain-lead brief with
+  one-word fields as a failed run and do the reading yourself.
+- The Concept Engine v2 investigation ran on the main checkout read-only with `cwd=` overridden (the
+  domain leads read `main`, not the home branch); the dry-run store (`dry-run.sqlite3`) had never been
+  migrated, and three simultaneous starts raced on `ALTER TABLE` (harmless; stagger parallel
+  `investigate` starts by a few seconds).
+
 ## Last verified against git
 
 `7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.

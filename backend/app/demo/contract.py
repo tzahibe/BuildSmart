@@ -116,6 +116,18 @@ class QualitySignal(BaseModel):
     ratio: float
 
 
+class WetCoreOut(BaseModel):
+    """One plan's plumbing-efficiency standing (Issue #44) — see
+    `app.vertical_slice.wet_core.WetCore` for what each field means and how it is computed.
+    Display/ranking data only, exactly like `WetPrivacyOut`; no check gates on it."""
+
+    shared_wall_length_m: float
+    clusters: list[list[str]] = []
+    cluster_count: int
+    kitchen_adjacent_count: int
+    plumbing_complexity_index: int
+
+
 class QualityMetricsOut(BaseModel):
     """M1–M6 for this one plan (Issue #17), read-only — never an input to ranking or validation.
 
@@ -135,6 +147,9 @@ class QualityMetricsOut(BaseModel):
     m6_public_zone_contiguous: bool | None = None
     dead_space_m2: float = 0.0
     wasted_circulation_share: float = 0.0
+    #: Plumbing-efficiency standing (Issue #44), additive. `None` only for a payload built before
+    #: this field existed — every plan `to_demo_design` produces from here on attaches one.
+    wet_core: WetCoreOut | None = None
 
 
 class WetPrivacyOut(BaseModel):
@@ -747,8 +762,8 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
-def _metrics_out(m: quality_metrics.QualityMetrics) -> QualityMetricsOut:
-    return QualityMetricsOut(**dataclasses.asdict(m))
+def _metrics_out(m: quality_metrics.QualityMetrics, wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
+    return QualityMetricsOut(**dataclasses.asdict(m), wet_core=wet_core)
 
 
 def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
@@ -915,8 +930,10 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # same reason metrics is attached here rather than threaded through `quality_of`.
     exposure = _exposure_of(design)
     wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
+    wet_core = (WetCoreOut(**dataclasses.asdict(design.wet_core))
+               if design.wet_core is not None else None)
     return demo.model_copy(update={
-        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics),
+        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics, wet_core),
                                                     "exposure": exposure,
                                                     "wet_privacy": wet_privacy})
     })

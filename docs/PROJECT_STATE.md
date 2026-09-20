@@ -20,6 +20,7 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Multi-Level | IMPLEMENTED_MERGED (backend), not wired to product | [wiki/features/multi-level.md](wiki/features/multi-level.md) |
 | Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
+| Review Page — Quality Panel, Room Details, Refusal Notice | IMPLEMENTED_MERGED | [wiki/features/review-page.md](wiki/features/review-page.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
 | Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; governance since 2026-09-18: owner approves ROOT Issues and merges, the Team Lead executes everything else (child Issues, parallel workers); Telegram control plane; on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
 | Product roadmap (owner-maintained, proposed only) | PROPOSED | [ROADMAP.md](ROADMAP.md) |
@@ -62,6 +63,18 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - Concept Engine v2 (why concepts converge to one spine parti; generative vs retrieval vs hybrid) —
   `CONCEPT_ENGINE_V2_INVESTIGATION.md` (2026-09-20, proposal: hybrid, ROOT + 5 children in
   `.agent/proposals/roadmap/cev2-*.md`; awaiting the owner's approval, nothing implemented).
+
+## Agent-team Issues
+
+- **#24 Work reports and structured failure records** — every failure transition (worker
+  failed/blocked, publish failed, CI red, review rejected, owner reject/change-request, a rate
+  limit, `agentctl block`) emits one structured `failure_record` event and a fixed-template
+  failure milestone comment; a per-Issue Markdown work report (`.agent/logs/reports/<issue>.md`,
+  `agentctl report N`) is regenerated on every state change with a "What was done" section per
+  attempt and a "Failure history" table; `agentctl audit N` shows the failure history before raw
+  events; the Telegram compact status (`status.render_compact`) appends the short root cause next
+  to a BLOCKED/repair-pending class. See the agent-team-workflow Wiki page's Observability section
+  (`work_reports.py`).
 
 ## Agent-team Issues
 
