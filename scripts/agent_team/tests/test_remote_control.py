@@ -210,6 +210,49 @@ def test_create_only_creates_without_approval_and_create_and_queue_sets_it(remot
     assert rep.started == [101]
 
 
+def test_create_issue_numbers_title(remote):
+    """Issue #25: the Gateway's CREATE_ISSUE retitles the new Issue with its own number, and the
+    ✅ reply shows the final numbered title."""
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    draft_title = "[agent] Work reports and structured failure recovery"
+    interp.mapping["new issue"] = _draft_intent(title=draft_title)
+    tg.push_message(40, OWNER, CHAT, "new issue")
+    svc.poll_once(0)
+    create_only, _ = tg.last()["buttons"][0]
+    tg.push_callback(41, OWNER, CHAT, create_only["data"], callback_id="cnum")
+    svc.poll_once(0)
+    number = gh.next_number - 1
+    final_title = f"[agent] #{number} Work reports and structured failure recovery"
+    assert gh.get_issue(number)["title"] == final_title
+    assert final_title in tg.last()["text"]
+
+
+def test_status_lines_show_number_once(remote):
+    """Issue #25: Telegram status and LIST_ISSUES lines for an already-numbered title show the
+    number once (`#24 Work reports ...`, not `#24 #24 ...`)."""
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    numbered_title = "[agent] #24 Work reports and structured failure recovery"
+    gh.add_issue(24, numbered_title, "body", ["agent:queued"])
+    orch.store.track(24, title=numbered_title, risk="LOW", resource_class="LIGHT",
+                     domains=["backend"], dependencies=[], contract={}, state=sm.QUEUED)
+    tg.push_message(42, OWNER, CHAT, "/status")
+    svc.poll_once(0)
+    status_line = [l for l in tg.last()["text"].splitlines() if "#24" in l][0]
+    assert status_line.count("#24") == 1 and "Work reports" in status_line
+
+    tg.push_message(43, OWNER, CHAT, "/issues")
+    svc.poll_once(0)
+    issues_line = [l for l in tg.last()["text"].splitlines() if l.strip().startswith("#24")][0]
+    assert issues_line.count("#24") == 1 and "Work reports" in issues_line
+
+    tg.push_message(44, OWNER, CHAT, "/issue 24")
+    svc.poll_once(0)
+    header_line = [l for l in tg.last()["text"].splitlines() if l.startswith("Issue #24")][0]
+    assert header_line.count("#24") == 1 and "Work reports" in header_line
+
+
 def test_duplicate_button_delivery_cannot_create_the_issue_twice(remote):
     orch, gh, clock, tg, interp, gw, svc, _ = remote
     _pair(remote)
@@ -306,6 +349,26 @@ def test_notification_failure_keeps_ready_state_and_retries_boundedly(remote):
     from agent_team.status import render
     text = render(orch.config, orch.store, orch.resources, probe_machine=False, now=clock())
     assert "READY FOR OWNER" in text and "Telegram: FAILED after 3 attempts" in text
+
+
+def test_status_blocked_line_includes_root_cause(remote):
+    """AC-5: the Telegram compact status shows the short root cause next to the failure class
+    for a BLOCKED Issue (retry budget exhausted after repeated worker failures)."""
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    from agent_team.agent_runner import AgentRunResult, FakeAgentRunner
+    from agent_team.work_reports import short_root_cause
+
+    _add_issue(gh, 9, risk="LOW")
+    failing = FakeAgentRunner(script={"worker": AgentRunResult(ok=False, exit_code=1, error="boom: pytest failed on test_x")})
+    orch2 = _orch(orch.config, gh, clock, failing)
+    for _ in range(3):     # max_repair_attempts=2: 3 straight worker failures exhaust the budget
+        _tick(orch2)
+    rec = orch2.store.get(9)
+    assert rec.state == sm.BLOCKED and rec.failure_class == "WORKER_FAILED"
+    from agent_team.status import render_compact
+    text = render_compact(orch.config, orch2.store, orch2.resources, probe_machine=False, now=clock())
+    expected = short_root_cause(rec.last_error)
+    assert f"#9 / WORKER_FAILED — {expected}" in text
 
 
 def test_details_uses_authoritative_data(remote):

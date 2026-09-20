@@ -32,7 +32,15 @@
 .workspace-areas dt { font-size: 12px; color: #6b7683; }
 .workspace-areas dd { margin: 2px 0 0; font-size: 18px; font-weight: 600; }
 .workspace-rooms, .workspace-checks, .workspace-warnings, .workspace-quality { list-style: none; margin: 0; padding: 0; }
-.workspace-rooms li { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
+.workspace-rooms li { border-bottom: 1px solid #f0f2f5; }
+/* Issue #63: the room row is a button (hover/click selects it for RoomDetails) styled to read
+   exactly as the plain row it replaces — same layout, same font, no button chrome. */
+.workspace-room-select {
+  display: flex; justify-content: space-between; align-items: center; width: 100%;
+  padding: 5px 0; font-size: 14px; font-family: inherit; color: inherit;
+  background: none; border: none; cursor: pointer; text-align: inherit;
+}
+.workspace-room-select:hover, .workspace-room-select[aria-pressed="true"] { color: #1a1a1a; font-weight: 500; }
 .workspace-room-area { color: #6b7683; }
 .workspace-checks li { padding: 4px 0 4px 16px; font-size: 13px; color: #2f6b34; position: relative; }
 .workspace-checks li::after { content: '✓'; position: absolute; right: 0; }

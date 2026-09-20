@@ -19,7 +19,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from agent_team.labels import STATE_LABEL_PREFIX, state_to_label
+from agent_team.labels import STATE_LABEL_PREFIX, state_to_label, STATE_LABEL_NAMES
 
 API = "https://api.github.com"
 
@@ -140,6 +140,14 @@ class GitHubClient:
     def create_issue(self, title: str, body: str, labels: list[str]) -> dict:
         return self.transport.request("POST", f"/repos/{self.repo}/issues", body={"title": title, "body": body, "labels": labels})
 
+    def update_issue(self, number: int, *, title: str | None = None, body: str | None = None) -> dict:
+        fields: dict[str, Any] = {}
+        if title is not None:
+            fields["title"] = title
+        if body is not None:
+            fields["body"] = body
+        return self.transport.request("PATCH", f"/repos/{self.repo}/issues/{number}", body=fields)
+
     def issue_labels(self, number: int) -> list[str]:
         return [l["name"] for l in self.get_issue(number).get("labels", [])]
 
@@ -154,11 +162,12 @@ class GitHubClient:
                 raise
 
     def set_state_label(self, number: int, state: str) -> str:
-        """Replace whatever `agent:*` label is present with the one for `state`. Idempotent."""
+        """Replace whatever STATE label is present with the one for `state`. Idempotent. Marker labels
+        that also live under `agent:` (child, decomposed, hold, rollup) are left alone."""
         target = state_to_label(state)
         current = self.issue_labels(number)
         for l in current:
-            if l.startswith(STATE_LABEL_PREFIX) and l != target:
+            if l in STATE_LABEL_NAMES and l != target:
                 self.remove_label(number, l)
         if target not in current:
             self.add_labels(number, [target])
@@ -353,6 +362,14 @@ class FakeGitHub:
         self.next_number += 1
         return self.add_issue(n, title, body, labels)
 
+    def update_issue(self, number: int, *, title: str | None = None, body: str | None = None) -> dict:
+        issue = self.get_issue(number)
+        if title is not None:
+            issue["title"] = title
+        if body is not None:
+            issue["body"] = body
+        return issue
+
     def issue_labels(self, number: int) -> list[str]:
         return [l["name"] for l in self.get_issue(number)["labels"]]
 
@@ -366,7 +383,7 @@ class FakeGitHub:
     def set_state_label(self, number: int, state: str) -> str:
         target = state_to_label(state)
         for l in self.issue_labels(number):
-            if l.startswith(STATE_LABEL_PREFIX) and l != target:
+            if l in STATE_LABEL_NAMES and l != target:
                 self.remove_label(number, l)
         if target not in self.issue_labels(number):
             self.add_labels(number, [target])
@@ -415,8 +432,11 @@ class FakeGitHub:
         return self.prs[n]
 
     def update_pr(self, number: int, **fields_to_set: Any) -> dict:
-        self.get_pr(number).update(fields_to_set)
-        return self.get_pr(number)
+        pr = self.get_pr(number)
+        if isinstance(fields_to_set.get("base"), str):      # like the API: `base` is the new base branch name
+            pr["base"] = {"ref": fields_to_set.pop("base"), "sha": self.default_branch_sha}
+        pr.update(fields_to_set)
+        return pr
 
     def pr_files(self, number: int) -> list[str]:
         return self.get_pr(number).get("files", [])

@@ -10,6 +10,10 @@ on:
       head_sha:
         required: true
         type: string
+      base_ref:
+        required: false
+        type: string
+        default: main
 
 permissions:
   contents: read
@@ -36,8 +40,8 @@ jobs:
       - name: Resolve merge-base
         id: base
         run: |
-          git fetch --no-tags origin main
-          BASE=$(git merge-base origin/main HEAD)
+          git fetch --no-tags origin "${{ inputs.base_ref }}"
+          BASE=$(git merge-base "origin/${{ inputs.base_ref }}" HEAD)
           echo "sha=$BASE" >> "$GITHUB_OUTPUT"
           echo "merge-base: $BASE"
       - name: Restore cached base snapshot
