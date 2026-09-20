@@ -29,6 +29,7 @@ from app.geometry_domain.constraints import (
 )
 from app.geometry_domain.primitives import MultiRegion
 
+from . import circulation_metrics
 from . import concept_generator as generator
 from . import footprint as footprint_module
 from . import hub_guard
@@ -715,13 +716,27 @@ def _guard_demoted_hub(spec: ArchitecturalSpec, buildable: BuildableRegion,
             continue
         reason = hub_guard.hub_keeps_primary(hub_guard.proportions_of(hub_plan.design),
                                              hub_guard.proportions_of(plan.design))
-        if reason is not None:
-            failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
-                            f"{chosen_index} ({chosen.strategy.value}): {reason}")
-            return candidate, index, hub_plan
-        failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) replaces "
-                        f"the demoted hub (candidate {index}): replacement is better")
-        return chosen, chosen_index, plan
+        if reason is None:
+            failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) "
+                            f"replaces the demoted hub (candidate {index}): replacement is better")
+            return chosen, chosen_index, plan
+        # CIRCULATION QUALITY (Issue #36, hub_guard-style): hub_guard says the hub's bedroom/wet
+        # proportions earn it the stay — but a hub whose realized circulation is not actually more
+        # compact than the replacement's has not delivered the one thing a hub parti exists for
+        # (specs/005). This narrows hub_guard's own decision further; it never overrides it the
+        # other way — a hub is never handed the primary FOR its circulation when hub_guard already
+        # said the replacement wins on proportions (`circulation_prefers`'s own docstring is why).
+        circulation_reason = circulation_metrics.circulation_prefers(
+            circulation_metrics.measure(hub_plan.design), hub_plan.design.gross_area_m2,
+            circulation_metrics.measure(plan.design), plan.design.gross_area_m2)
+        if circulation_reason is None:
+            failures.append(f"circulation guard: candidate {chosen_index} ({chosen.strategy.value}) "
+                            f"replaces the demoted hub (candidate {index}): its circulation is "
+                            f"more compact than the hub's")
+            return chosen, chosen_index, plan
+        failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
+                        f"{chosen_index} ({chosen.strategy.value}): {reason}")
+        return candidate, index, hub_plan
     return chosen, chosen_index, plan
 
 
