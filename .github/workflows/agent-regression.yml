@@ -12,7 +12,11 @@
 # differ (after normalising volatile fields: `ms`/`seconds` timings, `written_at`). This is shadow
 # mode, not a replacement: the single-node path is removed only once several real PRs show the two
 # always agree — see docs/wiki/architecture/agent-team-workflow.md, gate-4 section. The shard count
-# (N = 4) is a workflow constant; see the same Wiki page to change it.
+# (N = 4) is a workflow constant; see the same Wiki page to change it. The base ref's `snapshot`
+# matrix jobs vendor the HEAD checkout's corpus_snapshot.py over the base checkout before running
+# it, so a merge-base that predates `--shard` (true of every real PR until this Issue reaches main)
+# still shards correctly — only the harness script comes from head, run against the base's own
+# `app` code and corpus.
 name: agent-regression
 
 on:
@@ -85,6 +89,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ matrix.ref == 'head' && inputs.head_sha || needs.resolve.outputs.base_sha }}
+      # The base ref is the merge-base, an arbitrary older commit that may predate `--shard`
+      # (it always does on this very PR, since `--shard` is introduced here). Sharding must not
+      # depend on the base's own script supporting the flag: vendor the HEAD checkout's
+      # corpus_snapshot.py (the sharding-capable one) over the base checkout's copy before running
+      # it, so it shards the base's own frozen corpus and calls the base's own `app` code — only
+      # the harness script comes from head, unchanged since Issue #66 (`_run_one` untouched here).
+      - name: Check out the head's corpus_snapshot.py (base ref only)
+        if: matrix.ref == 'base'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.head_sha }}
+          path: head-script
+      - name: Vendor the sharding-capable script onto the base checkout
+        if: matrix.ref == 'base'
+        run: cp head-script/backend/spikes/failure_log_sweep/corpus_snapshot.py backend/spikes/failure_log_sweep/corpus_snapshot.py
       - uses: astral-sh/setup-uv@v6
       - name: Shard snapshot
         working-directory: backend
