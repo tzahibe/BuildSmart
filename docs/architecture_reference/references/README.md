@@ -41,6 +41,22 @@ tuning on material we are not licensed to use that way. The rule is simple:
   — an entry whose `rights` is `metadata-only` must never have files on disk. This is a hard
   invariant, enforced by `test_no_files_for_metadata_only_entries`.
 
+### Structured concept records (Issue #77)
+
+Every entry's optional `concept` block (`circulation_class`, `zoning_split`, `wet_core_grouping`,
+`master_placement`, `entrance_side` — see `schema.json`'s `$defs/concept`) is **descriptive
+metadata**, exactly like every other field in this file, under the same rights policy above: it
+records how the entry's own annotation/tags describe its organisation, never the entry's geometry.
+`app.vertical_slice.concept_patterns.py`'s pattern records cite these blocks (and the census) as
+evidence for a concept *prior* — which patterns are worth trying, in what order — never as a
+lookup into a specific plan's drawing.
+
+Per-plan structured records for the 21 census plans themselves (rather than this file's V1
+archetype entries) are an **optional owner-supplied follow-up**, not part of this Issue: the
+census currently exists only as aggregates in `specs/005-hub-private-wing/spec.md` §1, and turning
+each of the 21 into its own rights-cleared, individually-annotated entry is a real curation
+decision for the owner to make, the same way every entry's `rights` field already is.
+
 ### V1 provenance note
 
 The V1 set (`index.json`) is a scaffolding/coverage set: every entry is currently `metadata-only`,
