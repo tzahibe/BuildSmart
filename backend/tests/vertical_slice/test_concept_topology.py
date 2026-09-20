@@ -8,7 +8,9 @@ from app.vertical_slice import concept_generator as cg
 from app.vertical_slice import geometry_fixtures as F
 from app.vertical_slice.concept_spec import (
     CirculationClass,
+    apply_architect_hints,
     concept_spec_of,
+    hints_from_architect_spec,
     topologically_distinct,
     verify_class,
 )
@@ -155,3 +157,86 @@ def test_topologically_distinct_is_pure_and_deterministic():
     assert topologically_distinct(a, b) is False
     # Calling it again gives the exact same answer (no hidden state).
     assert topologically_distinct(a, b) is False
+
+
+# ------------------------------------------------------------------ Architect Model hints (AC-5)
+
+def test_architect_model_hints_never_override_authoritative_requirements():
+    """A fake `ArchitectModelGateway` whose response hints at an OPEN-plan (no hallway) concept —
+    contradicting a real SPINE candidate's own authoritative `circulation_class` — must never
+    change that candidate's `ConceptSpec`: the hint is attached for the record and the
+    contradiction is dropped and reported, the same precedent
+    `app.architect.authoritative_merge.merge_authoritative_requirements` sets for BuildSmart's own
+    hard requirements winning over anything a model returned."""
+    from app.architect.gateway import ArchitectModelGateway
+    from app.architect.models import (
+        ArchitectModelRequest,
+        ArchitecturalSpec as ArchitectModelSpec,
+        Circulation,
+        ProgramItem,
+        SiteSpec,
+        Zone,
+    )
+
+    class FakeGateway(ArchitectModelGateway):
+        """Returns a fixed response naming an OPEN-plan circulation strategy — deliberately the
+        opposite of `requires_hallway=True`, so its hint contradicts a SPINE candidate on
+        purpose."""
+
+        def generate(self, request: ArchitectModelRequest) -> ArchitectModelSpec:
+            return ArchitectModelSpec(
+                program=[ProgramItem(room_type="living_room", count=1)],
+                zones=[Zone(name="public", room_types=["living_room"])],
+                relationships=[],
+                circulation=Circulation(entry_room_type="living_room", requires_hallway=False),
+            )
+
+    site, plot = _SITES["A_rectangle"]
+    buildable = build_buildable_region(site)
+    adapted = adapt(buildable)
+    spec = ArchitecturalSpec(PlotSpec(*plot), _PROGRAMS["3BR"])
+    generated = cg.generate_concepts(spec, list(adapted.candidates))
+    spine = next(c for c in generated.candidates
+                if c.circulation_class is CirculationClass.SPINE)
+    authoritative = concept_spec_of(spine)
+    assert authoritative.circulation_class is CirculationClass.SPINE
+
+    gateway = FakeGateway()
+    request = ArchitectModelRequest(brief="a house", site=SiteSpec(width_m=10.0, depth_m=10.0))
+    architect_spec = gateway.generate(request)
+    hints = hints_from_architect_spec(architect_spec)
+    assert hints.circulation_style_hint == "OPEN"
+
+    merged, dropped = apply_architect_hints(authoritative, hints)
+    # Attached for the record...
+    assert merged.architect_hints == hints
+    # ...but the authoritative fact is untouched: OPEN never maps to a class, so it cannot drop
+    # anything (it isn't precise enough to contradict SPINE) — the merged spec keeps SPINE either way.
+    assert merged.circulation_class is CirculationClass.SPINE
+    assert merged.zoning == authoritative.zoning
+    assert merged.wet_core_groups == authoritative.wet_core_groups
+
+    # Now force an UNAMBIGUOUS contradiction: a hallway-requiring ("SPINE") hint compared against
+    # a candidate this Issue's own generator built as FRONT_BAND.
+    front_band = next(c for c in generated.candidates
+                      if c.circulation_class is CirculationClass.FRONT_BAND)
+    front_band_spec = concept_spec_of(front_band)
+    contradicting_hints = hints_from_architect_spec(
+        ArchitectModelSpec(
+            program=[ProgramItem(room_type="living_room", count=1)],
+            zones=[Zone(name="public", room_types=["living_room"])],
+            relationships=[],
+            circulation=Circulation(entry_room_type="living_room", requires_hallway=True),
+        )
+    )
+    assert contradicting_hints.circulation_style_hint == "SPINE"
+
+    merged2, dropped2 = apply_architect_hints(front_band_spec, contradicting_hints)
+    # The hint is dropped and reported...
+    assert len(dropped2) == 1
+    assert dropped2[0].field == "circulation_class"
+    assert dropped2[0].hinted_value == "SPINE"
+    assert dropped2[0].authoritative_value == "FRONT_BAND"
+    # ...and NEVER applied: the authoritative FRONT_BAND fact is unchanged.
+    assert merged2.circulation_class is CirculationClass.FRONT_BAND
+    assert merged2.architect_hints == contradicting_hints
