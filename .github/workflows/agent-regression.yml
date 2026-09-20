@@ -89,6 +89,7 @@ jobs:
       - name: Shard snapshot
         working-directory: backend
         run: |
+          mkdir -p "$GITHUB_WORKSPACE/.agent/ci"
           uv sync --group dev
           uv run python spikes/failure_log_sweep/corpus_snapshot.py \
             --shard ${{ matrix.shard }}/4 --workers 4 \
@@ -171,6 +172,8 @@ jobs:
           ref: ${{ inputs.head_sha }}
           fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
+      - name: Ensure .agent/ci exists
+        run: mkdir -p "$GITHUB_WORKSPACE/.agent/ci"
       - name: Base snapshot (clean checkout at merge-base, single-node ground truth)
         if: needs.resolve.outputs.cache_hit != 'true'
         run: |
