@@ -18,6 +18,33 @@ metric) or is planned (an Issue reference), what a **reference comparison** agai
 professional plans adds beyond a synthetic threshold, what only **semantic review** (a person, or
 an LLM reviewer prompt) can judge, and a one-line "how a reviewer applies it."
 
+## Reference benchmark (Issue #32)
+
+`app.vertical_slice.reference_benchmark.benchmark(design, references) -> BenchmarkReport`
+(`backend/scripts/reference_benchmark.py --context <id>` prints it) produces one machine-generated
+`SectionFinding` per rubric section for a realized plan, six of them with a real deterministic
+value today, compared against the curated reference-plan index
+(`docs/architecture_reference/references/index.json`) filtered to entries of the same
+`footprint_family` — metadata and ratios derived from that index only, never a reference plan's own
+geometry (the V1 set carries none on disk; every entry is `rights: "metadata-only"`).
+
+The benchmark's own six section codes are lettered exactly as Issue #32's contract named them —
+A, B, C, H, K, L — which does **not** line up with this rubric's own A–O lettering for the same or
+adjacent topics (this rubric's A is Room Proportion, not Entrance; its H is Entrance, not Exposure;
+and so on). Content mapping, this rubric's section -> the benchmark's own letter:
+
+| This rubric's section | Benchmark's own letter | What the benchmark measures |
+|---|---|---|
+| H. Entrance & Arrival Sequence | **A** | does the entrance open into a public/circulation room |
+| D. Circulation Efficiency & Compactness | **B** | dedicated circulation m², its share of the plan, corridor length. Its `reference_range` is the matching-family entries' own `total_area_sqm` (min, max) — genuinely computed from `index.json`, since the index carries no circulation field itself; the "high relative dedicated circulation" wording instead compares the plan's own circulation SHARE against a fixed 8-14% engineering floor (the documented census band), disclosed as fixed rather than claimed to vary by family. |
+| J. Adjacency & Privacy Zoning | **C** | is each of PUBLIC/PRIVATE/SERVICE a spatially contiguous group |
+| C. Exterior Exposure & Daylight | **H** | share of daylight-required rooms with a window (C8 data) |
+| K. Dead Space & Structural Validity | **K** (same letter, same topic) | residual interior area (C2; always 0 — a floor, not a band) |
+| — (no existing rubric section; a new data-integrity fact) | **L** | how far a room's declared area sits from its own width×depth |
+
+Every other rubric section (A, B, E, F, G, I, L, M, N, O in this document's own lettering) has no
+signal wired into the benchmark yet and comes back `not_measured` from `benchmark()`.
+
 ## A. Room Proportion & Aspect Ratio
 
 A habitable room should read as a room, not a corridor with a bed in it — its long/short ratio
@@ -191,14 +218,23 @@ into.
 - **Deterministic signal**: C13 (declared access topology is physically realized) and C17
   (bathroom access matches requirements) cover declared-vs-realized correctness; no check exists
   yet specifically for the bedroom-to-bedroom anti-pattern or general door-topology quality.
-  Planned: ROADMAP P0 "Doors + Access Topology" (no Issue number assigned yet).
+  Planned: ROADMAP P0 "Doors + Access Topology" (no Issue number assigned yet). **Wet-room privacy
+  and access quality (Issue #37, `wet_privacy.py`)**: per wet room, a `WetPrivacy` record —
+  entered-from zone class (private/circulation/public), door facing, a real segment test for a
+  direct sight line from a facing public room, `public_exposure_score`, `circulation_obstruction`
+  (door leaf vs. corridor width) and `adjacency_quality` (F's own relation, read per-room). C29
+  fails closed only on a wet room entered directly from KITCHEN or DINING; a corridor-access wet
+  room, however its facing geometry scores, is never refused — that score joins ranking
+  (`candidate_privacy_key`) as a soft signal instead, on `QualityOut.wet_privacy`.
 - **Reference comparison**: none of the 21 reference plans route through a bedroom to reach another
   room; this is a hard convention in professional practice, not merely a preference.
 - **Semantic review**: whether a door's swing direction and hardware side make sense for the room
   (does it block a fixture or a wardrobe when open) — see also anti-pattern "door-fixture clash" in
   `anti_patterns.md`.
 - **How a reviewer applies it**: for every private room, list what other rooms are reachable only
-  by passing through it; any non-empty list for a bedroom is a flag.
+  by passing through it; any non-empty list for a bedroom is a flag. For every wet room, read its
+  `WetPrivacy` record before judging the drawing by eye: a high `public_exposure_score` on a
+  corridor-access room (never refused by C29) is exactly the case worth a second look.
 
 ## J. Adjacency & Privacy Zoning
 
@@ -208,7 +244,19 @@ happening at a clear boundary (a hall, a hub) rather than interleaved room by ro
 
 - **Deterministic signal**: `ZoneGroup` (`PUBLIC`/`SERVICE`/private, `concept_generator.py`)
   already exists as a planner-side concept; no deterministic realized-geometry check measures
-  whether the *delivered* zoning stayed coherent (as opposed to what the planner intended).
+  whether the *delivered* zoning stayed coherent (as opposed to what the planner intended). **Wet-
+  core / plumbing efficiency (Issue #44, `wet_core.py`)** covers the SERVICE half of this section
+  for wet rooms specifically: `shared_wall_length_m` (total interior wall shared between two wet
+  rooms), `clusters`/`cluster_count` (every group of wet rooms connected wall-to-wall through other
+  wet rooms — a coherent SERVICE sub-zone reads as one cluster, a scattered one as several),
+  `kitchen_adjacent_count` (wet rooms sharing a wall with the kitchen, this section's PUBLIC/
+  SERVICE boundary case) and `plumbing_complexity_index` (an estimate of independent plumbing
+  stacks/runs — connected components over wet rooms *and* the kitchen; lower is better). A soft
+  ranking preference only (`candidate_wet_core_key`/`better_candidate`), never a gate — no plan is
+  refused for a low cluster count. `wet_core_alignment` extends the same idea across levels: how
+  many of an upper level's wet rooms sit directly over a wet room below (a real vertical-stack
+  check on the REALIZED footprints of two levels), read-only data, not wired into any single-level
+  pipeline call. On `QualityOut.metrics.wet_core` (`app.demo.contract`).
 - **Reference comparison**: the guest-WC spec's `PublicAccess` vocabulary
   (`specs/009-guest-wc-placement/spec.md`) already encodes an ordered zone-access preference
   (foyer/hall → public circulation → living room, never through a bedroom or kitchen) for one

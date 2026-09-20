@@ -205,8 +205,34 @@ class Gateway:
     def _do_ask(self, cmd: OwnerCommand) -> Reply:
         from agent_team.status import render_compact
         evidence = "STATUS:\n" + render_compact(self.config, self.store, self.orch.resources, probe_machine=False, now=self.clock())
+        evidence += "\n\nINTEGRATION / ROLLUP:\n" + self._rollup_text()
         evidence += "\n\nRECENT EVENTS:\n" + "\n".join(f"#{e['issue_id']} {e['kind']}: {str(e['payload'])[:200]}" for e in self.store.events(None, limit=40))
         return Reply(self.interpreter.answer(cmd.args.get("question") or cmd.raw_text, evidence, self._context(cmd.chat_id)))
+
+    # -- weekend / holiday integration mode -----------------------------------------------
+    def _rollup_text(self) -> str:
+        from agent_team import integration_mode as im
+        from agent_team.protected_periods import Period
+        info = self.orch.rollup()
+        p = self.orch.period or (Period.from_dict(info["period"]) if info and info.get("period") else None)
+        children = self.orch.integrations()
+        if info:
+            rec = self.store.get(info["issue"])
+            info = {**info, "state": rec.state if rec else "?"}
+        return im.rollup_summary_text(p, children, self.orch.decisions(since=float(self.store.get_meta("period_started_at") or 0) or None), info)
+
+    def _do_rollup_status(self, cmd: OwnerCommand) -> Reply:
+        return Reply(self._rollup_text())
+
+    def _do_rollup_exclude(self, cmd: OwnerCommand) -> Reply:
+        n = cmd.args.get("number")
+        if not n:
+            return Reply("איזה Issue להוציא מהחבילה? ציין מספר.", ok=False)
+        res = self.orch.rollup_exclude(int(n), source="telegram", who=cmd.user_id, reason=str(cmd.args.get("reason") or cmd.raw_text or "")[:300])
+        self._audit(cmd, res["result"], {"issue": int(n), "reason": res.get("reason"), "reverted": res.get("reverted")})
+        if res["result"] != "SUCCESS":
+            return Reply(f"לא הוצאתי את #{n}: {res.get('reason')}", ok=False)
+        return Reply(f"↩️ #{n} הוצא מחבילת האינטגרציה (revert {res['reverted'][:8]}). ה-rollup PR #{res.get('rollup_pr')} מאומת מחדש; תקבל הודעת READY חדשה.")
 
     # -- issue drafts ---------------------------------------------------------------------
     def _validate_draft(self, title: str, body: str) -> list[str]:

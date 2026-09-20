@@ -383,7 +383,8 @@ def _realize_upper(spec: ArchitecturalSpec, candidate: ConceptCandidate, solve, 
         site_plan, corridor=spec.program.corridor, wet_rooms=candidate.wet_rooms,
         entry_seed="STAIR", skip_site_checks=True)
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations, interior_doors,
-                      entrance_door, windows, furniture, site_plan, over_preferred=candidate.over_preferred)
+                      entrance_door, windows, furniture, site_plan,
+                      over_preferred=candidate.over_preferred, wet_rooms=candidate.wet_rooms)
     safety = gp._check_safety(design, buildable.require_known(), buildable.require_known().__class__())
     return gp.RealizedPlan(index=0, concept=candidate, design=design, validation=validation, safety=safety)
 

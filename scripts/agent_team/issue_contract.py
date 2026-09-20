@@ -130,7 +130,7 @@ class BudgetRule:
         return self.kind
 
 
-AUTH_SOURCES = ("owner", "inherited")
+AUTH_SOURCES = ("owner", "inherited", "rollup")   # rollup: the orchestrator's integration-period PR, authorized by its children's ROOTs
 _AUTH_KEYS = ("source", "root_issue", "parent_issue", "derived_by", "scope_inherited")
 _KV_RE = re.compile(r"^\s*[-*]?\s*`?([a-z_]+)`?\s*[:=]\s*(.+?)\s*$")
 
@@ -176,7 +176,7 @@ def parse_authorization(text: str, problems: list[str] | None = None) -> Authori
 
     def num(key: str) -> int | None:
         v = values.get(key)
-        if v is None:
+        if v is None or v.lower() in ("none", "-"):
             return None
         m = re.fullmatch(r"#?(\d+)", v)
         if not m:

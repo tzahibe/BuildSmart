@@ -112,6 +112,24 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
     if store.get_meta("scheduler_paused", "0") == "1":
         src = store.get_meta("scheduler_pause_source", "") or "owner"
         lines.insert(0, f"*** SCHEDULER PAUSED ({'usage guard — resumes automatically' if src == 'usage_guard' else 'by the owner'}) — no new claims, no new repairs ***\n")
+    if store.get_meta("claims_frozen", "0") == "1":
+        lines.insert(0, "*** NEW CLAIMS FROZEN by the owner — in-flight work (reviews, repairs, integrations, rollup) continues ***\n")
+    period_raw = store.get_meta("protected_period")
+    rollup_raw = store.get_meta("rollup")
+    if period_raw or rollup_raw:
+        try:
+            pr_line = ""
+            if period_raw:
+                pd = json.loads(period_raw)
+                pr_line = f"PROTECTED PERIOD: {pd['kind']} {pd['name']} {pd['start']} → {pd['end']} — integrating into {pd['branch']} (main untouched)"
+            if rollup_raw:
+                rd = json.loads(rollup_raw)
+                pr_line += (" | " if pr_line else "") + f"ROLLUP: Issue #{rd['issue']} / PR #{rd['pr']} ({len(rd.get('children', []))} Issues)"
+            lines.insert(0, pr_line + "\n")
+        except Exception:  # noqa: BLE001
+            pass
+    section("INTEGRATED (in the period's branch, land with the rollup)",
+            [f"#{r.issue_id} PR #{r.pr_number} `{(r.validated_commit or '')[:12]}` — {r.title[:50]}" for r in by_state.get(sm.INTEGRATED, [])])
     usage_raw = store.get_meta("usage_last")
     if usage_raw:
         try:
@@ -151,6 +169,13 @@ def render_compact(config: Config, store: StateStore, resources: ResourceManager
     if store.get_meta("scheduler_paused", "0") == "1":
         src = store.get_meta("scheduler_pause_source", "") or "owner"
         out.append("⏸ מושהה אוטומטית — מכסת השימוש; יחודש לבד כשהיא תתחדש\n" if src == "usage_guard" else "⏸ מושהה — אין claims/תיקונים חדשים (/resume להמשך)\n")
+    period_raw = store.get_meta("protected_period")
+    if period_raw:
+        try:
+            pd = json.loads(period_raw)
+            out.append(f"📅 מצב {'סוף שבוע' if pd['kind'] == 'SHABBAT' else 'חג'} ({pd['start']} → {pd['end']}): מיזוגים ל-{pd['branch']}, main לא נגע\n")
+        except Exception:  # noqa: BLE001
+            pass
     usage_raw = store.get_meta("usage_last")
     if usage_raw:
         try:
@@ -176,6 +201,7 @@ def render_compact(config: Config, store: StateStore, resources: ResourceManager
     block("ממתינים", waiting)
     block("CI", [f"#{r.issue_id} / PR #{r.pr_number} / {r.state.lower().replace('_', ' ')}" for r in by.get(sm.PR_OPEN, []) + by.get(sm.CI, []) + by.get(sm.REVIEW, [])])
     block("מוכן לאישורך (READY FOR OWNER)", [f"PR #{r.pr_number} / #{r.issue_id} {_title(r, 45)} / SHA {(r.validated_commit or '')[:8]}" for r in by.get(sm.READY_FOR_OWNER, [])])
+    block("אוחד לענף האינטגרציה (יגיע ב-rollup)", [f"#{r.issue_id} / PR #{r.pr_number}" for r in by.get(sm.INTEGRATED, [])])
     block("מוזג (smoke רץ)", [f"#{r.issue_id} / PR #{r.pr_number}" for r in by.get(sm.MERGED, [])])
     blocked_rows = []
     for r in by.get(sm.BLOCKED, []):
