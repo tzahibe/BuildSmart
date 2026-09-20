@@ -59,7 +59,7 @@ HEAVY
 
 ### Dependencies
 
-none
+#77, #76
 
 ### Required locks
 

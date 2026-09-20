@@ -58,6 +58,24 @@ done) and "Plan Quality Evaluation / Benchmark" (P3).
 | Issue 12 Master-suite access & privacy | #42 | #37, #38 | — |
 | Issue 13 Dead space / residual pocket detection | #43 | #36, #22 | Hallways / Circulation Quality (dead-end part) |
 
+## Concept Engine v2 — ROOT #74 (owner-approved 2026-09-20, decomposed)
+
+Evidence and the three-way comparison (generative / retrieval / hybrid → hybrid): `docs/CONCEPT_ENGINE_V2_INVESTIGATION.md`.
+Owner conditions: the PRIMARY plan stays unchanged until the owner has seen #78's results; #79 is conditional
+only (a draft until an explicit decision after #78).
+
+| Child | Issue | Depends on |
+|---|---|---|
+| ConceptSpec contract, verified circulation-class tag, topological distinctness, corpus diversity baseline | #75 | — |
+| Structured concept pattern prior (census aggregates + reference archetypes), deterministic lookup | #77 | #75 |
+| Concept-level score from existing realized metrics + bounded realize–measure–adapt loop | #76 | #75 |
+| Pipeline insertion behind `CONCEPT_ENGINE_V2_ENABLED`: one plan per circulation class, ReviewPage label, latency budget | #78 | #77, #76 |
+| BRANCHED circulation class via a seam-level opening (conditional, draft) | #79 | #78 + owner decision |
+
+Merged from the old roadmap: "Alternative Plans / Diversity" and "Concept Quality / Decomposition Engine".
+#36 (circulation metrics) and #43 (dead space) feed the loop of #76/#78 when they land; #39/#41 consume the
+concept tags later.
+
 ## P2 product ROOTs
 
 | Owner item | ROOT | Depends on | Merged old-roadmap topics |
@@ -82,6 +100,8 @@ done) and "Plan Quality Evaluation / Benchmark" (P3).
                         └─ #38 door swing ──┬─ #39, #42
                                             └─ #45 wall model (also #19) ──► #46
 #34 area consistency (independent)      #35 safe room (independent)
+#74 Concept Engine v2 ──► #75 ──┬─ #77 prior ──┬─ #78 pipeline (flag) ──► #79 branched (conditional)
+                                └─ #76 score ──┘   (#36, #43 feed #76/#78 when merged)
 ```
 
 ## Execution waves (3 workers; locks serialize geometry-core / validator-core work)
@@ -102,8 +122,8 @@ done) and "Plan Quality Evaluation / Benchmark" (P3).
   (display consistency is #34).
 - **Multi-Level Phase 2**, **Stairs / Vertical Core**, **Parking / Garage**, **Balconies / Patios / Outdoor
   Connections** (rubric section N), **Storage / Closets / Utility** beyond layout objects.
-- **Alternative Plans / Diversity**, **Concept Quality / Decomposition Engine**, **Massing selection
-  quality** (incl. the recorded L-orientation eligibility-ordering follow-up), **Seam / Shape Recovery**.
+- **Massing selection quality** (incl. the recorded L-orientation eligibility-ordering follow-up), **Seam /
+  Shape Recovery** (Alternative Plans / Diversity and the Concept Engine are ROOT #74 now).
 - **North / Orientation / Solar reasoning** beyond the orientation field, **Regulation / Compliance
   Engine** (separate corpus — never mixed with the architectural references), **Clarification Agent**,
   **Plan Editing / Conversational Changes**, **Drag / Resize / Align UI**, **ReviewPage completion**,

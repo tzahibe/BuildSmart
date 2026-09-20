@@ -62,7 +62,8 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
 - Concept Engine v2 (why concepts converge to one spine parti; generative vs retrieval vs hybrid) —
   `CONCEPT_ENGINE_V2_INVESTIGATION.md` (2026-09-20, proposal: hybrid, ROOT + 5 children in
-  `.agent/proposals/roadmap/cev2-*.md`; awaiting the owner's approval, nothing implemented).
+  `.agent/proposals/roadmap/cev2-*.md`) — approved by the owner 2026-09-20 as ROOT #74 (children #75–#79,
+  #79 conditional); implementation is in progress through the agent team, nothing merged yet.
 
 ## Agent-team Issues
 

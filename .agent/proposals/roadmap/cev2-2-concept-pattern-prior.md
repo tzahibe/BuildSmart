@@ -59,11 +59,11 @@ MEDIUM
 
 ### Dependencies
 
-none
+#75
 
 ### Required locks
 
-knowledge-index (shared), docs (shared)
+knowledge-index (shared)
 
 ### Verification plan
 

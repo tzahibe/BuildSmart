@@ -31,6 +31,9 @@ of 21 professional plans has a room lobby in ~18/21 and a straight corridor in 0
 4. The stage wired into `run_general` behind `CONCEPT_ENGINE_V2_ENABLED` (default False): flag-off
    byte-identical; flag-on, the alternatives become one best plan per circulation class with a concept
    label the ReviewPage shows (CE2-4). A BRANCHED class is a decision-gated child (CE2-5).
+   **Owner conditions (approval of 2026-09-20):** (a) the PRIMARY plan stays unchanged until the owner has
+   seen CE2-4's results — no child of this ROOT may change which plan is primary; (b) CE2-5 is conditional
+   only: it exists as a draft child and is queued solely on the owner's explicit decision after CE2-4.
 5. Acceptance number of the ROOT: on the frozen corpus with the flag on, the share of PLANNED briefs whose
    shown set contains ≥ 2 distinct circulation classes rises from 0 % to ≥ 40 %, with LOST 0 and
    primary_signature_changes 0.
@@ -68,7 +71,7 @@ HEAVY
 
 ### Required locks
 
-planner-core, geometry-core (shared), knowledge-index (shared), frontend-review (shared)
+planner-core, geometry-core, validator-core, knowledge-index (shared), frontend-review (shared)
 
 ### Verification plan
 

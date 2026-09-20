@@ -2,6 +2,8 @@
 
 ### Goal
 
+**Conditional child (owner, 2026-09-20): a draft until the owner explicitly decides after #78's results; never queued by the Team Lead on its own.**
+
 Add the one census-relevant circulation class the engine cannot express today: a branched (L/T) hall made of
 two HALL leaves in different subtrees, joined by an opening created at the seam level, so the access graph
 and the walls agree. Gated on the owner's decision after CE2-4's diversity numbers.
@@ -51,7 +53,7 @@ HEAVY
 
 ### Dependencies
 
-none
+#78
 
 ### Required locks
 
