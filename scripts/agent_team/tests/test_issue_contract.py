@@ -8,9 +8,11 @@ from agent_team.issue_contract import (
     ContractError,
     IssueContract,
     manifest_json,
+    numbered_title,
     parse_contract,
     render_body,
     slugify,
+    strip_title_number,
     verification_manifest,
 )
 
@@ -38,6 +40,26 @@ def test_slugify_bounds():
     assert slugify("[agent] Add   Guest WC placement!!") == "add-guest-wc-placement"
     assert len(slugify("x" * 200)) <= 40
     assert slugify("!!!") == "task"
+
+
+def test_slug_ignores_title_number():
+    assert slugify("[agent] #17 Architectural-quality baseline") == slugify("[agent] Architectural-quality baseline")
+    # a title without a number is unchanged by the new stripping
+    assert slugify("[agent] Architectural-quality baseline") == "architectural-quality-baseline"
+
+
+def test_numbered_title_helper():
+    rest = "Work reports and structured failure recovery"
+    no_prefix = numbered_title(24, rest)
+    agent_only = numbered_title(24, f"[agent] {rest}")
+    correct_number = numbered_title(24, f"[agent] #24 {rest}")
+    stale_number = numbered_title(24, f"[agent] #17 {rest}")
+    assert no_prefix == agent_only == correct_number == stale_number == f"[agent] #24 {rest}"
+    # applying it again is a no-op (idempotent)
+    assert numbered_title(24, no_prefix) == no_prefix
+    # strip_title_number is its inverse for display: it removes only the duplicated number
+    assert strip_title_number(no_prefix) == f"[agent] {rest}"
+    assert strip_title_number(rest) == rest
 
 
 def test_render_round_trip(valid_body):

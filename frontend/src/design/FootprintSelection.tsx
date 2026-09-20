@@ -6,7 +6,6 @@ import {
   type FootprintOptionsResponse,
   FOOTPRINT_SHAPE_LABELS,
   footprintAreaToleranceM2,
-  generateFootprintOptions,
   isFootprintAreaValid,
   isFootprintStillValid,
   NO_BUILDABLE_AREA_CODE,

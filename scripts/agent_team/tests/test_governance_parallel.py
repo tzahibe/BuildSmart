@@ -17,7 +17,7 @@ import pytest
 from agent_team import state_machine as sm
 from agent_team.agent_runner import FakeAgentRunner
 from agent_team.config import ConfigError, load_config
-from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, parse_contract, render_body
+from agent_team.issue_contract import Authorization, ContractError, child_scope_problems, numbered_title, parse_contract, render_body
 from agent_team.labels import CHILD_LABEL, DECOMPOSED_LABEL, HOLD_LABEL, metadata_labels
 from agent_team.tests.helpers import KNOWN_LOCKS, make_contract
 from agent_team.tests.test_orchestrator_lifecycle import (  # noqa: F401
@@ -312,6 +312,7 @@ def test_team_lead_may_create_child_issues_but_not_root_authorization(env, capsy
     n = gh.next_number - 1                         # the created child (FakeGitHub numbers new issues from 100)
     labels = gh.issue_labels(n)
     assert CHILD_LABEL in labels and "agent:queued" in labels and "owner:approved" not in labels
+    assert gh.get_issue(n)["title"] == numbered_title(n, "a child")    # #25: child Issues are numbered on creation too
     body = gh.get_issue(n)["body"]
     assert "### Authorization" in body and f"root_issue: #{ROOT}" in body and "derived_by: team-lead" in body
     # ... but never for a ROOT the owner did not approve
@@ -378,3 +379,18 @@ def test_decomposed_root_closes_when_every_child_is_done(env):
     assert gh.get_issue(ROOT)["state"] == "closed" and "agent:done" in gh.issue_labels(ROOT)
     assert any("ROOT #120 closed" in r for r in rep.reconciled) or orch.store.get_meta("root_closed:120") == "1"
     assert any(n == ROOT and "Every child Issue" in body for n, body in gh.comments)
+
+
+def test_frozen_claims_stop_new_issues_but_in_flight_work_continues(env):
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    _add_issue(gh, 80)
+    _tick(orch)                                              # #80 is in flight (PR open)
+    _add_issue(gh, 81)
+    orch.set_claims_frozen(True, who="owner", reason="review the app first")
+    rep = _tick(orch)
+    assert rep.started == [] and "frozen" in rep.waiting[81]
+    rec = _to_ready(orch, gh, 80)                            # CI + review of the in-flight PR still run
+    assert rec.state == sm.READY_FOR_OWNER
+    orch.set_claims_frozen(False)
+    assert _tick(orch).started == [81]

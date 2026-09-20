@@ -79,9 +79,23 @@ REVIEW_VERDICT_SCHEMA: dict = {
         "silent_fallback": {"type": "boolean"},
         "tests_meaningful": {"type": "boolean"},
         "architecture_appropriate": {"type": "boolean"},
+        "architectural_assessment": {
+            "type": "object",
+            "description": "rubric section (e.g. 'A. Room Proportion & Aspect Ratio') -> a short note "
+                            "on how this PR was judged against it; {} when the architectural reference "
+                            "did not apply to this PR's domains.",
+            "additionalProperties": {"type": "string"},
+        },
+        "overfits_one_plan": {
+            "type": "boolean",
+            "description": "true if the change only helps the repro context and would not generalize, "
+                            "or trades a real gain for hidden regression elsewhere. An APPROVE with this "
+                            "true is downgraded to REQUEST_CHANGES by the orchestrator.",
+        },
     },
     "required": ["verdict", "summary", "ac_assessment", "findings", "unrelated_changes", "hidden_behavior_changes",
-                 "tolerance_hacks", "silent_fallback", "tests_meaningful", "architecture_appropriate"],
+                 "tolerance_hacks", "silent_fallback", "tests_meaningful", "architecture_appropriate",
+                 "architectural_assessment", "overfits_one_plan"],
 }
 
 DOMAIN_LEAD_BRIEF_SCHEMA: dict = {

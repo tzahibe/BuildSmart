@@ -80,11 +80,52 @@ def repair_prompt(c: IssueContract, *, worktree: str, branch: str, attempt: int,
                   failure_summary=failure_summary, evidence=evidence, contract_summary=contract_summary(c))
 
 
+# Domains whose PRs get the architectural reference block: geometry/validator modules and the
+# backend planner. "backend" also covers non-planner backend work, so the block is a pointer, not
+# a demand — the six questions apply whenever it is shown.
+ARCHITECTURAL_REFERENCE_DOMAINS = ("geometry", "validator", "backend")
+
+ARCHITECTURAL_REFERENCE_BLOCK = """## Architectural reference
+This PR's domains ({domains}) include geometry, validator or backend planner modules. Judge it
+against the accepted architectural principles, not only the deterministic checks:
+
+- `docs/architecture_reference/quality_rubric.md` — the A–O quality rubric; each section's
+  "How a reviewer applies it" annotation is the method (deterministic signal first, semantic
+  judgment second).
+- `docs/architecture_reference/anti_patterns.md` — the anti-pattern library; check whether the
+  diff introduces, fixes, or leaves in place an entry's Description/Detection/Violates pattern.
+
+Answer these six questions and record the relevant ones in `architectural_assessment` (rubric
+section -> your note):
+1. Does the change satisfy the Issue as written?
+2. Does it improve the specific architectural principle it targets?
+3. Is it consistent with the quality rubric, not just the hard validation gates?
+4. Does it avoid overfitting one plan — a fix that only helps the repro context and would not
+   generalize, or trades a real gain for a hidden regression elsewhere?
+5. Does the deterministic evidence (CI gates, regression report) actually support the claimed
+   behavior change?
+6. Are the regressions this PR causes expected and within the declared regression budget?
+
+Set `overfits_one_plan: true` if question 4's answer is no."""
+
+ARCHITECTURAL_REFERENCE_NOT_APPLICABLE = (
+    "## Architectural reference\nThis PR's domains do not include geometry, validator or backend "
+    "planner modules — the quality rubric and anti-pattern library do not apply here. Set "
+    "`architectural_assessment` to `{}` and `overfits_one_plan` to `false`.")
+
+
+def architectural_reference(c: IssueContract) -> str:
+    if any(d in ARCHITECTURAL_REFERENCE_DOMAINS for d in c.domains):
+        return ARCHITECTURAL_REFERENCE_BLOCK.format(domains=", ".join(c.domains))
+    return ARCHITECTURAL_REFERENCE_NOT_APPLICABLE
+
+
 def reviewer_prompt(c: IssueContract, *, ci_evidence: str, regression_report: str, worker_report: str,
                     files_changed: str, diff: str) -> str:
     semantic = "\n".join(f"- {t.ac}: {t.target}" for t in c.verification if t.vtype == "SEMANTIC_REVIEW") or "- none"
     return render("reviewer", **contract_values(c), ci_evidence=ci_evidence, regression_report=regression_report,
-                  worker_report=worker_report, files_changed=files_changed, diff=diff, semantic_criteria=semantic)
+                  worker_report=worker_report, files_changed=files_changed, diff=diff, semantic_criteria=semantic,
+                  architectural_reference=architectural_reference(c))
 
 
 def domain_lead_prompt(*, domain: str, question: str, worktree: str) -> str:

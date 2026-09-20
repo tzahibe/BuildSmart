@@ -184,6 +184,21 @@ def massing_of(candidate) -> str:
     return f"{len(candidate.concept.fixture.wings)}W"
 
 
+def _entrance_rank(plan: "RealizedPlan") -> int:
+    """0 when the realized front door opens into HALL/CIRCULATION, 1 for LIVING, 2 otherwise.
+
+    Used only to RANK candidates that already validate (`run_general`'s main loop): a plan this
+    bad on rank 2 already fails C23 and is never `.ok`, so 2 only matters as a total-order floor.
+    """
+    target = plan.design.entrance_door.b
+    roles = next((r.roles for r in plan.design.rooms if r.zone_id == target), ())
+    if {"HALL", "CIRCULATION"} & set(roles):
+        return 0
+    if "LIVING" in roles:
+        return 1
+    return 2
+
+
 #: Zone role -> the letter it takes in a family signature. Wet rooms are resolved separately: a
 #: wet room with a door onto the hall is `W`, one entered from a bedroom (an ensuite) is `E`.
 _FAMILY_LETTERS = {
@@ -454,6 +469,12 @@ def run_general(buildable: BuildableRegion, *,
     # that would have validated were never reached.
     plan: RealizedPlan | None = None
     first_refused: RealizedPlan | None = None
+    # ENTRANCE POLICY (Issue #20): among candidates that validate, one whose front door opens
+    # into HALL/CIRCULATION outranks one that only reaches LIVING (`_entrance_rank`) — a candidate
+    # is never PREFERRED for a worse entrance than one already found. `fast_path` still stops the
+    # instant the best possible rank is reached, so a brief whose first valid candidate already has
+    # a HALL/CIRCULATION entrance costs exactly what it did before this Issue.
+    best_entrance_rank: int | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         # Tier 2 (`concept_generator.Repartition`) is strictly second: its candidates sit after
@@ -479,8 +500,11 @@ def run_general(buildable: BuildableRegion, *,
                 failures.append(f"candidate {index} ({concept_candidate.strategy.value}) realized "
                                 f"but failed validation: {', '.join(failed) or 'safety'}")
                 continue
-            chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
-            if fast_path:
+            rank = _entrance_rank(candidate_plan)
+            if best_entrance_rank is None or rank < best_entrance_rank:
+                chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
+                best_entrance_rank = rank
+            if fast_path and best_entrance_rank == 0:
                 break
             continue
 
@@ -766,7 +790,7 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
     stage("assemble")
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
                       interior_doors, entrance_door, windows, furniture, site_plan,
-                      over_preferred=candidate.over_preferred)
+                      over_preferred=candidate.over_preferred, wet_rooms=candidate.wet_rooms)
 
     return RealizedPlan(
         index=index, concept=candidate, design=design, validation=validation,

@@ -148,6 +148,35 @@ def test_verify_fails_ac_without_targets_and_defers_regression(tmp_path: Path):
     assert not by["AC-2 has evidence"]["ok"] and not rep.ok
 
 
+def test_run_target_resolves_orchestrator_and_backend_pytest_targets(monkeypatch, tmp_path: Path):
+    """AC-7: `scripts/agent_team/tests/` pytest targets run with the orchestrator's own project
+    from the repository root; `backend/` targets still run from `backend/` exactly as before."""
+    calls = []
+
+    class FakeProc:
+        returncode = 0
+        stdout = "1 passed"
+        stderr = ""
+
+    def fake_run(cmd, cwd, timeout=1800, env=None):
+        calls.append((cmd, str(cwd)))
+        return FakeProc()
+
+    monkeypatch.setattr(verify, "run", fake_run)
+
+    ok, detail = verify.run_target("pytest", "scripts/agent_team/tests/test_work_reports.py::test_x", tmp_path)
+    assert ok
+    cmd, cwd = calls[-1]
+    assert cmd == "uv run --project scripts/agent_team pytest -q -p no:cacheprovider scripts/agent_team/tests/test_work_reports.py::test_x"
+    assert cwd == str(tmp_path)          # the repository root, not backend/
+
+    ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
+    assert ok
+    cmd, cwd = calls[-1]
+    assert cmd == "uv run pytest -q -p no:cacheprovider tests/test_x.py::test_y"
+    assert cwd == str(tmp_path / "backend")
+
+
 def test_verify_uses_injected_runner(tmp_path: Path):
     calls = []
 
@@ -280,3 +309,23 @@ def test_fake_github_state_label_is_idempotent():
     assert gh.find_pr_for_branch("agent/1-t")["number"] == pr["number"]
     gh.review_pr(pr["number"], "ok", event="APPROVE")
     assert gh.reviews[-1][1] == "COMMENT"  # never self-approve through the owner's token
+
+
+def test_gate1_accepts_an_integration_branch_base(repo_config):
+    from agent_team.ci.contract_check import evaluate
+    pr = {"head": {"ref": "agent/29-quality-rubric"}, "base": {"ref": "integration/holiday-yom-kippur-2026"}, "body": "Closes #29"}
+    rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
+    names = {c["name"]: c["ok"] for c in rep.checks}
+    assert names["PR targets base branch"] is True and names["head branch is not the base branch"] is True
+    pr["base"]["ref"] = "feature/other"
+    rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
+    assert {c["name"]: c["ok"] for c in rep.checks}["PR targets base branch"] is False
+
+
+def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):
+    from agent_team.ci.contract_check import evaluate
+    pr = {"head": {"ref": "integration/holiday-yom-kippur-2026"}, "base": {"ref": "main"}, "body": "Closes #61\n\n## מה בוצע ביום כיפור\n- x\n\n## Technical details\n"}
+    rep = evaluate(pr, {"number": 61, "state": "open", "title": "[agent] Yom Kippur Integration", "body": "", "labels": [{"name": "agent:rollup"}, {"name": "agent:ci"}],
+                        "author_association": "OWNER"}, repo_config)
+    names = {c["name"]: c["ok"] for c in rep.checks}
+    assert names["rollup PR targets main"] and names["rollup PR closes its rollup Issue"] and "branch naming agent/<issue>-<slug>" not in names
