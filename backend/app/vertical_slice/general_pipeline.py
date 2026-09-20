@@ -30,6 +30,7 @@ from app.geometry_domain.constraints import (
 from app.geometry_domain.primitives import MultiRegion
 
 from . import concept_generator as generator
+from . import concept_spec
 from . import footprint as footprint_module
 from . import hub_guard
 from . import l_massing_guard
@@ -135,6 +136,10 @@ class RealizedPlan:
     design: GeometricDesign
     validation: validation_stage.ValidationReport
     safety: SafetyReport
+    #: Issue #75: `concept_spec.realized_circulation_class`, computed from the SOLVED geometry
+    #: (`_realize`) — never copied from `concept.circulation_class`. `concept_spec.verify_class`
+    #: compares the two; metadata only, nothing here reads it.
+    circulation_class: concept_spec.CirculationClass | None = None
     relationships: tuple = ()
 
     @property
@@ -264,6 +269,9 @@ class GeneralSliceResult:
     #: Other plans this same brief and this same land produce, each one fully checked. Empty when
     #: the generator has nothing else to offer, which is a real and common answer.
     alternatives: tuple[RealizedPlan, ...] = ()
+    #: Issue #75: the CHOSEN plan's `RealizedPlan.circulation_class` (`concept_spec.verify_class`
+    #: material), carried through so a caller need not reconstruct a `RealizedPlan` to read it.
+    circulation_class: concept_spec.CirculationClass | None = None
 
     @property
     def ok(self) -> bool:
@@ -601,7 +609,8 @@ def run_general(buildable: BuildableRegion, *,
         # Measured on the CHOSEN plan, so the summary the person reads and the plan they see are
         # the same thing. Each alternative carries its own, for the same reason.
         relationships=plan.relationships,
-        alternatives=alternatives)
+        alternatives=alternatives,
+        circulation_class=plan.circulation_class)
 
 
 def _quality_twins_of(candidates: tuple, chosen) -> list[tuple[int, object]]:
@@ -796,6 +805,8 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
         index=index, concept=candidate, design=design, validation=validation,
         safety=_check_safety(design, buildable.require_known(),
                              _exclusion_geometry(site_constraints)),
+        circulation_class=concept_spec.realized_circulation_class(
+            concept.fixture, rects, solve.walls, interior_doors),
         relationships=tuple(relationships_stage.evaluate(
             concept.fixture, rects,
             validation_stage.realized_connections(rects, solve.walls, interior_doors),
