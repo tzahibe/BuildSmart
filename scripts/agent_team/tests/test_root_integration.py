@@ -130,3 +130,43 @@ def test_merge_conflict_at_base_update_is_handed_to_the_fixer_with_the_merge_in_
     assert rec.state == sm.PR_OPEN and rec.attempt_number == 2
     assert orch.runner.calls[-1].role == "fixer" and "MERGE_CONFLICT" in orch.runner.calls[-1].prompt
     assert not _git(["diff", "--name-only", "--diff-filter=U"], wt).stdout.strip()                # merge committed
+
+
+def test_contract_refresh_keeps_the_child_linkage_and_an_owner_merge_into_the_branch_is_adopted(env):
+    """2026-09-20: refresh_contract re-tracked #75 without root/kind, the child became a ROOT of its own,
+    skipped the integration branch (READY instead of INTEGRATED) and the owner's merge into the branch
+    then failed the main-only smoke. Both halves must hold."""
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    _root(gh, 500, locks="docs (shared)")
+    _child(gh, 501, root=500)
+    orch.set_root_integration(500, "integration/root-500", label="R500")
+    _tick(orch)
+    rec = orch.store.get(501)
+    assert (rec.root_issue, rec.kind) == (500, "child")
+    # the lead amends the contract while the PR is open: the refresh must not touch the linkage
+    c = make_contract(501, title="[agent] Child 501 amended", domains="knowledge", locks="docs (shared)")
+    from agent_team.issue_contract import Authorization, render_body
+    c = c.with_authorization(Authorization(source="inherited", root_issue=500, parent_issue=500, derived_by="team-lead", scope_inherited=True))
+    gh.issues[501]["body"] = render_body(c); gh.issues[501]["title"] = c.title
+    assert orch.refresh_contract(orch.store, rec) is not None
+    rec = orch.store.get(501)
+    assert (rec.root_issue, rec.parent_issue, rec.kind) == (500, 500, "child")
+    # green gates -> integrated by the lead (not READY_FOR_OWNER)
+    from agent_team.tests.test_integration_mode import _to_ready_or_integrated
+    _to_ready_or_integrated(orch, gh, 501)
+    assert orch.store.get(501).state == sm.INTEGRATED
+    # a second child whose linkage was lost and whose PR the owner merged into the branch: adopt it
+    _child(gh, 502, root=500)
+    _tick(orch)
+    rec2 = orch.store.get(502)
+    orch.store.track(502, title=rec2.title, risk=rec2.risk, resource_class=rec2.resource_class, domains=list(rec2.domains),
+                     dependencies=list(rec2.dependencies), contract=rec2.contract_dict(), root_issue=502, parent_issue=None, kind="root")
+    gh.merge_pr(rec2.pr_number, method="squash", sha=gh.get_pr(rec2.pr_number)["head"]["sha"], title="owner merge")
+    orch.store.track(502, title=rec2.title, risk=rec2.risk, resource_class=rec2.resource_class, domains=list(rec2.domains),
+                     dependencies=list(rec2.dependencies), contract=rec2.contract_dict(), root_issue=500, parent_issue=500, kind="child")
+    out = orch.adopt_integration_merge(orch.store.get(502), gh.get_pr(rec2.pr_number), by="owner")
+    orch.wait_for_threads(timeout=30)
+    assert "INTEGRATED" in out and orch.store.get(502).state == sm.INTEGRATED
+    assert [i["issue"] for i in orch.integrations()] == [501, 502]
+    assert any(e["kind"] == "integration_smoke" for e in orch.store.events(502))

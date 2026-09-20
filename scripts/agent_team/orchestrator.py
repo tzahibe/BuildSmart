@@ -198,7 +198,8 @@ class Orchestrator:
         if new_dict != rec.contract_dict():
             before = rec.contract_dict()
             store.track(rec.issue_id, title=live.title, risk=live.risk, resource_class=live.resource_class, domains=list(live.domains),
-                        dependencies=list(live.dependencies), contract=new_dict)
+                        dependencies=list(live.dependencies), contract=new_dict,
+                        root_issue=rec.root_issue, parent_issue=rec.parent_issue, kind=rec.kind)
             audit.write_contract_snapshot(self.config, rec.issue_id, live.to_dict(),
                                           verification_manifest(live, regression_domains=self.config.regression_domains))
             store.record_event(rec.issue_id, "contract_updated", {
@@ -1314,6 +1315,35 @@ class Orchestrator:
                 self._spawn(f"smoke:{rec.issue_id}", self._integration_smoke_run, rec.issue_id, job, p.branch, merge_sha)
         return f"REVIEW -> INTEGRATED ({p.branch})"
 
+    def adopt_integration_merge(self, rec: IssueRecord, pr: dict, *, by: str = "owner") -> str:
+        """A PR of a ROOT-integration child that was merged into the ROOT's integration branch (by the owner,
+        or before the orchestrator knew the linkage): record it as INTEGRATED — dependents may start — and run
+        the integration smoke on the branch head, exactly as `_integrate` does after its own merge."""
+        ib = self.root_integration_for(rec)
+        if not ib:
+            raise ValueError(f"#{rec.issue_id}: its ROOT has no integration branch")
+        base = (pr.get("base") or {}).get("ref")
+        if not pr.get("merged") or base != ib["branch"]:
+            raise ValueError(f"PR #{rec.pr_number} is not merged into {ib['branch']} (merged={pr.get('merged')}, base={base})")
+        merge_sha = pr.get("merge_commit_sha") or ""
+        head = (pr.get("head") or {}).get("sha") or rec.validated_commit or ""
+        verdict = (rec.review_verdict or "APPROVE").split("@", 1)[0]
+        self._set_state(self.store, rec.issue_id, sm.INTEGRATED, note=f"merged into {ib['branch']} by the {by}", validated_commit=merge_sha,
+                        failure_class=None)
+        self.locks.release(rec.issue_id, "integrated")
+        entry = {"issue": rec.issue_id, "pr": rec.pr_number, "sha": merge_sha, "head": head, "title": rec.title.replace("[agent] ", "", 1),
+                 "root": rec.root, "review": verdict, "branch": ib["branch"], "ts": self.clock(), "by": by}
+        self._add_integration(entry)
+        self.store.record_event(rec.issue_id, "integrated", entry)
+        self._milestone(rec.issue_id, f"PR #{rec.pr_number} merged into `{ib['branch']}` by the {by} (`{merge_sha[:12]}`) — recorded as INTEGRATED for "
+                                      f"ROOT #{ib['root']}; lands on main only with the ROOT's rollup PR. Running the integration smoke.")
+        self._wake.set()
+        if not self.dry_run:
+            job = self.resources.try_acquire_heavy(rec.issue_id, "integration-smoke")
+            if job is not None:
+                self._spawn(f"smoke:{rec.issue_id}", self._integration_smoke_run, rec.issue_id, job, ib["branch"], merge_sha)
+        return f"{rec.state} -> INTEGRATED ({ib['branch']}, merged by the {by})"
+
     def _integration_smoke_run(self, issue_id: int, job, branch: str, merge_sha: str) -> None:
         """Integration-aware validation (§30): smoke on the combined branch head right after the merge.
         Red smoke reverts the merge and sends the Issue back for repair — recorded as a decision."""
@@ -1719,6 +1749,9 @@ class Orchestrator:
         pr, head = self._pr_head(rec)
         if pr.get("merged"):
             self.audit_external_merge(rec, pr)
+            ib = self.root_integration_for(rec)
+            if ib and (pr.get("base") or {}).get("ref") == ib["branch"]:
+                return self.adopt_integration_merge(rec, pr, by="owner")
             self._set_state(self.store, rec.issue_id, sm.MERGED, note="merged by the owner on GitHub", validated_commit=pr.get("merge_commit_sha"))
             self._milestone(rec.issue_id, f"PR #{rec.pr_number} merged by the owner (`{str(pr.get('merge_commit_sha'))[:12]}`). Running post-merge smoke.")
             return "READY_FOR_OWNER -> MERGED (owner merged on GitHub)"

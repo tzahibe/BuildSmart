@@ -608,6 +608,21 @@ def cmd_integration(config: Config, args) -> int:
             print(f"ROOT #{root} ({info.get('label')}): {info['branch']} from {info.get('created_from', '')[:12]}"
                   f"{' [closed]' if info.get('closed') else ''} — integrated: {merged or 'none yet'}")
         return 0
+    if args.integration_cmd == "adopt":
+        # a child PR merged into the ROOT's integration branch outside `_integrate` (by the owner, or before the
+        # orchestrator knew the child's linkage): record it as INTEGRATED and run the integration smoke
+        rec = orch.store.get(args.number)
+        if rec is None or not rec.pr_number:
+            print("not tracked or no PR"); return 1
+        if args.root:
+            orch.store.track(rec.issue_id, title=rec.title, risk=rec.risk, resource_class=rec.resource_class, domains=list(rec.domains),
+                             dependencies=list(rec.dependencies), contract=rec.contract_dict() or None,
+                             root_issue=int(args.root), parent_issue=int(args.root), kind="child")
+            rec = orch.store.get(args.number)
+        pr = orch.github.get_pr(rec.pr_number)
+        print(orch.adopt_integration_merge(rec, pr, by=args.by))
+        orch.wait_for_threads(timeout=1800)
+        return 0
     if args.integration_cmd == "close":
         orch.close_root_integration(args.number)
         print(f"ROOT #{args.number}: integration branch closed (children start from the normal base again)")
@@ -1094,7 +1109,9 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("integration"); isub2 = s.add_subparsers(dest="integration_cmd", required=True)
     st = isub2.add_parser("set"); st.add_argument("number", type=int); st.add_argument("branch")
     st.add_argument("--from", dest="from_ref"); st.add_argument("--label")
-    isub2.add_parser("status"); cl = isub2.add_parser("close"); cl.add_argument("number", type=int); s.set_defaults(fn=cmd_integration)
+    isub2.add_parser("status"); cl = isub2.add_parser("close"); cl.add_argument("number", type=int)
+    ad = isub2.add_parser("adopt"); ad.add_argument("number", type=int); ad.add_argument("--root", type=int, help="also restore the child's ROOT linkage")
+    ad.add_argument("--by", default="owner"); s.set_defaults(fn=cmd_integration)
     s = sub.add_parser("rollup"); rsub = s.add_subparsers(dest="rollup_cmd", required=True)
     x = rsub.add_parser("exclude"); x.add_argument("number", type=int); x.add_argument("--reason"); s.set_defaults(fn=cmd_rollup)
     s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
