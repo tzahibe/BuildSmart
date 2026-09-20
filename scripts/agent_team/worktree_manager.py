@@ -173,8 +173,8 @@ class WorktreeManager:
             run_git(["worktree", "add", "--track", "-b", branch, str(path), f"{self.remote}/{branch}"], self.root)
         return WorktreeInfo(issue_id, branch, path, self.head_sha(path), created=True, reconciled=False, note="worktree created")
 
-    def base_sha(self) -> str:
-        return run_git(["rev-parse", self.base_ref()], self.root).stdout.strip()
+    def base_sha(self, branch: str | None = None) -> str:
+        return run_git(["rev-parse", self.base_ref(branch)], self.root).stdout.strip()
 
     @staticmethod
     def head_sha(path: Path) -> str:
@@ -208,8 +208,9 @@ class WorktreeManager:
         return int(out or 0)
 
     # -- lifecycle ----------------------------------------------------------------------------
-    def ensure(self, issue_id: int, slug: str) -> WorktreeInfo:
-        """Create or reconcile the branch/worktree for an issue. Never duplicates."""
+    def ensure(self, issue_id: int, slug: str, base: str | None = None) -> WorktreeInfo:
+        """Create or reconcile the branch/worktree for an issue. Never duplicates. `base` names the
+        branch a NEW branch starts from (a ROOT's integration branch); default: the current base."""
         branch = branch_name(self.config, issue_id, slug)
         path = worktree_path(self.config, issue_id, slug)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -241,9 +242,10 @@ class WorktreeManager:
             run_git(["worktree", "add", "--track", "-b", branch, str(path), f"{self.remote}/{branch}"], self.root)
             return WorktreeInfo(issue_id, branch, path, self.head_sha(path), created=False, reconciled=True,
                                 note=note + "existing remote branch checked out into a new worktree")
-        run_git(["worktree", "add", "-b", branch, str(path), self.base_ref()], self.root)
+        start = self.base_ref(base)
+        run_git(["worktree", "add", "-b", branch, str(path), start], self.root)
         return WorktreeInfo(issue_id, branch, path, self.head_sha(path), created=True, reconciled=False,
-                            note=note + f"new branch from {self.base_ref()}")
+                            note=note + f"new branch from {start}")
 
     def remove(self, issue_id: int, slug: str, *, delete_branch: bool = False, force: bool = False) -> list[str]:
         """Remove the worktree (and optionally the local branch). Returns what was done."""

@@ -119,6 +119,10 @@ class Config:
     # governance
     owner_approval_label: str
     max_active_issues: int
+    #: owner priority order of ROOT Issues (children inherit): earlier starts first; unlisted ROOTs after
+    priority_roots: tuple[int, ...]
+    #: per-domain cap on Issues in flight (CLAIMED/WORKING/FIX_REQUIRED), e.g. {"infra": 1}
+    max_active_by_domain: dict[str, int]
     release_locks_at: str            # pr_open | ready | merge
     drain_timeout_seconds: int
     protected_periods_enabled: bool
@@ -295,6 +299,8 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
         owner_approval_label=str(gov.get("owner_approval_label", "owner:approved")),
         max_active_issues=int(gov.get("max_active_issues", 2)),
+        priority_roots=tuple(int(n) for n in (gov.get("priority_roots") or ())),
+        max_active_by_domain={str(k): int(v) for k, v in (gov.get("max_active_by_domain") or {}).items()},
         release_locks_at=str(gov.get("release_locks_at", "ready" if gov.get("release_locks_at_ready", True) else "merge")),
         drain_timeout_seconds=int(gov.get("drain_timeout_seconds", 3900)),
         protected_periods_enabled=bool((raw.get("protected_periods") or {}).get("enabled", True)),

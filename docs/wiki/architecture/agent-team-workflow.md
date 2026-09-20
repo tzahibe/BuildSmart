@@ -319,6 +319,43 @@ integration instead of READY; dependents on the integrated base; rollup creation
 single notification, owner merge, children done; smoke-failure revert; exclude; change request;
 normal owner gate outside a period).
 
+## ROOT-scoped integration branches (since 2026-09-20, §42 — first use: Concept Engine v2)
+
+The owner may assign a ROOT its own integration branch (`integration/<slug>`), as for Concept Engine v2
+(`agentctl integration set 74 integration/concept-engine-v2 --from origin/main --label "Concept Engine v2"`;
+registry in the state store's `root_integrations` meta, event `ROOT_INTEGRATION_SET`; `agentctl integration
+status|close`). For every child of that ROOT (and the ROOT itself if it runs as a task):
+
+- the worktree's new branch starts from the integration branch (`WorktreeManager.ensure(..., base=)`), the
+  worker's base ref and the base-update path follow it (`_base_ref_for`, `resume-pr --update-base` uses the
+  PR's own base);
+- the PR targets the integration branch, never `main` (`_pr_base_for_worktree`); gate-1 accepts an
+  `integration/**` base, gate-4 measures regression against it;
+- the child still passes every gate: CI, regression per policy, its ACs (gate 3), the independent review;
+- once `merge_policy` says every gate is green, `_step_review` calls `_integrate(..., target=)`: the Team Lead
+  merges the PR into the integration branch (squash), releases the locks, marks the Issue `INTEGRATED`
+  (satisfies dependents), records the integration and runs the integration smoke on the combined head — a red
+  smoke reverts the merge and sends the Issue back for repair, exactly as in weekend mode;
+- nothing of the ROOT is ever merged to `main` directly. At a stable integration point the Team Lead freezes
+  the branch, updates it against `main`, runs the full relevant tests, the full corpus regression, the
+  benchmarks the ROOT defines (Concept Engine v2: concept diversity, architectural quality, runtime p50/p95),
+  a combined independent review and a known-limitations report, then opens ONE PR `integration/<slug> →
+  main` listing the ROOT, every child and PR, before/after benchmarks, quality and diversity changes,
+  runtime, regressions, limitations and the exact final SHA, stopping at READY_FOR_OWNER. **The owner's
+  absolute rule: the integration branch is never merged to `main` without their explicit approval.** (The
+  rollup command for ROOT integrations reuses the period rollup machinery; it is wired when the first
+  stable point is reached.)
+
+Work that is not part of the ROOT stays on its own track (`main` or the period's branch); a related product
+Issue joins the ROOT's branch only with a real, explicit dependency.
+
+**Owner priority order and per-domain caps** (same date): `governance.priority_roots` is the owner's ordered
+list of ROOT Issues — the scheduler sorts queued Issues by that rank (children inherit their ROOT's rank,
+unlisted ROOTs come after the listed ones), then by ROOT, then FIFO; `governance.max_active_by_domain`
+(`infra: 1`) caps the Issues in flight per domain ("at most one infra worker"). Current order: the open
+basic P0 (#35, #38, #22, #34, #36) → Concept Engine v2 (#74) → #39/#40 → the CI chain (#66→#67→#68) →
+#41/#43 → #42/#45/#46. Tests: `tests/test_root_integration.py`.
+
 ## Merge policy (owner-controlled)
 
 | Risk | Required before `READY_FOR_OWNER` | Auto-merge |
@@ -662,4 +699,4 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
 
 ## Last verified against git
 
-`7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.
+`648292f2` (main) + home branch `9876cb7`+ (§42 ROOT integration branches, priority order); before that `7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.

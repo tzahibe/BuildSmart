@@ -186,6 +186,22 @@ rollup PR. Stop only for high-risk or irreversible product decisions outside a R
 rollup PR is validated as a whole; only the owner merges it. `agentctl period status` shows the
 calendar; `agentctl rollup exclude N` honours an owner exclusion.
 
+## 8b. ROOT-scoped integration branches (§42) and the owner's priority order
+
+A ROOT may have its own integration branch (Concept Engine v2: `integration/concept-engine-v2`,
+registered with `agentctl integration set ROOT integration/<slug> --from origin/main --label …`).
+Its children start from the branch, their PRs target it, and after CI + regression + ACs + review
+the orchestrator merges them into it and runs the integration smoke; `agentctl integration status`
+lists what is integrated. Never merge such a branch to `main` yourself: at a stable point run the
+ROOT's rollup checklist (freeze, update against main, full tests, full corpus regression, the ROOT's
+benchmarks, combined review, limitations report) and open ONE PR to `main` that stops at
+READY_FOR_OWNER. Other work stays on its own track — join a ROOT's branch only with a real dependency.
+
+Claims follow the owner's priority order (`governance.priority_roots`) and the per-domain caps
+(`max_active_by_domain`, infra: 1). Do not reorder by taste: change the config when the owner changes
+the order. Concept Engine v2 conditions (2026-09-20): the PRIMARY plan stays unchanged until the
+owner has seen #78's benchmark; #79 is never started automatically.
+
 ## 9. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),

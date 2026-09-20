@@ -220,6 +220,14 @@ governance:
   # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
   # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
   max_active_issues: 6
+  # Owner priority order of ROOT Issues (2026-09-20): finish CI/repair first (not a claim matter), then
+  # the open basic P0, then Concept Engine v2 (#74, children inherit), then Interior/Furnishability
+  # (#39/#40), the CI optimization chain (one infra worker at most), the rest of P1, then drawing/polish.
+  # Unlisted ROOTs come after the listed ones, FIFO.
+  priority_roots: [35, 38, 22, 34, 36, 74, 39, 40, 66, 67, 68, 41, 43, 42, 45, 46]
+  # Per-domain cap on Issues in flight (owner: "use at most one worker for infra").
+  max_active_by_domain:
+    infra: 1
   # When an Issue's domain locks are released: pr_open (the code changes are done — CI/review hold
   # nothing, the next Issue on the same core starts at once; a repair re-acquires the locks first;
   # conflicts surface as base updates), ready (held through CI/review, released at READY_FOR_OWNER),

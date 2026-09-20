@@ -1,7 +1,8 @@
 """Deterministic scheduling: which QUEUED issues may start this tick, and why the others wait.
 
 Pure planning over a snapshot — no side effects — so it is trivially testable and its decisions
-can be printed in dry-run exactly as they would be executed. Order is by ROOT Issue, then FIFO by number.
+can be printed in dry-run exactly as they would be executed. Order is the owner's ROOT priority list,
+then by ROOT Issue, then FIFO by number; per-domain caps bound the Issues in flight per domain.
 Each start decided in a tick is accounted for (weight, worker slot, locks) before the next
 candidate is considered, so two MEDIUM issues never both start into one free slot.
 """
@@ -55,9 +56,22 @@ def plan(
     pending_weight = 0
     pending_workers = 0
     granted: list[LockRow] = []
+    # Per-domain caps (owner, 2026-09-20: "at most one infra worker"): Issues in flight per domain,
+    # plus the starts decided in this tick.
+    active_by_domain: dict[str, int] = {}
+    if config.max_active_by_domain:
+        for r in store.list((sm.CLAIMED, sm.WORKING, sm.FIX_REQUIRED)):
+            for d in r.domains:
+                active_by_domain[d] = active_by_domain.get(d, 0) + 1
 
-    # Priority: children of the earliest ROOT first (finish what is in flight), then FIFO by number.
-    for rec, contract in sorted(queued, key=lambda rc: (rc[0].root, rc[0].issue_id)):
+    # Priority: the owner's ROOT order first (children inherit their ROOT's rank; unlisted ROOTs after
+    # the listed ones), then children of the earliest ROOT (finish what is in flight), then FIFO by number.
+    def rank(rc) -> tuple[int, int, int]:
+        root = rc[0].root
+        pri = config.priority_roots.index(root) if root in config.priority_roots else len(config.priority_roots)
+        return (pri, root, rc[0].issue_id)
+
+    for rec, contract in sorted(queued, key=rank):
         waits: list[str] = []
         for dep in contract.dependencies:
             ok, why = dependency_status(dep, store, external_satisfied)
@@ -83,9 +97,17 @@ def plan(
             decisions.append(Decision(rec.issue_id, "wait", admission.reason, reqs))
             continue
 
+        capped = [d for d in contract.domains
+                  if d in config.max_active_by_domain and active_by_domain.get(d, 0) >= config.max_active_by_domain[d]]
+        if capped:
+            decisions.append(Decision(rec.issue_id, "wait", f"domain cap reached: {', '.join(f'{d} ({config.max_active_by_domain[d]})' for d in capped)}", reqs))
+            continue
+
         decisions.append(Decision(rec.issue_id, "start", "dependencies satisfied, locks free, resources available", reqs))
         pending_weight += resources.weight(contract.resource_class)
         pending_workers += 1
         granted.extend(LockRow(r.name, r.mode, rec.issue_id, 0.0) for r in reqs)
+        for d in contract.domains:
+            active_by_domain[d] = active_by_domain.get(d, 0) + 1
 
     return decisions

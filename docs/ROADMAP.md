@@ -6,7 +6,14 @@ into one ROOT Issue each. Every ROOT below carries `owner:approved`; the Team Le
 autonomously (decomposition into child Issues, workers, PRs, CI, regression, review, repair) and pulls the
 next ones from this list as capacity frees up (owner rule of 2026-09-18: "you may create Issues and approve
 them for work from the roadmap; use every worker; release blocked work"). **Only the owner merges to
-`main`** (normal periods: per PR; weekend/holiday periods: one rollup PR).
+`main`** (normal periods: per PR; weekend/holiday periods: one rollup PR; a ROOT with its own integration
+branch — Concept Engine v2, `integration/concept-engine-v2` — one rollup PR at a stable integration point).
+
+**Owner priority order (2026-09-20):** 1. finish work already in CI / repair; 2. the open basic P0; 3. Concept
+Engine v2 (#74) — the central planning layer from now on; 4. Interior / Furnishability (#39, #40); 5. the rest of
+P1; 6. drawing / polish / lower-impact work. Infra: the CI chain #66 → #67 → #68 with at most ONE infra worker,
+then no new infra work without a real blocker. No separate Massing / Multi-Level ROOT for now. Encoded in
+`.agent/config.yaml` (`governance.priority_roots`, `max_active_by_domain`).
 
 ## How this roadmap is used
 
@@ -48,41 +55,54 @@ done) and "Plan Quality Evaluation / Benchmark" (P3).
 | Issue 8 Laundry room invariants | #21 | approved | #18, #19 | Laundry Room semantics |
 | ReviewPage shows the quality data (pulled forward from P2 on 2026-09-19: the P0 wave is invisible without it) | #63 | approved | — | ReviewPage completion (data-display part) |
 
-## P1 product ROOTs
+## Concept Engine v2 — Hybrid Architectural Planning — ROOT #74 (owner-approved 2026-09-20, decomposed; priority above most P1)
 
-| Owner item | ROOT | Depends on | Merged old-roadmap topics |
+Goal: move BuildSmart from an engine that generates a few fixed partis and checks them to an engine that generates
+different architectural concepts, realizes them, measures them and improves them with feedback from the existing
+layers. Evidence and the three-way comparison (generative / retrieval / hybrid → hybrid):
+`docs/CONCEPT_ENGINE_V2_INVESTIGATION.md`. **The Concept Engine becomes the central planning layer; the existing
+layers (validators C1–C29, M1–M6, circulation, wet privacy, dead space, furnishability, public-zone composition)
+serve both as validators and as feedback into it.**
+
+Branching: all work against `integration/concept-engine-v2` (from `main` `648292f2`); each child has its own branch,
+its PR targets the integration branch, passes CI + regression + ACs + independent review, and is merged there by the
+Team Lead with integration validation after every merge; ONE final rollup PR → `main` (freeze, update against main,
+full tests, full corpus regression, diversity / quality / runtime p50–p95 benchmarks, combined review, limitations
+report) stops at READY_FOR_OWNER — never merged without the owner's explicit approval.
+
+Owner conditions: the PRIMARY plan stays unchanged until the owner has seen #78's benchmark; #79 is conditional only
+(never started automatically — only if #75–#78 prove the Geometry Core limit blocks good concepts).
+
+| Child | Issue | Depends on | State |
 |---|---|---|---|
-| Issue 9 Architectural interior layout MVP | #39 | #19, #38 | Kitchen / Bathroom fixture-aware planning; Storage / Closets (objects only) |
-| Issue 10 Furnishability / usability validation | #40 | #39 | — |
-| Issue 11 Public-zone composition | #41 | #39 | Concept Quality (public-zone part) |
-| Issue 12 Master-suite access & privacy | #42 | #37, #38 | — |
-| Issue 13 Dead space / residual pocket detection | #43 | #36, #22 | Hallways / Circulation Quality (dead-end part) |
-
-## Concept Engine v2 — ROOT #74 (owner-approved 2026-09-20, decomposed)
-
-Evidence and the three-way comparison (generative / retrieval / hybrid → hybrid): `docs/CONCEPT_ENGINE_V2_INVESTIGATION.md`.
-Owner conditions: the PRIMARY plan stays unchanged until the owner has seen #78's results; #79 is conditional
-only (a draft until an explicit decision after #78).
-
-| Child | Issue | Depends on |
-|---|---|---|
-| ConceptSpec contract, verified circulation-class tag, topological distinctness, corpus diversity baseline | #75 | — |
-| Structured concept pattern prior (census aggregates + reference archetypes), deterministic lookup | #77 | #75 |
-| Concept-level score from existing realized metrics + bounded realize–measure–adapt loop | #76 | #75 |
-| Pipeline insertion behind `CONCEPT_ENGINE_V2_ENABLED`: one plan per circulation class, ReviewPage label, latency budget | #78 | #77, #76 |
-| BRANCHED circulation class via a seam-level opening (conditional, draft) | #79 | #78 + owner decision |
+| 1 — ConceptSpec (zoning, circulation style, entrance strategy, wet-core strategy, massing hints, relationships, family/signature, distinctness) + `ArchitectModelGateway` hint slot (never a source of truth) + corpus diversity baseline | #75 | — | in progress |
+| 2 — Reference priors: which concepts to try and in what order (SPINE / FRONT_BAND / HUB_LOBBY / TWO_WING / L, wet-core clustering, zoning patterns); never geometry | #77 | #75 | queued |
+| 3 — Quality-guided concept search: concept → realize → measure → adapt → realize again (M1–M6, circulation, wet privacy, wet-core, area quality; later dead space / furnishability / public zone) | #76 | #75 | queued |
+| 4 — Pipeline integration behind a flag: 2–3 genuinely different alternatives, one per concept family, concept label on the ReviewPage, quality / diversity / runtime / realization-success measurement, owner benchmark, massing / multi-level integration proposal | #78 | #77, #76 | queued |
+| 5 — Branched circulation / geometry capability | #79 | #78 + owner decision | draft (conditional) |
 
 Merged from the old roadmap: "Alternative Plans / Diversity" and "Concept Quality / Decomposition Engine".
-#36 (circulation metrics) and #43 (dead space) feed the loop of #76/#78 when they land; #39/#41 consume the
-concept tags later.
+Feedback inputs into the engine as they land: #36 circulation metrics, #43 dead space, #40 furnishability,
+#41 public-zone composition. After #78: a proposal for Rectangle / L / Irregular massing, massing selection,
+Multi-Level Phase 2 and stairs / vertical core inside the new architecture.
+
+## P1 product ROOTs (order after the Concept Engine; #39/#40 may run in parallel with children 1–3 once the concept ↔ realized-plan interface is stable)
+
+| Owner item | ROOT | Depends on | Priority (owner 2026-09-20) | Merged old-roadmap topics |
+|---|---|---|---|---|
+| Issue 9 Architectural interior layout MVP | #39 | #19, #38 | 4 — very important; after or alongside #75–#76 | Kitchen / Bathroom fixture-aware planning; Storage / Closets (objects only) |
+| Issue 10 Furnishability / usability validation | #40 | #39 | 4 — very important; also a future feedback input to the Concept Engine | — |
+| Issue 11 Public-zone composition | #41 | #39 | 5 — and a future feedback input to the Concept Engine, not only post-validation | Concept Quality (public-zone part) |
+| Issue 13 Dead space / residual pocket detection | #43 | #36, #22 | 5 — and a future feedback input to the Concept Engine | Hallways / Circulation Quality (dead-end part) |
+| Issue 12 Master-suite access & privacy | #42 | #37, #38 | lowered for now | — |
 
 ## P2 product ROOTs
 
 | Owner item | ROOT | Depends on | Merged old-roadmap topics |
 |---|---|---|---|
-| Issue 14 Plumbing / wet-core efficiency | #44 | #37 | — |
-| Issue 15 Wall semantic model | #45 | #38, #19 | — |
-| Issue 16 Professional architectural drawing | #46 | #45, #39, #40 | SVG/DXF production quality (SVG part); Architectural Report / PDF (drawing part) |
+| Issue 14 Plumbing / wet-core efficiency | #44 | #37 | — (DONE: landed with the Yom Kippur rollup) |
+| Issue 15 Wall semantic model | #45 | #38, #19 | lowered for now (owner 2026-09-20) |
+| Issue 16 Professional architectural drawing | #46 | #45, #39, #40 | lowered for now (owner 2026-09-20); SVG/DXF production quality (SVG part); Architectural Report / PDF (drawing part) |
 
 ## Dependency DAG (execution order)
 
@@ -104,15 +124,19 @@ concept tags later.
                                 └─ #76 score ──┘   (#36, #43 feed #76/#78 when merged)
 ```
 
-## Execution waves (3 workers; locks serialize geometry-core / validator-core work)
+## Execution order now (3 workers; owner priority 2026-09-20; locks serialize geometry-core / validator-core work)
 
-- **Wave 1 (now, parallel):** #29, #30 (docs, light), #34 area consistency, #35 safe room, #18 finishing
-  in CI; infra #24/#25.
-- **Wave 2:** #31, #32, #33 (after #29/#30), #36 circulation (after #29), #20 entrance policy, #19
-  windows, #37 wet privacy, #38 door swing (after #18).
-- **Wave 3:** #22 entrance integration (after #20, #36), #21 laundry (after #18, #19).
-- **Wave 4 (P1):** #39 → #40, #41; #42; #43.
-- **Wave 5 (P2):** #44, #45 → #46.
+1. **In flight to `main`:** #34 (PR #72), #36 (PR #73), #66 (PR #71, READY) — finish without restarts.
+2. **Basic P0 still open:** #35 SAFE_ROOM (back on track after PR #57 closed unmerged), #38 door swing (repair), then
+   #22 entrance integration once #36 lands on `main`. These stay on the `main` track — never forced into the
+   Concept Engine branch.
+3. **Concept Engine v2:** #75 → (#77 ∥ #76) → #78 → (#79 only on measured need); child 1 starts as soon as a
+   product worker is free — no waiting for all of P0 unless a real lock or dependency conflict exists.
+4. **Interior / Furnishability:** #39 → #40 (alongside children 1–3 once the interface is stable).
+5. **Rest of P1:** #41, #43 (also as feedback into the engine); #42 lowered.
+6. **Drawing / polish:** #45 → #46 lowered.
+- **Infra:** #66 → #67 → #68, one infra worker at most (`max_active_by_domain: {infra: 1}`); afterwards no new
+  infra work without a real blocker.
 
 ## Later / not yet a ROOT (from the 2026-09-17 roadmap; pulled by the Team Lead when predecessors are done)
 
@@ -120,7 +144,9 @@ concept tags later.
   (feeds #46's plot context).
 - **Exact area fidelity vs the requested area** — tolerance, realized vs requested, no silent shrinking
   (display consistency is #34).
-- **Multi-Level Phase 2**, **Stairs / Vertical Core**, **Parking / Garage**, **Balconies / Patios / Outdoor
+- **Multi-Level Phase 2**, **Stairs / Vertical Core** — no separate ROOT now (owner 2026-09-20): the Concept
+  Engine keeps representation room for rectangle / L / irregular / massing family / future multi-level concepts,
+  and #78 delivers a proposal for how they fit; **Parking / Garage**, **Balconies / Patios / Outdoor
   Connections** (rubric section N), **Storage / Closets / Utility** beyond layout objects.
 - **Massing selection quality** (incl. the recorded L-orientation eligibility-ordering follow-up), **Seam /
   Shape Recovery** (Alternative Plans / Diversity and the Concept Engine are ROOT #74 now).

@@ -91,6 +91,14 @@ class AuthDecision:
     problems: list[str] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class _RootIntegrationTarget:
+    """What `_integrate` needs from a ROOT-scoped integration branch (§42) — the Period's shape."""
+    branch: str
+    label: str
+    root: int
+
+
 class Orchestrator:
     def __init__(self, config: Config, *, github, runner: AgentRunner, dry_run: bool = False,
                  probe: ResourceProbe | None = None, clock=time.time, worktrees: WorktreeManager | None = None,
@@ -703,8 +711,10 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.warning("label for #%s failed: %s", rec.issue_id, exc)
         try:
-            info = self.worktrees.ensure(rec.issue_id, contract.slug)
-            self.store.update(rec.issue_id, branch=info.branch, worktree=str(info.path), base_sha=self.worktrees.base_sha())
+            ib = self.root_integration_for(rec)
+            info = self.worktrees.ensure(rec.issue_id, contract.slug, base=ib["branch"] if ib else None)
+            self.store.update(rec.issue_id, branch=info.branch, worktree=str(info.path),
+                              base_sha=self.worktrees.base_sha(ib["branch"] if ib else None))
             existing_pr = self.github.find_pr_for_branch(info.branch)
             if existing_pr:
                 self._set_state(self.store, rec.issue_id, sm.PR_OPEN, note="reconciled existing PR",
@@ -753,7 +763,8 @@ class Orchestrator:
         except Exception:  # noqa: BLE001
             pass
         path = Path(rec.worktree)
-        base_ref = self.worktrees.base_ref()
+        ib = self.root_integration_for(rec)
+        base_ref = self.worktrees.base_ref(ib["branch"]) if ib else self.worktrees.base_ref()
         if repair:
             prompt = prompts.repair_prompt(contract, worktree=str(path), branch=rec.branch, attempt=attempt - 1,
                                            max_attempts=self.config.max_repair_attempts, failure_class=rec.failure_class or "UNKNOWN",
@@ -841,7 +852,7 @@ class Orchestrator:
             body = render_pr_body(contract, report, model=spec.model, session_id=result.session_id, attempt=spec.attempt)
             pr = self.github.find_pr_for_branch(rec.branch)
             if pr is None:
-                pr = self.github.create_pr(head=rec.branch, base=self._pr_base_for_worktree(path), title=f"{contract.title} (#{issue_id})", body=body)
+                pr = self.github.create_pr(head=rec.branch, base=self._pr_base_for_worktree(path, rec), title=f"{contract.title} (#{issue_id})", body=body)
                 self._milestone(issue_id, f"PR opened: {pr.get('html_url', pr['number'])} (attempt {spec.attempt}, head `{head[:12]}`).")
             else:
                 self.github.update_pr(pr["number"], body=body)
@@ -1046,6 +1057,11 @@ class Orchestrator:
                                        lost_allowance=self._contract(rec).lost_allowance)
         if decision.ok:
             pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+            ib = self.root_integration_for(rec) if rec.kind != "rollup" else None
+            if ib:
+                # §42: a ROOT with its own integration branch — the Team Lead merges every fully validated
+                # child there; main is reached only through the ROOT's final rollup PR, which the owner merges.
+                return self._integrate(rec, head, ev, verdict, branch=ib["branch"], target=ib)
             late_integration = rec.kind != "rollup" and self.period is None and pr_base.startswith("integration/") and \
                 bool(self.rollup()) and self.rollup().get("period", {}).get("branch") == pr_base
             if (self.period is not None and rec.kind != "rollup") or late_integration:
@@ -1093,11 +1109,56 @@ class Orchestrator:
         raw = self.store.get_meta("rollup")
         return json.loads(raw) if raw else None
 
-    def _pr_base_for_worktree(self, path: Path) -> str:
-        """The branch a new PR targets: the current base (main, or the period's integration branch) — unless
-        the worktree's history already contains a pending rollup's integration branch (a child started on
-        it, or the period ended while the worker ran): then the PR targets that branch, because its commits
-        exist only there and the rollup re-validates the combined head."""
+    # -- ROOT-scoped integration branches (§42, owner 2026-09-20) ------------------------------
+    def root_integrations(self) -> dict[int, dict]:
+        raw = self.store.get_meta("root_integrations")
+        data = json.loads(raw) if raw else {}
+        return {int(k): v for k, v in data.items()}
+
+    def root_integration_for(self, rec: IssueRecord | int | None) -> dict | None:
+        """The integration branch of the Issue's ROOT (or of the Issue itself when it is the ROOT)."""
+        if rec is None:
+            return None
+        root = rec if isinstance(rec, int) else (rec.root or rec.issue_id)
+        info = self.root_integrations().get(int(root))
+        if info and not info.get("closed"):
+            return {**info, "root": int(root)}
+        return None
+
+    def set_root_integration(self, root: int, branch: str, *, from_ref: str | None = None, label: str | None = None) -> str:
+        """Register (and create on the remote if missing) the integration branch every child of `root`
+        starts from, targets with its PR and is merged into by the Team Lead once every gate is green.
+        Main is reached only through ONE final rollup PR (integration -> main) that the owner merges."""
+        if not branch.startswith("integration/"):
+            raise ValueError("a ROOT integration branch must be named integration/<slug>")
+        sha = self.worktrees.create_branch_from(branch, from_ref or self.worktrees.base_ref(self.config.base_branch))
+        data = {str(k): v for k, v in self.root_integrations().items()}
+        data[str(root)] = {"branch": branch, "label": label or branch.split("/", 1)[1], "created_from": sha,
+                           "created_at": self.clock(), "closed": False}
+        self.store.set_meta("root_integrations", json.dumps(data))
+        self.store.record_event(root, "ROOT_INTEGRATION_SET", {"branch": branch, "base_sha": sha, "label": data[str(root)]["label"]})
+        self._owner_notice(f"root_integration:{root}:{branch}",
+                           f"🌿 ROOT #{root} ({data[str(root)]['label']}) עובד מול ענף אינטגרציה ייעודי `{branch}` (נוצר מ-`{sha[:12]}`): "
+                           f"כל PR של ילד מכוון אליו ומתמזג על ידי ה-team lead אחרי כל השערים; main רק דרך rollup PR אחד באישורך.")
+        return sha
+
+    def close_root_integration(self, root: int) -> None:
+        data = {str(k): v for k, v in self.root_integrations().items()}
+        if str(root) in data:
+            data[str(root)]["closed"] = True
+            self.store.set_meta("root_integrations", json.dumps(data))
+            self.store.record_event(root, "ROOT_INTEGRATION_CLOSED", {"branch": data[str(root)]["branch"]})
+
+    def _pr_base_for_worktree(self, path: Path, rec: IssueRecord | None = None) -> str:
+        """The branch a new PR targets: a ROOT's own integration branch when the Issue belongs to one
+        (§42); else the current base (main, or the period's integration branch) — unless the worktree's
+        history already contains a pending rollup's integration branch (a child started on it, or the
+        period ended while the worker ran): then the PR targets that branch, because its commits exist
+        only there and the rollup re-validates the combined head."""
+        if rec is not None:
+            ib = self.root_integration_for(rec)
+            if ib:
+                return ib["branch"]
         base = self.worktrees.base_branch()
         info = self.rollup() or {}
         ibranch = (info.get("period") or {}).get("branch")
@@ -1120,7 +1181,8 @@ class Orchestrator:
                     return self.worktrees.base_ref(base)
             except Exception:  # noqa: BLE001
                 pass
-        return self.worktrees.base_ref()
+        ib = self.root_integration_for(rec)
+        return self.worktrees.base_ref(ib["branch"]) if ib else self.worktrees.base_ref()
 
     def check_period(self) -> str | None:
         """Start the period when today is protected (Asia/Jerusalem), end it the day after it ends."""
@@ -1157,12 +1219,17 @@ class Orchestrator:
         log.info("protected period started: %s (%s)", p.label, p.branch)
         return f"protected period started: {p.label} -> {p.branch}"
 
-    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str, branch: str | None = None) -> str:
-        """Team-Lead merge into the period's integration branch (never main) after every gate is green."""
-        p = self.period
-        if p is None:
-            info = self.rollup() or {}
-            p = Period.from_dict(info["period"]) if info.get("period") else None
+    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str, branch: str | None = None,
+                   target: dict | None = None) -> str:
+        """Team-Lead merge into an integration branch (never main) after every gate is green: the
+        period's branch (§26–§41) or a ROOT's own integration branch (§42, `target`)."""
+        if target is not None:
+            p = _RootIntegrationTarget(branch=target["branch"], label=target.get("label") or target["branch"], root=int(target["root"]))
+        else:
+            p = self.period
+            if p is None:
+                info = self.rollup() or {}
+                p = Period.from_dict(info["period"]) if info.get("period") else None
         assert p is not None
         pr = self.github.get_pr(rec.pr_number)
         if (pr.get("base") or {}).get("ref") != p.branch:
@@ -1180,16 +1247,23 @@ class Orchestrator:
         entry = {"issue": rec.issue_id, "pr": rec.pr_number, "sha": merge_sha, "head": head, "title": rec.title.replace("[agent] ", "", 1),
                  "root": rec.root, "review": verdict, "branch": p.branch, "ts": self.clock()}
         self._add_integration(entry)
-        info = self.rollup()
-        if info and info.get("period", {}).get("branch") == p.branch and rec.issue_id not in info.get("children", []):
-            # the period's rollup PR already exists (period re-opened / ended early): it carries this child too
-            info["children"] = info.get("children", []) + [rec.issue_id]
-            self.store.set_meta("rollup", json.dumps(info))
+        if target is None:
+            info = self.rollup()
+            if info and info.get("period", {}).get("branch") == p.branch and rec.issue_id not in info.get("children", []):
+                # the period's rollup PR already exists (period re-opened / ended early): it carries this child too
+                info["children"] = info.get("children", []) + [rec.issue_id]
+                self.store.set_meta("rollup", json.dumps(info))
         self.store.record_event(rec.issue_id, "integrated", entry)
-        self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — {im.period_hebrew(p)} mode: "
-                                      f"CI, regression and independent review were green at `{head[:12]}`. Lands on main with the period's rollup PR.")
-        self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
-                           f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup בסוף {im.period_hebrew(p)}.")
+        if target is not None:
+            self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — ROOT #{p.root} integration branch: "
+                                          f"CI, regression and independent review were green at `{head[:12]}`. Lands on main only with ROOT #{p.root}'s final rollup PR.")
+            self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
+                               f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup של {p.label} (ROOT #{p.root}).")
+        else:
+            self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — {im.period_hebrew(p)} mode: "
+                                          f"CI, regression and independent review were green at `{head[:12]}`. Lands on main with the period's rollup PR.")
+            self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
+                               f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup בסוף {im.period_hebrew(p)}.")
         self._wake.set()
         if not self.dry_run:
             job = self.resources.try_acquire_heavy(rec.issue_id, "integration-smoke")

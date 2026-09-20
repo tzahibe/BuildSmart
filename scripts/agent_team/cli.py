@@ -14,6 +14,9 @@
     agentctl report N                    the Issue's work report (.agent/logs/reports/N.md): what was done per
                                          attempt, the failure history, and the event timeline
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
+    agentctl integration set ROOT integration/<slug> [--from REF] [--label L] | status | close ROOT
+                                         a ROOT's own integration branch: children start from it, PRs target
+                                         it, green PRs are merged into it by the lead; main only via ONE rollup PR
     agentctl reconcile                   one reconciliation pass, printed
     agentctl doctor                      environment checks (gh auth, claude binary, config)
     agentctl pause | resume              stop/continue taking new work (audited; the owner can also do it on Telegram)
@@ -431,14 +434,20 @@ def cmd_resume_pr(config: Config, args) -> int:
         wm = WorktreeManager(config)
         slug = rec.contract_dict().get("slug") or Path(rec.worktree).name.split("-", 1)[1]
         info = wm.ensure(args.number, slug)
+        # the PR's own base (main, a period's branch or a ROOT's integration branch) is what the branch follows
         try:
-            behind = wm.behind_base(info.path)
+            pr_base = (_github(config, require_auth=False).get_pr(rec.pr_number).get("base") or {}).get("ref")
+        except Exception:  # noqa: BLE001
+            pr_base = None
+        base_ref = wm.base_ref(pr_base) if pr_base else wm.base_ref()
+        try:
+            behind = wm.behind_base(info.path, pr_base)
             if behind:
-                wm.update_from_base(info.path)
+                wm.update_from_base(info.path, pr_base)
                 wm.push(info.path, info.branch)
-                print(f"#{args.number}: merged {wm.base_ref()} into {info.branch} ({behind} commit(s)) and pushed")
+                print(f"#{args.number}: merged {base_ref} into {info.branch} ({behind} commit(s)) and pushed")
             else:
-                print(f"#{args.number}: branch already up to date with {wm.base_ref()}")
+                print(f"#{args.number}: branch already up to date with {base_ref}")
         except MergeConflict as exc:
             print(f"cannot update base: {exc}")
             return 1
@@ -575,6 +584,33 @@ def cmd_period(config: Config, args) -> int:
             print("no active period")
             return 1
         print(orch.end_period())
+        return 0
+    return 1
+
+
+def cmd_integration(config: Config, args) -> int:
+    """ROOT-scoped integration branches (§42): `set ROOT BRANCH [--from REF] [--label ...]`, `status`,
+    `close ROOT`. Every child of the ROOT starts from the branch, targets it with its PR and is merged
+    into it by the Team Lead after every gate; main only through the ROOT's final rollup PR."""
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    orch = Orchestrator(config, github=_github(config), runner=FakeAgentRunner(script={}))
+    if args.integration_cmd == "set":
+        sha = orch.set_root_integration(args.number, args.branch, from_ref=args.from_ref, label=args.label)
+        print(f"ROOT #{args.number} -> {args.branch} (base {sha[:12]})")
+        return 0
+    if args.integration_cmd == "status":
+        items = orch.root_integrations()
+        if not items:
+            print("no ROOT integration branches")
+        for root, info in sorted(items.items()):
+            merged = [i["issue"] for i in orch.integrations() if i.get("branch") == info["branch"]]
+            print(f"ROOT #{root} ({info.get('label')}): {info['branch']} from {info.get('created_from', '')[:12]}"
+                  f"{' [closed]' if info.get('closed') else ''} — integrated: {merged or 'none yet'}")
+        return 0
+    if args.integration_cmd == "close":
+        orch.close_root_integration(args.number)
+        print(f"ROOT #{args.number}: integration branch closed (children start from the normal base again)")
         return 0
     return 1
 
@@ -1055,6 +1091,10 @@ def build_parser() -> argparse.ArgumentParser:
     lsub.add_parser("list"); lr = lsub.add_parser("release"); lr.add_argument("number", type=int); lr.add_argument("--reason", required=True); s.set_defaults(fn=cmd_locks)
     s = sub.add_parser("period"); psub = s.add_subparsers(dest="period_cmd", required=True)
     psub.add_parser("status"); psub.add_parser("start"); psub.add_parser("end"); s.set_defaults(fn=cmd_period)
+    s = sub.add_parser("integration"); isub2 = s.add_subparsers(dest="integration_cmd", required=True)
+    st = isub2.add_parser("set"); st.add_argument("number", type=int); st.add_argument("branch")
+    st.add_argument("--from", dest="from_ref"); st.add_argument("--label")
+    isub2.add_parser("status"); cl = isub2.add_parser("close"); cl.add_argument("number", type=int); s.set_defaults(fn=cmd_integration)
     s = sub.add_parser("rollup"); rsub = s.add_subparsers(dest="rollup_cmd", required=True)
     x = rsub.add_parser("exclude"); x.add_argument("number", type=int); x.add_argument("--reason"); s.set_defaults(fn=cmd_rollup)
     s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
