@@ -3,12 +3,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import yaml
+
 from agent_team.ci import contract_check, plan, regression_gate, verify
 from agent_team.github_client import FakeGitHub
 from agent_team.issue_contract import parse_budget_value
 from agent_team.labels import metadata_labels
 from agent_team.regression_budget import context_matches, evaluate
 from agent_team.tests.conftest import VALID_BODY
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 PR_BODY = """## Issue
 Closes #42
@@ -252,6 +256,47 @@ def test_regression_gate_report():
     assert not rep.ok
     assert any(c["name"] == "budget crashes" and not c["ok"] for c in rep.checks)
     assert regression_gate.evaluate(_report(), {"LOST": "0"}).ok
+
+
+def test_regression_workflow_runs_shadow_mode_invariants_and_compares_them():
+    """Issue #66: gate-4 keeps the old corpus replay as ground truth and additionally evaluates
+    the same outcome invariants from the head snapshot, failing the job if the two verdicts (or
+    the replay itself) ever disagree — this parses the real workflow YAML, not a copy of it."""
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-regression.yml").read_text())
+    steps = doc["jobs"]["regression"]["steps"]
+    by_name = {s["name"]: s for s in steps if "name" in s}
+
+    snapshot_step = by_name["Corpus outcome invariants (from snapshot)"]
+    assert "snapshot_invariants.py evaluate" in snapshot_step["run"]
+    assert "head_snapshot.json" in snapshot_step["run"]
+
+    replay_step = by_name["Corpus outcome invariants (TEST_MODE=REGRESSION)"]
+    assert replay_step.get("id") == "replay"
+    rep_run = replay_step["run"]
+    assert "tests/regression_corpus/test_frozen_regression_corpus.py" in rep_run and "--junitxml" in rep_run
+    # shadow mode: the frozen-outcome file's own invocation must keep actually replaying, so
+    # CORPUS_SNAPSHOT is not set step-wide...
+    assert "CORPUS_SNAPSHOT" not in (replay_step.get("env") or {})
+    # ...but Issue #17's snapshot mode for test_quality_baseline.py must still run (the rest of the
+    # directory, excluding the frozen file, in its own invocation with CORPUS_SNAPSHOT set) — a
+    # step-wide removal of the env var would silently reintroduce a second full corpus replay here.
+    assert "--ignore=tests/regression_corpus/test_frozen_regression_corpus.py" in rep_run
+    assert "CORPUS_SNAPSHOT=" in rep_run and "head_snapshot.json" in rep_run
+
+    verdict_step = by_name["Record replay verdict"]
+    assert "snapshot_invariants.py from-junit" in verdict_step["run"]
+
+    compare_step = by_name["Compare invariants verdicts"]
+    rule = compare_step["run"]
+    assert "snapshot_invariants.py compare" in rule
+    assert "invariants_from_snapshot.json" in rule and "invariants_replay.json" in rule
+    # the compare rule fails the job on either a verdict mismatch or a real replay failure
+    compare_env = compare_step.get("env") or {}
+    assert "steps.replay.outcome" in compare_env.get("REPLAY_OUTCOME", "")
+    assert "REPLAY_OUTCOME" in rule and "exit 1" in rule and "COMPARE_STATUS" in rule
+
+    upload_paths = by_name["Upload regression report"]["with"]["path"]
+    assert "invariants_from_snapshot.json" in upload_paths and "invariants_replay.json" in upload_paths
 
 
 def test_fake_github_state_label_is_idempotent():
