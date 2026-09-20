@@ -70,15 +70,15 @@ def _disjoint_halves(keys: list[str]) -> tuple[dict, dict]:
     return a, b
 
 
-def test_merge_refuses_a_missing_shard():
+def test_merge_refuses_missing_duplicate_and_mismatched_shards():
     keys = cs.sorted_context_keys(CORPUS)
+
+    # missing shard
     partial = {k: {"status": "PLANNED"} for k in keys[:5]}
     with pytest.raises(cs.ShardMergeError, match="missing shard"):
         cs.merge_shards([_shard_doc(partial)], CORPUS)
 
-
-def test_merge_refuses_a_duplicated_key():
-    keys = cs.sorted_context_keys(CORPUS)
+    # duplicated key
     full = {k: {"status": "PLANNED"} for k in keys}
     items = list(full.items())
     overlap = len(items) * 3 // 5
@@ -87,17 +87,12 @@ def test_merge_refuses_a_duplicated_key():
     with pytest.raises(cs.ShardMergeError, match="duplicate context key"):
         cs.merge_shards([_shard_doc(part_a), _shard_doc(part_b)], CORPUS)
 
-
-def test_merge_refuses_a_head_sha_mismatch():
-    keys = cs.sorted_context_keys(CORPUS)
+    # head_sha mismatch
     part_a, part_b = _disjoint_halves(keys)
     with pytest.raises(cs.ShardMergeError, match="head_sha mismatch"):
         cs.merge_shards([_shard_doc(part_a, sha="sha-A"), _shard_doc(part_b, sha="sha-B")], CORPUS)
 
-
-def test_merge_refuses_a_corpus_hash_mismatch():
-    keys = cs.sorted_context_keys(CORPUS)
-    part_a, part_b = _disjoint_halves(keys)
+    # corpus_hash mismatch
     with pytest.raises(cs.ShardMergeError, match="corpus_hash mismatch"):
         cs.merge_shards(
             [_shard_doc(part_a, corpus_hash="hash-A"), _shard_doc(part_b, corpus_hash="hash-B")], CORPUS,
