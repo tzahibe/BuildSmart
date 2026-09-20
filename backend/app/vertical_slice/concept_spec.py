@@ -75,6 +75,47 @@ class ZoningSplit(str, Enum):
     WRAPPED = "WRAPPED"
 
 
+class WetCoreGrouping(str, Enum):
+    """How a concept's wet rooms group relative to their host bedroom — the same coarse
+    vocabulary `ConceptSpec.wet_core_strategy`/`_wet_core_strategy` already compute per candidate
+    (kept as a separate enum here, additive only, so neither existing field's `str` type nor any
+    caller of it changes)."""
+
+    ALL_ENSUITE = "ALL_ENSUITE"
+    ALL_SHARED = "ALL_SHARED"
+    MIXED = "MIXED"
+    NONE = "NONE"
+
+
+class MasterPlacement(str, Enum):
+    """Where the primary/master bedroom sits relative to the concept's own circulation —
+    descriptive metadata for `references/index.json` entries and `concept_patterns.py` pattern
+    records (Issue #77), not read by any generator today."""
+
+    #: Foot band of a hub, entered from the hub the way `HUB_PRIVATE_WING` FR-3 places it
+    #: (`specs/005-hub-private-wing/spec.md` §4).
+    HUB_FOOT = "HUB_FOOT"
+    #: At the end of a single spine corridor.
+    WING_END = "WING_END"
+    #: In its own wing, in a two-wing (L parti) or ring (courtyard) massing.
+    OWN_WING = "OWN_WING"
+    #: On its own storey in a multi-level concept.
+    UPPER_LEVEL = "UPPER_LEVEL"
+
+
+class EntranceSide(str, Enum):
+    """Where the entrance sits relative to the concept's massing — descriptive metadata for
+    `references/index.json` entries and `concept_patterns.py` pattern records (Issue #77), not
+    read by any generator today."""
+
+    #: Opens directly into the front/public zone.
+    FRONT = "FRONT"
+    #: Opens into a court formed by two wings meeting at a seam (the L parti's inner corner).
+    ENTRY_COURT = "ENTRY_COURT"
+    #: On a side elevation rather than the front (a corner plot, an angled/T-shaped envelope).
+    SIDE = "SIDE"
+
+
 #: `spec.CirculationStyle` (a PERSON's own stated preference on `HouseConcept`) -> `CirculationClass`
 #: (this module's authoritative vocabulary) — mapped, never duplicated. `ENGINE` ("no preference
 #: stated") has no class: `circulation_style_of` returns `None` for it, same as an unset field.

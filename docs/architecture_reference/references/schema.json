@@ -131,6 +131,43 @@
           "type": "boolean",
           "const": true,
           "description": "True when references/<id>/annotation.md exists with the 'why this plan works' / trade-offs / anti-patterns-avoided sections (Issue #31). Every entry must carry this."
+        },
+        "concept": {
+          "$ref": "#/$defs/concept",
+          "description": "Optional structured concept-pattern block (Issue #77): the same descriptive vocabulary app.vertical_slice.concept_spec.py and app.vertical_slice.concept_patterns.py use, filled from this entry's own tags/annotation. Never geometry — see references/README.md's rights note."
+        }
+      }
+    },
+    "concept": {
+      "type": "object",
+      "title": "Structured concept-pattern block",
+      "required": ["circulation_class", "zoning_split", "wet_core_grouping", "master_placement", "entrance_side"],
+      "additionalProperties": false,
+      "properties": {
+        "circulation_class": {
+          "type": "string",
+          "enum": ["SPINE", "FRONT_BAND", "HUB_LOBBY", "BRANCHED", "RING", "TWO_WING"],
+          "description": "app.vertical_slice.concept_spec.CirculationClass — the parti this entry's private-wing/circulation organisation belongs to."
+        },
+        "zoning_split": {
+          "type": "string",
+          "enum": ["SIDE_BY_SIDE", "FRONT_REAR", "WRAPPED"],
+          "description": "app.vertical_slice.concept_spec.ZoningSplit — where the public zone sits relative to circulation/private."
+        },
+        "wet_core_grouping": {
+          "type": "string",
+          "enum": ["ALL_ENSUITE", "ALL_SHARED", "MIXED", "NONE"],
+          "description": "app.vertical_slice.concept_spec.WetCoreGrouping — the coarse wet-room-to-bedroom grouping (same vocabulary as ConceptSpec.wet_core_strategy)."
+        },
+        "master_placement": {
+          "type": "string",
+          "enum": ["HUB_FOOT", "WING_END", "OWN_WING", "UPPER_LEVEL"],
+          "description": "app.vertical_slice.concept_spec.MasterPlacement — where the primary/master bedroom sits relative to this entry's circulation."
+        },
+        "entrance_side": {
+          "type": "string",
+          "enum": ["FRONT", "ENTRY_COURT", "SIDE"],
+          "description": "app.vertical_slice.concept_spec.EntranceSide — where the entrance sits relative to this entry's massing."
         }
       }
     }
