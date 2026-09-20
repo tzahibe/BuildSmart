@@ -96,6 +96,11 @@ def reconcile(orch) -> list[str]:
                     log.warning("#%s: cannot read issue: %s", n, exc)
                     continue
                 if issue.get("state") == "closed" and rec.state not in (sm.MERGED, sm.DONE):
+                    if rec.state == sm.BLOCKED:
+                        if rec.kind == "root" and store.get_meta(f"root_closed:{n}") == "1":
+                            orch._set_state(store, n, sm.DONE, note="ROOT closed: every child done")
+                            actions.append(f"#{n}: closed ROOT -> DONE")
+                        continue                       # already blocked: nothing to re-block
                     orch.locks.release(n, "issue-closed")
                     orch._set_state(store, n, sm.BLOCKED, note="issue closed externally", failure_class="ISSUE_CLOSED")
                     actions.append(f"#{n}: issue closed externally -> BLOCKED")

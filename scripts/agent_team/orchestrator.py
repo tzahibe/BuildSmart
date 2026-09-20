@@ -369,6 +369,11 @@ class Orchestrator:
                     continue
             self.store.set_meta(f"root_closed:{root_n}", "1")
             self.store.record_event(root_n, "root_done", {"children": [c.issue_id for c in children]})
+            root_rec = self.store.get(root_n)
+            if root_rec is not None and root_rec.state == sm.BLOCKED:
+                # a decomposed ROOT is tracked as BLOCKED ("executed through its children"); once closed it is
+                # DONE — otherwise reconciliation re-blocks the closed Issue every tick
+                self._set_state(self.store, root_n, sm.DONE, note="ROOT closed: every child done")
             out.append(f"ROOT #{root_n} closed: all {len(children)} children done")
         return out
 
