@@ -33,6 +33,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from .concept import Concept
+from .concept_spec import CirculationClass
 from .geometry_core.model import (
     UNIT_M,
     WALL_THICKNESS_M,
@@ -452,6 +453,11 @@ class ConceptCandidate:
     concept: Concept
     strategy: ConceptStrategy
     wing_orders: tuple[int, ...]
+    #: The circulation parti this candidate belongs to (Issue #75) — set explicitly by the
+    #: builder that produced it (`_concept_from` -> SPINE, `_front_band_candidate` -> FRONT_BAND,
+    #: `_hub_candidate` -> HUB_LOBBY, `l_parti._candidate_from` -> TWO_WING). Verified against the
+    #: realized plan by `concept_spec.verify_class`; metadata only, never read by selection.
+    circulation_class: CirculationClass
     rationale: str
     used_area_m2: float
     unused_wing_area_m2: float
@@ -2910,6 +2916,7 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
                       tuple(specs[r.zone_id] for r in rooms), access, open_groups=groups)
     return ConceptCandidate(
         Concept(fixture, "HALL", Side.N, fw, fh), strategy, (0,),
+        circulation_class=CirculationClass.SPINE,
         rationale=(f"{rationale}; west {plan.west.width_m:.2f} m ({len(plan.west.rows)} rows) | "
                    f"hall {plan.hall_w_m:.2f} m | east {plan.east.width_m:.2f} m "
                    f"({len(plan.east.rows)} rows) over {fh:.2f} m"),
@@ -3211,6 +3218,7 @@ def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], can
                       tuple(specs[r.zone_id] for r in rooms), access, open_groups=groups)
     return ConceptCandidate(
         Concept(fixture, "HALL", Side.N, fw, fh), strategy, (0,),
+        circulation_class=CirculationClass.FRONT_BAND,
         rationale=(f"front public band {band_depth:.2f} m deep; rear west {west_w:.2f} m "
                    f"({len(west_rows)} rows) | hall {hall_w:.2f} m | east {east_w:.2f} m "
                    f"({len(east_rows)} rows)"
@@ -4038,6 +4046,7 @@ def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate:
                       tuple(plan.specs[r.zone_id] for r in rooms), access, open_groups=groups)
     return ConceptCandidate(
         Concept(fixture, alloc.hub.zone_id, Side.N, fw, fh), ConceptStrategy.HUB_PRIVATE_WING, (0,),
+        circulation_class=CirculationClass.HUB_LOBBY,
         rationale=(f"room lobby {plan.hub_w_m:.2f} x {plan.hub_d_m:.2f} m with {plan.doors_on_hub} "
                    f"doors; front band {plan.band_depth_m:.2f} m; flanks {plan.west_w_m:.2f} | "
                    f"{plan.east_w_m:.2f} m; foot band {plan.foot_depth_m:.2f} m "

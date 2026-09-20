@@ -49,6 +49,7 @@ from enum import Enum
 
 from . import concept_generator as cg
 from .concept import Concept
+from .concept_spec import CirculationClass
 from .concept_generator import (
     ASSUMED_EFFICIENCY,
     ROOM_TEMPLATES,
@@ -276,7 +277,8 @@ def plan_level(level: LevelProgram, footprint_w_m: float, footprint_h_m: float,
                     f"band {band_w:.2f} m | east {east_w:.2f} m over {footprint_h_m:.2f} m")
         candidate = ConceptCandidate(
             Concept(fixture, hall_seed, Side.N, footprint_w_m, footprint_h_m),
-            ConceptStrategy.SPINE_PUBLIC_PRIVATE, (0,), rationale,
+            ConceptStrategy.SPINE_PUBLIC_PRIVATE, (0,),
+            circulation_class=CirculationClass.SPINE, rationale=rationale,
             used_area_m2=round(footprint_w_m * footprint_h_m, 2), unused_wing_area_m2=0.0,
             wet_rooms=cg.wet_rooms_of([r for r in rooms if r.wet is not None]),
             shrunk=allow_deficit, over_preferred=allow_hard)
