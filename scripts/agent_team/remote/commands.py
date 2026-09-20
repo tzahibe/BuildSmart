@@ -39,16 +39,19 @@ OWNER_CHANGE_REQUEST = "OWNER_CHANGE_REQUEST"
 # control
 PAUSE_SCHEDULER = "PAUSE_SCHEDULER"
 RESUME_SCHEDULER = "RESUME_SCHEDULER"
+# weekend / holiday integration mode
+ROLLUP_STATUS = "ROLLUP_STATUS"        # what is in the current integration bundle / rollup PR
+ROLLUP_EXCLUDE = "ROLLUP_EXCLUDE"      # take one Issue's change out of the rollup (args.number)
 PAIR = "PAIR"
 UNKNOWN = "UNKNOWN"
 
 ACTIONS = (GET_STATUS, GET_AGENTS, LIST_ISSUES, GET_ISSUE, LIST_READY_PRS, GET_PR_DETAILS, PR_QUESTION, ASK, HELP,
            CREATE_ISSUE_DRAFT, UPDATE_ISSUE_DRAFT, SHOW_DRAFT, CANCEL_DRAFT, CREATE_ISSUE, APPROVE_ISSUE, QUEUE_ISSUE,
            UNQUEUE_ISSUE, MERGE_PR, CONFIRM_MERGE, CANCEL_MERGE, REJECT_PR, CONFIRM_REJECT, OWNER_CHANGE_REQUEST,
-           PAUSE_SCHEDULER, RESUME_SCHEDULER, PAIR, UNKNOWN)
+           PAUSE_SCHEDULER, RESUME_SCHEDULER, ROLLUP_STATUS, ROLLUP_EXCLUDE, PAIR, UNKNOWN)
 #: Actions that change GitHub / orchestrator state — always audited, always replay-protected.
 MUTATING = (CREATE_ISSUE, APPROVE_ISSUE, QUEUE_ISSUE, UNQUEUE_ISSUE, CONFIRM_MERGE, CONFIRM_REJECT, OWNER_CHANGE_REQUEST,
-            PAUSE_SCHEDULER, RESUME_SCHEDULER, PAIR)
+            PAUSE_SCHEDULER, RESUME_SCHEDULER, ROLLUP_EXCLUDE, PAIR)
 #: Actions that may only come from a pressed button (never from text, never from voice).
 BUTTON_ONLY = (CONFIRM_MERGE, CONFIRM_REJECT)
 #: Actions the LLM interpreter may produce (everything except the button-only confirmations and pairing).
@@ -135,6 +138,7 @@ _QUICK: list[tuple[re.Pattern, str, str | None]] = [
     (re.compile(r"^/pause\s*$"), PAUSE_SCHEDULER, None),
     (re.compile(r"^/resume\s*$"), RESUME_SCHEDULER, None),
     (re.compile(r"^/ready\s*$"), LIST_READY_PRS, None),
+    (re.compile(r"^/rollup\s*$"), ROLLUP_STATUS, None),
     (re.compile(r"^/issues\s*$"), LIST_ISSUES, None),
     (re.compile(r"^/draft\s*$"), SHOW_DRAFT, None),
     (re.compile(r"^/cancel\s*$"), CANCEL_DRAFT, None),

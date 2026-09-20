@@ -119,8 +119,10 @@ class Config:
     # governance
     owner_approval_label: str
     max_active_issues: int
-    release_locks_at_ready: bool
+    release_locks_at: str            # pr_open | ready | merge
     drain_timeout_seconds: int
+    protected_periods_enabled: bool
+    protected_periods_raw: dict
 
     # usage guard + rolling backlog
     usage_guard_enabled: bool
@@ -293,8 +295,10 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
         owner_approval_label=str(gov.get("owner_approval_label", "owner:approved")),
         max_active_issues=int(gov.get("max_active_issues", 2)),
-        release_locks_at_ready=bool(gov.get("release_locks_at_ready", True)),
+        release_locks_at=str(gov.get("release_locks_at", "ready" if gov.get("release_locks_at_ready", True) else "merge")),
         drain_timeout_seconds=int(gov.get("drain_timeout_seconds", 3900)),
+        protected_periods_enabled=bool((raw.get("protected_periods") or {}).get("enabled", True)),
+        protected_periods_raw=dict(raw.get("protected_periods") or {}),
         usage_guard_enabled=bool(ug.get("enabled", True)),
         usage_pause_at_percent=float(ug.get("pause_at_percent", 98)),
         usage_resume_below_percent=float(ug.get("resume_below_percent", 90)),

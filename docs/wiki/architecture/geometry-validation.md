@@ -64,7 +64,9 @@ never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future plann
 - **`ALLOWED_ENTERED_FROM`**: for every `ProgramRole`, the roles a room of that role may be
   entered FROM. PRIVATE rooms (BEDROOM, MASTER_BEDROOM, SAFE_ROOM, STUDY, DRESSING_ROOM): only
   HALL/CIRCULATION — never another PRIVATE room. Wet rooms (BATHROOM, TOILET): HALL/CIRCULATION,
-  plus the hosting bedroom for an ensuite. Narrow service rooms (LAUNDRY, STORAGE):
+  the hosting bedroom for an ensuite, or **LIVING** — the last public-access fallback per
+  `specs/009-guest-wc-placement` decision C (Issue #69); KITCHEN and DINING stay disallowed.
+  Narrow service rooms (LAUNDRY, STORAGE):
   HALL/CIRCULATION, plus the KITCHEN they serve. Public/circulation rooms
   (ENTRANCE/LIVING/DINING/KITCHEN/FAMILY_ROOM/FLEX/HALL/CIRCULATION/STAIRWELL): any other
   public-or-circulation room. `edge_role_pair_allowed` checks one edge's two zone role-sets
@@ -88,6 +90,63 @@ never emit a PRIVATE-to-PRIVATE edge, with nothing to catch it if a future plann
   typed OPEN between two rooms cannot create a silent chain either. C24 is additive: it passes on
   every existing corpus context and canonical fixture without changing any of them; it exists to
   catch a FUTURE planner path that would otherwise silently emit a disallowed edge.
+
+## Entrance / arrival-room policy (C23)
+
+Issue #20 (2026-09-18). The front door has to open into a room a visitor may actually arrive
+in — a hall, a circulation zone, or the living room — never a kitchen, a dining room, a private
+room (bedroom, master bedroom, safe room, study, dressing room) or a wet/service room. Before this
+Issue, `resolve_entrance`'s priority order also included DINING and KITCHEN, so a plan whose only
+street-fronting public room was the dining room got its front door there — geometrically correct
+(C16 passed: the door genuinely sat on that room's own wall) but architecturally a random room,
+not an entrance.
+
+- **`doors.py::ENTRANCE_ZONE_PRIORITY`** is now exactly `(HALL, CIRCULATION, LIVING)` —
+  `ALLOWED_ENTRANCE_ROLES` is the same set. `resolve_entrance` is unchanged in mechanism (it still
+  reads the realized geometry: the street-fronting zone with the best rank in this tuple) but
+  returns `None` whenever nothing in the narrower tuple fronts the street with enough frontage for
+  a door — including a plan whose only street-fronting rooms are DINING/KITCHEN, which used to
+  resolve. `doors.py::street_fronting_roles` reports what WAS there (allowed or not), so a refusal
+  can name it.
+- **Candidate ranking** (`general_pipeline.run_general`'s main loop, the non-relationships path):
+  among candidates that realize and validate, one whose entrance rank
+  (`general_pipeline._entrance_rank`: 0 for HALL/CIRCULATION, 1 for LIVING) is better than the
+  best found so far replaces the current choice; `fast_path` still stops the instant rank 0 is
+  reached, so a brief whose first valid candidate already has a HALL/CIRCULATION entrance costs
+  exactly what it did before this Issue. Untouched for the `relationships` path and for the
+  hub-guard/quality-twin passes that run after selection — those stay governed by full validation
+  (C23 is defense-in-depth there too) but are not entrance-rank-aware; out of scope for #20.
+- **`ENTRANCE_NO_ARRIVAL_ROOM`** (`app/demo/service.py::_finish`): the specific refusal when a
+  plan's front door has nowhere legitimate to open into. Gated on an entrance-related check
+  actually failing (C16/C23/C7/C11) AND none of the realized plan's street-fronting rooms having
+  an allowed role, so an unrelated validation failure is never misdiagnosed as an entrance
+  problem; the message names whatever WAS found fronting the street (e.g. "המטבח, פינת האוכל").
+  Listed in `_FEASIBILITY_CODES`.
+- **C23 "entrance opens into an allowed arrival room"** (`validation.py`, next to C16, under the
+  same `skip_site_checks` gate — a multi-level upper storey has no street door, so it is not held
+  to this check): fails closed whenever the entrance door's named zone carries no role in
+  `ALLOWED_ENTRANCE_ROLES`, independent of HOW that zone name was chosen. Defense in depth for
+  every path that draws a front door, including the frozen pipeline (`pipeline.py::run_once`),
+  which now calls `resolve_entrance` at its one call site instead of hardcoding `HALL_MAIN` —
+  the frozen baseline's own HALL fronts the street, so its own behaviour is unchanged.
+- **Corpus effect**: measured on the frozen 432-context corpus (before/after `corpus_snapshot.py`
+  compare, 8 workers): LOST=0, GAINED=0, refusal-code changes=0, primary-signature changes=19 (the
+  40-context budget). No corpus context's PRIMARY was ever actually a kitchen/dining entrance —
+  the pre-existing C16 check ("the entrance opens into the room it names") already kept a
+  hardcoded-fallback entrance off a room that does not front the street, so a dining/kitchen-only
+  candidate never validated to begin with, in either the pre- or post-#20 code. All 19 changes are
+  the RANKING taking effect among candidates that already validate: 17 contexts' primary moved
+  from a LIVING entrance to a HALL/CIRCULATION one; 2 contexts kept a LIVING entrance (no better
+  candidate exists) but the same ranking mechanism still changed which validating candidate is
+  first-found, so their geometry signature differs too. The full per-context before/after list
+  is committed at `docs/reports/issue-20-entrance-signature-changes.md`.
+
+**PROPOSED, not scheduled — foyer synthesis.** A context whose EVERY candidate's only
+street-fronting public room is the kitchen or dining room (none measured in the frozen corpus, but
+not provable impossible for an arbitrary brief/parcel) would refuse with `ENTRANCE_NO_ARRIVAL_ROOM`
+rather than fabricate an entrance. The fix is a small street-side foyer the planner adds within the
+existing area budget — a new zone, which is planner/generator work, not a validation or ranking
+change — deliberately left for a future Issue rather than attempted here.
 
 ## Windows and exterior exposure (C19/C8)
 
@@ -321,6 +380,19 @@ entries in the canonical, repo-wide quality rubric and anti-pattern library:
 every reviewer should consult those files rather than re-deriving quality judgments from this page
 alone.
 
+## Reference benchmark against curated plans (Issue #32)
+
+2026-09-18. `app/vertical_slice/reference_benchmark.py`'s `benchmark(design, references) ->
+BenchmarkReport` reports one deterministic `SectionFinding` per rubric section
+(`docs/architecture_reference/quality_rubric.md`) for a realized plan, comparing six of them
+(entrance, circulation, zoning, exposure, dead space, and a room-area consistency fact — see that
+module's own docstring for its own section-lettering, which does not match the rubric's A–O)
+against `docs/architecture_reference/references/index.json` entries of the same `footprint_family`
+— metadata and derived ratios only, never a reference plan's own geometry. The other nine rubric
+sections come back `not_measured`. `backend/scripts/reference_benchmark.py --context <id>` prints
+the report for one `tests/regression_corpus/corpus.json` context; not wired into
+`agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -340,6 +412,8 @@ alone.
   not repeat the same seat count.
 
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
+A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
+above.
 
 ## Evidence/history
 
@@ -351,13 +425,29 @@ professional plans' reference values) and `RESULTS.md` (why the hub parti was re
 
 ## Last verified against git
 
+`bffd624` (branch `agent/18-door-and-access-topology-rules-every-enc`, based on `origin/main`);
+the Access topology and door rules (C24) section above documents work landing on this branch
+(Issue #18), verified against this session's own implementation and test runs. The M1–M6 section
+documents Issue #17, verified against that session's implementation and test runs, not
+independently re-verified beyond that.
+
 `36b27e8` (branch `agent/19-windows-and-exterior-exposure-exposure-c`, based on
 `origin/integration/holiday-yom-kippur-2026`); the Windows and exterior exposure (C19/C8) section
 above documents work landing on this branch (Issue #19), verified against this session's own
-implementation and test runs. The Access topology and door rules (C24) section documents Issue
-#18, and the M1–M6 section documents Issue #17, both verified against their own sessions'
-implementation and test runs, not independently re-verified beyond that. The Dedicated circulation
-metrics and C26 section documents Issue #36, branch
-`agent/36-circulation-efficiency-dedicated-circula`, verified against this session's own
-implementation and test runs (full `vertical_slice`/fast-tier suites green; the 432-context
-regression corpus was run separately — see the Issue's own PR for the outcome).
+implementation and test runs.
+
+Branch `agent/20-entrance-policy-the-front-door-opens-int`, based on
+`origin/integration/holiday-yom-kippur-2026` (merged forward to include #19/#21/#37 and the infra
+merge): the Entrance / arrival-room policy (C23) section above documents Issue #20, verified
+against this session's own implementation and test runs, including this merge's conflict
+resolution (combined check count, both new-section additions kept intact).
+
+Branch `agent/36-circulation-efficiency-dedicated-circula`, based on
+`origin/integration/holiday-yom-kippur-2026` (merged forward to `main` at `648292f` after the
+integration branch's squash-merge, #18/#19/#20/#21/#24/#25/#29–#33/#37/#44/#63/#69 all already
+landed): the Dedicated circulation metrics and C26 section above documents Issue #36, verified
+against this session's own implementation and test runs (full `vertical_slice`/fast-tier suites
+green; the 432-context regression corpus was run separately — see the Issue's own PR for the
+outcome), including this merge's own conflict resolution (main's version taken for every
+shared/unrelated file; C26 and the circulation fields re-applied on top of C23/C29/wet-core exactly
+as they existed pre-merge; combined check count).

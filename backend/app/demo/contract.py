@@ -116,6 +116,18 @@ class QualitySignal(BaseModel):
     ratio: float
 
 
+class WetCoreOut(BaseModel):
+    """One plan's plumbing-efficiency standing (Issue #44) — see
+    `app.vertical_slice.wet_core.WetCore` for what each field means and how it is computed.
+    Display/ranking data only, exactly like `WetPrivacyOut`; no check gates on it."""
+
+    shared_wall_length_m: float
+    clusters: list[list[str]] = []
+    cluster_count: int
+    kitchen_adjacent_count: int
+    plumbing_complexity_index: int
+
+
 class QualityMetricsOut(BaseModel):
     """M1–M6 for this one plan (Issue #17), read-only — never an input to ranking or validation.
 
@@ -147,6 +159,25 @@ class QualityMetricsOut(BaseModel):
     circulation_turn_count: int = 0
     circulation_duplicated_segment_count: int = 0
     circulation_duplicated_area_m2: float = 0.0
+    #: Plumbing-efficiency standing (Issue #44), additive. `None` only for a payload built before
+    #: this field existed — every plan `to_demo_design` produces from here on attaches one.
+    wet_core: WetCoreOut | None = None
+
+
+class WetPrivacyOut(BaseModel):
+    """One wet room's privacy standing (Issue #37) — see
+    `app.vertical_slice.wet_privacy.WetPrivacy` for what each field means and how it is computed.
+    Display/ranking data only; the one hard rule it backs (C29) lives in `validation.py`."""
+
+    zone_id: str
+    entered_from: str | None = None
+    entered_from_class: str
+    door_facing: str | None = None
+    direct_sight_line: bool
+    public_exposure_score: float
+    circulation_obstruction: bool
+    adjacency_quality: bool
+    privacy_score: float
 
 
 class ExposureOut(BaseModel):
@@ -195,6 +226,9 @@ class QualityOut(BaseModel):
     #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
     #: per room.
     exposure: list[ExposureOut] = []
+    #: One `WetPrivacyOut` per wet room (Issue #37), additive. `[]` for a plan with no wet rooms,
+    #: or one built before this field existed.
+    wet_privacy: list[WetPrivacyOut] = []
 
 
 class WindowOut(BaseModel):
@@ -740,11 +774,12 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
-def _metrics_out(m: quality_metrics.QualityMetrics,
-                 c: circulation_metrics.CirculationMetrics) -> QualityMetricsOut:
+def _metrics_out(m: quality_metrics.QualityMetrics, c: circulation_metrics.CirculationMetrics,
+                 wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
     return QualityMetricsOut(
         **dataclasses.asdict(m),
         **{f"circulation_{k}": v for k, v in dataclasses.asdict(c).items()},
+        wet_core=wet_core,
     )
 
 
@@ -917,9 +952,14 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
     exposure = _exposure_of(design)
+    wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
+    wet_core = (WetCoreOut(**dataclasses.asdict(design.wet_core))
+               if design.wet_core is not None else None)
     return demo.model_copy(update={
-        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics, circulation),
-                                                    "exposure": exposure})
+        "quality": demo.quality.model_copy(update={
+            "metrics": _metrics_out(metrics, circulation, wet_core),
+            "exposure": exposure,
+            "wet_privacy": wet_privacy})
     })
 
 

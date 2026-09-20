@@ -22,7 +22,7 @@ from . import circulation_metrics
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
 from .design_output import assemble as assemble_design
-from .doors import Door
+from .doors import ALLOWED_ENTRANCE_ROLES, Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
 from .geometry_adapter import envelope_sides
@@ -40,6 +40,7 @@ from .geometry_core.model import (
 )
 from .site import SitePlan
 from .spec import CorridorRequirement, WetRoomKind
+from . import wet_privacy as wet_privacy_module
 from .wet_rooms import ResolvedWetRoom
 from .windows import DAYLIGHT_ROLES, Window, seam_sides_of
 
@@ -439,6 +440,20 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                     f"{u_to_m(zone.x):.2f}-{u_to_m(zone.x2):.2f} m"
                     + ("" if on_zone_wall else " — the door is not on that room's wall"))
 
+        # C23 — the entrance opens into an ALLOWED ARRIVAL ROOM (Issue #20): HALL, CIRCULATION or
+        # LIVING — never a kitchen, dining room, a private room (bedroom, master bedroom, safe
+        # room, study, dressing room) or a wet/service room. Defense in depth, independent of HOW
+        # `entrance_zone_id` was chosen: C16 above already proves the door sits on the named
+        # room's OWN wall; this proves that room's ROLE is one a visitor may actually arrive in,
+        # so a caller that hardcodes an entrance zone or a future bug in `resolve_entrance` cannot
+        # silently put the front door in a bedroom or a kitchen and still pass validation.
+        target_roles = {z.zone_id: z.roles for z in fixture.zones}.get(target, ())
+        entrance_ok = any(r in ALLOWED_ENTRANCE_ROLES for r in target_roles)
+        role_list = ", ".join(r.value for r in target_roles) or "none"
+        rep.add("C23", "entrance opens into an allowed arrival room", entrance_ok,
+                f"{target} role(s) {role_list}"
+                + ("" if entrance_ok else " — not HALL, CIRCULATION or LIVING"))
+
     # C13 — every DECLARED access edge is physically realized.
     #
     # DesiredAccessTopology is preserved as design INTENT; this check is the comparison between
@@ -542,6 +557,19 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                        f"{', '.join(entered_from) or 'nothing'}, required {expected}")
     rep.add("C17", "bathroom access matches the requirements", not bad,
             "; ".join(bad) or f"all {len(wet_rooms)} wet rooms entered as required")
+
+    # C29 — wet-room privacy (Issue #37). C17 above already fails closed on WHO may enter a wet
+    # room; this is the door's own relationship to the public part of the house once that access
+    # is legal. Fails closed ONLY on the hard rule (`wet_privacy.hard_violations`: entered directly
+    # from KITCHEN or DINING) — corridor access, however its facing geometry scores, is never
+    # refused here (see `wet_privacy.py`'s module docstring). Everything else is quality data on
+    # `QualityOut.wet_privacy` (`app.demo.contract`), never a gate.
+    privacy_records = wet_privacy_module.compute_wet_privacy(fixture, rects, walls, interior_doors,
+                                                             wet_rooms)
+    privacy_bad = wet_privacy_module.hard_violations(fixture, privacy_records)
+    rep.add("C29", "wet-room privacy", not privacy_bad,
+            "; ".join(privacy_bad) or
+            f"all {len(privacy_records)} wet rooms clear of a direct public-zone sight line")
 
     # C22 — declared wing seams are real (the spike's proof P9, ported). Multi-wing fixtures only:
     # a one-wing house has no seam to prove, and a check that did not run makes no claim — which
