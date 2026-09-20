@@ -995,6 +995,10 @@ class Orchestrator:
                 self._ci_started[rec.issue_id] = self.clock()
                 return f"CI red ({cls.kind}) -> rerun requested"
         fixable = cls.repairable
+        if cls.kind == MERGE_CONFLICT and rec.worktree:
+            # the fixer cannot run `git merge`: start the merge here, leave the markers, then dispatch
+            pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+            return self._merge_conflict(rec, Path(rec.worktree), pr_base, cls.summary, from_state="CI")
         if cls.kind == SPEC_MISMATCH:
             # the PR must catch up with the LIVE contract — unless the contract itself no longer parses
             try:

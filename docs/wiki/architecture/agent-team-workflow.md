@@ -719,6 +719,22 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
   migrated, and three simultaneous starts raced on `ALTER TABLE` (harmless; stagger parallel
   `investigate` starts by a few seconds).
 
+## Second Yom Kippur entry (Sun 2026-09-20, owner instruction) — lessons
+
+- A period ended early is not re-entered by the calendar (`period_closed_through`); on the owner's
+  instruction the lead re-opens it by setting `period_closed_through` back (here `2026-09-19`) — the
+  daemon's next `check_period` starts it, recreating the integration branch from the current `main`.
+  Remove the stale `61-rollup` worktree and the stale LOCAL branch of the same name first.
+- A ROOT-integration child (#75) lost its linkage when `refresh_contract` re-tracked it (fixed: `track()`
+  keeps an existing linkage); the owner's merge into the ROOT's branch is now adopted as INTEGRATED
+  (`adopt_integration_merge`, `agentctl integration adopt N --root R`) instead of failing the main-only
+  post-merge smoke.
+- Evidence notes are picked by modification time (an old higher-numbered note misled the fixer on #38);
+  a CI-detected MERGE_CONFLICT starts the merge in the worktree before the fixer runs (#34); gate 4 red
+  without a budget verdict is IMPLEMENTATION_FAILURE, not REGRESSION (#67's `--shard` on the base script).
+- ROOT-integration children keep their own branch during a period (#76/#77 → `integration/concept-engine-v2`);
+  everything else integrates into the period branch and lands with its rollup.
+
 ## Last verified against git
 
 `648292f2` (main) + home branch `9876cb7`+ (§42 ROOT integration branches, priority order); before that `7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.

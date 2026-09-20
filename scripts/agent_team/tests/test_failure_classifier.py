@@ -70,3 +70,17 @@ def test_infra_and_flaky_and_conflict_and_spec():
 def test_review_rejection_is_its_own_class():
     c = classify(FailureInput(gate_results=GREEN, review_verdict="REQUEST_CHANGES"))
     assert c.kind == REVIEW_REJECTED and c.repairable
+
+
+def test_gate4_red_without_a_budget_verdict_is_implementation_work_not_a_regression():
+    """#67 (2026-09-20): the sharded base snapshot ran `--shard` on a base checkout whose script has no
+    such flag; #35: a missing script on the PR head. Neither is 'a regression outside the budget'."""
+    inp = FailureInput(gate_results={**GREEN, "gate-4-regression / snapshot (base, 1)": "failure"},
+                       logs={"gate-4-regression / snapshot (base, 1)": "...\ncorpus_snapshot.py: error: unrecognized arguments: --shard 1/4\n##[error]Process completed with exit code 2."},
+                       reports={})
+    c = classify(inp)
+    assert c.kind == "IMPLEMENTATION_FAILURE" and "unrecognized arguments: --shard" in c.summary and c.repairable
+    # a real budget verdict still classifies as REGRESSION
+    inp2 = FailureInput(gate_results={**GREEN, "gate-4-regression / regression": "failure"},
+                        reports={"regression_gate_report": {"checks": [{"name": "LOST", "ok": False, "detail": "3 > 0"}]}})
+    assert classify(inp2).kind == "REGRESSION"
