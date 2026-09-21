@@ -18,11 +18,17 @@ from agent_team.ci.common import GateReport, repo_root, run, write_report
 
 def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, str]:
     if kind == "pytest":
+        # Wall-clock budgets are calibrated on the developer machine, not CI evidence — the same
+        # policy gate-2-static already applies to its full-suite run (`WALLCLOCK_BUDGETS=off`,
+        # `backend/tests/wallclock.py`): functional assertions in a budgeted test keep running,
+        # only the timing assertion becomes a no-op. Applied here too so a per-AC pytest target run
+        # on the shared runner isn't held to a budget calibrated on a faster machine.
+        env = {"WALLCLOCK_BUDGETS": "off"}
         if target.startswith("scripts/agent_team/tests/"):
-            proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout)
+            proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout, env=env)
         else:
             rel = target[len("backend/"):] if target.startswith("backend/") else target
-            proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout)
+            proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout, env=env)
         tail = (proc.stdout.strip().splitlines() or [""])[-1]
         return proc.returncode == 0, tail[:300] or proc.stderr[-300:]
     if kind == "vitest":

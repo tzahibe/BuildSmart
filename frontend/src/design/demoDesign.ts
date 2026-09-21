@@ -202,6 +202,16 @@ export interface SearchSummary {
   total_latency_ms: number
 }
 
+/** One plan's concept, in the person's own language (Issue #78, Concept Engine v2 4/5) — mirrors
+ *  `backend/app/demo/contract.py`'s `ConceptOut`. `circulation_class` is the same class
+ *  `concept_spec.realized_circulation_class` computed for this exact plan; `label`/`rationale` are
+ *  already-formatted Hebrew text, never parsed or re-derived by the renderer. */
+export interface DemoConcept {
+  circulation_class: string
+  label: string
+  rationale: string
+}
+
 export interface DemoDesign {
   plot: DemoRect
   /** The building's bounding box — the footprint itself for a one-wing house. */
@@ -228,6 +238,8 @@ export interface DemoDesign {
   /** The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for every
    *  house the engine plans today; absent for a payload that predates the field. */
   footprints?: DemoRect[]
+  /** Issue #78. Absent unless the backend's `CONCEPT_ENGINE_V2_ENABLED` labelled this plan. */
+  concept?: DemoConcept | null
 }
 
 /** The rectangles a design is made of: its wings, or the one footprint when the payload has no

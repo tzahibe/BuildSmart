@@ -25,6 +25,7 @@ specific page below for your task.**
 
 ## Features
 
+- [Concept Engine v2](features/concept-engine-v2.md) — IMPLEMENTED, flag OFF (not live product behavior)
 - [Multi-Level](features/multi-level.md) — IMPLEMENTED_MERGED (backend), not wired to the product
 - [L-Massing](features/l-massing.md) — IMPLEMENTED_MERGED
 - [Wet Rooms](features/wet-rooms.md) — IMPLEMENTED_MERGED

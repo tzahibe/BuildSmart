@@ -55,7 +55,11 @@ from app.vertical_slice.wet_privacy import candidate_privacy_key
 
 from app.vertical_slice.building import Building
 
+from app.vertical_slice import concept_engine_v2
+from app.vertical_slice import general_pipeline as gp
+
 from .contract import (
+    ConceptOut,
     DemoBuilding,
     DemoDesign,
     DemoPlanSet,
@@ -804,6 +808,17 @@ def _select_plans(results: list[OutlineResult],
     return PlanSelection(primary, tuple(shown[1:]))
 
 
+def _concept_of(plan: RealizedPlan) -> ConceptOut | None:
+    """`ConceptOut` for `plan`'s own realized circulation class (Issue #78, AC-3) — `None` unless
+    `general_pipeline.CONCEPT_ENGINE_V2_ENABLED` and the plan actually carries one; flag-off output
+    is unaffected either way (`to_demo_design`'s `concept` stays its own default, `None`)."""
+    if not gp.CONCEPT_ENGINE_V2_ENABLED or plan.circulation_class is None:
+        return None
+    label = concept_engine_v2.concept_label(plan.circulation_class)
+    return ConceptOut(circulation_class=label.circulation_class.value, label=label.label,
+                      rationale=label.rationale)
+
+
 def _result_from(project: Project, spec, selection: PlanSelection,
                  results: list[OutlineResult], preference_dropped: bool) -> DemoResult:
     """A plan set from plans that have ALREADY passed every gate — the pool is built from `ok`
@@ -824,7 +839,7 @@ def _result_from(project: Project, spec, selection: PlanSelection,
         return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
                               corridor=spec.program.corridor, relationships=plan.relationships,
                               outline=orr.outline.as_out(), family=plan.family_signature,
-                              notes=notes or None)
+                              notes=notes or None, concept=_concept_of(plan))
 
     primary = design_of(selection.primary)
     _, primary_plan = selection.primary
