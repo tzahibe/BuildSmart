@@ -37,6 +37,7 @@ from app.vertical_slice.concept_generator import (
     build_room_program,
     program_capacity_gross_m2,
 )
+from app.vertical_slice.constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, SafeRoomDropped
 from app.vertical_slice.relationships import describe
 from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import doors as doors_stage
@@ -245,6 +246,23 @@ def generate_demo_design(project: Project,
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
 
     spec = spec_for(project)
+    # Issue #35, stage assertion 1/3, caught at the product boundary: `generate_concepts` raises
+    # `SafeRoomDropped` the moment the concept stage's own room programme loses an authoritative
+    # SAFE_ROOM constraint. That is a refusal like any other in this module, not a Python
+    # exception a caller has to know about — translated here, once, for every outline this
+    # request plans.
+    try:
+        return _generate_demo_design(project, spec, on_stage)
+    except SafeRoomDropped as exc:
+        raise DemoGenerationError(
+            "SAFE_ROOM_DROPPED",
+            "לא נציג תוכנית: חדר הממ\"ד שביקשת נעלם במהלך התכנון, ולא נציג תוכנית שלא כוללת אותו.",
+            str(exc),
+        ) from exc
+
+
+def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None] | None = None
+                          ) -> DemoResult:
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
@@ -824,7 +842,7 @@ def _result_from(project: Project, spec, selection: PlanSelection,
         return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
                               corridor=spec.program.corridor, relationships=plan.relationships,
                               outline=orr.outline.as_out(), family=plan.family_signature,
-                              notes=notes or None)
+                              notes=notes or None, constraint=spec.safe_room_constraint)
 
     primary = design_of(selection.primary)
     _, primary_plan = selection.primary
@@ -1001,6 +1019,19 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
     """The refusal path: every outline was planned and none produced a validated plan. `result`
     is the first outline's run — the person's own when they gave one — and `outlines` is all of
     them, for the diagnostics."""
+    # Issue #35, stage assertion 2/3, escalated: C4 fails this specific way ONLY when the spec
+    # carries an authoritative SAFE_ROOM constraint and no candidate realized it — checked first,
+    # like every other check-specific diagnosis below, because it names an exact, actionable
+    # cause the generic "failed validation" message would otherwise swallow.
+    if (result.validation is not None and not result.validation.ok
+            and any(c.check_id == "C4" and SAFE_ROOM_NOT_REALIZED_DETAIL in c.detail
+                    for c in result.validation.failures())):
+        raise DemoGenerationError(
+            "SAFE_ROOM_DROPPED",
+            "לא הצלחנו לשמר את חדר הממ\"ד שביקשת בתוכנית שנוצרה, ולכן לא נציג תוכנית שלא כוללת אותו.",
+            "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
+            diagnostics=_diagnostics(result, spec, outlines))
+
     # A hard relationship that no candidate could realize is its own outcome: the geometry could
     # not be arranged that way with this programme, which is NOT a claim that no such house exists.
     if (result.outcome is not AdapterOutcome.SOLVED

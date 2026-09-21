@@ -28,6 +28,22 @@ with a severity.
 - specs/002-requirement-parser (the original feature spec; tasks fully checked/merged).
 - `docs/UNSUPPORTED_REQUEST_CLASSIFICATION_REPORT.md` (classification policy).
 
+## SAFE_ROOM/MAMAD becomes a typed constraint (Issue #35)
+
+`spec_for` (`app/demo/requirements_view.py`) maps `review.safe_room.value` (the resolved reading of
+the parser's `safe_room: TaggedBool` — corrected on the review screen if the person changed it, not
+the raw LLM tag) onto `ProgramSpec.safe_room: bool`, unchanged by this Issue. What's new is one more
+step, in `ArchitecturalSpec.safe_room_constraint`: that resolved bool is turned into a single
+`TypedConstraint(kind=SAFE_ROOM, source=USER|NONE, authoritative, min_area_m2)` — `USER` whenever
+the person's own words asked for the room (however the parser tagged its own confidence, this
+codebase has no path that derives a safe room from anything else), `NONE`/not-authoritative for a
+brief that never requested one. See Geometry/Validation's "Typed constraints and the SAFE_ROOM/MAMAD
+refusal" section for how that constraint is then checked, not merely carried, through concept
+generation, geometry realization and the validator. `ConstraintSource.COMPLIANCE` exists in
+`app/vertical_slice/constraints.py` for a future legal-applicability rule but is not produced by any
+parsing or spec-building code today — whether the law requires a safe room for a given brief stays
+explicitly out of this Issue's scope.
+
 ## Current constraints/invariants
 
 - `OpenAIRequirementParser` is the only LLM call in the live product request path — any test or
@@ -55,3 +71,7 @@ for what correct extraction looks like).
 `1d648c3` (main HEAD). specs/002 and the classification report both confirmed present in `main`'s
 history via `git log --oneline main`; not independently re-verified line-by-line this round
 (confidence: medium, consistent with `doc_status.json`).
+
+The SAFE_ROOM/MAMAD typed-constraint section documents Issue #35, landed on branch
+`agent/35-safe-room-mamad-requirement-preservation` (based on `4aade91`), verified against this
+session's own implementation and test runs.

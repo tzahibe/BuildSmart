@@ -18,9 +18,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import access_rules
+from . import circulation_metrics
 from . import door_clearance
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
+from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, TypedConstraint
+from .design_output import assemble as assemble_design
 from .doors import ALLOWED_ENTRANCE_ROLES, Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
@@ -165,7 +168,8 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
              relationships: tuple = (),
              wet_rooms: tuple[ResolvedWetRoom, ...] = (),
              entry_seed: str = "OUTSIDE",
-             skip_site_checks: bool = False) -> ValidationReport:
+             skip_site_checks: bool = False,
+             constraint: TypedConstraint | None = None) -> ValidationReport:
     """`entry_seed`/`skip_site_checks` (multi-level Phase 1, additive): a level with no street —
     an upper storey, entered by its `VerticalCore` — seeds C5 from the core's zone id instead of
     `OUTSIDE` (which the fixture does not have) and does not run the SITE checks (C10-C12, C16,
@@ -175,6 +179,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     identical seed and the identical set of checks it always got. `ONLY CHECKS THAT ACTUALLY RUN
     APPEAR IN THE REPORT` (the same discipline `building_validation.py` states for its own V
     checks) — a skipped site check is simply absent, never reported as an unearned pass.
+
+    `constraint` (Issue #35, additive, default `None` = today's behaviour exactly): when given and
+    `authoritative`, C4 also fails if no zone realizes it — see the check below for why this closes
+    a real silent-pass gap the check's original loop had.
     """
     rep = ValidationReport()
 
@@ -274,7 +282,18 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         _, _, na = net_rect_m(z.zone_id, rects[z.zone_id], walls)
         if na < z.net_area_min_m2 - 1e-6:
             bad.append(f"{z.zone_id} net {na} below regulated minimum {z.net_area_min_m2}")
-    rep.add("C4", "safe room valid (RC envelope + regulated minimum)", not bad, "; ".join(bad) or "safe room compliant")
+    # Issue #35, stage assertion 2/3 — "an authoritative SAFE_ROOM constraint is realized". The
+    # loop above only ever looks at zones that ARE safe rooms; a fallback ladder, a candidate
+    # swap, or a fixture that never declared the zone at all would leave `bad` empty and this
+    # check reporting "compliant" on a design that has no safe room at all — a false pass, not a
+    # caught defect. This is deliberately keyed on the REALIZED rect (`z.zone_id in rects`), not
+    # merely on the zone being declared in `fixture.zones`: a zone the concept declared but the
+    # solver never gave a rectangle to is exactly as dropped as one the concept never declared.
+    if constraint is not None and constraint.authoritative:
+        if not any(z.is_safe_room and z.zone_id in rects for z in fixture.zones):
+            bad.append(SAFE_ROOM_NOT_REALIZED_DETAIL)
+    rep.add("C4", "safe room valid (RC envelope + regulated minimum; an authoritative SAFE_ROOM "
+            "constraint is realized)", not bad, "; ".join(bad) or "safe room compliant")
 
     # C5 — all required spaces accessible, over the REALIZED graph.
     #
@@ -376,6 +395,25 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     bad = [f"{f.zone_id} net {f.net_w_m:.2f}x{f.net_h_m:.2f} cannot inscribe {f.envelope_m} m"
            for f in furniture if f.fits is False]
     rep.add("C9", "furniture-envelope feasibility", not bad, "; ".join(bad) or "all furnished zones fit")
+
+    # C26 — no extreme dedicated circulation (`circulation_metrics.py`, Issue #36). Fails closed
+    # only for an EXTREME corridor (ratio, longest segment or dead-end count past the calibrated
+    # limits) — an ordinary long corridor, the spine parti's by construction, is untouched. Reads
+    # the SAME realized geometry every other check here does; the minimal `GeometricDesign` built
+    # for it is measured and discarded, never the one the pipeline goes on to assemble and draw.
+    # `assemble` itself is a cheap, pure reformatting pass over already-solved rects/walls/doors
+    # (no solving, no I/O) — this second call costs microseconds, not a real duplicate-computation
+    # concern. Threading the assembled design back out of `validate()` instead would widen its
+    # return contract at both of its call sites (`general_pipeline.py` and `pipeline.py`) for a
+    # cost this check does not need to pay.
+    circulation_design = assemble_design(fixture, rects, walls, 0, interior_doors, entrance_door,
+                                         windows, furniture, site)
+    circulation = circulation_metrics.measure(circulation_design)
+    extreme = circulation_metrics.classify_extreme(circulation)
+    rep.add("C26", "no extreme dedicated circulation", extreme is None,
+            extreme or f"circulation ratio {circulation.ratio:.0%}, longest segment "
+                      f"{circulation.longest_segment_m or 0:.2f} m, {circulation.dead_end_count} "
+                      f"dead end(s) — within the calibrated limits")
 
     if not skip_site_checks:
         # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)

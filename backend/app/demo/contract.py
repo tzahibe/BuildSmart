@@ -18,7 +18,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import quality_metrics
+from app.vertical_slice import circulation_metrics, quality_metrics
+from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.concept_generator import (
@@ -150,6 +151,18 @@ class QualityMetricsOut(BaseModel):
     m6_public_zone_contiguous: bool | None = None
     dead_space_m2: float = 0.0
     wasted_circulation_share: float = 0.0
+    #: Dedicated-circulation facts (Issue #36), read off the SAME realized geometry independently
+    #: of M3 — see `app.vertical_slice.circulation_metrics.CirculationMetrics` for how each is
+    #: measured and `docs/architecture_reference/quality_rubric.md` section B for what they mean.
+    circulation_area_m2: float = 0.0
+    circulation_ratio: float = 0.0
+    circulation_longest_segment_m: float | None = None
+    circulation_total_length_m: float = 0.0
+    circulation_narrowest_width_m: float | None = None
+    circulation_dead_end_count: int = 0
+    circulation_turn_count: int = 0
+    circulation_duplicated_segment_count: int = 0
+    circulation_duplicated_area_m2: float = 0.0
     #: Plumbing-efficiency standing (Issue #44), additive. `None` only for a payload built before
     #: this field existed — every plan `to_demo_design` produces from here on attaches one.
     wet_core: WetCoreOut | None = None
@@ -185,6 +198,24 @@ class ExposureOut(BaseModel):
     no_window_reason: str | None = None
 
 
+class ConstraintOut(BaseModel):
+    """One `TypedConstraint` (Issue #35), as the person-facing screen and support tooling read it —
+    including WHERE the requirement came from, so a request never looks like it was invented by
+    the engine. Only ever attached for a constraint the brief actually carries
+    (`source != ConstraintSource.NONE`); a brief without one gets an empty `QualityOut.constraints`,
+    never a `NONE`-source entry."""
+
+    kind: str
+    source: str
+    authoritative: bool
+    min_area_m2: float | None = None
+
+
+def _constraint_out(constraint: TypedConstraint) -> ConstraintOut:
+    return ConstraintOut(kind=constraint.kind.value, source=constraint.source.value,
+                         authoritative=constraint.authoritative, min_area_m2=constraint.min_area_m2)
+
+
 class QualityOut(BaseModel):
     """Room-size quality, kept apart from validation on purpose: the preferred maximum is a soft
     target, the hard one is the gate (C21). Three tiers, thresholds beside the templates
@@ -213,6 +244,9 @@ class QualityOut(BaseModel):
     #: M1–M6 for this plan (Issue #17). `None` only for a payload built before this field existed
     #: — every plan `to_demo_design` produces from here on attaches one.
     metrics: QualityMetricsOut | None = None
+    #: Typed constraints this plan's brief carries and that were proven realized (Issue #35).
+    #: Empty for a brief with none — never invented.
+    constraints: list[ConstraintOut] = []
     #: One `ExposureOut` per room (Issue #19), additive. `[]` only for a payload built before
     #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
     #: per room.
@@ -765,8 +799,13 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
-def _metrics_out(m: quality_metrics.QualityMetrics, wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
-    return QualityMetricsOut(**dataclasses.asdict(m), wet_core=wet_core)
+def _metrics_out(m: quality_metrics.QualityMetrics, c: circulation_metrics.CirculationMetrics,
+                 wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
+    return QualityMetricsOut(
+        **dataclasses.asdict(m),
+        **{f"circulation_{k}": v for k, v in dataclasses.asdict(c).items()},
+        wet_core=wet_core,
+    )
 
 
 def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
@@ -877,7 +916,11 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    relationships: tuple = (),
                    outline: OutlineOut | None = None,
                    family: str | None = None,
-                   notes: list[str] | None = None) -> DemoDesign:
+                   notes: list[str] | None = None,
+                   constraint: TypedConstraint | None = None) -> DemoDesign:
+    """`constraint` (Issue #35): the spec's SAFE_ROOM `TypedConstraint`, attached to
+    `QualityOut.constraints` when the brief actually carries one (`source != NONE`) — `None`
+    (the default) keeps every caller that predates this parameter unchanged."""
     walls, opens = _wall_segments(design)
     walls, opens = _open_corridor_to_public(design, walls, opens)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
@@ -934,6 +977,15 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # it runs on the raw solver output. Computed here, once the shape exists, and attached
     # additively onto the `quality` already built rather than threaded through `quality_of`.
     metrics = quality_metrics.measure_design(demo)
+    constraints_out = ([_constraint_out(constraint)]
+                       if constraint is not None and constraint.source is not ConstraintSource.NONE
+                       else [])
+    # Dedicated-circulation metrics (Issue #36) read the raw `SolvedDesign` directly — the same
+    # `GeometricDesign` C26 (`validation.py`) and the circulation ranking term
+    # (`general_pipeline._guard_demoted_hub`) already measure — rather than the flattened `demo`
+    # M1-M6 reads, so a check, a ranking decision and this report can never disagree about what a
+    # plan's circulation looks like.
+    circulation = circulation_metrics.measure(design)
     # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
@@ -942,9 +994,11 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     wet_core = (WetCoreOut(**dataclasses.asdict(design.wet_core))
                if design.wet_core is not None else None)
     return demo.model_copy(update={
-        "quality": demo.quality.model_copy(update={"metrics": _metrics_out(metrics, wet_core),
-                                                    "exposure": exposure,
-                                                    "wet_privacy": wet_privacy})
+        "quality": demo.quality.model_copy(update={
+            "metrics": _metrics_out(metrics, circulation, wet_core),
+            "constraints": constraints_out,
+            "exposure": exposure,
+            "wet_privacy": wet_privacy})
     })
 
 
