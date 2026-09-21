@@ -70,8 +70,10 @@ Team Lead with integration validation after every merge; ONE final rollup PR →
 full tests, full corpus regression, diversity / quality / runtime p50–p95 benchmarks, combined review, limitations
 report) stops at READY_FOR_OWNER — never merged without the owner's explicit approval.
 
-Owner conditions: the PRIMARY plan stays unchanged until the owner has seen #78's benchmark; #79 is conditional only
-(never started automatically — only if #75–#78 prove the Geometry Core limit blocks good concepts).
+Owner conditions: the PRIMARY plan stays unchanged until the owner has seen #78's benchmark (delivered 2026-09-21:
+mechanism correct and safe, diversity 17.6 % vs the 40 % bar, HUB_LOBBY never realized — the generator's per-outline
+hub/front-band acceptance is the ceiling). Owner decision: option (b) — #78 merges as infrastructure (flag OFF) and
+#79 is expanded into generator-level work; the primary still does not change until a new benchmark.
 
 | Child | Issue | Depends on | State |
 |---|---|---|---|
@@ -79,7 +81,7 @@ Owner conditions: the PRIMARY plan stays unchanged until the owner has seen #78'
 | 2 — Reference priors: which concepts to try and in what order (SPINE / FRONT_BAND / HUB_LOBBY / TWO_WING / L, wet-core clustering, zoning patterns); never geometry | #77 | #75 | queued |
 | 3 — Quality-guided concept search: concept → realize → measure → adapt → realize again (M1–M6, circulation, wet privacy, wet-core, area quality; later dead space / furnishability / public zone) | #76 | #75 | queued |
 | 4 — Pipeline integration behind a flag: 2–3 genuinely different alternatives, one per concept family, concept label on the ReviewPage, quality / diversity / runtime / realization-success measurement, owner benchmark, massing / multi-level integration proposal | #78 | #77, #76 | queued |
-| 5 — Branched circulation / geometry capability | #79 | #78 + owner decision | draft (conditional) |
+| 5 — EXPANDED (owner decision 2026-09-21 after child 4's benchmark): generator-level pattern compilers — HUB_LOBBY and BRANCHED independent of the legacy hub template + cross-outline concept search, raising the measured 17.6 % diversity ceiling to the 40 % bar | #79 | #78 | queued |
 
 Merged from the old roadmap: "Alternative Plans / Diversity" and "Concept Quality / Decomposition Engine".
 Feedback inputs into the engine as they land: #36 circulation metrics, #43 dead space, #40 furnishability,
