@@ -88,6 +88,16 @@ Feedback inputs into the engine as they land: #36 circulation metrics, #43 dead 
 #41 public-zone composition. After #78: a proposal for Rectangle / L / Irregular massing, massing selection,
 Multi-Level Phase 2 and stairs / vertical core inside the new architecture.
 
+## POC — Architectural Brain from Real Floor Plans — ROOT #93 (owner specification 2026-09-21; isolated branch, never merged to main)
+
+Question: "Did access to real architectural experience give BuildSmart an architectural brain that is visibly better
+than the current hand-designed concept generator?" ResPlan (17,107 real plans, CC BY 4.0; verified 2026-09-21) →
+`PlanReference` + measurable `ArchitecturalPattern` (A, #94) → deterministic architectural retrieval, multi-reference
+ConceptSpec synthesis, semantic adaptation, Architect Model hint investigation (B, #95) → realization through the
+unchanged engine and validators, 3 fixed briefs, side-by-side SVG demo, measurements, GO / MODIFY / STOP (C, #96).
+Branch `integration/poc-architectural-brain` (from the Concept Engine v2 branch). Priority: after the basic P0,
+beside Concept Engine v2 (#79 keeps running). Success and failure criteria are in the ROOT contract.
+
 ## P1 product ROOTs (order after the Concept Engine; #39/#40 may run in parallel with children 1–3 once the concept ↔ realized-plan interface is stable)
 
 | Owner item | ROOT | Depends on | Priority (owner 2026-09-20) | Merged old-roadmap topics |
