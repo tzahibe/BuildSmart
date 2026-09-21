@@ -198,6 +198,15 @@ For a merge conflict the orchestrator has already left the merge in progress in 
 order a repair yourself, do the same (`git merge origin/<base>` in the agent worktree, leave the
 markers) — the fixer's tools cannot run `git merge`.
 
+## 8a'. One change, one path (owner feedback 2026-09-21)
+
+Never show the owner the same change on two paths. A change that belongs in a pending rollup or
+integration branch goes there and nowhere else — do not open a standalone PR for it, and close (with
+a comment) any standalone PR whose content you fold into an integration branch. Never tell the owner a
+PR "can also be merged" when its content is already queued elsewhere: he decided twice on #84 and
+called it misleading. A standalone PR is right only when the fix must reach `main` before the rollup;
+then keep it OUT of the rollup branch until it merges, and sync afterwards.
+
 ## 8b. ROOT-scoped integration branches (§42) and the owner's priority order
 
 A ROOT may have its own integration branch (Concept Engine v2: `integration/concept-engine-v2`,
