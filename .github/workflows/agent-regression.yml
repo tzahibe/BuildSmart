@@ -8,19 +8,15 @@
 # (`merge`) into `head_snapshot.json` / `base_snapshot.json` — the files every downstream step
 # (invariants, budget evaluation) consumes. The pre-existing single-node computation still runs,
 # concurrently, in `single_node`, writing `*_snapshot_single.json`; a "Compare * snapshots" step in
-# the final `regression` job reports (`continue-on-error: true` — it never fails the gate on its
-# own; the pre-existing invariants/budget steps below it alone decide) whether the merged and
-# single-node documents agree (case content and `sha`, after normalising volatile fields:
-# `ms`/`seconds` timings, `written_at`; soft metadata that may legitimately differ, e.g.
-# `corpus_hash`, is reported as a note, not a difference — see `corpus_snapshot.py`'s
-# `describe_snapshot_diff`/`describe_snapshot_notes`). This is shadow mode, not a replacement: the
-# single-node path is removed only once several real PRs show the two always agree — see
-# docs/wiki/architecture/agent-team-workflow.md, gate-4 section. The shard count
-# (N = 4) is a workflow constant; see the same Wiki page to change it. The base ref's `snapshot`
-# matrix jobs vendor the HEAD checkout's corpus_snapshot.py over the base checkout before running
-# it, so a merge-base that predates `--shard` (true of every real PR until this Issue reaches main)
-# still shards correctly — only the harness script comes from head, run against the base's own
-# `app` code and corpus.
+# the final `regression` job fails the whole gate if the merged and single-node documents ever
+# differ (after normalising volatile fields: `ms`/`seconds` timings, `written_at`). This is shadow
+# mode, not a replacement: the single-node path is removed only once several real PRs show the two
+# always agree — see docs/wiki/architecture/agent-team-workflow.md, gate-4 section. The shard count
+# (N = 4) is a workflow constant; see the same Wiki page to change it. The base ref's `snapshot` and
+# `single_node` jobs both vendor the HEAD checkout's corpus_snapshot.py over the base checkout
+# before running it, so a merge-base that predates `--shard`/`corpus_hash` (true of every real PR
+# until this Issue reaches main) still shards correctly and writes a comparable `corpus_hash` —
+# only the harness script comes from head, run against the base's own `app` code and corpus.
 name: agent-regression
 
 on:
@@ -202,6 +198,11 @@ jobs:
         run: |
           git fetch --no-tags origin "${{ inputs.base_ref }}"
           git worktree add --detach ../base "${{ needs.resolve.outputs.base_sha }}"
+          # Same reasoning as the `snapshot` job: a merge-base that predates this Issue has no
+          # `corpus_hash` field at all, which would make this single-node base snapshot disagree
+          # with the merged one on metadata alone. Vendor the HEAD checkout's corpus_snapshot.py
+          # (unchanged replay logic since Issue #66) so both are written by the same script.
+          cp backend/spikes/failure_log_sweep/corpus_snapshot.py ../base/backend/spikes/failure_log_sweep/corpus_snapshot.py
           cd ../base/backend
           uv sync --group dev
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/base_snapshot_single.json" --workers 4
@@ -246,7 +247,6 @@ jobs:
           merge-multiple: true
       - name: Compare head snapshots
         working-directory: backend
-        continue-on-error: true
         run: |
           set +e
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --assert-equal \
@@ -270,7 +270,6 @@ jobs:
       - name: Compare base snapshots
         if: needs.resolve.outputs.cache_hit != 'true'
         working-directory: backend
-        continue-on-error: true
         run: |
           set +e
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --assert-equal \
