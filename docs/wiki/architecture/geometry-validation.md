@@ -32,6 +32,9 @@ superseding an earlier declared-interface architecture.
 - `app/vertical_slice/quality_metrics.py` (M1–M6, Issue #17), `app/demo/contract.py`'s
   `QualityOut.metrics`, `tests/regression_corpus/{quality_baseline.json,test_quality_baseline.py,
   freeze_quality_baseline.py}` — see the dedicated section below.
+- `app/vertical_slice/validation.py`'s `check_realized_dimensions` (C27, Issue #34),
+  `app/demo/contract.py`'s `RoomOut`/`InconsistentGeometryError`/`to_demo_design` — see the
+  dedicated section below.
 - `app/vertical_slice/circulation_metrics.py` (dedicated-circulation metrics, C26, the ranking
   term — Issue #36), wired into `app/vertical_slice/validation.py` (C26) and
   `app/vertical_slice/general_pipeline.py`'s `_guard_demoted_hub` — see the dedicated section
@@ -300,6 +303,55 @@ already at reference level — NOT gaps. Three real gaps, ranked:
    kitchens as an L-counter inside one open volume, not a room with its own shape (M1, public
    rooms).
 
+## Realized dimensions: gross vs net, and C27 (Issue #34)
+
+Every width/depth/area shown to a person derives from ONE realized geometry, with each
+user-facing number's definition documented here rather than left to be inferred from a field name:
+
+- **`gross_rect`** (`x`, `y`, `gross_width_m`, `gross_depth_m` on `app.demo.contract.RoomOut`):
+  the room's CENTERLINE allocation — `app.vertical_slice.design_output.RoomOut.rect_m` — plot-
+  absolute, extending to the centerline of every bounding wall. This is what the drawing draws:
+  wall segments (`_wall_segments` in `contract.py`) are derived from this same rectangle, so a
+  room's drawn box and its walls can never disagree.
+- **`net_rect`** (`width_m`, `depth_m` on `RoomOut`): the USABLE rectangle — `gross_rect` minus
+  each side's own wall INSET, where the inset is half that side's wall thickness (the room's own
+  share of a shared wall; `geometry_core.engine.net_rect_m`, `geometry_core.model.inset_u`). A
+  0.30 m exterior wall costs the room 0.15 m off that side; a shared 0.10 m partition costs each
+  neighbour 0.05 m.
+- **`net_area_m2`** (`area_m2` on `RoomOut`): `net_width × net_depth`, exactly — never a
+  separately-tracked number, so it can never drift from the net rectangle it describes.
+- **`gross_area_m2`** (on `RoomOut` and on `DemoDesign`): `gross_width × gross_depth` per room;
+  at the building level, `fixture.footprint_area_m2()` — equal to the SUM of every room's own
+  `gross_area_m2`, because centerline allocation is an exact tiling of the footprint (no double-
+  counted or missing wall area).
+- **Wall treatment**: a wall's full thickness is drawn once (as a segment at the shared
+  centerline); each of the two rooms it separates loses only ITS HALF from `net_rect` — so
+  `net_area_m2` is genuinely "what this room can put furniture in," not the room's share of the
+  wall counted twice or not at all.
+
+**Before Issue #34**: `RoomOut.width_m`/`depth_m` were the GROSS dimensions while `area_m2` was
+`net_area_m2` — so `width_m × depth_m` did not equal `area_m2` on virtually every room (the
+displayed rectangle was bigger than the displayed area it was labelled with). Fixed by making
+`width_m`/`depth_m` the NET pair `area_m2` was already reporting, and adding `gross_width_m`/
+`gross_depth_m`/`gross_area_m2` so the drawing (which must stay aligned with the wall segments,
+themselves derived from the gross rect) keeps its own consistent numbers alongside.
+
+**C27** ("displayed dimensions consistent with realized geometry",
+`app.vertical_slice.validation.check_realized_dimensions`) checks, on the final `RoomOut` list a
+product path is about to show: `|net_width_m × net_depth_m − net_area_m2| ≤ 0.05 m²` and
+`|gross_width_m × gross_depth_m − gross_area_m2| ≤ 0.05 m²` per room, the net rectangle never
+exceeds its own declared gross rectangle, and the building's `gross_area_m2` equals the sum of
+every room's `gross_area_m2` within the same tolerance. It runs inside
+`app.demo.contract.to_demo_design` — the one place the authoritative payload is assembled — and
+raises `InconsistentGeometryError` there, which `app.demo.service` turns into a
+`DemoGenerationError("INCONSISTENT_GEOMETRY", ...)`: the product refuses rather than shows a
+self-contradictory plan. C27 duck-types its input (no import of `contract.RoomOut` into the
+validation layer) so it can run on demo contract objects without a layering cycle. On a real
+solved design this check passes by construction — `net_rect_m` computes net width/height/area
+together — so it costs no regression risk and exists specifically to catch a FUTURE seam between
+the solver and this contract (or, in a test, a deliberately tampered fixture) before it reaches a
+person.
+
 ## Typed constraints and the SAFE_ROOM/MAMAD refusal (Issue #35)
 
 Before this, "is there a safe room" was a single `bool` (`ProgramSpec.safe_room`) read
@@ -508,6 +560,14 @@ Branch `agent/20-entrance-policy-the-front-door-opens-int`, based on
 merge): the Entrance / arrival-room policy (C23) section above documents Issue #20, verified
 against this session's own implementation and test runs, including this merge's conflict
 resolution (combined check count, both new-section additions kept intact).
+
+Branch `agent/34-realized-area-and-dimension-consistency`, based on `origin/main` after PR #62's
+squash-merge of the integration branch (#18/#19/#20/#21/#24/#25/#29–#33/#37/#44/#63/#69): the
+Realized dimensions: gross vs net, and C27 (Issue #34) section above documents this branch's own
+work, verified against this session's own implementation and test runs, including a second merge of
+`origin/main` (bringing in Issue #36's C26 work below) whose conflict resolution kept both sections
+intact side by side, and a third merge of `origin/integration/holiday-yom-kippur-2026` (bringing in
+Issue #35's SAFE_ROOM constraint work) whose conflict resolution again kept both sections intact.
 
 Branch `agent/35-safe-room-mamad-requirement-preservation` merged `origin/main` at `648292f`
 (the Yom Kippur integration rollup, 2026-09-20): resolved textual conflicts in this page,
