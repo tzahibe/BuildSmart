@@ -56,7 +56,7 @@ def _run_one(ctx: dict) -> dict:
         "pocket_length_m": seq.pocket_length_m, "has_public_opening": seq.has_public_opening,
         "distance_to_public_m": seq.distance_to_public_m,
         "private_doors_passed": seq.private_doors_passed, "foyer": seq.foyer,
-        "tunnel": seq.tunnel,
+        "tunnel": seq.tunnel, "stray_pockets": seq.stray_pockets,
         "context": {k: ctx[k] for k in ("bedrooms", "wet_rooms", "safe_room", "open_plan",
                                         "footprint_width_m", "footprint_depth_m")},
     }
@@ -89,6 +89,7 @@ def _canonical_fixture() -> dict:
         "distance_to_public_m": seq.distance_to_public_m,
         "private_doors_passed": seq.private_doors_passed, "foyer": seq.foyer,
         "tunnel": es.classify_tunnel(seq), "pocket_defect": es.classify_pocket(seq),
+        "stray_pockets": seq.stray_pockets,
     }
 
 
@@ -123,19 +124,23 @@ def _l_massing_fixture() -> dict | None:
                 "distance_to_public_m": seq.distance_to_public_m,
                 "private_doors_passed": seq.private_doors_passed, "foyer": seq.foyer,
                 "tunnel": es.classify_tunnel(seq), "pocket_defect": es.classify_pocket(seq),
+                "stray_pockets": seq.stray_pockets,
             }
     return None
 
 
 def _failure_fixture() -> dict:
-    """A hand-built adversarial fixture — a HALL corridor whose nearest opening is a genuinely
-    dead run well past `ENTRANCE_POCKET_MAX_M`, the front door opening directly into it.
+    """A hand-built adversarial fixture — the front door opens cleanly into LIVING, but a SEPARATE
+    HALL zone independently fronts the street beside it with a genuinely dead 1.5 m stub before
+    its own first door (AC-5's literal "1.5 m dead stub beside the entrance"), well past the
+    calibrated `ENTRANCE_STRAY_POCKET_MAX_M`.
 
-    Not produced by the generator today (see the report's own conclusion): the same situation
-    `circulation_metrics.py`'s own C26 test suite documents for its EXTREME case — "every REAL
-    candidate this generator produces already measures comfortably inside the calibrated limits...
-    that is the point of C26 being additive, not a fixture this codebase can currently produce by
-    accident." This fixture is the shared basis for `test_entrance_circulation.py`.
+    Not produced by the generator today (see the report's own conclusion): the sweep found ZERO
+    real contexts with a second circulation zone at all, the same situation `circulation_metrics.py`
+    's own C26 test suite documents for its EXTREME case — "every REAL candidate this generator
+    produces already measures comfortably inside the calibrated limits... that is the point of C26
+    being additive, not a fixture this codebase can currently produce by accident." This fixture is
+    the shared basis for `test_entrance_circulation.py`.
     """
     from app.vertical_slice import entrance_sequence as es
     from tests.vertical_slice.test_entrance_circulation import dead_stub_beside_entrance_design
@@ -149,6 +154,7 @@ def _failure_fixture() -> dict:
         "distance_to_public_m": seq.distance_to_public_m,
         "private_doors_passed": seq.private_doors_passed, "foyer": seq.foyer,
         "tunnel": es.classify_tunnel(seq), "pocket_defect": es.classify_pocket(seq),
+        "stray_pockets": seq.stray_pockets,
     }
 
 
@@ -156,15 +162,22 @@ def _failure_fixture() -> dict:
 
 def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
                   workers: int, seconds: float) -> None:
+    from app.vertical_slice.entrance_sequence import (
+        ENTRANCE_POCKET_MAX_M, ENTRANCE_STRAY_POCKET_MAX_M, ENTRANCE_TUNNEL_MAX_M,
+    )
+
     planned = [r for r in corpus_results if r["status"] == "PLANNED"]
     refused = [r for r in corpus_results if r["status"] == "REFUSED"]
     crashed = [r for r in corpus_results if r["status"] == "CRASH"]
     by_parti = Counter(r["parti"] for r in planned)
     pockets = [r for r in planned if r["pocket_length_m"] is not None
-              and r["pocket_length_m"] > 4.0 + 1e-9]
+              and r["pocket_length_m"] > ENTRANCE_POCKET_MAX_M + 1e-9]
+    stray_pockets = [r for r in planned if r["stray_pockets"]]
     no_public = [r for r in planned if not r["has_public_opening"]]
     tunnels = [r for r in planned if r["tunnel"]]
     pocket_lengths = [r["pocket_length_m"] for r in planned if r["pocket_length_m"] is not None]
+    tunnel_distances = [r["distance_to_public_m"] for r in planned
+                        if r["distance_to_public_m"] is not None]
 
     lines = [
         "# Entrance-to-Circulation Sweep (Issue #22)",
@@ -190,19 +203,33 @@ def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
         "",
         "## Pocket / tunnel counts",
         "",
-        f"- Contexts with a pocket (`pocket_length_m > {4.0:.2f} m`, the calibrated "
-        f"`ENTRANCE_POCKET_MAX_M`): {len(pockets)}",
+        f"- Contexts with an arrival-zone pocket (`pocket_length_m > "
+        f"{ENTRANCE_POCKET_MAX_M:.2f} m`, the calibrated `ENTRANCE_POCKET_MAX_M`): "
+        f"{len(pockets)}",
+        f"- Contexts with a STRAY pocket (a SEPARATE circulation zone beside the entrance, "
+        f"unserved beyond {ENTRANCE_STRAY_POCKET_MAX_M:.2f} m, the calibrated "
+        f"`ENTRANCE_STRAY_POCKET_MAX_M`): {len(stray_pockets)}",
         f"- Contexts with an arrival zone that has no path to a public room at all: "
         f"{len(no_public)}",
-        f"- Contexts with a TUNNEL signal (reported, non-blocking): {len(tunnels)}",
+        f"- Contexts with a TUNNEL signal (reported, non-blocking, "
+        f"`distance_to_public_m > {ENTRANCE_TUNNEL_MAX_M:.2f} m`, the calibrated "
+        f"`ENTRANCE_TUNNEL_MAX_M`): {len(tunnels)}",
     ]
     if pocket_lengths:
         lines.append(
             f"- Measured `pocket_length_m` on the corpus: min {min(pocket_lengths):.2f} m, "
             f"max {max(pocket_lengths):.2f} m, mean "
-            f"{sum(pocket_lengths) / len(pocket_lengths):.2f} m — this range is what "
-            f"`ENTRANCE_POCKET_MAX_M` is calibrated with headroom above (see "
-            "`entrance_sequence.py`'s own docstring on the constant).")
+            f"{sum(pocket_lengths) / len(pocket_lengths):.2f} m — this is why "
+            f"`ENTRANCE_POCKET_MAX_M` needs headroom above the corpus (see "
+            "`entrance_sequence.py`'s own docstring on the constant); "
+            f"`ENTRANCE_STRAY_POCKET_MAX_M` needs none — {len(stray_pockets)} of "
+            f"{len(planned)} PLANNED contexts have a second circulation zone at all.")
+    if tunnel_distances:
+        lines.append(
+            f"- Measured `distance_to_public_m` on the corpus: min {min(tunnel_distances):.2f} m, "
+            f"max {max(tunnel_distances):.2f} m, mean "
+            f"{sum(tunnel_distances) / len(tunnel_distances):.2f} m — the range "
+            "`ENTRANCE_TUNNEL_MAX_M` is calibrated against.")
     lines += ["", "## Geometry fixtures", ""]
     for f in fixtures:
         if f is None:
@@ -218,34 +245,37 @@ def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
         lines.append(f"- private doors passed: {f['private_doors_passed']}")
         lines.append(f"- foyer: {f['foyer']}")
         lines.append(f"- tunnel: {f['tunnel'] or 'no'}")
+        lines.append(f"- stray pockets: {list(f['stray_pockets']) or 'none'}")
         lines.append("")
     lines += [
         "## Conclusion — the failure fixture",
         "",
         "No context in the frozen corpus, the canonical single-level baseline, or the L-massing "
-        "candidate (`l_shaped_site_front_arm`) shows a genuine entrance POCKET under this "
-        "measurement: every real plan's nearest opening off the arrival zone is well under the "
-        "calibrated limit, and the L-massing candidate's own hall (which DOES front the street "
-        "independently of a wider public band ~7 m back) opens onto a nearby door and passes C25 "
-        "cleanly, with a real TUNNEL signal instead — matching the parti-change diagnosis in the "
-        "Issue's own \"required behavior\" §3 (the tunnel is a non-blocking quality signal, not a "
-        "gate). This mirrors `circulation_metrics.py`'s own C26 EXTREME case precedent "
-        "(`test_circulation_metrics.py`'s docstring: \"every REAL candidate this generator "
-        "produces already measures comfortably inside the calibrated limits ... that is the "
-        "point of C26 being additive, not a fixture this codebase can currently produce by "
-        "accident\").",
+        "candidate (`l_shaped_site_front_arm`) shows a genuine entrance POCKET or STRAY POCKET "
+        "under this measurement: every real plan's nearest opening off the arrival zone is well "
+        "under `ENTRANCE_POCKET_MAX_M`, and — because every real spine candidate has exactly one "
+        "`HALL` leaf (`concept_generator.py`'s `_concept_from`) — no PLANNED context has a second "
+        "circulation zone at all, so `ENTRANCE_STRAY_POCKET_MAX_M` (the Issue's own 0.6 m default, "
+        "unchanged) has zero real contexts to conflict with. The L-massing candidate's own hall "
+        "(which DOES front the street independently of a wider public band ~7 m back) opens onto a "
+        "nearby door and passes C25 cleanly, with a real TUNNEL signal instead — matching the "
+        "parti-change diagnosis in the Issue's own \"required behavior\" §3 (the tunnel is a "
+        "non-blocking quality signal, not a gate). This mirrors `circulation_metrics.py`'s own C26 "
+        "EXTREME case precedent (`test_circulation_metrics.py`'s docstring: \"every REAL candidate "
+        "this generator produces already measures comfortably inside the calibrated limits ... "
+        "that is the point of C26 being additive, not a fixture this codebase can currently "
+        "produce by accident\").",
         "",
         "**The failure fixture used by `test_entrance_circulation.py` is therefore a hand-built "
         "adversarial `GeometricDesign`** (`dead_stub_beside_entrance_design`, in that test module): "
-        "the front door opens directly into a HALL corridor whose nearest opening measures well "
-        "past the calibrated limit (see that fixture above) — the shape the Issue's own \"Current "
-        "behavior\" section names — reproduced by hand because no swept context currently produces "
-        "it by accident. A second hand-built fixture in the same test module "
-        "(`_stray_pocket_design`) reproduces the OTHER shape named there — \"leaving the corridor's "
-        "street-facing end as a blind pocket beside the entrance\": a clean entrance into a public "
-        "room, with a SEPARATE circulation zone independently fronting the street unserved beside "
-        "it. The L-massing candidate above is the TUNNEL exemplar instead (a real, "
-        "generator-produced case).",
+        "the front door opens cleanly into LIVING (no arrival pocket), but a SEPARATE HALL zone "
+        "independently fronts the street beside it with a genuinely dead 1.5 m stub before its own "
+        "first door (see that fixture above) — literally AC-5's \"1.5 m dead stub beside the "
+        "entrance\", and the shape the Issue's own \"Current behavior\" section names — reproduced "
+        "by hand because no swept context currently produces it by accident. A second hand-built "
+        "fixture in the same test module (`_stray_pocket_design`) reproduces the SAME shape at a "
+        "larger, less exact scale. The L-massing candidate above is the TUNNEL exemplar instead "
+        "(a real, generator-produced case).",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

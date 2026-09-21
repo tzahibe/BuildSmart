@@ -2,12 +2,14 @@
 
 THE FAILURE FIXTURE (AC-1's own conclusion, `docs/ENTRANCE_CIRCULATION_SWEEP.md`): the sweep found
 no context in the frozen 432-context regression corpus, the canonical single-level baseline, or a
-real L-massing candidate (`l_shaped_site_front_arm`) that shows a genuine entrance POCKET — every
-real plan's nearest opening off the arrival zone measures well under the calibrated
-`ENTRANCE_POCKET_MAX_M`. This is the SAME situation `circulation_metrics.py`'s own C26 EXTREME case
-is in (see that test module's own docstring): the fixture below is hand-built for exactly that
-reason, not a shortcut. The L-massing candidate below IS real generator output, and is the TUNNEL
-exemplar (AC-6) — a real, non-blocking quality signal the sweep did find.
+real L-massing candidate (`l_shaped_site_front_arm`) that shows a genuine entrance POCKET or STRAY
+POCKET — every real plan's nearest opening off the arrival zone measures well under the calibrated
+`ENTRANCE_POCKET_MAX_M`, and no real candidate ever has a second circulation zone at all, so
+`ENTRANCE_STRAY_POCKET_MAX_M` never has a real context to conflict with either. This is the SAME
+situation `circulation_metrics.py`'s own C26 EXTREME case is in (see that test module's own
+docstring): the fixture below is hand-built for exactly that reason, not a shortcut. The L-massing
+candidate below IS real generator output, and is the TUNNEL exemplar (AC-6) — a real, non-blocking
+quality signal the sweep did find.
 """
 from __future__ import annotations
 
@@ -59,12 +61,20 @@ def _door(a, b, orientation, center_m, kind="ROOM_DOOR"):
 
 def dead_stub_beside_entrance_design(dx: float = 0.0, dy: float = 0.0,
                                      mirror_x: bool = False) -> GeometricDesign:
-    """The hand-built adversarial fixture: the front door opens directly into a HALL corridor
-    whose nearest OTHER opening is a genuinely dead run past the calibrated `ENTRANCE_POCKET_MAX_M`
-    before the first door — the shape the Issue's own "Current behavior" names ("a wall or pocket
-    immediately at the entrance"). `dx`/`dy` translate the whole design (AC-9); `mirror_x` mirrors
-    it across the footprint's own vertical centreline. Both are pure coordinate transforms — no
-    role, door or topology changes — so C25's own verdict must be identical under either.
+    """The hand-built adversarial fixture (AC-5): the front door opens cleanly into LIVING (no
+    arrival pocket — `pocket_length_m` is `0.0`), but a SEPARATE `HALL` zone independently fronts
+    the street right beside it with a genuinely dead 1.5 m run — literally the "1.5 m dead stub
+    beside the entrance" AC-5 names — before its own first door, well past the calibrated
+    `ENTRANCE_STRAY_POCKET_MAX_M`. This is the shape the Issue's own "Current behavior" names
+    ("leaving the corridor's street-facing end as a blind pocket beside the entrance"): unlike the
+    arrival zone's own pocket (`ENTRANCE_POCKET_MAX_M`, which needs headroom above real corridors'
+    ordinary 0-3.28 m walk to their first door), the sweep found ZERO real plans with a second
+    circulation zone at all, so this shape's threshold carries the Issue's own literal 0.6 m
+    default unchanged (see `entrance_sequence.ENTRANCE_STRAY_POCKET_MAX_M`).
+
+    `dx`/`dy` translate the whole design (AC-9); `mirror_x` mirrors it across the footprint's own
+    vertical centreline. Both are pure coordinate transforms — no role, door or topology changes —
+    so C25's own verdict must be identical under either.
     """
     footprint_w = 10.0
 
@@ -80,19 +90,18 @@ def dead_stub_beside_entrance_design(dx: float = 0.0, dy: float = 0.0,
         x, y = point
         return ((tx(x)) + dx, y + dy)
 
-    hall = _room("HALL", ("HALL", "CIRCULATION"), mv((0.0, 0.0, 2.0, 8.0)))
-    living = _room("LIVING", ("LIVING",), mv((2.0, 6.0, 4.0, 2.0)))
-    doors = [_door("HALL", "LIVING",
-                   "vertical" if not mirror_x else "vertical",
-                   mp((2.0, 7.0)))]
-    entrance = DoorOut(a="OUTSIDE", b="HALL", kind="ENTRANCE_DOOR", width_m=1.0,
-                      center_m=mp((1.0, 0.0)), orientation="horizontal", placeable=True,
+    living = _room("LIVING", ("LIVING",), mv((0.0, 0.0, 5.0, 8.0)))
+    hall = _room("HALL", ("HALL", "CIRCULATION"), mv((5.0, 0.0, 2.0, 1.5)))
+    storage = _room("STORAGE", ("STORAGE",), mv((5.0, 1.5, 2.0, 2.0)))
+    doors = [_door("HALL", "STORAGE", "horizontal", mp((6.0, 1.5)))]
+    entrance = DoorOut(a="OUTSIDE", b="LIVING", kind="ENTRANCE_DOOR", width_m=1.0,
+                      center_m=mp((2.5, 0.0)), orientation="horizontal", placeable=True,
                       shared_length_m=1.0)
     return GeometricDesign(
         plot_m=(0.0, 0.0, 20.0, 16.0), footprint_m=mv((0.0, 0.0, footprint_w, 8.0)),
-        rooms=(hall, living), interior_doors=tuple(doors), entrance_door=entrance,
+        rooms=(living, hall, storage), interior_doors=tuple(doors), entrance_door=entrance,
         windows=(), parking_m=(), garden=(), entrance_walk_m=(0.0, 0.0, 1.0, 1.0),
-        gross_area_m2=24.0, net_area_m2=24.0, wall_iterations=0,
+        gross_area_m2=47.0, net_area_m2=47.0, wall_iterations=0,
     )
 
 
@@ -287,8 +296,9 @@ def test_c25_flags_a_dead_stub_beside_the_entrance():
     seq = es.measure(design)
     defect = es.classify_pocket(seq)
     assert defect is not None
+    assert seq.stray_pockets == (("HALL", 1.5),)
     assert "HALL" in defect
-    assert f"{seq.pocket_length_m:.2f}" in defect
+    assert "1.50" in defect
 
 
 def test_c25_appears_in_the_check_list(canonical_design):
@@ -389,7 +399,8 @@ def test_fix_holds_on_mirrored_and_translated_fixtures(dx, dy, mirror):
     seq = es.measure(design)
     defect = es.classify_pocket(seq)
     assert defect is not None
-    assert seq.arrival_zone == "HALL"
+    assert seq.arrival_zone == "LIVING"
+    assert seq.stray_pockets and seq.stray_pockets[0][0] == "HALL"
 
 
 def test_no_coordinate_literal_or_fixture_name_branch_in_the_module():

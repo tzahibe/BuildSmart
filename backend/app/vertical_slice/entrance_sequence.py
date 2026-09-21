@@ -46,8 +46,22 @@ _PRIVATE_ROLES = frozenset(r.value for r in access_rules.PRIVATE_ROLES)
 #: of the frozen regression corpus + geometry fixtures (`docs/ENTRANCE_CIRCULATION_SWEEP.md`) —
 #: the same "measure real plans, then set the limit with headroom above every one of them"
 #: discipline `circulation_metrics.EXTREME_RATIO`/`EXTREME_LONGEST_SEGMENT_M` use, not a code
-#: minimum. See that report for the measured distribution this value sits above.
+#: minimum. Governs the ARRIVAL zone's own pocket only (`_pocket_length_m`) — the Issue's own
+#: illustrative default (0.6 m) does not survive contact with real plans here: an ordinary hall's
+#: distance to the first room off it (0.00-3.28 m across the corpus, mean 1.82 m) is a normal
+#: architectural fact, not wasted space, so this constant has real headroom above it. See that
+#: report for the measured distribution this value sits above, and `ENTRANCE_STRAY_POCKET_MAX_M`
+#: below for the OTHER pocket shape, which does not need this headroom.
 ENTRANCE_POCKET_MAX_M = 4.0
+
+#: PARAMETER · UNVERIFIED (Issue #22). Governs `_stray_pockets` only — a SEPARATE circulation zone
+#: (not the arrival zone) independently fronting the street unserved beside the entrance. Unlike
+#: `ENTRANCE_POCKET_MAX_M` above, this shape needs no headroom: the sweep found ZERO contexts in
+#: the full 432-context corpus with a second circulation zone at all (every real spine candidate
+#: has exactly one `HALL` leaf, `concept_generator.py`'s `_concept_from`) — so this constant carries
+#: the Issue's own illustrative default (0.6 m) unchanged, with a genuine, currently-untested
+#: protective margin rather than a value backed into just above the corpus's own maximum.
+ENTRANCE_STRAY_POCKET_MAX_M = 0.6
 
 #: PARAMETER · UNVERIFIED. More than this much walking distance from the entrance to the first
 #: PUBLIC-group room, with only private/service doors passed on the way, reads as a tunnel — a
@@ -111,7 +125,7 @@ class EntranceSequence:
     #: The OTHER failure shape (the Issue's own "Current behavior": "leaving the corridor's
     #: street-facing end as a blind pocket BESIDE the entrance") — every OTHER circulation zone
     #: (not the arrival zone) that independently fronts the street with more than
-    #: `ENTRANCE_POCKET_MAX_M` of unserved depth before its own first opening. `()` when none.
+    #: `ENTRANCE_STRAY_POCKET_MAX_M` of unserved depth before its own first opening. `()` when none.
     stray_pockets: tuple[tuple[str, float], ...] = ()
 
 
@@ -159,7 +173,7 @@ def _stray_pockets(design: GeometricDesign, rooms: dict[str, RoomOut],
         if not _fronts_street(design, room):
             continue
         length = round(_stray_pocket_length_m(design, room), 4)
-        if length > ENTRANCE_POCKET_MAX_M + 1e-9:
+        if length > ENTRANCE_STRAY_POCKET_MAX_M + 1e-9:
             found.append((room.zone_id, length))
     return tuple(sorted(found))
 
@@ -296,8 +310,8 @@ def classify_pocket(seq: EntranceSequence) -> str | None:
     1. The arrival zone is circulation and more than `ENTRANCE_POCKET_MAX_M` of it is unserved
        beyond the entrance door (including "unmeasurable" — no other opening at all).
     2. No PUBLIC-group room is reachable from the arrival zone at all, whatever its own role.
-    3. A SEPARATE circulation zone independently fronts the street with an unserved stub beside
-       the entrance (`seq.stray_pockets`).
+    3. A SEPARATE circulation zone independently fronts the street with more than
+       `ENTRANCE_STRAY_POCKET_MAX_M` of unserved stub beside the entrance (`seq.stray_pockets`).
     """
     if seq.arrival_zone is None:
         return None  # C7/C11/C16 already own an unplaceable entrance door
@@ -313,7 +327,7 @@ def classify_pocket(seq: EntranceSequence) -> str | None:
         reasons.append(f"{seq.arrival_zone} has no opening to a public room or open zone")
     for zone_id, length in seq.stray_pockets:
         reasons.append(f"{length:.2f} m of unserved corridor beside the entrance in {zone_id} "
-                       f"exceeds {ENTRANCE_POCKET_MAX_M:.2f} m")
+                       f"exceeds {ENTRANCE_STRAY_POCKET_MAX_M:.2f} m")
     return "; ".join(reasons) if reasons else None
 
 

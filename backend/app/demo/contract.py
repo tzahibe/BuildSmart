@@ -200,7 +200,9 @@ class EntranceSequenceOut(BaseModel):
     (walking distance to the arrival zone's own nearest other opening — C25's own blocking fact)
     and the TUNNEL (walking distance to the first PUBLIC-group room, with private doors passed on
     the way — reported, never gating; see that module's docstring for why). `tunnel` is the
-    non-blocking quality-signal text (`None` when the walk is not a tunnel)."""
+    non-blocking quality-signal text (`None` when the walk is not a tunnel). `stray_pockets` is the
+    OTHER blocking shape — every OTHER circulation zone independently fronting the street with an
+    unserved stub beside the entrance (`[]` when none); also C25's own blocking fact."""
 
     arrival_zone: str | None = None
     arrival_roles: list[str] = []
@@ -211,6 +213,7 @@ class EntranceSequenceOut(BaseModel):
     private_doors_passed: int = 0
     foyer: bool = False
     tunnel: str | None = None
+    stray_pockets: list[list] = []
 
 
 class QualityOut(BaseModel):
@@ -986,6 +989,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         private_doors_passed=entrance_seq.private_doors_passed,
         foyer=entrance_seq.foyer,
         tunnel=entrance_sequence.classify_tunnel(entrance_seq),
+        stray_pockets=[[zone_id, length] for zone_id, length in entrance_seq.stray_pockets],
     )
     # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —

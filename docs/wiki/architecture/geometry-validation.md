@@ -167,8 +167,8 @@ uses:
 - **STRAY POCKET** (blocking, the OTHER shape the Issue's "Current behavior" names: "leaving the
   corridor's street-facing end as a blind pocket beside the entrance"): any OTHER circulation zone
   (not the arrival zone) that independently fronts the street with more than
-  `ENTRANCE_POCKET_MAX_M` of unserved depth before its own first opening, measured from its own
-  street-wall midpoint.
+  `ENTRANCE_STRAY_POCKET_MAX_M` of unserved depth before its own first opening, measured from its
+  own street-wall midpoint.
 - **NO PUBLIC OPENING** (blocking): no PUBLIC-group room is reachable from the arrival zone at all,
   through further circulation.
 - **TUNNEL** (`classify_tunnel`, NON-BLOCKING): the walking distance from the entrance to the
@@ -186,18 +186,30 @@ uses:
   candidate-selection path is left for whichever future Issue makes a hub candidate reachable
   again.
 
-**`ENTRANCE_POCKET_MAX_M` (4.0 m) and `ENTRANCE_TUNNEL_MAX_M` (4.0 m)** are both PARAMETER ·
-UNVERIFIED, calibrated on `scripts/entrance_sequence_sweep.py`'s sweep of the full 432-context
-frozen regression corpus plus geometry fixtures (`docs/ENTRANCE_CIRCULATION_SWEEP.md`) — not a
-code minimum, the same discipline `circulation_metrics.EXTREME_RATIO`/
-`EXTREME_LONGEST_SEGMENT_M` use. The Issue's own illustrative default (0.6 m) does not survive
-contact with real plans: `pocket_length_m` measures 0.00-3.28 m across the corpus's 404 PLANNED
-contexts (mean 1.82 m — an ordinary hall's own width plus jamb clearance before the first room off
-it), so 0.6 m would refuse most plans in the corpus. 4.0 m sits with real headroom above every
-measured NORMAL plan while still catching a genuinely dead stub (0 pocket failures on the full
-corpus, 0 "no public opening" failures; 342/404 contexts DO show a TUNNEL signal — a real, common,
-non-blocking fact about this generator's spine parti, not a defect) — a decision the owner may
-revisit.
+**`ENTRANCE_POCKET_MAX_M` (4.0 m), `ENTRANCE_STRAY_POCKET_MAX_M` (0.6 m) and
+`ENTRANCE_TUNNEL_MAX_M` (4.0 m)** are all PARAMETER · UNVERIFIED, calibrated on
+`scripts/entrance_sequence_sweep.py`'s sweep of the full 432-context frozen regression corpus plus
+geometry fixtures (`docs/ENTRANCE_CIRCULATION_SWEEP.md`) — not a code minimum, the same discipline
+`circulation_metrics.EXTREME_RATIO`/`EXTREME_LONGEST_SEGMENT_M` use. These are two DIFFERENT
+real-world distributions, so they get two DIFFERENT constants rather than sharing one:
+
+- `ENTRANCE_POCKET_MAX_M` governs the ARRIVAL zone's own pocket (`_pocket_length_m`). The Issue's
+  own illustrative default (0.6 m) does not survive contact with real plans here: `pocket_length_m`
+  measures 0.00-3.28 m across the corpus's 404 PLANNED contexts (mean 1.82 m — an ordinary hall's
+  own width plus jamb clearance before the first room off it, a normal architectural fact, not
+  wasted space), so 0.6 m would refuse most plans in the corpus. 4.0 m sits with real headroom
+  above every measured NORMAL plan while still catching a genuinely dead stub (0 pocket failures
+  on the full corpus, 0 "no public opening" failures) — a decision the owner may revisit.
+- `ENTRANCE_STRAY_POCKET_MAX_M` governs `_stray_pockets` — a SEPARATE circulation zone beside the
+  entrance. This shape needs no headroom: every real spine candidate has exactly one `HALL` leaf
+  (`concept_generator.py`'s `_concept_from`), so the sweep found ZERO PLANNED contexts with a
+  second circulation zone at all. The constant therefore carries the Issue's own literal 0.6 m
+  default unchanged, giving it a genuine protective margin (AC-5's fixture, a 1.5 m stub, fails it
+  directly — no adversarial scaling needed) rather than one backed into just above the corpus's
+  own observed maximum.
+
+342/404 contexts DO show a TUNNEL signal — a real, common, non-blocking fact about this
+generator's spine parti, not a defect.
 
 **C25 "no dead-space pocket at the entrance"** (`validation.py`, next to C23, under the same
 `skip_site_checks` gate): fails closed on either blocking condition above, reusing the SAME minimal

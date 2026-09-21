@@ -457,12 +457,14 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
 
         # C25 — no dead-space pocket at the entrance (`entrance_sequence.py`, Issue #22). Fails
         # closed when the arrival zone is circulation and more than `ENTRANCE_POCKET_MAX_M` of it
-        # is unserved beyond the entrance door, or when the arrival zone has no path at all to a
-        # PUBLIC-group room. Reuses `circulation_design` — the SAME minimal `GeometricDesign` C26
-        # above already assembled purely to measure this plan, never a second build. The TUNNEL
-        # signal (`entrance_sequence.classify_tunnel`) is deliberately NOT gated here — see that
-        # module's own docstring for why a long walk past bedrooms before the living room is a
-        # ranking signal, not a defect.
+        # is unserved beyond the entrance door, when a SEPARATE circulation zone independently
+        # fronts the street with more than `ENTRANCE_STRAY_POCKET_MAX_M` of unserved depth beside
+        # the entrance, or when the arrival zone has no path at all to a PUBLIC-group room. Reuses
+        # `circulation_design` — the SAME minimal `GeometricDesign` C26 above already assembled
+        # purely to measure this plan, never a second build. The TUNNEL signal
+        # (`entrance_sequence.classify_tunnel`) is deliberately NOT gated here — see that module's
+        # own docstring for why a long walk past bedrooms before the living room is a ranking
+        # signal, not a defect.
         entrance_seq = entrance_sequence.measure(circulation_design)
         pocket_defect = entrance_sequence.classify_pocket(entrance_seq)
         rep.add("C25", "no dead-space pocket at the entrance", pocket_defect is None,
