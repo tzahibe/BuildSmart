@@ -1110,7 +1110,7 @@ class Orchestrator:
             # A non-APPROVE verdict for THIS head that never reached the fixer (recorded before a
             # stale-recovery requeue, #22) is a review blockage like any other: dispatch the fixer
             # while the budget lasts, else block for the lead.
-            if verdict in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec):
+            if verdict in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec) and rec.kind != "rollup":
                 summary = f"independent review {verdict} on {head[:12]} (verdict recorded earlier; fixer dispatched)"
                 self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED,
                                 last_error=summary[:1000])
@@ -1736,7 +1736,9 @@ class Orchestrator:
         attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
         # Owner rule 2026-09-20: a review blockage (REQUEST_CHANGES or BLOCK) is fixed and resubmitted by the
         # FIXER while the fix budget lasts; only an exhausted budget hands the Issue to the Team Lead.
-        if v in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec):
+        if v in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec) and rec.kind != "rollup":
+            # (a rollup's combined review is the Team Lead's to act on — the integration branch is fixed by
+            # re-integrating a child or by a lead commit, never by a fixer editing the branch directly)
             self._set_state(store, issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
             text = work_reports.record_failure(store, self.config, issue_id, stage="review", failure_class=REVIEW_REJECTED,
                                                attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
