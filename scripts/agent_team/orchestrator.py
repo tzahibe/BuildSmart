@@ -947,6 +947,14 @@ class Orchestrator:
             return "CI -> BLOCKED (merged externally)"
         ev = ci_evidence.collect(self.github, self.config, head)
         if ev.status in (ci_evidence.PENDING, ci_evidence.MISSING):
+            if pr.get("mergeable") is False and pr.get("mergeable_state", "") == "dirty" and rec.worktree:
+                # GitHub never runs `pull_request` workflows for a PR whose merge commit cannot be built:
+                # waiting for CI would end in INFRA_FAILURE after ci_wait_seconds (#22, #38 on 2026-09-21).
+                # The base moved under the PR — start the merge and hand the conflict to the fixer now.
+                self._ci_started.pop(rec.issue_id, None)
+                pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+                self.store.record_event(rec.issue_id, "ci_failed", {"class": MERGE_CONFLICT, "summary": "PR conflicts with its base; CI cannot run", "head": head})
+                return self._merge_conflict(rec, Path(rec.worktree), pr_base, "the PR conflicts with its base and CI cannot run on it", from_state="CI")
             started = self._ci_started.setdefault(rec.issue_id, self.clock())
             if self.clock() - started > self.config.ci_wait_seconds:
                 cls = Classification(INFRA_FAILURE, "CI did not report within the configured wait", "", "")

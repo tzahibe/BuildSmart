@@ -170,3 +170,29 @@ def test_contract_refresh_keeps_the_child_linkage_and_an_owner_merge_into_the_br
     assert "INTEGRATED" in out and orch.store.get(502).state == sm.INTEGRATED
     assert [i["issue"] for i in orch.integrations()] == [501, 502]
     assert any(e["kind"] == "integration_smoke" for e in orch.store.events(502))
+
+
+def test_a_conflicting_pr_in_ci_goes_to_the_fixer_at_once_instead_of_waiting_for_ci(env):
+    """2026-09-21: GitHub runs no pull_request workflow for a PR whose merge commit cannot be built, so
+    #22 sat in CI for the whole ci_wait (2.5 h) and then became INFRA_FAILURE. The base moved under it:
+    start the merge and dispatch the fixer immediately."""
+    config, gh, clock, origin = env
+    orch = _orch(config, gh, clock, _runner())
+    _add_issue(gh, 600)
+    _tick(orch)
+    rec = orch.store.get(600)
+    assert rec.state == sm.PR_OPEN
+    _tick(orch)                                                   # -> CI (pending)
+    assert orch.store.get(600).state == sm.CI
+    # someone lands a conflicting edit on main; GitHub marks the PR dirty and never runs CI for it
+    other = config.repo_root.parent / "conflicting600"
+    _git(["clone", "-q", str(origin), str(other)], config.repo_root.parent)
+    _git(["config", "user.email", "o@example.com"], other); _git(["config", "user.name", "other"], other)
+    (other / "work-600.txt").write_text("someone else's version\n")
+    _git(["add", "work-600.txt"], other); _git(["commit", "-q", "-m", "conflict"], other); _git(["push", "-q", "origin", "main"], other)
+    gh.prs[rec.pr_number]["mergeable"] = False
+    gh.prs[rec.pr_number]["mergeable_state"] = "dirty"
+    rep = _tick(orch)
+    assert rep.advanced[600] == "CI -> FIX_REQUIRED (merge conflict, fixer dispatched)"
+    assert orch.store.get(600).failure_class == "MERGE_CONFLICT"
+    assert "work-600.txt" in _git(["diff", "--name-only", "--diff-filter=U"], rec.worktree).stdout
