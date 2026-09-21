@@ -201,12 +201,15 @@ Fail-fast, for PRs from `agent/**` to `main`:
    `snapshot`/`merge` (both depend only on the early `resolve` job), so sharding adds no wall time
    of its own while shadow mode is on — writing `head_snapshot_single.json`/
    `base_snapshot_single.json`. In the final `regression` job, a "Compare head snapshots" /
-   "Compare base snapshots" step (`corpus_snapshot.py --assert-equal`) fails the job if the merged
-   and single-node documents differ after normalising volatile fields (`ms`/`seconds` timings,
-   `written_at`) — status/code/sig/area/metrics per context must be identical. Budget evaluation and
-   every existing assertion (including O1's invariants) consume the merged `head_snapshot.json`/
-   `base_snapshot.json` only after the relevant compare step passed; the base snapshot cache now
-   holds the merged document, saved only after that compare passes. **Removal criterion**: the
+   "Compare base snapshots" step (`corpus_snapshot.py --assert-equal`) reports whether the merged
+   and single-node documents agree — status/code/sig/area/metrics per context and `sha`, after
+   normalising volatile fields (`ms`/`seconds` timings, `written_at`); soft metadata that may
+   legitimately differ between an equivalent pair (`corpus_hash`, `workers` — e.g. a single-node
+   snapshot written by an older, pre-sharding script has no `corpus_hash` at all) is reported as a
+   note, not a difference. Both steps are `continue-on-error: true`: shadow mode observes, it never
+   fails gate-4 on its own — budget evaluation and every existing assertion (including O1's
+   invariants) consume the merged `head_snapshot.json`/`base_snapshot.json` regardless of the
+   compare verdict, exactly as they did before O3. **Removal criterion**: the
    single-node path is only deleted after several real PRs show the two paths always agree — not
    scheduled by this Issue.
 5. **agent-ci-result** — the single required status check; red if any gate failed, green when

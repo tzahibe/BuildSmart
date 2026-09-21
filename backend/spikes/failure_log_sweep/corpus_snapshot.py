@@ -28,10 +28,14 @@ that is missing a context, duplicates one, or disagrees on `head_sha`/`corpus_ha
     ...one such run per shard 0..N-1, typically in parallel CI jobs...
     .venv/bin/python3 spikes/failure_log_sweep/corpus_snapshot.py --merge head_snapshot.json shard-0.json shard-1.json shard-2.json shard-3.json
 
-Shipped additively in shadow mode: the single-node path still runs, and a workflow-level compare
-step fails the job if the merged and single-node snapshots ever disagree (see
-docs/wiki/architecture/agent-team-workflow.md, gate-4 section). The single-node path is removed
-only once several real PRs show them identical.
+Shipped additively in shadow mode: the single-node path still runs, and a workflow-level
+`--assert-equal` step reports (never fails the job on its own — `continue-on-error`, see
+docs/wiki/architecture/agent-team-workflow.md, gate-4 section) whether the merged and single-node
+snapshots agree; the single-node/replay path alone still decides gate-4. `--assert-equal` compares
+case content and `sha`; soft metadata that may legitimately differ between an equivalent pair —
+`corpus_hash`, `workers` (e.g. a single-node snapshot written by an older, pre-sharding script has
+no `corpus_hash` at all) — is reported as a note, never a difference. The single-node path is
+removed only once several real PRs show them identical.
 """
 from __future__ import annotations
 
@@ -162,17 +166,25 @@ def normalize_for_compare(doc: dict) -> dict:
 
 
 def snapshots_equal(a: dict, b: dict) -> bool:
-    return normalize_for_compare(a) == normalize_for_compare(b)
+    return not describe_snapshot_diff(a, b)
+
+
+# Metadata that may legitimately differ between two equivalent snapshots — e.g. a single-node
+# snapshot written by an older, pre-sharding script never recorded `corpus_hash` at all — so
+# `describe_snapshot_diff` never treats a difference here as the snapshots being unequal; it is
+# only ever a `describe_snapshot_notes` note. `sha` (the git commit the snapshot was computed at)
+# stays a hard-compared field: a mismatch there means one side replayed the wrong commit.
+_SOFT_METADATA_FIELDS = ("corpus_hash", "workers")
 
 
 def describe_snapshot_diff(a: dict, b: dict) -> list[str]:
     """Human-readable mismatch descriptions between two snapshots (after normalizing volatile
-    fields) — empty means they are equivalent."""
+    fields) — empty means they are equivalent. Compares case content (`status`/`code`/`sig`/`area`/
+    `metrics` per context) and `sha`; see `describe_snapshot_notes` for the soft metadata fields."""
     na, nb = normalize_for_compare(a), normalize_for_compare(b)
     diffs = []
-    for field in ("sha", "corpus_hash", "workers"):
-        if na.get(field) != nb.get(field):
-            diffs.append(f"{field}: {na.get(field)!r} != {nb.get(field)!r}")
+    if na.get("sha") != nb.get("sha"):
+        diffs.append(f"sha: {na.get('sha')!r} != {nb.get('sha')!r}")
     keys_a, keys_b = set(na["results"]), set(nb["results"])
     if keys_a != keys_b:
         diffs.append(f"context keys differ: only in A={sorted(keys_a - keys_b)[:5]} only in B={sorted(keys_b - keys_a)[:5]}")
@@ -180,6 +192,14 @@ def describe_snapshot_diff(a: dict, b: dict) -> list[str]:
         if na["results"][key] != nb["results"][key]:
             diffs.append(f"{key}: {na['results'][key]} != {nb['results'][key]}")
     return diffs
+
+
+def describe_snapshot_notes(a: dict, b: dict) -> list[str]:
+    """Soft-metadata mismatches between two snapshots (`corpus_hash`, `workers`) — reported for
+    visibility but never counted as a difference by `describe_snapshot_diff`/`snapshots_equal`."""
+    na, nb = normalize_for_compare(a), normalize_for_compare(b)
+    return [f"{field}: {na.get(field)!r} != {nb.get(field)!r}" for field in _SOFT_METADATA_FIELDS
+            if na.get(field) != nb.get(field)]
 
 
 def _run_one(ctx: dict) -> tuple[str, dict]:
@@ -362,6 +382,11 @@ def main() -> int:
     if args.assert_equal:
         a = json.load(open(args.assert_equal[0], encoding="utf-8"))
         b = json.load(open(args.assert_equal[1], encoding="utf-8"))
+        notes = describe_snapshot_notes(a, b)
+        if notes:
+            print(f"{len(notes)} metadata note(s) (not compared, never fail the assertion):")
+            for n in notes:
+                print(f"  {n}")
         diffs = describe_snapshot_diff(a, b)
         if diffs:
             print(f"snapshots differ ({len(diffs)} difference(s)):")

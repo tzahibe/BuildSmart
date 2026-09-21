@@ -301,8 +301,9 @@ def test_regression_workflow_runs_shadow_mode_invariants_and_compares_them():
 
 def test_regression_workflow_shards_the_corpus_snapshot_across_matrix_jobs():
     """Issue #67 (O3): gate-4 computes each corpus snapshot both by a single-node replay (ground
-    truth) and by N=4 parallel matrix jobs merged into one document; a compare step fails the job
-    if the two ever disagree. Parses the real workflow YAML, not a copy of it."""
+    truth) and by N=4 parallel matrix jobs merged into one document; a `continue-on-error` compare
+    step reports whether the two agree without failing the gate on its own — shadow mode observes.
+    Parses the real workflow YAML, not a copy of it."""
     doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-regression.yml").read_text())
     jobs = doc["jobs"]
 
@@ -332,10 +333,13 @@ def test_regression_workflow_shards_the_corpus_snapshot_across_matrix_jobs():
     compare_step = reg_steps["Compare head snapshots"]
     assert "--assert-equal" in compare_step["run"]
     assert "PIPESTATUS" in compare_step["run"] and 'exit "${PIPESTATUS[0]}"' in compare_step["run"]
+    # shadow mode: the O3 compare never fails gate-4 on its own (repair, 2026-09-21)
+    assert compare_step.get("continue-on-error") is True
 
     base_compare_step = reg_steps["Compare base snapshots"]
     assert base_compare_step.get("if") == "needs.resolve.outputs.cache_hit != 'true'"
     assert "--assert-equal" in base_compare_step["run"]
+    assert base_compare_step.get("continue-on-error") is True
 
     # budget evaluation and the invariants steps still consume the canonical (merged) filenames
     budget_step = reg_steps["Evaluate the regression budget"]

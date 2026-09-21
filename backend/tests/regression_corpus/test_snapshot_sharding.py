@@ -146,3 +146,15 @@ def test_assert_equal_detects_a_real_difference():
     b["results"]["k"]["sig"] = [["b"]]
     assert not cs.snapshots_equal(a, b)
     assert any("k:" in d for d in cs.describe_snapshot_diff(a, b))
+
+
+def test_assert_equal_ignores_missing_corpus_hash_and_worker_count():
+    # A single-node snapshot written by an older, pre-sharding script never recorded `corpus_hash`
+    # at all — that must be a note, not a snapshot difference (repair, 2026-09-21).
+    a = {"sha": "x", "corpus_hash": "h", "workers": 4, "seconds": 1.0, "written_at": "t1",
+         "results": {"k": {"status": "PLANNED", "sig": [["a"]], "ms": 5.0}}}
+    b = {"sha": "x", "seconds": 2.0, "written_at": "t2",
+         "results": {"k": {"status": "PLANNED", "sig": [["a"]], "ms": 9.0}}}
+    assert cs.describe_snapshot_diff(a, b) == []
+    assert cs.snapshots_equal(a, b)
+    assert any("corpus_hash" in n for n in cs.describe_snapshot_notes(a, b))
