@@ -12,9 +12,9 @@ const design: DemoDesign = {
   plot: rect,
   footprint: rect,
   rooms: [
-    { id: 'bath-1', type: 'BATHROOM', name: 'חדר רחצה', x: 0, y: 0, width_m: 2, depth_m: 2, area_m2: 4, walls: {} },
-    { id: 'hall-1', type: 'HALL', name: 'מסדרון', x: 0, y: 0, width_m: 2, depth_m: 2, area_m2: 4, walls: {} },
-    { id: 'bed-1', type: 'MASTER_BEDROOM', name: 'חדר הורים', x: 0, y: 0, width_m: 3, depth_m: 3, area_m2: 9, walls: {} },
+    { id: 'bath-1', type: 'BATHROOM', name: 'חדר רחצה', x: 0, y: 0, width_m: 2, depth_m: 2, area_m2: 4, gross_width_m: 2.2, gross_depth_m: 2.2, gross_area_m2: 4.84, walls: {} },
+    { id: 'hall-1', type: 'HALL', name: 'מסדרון', x: 0, y: 0, width_m: 2, depth_m: 2, area_m2: 4, gross_width_m: 2.2, gross_depth_m: 2.2, gross_area_m2: 4.84, walls: {} },
+    { id: 'bed-1', type: 'MASTER_BEDROOM', name: 'חדר הורים', x: 0, y: 0, width_m: 3, depth_m: 3, area_m2: 9, gross_width_m: 3.2, gross_depth_m: 3.2, gross_area_m2: 10.24, walls: {} },
   ],
   walls: [],
   open_interfaces: [],

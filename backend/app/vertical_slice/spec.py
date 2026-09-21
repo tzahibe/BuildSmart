@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
+from .constraints import TypedConstraint, derive_safe_room_constraint
+
 
 @dataclass(frozen=True)
 class PlotSpec:
@@ -385,6 +387,13 @@ class ArchitecturalSpec:
     #: How the house is organised. Defaults to the engine's own one-storey house, so the two-field
     #: constructor every caller uses today builds exactly the spec it always did.
     concept: HouseConcept = field(default_factory=HouseConcept)
+
+    @property
+    def safe_room_constraint(self) -> TypedConstraint:
+        """The SAFE_ROOM `TypedConstraint` this spec carries (Issue #35) — derived from
+        `program.safe_room`, not stored, so it can never drift from the bool it is derived from.
+        """
+        return derive_safe_room_constraint(self.program.safe_room)
 
 
 def demo_spec() -> ArchitecturalSpec:

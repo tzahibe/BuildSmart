@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import circulation_metrics, entrance_sequence, quality_metrics
+from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
 from app.vertical_slice.concept_generator import (
@@ -28,7 +29,7 @@ from app.vertical_slice.concept_generator import (
 )
 from app.vertical_slice.design_output import GeometricDesign as SolvedDesign
 from app.vertical_slice.geometry_core.model import ProgramRole, u_to_m
-from app.vertical_slice.validation import ValidationReport
+from app.vertical_slice.validation import ValidationReport, check_realized_dimensions
 from app.vertical_slice.building import Building
 from app.vertical_slice.building_validation import BuildingValidationReport, validate_building
 
@@ -40,6 +41,21 @@ from app.vertical_slice.building_validation import BuildingValidationReport, val
 #: activation decision explicitly rules out a flat percentage-loss refusal threshold; this number
 #: only decides what gets NAMED in the disclosure sentence.
 LAUNDRY_REDISTRIBUTION_NOTICE_RATIO = 0.90
+
+
+class InconsistentGeometryError(Exception):
+    """Raised by `to_demo_design` when C27 fails: the assembled `RoomOut` list does not agree with
+    itself (a room's width x depth doesn't match its own area, or the building total doesn't match
+    the sum of its rooms). Never expected on a real solved design — `check_realized_dimensions`'s
+    own docstring explains why — so this is a bug/tamper signal, not a feasibility outcome.
+    `app.demo.service` catches this and turns it into `DemoGenerationError("INCONSISTENT_GEOMETRY",
+    ...)`, the same way every other product-facing refusal is raised.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
 
 #: Hebrew display names. Presentation lives in the contract so the renderer never has to map
 #: architectural roles to words itself.
@@ -56,6 +72,17 @@ _ROOM_NAMES = {
 
 
 class RoomOut(BaseModel):
+    """A realized room, in the two definitions documented at
+    `docs/wiki/architecture/geometry-validation.md` ("Realized dimensions: gross vs net"):
+
+    `x`/`y` is the room's GROSS rectangle's corner — the centerline allocation the walls (drawn
+    from this same rectangle by `_wall_segments`) actually run along. `width_m`/`depth_m`/`area_m2`
+    are the NET (usable, wall-inset) triple, so `width_m * depth_m == area_m2` always (check C27
+    enforces this on every delivered plan). `gross_width_m`/`gross_depth_m`/`gross_area_m2` are
+    additive: the drawing rectangle at `x`,`y` — always `>=` the net triple, since a wall inset only
+    ever shrinks a room.
+    """
+
     id: str
     type: str
     name: str
@@ -64,6 +91,9 @@ class RoomOut(BaseModel):
     width_m: float
     depth_m: float
     area_m2: float
+    gross_width_m: float
+    gross_depth_m: float
+    gross_area_m2: float
     #: side -> {"construction": ..., "boundary_context": ..., "can_take_a_window": ...}
     walls: dict[str, dict]
     #: The role's two size ceilings (`RoomTemplate`): the PREFERRED maximum the planner sizes to
@@ -216,6 +246,24 @@ class EntranceSequenceOut(BaseModel):
     stray_pockets: list[list] = []
 
 
+class ConstraintOut(BaseModel):
+    """One `TypedConstraint` (Issue #35), as the person-facing screen and support tooling read it —
+    including WHERE the requirement came from, so a request never looks like it was invented by
+    the engine. Only ever attached for a constraint the brief actually carries
+    (`source != ConstraintSource.NONE`); a brief without one gets an empty `QualityOut.constraints`,
+    never a `NONE`-source entry."""
+
+    kind: str
+    source: str
+    authoritative: bool
+    min_area_m2: float | None = None
+
+
+def _constraint_out(constraint: TypedConstraint) -> ConstraintOut:
+    return ConstraintOut(kind=constraint.kind.value, source=constraint.source.value,
+                         authoritative=constraint.authoritative, min_area_m2=constraint.min_area_m2)
+
+
 class QualityOut(BaseModel):
     """Room-size quality, kept apart from validation on purpose: the preferred maximum is a soft
     target, the hard one is the gate (C21). Three tiers, thresholds beside the templates
@@ -244,6 +292,9 @@ class QualityOut(BaseModel):
     #: M1–M6 for this plan (Issue #17). `None` only for a payload built before this field existed
     #: — every plan `to_demo_design` produces from here on attaches one.
     metrics: QualityMetricsOut | None = None
+    #: Typed constraints this plan's brief carries and that were proven realized (Issue #35).
+    #: Empty for a brief with none — never invented.
+    constraints: list[ConstraintOut] = []
     #: One `ExposureOut` per room (Issue #19), additive. `[]` only for a payload built before
     #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
     #: per room.
@@ -912,7 +963,11 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    relationships: tuple = (),
                    outline: OutlineOut | None = None,
                    family: str | None = None,
-                   notes: list[str] | None = None) -> DemoDesign:
+                   notes: list[str] | None = None,
+                   constraint: TypedConstraint | None = None) -> DemoDesign:
+    """`constraint` (Issue #35): the spec's SAFE_ROOM `TypedConstraint`, attached to
+    `QualityOut.constraints` when the brief actually carries one (`source != NONE`) — `None`
+    (the default) keeps every caller that predates this parameter unchanged."""
     walls, opens = _wall_segments(design)
     walls, opens = _open_corridor_to_public(design, walls, opens)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
@@ -926,20 +981,26 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                          orientation=entrance.orientation, is_entrance=True,
                          swings_into=entrance.swings_into,
                          hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1]))
+    rooms_out = [RoomOut(
+        id=r.zone_id, type=r.roles[0], name=_room_name(r),
+        x=r.rect_m[0], y=r.rect_m[1], width_m=r.net_w_m, depth_m=r.net_h_m,
+        area_m2=r.net_area_m2,
+        gross_width_m=r.rect_m[2], gross_depth_m=r.rect_m[3],
+        gross_area_m2=round(r.rect_m[2] * r.rect_m[3], 4),
+        walls={side: {"construction": f.construction.value,
+                      "boundary_context": f.boundary_context.value,
+                      "can_take_a_window": f.can_take_a_window}
+               for side, f in r.wall_facts.items()},
+        **_room_size_facts(r),
+    ) for r in design.rooms]
+    c27 = check_realized_dimensions(rooms_out, design.gross_area_m2)
+    if not c27.passed:
+        raise InconsistentGeometryError(c27.detail)
     demo = DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),
         footprints=[_rect(f) for f in design.footprints_m],
-        rooms=[RoomOut(
-            id=r.zone_id, type=r.roles[0], name=_room_name(r),
-            x=r.rect_m[0], y=r.rect_m[1], width_m=r.rect_m[2], depth_m=r.rect_m[3],
-            area_m2=r.net_area_m2,
-            walls={side: {"construction": f.construction.value,
-                          "boundary_context": f.boundary_context.value,
-                          "can_take_a_window": f.can_take_a_window}
-                   for side, f in r.wall_facts.items()},
-            **_room_size_facts(r),
-        ) for r in design.rooms],
+        rooms=rooms_out,
         walls=walls,
         open_interfaces=opens,
         doors=doors,
@@ -967,6 +1028,9 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # it runs on the raw solver output. Computed here, once the shape exists, and attached
     # additively onto the `quality` already built rather than threaded through `quality_of`.
     metrics = quality_metrics.measure_design(demo)
+    constraints_out = ([_constraint_out(constraint)]
+                       if constraint is not None and constraint.source is not ConstraintSource.NONE
+                       else [])
     # Dedicated-circulation metrics (Issue #36) read the raw `SolvedDesign` directly — the same
     # `GeometricDesign` C26 (`validation.py`) and the circulation ranking term
     # (`general_pipeline._guard_demoted_hub`) already measure — rather than the flattened `demo`
@@ -1001,6 +1065,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     return demo.model_copy(update={
         "quality": demo.quality.model_copy(update={
             "metrics": _metrics_out(metrics, circulation, wet_core),
+            "constraints": constraints_out,
             "exposure": exposure,
             "wet_privacy": wet_privacy,
             "entrance_sequence": entrance_seq_out})
