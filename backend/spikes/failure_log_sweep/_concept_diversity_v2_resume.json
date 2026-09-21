@@ -4,7 +4,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -38,7 +38,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "SPINE",
@@ -94,7 +94,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -427,7 +427,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -460,7 +460,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -482,7 +482,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -504,7 +504,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -570,7 +570,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -746,7 +746,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -779,7 +779,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -801,7 +801,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -856,7 +856,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -900,7 +900,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -933,7 +933,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -966,10 +966,11 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 2,
+    "n_shown": 3,
+    "n_classes": 3,
     "classes": [
       "FRONT_BAND",
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1044,9 +1045,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1124,7 +1126,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -1168,7 +1170,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -1201,7 +1203,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -1257,7 +1259,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -1279,9 +1281,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1356,9 +1359,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1411,7 +1415,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -1763,7 +1767,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -2240,9 +2244,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "FRONT_BAND",
       "SPINE"
     ]
   },
@@ -2263,9 +2268,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "FRONT_BAND",
       "SPINE"
     ]
   },
@@ -2274,9 +2280,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "FRONT_BAND",
       "SPINE"
     ]
   },
@@ -2308,9 +2315,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "FRONT_BAND",
       "SPINE"
     ]
   },
@@ -2677,7 +2685,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 1,
     "classes": [
       "SPINE"
@@ -3367,9 +3375,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "FRONT_BAND",
       "SPINE"
     ]
   },
@@ -3458,7 +3467,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "FRONT_BAND",
@@ -3527,7 +3536,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "SPINE",
@@ -3627,7 +3636,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "SPINE",
@@ -4129,7 +4138,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "FRONT_BAND",
@@ -4424,7 +4433,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "FRONT_BAND",
@@ -4436,7 +4445,7 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
+    "n_shown": 3,
     "n_classes": 2,
     "classes": [
       "FRONT_BAND",

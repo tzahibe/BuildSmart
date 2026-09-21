@@ -144,3 +144,78 @@ def test_concept_label_covers_every_circulation_class():
         label = concept_label(circulation_class)
         assert label.label
         assert label.rationale
+
+
+# ------------------------------------------------------------------ AC-5: cross-outline search
+
+def _rect_buildable(width_m: float, depth_m: float):
+    """A plain rectangle, set back 6 m from y=0 — the same front-parking-band clearance
+    `demo.service._buildable_from` reserves before handing a region to the adapter, so a
+    realized plan's own entrance/parking checks (C16/C18) pass without going through the demo
+    service's own placement machinery."""
+    from app.geometry_domain.constraints import BuildableRegion
+    from app.geometry_domain.primitives import MultiRegion, Region, Ring
+    from app.geometry_domain.provenance import Authority, Provenance, Source
+
+    return BuildableRegion.known(
+        MultiRegion.of(Region(Ring.rectangle(0.0, 6.0, width_m, depth_m))),
+        Provenance(Source.USER, Authority.AUTHORITATIVE, ref="test_cross_outline"))
+
+
+def test_cross_outline_search_adds_a_second_class():
+    """AC-5: a brief whose PRIMARY outline offers a single circulation class among its own
+    candidates receives a second, VERIFIED class from another outline the service surveyed —
+    real geometry both sides, never a mock: a 10x16 m rectangle's own candidates for this
+    programme are SPINE only (measured), while a 15x11 m rectangle for the SAME programme also
+    offers FRONT_BAND."""
+    from app.vertical_slice import concept_generator as cg
+    from app.vertical_slice import concept_engine_v2 as ce2
+    from app.vertical_slice.concept_spec import CirculationClass as CC
+    from app.vertical_slice.geometry_core.engine import solve_fixture
+    from app.vertical_slice.safe_adapter import adapt
+    from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+
+    program = ProgramSpec(bedrooms=3, safe_room=False, wet_rooms=2, parking_spaces=0)
+
+    primary_buildable = _rect_buildable(10.0, 16.0)
+    primary_adapted = adapt(primary_buildable)
+    primary_spec = ArchitecturalSpec(PlotSpec(16.0, 22.0), program)
+    primary_generated = cg.generate_concepts(primary_spec, list(primary_adapted.candidates))
+    assert {c.circulation_class for c in primary_generated.candidates} == {CC.SPINE}, (
+        "fixture guard: the primary outline must offer exactly one class")
+
+    def primary_realize(index: int, candidate):
+        solve = solve_fixture(candidate.concept.fixture)
+        return gp._realize(primary_spec, primary_buildable, None, candidate, index, solve, ())
+
+    chosen_index, chosen_plan = next(
+        (i, plan) for i, c in enumerate(primary_generated.candidates)
+        if (plan := primary_realize(i, c)).ok)
+    assert chosen_plan.circulation_class is CC.SPINE
+
+    already_found = ce2.plans_per_class(
+        primary_spec, primary_realize, primary_generated.candidates, chosen_index, chosen_plan)
+    assert already_found == (), "fixture guard: nothing else to find on the primary's own outline"
+
+    other_buildable = _rect_buildable(15.0, 11.0)
+    other_adapted = adapt(other_buildable)
+    other_spec = ArchitecturalSpec(PlotSpec(21.0, 17.0), program)
+    other_generated = cg.generate_concepts(other_spec, list(other_adapted.candidates))
+    assert CC.FRONT_BAND in {c.circulation_class for c in other_generated.candidates}
+
+    def other_realize(index: int, candidate):
+        solve = solve_fixture(candidate.concept.fixture)
+        return gp._realize(other_spec, other_buildable, None, candidate, index, solve, ())
+
+    outline_key = object()
+    found = ce2.plans_per_class_cross_outline(
+        primary_spec, chosen_plan, already_found,
+        [(outline_key, ce2.OutlineCandidates(other_generated.candidates, other_realize))])
+
+    assert len(found) >= 1
+    keys = {key for key, _ in found}
+    classes = {plan.circulation_class for _, plan in found}
+    assert keys == {outline_key}
+    assert CC.FRONT_BAND in classes
+    for _, plan in found:
+        assert plan.ok
