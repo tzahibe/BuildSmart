@@ -1099,6 +1099,22 @@ class Orchestrator:
             return "review started"
         verdict = rec.review_verdict.split("@", 1)[0]
         if verdict != "APPROVE":
+            # A non-APPROVE verdict for THIS head that never reached the fixer (recorded before a
+            # stale-recovery requeue, #22) is a review blockage like any other: dispatch the fixer
+            # while the budget lasts, else block for the lead.
+            if verdict in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec):
+                summary = f"independent review {verdict} on {head[:12]} (verdict recorded earlier; fixer dispatched)"
+                self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED,
+                                last_error=summary[:1000])
+                self._milestone(rec.issue_id, f"Independent review **{verdict}** for `{head[:12]}` was still pending a decision — dispatching the fixer "
+                                              f"(fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}).")
+                return f"REVIEW -> FIX_REQUIRED ({verdict} parked verdict)"
+            if not self.attempts_remaining(rec):
+                self.locks.release(rec.issue_id, "review-blocked")
+                self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=f"review {verdict}", failure_class=REVIEW_REJECTED,
+                                last_error=f"independent review {verdict}; fix budget exhausted"[:1000])
+                self._blocked_notice(self.store.get(rec.issue_id), REVIEW_REJECTED, "fix budget exhausted")
+                return f"REVIEW -> BLOCKED ({verdict}, budget exhausted)"
             return f"review verdict {verdict} (awaiting decision)"
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
         decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha,
