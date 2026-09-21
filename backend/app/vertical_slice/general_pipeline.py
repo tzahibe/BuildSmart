@@ -801,6 +801,7 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
         # brief's, or an eligible rearrangement's) — resolved, padded and defaulted, so a legacy
         # brief is held to its defaults and never skipped (C17 fails closed on absence).
         wet_rooms=candidate.wet_rooms,
+        constraint=spec.safe_room_constraint,
     )
     stage("assemble")
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,

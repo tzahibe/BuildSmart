@@ -18,7 +18,7 @@ from app.vertical_slice.concept_generator import (
     ROOM_TEMPLATES,
 )
 from app.vertical_slice.geometry_core.model import ProgramRole
-from tests.vertical_slice.test_hub_guard import WIDE_SQUARE, _project
+from tests.vertical_slice.test_hub_guard import NARROW_DEEP, WIDE_SQUARE, _project
 from tests.test_capacity_note import OVER_CAPACITY
 
 
@@ -141,6 +141,32 @@ def test_every_room_width_depth_matches_its_area():
                 # A wall inset only ever shrinks a room: the net rect never exceeds its own gross.
                 assert room.width_m <= room.gross_width_m + 1e-6
                 assert room.depth_m <= room.gross_depth_m + 1e-6
+
+
+# ------------------------------------------------------------------ Issue #35: SAFE_ROOM constraint
+
+def _has_safe_room(design) -> bool:
+    return any(r.type == "SAFE_ROOM" for r in design.rooms)
+
+
+def test_safe_room_constraint_survives_to_the_contract():
+    """AC-3: every delivered design with a safe-room requirement carries the `TypedConstraint`
+    in `QualityOut.constraints` and the room itself in the drawing; a brief without one gets
+    neither — never invented."""
+    with_safe_room = svc.generate_demo_design(_project(WIDE_SQUARE))
+    constraints = with_safe_room.design.quality.constraints
+    assert len(constraints) == 1
+    constraint = constraints[0]
+    assert constraint.kind == "SAFE_ROOM" and constraint.source == "USER" and constraint.authoritative
+    assert constraint.min_area_m2 == 9.0
+    assert _has_safe_room(with_safe_room.design)
+    for alternative in with_safe_room.alternatives:
+        assert len(alternative.quality.constraints) == 1
+        assert _has_safe_room(alternative)
+
+    without_safe_room = svc.generate_demo_design(_project(NARROW_DEEP))
+    assert without_safe_room.design.quality.constraints == []
+    assert not _has_safe_room(without_safe_room.design)
 
 
 # ------------------------------------------------------------------ Issue #19: exposure report
