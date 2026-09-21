@@ -113,16 +113,27 @@ drawing.
 - **Deterministic signal**: M3 (circulation share of total area) and M4 (hall long/short aspect,
   `COMPACT_HALL_ASPECT_MAX = 1.5`, `quality_metrics.py`); `wasted_circulation_share`
   (`app.demo.contract.QualityOut.metrics`) for the portion of circulation past the compact
-  threshold.
+  threshold. **Issue #36** (`circulation_metrics.py`) adds, from realized geometry: dedicated
+  circulation area/ratio, per-segment length (`longest_segment_m`, `total_length_m`,
+  `narrowest_width_m`), and — with topology, section E — dead-end/turn/duplication counts, all
+  carried as `QualityOut.metrics.circulation_*`. **C26 "no extreme dedicated circulation"**
+  (`validation.py`) fails closed only when ratio, longest segment or dead-end count exceed the
+  calibrated `EXTREME_*` constants (`circulation_metrics.py`) — an ordinary long corridor still
+  passes; only a genuinely disproportionate one fails.
 - **Reference comparison**: M3's median (~11%) is already at the 21-plan reference band (8–14%) —
   NOT a gap (`architectural-quality-gaps-measured` memory, `docs/wiki/architecture/geometry-
   validation.md`). M4 is the real gap: hall long/short median 9.4 vs. ~18/21 reference plans having
-  a compact hub (~2.5–3.5 m square, 0% compact today).
+  a compact hub (~2.5–3.5 m square, 0% compact today). The `EXTREME_*` thresholds are calibrated so
+  today's plans pass with headroom (worst measured: ratio 0.18, longest segment 17.3 m on an 8 x
+  28 m footprint — deeper than the frozen corpus's own deepest footprint, 24 m) — they catch a
+  future regression, not today's median.
 - **Semantic review**: whether a corridor that measures compact on M4 also *functions* as a hub
   (do the rooms it serves actually cluster around it, or does a short-but-isolated hall still read
   as a dead appendage).
 - **How a reviewer applies it**: M3 alone rarely flags a real plan; M4 near or above ~2 is the
   actionable signal — check whether the hall reads as a spine on the drawing before accepting it.
+  A C26 failure names which of ratio/longest-segment/dead-ends it is — check that reason against
+  the drawing, not just the number.
 
 ## E. Circulation Topology & Access Sequence
 
@@ -131,10 +142,14 @@ that rooms genuinely branch from, an entrance sequence that leads somewhere, and
 serving as the only route between unrelated parts of the house.
 
 - **Deterministic signal**: C5 (reachability from the entrance, `validation.py`) covers the legal
-  minimum (every room is reachable at all); topology quality itself (hub-vs-spine, dead-end
-  detection, chained-access) has no deterministic check yet. Planned: ROADMAP P0 "Entrance-to-
-  Circulation Integration" (Issue #22, depends on #20) and P2 "Hallways / Circulation Quality" (no
-  Issue number assigned yet).
+  minimum (every room is reachable at all). **Issue #36** (P2 "Hallways / Circulation Quality",
+  `circulation_metrics.py`) adds dead-end count (a circulation-room end with neither a placeable
+  door nor an open-plan join), turn count (direction changes along the realized entrance →
+  farthest-room BFS path) and duplicated-segment count (circulation rooms not directly joined but
+  serving an overlapping set of rooms) — all reported on `QualityOut.metrics`, and dead-end count
+  additionally gates C26 (section D). Chained-access (a room reachable only by passing through an
+  unrelated one) and the entrance sequence itself remain uncovered — ROADMAP P0 "Entrance-to-
+  Circulation Integration" (Issue #22, depends on #20).
 - **Reference comparison**: the same 21-plan census that grounds M4 shows the hub-parti topology
   professional plans converge on; spec 005 (hub-private-wing) attempted to reproduce it and was
   rejected on two hard acceptance gates (`specs/005-hub-private-wing/RESULTS.md`) — the gap is

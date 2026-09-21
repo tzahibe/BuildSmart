@@ -327,6 +327,13 @@ jobs:
       - name: Record replay verdict
         working-directory: backend
         run: |
+          # O1 shadow mode observes; it never fails a PR. A PR head that predates #66 has no
+          # snapshot_invariants.py (the job checks out the head, the workflow comes from main) —
+          # skip the shadow bookkeeping instead of turning every such PR red (#35, 2026-09-20).
+          if [ ! -f spikes/failure_log_sweep/snapshot_invariants.py ]; then
+            echo "O1 shadow: snapshot_invariants.py is not on this head — shadow comparison skipped" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           uv run python spikes/failure_log_sweep/snapshot_invariants.py from-junit \
             --junit "$GITHUB_WORKSPACE/.agent/ci/regression_junit.xml" \
             --report "$GITHUB_WORKSPACE/.agent/ci/invariants_replay.json"
@@ -336,14 +343,18 @@ jobs:
           REPLAY_OUTCOME: ${{ steps.replay.outcome }}
         run: |
           set +e
-          uv run python spikes/failure_log_sweep/snapshot_invariants.py compare \
-            --from-snapshot "$GITHUB_WORKSPACE/.agent/ci/invariants_from_snapshot.json" \
-            --from-replay "$GITHUB_WORKSPACE/.agent/ci/invariants_replay.json" | tee -a "$GITHUB_STEP_SUMMARY"
-          COMPARE_STATUS=${PIPESTATUS[0]}
           if [ "$REPLAY_OUTCOME" != "success" ]; then
             echo "the replay step itself failed (outcome=$REPLAY_OUTCOME) — gate-4 stays red" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
+          if [ ! -f spikes/failure_log_sweep/snapshot_invariants.py ]; then
+            echo "O1 shadow: comparison skipped (script not on this head); the replay verdict above stands" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          uv run python spikes/failure_log_sweep/snapshot_invariants.py compare \
+            --from-snapshot "$GITHUB_WORKSPACE/.agent/ci/invariants_from_snapshot.json" \
+            --from-replay "$GITHUB_WORKSPACE/.agent/ci/invariants_replay.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          COMPARE_STATUS=${PIPESTATUS[0]}
           exit "$COMPARE_STATUS"
       - name: Evaluate the regression budget
         env:
