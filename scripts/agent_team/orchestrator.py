@@ -1531,6 +1531,18 @@ class Orchestrator:
                     log.warning("could not close #%s: %s", n, exc)
         branch = info.get("period", {}).get("branch") or rec.branch
         if branch and not self.dry_run:
+            # Deleting the integration branch makes GitHub auto-close every open PR that still targets
+            # it (2026-09-20: #34/#36/#38 died that way). Retarget them to main first: their branches
+            # contain the rollup's content, so against the freshly merged main their diff is exactly
+            # their own change.
+            try:
+                for pr in self.github.open_prs_for_base(branch):
+                    if pr.get("number") == rec.pr_number:
+                        continue
+                    self.github.update_pr(pr["number"], base=self.config.base_branch)
+                    store.record_event(None, "pr_retargeted_after_rollup", {"pr": pr["number"], "from": branch, "to": self.config.base_branch})
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not retarget open PRs off %s: %s", branch, exc)
             try:
                 self.worktrees.delete_remote_branch(branch)
             except Exception as exc:  # noqa: BLE001

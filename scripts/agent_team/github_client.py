@@ -208,6 +208,10 @@ class GitHubClient:
         prs = self.transport.request("GET", f"/repos/{self.repo}/pulls?head={owner}:{branch}&state={state}&per_page=10") or []
         return prs[0] if prs else None
 
+    def open_prs_for_base(self, base: str) -> list[dict]:
+        """Every open PR that targets `base` — what GitHub would auto-close if `base` were deleted."""
+        return self.transport.request("GET", f"/repos/{self.repo}/pulls?base={base}&state=open&per_page=100", paginate=True) or []
+
     def create_pr(self, *, head: str, base: str, title: str, body: str, draft: bool = False) -> dict:
         return self.transport.request("POST", f"/repos/{self.repo}/pulls",
                                       body={"head": head, "base": base, "title": title, "body": body, "draft": draft})
@@ -427,6 +431,9 @@ class FakeGitHub:
             if pr["head"]["ref"] == branch and (state == "all" or pr["state"] == state):
                 return self.get_pr(pr["number"])
         return None
+
+    def open_prs_for_base(self, base: str) -> list[dict]:
+        return [pr for pr in self.prs.values() if pr.get("state") == "open" and (pr.get("base") or {}).get("ref") == base and not pr.get("merged")]
 
     def create_pr(self, *, head: str, base: str, title: str, body: str, draft: bool = False) -> dict:
         n = self.next_number
