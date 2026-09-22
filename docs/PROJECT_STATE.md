@@ -60,6 +60,17 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 
 - Room capacity constraint, plan-not-realizable root cause — no successor doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
+- **Non-rectangular geometry** (Issue #102, 2026-09-22) —
+  `docs/NON_RECTANGULAR_GEOMETRY_INVESTIGATION.md`: the Geometry Core is a guillotine (slicing-tree)
+  partition of rectangular rooms; module-by-module rectangle-assumption inventory for Geometry
+  Core/validators C1-C29/M1-M6/hub-l-massing-wet-core guards/the demo contract/both renderers/the
+  corpus signature; measured on a 20-plan real-ResPlan fixture
+  (`backend/spikes/geometry_shapes/measure_real_plan_shapes.py`): 41.9% of real rooms are
+  rectangles, 19.6% simple L-shapes, and **0/19 real plans' room layouts are guillotine-separable**;
+  three candidate architectures (A — slicing tree + room merging, B — non-guillotine rectangular
+  layout, C — polygonal layout) each scoped with effort/risk/a 2-week spike; recommends A first (in
+  parallel with a spike proving/killing B), C deferred; proposed ROOT + children under
+  `.agent/proposals/roadmap/`, not yet scheduled.
 
 ## Agent-team Issues
 
