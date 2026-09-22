@@ -32,6 +32,16 @@ Share with ≥2 classes shown: 109/404 (27.0%) — below the 40% bar.
 - eligible for either compiler: 64/404 (15.8%)
 - excluded from both (residual population): 340/404
 
+**Attempt 5 (review follow-up):** `_hub_lobby_sizing`/`_branched_sizing` replaced every hand-picked
+gross-dimension literal in `compile_hub_lobby`/`compile_branched` with a bound/witness search over
+`concept_generator.ROOM_TEMPLATES` (the finding a review rejected: a hand-calibrated table, correct
+for the combinations someone measured it against but never derived from — or verified against —
+the templates it was supposed to respect). This changes HOW each supported combination is sized,
+never WHICH combinations are supported (`_hub_lobby_unsupported`/`_branched_unsupported`,
+unchanged) — the counts above are not expected to move. Re-running `concept_diversity_v2.py` to
+confirm was not possible in this fixer's sandboxed session (no test/interpreter execution
+permission); the orchestrator's CI regression gate is the actual re-verification for this attempt.
+
 #### Residual population excluded from both compilers, by reason
 
 - wet_rooms=1 (neither compiler supports != 2): 149
