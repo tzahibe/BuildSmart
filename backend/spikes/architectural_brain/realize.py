@@ -686,13 +686,163 @@ def _two_wing_layout(public_rect: Rect, private_rect: Rect) -> tuple[bool, int] 
     return None
 
 
+def _stacked_two_wing_layout(rect_a: Rect, rect_b: Rect,
+                             ) -> tuple[Rect, Rect, int, int] | None:
+    """Whether `rect_a`/`rect_b` share a HORIZONTAL edge (one rectangle's `y2` exactly equal to
+    the other's `y`) with a real X overlap — the OTHER adjacency this compiler's two-wing
+    templates can build against, alongside `_two_wing_layout`'s vertical one (see
+    `_compile_two_wing_stacked`'s own docstring for why a horizontal boundary needs an entirely
+    different internal layout, not just a rotated copy of the vertical one). Returns
+    `(north_rect, south_rect, overlap_x0_u, overlap_x1_u)`, or `None` if neither order shares an
+    exact horizontal edge with a positive-width overlap."""
+    for north, south in ((rect_a, rect_b), (rect_b, rect_a)):
+        if north.y2 != south.y:
+            continue
+        x0, x1 = max(north.x, south.x), min(north.x2, south.x2)
+        if x1 > x0:
+            return north, south, x0, x1
+    return None
+
+
+#: How many (group) width options `_compile_two_wing_stacked` keeps per zone at a given height.
+_DOUBLE_LOADED_WIDTH_LIMIT = 10
+
+
+def _compile_two_wing_stacked(programme: _Programme, north_rect: Rect, south_rect: Rect,
+                              ) -> tuple[Fixture, SolveResult] | None:
+    """Builds and solves a NORTH wing (public zones + a small entrance hall) directly above a
+    SOUTH wing whose own private rooms are DOUBLE-LOADED — two parallel `_h_chain`s (`group1`/
+    `group2`, `_private_groups`'s own order-preserving split) either side of a single central
+    hall, sharing ONE height rather than summing two.
+
+    WHY THIS EXISTS, ALONGSIDE `_compile_two_wing` (see `briefs.BRIEF_3`'s own comment for the
+    measured numbers): height-STACKING all of a brief's private rooms in one column
+    (`_compile_two_wing`'s vertical-boundary model) needs a total depth that is an INVARIANT of
+    the room mix, not of where the stack is split — for brief 3's 5-bedroom/3-wet-room programme,
+    ~18.9 m, far more than either rectangle of a vertical L offers. DOUBLE-LOADING the same rooms
+    (west group | hall | east group) needs only ~8-8.5 m of WIDTH at any height from ~10.5-14 m —
+    but that central hall cannot ALSO be the one thing touching an outside VERTICAL edge: it would
+    need to be adjacent to both flanking groups AND to the boundary at once, and no linear column
+    arrangement gives one leaf three neighbours. A HORIZONTAL boundary sidesteps this.
+
+    THE ALIGNMENT (this is the part `_compile_two_wing` does not need): `HALL_A`/`HALL_B` must
+    share the EXACT same absolute x-range for the wing seam to be a full, honest one (C22 — a
+    partial abutment is a defect whether declared or not, see `validation._seam_defects`'s own
+    docstring), forced the same way `_compile_two_wing`'s own `_HallPrivateSplit.combined_tree`
+    forces an outer split position — never left to `assign()`'s own guess. `HALL_A` and `HALL_B`
+    are forced to the SAME width (`shared_hall_widths`, the intersection of what each hall's own
+    template allows at its own wing's very different height); the wing containing `HALL_B` is
+    built FLUSH to `south_rect`'s own west edge, and `HALL_A`'s wing is then SHIFTED
+    (`origin_x_a`) so `HALL_A` starts at the exact same x as `HALL_B`.
+
+    That shift also puts PART of `PUBLIC` directly over `GROUP1` (the west private group,
+    immediately left of `HALL_B`) — measured (see the module's own investigation in the Issue's
+    report): an UNFORCED internal public split does not reliably land on a room boundary there,
+    so `LIVING`'s own width is ALSO forced, to EXACTLY `GROUP1`'s width, landing `LIVING` directly
+    over `GROUP1` with no residue on either side (`KITCHEN`+`DINING`, further west, end exactly
+    where `GROUP1` begins and so touch nothing of the other wing at all — no seam needed for
+    them). `GROUP2` (east of `HALL_B`) always lands beyond `north_rect`'s own reach, so it needs
+    no seam either. Every quantity constraining a solve — `HALL_A`'s wing fitting inside
+    `north_rect`, `HALL_B`'s own width leaving `GROUP2` entirely past the seam, `LIVING` and
+    `GROUP1` sharing one exact width — is checked or forced before a single `solve_fixture` call,
+    never discovered by trial and error on the built geometry.
+
+    Wing widths here are the EXACT sum of their own forced children (never the surrounding
+    rectangle's own, generally larger, width — leaving slack there would silently hand `GROUP2`/
+    `KITCHEN`+`DINING` a DIFFERENT, unverified width from whatever this search already confirmed
+    feasible). Both wings use their full rectangle DEPTH (never a shallower trial): more depth
+    only ever makes a double-loaded group's own stack easier to fit, so there is no shallower
+    alternative worth trying — unlike `_compile_two_wing`'s single column, whose depth trades
+    directly against the OTHER wing's own available width.
+    """
+    group1, group2 = _private_groups(programme)
+    private_by_id = {z.zone_id: z for z in programme.private_zones}
+    public_by_id = {z.zone_id: z for z in programme.public_zones}
+    hall_b_zone = _hall_zone("HALL_B", len(programme.private_order))
+    hall_a_zone = _zone("HALL_A", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
+    kd_tree = _v_chain(["KITCHEN", "DINING"])
+
+    hb_u, ha_u = south_rect.h, north_rect.h
+    w2_opts = sorted(_widths_at_exact_height(group2, private_by_id, hb_u))[:_DOUBLE_LOADED_WIDTH_LIMIT]
+    # w1 is GROUP1's own width; LIVING is forced to the SAME width (see this function's own
+    # docstring) — the intersection of what each zone's own template allows at its own height.
+    group1_widths = set(_widths_at_exact_height(group1, private_by_id, hb_u))
+    living_widths = set(_widths_at_exact_height(["LIVING"], public_by_id, ha_u))
+    w1_opts = sorted(group1_widths & living_widths)[:_DOUBLE_LOADED_WIDTH_LIMIT]
+    kd_opts = sorted(_feasible_widths_u_at_height(
+        kd_tree, (public_by_id["KITCHEN"], public_by_id["DINING"]), ha_u,
+        limit=_DOUBLE_LOADED_WIDTH_LIMIT))
+    # HALL_A/HALL_B must ALSO share one exact width, widest first (a wider shared hall was
+    # measured to convert to a solve faster).
+    hall_b_widths = set(_widths_at_exact_height(["HALL_B"], {"HALL_B": hall_b_zone}, hb_u))
+    hall_a_widths = set(_widths_at_exact_height(["HALL_A"], {"HALL_A": hall_a_zone}, ha_u))
+    shared_hall_widths = sorted(hall_b_widths & hall_a_widths, reverse=True)
+    if not (w1_opts and w2_opts and kd_opts and shared_hall_widths):
+        return None
+
+    zones = programme.public_zones + (hall_a_zone, hall_b_zone) + programme.private_zones
+    ensuite_ids = {w for _, w in programme.ensuite_pairs}
+    group1_top = group1[0]
+
+    for wh in shared_hall_widths:
+        for w1 in w1_opts:
+            for w2 in w2_opts:
+                width_b = w1 + wh + w2
+                if width_b > south_rect.w:
+                    continue
+                # GROUP2 must land entirely past north_rect's own reach (`_stacked_two_wing_layout`
+                # only guarantees an overlap up to `north_rect.x2`) -- otherwise its own topmost
+                # room would straddle the seam, an undeclarable PARTIAL abutment either way.
+                if south_rect.x + w1 + wh > north_rect.x2:
+                    continue
+                hall_b_x0 = south_rect.x + w1
+                for kd_w in kd_opts:
+                    pub_w = kd_w + w1
+                    width_a = pub_w + wh
+                    origin_x_a = hall_b_x0 - pub_w
+                    if origin_x_a < north_rect.x or origin_x_a + width_a > north_rect.x2:
+                        continue
+
+                    south_tree = Split(Cut.V, _h_chain(group1),
+                                       Split(Cut.V, Leaf("HALL_B"), _h_chain(group2), wh), w1)
+                    # PUBLIC: [KITCHEN|DINING (west, clear of the seam) | LIVING (east, width=w1,
+                    # forced to land exactly over GROUP1)] | HALL_A (further east) -- see this
+                    # function's own docstring for why LIVING's width is forced at all.
+                    north_tree = Split(Cut.V, Split(Cut.V, kd_tree, Leaf("LIVING"), kd_w),
+                                       Leaf("HALL_A"), pub_w)
+                    wing_b = Wing("WB", south_rect.x, south_rect.y, width_b, south_rect.h,
+                                 south_tree, seam_leaf_sides=((group1_top, Side.N), ("HALL_B", Side.N)))
+                    wing_a = Wing("WA", origin_x_a, north_rect.y, width_a, north_rect.h,
+                                 north_tree, seam_leaf_sides=(("HALL_A", Side.S), ("LIVING", Side.S)))
+
+                    edges = [
+                        DesiredAccessEdge("HALL_A", "LIVING", ConnectionKind.DOOR),
+                        DesiredAccessEdge("LIVING", "DINING", ConnectionKind.OPEN_CONNECTION),
+                        DesiredAccessEdge("DINING", "KITCHEN", ConnectionKind.OPEN_CONNECTION),
+                        DesiredAccessEdge("HALL_A", "HALL_B", ConnectionKind.DOOR),
+                    ]
+                    edges.extend(DesiredAccessEdge(host, wet, ConnectionKind.DOOR)
+                                for host, wet in programme.ensuite_pairs)
+                    edges.extend(DesiredAccessEdge("HALL_B", zid, ConnectionKind.DOOR)
+                                for zid in programme.private_order if zid not in ensuite_ids)
+                    access = DesiredAccessTopology(tuple(edges))
+                    open_groups = (("LIVING", "DINING", "KITCHEN"),)
+                    fixture = Fixture("BRAIN_TWO_WING_STACKED", (wing_a, wing_b), zones, access,
+                                      open_groups=open_groups)
+                    try:
+                        return fixture, solve_fixture(fixture)
+                    except GeometryInfeasible:
+                        continue
+    return None
+
+
 def _solve_two_wing_search(programme: _Programme, candidates: tuple,
                            ) -> tuple[Fixture, SolveResult] | tuple[None, str]:
     """Tries the private programme against each of the first two safe candidates (whichever one
-    the geometry actually offers as adjacent to the other — see `_two_wing_layout`), and for each
-    assignment tries each wing's own depth independently (`_DEPTH_TRIALS_M`); `_compile_two_wing`
-    computes every column's own width deterministically for a given depth pair (see its own
-    docstring), so no width search is needed here at all."""
+    the geometry actually offers as adjacent to the other), trying a VERTICAL boundary
+    (`_two_wing_layout`/`_compile_two_wing`, each wing's own depth independently via
+    `_DEPTH_TRIALS_M`) first, then a HORIZONTAL one (`_stacked_two_wing_layout`/
+    `_compile_two_wing_stacked`) if no vertical trial solved."""
     if len(candidates) < 2:
         return None, ("fewer than 2 safe rectangles on this site — TWO_WING needs a second, "
                       "adjacent safe rectangle to place the second wing in")
@@ -728,6 +878,15 @@ def _solve_two_wing_search(programme: _Programme, candidates: tuple,
                                  f"no width combination fit both candidate rectangles and solved")
                     continue
                 return built
+
+    stacked = _stacked_two_wing_layout(candidates[0].rect, candidates[1].rect)
+    if stacked is not None:
+        north_rect, south_rect, _, _ = stacked
+        built = _compile_two_wing_stacked(programme, north_rect, south_rect)
+        if built is not None:
+            return built
+        last_error = ("north/south candidate pair shared a horizontal edge but no aligned "
+                     "double-loaded width combination fit and solved")
     return None, last_error
 
 

@@ -204,8 +204,8 @@ BRIEF_3 = BenchmarkBrief(
     bedrooms=5, wet_rooms=3, safe_room=False, open_plan=False, laundry=False,
     built_area_m2=200.0,
     site_factory=lambda: _z_site(
-        "brief-3-wide-5br", plot=(27.0, 20.5), keep=(2.0, 5.5, 20.0, 14.5),
-        notch_a=(16.0, 5.5, 6.0, 4.0), notch_b=(2.0, 9.5, 7.0, 10.5)),
+        "brief-3-wide-5br", plot=(27.0, 20.5), keep=(2.0, 5.5, 24.0, 14.5),
+        notch_a=(23.0, 5.5, 3.0, 4.0), notch_b=(2.0, 9.5, 14.0, 10.5)),
 )
 
 BENCHMARK_BRIEFS: tuple[BenchmarkBrief, ...] = (BRIEF_1, BRIEF_2, BRIEF_3)

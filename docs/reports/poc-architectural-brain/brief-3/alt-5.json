@@ -1,0 +1,50 @@
+{
+  "brief_id": "brief-3",
+  "index": 5,
+  "concept_id": "concept-5",
+  "declared_circulation_class": "TWO_WING",
+  "zoning": "PUBLIC_PRIVATE_WINGS",
+  "wet_core_strategy": "DISPERSED",
+  "adaptations": [
+    {
+      "kind": "RESIZE_ROOMS",
+      "before": "total 143.6 m2 across 8 donor rooms",
+      "after": "total 85.0 m2 after per-type target resizing",
+      "reason": "each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room"
+    },
+    {
+      "kind": "BEDROOM_COUNT_ADJUST",
+      "before": "3 bedroom(s)",
+      "after": "5 bedroom(s)",
+      "reason": "brief requires 5 bedroom(s); added 2 to match, each at its own target area"
+    }
+  ],
+  "elapsed_s": 0.2,
+  "outcome": "REALIZED",
+  "ok": true,
+  "realized_circulation_class": "TWO_WING",
+  "failing_checks": [],
+  "rationale": "architectural-brain POC: synthesized concept-5 (circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS) adapted with 2 operation(s), compiled to the TWO_WING template",
+  "measurements": {
+    "gross_area_m2": 154.35,
+    "net_area_m2": 140.22,
+    "wall_iterations": 1,
+    "over_preferred": false,
+    "entrance_opens_into": "HALL_A",
+    "entrance_room_roles": [
+      "HALL",
+      "CIRCULATION"
+    ],
+    "m1_habitable_aspect_median": 1.371212121212121,
+    "m1_habitable_aspect_max": 1.7222222222222223,
+    "m2_habitable_on_envelope_ratio": 1.0,
+    "m3_circulation_share": 0.22076449627470038,
+    "m4_hall_door_count": 9,
+    "m4_hall_aspect_median": 3.085106382978723,
+    "m5_wet_adjacency_ratio": 0.6666666666666666,
+    "m6_public_zone_contiguous": true,
+    "wasted_circulation_share": 0.22076449627470038,
+    "wet_core_cluster_count": 2,
+    "wet_core_plumbing_complexity_index": 3
+  }
+}
