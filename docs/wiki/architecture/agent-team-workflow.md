@@ -189,6 +189,30 @@ Fail-fast, for PRs from `agent/**` to `main`:
    pre-existing snapshot mode (Issue #17) still gets `CORPUS_SNAPSHOT` via a second invocation in
    the same step, scoped to just that command — only removing the first invocation's replay once
    several real PRs show identical verdicts turns the frozen test's snapshot mode on for CI too.
+
+   **O3, shadow mode (Issue #67)**: each of the two corpus snapshots (base, head) is computed two
+   ways. `corpus_snapshot.py --shard I/N` replays a deterministic partition of the corpus (sorted by
+   context key, `index % N == I`, N=4 — a workflow constant); the `snapshot` job runs this as a
+   matrix (`shard: [0,1,2,3]`, plus `ref: head` always and `ref: base` only on a cache miss) and the
+   `merge` job unions the N shard documents via `corpus_snapshot.py --merge` into
+   `head_snapshot.json`/`base_snapshot.json` — refusing (never silently) a shard set missing a
+   context, duplicating one, or disagreeing on `head_sha`/`corpus_hash`. The pre-existing
+   single-node replay still runs, unchanged, in its own `single_node` job — concurrently with
+   `snapshot`/`merge` (both depend only on the early `resolve` job), so sharding adds no wall time
+   of its own while shadow mode is on — writing `head_snapshot_single.json`/
+   `base_snapshot_single.json`. In the final `regression` job, a "Compare head snapshots" /
+   "Compare base snapshots" step (`corpus_snapshot.py --assert-equal`) fails the job if the merged
+   and single-node documents differ after normalising volatile fields (`ms`/`seconds` timings,
+   `written_at`) — status/code/sig/area/metrics per context, `sha`, `corpus_hash` and `workers`
+   must be identical. Budget evaluation and every existing assertion (including O1's invariants)
+   consume the merged `head_snapshot.json`/`base_snapshot.json` only after the relevant compare
+   step passed; the base snapshot cache now holds the merged document, saved only after that
+   compare passes. Both the `snapshot` matrix job and the `single_node` job's base-snapshot step
+   vendor the HEAD checkout's corpus_snapshot.py over the base checkout before running it, so a
+   merge-base that predates `--shard`/`corpus_hash` (true of every real PR until this Issue reaches
+   main) still shards correctly and its single-node snapshot still carries a comparable
+   `corpus_hash`. **Removal criterion**: the single-node path is only deleted after several real
+   PRs show the two paths always agree — not scheduled by this Issue.
 5. **agent-ci-result** — the single required status check; red if any gate failed, green when
    gate 4 was legitimately skipped (recorded in the job summary).
 
