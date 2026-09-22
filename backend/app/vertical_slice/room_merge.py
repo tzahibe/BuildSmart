@@ -130,8 +130,10 @@ class MergedGeometry:
     #: Sum of the two source rooms' own net areas. Does not reclaim the sliver of wall thickness
     #: the opened seam frees (documented simplification — see the spike report).
     net_area_m2: float
-    #: Long/short ratio of the union polygon's own minimum rotated bounding rectangle — the
-    #: "oriented long/short" generalisation C20/C3 need for a non-rectangular room.
+    #: Long/short ratio of the union polygon's own AXIS-ALIGNED bounding box — the "oriented
+    #: long/short" generalisation C20/C3 need for a non-rectangular room. Named for the concept
+    #: it stands in for (a rotated-rectangle search); see `compute_geometry`'s own docstring for
+    #: why this uses the AABB directly rather than a true rotated search.
     min_rotated_aspect: float
 
 
