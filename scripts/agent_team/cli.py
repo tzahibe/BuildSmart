@@ -940,6 +940,23 @@ def cmd_remote(config: Config, args) -> int:
 
 # -- owner updates from the Team Lead -----------------------------------------------------------
 
+def cmd_authorize_merge(config: Config, args) -> int:
+    """Record the owner's time-boxed authorization for the Team Lead to merge to main. While it holds,
+    READY notifications carry no Merge button (the lead merges); `--off` ends it immediately."""
+    import datetime as _dt
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    orch = Orchestrator(config, github=_github(config, require_auth=False), runner=FakeAgentRunner(script={}), dry_run=True)
+    if args.off:
+        orch.authorize_lead_merge(0.0, by=args.by)
+        print("lead merge authorization ended")
+        return 0
+    until = _dt.datetime.fromisoformat(args.until) if args.until else _dt.datetime.now() + _dt.timedelta(hours=args.hours)
+    orch.authorize_lead_merge(until.timestamp(), by=args.by)
+    print(f"lead may merge until {until:%Y-%m-%d %H:%M} (every gate still required)")
+    return 0
+
+
 def cmd_notify_photo(config: Config, args) -> int:
     """Send the owner one or more PNG/SVG plan images on Telegram (SVG is rasterised with macOS
     QuickLook, `qlmanage -t`, when no PNG is given). Synchronous — the images go out now."""
@@ -1164,6 +1181,9 @@ def build_parser() -> argparse.ArgumentParser:
     r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
     rem.set_defaults(fn=cmd_remote)
     s = sub.add_parser("notify"); s.add_argument("text", help="Hebrew update for the owner ('-' reads stdin)"); s.set_defaults(fn=cmd_notify)
+    s = sub.add_parser("authorize-merge"); s.add_argument("--hours", type=float, default=24.0)
+    s.add_argument("--until", help="ISO datetime, e.g. 2026-09-23T10:00"); s.add_argument("--off", action="store_true")
+    s.add_argument("--by", default="owner"); s.set_defaults(fn=cmd_authorize_merge)
     s = sub.add_parser("notify-photo"); s.add_argument("images", nargs="+", help="PNG or SVG files (SVG rasterised via qlmanage)")
     s.add_argument("--caption", dest="captions", action="append", help="one per image, in order"); s.add_argument("--size", type=int, default=1600); s.set_defaults(fn=cmd_notify_photo)
     s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)

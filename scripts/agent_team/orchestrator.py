@@ -20,6 +20,7 @@ GitHub is detected and audited. The owner can pause new claims/repairs at any ti
 from __future__ import annotations
 
 import fcntl
+import datetime as dt
 import json
 import re
 import logging
@@ -1635,6 +1636,20 @@ class Orchestrator:
             "recommendation": "MERGE — כל השערים ירוקים ל-SHA הזה בדיוק" if verdict == "APPROVE" and ev.status == ci_evidence.SUCCESS else "HOLD — ראה ראיות",
         }
 
+    def lead_merge_authorized(self) -> float:
+        """Unix ts until which the OWNER authorized the Team Lead to merge to main at its own
+        judgement (0 = not authorized). While it holds, a READY notification offers no Merge button:
+        the lead merges — the owner asked not to be handed buttons he no longer has to press."""
+        try:
+            until = float(self.store.get_meta("lead_merge_until") or 0)
+        except ValueError:
+            return 0.0
+        return until if until > self.clock() else 0.0
+
+    def authorize_lead_merge(self, until_ts: float, *, by: str = "owner") -> None:
+        self.store.set_meta("lead_merge_until", str(float(until_ts)))
+        self.store.record_event(None, "lead_merge_authorized", {"until": until_ts, "by": by})
+
     def _publish_ready_report(self, rec: IssueRecord, head: str, ev: ci_evidence.CiEvidence | None = None) -> None:
         r = self.ready_report(rec, head, ev)
         text = render_ready_report(r)
@@ -1644,9 +1659,15 @@ class Orchestrator:
             notification = self._rollup_ready(rec, r, head)
         if self.config.notify_ready_for_owner:
             key = f"pr:{rec.pr_number}:READY_FOR_OWNER:{head}"
-            buttons = [[{"text": "סיכום" if rec.kind == "rollup" else "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "מזג", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "בקש שינוי" if rec.kind == "rollup" else "דחה", "data": f"v1|{'OWNER_CHANGE_REQUEST' if rec.kind == 'rollup' else 'REJECT_PR'}|{rec.pr_number}|{head[:8]}|"}]]
+            authorized_until = self.lead_merge_authorized()
+            row = [{"text": "סיכום" if rec.kind == "rollup" else "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"}]
+            if not authorized_until:
+                row.append({"text": "מזג", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"})
+            row.append({"text": "בקש שינוי" if rec.kind == "rollup" else "דחה", "data": f"v1|{'OWNER_CHANGE_REQUEST' if rec.kind == 'rollup' else 'REJECT_PR'}|{rec.pr_number}|{head[:8]}|"})
+            buttons = [row]
+            if authorized_until:
+                when = dt.datetime.fromtimestamp(authorized_until).strftime("%d/%m %H:%M")
+                notification += f"\n\n🤝 יש לי הרשאת מיזוג עד {when} — אני אמזג בעצמי; אין צורך בכפתור. ״דחה״ עוצר את המיזוג."
             created = self.store.enqueue_notification("ready_for_owner", key, rec.issue_id, notification, buttons)
             if not created:
                 log.info("#%s: READY notification for %s already queued/sent (dedup)", rec.issue_id, head[:12])

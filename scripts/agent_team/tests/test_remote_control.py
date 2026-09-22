@@ -753,3 +753,21 @@ def test_handler_thread_is_restarted_when_it_dies_and_replaced_when_stalled(remo
     assert any("נתקעה" in t for t in tg.texts())
     assert any(e["kind"] == "remote_handler_stalled" for e in orch.store.events(None, limit=20))
     gate.set(); svc._stop.set()
+
+
+def test_ready_notification_drops_the_merge_button_while_the_lead_is_authorized_to_merge(remote):
+    """Owner, 2026-09-22: 'the bot gives me Merge buttons when you already have permission to merge'."""
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    orch.authorize_lead_merge(clock() + 3600)
+    rec, head = _ready(remote, 30)
+    svc.tick()
+    msg = tg.last()
+    labels = [b["text"] for row in (msg["buttons"] or []) for b in row]
+    assert "מזג" not in labels and "פרטים" in labels and "דחה" in labels
+    assert "הרשאת מיזוג" in msg["text"]
+    # authorization over -> the button is back
+    orch.authorize_lead_merge(0.0)
+    rec2, head2 = _ready(remote, 31)
+    svc.tick()
+    assert "מזג" in [b["text"] for row in (tg.last()["buttons"] or []) for b in row]
