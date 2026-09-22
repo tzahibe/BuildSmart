@@ -1,0 +1,836 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>POC — Architectural Brain from Real Floor Plans</title>
+<style>body{font-family:-apple-system,Segoe UI,sans-serif;margin:0;padding:16px 24px;background:#faf9f6;color:#1d1d1f} h1{margin:0 0 4px} .verdict{display:inline-block;padding:4px 10px;border-radius:6px;background:#fff3cd;border:1px solid #e0c060;font-weight:600} section{margin:28px 0;padding:16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px} .row{display:flex;flex-wrap:wrap;gap:16px} figure{flex:1 1 420px;margin:0;min-width:320px} figcaption{font-weight:600;margin-bottom:6px} img{width:100%;height:auto;border:1px solid #ddd;background:#fff} .none{padding:40px;border:1px dashed #bbb;color:#777;text-align:center} pre{white-space:pre-wrap;font-size:12px;line-height:1.35;background:#f6f6f6;padding:10px;border-radius:6px;max-height:420px;overflow:auto} details{margin-top:10px}</style></head><body>
+<h1>POC — Architectural Brain from Real Floor Plans</h1>
+<p>Side by side: <b>A — current engine</b> (concept_generator) vs <b>B — real-plan brain</b> (ResPlan corpus → retrieval → synthesis → adaptation → the unchanged Geometry Core + validators). Status of this page: the demo committed by child C, attempt 2 (2026-09-22 08:xx). Verdict so far: <span class="verdict">MODIFY</span> — see the README below.</p>
+<section><h2>Brief 1 — challenging family home: 4 bedrooms + SAFE_ROOM + 3 wet rooms, ~200 m², plot 17×30.5, street north</h2><div class="row"><figure><figcaption>A — current engine (FRONT_BAND)</figcaption><img src="brief-1/current.svg" alt="A — current engine (FRONT_BAND)"></figure><figure><figcaption>B — brain alternative A (SPINE)</figcaption><img src="brief-1/brain-A.svg" alt="B — brain alternative A (SPINE)"></figure><figure><figcaption>B — brain alternative B (SPINE — identical geometry, known gap)</figcaption><img src="brief-1/brain-B.svg" alt="B — brain alternative B (SPINE — identical geometry, known gap)"></figure></div>
+<details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Challenging family home (4BR + SAFE_ROOM + 3 wet rooms, ~200 m2) (brief-1)
+
+Retrieved (k=15) from the 199-plan corpus, best-first:
+
+## 13630 -- score 0.724
+WHY: Plan 13630 scored 0.724 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 199.2 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.83).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 1996 -- score 0.716
+WHY: Plan 1996 scored 0.716 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 226.6 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 2.05).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 12223 -- score 0.715
+WHY: Plan 12223 scored 0.715 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 205.8 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.73).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 6867 -- score 0.712
+WHY: Plan 6867 scored 0.712 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 175.6 m2); wet_room_requirements (count_sim=1.00 (3 vs 3); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.5, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 14464 -- score 0.711
+WHY: Plan 14464 scored 0.711 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 184.7 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.57).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 11807 -- score 0.710
+WHY: Plan 11807 scored 0.710 overall; strongest factors: built_area (brief 200.0 m2/floor vs plan 199.7 m2); room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 2, &#x27;SAFE_ROOM&#x27;: 0}); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 2.25).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 9233 -- score 0.708
+WHY: Plan 9233 scored 0.708 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 196.1 m2); wet_room_requirements (count_sim=1.00 (3 vs 3); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 4161 -- score 0.708
+WHY: Plan 4161 scored 0.708 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 2, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 219.4 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 2.00).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 773 -- score 0.703
+WHY: Plan 773 scored 0.703 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 156.1 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.84).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 13037 -- score 0.699
+WHY: Plan 13037 scored 0.699 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 166.8 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.60).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 15481 -- score 0.699
+WHY: Plan 15481 scored 0.699 overall; strongest factors: built_area (brief 200.0 m2/floor vs plan 195.6 m2); room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 4, &#x27;SAFE_ROOM&#x27;: 0}); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.93).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 7659 -- score 0.698
+WHY: Plan 7659 scored 0.698 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 3, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 190.6 m2); wet_room_requirements (count_sim=1.00 (3 vs 3); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.5, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 681 -- score 0.698
+WHY: Plan 681 scored 0.698 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 149.9 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.82).
+
+- circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 1153 -- score 0.697
+WHY: Plan 1153 scored 0.697 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 161.9 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.84).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=0
+
+## 16373 -- score 0.694
+WHY: Plan 16373 scored 0.694 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 1} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 202.1 m2); circulation_class (no circulation_preference stated).
+
+- circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=0
+
+## Synthesized concepts (max_candidates=8)
+
+### concept-0: circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED
+- [circulation_class] 13630 was retrieved (score 0.724); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 13630&#x27;s zoning=CENTRAL_PUBLIC is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 13630&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 1996 (a different retrieved reference, score 0.716) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 1996 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-1: circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 1996 was retrieved (score 0.716); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 1996&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 1996&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 12223 (a different retrieved reference, score 0.715) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 12223 supplies bedroom_grouping=0.25.
+
+### concept-2: circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 6867 was retrieved (score 0.712); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 6867&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 6867&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 14464 (a different retrieved reference, score 0.711) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 14464 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-3: circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED
+- [circulation_class] 11807 was retrieved (score 0.710); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 11807&#x27;s zoning=CENTRAL_PUBLIC is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 11807&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 9233 (a different retrieved reference, score 0.708) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 9233 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-4: circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED
+- [circulation_class] 13037 was retrieved (score 0.699); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 13037&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 13037&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 15481 (a different retrieved reference, score 0.699) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 15481 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-5: circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED
+- [circulation_class] 681 was retrieved (score 0.698); its circulation_class=TWO_WING is used as this candidate&#x27;s circulation parti.
+- [zoning] 681&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 681&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 1153 (a different retrieved reference, score 0.697) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 1153 supplies bedroom_grouping=0.25.
+</pre></details>
+<details><summary>What adaptation changed · measurements</summary><pre># Comparison -- brief-1
+
+## Current engine baseline
+REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -&gt; `current.svg`
+
+## Brain alternatives
+
+| concept | declared class | outcome | realized class | ok | time (s) |
+|---|---|---|---|---|---|
+| concept-0 (A) | OTHER | REALIZED | SPINE | True | 149.9 |
+| concept-1 (B) | FRONT_BAND | REALIZED | SPINE | True | 150.3 |
+
+## What adaptation changed
+
+### concept-0
+- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -&gt; total 102.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+
+### concept-1
+- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -&gt; total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
+
+## Refusal / rejection reasons
+
+
+## Measurements table (realized-and-ok plans, plus the current baseline)
+
+| plan | class | gross_area_m2 | net_area_m2 | m3_circulation_share | m4_hall_door_count | m4_hall_aspect_median | m5_wet_adjacency_ratio | m6_public_zone_contiguous | wet_core_cluster_count | entrance_opens_into |
+|---|---|---|---|---|---|---|---|---|---|---|
+| current | FRONT_BAND | 189.8 | 172.31 | 0.08630136986301369 | 8 | 8.357142857142858 | 0.6666666666666666 | False | 2 | LIVING |
+| brain-A (concept-0) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
+| brain-B (concept-1) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
+</pre></details></section>
+<section><h2>Brief 2 — the owner&#x27;s brief: 4 bedrooms (3 + master ensuite), 2 wet rooms, laundry, open plan, 130 m², plot 15×17</h2><div class="row"><figure><figcaption>A — current engine (SPINE)</figcaption><img src="brief-2/current.svg" alt="A — current engine (SPINE)"></figure><figure><figcaption>B — brain</figcaption><div class="none">no brain alternative realized on this brief yet (the spike compiler lacks the double-loaded single-wing variant) — MODIFY item 3</div></figure></div>
+<details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Owner&#x27;s own brief (4BR incl. master ensuite, 2 wet rooms, laundry, open plan, 130 m2) (brief-2)
+
+Retrieved (k=15) from the 199-plan corpus, best-first:
+
+## 9302 -- score 0.751
+WHY: Plan 9302 scored 0.751 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 129.6 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.25).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 518 -- score 0.751
+WHY: Plan 518 scored 0.751 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 126.6 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.19).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 10423 -- score 0.750
+WHY: Plan 10423 scored 0.750 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 129.1 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.25).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 1202 -- score 0.745
+WHY: Plan 1202 scored 0.745 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 134.7 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.14).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 7596 -- score 0.743
+WHY: Plan 7596 scored 0.743 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 125.4 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.28).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 614 -- score 0.743
+WHY: Plan 614 scored 0.743 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 125.9 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.11).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_ADJACENT
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=1
+
+## 3941 -- score 0.742
+WHY: Plan 3941 scored 0.742 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 127.1 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.32).
+
+- circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=CLUSTERED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 15154 -- score 0.739
+WHY: Plan 15154 scored 0.739 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 124.2 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.08).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 10328 -- score 0.738
+WHY: Plan 10328 scored 0.738 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 136.0 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.33).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 8645 -- score 0.737
+WHY: Plan 8645 scored 0.737 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 120.5 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.11).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 15546 -- score 0.736
+WHY: Plan 15546 scored 0.736 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 116.1 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.23).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=CLUSTERED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 1389 -- score 0.736
+WHY: Plan 1389 scored 0.736 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 126.8 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.02).
+
+- circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 4033 -- score 0.736
+WHY: Plan 4033 scored 0.736 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 134.2 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.03).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=0
+
+## 1328 -- score 0.733
+WHY: Plan 1328 scored 0.733 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 120.3 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.20 vs plan 1.07).
+
+- circulation_class=TWO_WING, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 336 -- score 0.730
+WHY: Plan 336 scored 0.730 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 2, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 130.0 m2/floor vs plan 131.9 m2); wet_room_requirements (count_sim=1.00 (2 vs 2); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.6666666666666666, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## Synthesized concepts (max_candidates=8)
+
+### concept-0: circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED
+- [circulation_class] 9302 was retrieved (score 0.751); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 9302&#x27;s zoning=CENTRAL_PUBLIC is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 9302&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 518 (a different retrieved reference, score 0.751) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 518 supplies bedroom_grouping=0.6666666666666666.
+
+### concept-1: circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED
+- [circulation_class] 518 was retrieved (score 0.751); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 518&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 518&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 10423 (a different retrieved reference, score 0.750) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 10423 supplies bedroom_grouping=0.6666666666666666.
+
+### concept-2: circulation_class=FRONT_BAND, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED
+- [circulation_class] 7596 was retrieved (score 0.743); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 7596&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 7596&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 614 (a different retrieved reference, score 0.743) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 614 supplies bedroom_grouping=0.6666666666666666.
+
+### concept-3: circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=CLUSTERED
+- [circulation_class] 3941 was retrieved (score 0.742); its circulation_class=TWO_WING is used as this candidate&#x27;s circulation parti.
+- [zoning] 3941&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 3941&#x27;s wet_core_strategy=CLUSTERED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 15154 (a different retrieved reference, score 0.739) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 15154 supplies bedroom_grouping=0.6666666666666666.
+
+### concept-4: circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 10328 was retrieved (score 0.738); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 10328&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 10328&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 8645 (a different retrieved reference, score 0.737) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 8645 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-5: circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=CLUSTERED
+- [circulation_class] 15546 was retrieved (score 0.736); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 15546&#x27;s zoning=CENTRAL_PUBLIC is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 15546&#x27;s wet_core_strategy=CLUSTERED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 1389 (a different retrieved reference, score 0.736) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 1389 supplies bedroom_grouping=0.6666666666666666.
+
+### concept-6: circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 1389 was retrieved (score 0.736); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 1389&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 1389&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 4033 (a different retrieved reference, score 0.736) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 4033 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-7: circulation_class=TWO_WING, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 1328 was retrieved (score 0.733); its circulation_class=TWO_WING is used as this candidate&#x27;s circulation parti.
+- [zoning] 1328&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 1328&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 336 (a different retrieved reference, score 0.730) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 336 supplies bedroom_grouping=0.6666666666666666.
+</pre></details>
+<details><summary>What adaptation changed · measurements</summary><pre># Comparison -- brief-2
+
+## Current engine baseline
+REALIZED, ok=True, circulation_class=SPINE in 0.2s -&gt; `current.svg`
+
+## Brain alternatives
+
+| concept | declared class | outcome | realized class | ok | time (s) |
+|---|---|---|---|---|---|
+| concept-0 (-) | FRONT_BAND | REFUSED | - | - | 0.6 |
+| concept-1 (-) | OTHER | REFUSED | - | - | 0.6 |
+
+## What adaptation changed
+
+### concept-0
+- **RESIZE_ROOMS**: total 127.4 m2 across 8 donor rooms -&gt; total 80.5 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
+
+### concept-1
+- **RESIZE_ROOMS**: total 122.1 m2 across 7 donor rooms -&gt; total 80.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
+
+## Refusal / rejection reasons
+
+- concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved
+- concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved
+
+## Measurements table (realized-and-ok plans, plus the current baseline)
+
+| plan | class | gross_area_m2 | net_area_m2 | m3_circulation_share | m4_hall_door_count | m4_hall_aspect_median | m5_wet_adjacency_ratio | m6_public_zone_contiguous | wet_core_cluster_count | entrance_opens_into |
+|---|---|---|---|---|---|---|---|---|---|---|
+| current | SPINE | 128.7 | 117.26 | 0.1414141414141414 | 6 | 9.285714285714286 | 1.0 | True | 2 | HALL |
+</pre></details></section>
+<section><h2>Brief 3 — wide 5-bedroom home, 200 m², plot 27×20.5 (Z-massing site)</h2><div class="row"><figure><figcaption>A — current engine</figcaption><div class="none">REFUSED: the current generator tried 7 strategies, none tiles this site</div></figure><figure><figcaption>B — brain alternative A (TWO_WING) — validated, 0.2 s</figcaption><img src="brief-3/brain-A.svg" alt="B — brain alternative A (TWO_WING) — validated, 0.2 s"></figure></div>
+<details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Wide 5-bedroom home (200 m2, wide plot — assumed 3 wet rooms, no safe room) (brief-3)
+
+Retrieved (k=15) from the 199-plan corpus, best-first:
+
+## 13630 -- score 0.724
+WHY: Plan 13630 scored 0.724 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 199.2 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.83).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 1996 -- score 0.716
+WHY: Plan 1996 scored 0.716 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 226.6 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 2.05).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 12223 -- score 0.715
+WHY: Plan 12223 scored 0.715 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 205.8 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.73).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 6867 -- score 0.712
+WHY: Plan 6867 scored 0.712 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 175.6 m2); wet_room_requirements (count_sim=1.00 (3 vs 3); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.5, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 14464 -- score 0.711
+WHY: Plan 14464 scored 0.711 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 184.7 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.57).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 11807 -- score 0.710
+WHY: Plan 11807 scored 0.710 overall; strongest factors: built_area (brief 200.0 m2/floor vs plan 199.7 m2); room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 2, &#x27;SAFE_ROOM&#x27;: 0}); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 2.25).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 9233 -- score 0.708
+WHY: Plan 9233 scored 0.708 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 196.1 m2); wet_room_requirements (count_sim=1.00 (3 vs 3); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 4161 -- score 0.708
+WHY: Plan 4161 scored 0.708 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 2, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 219.4 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 2.00).
+
+- circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 773 -- score 0.703
+WHY: Plan 773 scored 0.703 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 156.1 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.84).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 13037 -- score 0.699
+WHY: Plan 13037 scored 0.699 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 166.8 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.60).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 15481 -- score 0.699
+WHY: Plan 15481 scored 0.699 overall; strongest factors: built_area (brief 200.0 m2/floor vs plan 195.6 m2); room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 4, &#x27;SAFE_ROOM&#x27;: 0}); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.93).
+
+- circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 7659 -- score 0.698
+WHY: Plan 7659 scored 0.698 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 3, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 190.6 m2); wet_room_requirements (count_sim=1.00 (3 vs 3); no wet_room_kinds stated or plan&#x27;s ensuite share is unmeasurable).
+
+- circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.5, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 681 -- score 0.698
+WHY: Plan 681 scored 0.698 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 3, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 149.9 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.82).
+
+- circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.3333333333333333, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=2
+
+## 1153 -- score 0.697
+WHY: Plan 1153 scored 0.697 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 161.9 m2); footprint_aspect_shape (aspect similarity only (no outline_preference): site 1.91 vs plan 1.84).
+
+- circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=0
+
+## 16373 -- score 0.694
+WHY: Plan 16373 scored 0.694 overall; strongest factors: room_count_types (brief {&#x27;BEDROOM&#x27;: 5, &#x27;WET&#x27;: 3, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0} vs plan {&#x27;BEDROOM&#x27;: 4, &#x27;WET&#x27;: 4, &#x27;KITCHEN&#x27;: 1, &#x27;LIVING&#x27;: 1, &#x27;SAFE_ROOM&#x27;: 0}); built_area (brief 200.0 m2/floor vs plan 202.1 m2); circulation_class (no circulation_preference stated).
+
+- circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED, entrance_relationship=TO_LIVING
+- bedroom_grouping=0.25, public_composition=CLOSED_SEPARATE
+- measured on the donor plan: circulation_ratio=0.000, corridor_length_m=0.0, circulation_nodes=0, topology_depth=0
+
+## Synthesized concepts (max_candidates=8)
+
+### concept-0: circulation_class=OTHER, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED
+- [circulation_class] 13630 was retrieved (score 0.724); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 13630&#x27;s zoning=CENTRAL_PUBLIC is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 13630&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 1996 (a different retrieved reference, score 0.716) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 1996 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-1: circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 1996 was retrieved (score 0.716); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 1996&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 1996&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 12223 (a different retrieved reference, score 0.715) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 12223 supplies bedroom_grouping=0.25.
+
+### concept-2: circulation_class=OTHER, zoning=PUBLIC_FRONT_PRIVATE_REAR, wet_core_strategy=DISPERSED
+- [circulation_class] 6867 was retrieved (score 0.712); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 6867&#x27;s zoning=PUBLIC_FRONT_PRIVATE_REAR is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 6867&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 14464 (a different retrieved reference, score 0.711) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 14464 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-3: circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC, wet_core_strategy=DISPERSED
+- [circulation_class] 11807 was retrieved (score 0.710); its circulation_class=FRONT_BAND is used as this candidate&#x27;s circulation parti.
+- [zoning] 11807&#x27;s zoning=CENTRAL_PUBLIC is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 11807&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 9233 (a different retrieved reference, score 0.708) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 9233 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-4: circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED
+- [circulation_class] 13037 was retrieved (score 0.699); its circulation_class=OTHER is used as this candidate&#x27;s circulation parti.
+- [zoning] 13037&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 13037&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 15481 (a different retrieved reference, score 0.699) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 15481 supplies bedroom_grouping=0.3333333333333333.
+
+### concept-5: circulation_class=TWO_WING, zoning=PUBLIC_PRIVATE_WINGS, wet_core_strategy=DISPERSED
+- [circulation_class] 681 was retrieved (score 0.698); its circulation_class=TWO_WING is used as this candidate&#x27;s circulation parti.
+- [zoning] 681&#x27;s zoning=PUBLIC_PRIVATE_WINGS is used as this candidate&#x27;s public/private organisation.
+- [wet_core_strategy] 681&#x27;s wet_core_strategy=DISPERSED is used as this candidate&#x27;s wet-room grouping strategy.
+- [entrance_relationship] 1153 (a different retrieved reference, score 0.697) supplies entrance_relationship=TO_LIVING.
+- [bedroom_grouping] 1153 supplies bedroom_grouping=0.25.
+</pre></details>
+<details><summary>What adaptation changed · measurements</summary><pre># Comparison -- brief-3
+
+## Current engine baseline
+REFUSED (outcome=INSUFFICIENT_RECTANGULAR_CAPACITY): FRONT_PUBLIC_BAND/ROOM_SHAPE_INFEASIBLE: BEDROOM_1 at 5.50 m wide in the rear west column has no depth that keeps its 2.5 aspect ratio and 2.6 m short side under its 14 m2 preferred maximum (needs 2.60 m, allowed 2.55 m); re-partitioned: BEDROOM_1 would be 5.25 x 2.70 m = 14.2 m2 in the rear west column, past its 14 m2 preferred maximum; SPINE_PUBLIC_PRIVATE/COLUMN_DEPTH_EXCEEDED: east column needs 18.06 m of depth for its rows&#x27; floors but has 10.50 m [MASTER 3.20 (shape floor, area wanted 2.39); TOILET_1+BATH_1 1.86 (shape floor, area wanted 1.75); BEDROOM_1 2.80 (shape floor, area wanted 1.96); BEDROOM_2 2.80 (shape floor, area wanted 1.96); BEDROOM_3 2.80 (shape floor, area wanted 1.96); BEDROOM_4 2.80 (shape floor, area wanted 1.96); BATH_2 1.80 (shape floor, area wanted 1.09)]; SPINE_DOUBLE_LOADED/ROOM_ABOVE_MAXIMUM_AREA: BEDROOM_1 would be 5.30 x 2.70 m = 14.3 m2 in the west column, past its 14 m2 preferred maximum; SPINE_SERVICE_CLUSTER/COLUMN_DEPTH_EXCEEDED: east column needs 17.03 m of depth for its rows&#x27; floors but has 10.50 m [BEDROOM_1 3.47 (shape floor, area wanted 3.27); BEDROOM_2 3.47 (shape floor, area wanted 3.27); BEDROOM_3 3.47 (shape floor, area wanted 3.27); BEDROOM_4 3.47 (shape floor, area wanted 3.27); TOILET_1 1.30 (shape floor, area wanted 1.12); BATH_2 1.84 (shape floor, area wanted 1.82)]; SPINE_DOUBLE_LOADED/COLUMN_DEPTH_EXCEEDED: west column needs 15.59 m of depth for its rows&#x27; floors but has 10.50 m [LIVING 3.57 (shape floor, area wanted 3.37); KITCHEN 2.60 (shape floor, area wanted 1.99); BEDROOM_1 2.80 (shape floor, area wanted 1.89); BEDROOM_2 2.80 (shape floor, area wanted 1.89); BATH_1+MASTER 3.83 (shape floor, area wanted 3.37)]; re-partitioned: west column needs 15.59 m of depth for its rows&#x27; floors but has 10.50 m [LIVING 3.57 (shape floor, area wanted 3.37); KITCHEN 2.60 (shape floor, area wanted 1.99); BEDROOM_1 2.80 (shape floor, area wanted 1.89); BEDROOM_2 2.80 (shape floor, area wanted 1.89); BATH_1+MASTER 3.83 (shape floor, area wanted 3.37)]; BRANCHED_TWO_STACK/COLUMN_DEPTH_EXCEEDED: west column needs 10.85 m of depth for its rows&#x27; floors but has 10.50 m [LIVING 4.91 (shape floor, area wanted 4.71); KITCHEN 2.85 (shape floor, area wanted 2.78); TOILET_1 1.30 (shape floor, area wanted 0.90); BATH_2 1.80 (shape floor, area wanted 1.47)]; HUB_PRIVATE_WING/ACCESS_DEGREE_EXCEEDED: 7 rooms need a door on the lobby but it seats 6 (two rooms on each flank, two in the foot band); MULTI_WING_SPLIT/NO_SEAM_ALIGNMENT: the second wing (21.0 x 4.0 m) sits north or south of the primary; this parti runs its hall along the seam, and a hall along the street axis is not authored yet
+
+## Brain alternatives
+
+| concept | declared class | outcome | realized class | ok | time (s) |
+|---|---|---|---|---|---|
+| concept-0 (-) | OTHER | REFUSED | - | - | 0.5 |
+| concept-1 (-) | FRONT_BAND | REFUSED | - | - | 0.5 |
+| concept-5 (A) | TWO_WING | REALIZED | TWO_WING | True | 0.2 |
+
+## What adaptation changed
+
+### concept-0
+- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -&gt; total 102.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **BEDROOM_COUNT_ADJUST**: 4 bedroom(s) -&gt; 5 bedroom(s) (brief requires 5 bedroom(s); added 1 to match, each at its own target area)
+
+### concept-1
+- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -&gt; total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 5 bedroom(s) (brief requires 5 bedroom(s); added 2 to match, each at its own target area)
+
+### concept-5
+- **RESIZE_ROOMS**: total 143.6 m2 across 8 donor rooms -&gt; total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 5 bedroom(s) (brief requires 5 bedroom(s); added 2 to match, each at its own target area)
+
+## Refusal / rejection reasons
+
+- concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m: no width combination both fit and solved
+- concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m: no width combination both fit and solved
+
+## Measurements table (realized-and-ok plans, plus the current baseline)
+
+| plan | class | gross_area_m2 | net_area_m2 | m3_circulation_share | m4_hall_door_count | m4_hall_aspect_median | m5_wet_adjacency_ratio | m6_public_zone_contiguous | wet_core_cluster_count | entrance_opens_into |
+|---|---|---|---|---|---|---|---|---|---|---|
+| brain-A (concept-5) | TWO_WING | 154.35 | 140.22 | 0.22076449627470038 | 9 | 3.085106382978723 | 0.6666666666666666 | True | 2 | HALL_A |
+</pre></details></section>
+<section><h2>README — measurements, failure-criteria checklist, recommendation</h2><pre># POC Architectural Brain — realization through the existing engine (Issue #96, C/3)
+
+**The question this POC exists to answer:** did access to real architectural experience (the
+Issue #94 corpus + #95&#x27;s retrieve/synthesize/adapt) give BuildSmart an architectural brain that is
+*visibly* better than the current hand-designed concept generator?
+
+**Recommendation: MODIFY.**
+
+This closes the loop: the brain&#x27;s synthesized, adapted `ConceptSpec`s are compiled
+(`spikes/architectural_brain/realize.py`) into a Geometry Core `Fixture` and run through the
+*unchanged* `solve_fixture` + `general_pipeline._realize` chain — the same doors, windows,
+furniture, validation and assembly stages every production plan goes through (AC-2, verified by
+`test_demo_alternatives.py::test_poc_plans_come_from_the_unchanged_realize_chain`). The result is a
+genuine, honest positive on one axis and a genuine, honest gap on another — see the checklist below
+before either is taken as the whole story.
+
+## How to read this page
+
+Each of the 3 fixed benchmark briefs (`tests/architectural_brain/briefs.py`) gets its own section:
+**A** = the current, hand-designed `concept_generator` (baseline). **B** = the brain&#x27;s own realized
+alternative(s) — synthesized from the corpus, adapted to the brief, compiled and validated. Full
+detail (retrieved references + WHY, extracted ideas, what adaptation changed, per-plan
+measurements) is in each `brief-N/references.md` / `brief-N/comparison.md`. Produced by
+`spikes/architectural_brain/demo.py` (`current` / `references` / `alternative` / `comparison`
+subcommands) — deterministic, re-runnable.
+
+---
+
+## Brief 1 — the challenging family home
+
+4 bedrooms + SAFE_ROOM + 3 wet rooms, ~200 m², plot 17×30.5 m, street north. A plain rectangle
+(one safe-adapter candidate) — the site TWO_WING needs two adjacent candidates for is not offered
+here, so this brief can only ever show what SPINE looks like.
+
+### A — current engine (`concept_generator`)
+
+![brief-1 current](brief-1/current.svg)
+
+Realized, `ok=True`, **circulation_class=FRONT_BAND**, in 1.6 s.
+
+### B — brain alternatives
+
+| | brain-A (`concept-0`) | brain-B (`concept-1`) |
+|---|---|---|
+| | ![brief-1 brain-A](brief-1/brain-A.svg) | ![brief-1 brain-B](brief-1/brain-B.svg) |
+| realized class | SPINE | SPINE |
+| `ok` | True | True |
+| time | 149.9 s | 150.3 s |
+| donor references | different (see `brief-1/references.md`) | different |
+| adaptations | RESIZE_ROOMS only | RESIZE_ROOMS + BEDROOM_COUNT_ADJUST (+1) |
+
+**Honest finding:** brain-A and brain-B are sourced from two DIFFERENT retrieved donor plans with
+different declared patterns (`OTHER` vs `FRONT_BAND`) and different adaptation operations — but
+they realize to the **identical geometry** (every measurement in `brief-1/comparison.md` matches to
+the metre). Cause: `adaptation.py`&#x27;s `RESIZE_ROOMS` replaces every room&#x27;s area with a **fixed
+per-type constant** (`TARGET_AREA_M2`), never the donor&#x27;s own proportions — so once two donors
+converge on the same brief-authoritative room *types and counts*, their adapted programmes are
+byte-identical inputs to `realize.py`&#x27;s deterministic compiler, which then produces the same
+output. The retrieval/synthesis layer (#95) is genuinely diverse (different WHY, different
+patterns cited); this realization layer (#96) currently throws that diversity away for anything
+that isn&#x27;t the concept&#x27;s `circulation_class` label.
+
+---
+
+## Brief 2 — the owner&#x27;s own brief
+
+4 bedrooms (3 + master ensuite), 2 wet rooms, laundry, open plan, 130 m², plot 15×17 m. The
+tightest of the 3 (documented in `briefs.BRIEF_2`&#x27;s own comment: even the production engine falls
+short by 0.08–0.7 m at full plot width for this exact room mix).
+
+### A — current engine (`concept_generator`)
+
+![brief-2 current](brief-2/current.svg)
+
+Realized, `ok=True`, **circulation_class=SPINE**, in 0.2 s.
+
+### B — brain alternatives
+
+**REFUSED — 0 realized alternatives.** Both attempted concepts (`concept-0` FRONT_BAND-labeled,
+`concept-1` OTHER-labeled) refuse identically: *&quot;no footprint size solved for the SPINE template:
+depth 13.0 m: no width combination both fit and solved&quot;* — the plot&#x27;s own keep depth (13.0 m, the
+hard ceiling after setbacks) is not enough for `realize.py`&#x27;s single-column, height-stacked SPINE
+compiler on this room mix, even though the SAME room mix fits under the current, more sophisticated
+`concept_generator` (which tries several strategies this spike&#x27;s one minimal compiler does not
+reimplement — `FRONT_PUBLIC_BAND`, `SPINE_SERVICE_CLUSTER`, `BRANCHED_TWO_STACK`, etc.; see
+`brief-3/current.json`&#x27;s own notes for the full strategy list the production engine tries).
+
+**Honest finding:** on the tightest of the 3 briefs, the brain is currently a regression: it
+realizes nothing, where the production engine already solves the same brief. This is a genuine gap
+in `realize.py`&#x27;s own minimal single-wing compiler, not a validator or corpus limitation.
+
+---
+
+## Brief 3 — the wide 5-bedroom home
+
+5 bedrooms, 3 wet rooms (owner did not specify; a reasonable assumption for the size — see
+`briefs.BRIEF_3`&#x27;s own comment), 200 m², plot 27×20.5 m. This brief&#x27;s site is a **Z-massing** (two
+notches, not one) specifically designed so the safe-geometry adapter offers TWO adjacent candidate
+rectangles sharing a horizontal edge (10.5×10.0 m and 21.0×4.0 m) — the only one of the 3 briefs
+where TWO_WING is geometrically reachable at all.
+
+### A — current engine (`concept_generator`)
+
+**REFUSED.** Every strategy the production generator tries fails on this site for this room mix;
+the last and most telling note:
+
+&gt; `MULTI_WING_SPLIT/NO_SEAM_ALIGNMENT`: the second wing (21.0 x 4.0 m) sits north or south of the
+&gt; primary; this parti runs its hall along the seam, and a hall along the street axis is not
+&gt; authored yet.
+
+Full failure detail (7 strategies tried, each with its own reason) in `brief-3/current.json`. This
+is the current engine hitting the SAME site this POC picked precisely because its own topology
+repertoire cannot solve it — an honest, deterministic refusal, not a crash (AC-3&#x27;s
+`test_current_engine_baseline_solves_and_validates` locks this in).
+
+### B — brain alternative
+
+![brief-3 brain-A](brief-3/brain-A.svg)
+
+**REALIZED, `ok=True`, circulation_class=TWO_WING, in 0.2 s** (`concept-5`, donor plan `681`,
+retrieved specifically for its `TWO_WING` pattern — see `brief-3/references.md`). Every hard
+validator passes (0 failures); `_realize` unchanged. This is the POC&#x27;s one clear, positive,
+*visible* result: **a topology the current hand-designed generator cannot produce on this site at
+all, realized end-to-end through the same unchanged engine and validators.**
+
+Two other synthesized concepts (`concept-0` OTHER-labeled, `concept-1` FRONT_BAND-labeled) were
+also attempted; both fall back to the SPINE compiler (the only template `realize.py` has for a
+non-TWO_WING label) and refuse fast (0.5 s) — see &quot;the AC-1 finding&quot; below for why SPINE
+structurally cannot solve on this particular site.
+
+---
+
+## Measurements table
+
+| plan | brief | class | gross m² | net m² | M3 circulation share | M4 hall door count | M4 hall aspect (median) | M5 wet adjacency | M6 public contiguous | wet-core clusters |
+|---|---|---|---|---|---|---|---|---|---|---|
+| current | 1 | FRONT_BAND | 189.8 | 172.3 | 0.086 | 8 | 8.36 | 0.67 | False | 2 |
+| brain-A | 1 | SPINE | 170.1 | 152.6 | 0.179 | 9 | 5.94 | 0.67 | True | 2 |
+| brain-B | 1 | SPINE | 170.1 | 152.6 | 0.179 | 9 | 5.94 | 0.67 | True | 2 |
+| current | 2 | SPINE | 128.7 | 117.3 | 0.141 | 6 | 9.29 | 1.00 | True | 2 |
+| brain | 2 | — | — | — | (0 realized alternatives — see brief-2 section) | | | | | |
+| current | 3 | — | — | — | (REFUSED — see brief-3 section) | | | | | |
+| brain-A | 3 | TWO_WING | 154.4 | 140.2 | 0.221 | 9 | 3.09 | 0.67 | True | 2 |
+
+Source data: `brief-N/comparison.md` (generated from each realized plan&#x27;s own `app.demo.contract`
+quality metrics — M1–M6, the SAME signals the production demo service reports; Required Behavior
+4). `circulation_metrics`/`entrance_sequence` as named in the Issue&#x27;s own &quot;Current behavior&quot; section
+were not found as importable modules in this codebase snapshot (searched `app/`) — the demo instead
+reports the nearest available existing signals: M3 (circulation share), M4 (hall door count/aspect
+— the same shape signal a corridor-length metric would target), and the realized entrance room
+(`entrance_opens_into`, per-plan in each `comparison.md`), all sourced through `app.demo.contract`
+rather than invented for this POC.
+
+---
+
+## Failure-criteria checklist (honest, against the Issue&#x27;s own Acceptance Criteria)
+
+| # | Criterion | Status | Evidence |
+|---|---|---|---|
+| AC-1 | ≥ 2 realized alternatives, different `realized_circulation_class`, none SPINE-only duplicates, all `ok`, for ≥ 1 brief | **NOT MET** | See &quot;The AC-1 finding&quot; below. `test_demo_alternatives.py::test_one_brief_yields_two_different_verified_topologies_that_pass_every_validator` is a real, exercised `xfail(strict=True)` with the finding inline. |
+| AC-2 | Every realized POC plan through the unchanged `_realize` chain; diff touches no `validation.py`/`geometry_core/`/`doors.py`/`windows.py` | **MET** | `test_poc_plans_come_from_the_unchanged_realize_chain` PASSES (genuine check-registry comparison, not mocked). Diff for this Issue touches only `spikes/architectural_brain/*`, `tests/architectural_brain/*`, `docs/reports/poc-architectural-brain/*` — confirm with `git diff --stat` against the review target list. |
+| AC-3 | 3 fixed benchmark briefs, current-engine baseline recorded, deterministic re-render | **MET** | `test_benchmark_briefs.py` (6/6 passing): brief-1/2 solve+validate; brief-3&#x27;s refusal is itself the recorded, deterministic baseline (its own documented engine limitation, not a crash). |
+| AC-4 | This README: side-by-side SVGs for all 3 briefs, references+WHY, extracted ideas, adaptation changes, measurements table, GO/MODIFY/STOP | **MET** | This page. `references.md`/`comparison.md` per brief. |
+| Goal | &quot;≥ 2 genuinely different alternatives for one brief&quot; (Goal section, not a numbered AC) | **PARTIALLY MET** | Brief-1&#x27;s two brain alternatives differ in DONOR/rationale but realize to identical geometry (see brief-1&#x27;s &quot;honest finding&quot; above) — genuinely different provenance, not genuinely different drawings. |
+
+### The AC-1 finding
+
+Investigated directly, not assumed. With `realize.py`&#x27;s current 2-compiler repertoire (SPINE:
+single-column, height-stacked; TWO_WING: either a vertical-boundary height-stacked wing B, or — the
+one that actually solves here — a horizontal-boundary, WIDTH-based double-loaded private column):
+
+- **brief-1 / brief-2** (plain-rectangle sites): the safe-geometry adapter offers exactly ONE
+  candidate rectangle. TWO_WING structurally needs ≥ 2 adjacent candidates (`_solve_two_wing_search`
+  refuses outright below that) — geometrically unreachable here. Every realized alternative on
+  these two briefs is SPINE (brief-1) or nothing (brief-2).
+- **brief-3** (the Z-massing site, the only one offering 2 candidates): its own private programme
+  (5 bedrooms + 3 wet rooms = 8 rooms) needs ≈ 19 m of single-column height-stacked depth — an
+  invariant of the room mix, confirmed by measurement (see `realize.py`&#x27;s own module docstring and
+  `_MAX_WING_DEPTH_M`). Neither candidate rectangle offers that (10.5 m and 4.0 m respectively; even
+  their combined footprint is not one contiguous 19 m-deep rectangle). SPINE therefore refuses
+  every trial, fast and deterministically. Only the double-loaded TWO_WING template — which trades
+  WIDTH for depth by running two private-room columns side of a shared hall instead of stacking all
+  8 rooms in one column — fits, because it only needs ≈ 10.5 m of depth per wing.
+
+**The two paradigms are opposite site shapes by construction**: SPINE wants narrow-and-deep,
+double-loaded TWO_WING wants wide-and-shallow, for the SAME total room area. None of the 3 FIXED
+benchmark briefs (their plot dimensions are fixed by Required Behavior 2, not a free choice) has a
+site that is simultaneously deep enough for a full single-column stack AND splittable into 2
+candidates — every attempt to carve a second candidate out of a brief-1-sized deep rectangle either
+leaves the private column too narrow (&lt; the ≈ 8.95 m single-column SPINE already needs) or too
+shallow once split by depth instead of width. Reaching AC-1 honestly would need either (a) a third,
+genuinely different topology family (HUB_LOBBY/BRANCHED — explicitly out of scope for this Issue,
+deferred to Concept Engine v2&#x27;s own child #79), or (b) a 4th brief/site combination outside the 3
+fixed ones Required Behavior 2 names. Neither was done here; flagged for the owner/Team Lead as a
+decision point rather than silently declared met.
+
+### What IS genuinely, visibly better
+
+Brief-3: the current hand-designed generator refuses this site outright (7 strategies tried, all
+failing on this exact room mix — see its own notes). The brain realizes a fully validated plan on
+the SAME site through the SAME unchanged engine, in 0.2 s. That is the POC&#x27;s one unambiguous,
+judge-by-eye positive: **real reference-plan experience unlocked a topology (TWO_WING) that the
+current concept generator&#x27;s own repertoire does not reach here at all.**
+
+### What is NOT yet better
+
+- Brief-2: the brain currently realizes NOTHING where the production engine already solves — a
+  regression on this specific brief (this spike&#x27;s compiler is deliberately minimal; the production
+  generator&#x27;s several strategies were not reimplemented, per Required Behavior 1&#x27;s &quot;minimal spike
+  compiler... where they exist&quot; allowance).
+- Brief-1: the brain&#x27;s own &quot;alternatives&quot; are geometrically identical to each other despite
+  different donor provenance — the promise of &quot;genuinely different&quot; (Goal section) is not delivered
+  within one topology, because `RESIZE_ROOMS` collapses every donor&#x27;s own proportions to one fixed
+  per-type constant.
+- AC-1&#x27;s cross-topology diversity within one brief: not reached (see above).
+
+## Recommendation: MODIFY
+
+**GO** would claim the brain is unambiguously better today — it is not: brief-2 is a regression,
+brief-1&#x27;s &quot;alternatives&quot; do not actually vary, and AC-1&#x27;s own bar is not met. **STOP** would throw
+away brief-3&#x27;s real result — a genuine, validated topology the current engine cannot produce on a
+site the current engine cannot solve at all, delivered end-to-end through the unchanged engine and
+every existing validator, in a fraction of a second. **MODIFY**, specifically:
+
+1. Let `RESIZE_ROOMS` (or a new adaptation operation) carry the donor&#x27;s own room-area *proportions*
+   forward instead of a fixed per-type constant, so different donors produce genuinely different
+   geometry within one topology (closes brief-1&#x27;s gap).
+2. When Concept Engine v2&#x27;s own compilers (`concept_compilers.py`, child #79) land on
+   `integration/concept-engine-v2`, integrate them here for HUB_LOBBY/BRANCHED — the Team Lead&#x27;s own
+   planned merge — which is the most direct path to AC-1 (a 3rd topology family opens real
+   cross-topology diversity options this 2-compiler POC cannot reach).
+3. Extend `realize.py`&#x27;s SPINE compiler with the SAME double-loaded (width-based) private-column
+   trick TWO_WING already uses, as a single-wing variant — brief-2&#x27;s own regression is exactly the
+   &quot;needs more depth than the plot offers&quot; failure double-loading was built to solve for TWO_WING.
+
+None of this is a validator, Geometry Core, doors/windows or Concept Engine v2 change — every item
+above is scoped to `spikes/architectural_brain/` (`realize.py` / `adaptation.py`) plus an
+integration step already planned by the Team Lead.
+
+## Known limitations of this POC (not defects — recorded honestly)
+
+- **Runtime**: a single SPINE realization that succeeds costs ~150 s (the compiler&#x27;s own
+  deterministic depth/width search, see `realize.py`&#x27;s own docstring); TWO_WING is fast when it
+  solves (0.2–0.5 s) because its geometry is computed directly rather than searched. Not optimised
+  for this POC, per the Team Lead&#x27;s own runtime rule.
+- **`circulation_metrics`/`entrance_sequence`** (named in the Issue&#x27;s &quot;Current behavior&quot; as
+  existing) were not importable modules in this codebase snapshot — see the Measurements table&#x27;s
+  own note for what was used instead.
+- HUB_LOBBY is not compiled here at all (see `realize.py`&#x27;s module docstring for why a minimal
+  spike compiler cannot produce one within a realistic house depth) — deferred to #79, per the Team
+  Lead&#x27;s own direction.
+</pre></section>
+</body></html>
