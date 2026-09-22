@@ -244,7 +244,7 @@ def test_safe_resource_saturation_respects_slots_and_weighted_capacity(env):
 
 def test_weighted_capacity_limits_heavy_work_even_with_free_slots(env):
     config, gh, clock, origin = env
-    orch = _orch(_with(config, max_worker_agents=5), gh, clock, _runner())   # capacity 7: HEAVY=3 each
+    orch = _orch(_with(config, max_worker_agents=5, weighted_capacity=7), gh, clock, _runner())   # capacity 7: HEAVY=3 each
     _root(gh, 200, locks="docs (shared)")
     for n in (201, 202, 203):
         _child(gh, n, root=200, resource="HEAVY")

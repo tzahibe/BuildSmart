@@ -198,7 +198,9 @@ def test_period_end_opens_one_rollup_pr_validated_as_a_whole_then_owner_merges(e
     notes = [n for n in orch.store.due_notifications(limit=50) if n["kind"] == "ready_for_owner"]
     assert len(notes) == 1 and "עבודת" in notes[0]["text"] and f"PR #{ru['pr']}" in notes[0]["text"] and "לא בוצע Merge ל-main" in notes[0]["text"]
     assert "guest-WC" in notes[0]["text"]
-    assert "MERGE RECOMMENDED" in gh.get_pr(ru["pr"])["body"]
+    # the READY summary is a PR COMMENT (a body edit would re-trigger the whole CI on the READY head)
+    assert any(n == ru["pr"] and "MERGE RECOMMENDED" in body for n, body in gh.comments)
+    assert "מה בוצע" in gh.get_pr(ru["pr"])["body"]                       # the body keeps the opening summary
     # nobody merged main meanwhile
     root = config.repo_root
     _git(["fetch", "-q", "origin"], root)

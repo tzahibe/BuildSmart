@@ -43,7 +43,8 @@ def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None 
     rep.add("PR targets base branch", base_ok, f"base={base!r}")
     rep.add("head branch is not the base branch", head != base and head != config.base_branch, f"head={head!r}")
     linked = [int(n) for n in _CLOSES.findall(body)]
-    if head.startswith("integration/"):
+    issue_labels = {l["name"] for l in (issue or {}).get("labels", [])}
+    if head.startswith("integration/") or "agent:rollup" in issue_labels:
         # the rollup PR of a weekend/holiday period: its Issue is the rollup Issue the body closes
         issue_no = linked[0] if linked else None
         rep.add("rollup PR targets main", base == config.base_branch, f"base={base!r}")

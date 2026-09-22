@@ -13,7 +13,7 @@ def test_real_config_loads(repo_config):
     assert c.repo == "tzahibe/BuildSmart"
     assert c.models["worker"] == "sonnet" and c.models["master_team_lead"] == "opus"
     assert c.max_worker_agents == 3 and c.max_reviewer_agents == 1 and c.heavy_job_concurrency == 1
-    assert c.weighted_capacity == 7
+    assert c.weighted_capacity == 9      # 2026-09-20: three HEAVY runs (two workers + a fixer) may overlap
     assert c.weights == {"LIGHT": 1, "MEDIUM": 2, "HEAVY": 3}
     assert all(c.risk_policy[r].auto_merge is False for r in ("LOW", "MEDIUM", "HIGH"))
     assert c.risk_policy["MEDIUM"].requires == ("ci_green", "regression_green", "reviewer_green")

@@ -665,6 +665,12 @@ class Orchestrator:
     def schedule(self) -> list[scheduler.Decision]:
         queued = []
         for rec in self.store.list((sm.QUEUED,)):
+            if rec.kind == "rollup":
+                # a rollup Issue is validated through its PR only — never claimed, never given a worker
+                self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="rollup Issue found QUEUED: it is never a worker task",
+                                failure_class="LEAD_BLOCKED")
+                self._blocked_notice(self.store.get(rec.issue_id), "ROLLUP_QUEUED", "a rollup is validated through its PR — resume it with agentctl resume-pr")
+                continue
             try:
                 queued.append((rec, self._contract(rec)))
             except ContractError as exc:
@@ -903,7 +909,9 @@ class Orchestrator:
         rec = store.get(rec.issue_id) or rec
         store.update(rec.issue_id, agent_pid=None, assigned_agent=None)
         attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
-        if self.attempts_remaining(rec):
+        if self.attempts_remaining(rec) and rec.kind != "rollup":
+            # (a rollup is never a worker task: requeued, it would be CLAIMED like an Issue and a worker would
+            # squash the integration branch onto a fresh agent/ branch — 2026-09-22, PR #98. It blocks for the lead.)
             self.locks.release(rec.issue_id, "worker-failed-requeue")
             self._set_state(store, rec.issue_id, sm.QUEUED, note="requeued after worker failure", last_error=error)
             text = work_reports.record_failure(store, self.config, rec.issue_id, stage=stage, failure_class="WORKER_FAILED",
@@ -1507,9 +1515,12 @@ class Orchestrator:
                                      tests_ok=r.get("ci") == "PASS", review=r.get("review"), limitations=list(r.get("limitations") or []),
                                      recommendation="MERGE RECOMMENDED" if str(r.get("recommendation", "")).startswith("MERGE") else "CHANGES RECOMMENDED — " + str(r.get("recommendation", "")))
             try:
-                self.github.update_pr(rec.pr_number, body=f"Closes #{rec.issue_id}\n\n" + body)
+                # A COMMENT, not a body edit: editing the PR body fires `pull_request: edited`, which re-runs the
+                # whole CI (gate 4 included, ~1 h) on the very head that just went READY and stalls the merge
+                # (2026-09-22 05:16, PR #91). The body keeps the summary written when the PR was opened.
+                self.github.comment(rec.pr_number, "## סיכום rollup (מעודכן ב-READY)\n\n" + body)
             except Exception as exc:  # noqa: BLE001
-                log.warning("rollup PR body update failed: %s", exc)
+                log.warning("rollup PR ready summary comment failed: %s", exc)
             return im.rollup_notification(p, rec.pr_number, children, decisions=decisions, ci=r.get("ci", "?"), regression=r.get("regression", "?"),
                                           review=r.get("review", "?"), head=head, pr_url=r.get("pr_url") or "")
         return render_ready_notification(r)
