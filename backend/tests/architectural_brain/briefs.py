@@ -72,6 +72,35 @@ def _l_site(name: str, plot: tuple[float, float], keep: Rect, notch: Rect) -> Si
     )
 
 
+def _z_site(name: str, plot: tuple[float, float], keep: Rect, notch_a: Rect,
+           notch_b: Rect) -> SiteConstraints:
+    """`keep` minus TWO corner notches — an offset (Z/staggered) massing where the adapter's own
+    largest-rectangle-first decomposition (`safe_adapter.adapt`, greedy: extract the biggest
+    valid rectangle, then the biggest in what remains) yields two candidates that are genuinely
+    NON-mergeable siblings sharing a HORIZONTAL edge, rather than `_l_site`'s vertical-edge L
+    (measured — see the module's own investigation in the Issue's report: a rectangle-minus-ONE-
+    corner-notch L always lets ONE piece reach FULL depth on a PARTIAL width, whatever notch is
+    chosen, which is the vertical-boundary shape `_l_site` already gives; getting a horizontal
+    boundary instead needs the REAR piece's own width-range to be offset from, not a subset of,
+    the FRONT piece's — hence two notches, one at each of the two OTHER corners)."""
+    parcel = Ring.rectangle(0, 0, plot[0], plot[1], prefix="p")
+    keep_ring = Ring.rectangle(*keep, prefix="k")
+    cut_a = GeometricConstraint(
+        "notch_a", ConstraintRole.NO_BUILD_REGION,
+        MultiRegion.of(Region(Ring.rectangle(*notch_a, prefix="na"))),
+        _PLANNED, note="benchmark brief Z massing notch A",
+    )
+    cut_b = GeometricConstraint(
+        "notch_b", ConstraintRole.NO_BUILD_REGION,
+        MultiRegion.of(Region(Ring.rectangle(*notch_b, prefix="nb"))),
+        _PLANNED, note="benchmark brief Z massing notch B",
+    )
+    return SiteConstraints(
+        parcel=Parcel(name, MultiRegion.of(Region(parcel)), _SURVEYED),
+        constraints=(_frame_setback(parcel, keep_ring), cut_a, cut_b),
+    )
+
+
 @dataclass(frozen=True)
 class BenchmarkBrief:
     brief_id: str
@@ -150,9 +179,23 @@ BRIEF_2 = BenchmarkBrief(
 
 #: Brief 3 — a wide 5-bedroom home, 200 m2, plot 27x20.5 m. The wet-room count and safe-room were
 #: not specified by the owner for this brief; 3 wet rooms (typical for 5 bedrooms) and no safe
-#: room are this brief's own assumption. An L site (primary 13x14 m + arm 10x7 m at the front,
-#: flush to the street): the only shape this slice's adapter ever offers a SECOND wing for, which
-#: is what a genuinely TWO_WING alternative needs (AC-1).
+#: room are this brief's own assumption.
+#:
+#: A Z/staggered site (front band 14x4 m north, rear block 13x10.5 m south, sharing a 7 m
+#: HORIZONTAL overlap) rather than `_l_site`'s vertical-edge L — measured (see the module's own
+#: investigation in the Issue's report): with 5 bedrooms + 3 wet rooms (8 private rooms total),
+#: a single height-stacked private column needs ~18.9 m of depth (an invariant of the room mix,
+#: not of how the stack is split) — far more than ANY rectangle this plot's own 14-14.5 m usable
+#: depth (after the 5.5 m front parking band) can offer on EITHER a vertical-edge L's primary
+#: (14.0 m) or arm (7.0 m). Splitting the 8 rooms into two PARALLEL columns either side of a
+#: central hall (a genuine double-loaded corridor, `_compile_two_wing`'s own private layout for
+#: this site) needs only ~8-8.5 m of WIDTH at any height from 10.5-14 m — but that central hall
+#: cannot ALSO reach the vertical boundary of an L (it would have to be adjacent to both flanking
+#: columns AND to an outside edge at once, which no linear column arrangement can do). A
+#: HORIZONTAL boundary resolves this: the front wing's own entrance hall reaches down and touches
+#: whichever single x-range the rear wing's own central hall lands in, because both are free to
+#: sit anywhere along their own wing's width — solved and verified (`test_benchmark_briefs.py`,
+#: `test_demo_alternatives.py`).
 BRIEF_3 = BenchmarkBrief(
     brief_id="brief-3",
     title="Wide 5-bedroom home (200 m2, wide plot — assumed 3 wet rooms, no safe room)",
@@ -160,9 +203,9 @@ BRIEF_3 = BenchmarkBrief(
     street_facing_side="NORTH (assumed — not specified by the owner)",
     bedrooms=5, wet_rooms=3, safe_room=False, open_plan=False, laundry=False,
     built_area_m2=200.0,
-    site_factory=lambda: _l_site(
-        "brief-3-wide-5br", plot=(27.0, 20.5),
-        keep=(2.0, 5.5, 23.0, 14.0), notch=(15.0, 12.5, 10.0, 7.0)),
+    site_factory=lambda: _z_site(
+        "brief-3-wide-5br", plot=(27.0, 20.5), keep=(2.0, 5.5, 20.0, 14.5),
+        notch_a=(16.0, 5.5, 6.0, 4.0), notch_b=(2.0, 9.5, 7.0, 10.5)),
 )
 
 BENCHMARK_BRIEFS: tuple[BenchmarkBrief, ...] = (BRIEF_1, BRIEF_2, BRIEF_3)
