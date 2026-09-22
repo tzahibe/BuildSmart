@@ -83,7 +83,7 @@ none
 
 ### Required locks
 
-none
+docs (shared)
 
 ### Verification plan
 
