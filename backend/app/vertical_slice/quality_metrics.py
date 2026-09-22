@@ -8,9 +8,15 @@ gaps against them, and the PROPOSED follow-ups, are written up in
 
 Side-effect-free and deliberately does not import `app.demo.contract` at runtime (that module
 imports `app.vertical_slice.*` and would make this a circular import) — the functions here are
-duck-typed against `DemoDesign`'s shape: `.rooms` (`.id`, `.type`, `.width_m`, `.depth_m`),
-`.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`), `.doors`
-(`.a`, `.b`, `.kind`, `.is_entrance`).
+duck-typed against `DemoDesign`'s shape: `.rooms` (`.id`, `.type`, `.gross_width_m`,
+`.gross_depth_m`), `.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`),
+`.doors` (`.a`, `.b`, `.kind`, `.is_entrance`).
+
+Uses the GROSS rectangle deliberately, not `RoomOut`'s net `.width_m`/`.depth_m` (Issue #34's
+gross/net split) — these metrics measure how the built envelope is proportioned/shared, the same
+question a floor plan's own wall centerlines answer, and switching to net would move every M1/M3/M4
+number by each room's own wall-inset share for no architectural reason. It also keeps this
+module's numbers, and the frozen `quality_baseline.json` regression, unchanged by that Issue.
 
     measure_design(design)          -> QualityMetrics  # one plan's own M1–M6
     summarize(designs)              -> dict            # corpus medians/shares (the spike's report)
@@ -81,7 +87,7 @@ class QualityMetrics:
 
 
 def _habitable_aspects(design: "DemoDesign") -> list[tuple[str, float]]:
-    return [(r.type, max(r.width_m, r.depth_m) / max(min(r.width_m, r.depth_m), 1e-6))
+    return [(r.type, max(r.gross_width_m, r.gross_depth_m) / max(min(r.gross_width_m, r.gross_depth_m), 1e-6))
             for r in design.rooms if is_(HABITABLE, r.type)]
 
 
@@ -100,15 +106,15 @@ def _hall_room_ids(design: "DemoDesign") -> set[str]:
 def _hall_stats(design: "DemoDesign") -> dict:
     rooms = {r.id: r for r in design.rooms}
     halls = _hall_room_ids(design)
-    total = sum(r.width_m * r.depth_m for r in design.rooms)
-    circ_area = sum(r.width_m * r.depth_m for r in design.rooms if r.id in halls)
+    total = sum(r.gross_width_m * r.gross_depth_m for r in design.rooms)
+    circ_area = sum(r.gross_width_m * r.gross_depth_m for r in design.rooms if r.id in halls)
     aspects, wasted_area = [], 0.0
     for h in halls:
         r = rooms[h]
-        a = max(r.width_m, r.depth_m) / max(min(r.width_m, r.depth_m), 1e-6)
+        a = max(r.gross_width_m, r.gross_depth_m) / max(min(r.gross_width_m, r.gross_depth_m), 1e-6)
         aspects.append(a)
         if a > COMPACT_HALL_ASPECT_MAX:
-            wasted_area += r.width_m * r.depth_m
+            wasted_area += r.gross_width_m * r.gross_depth_m
     door_count = sum(1 for dr in design.doors if not dr.is_entrance and (dr.a in halls or dr.b in halls))
     return dict(
         circ_share=circ_area / total if total else 0.0,

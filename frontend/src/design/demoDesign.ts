@@ -20,6 +20,11 @@ export interface DemoWallFacts {
   can_take_a_window: boolean
 }
 
+/** `x`/`y` is the room's GROSS rectangle's corner — the centerline allocation the walls (drawn
+ * from this same rectangle) actually run along. `width_m`/`depth_m`/`area_m2` are the NET
+ * (usable, wall-inset) triple: `width_m * depth_m === area_m2` always (backend check C27).
+ * `gross_width_m`/`gross_depth_m`/`gross_area_m2` are the drawing rectangle at `x`,`y` — see
+ * `docs/wiki/architecture/geometry-validation.md` ("Realized dimensions: gross vs net"). */
 export interface DemoRoom {
   id: string
   type: string
@@ -30,6 +35,9 @@ export interface DemoRoom {
   width_m: number
   depth_m: number
   area_m2: number
+  gross_width_m: number
+  gross_depth_m: number
+  gross_area_m2: number
   walls: Record<string, DemoWallFacts>
 }
 

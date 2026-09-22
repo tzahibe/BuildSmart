@@ -33,6 +33,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from .concept import Concept
+from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, assert_realized
 from .geometry_core.model import (
     UNIT_M,
     WALL_THICKNESS_M,
@@ -4425,6 +4426,14 @@ def generate_concepts(spec: ArchitecturalSpec,
     """A small, bounded, deterministic set of plausible concepts, best first."""
     variants = programme_variants(spec)
     rooms = variants[0]                     # the literal reading of the brief, for the diagnostics
+    constraint = spec.safe_room_constraint
+    # Issue #35, stage assertion 1/3: the room PROGRAMME this concept stage is about to build
+    # candidates from must still carry an authoritative constraint's room. `build_room_program`
+    # (via `programme_variants`) is the only place that adds SAFE_ROOM to `rooms`, so this also
+    # protects every later variant (`programme_variants` only ever rearranges wet rooms, never
+    # drops SAFE_ROOM) and every return below, which all derive from `rooms`/`variants`.
+    assert_realized(constraint, any(r.role is ProgramRole.SAFE_ROOM for r in rooms),
+                    stage="concept_generation", detail=SAFE_ROOM_NOT_REALIZED_DETAIL)
     accepted: list[ConceptCandidate] = []
     rejections: list[ConceptRejection] = []
     last_resort: set[int] = set()   # ids of hub candidates demoted by their outline's bound (008)

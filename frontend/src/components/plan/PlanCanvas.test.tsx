@@ -18,10 +18,12 @@ const design: DemoDesign = {
   rooms: [
     {
       id: 'living-1', type: 'LIVING', name: 'סלון', x: 1, y: 1, width_m: 5, depth_m: 4, area_m2: 20,
+      gross_width_m: 5.2, gross_depth_m: 4.2, gross_area_m2: 21.84,
       walls: {},
     },
     {
       id: 'bed-1', type: 'BEDROOM', name: 'חדר שינה', x: 6, y: 1, width_m: 5, depth_m: 4, area_m2: 20,
+      gross_width_m: 5.2, gross_depth_m: 4.2, gross_area_m2: 21.84,
       walls: {},
     },
   ],
