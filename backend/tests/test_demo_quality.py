@@ -121,6 +121,28 @@ def test_metrics_is_present_on_a_second_real_brief():
     assert result.design.quality.metrics.m3_circulation_share > 0.0
 
 
+# ------------------------------------------------------------ Issue #34: dimension consistency
+#
+# Before this Issue, `RoomOut.width_m`/`depth_m` were the room's GROSS rectangle while `area_m2`
+# was the NET area — so the displayed rectangle never multiplied out to the displayed area. C27
+# (`app.vertical_slice.validation.check_realized_dimensions`) now gates every delivered `RoomOut`
+# on this; `tests/vertical_slice/test_dimension_consistency.py` proves it fails closed on tampered
+# metadata. This proves it holds — green — on real, unmodified plans.
+
+def test_every_room_width_depth_matches_its_area():
+    for fixture in (WIDE_SQUARE, OVER_CAPACITY):
+        result = svc.generate_demo_design(_project(fixture))
+        for design in (result.design, *result.alternatives):
+            for room in design.rooms:
+                assert abs(room.width_m * room.depth_m - room.area_m2) <= 0.05, \
+                    (design.rooms, room.id, room.width_m, room.depth_m, room.area_m2)
+                assert abs(room.gross_width_m * room.gross_depth_m - room.gross_area_m2) <= 0.05, \
+                    (room.id, room.gross_width_m, room.gross_depth_m, room.gross_area_m2)
+                # A wall inset only ever shrinks a room: the net rect never exceeds its own gross.
+                assert room.width_m <= room.gross_width_m + 1e-6
+                assert room.depth_m <= room.gross_depth_m + 1e-6
+
+
 # ------------------------------------------------------------------ Issue #35: SAFE_ROOM constraint
 
 def _has_safe_room(design) -> bool:

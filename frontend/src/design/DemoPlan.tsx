@@ -110,15 +110,17 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
           built area exceeds what the room programme can responsibly use. Filled distinctly so it
           reads as "unallocated," never mistaken for a room the plan forgot to name. */}
       {design.rooms.filter((room) => room.type === 'FLEX').map((room) => (
-        <rect key={`flex-${room.id}`} x={room.x} y={room.y} width={room.width_m} height={room.depth_m}
+        <rect key={`flex-${room.id}`} x={room.x} y={room.y}
+              width={room.gross_width_m} height={room.gross_depth_m}
               className="demo-room-flex" />
       ))}
 
-      {/* Rooms: name, realized dimensions, authoritative area. The dimensions are the room's own
-          rectangle as built — what the plan actually drew, not what the template asked for. */}
+      {/* Rooms: name, realized NET dimensions, authoritative NET area. The label centres on the
+          room's GROSS box — the rectangle the walls actually draw — while the printed numbers are
+          the usable (net) triple, so what's printed always multiplies out to the printed area. */}
       {design.rooms.map((room) => {
-        const cx = room.x + room.width_m / 2
-        const cy = room.y + room.depth_m / 2
+        const cx = room.x + room.gross_width_m / 2
+        const cy = room.y + room.gross_depth_m / 2
         const layout = roomLabelLayout(room)
         return (
           <text

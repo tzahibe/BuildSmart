@@ -1,0 +1,101 @@
+# O2 (Issue #68) — the trusted corpus-snapshot store. Every commit that lands on `main` or an
+# `integration/**` branch (a trusted `push` trigger — never a `pull_request` run, which cannot
+# write to a branch's cache scope) gets its corpus snapshot computed once here and stored where
+# gate-4 (agent-regression.yml) can find it for any later PR based on that commit: the merge-base
+# of a PR into `main`/`integration/**` was, by definition, itself pushed to that branch, so its
+# snapshot is already trusted and stored by the time the PR's gate-4 runs.
+#
+# Two storage layers, both keyed by the exact pushed SHA + the corpus's own content hash:
+#   1. Actions cache `corpus-snapshot-v2-<sha>-<corpus-hash>`, in this branch's cache scope (a PR
+#      whose base is this branch can restore a cache from the base branch's scope — GitHub docs,
+#      "Restrictions for accessing a cache" — a `pull_request` run cannot write here itself).
+#   2. Workflow artifact `corpus-snapshot-<sha>` (retention 30 days), independent of cache eviction
+#      (7 days unused / 10 GB repo cap) — gate-4's fallback when the cache entry has expired.
+#
+# The snapshot is sharded across 4 matrix jobs (same mechanism as O3, Issue #67) and validated
+# (exactly 432 contexts, head_sha == the pushed SHA, corpus hash recorded) with
+# `agent_team.ci.snapshot_store validate` *before* either is written — an invalid snapshot is
+# never trusted, never stored. See docs/CI_SNAPSHOT_CACHE_DESIGN.md and
+# docs/wiki/architecture/agent-team-workflow.md, gate-4 section.
+name: agent-snapshot
+
+on:
+  push:
+    branches: [main, "integration/**"]
+
+permissions:
+  contents: read
+
+# Per-branch: concurrent pushes to different branches snapshot independently; `cancel-in-progress:
+# false` so an in-flight snapshot for an older SHA on the same branch is never cancelled by a
+# newer push — it still finishes and is stored (a later PR's merge-base may be that older SHA).
+concurrency:
+  group: agent-snapshot-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENAI_API_KEY: not-a-real-key-ci-only   # import-time client construction; never used for a call
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]   # N = 4 — a workflow constant, see docs/wiki/architecture/agent-team-workflow.md
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Shard snapshot
+        working-directory: backend
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/.agent/ci"
+          uv sync --group dev
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py \
+            --shard ${{ matrix.shard }}/4 --workers 4 \
+            --save "$GITHUB_WORKSPACE/.agent/ci/shard-${{ matrix.shard }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-snapshot-shard-${{ matrix.shard }}
+          path: .agent/ci/shard-${{ matrix.shard }}.json
+
+  merge-and-store:
+    needs: snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: agent-snapshot-shard-*
+          path: .agent/ci
+          merge-multiple: true
+      - name: Merge shards
+        working-directory: backend
+        run: |
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --merge \
+            "$GITHUB_WORKSPACE/.agent/ci/snapshot.json" \
+            $GITHUB_WORKSPACE/.agent/ci/shard-*.json
+      - name: Validate before trusting/saving
+        env:
+          PYTHONPATH: scripts
+        run: |
+          CORPUS_HASH=$(python3 -c "import hashlib; print(hashlib.sha256(open('backend/tests/regression_corpus/corpus.json', 'rb').read()).hexdigest())")
+          uv run --project scripts/agent_team python -m agent_team.ci.snapshot_store validate \
+            --snapshot ".agent/ci/snapshot.json" \
+            --expected-head-sha "${{ github.sha }}" \
+            --expected-corpus-hash "$CORPUS_HASH" \
+            --expected-count 432 \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+      - name: Save snapshot to the trusted cache (v2)
+        uses: actions/cache/save@v4
+        with:
+          path: .agent/ci/snapshot.json
+          key: corpus-snapshot-v2-${{ github.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+      - name: Upload the snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-snapshot-${{ github.sha }}
+          path: .agent/ci/snapshot.json
+          retention-days: 30

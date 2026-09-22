@@ -14,6 +14,7 @@ function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
       {
         id: 'LIVING', type: 'LIVING', name: 'סלון',
         x: 3, y: 5.5, width_m: 5, depth_m: 6, area_m2: 27.4,
+        gross_width_m: 5, gross_depth_m: 6, gross_area_m2: 30,
         walls: {
           N: { construction: 'STANDARD_PARTITION', boundary_context: 'EXTERIOR', can_take_a_window: true },
           S: { construction: 'NONE', boundary_context: 'INTERIOR', can_take_a_window: false },

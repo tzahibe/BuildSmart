@@ -171,7 +171,11 @@ Fail-fast, for PRs from `agent/**` to `main`:
 3. **gate-3-verification** (`ci/verify.py`) — runs every `AC-n -> target` from the manifest; an AC
    without a passing target fails the gate. No model is consulted.
 4. **gate-4-regression** (`agent-regression.yml`, when required: regression domains / a
-   `regression:corpus` target and backend product code changed, or HIGH risk) — replays the
+   `regression:corpus` target and backend product code changed, HIGH risk, or a change to gate-4's
+   own base-snapshot selection machinery — `ci/plan.py`'s `REGRESSION_MACHINERY`, so an O1-O3
+   change to `agent-regression.yml`/`agent-snapshot.yml`/`ci/snapshot_store.py`/
+   `ci/regression_gate.py` always self-validates on real CI evidence instead of being skipped as
+   "no backend product code changed") — replays the
    frozen 432-context corpus at the merge-base (cached by SHA) and at the head with
    `backend/spikes/failure_log_sweep/corpus_snapshot.py`, runs `TEST_MODE=REGRESSION` corpus
    tests, and evaluates the Issue's budget (`regression_budget.py`): before/after planned/refused,
@@ -189,6 +193,55 @@ Fail-fast, for PRs from `agent/**` to `main`:
    pre-existing snapshot mode (Issue #17) still gets `CORPUS_SNAPSHOT` via a second invocation in
    the same step, scoped to just that command — only removing the first invocation's replay once
    several real PRs show identical verdicts turns the frozen test's snapshot mode on for CI too.
+
+   **O3, shadow mode (Issue #67)**: each of the two corpus snapshots (base, head) is computed two
+   ways. `corpus_snapshot.py --shard I/N` replays a deterministic partition of the corpus (sorted by
+   context key, `index % N == I`, N=4 — a workflow constant); the `snapshot` job runs this as a
+   matrix (`shard: [0,1,2,3]`, plus `ref: head` always and `ref: base` only on a cache miss) and the
+   `merge` job unions the N shard documents via `corpus_snapshot.py --merge` into
+   `head_snapshot.json`/`base_snapshot.json` — refusing (never silently) a shard set missing a
+   context, duplicating one, or disagreeing on `head_sha`/`corpus_hash`. The pre-existing
+   single-node replay still runs, unchanged, in its own `single_node` job — concurrently with
+   `snapshot`/`merge` (both depend only on the early `resolve` job), so sharding adds no wall time
+   of its own while shadow mode is on — writing `head_snapshot_single.json`/
+   `base_snapshot_single.json`. In the final `regression` job, a "Compare head snapshots" /
+   "Compare base snapshots" step (`corpus_snapshot.py --assert-equal`) fails the job if the merged
+   and single-node documents differ after normalising volatile fields (`ms`/`seconds` timings,
+   `written_at`) — status/code/sig/area/metrics per context, `sha`, `corpus_hash` and `workers`
+   must be identical. Budget evaluation and every existing assertion (including O1's invariants)
+   consume the merged `head_snapshot.json`/`base_snapshot.json` only after the relevant compare
+   step passed; the base snapshot cache now holds the merged document, saved only after that
+   compare passes. Both the `snapshot` matrix job and the `single_node` job's base-snapshot step
+   vendor the HEAD checkout's corpus_snapshot.py over the base checkout before running it, so a
+   merge-base that predates `--shard`/`corpus_hash` (true of every real PR until this Issue reaches
+   main) still shards correctly and its single-node snapshot still carries a comparable
+   `corpus_hash`. **Removal criterion**: the single-node path is only deleted after several real
+   PRs show the two paths always agree — not scheduled by this Issue.
+
+   **O2, the trusted corpus-snapshot store, shadow mode (Issue #68)**: a separate `push`-triggered
+   workflow, `agent-snapshot.yml` (`on: push: branches: [main, "integration/**"]` — never
+   `pull_request`, which cannot write to a branch's cache scope), computes the snapshot of every
+   commit that lands on `main`/an integration branch, validates it
+   (`scripts/agent_team/ci/snapshot_store.py validate_snapshot`: `head_sha` equals the pushed SHA,
+   exactly 432 contexts, `corpus_hash` matches the corpus file on disk — an invalid snapshot is
+   never saved or uploaded), and stores it two ways: the Actions cache under
+   `corpus-snapshot-v2-<sha>-<corpus-hash>` (that branch's cache scope, restorable by any PR whose
+   base is that branch — GitHub's documented base-branch rule) and a 30-day workflow artifact
+   `corpus-snapshot-<sha>`. Gate-4's `resolve` job looks up that store for the merge-base snapshot,
+   in order: (a) the v2 cache (lookup-only), (b) on a miss, the `push` run's artifact (found via
+   `gh api …/actions/runs?head_sha=…&event=push`, filtered to `agent-snapshot` runs on
+   `main`/`integration/**`). `select_base_snapshot` (same module) applies (a) → (b) → "compute
+   locally", validating each candidate the same way and rejecting an invalid or missing one with a
+   named reason (written to the job summary) rather than silently falling through. **Shadow mode**:
+   a hit at (a) or (b) never skips the local base computation above (O3's `merge`/`single_node`
+   jobs always run) — the `regression` job's "Compare base snapshots (trusted store vs local
+   compute)" step (`corpus_snapshot.py --assert-equal`) additionally compares a valid trusted
+   candidate against the freshly computed `base_snapshot.json` and fails the job on any difference.
+   The old v1 cache key (`corpus-snapshot-v1-*`, scoped to the PR's own merge ref — never actually
+   shared across PRs, confirmed by the repository's cache list before this Issue) is removed; a
+   `pull_request` run never writes the v2 key itself. **Removal criterion**: the local base
+   computation is only skipped once several real PRs show the trusted store always agrees with it —
+   not scheduled by this Issue. See `docs/CI_SNAPSHOT_CACHE_DESIGN.md` for the full design.
 5. **agent-ci-result** — the single required status check; red if any gate failed, green when
    gate 4 was legitimately skipped (recorded in the job summary).
 

@@ -56,9 +56,27 @@ explicitly out of this Issue's scope.
 
 N/A — no prior version of this parsing layer is tracked as superseded in this Wiki round.
 
+## Latency: reasoning effort (Issue #89)
+
+`OpenAIRequirementParser` calls `chat.completions.parse(..., reasoning_effort=...)` — gpt-5-nano is
+a reasoning model, and by default spends its reasoning budget even on this simple structured
+extraction. The owner's own brief (Abu Snan, 15×17 m, 130 m²) measured `POST
+/projects/{id}/requirements` at 64.5 s with no `reasoning_effort` set, against 0.9 s for the whole
+design generation that follows it — measured 2026-09-21. `reasoning_effort` defaults to `"minimal"`
+(constructor param, overridable via the `REQUIREMENTS_REASONING_EFFORT` env var; allowed values
+`minimal`/`low`/`medium`/`high`; an unrecognised value raises at construction, never silently sent
+to the API). The model, system prompt, `response_format` and `normalize_extraction` are unchanged
+by this — only the reasoning-effort request parameter moved. Measurement method:
+`backend/scripts/measure_parser_latency.py` parses a fixed set of 6 real Hebrew briefs (including
+the Abu Snan one above) against the real API N times per brief and prints p50/p95 wall time per
+brief plus the extraction JSON, for comparing efforts with a real `OPENAI_API_KEY` (CI never runs
+this script — it makes real API calls). Before/after numbers from that script belong here once
+measured by the lead/owner; not yet recorded at time of writing.
+
 ## Known follow-ups
 
-None currently tracked at the Wiki level.
+- Record the lead/owner's before/after `measure_parser_latency.py` numbers (minimal vs. no
+  `reasoning_effort` override) in the section above once measured.
 
 ## Evidence/history
 

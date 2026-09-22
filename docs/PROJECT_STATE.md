@@ -60,6 +60,17 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
 
 - Room capacity constraint, plan-not-realizable root cause — no successor doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
+- **Non-rectangular geometry** (Issue #102, 2026-09-22) —
+  `docs/NON_RECTANGULAR_GEOMETRY_INVESTIGATION.md`: the Geometry Core is a guillotine (slicing-tree)
+  partition of rectangular rooms; module-by-module rectangle-assumption inventory for Geometry
+  Core/validators C1-C29/M1-M6/hub-l-massing-wet-core guards/the demo contract/both renderers/the
+  corpus signature; measured on a 20-plan real-ResPlan fixture
+  (`backend/spikes/geometry_shapes/measure_real_plan_shapes.py`): 41.9% of real rooms are
+  rectangles, 19.6% simple L-shapes, and **0/19 real plans' room layouts are guillotine-separable**;
+  three candidate architectures (A — slicing tree + room merging, B — non-guillotine rectangular
+  layout, C — polygonal layout) each scoped with effort/risk/a 2-week spike; recommends A first (in
+  parallel with a spike proving/killing B), C deferred; proposed ROOT + children under
+  `.agent/proposals/roadmap/`, not yet scheduled.
 
 ## Agent-team Issues
 
@@ -88,6 +99,11 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   stash/checkout/reset from a session.
 - **Corridor opening** (hall↔LDK) is a contract-level post-process (`app/demo/contract.py`), not
   an engine change.
+- **`INCONSISTENT_GEOMETRY`** (Issue #34) is a `DemoGenerationError` refusal code raised when
+  validation check C27 finds a `RoomOut`'s displayed width×depth disagreeing with its own area (or
+  the building's `gross_area_m2` disagreeing with the sum of its rooms') — see the Geometry /
+  Validation Wiki page. It is a data-integrity refusal, not a feasibility one (not in
+  `_FEASIBILITY_CODES`); on a real solved design it never fires.
 - **Do not treat the production OpenAI parser as a source of truth for AI-test expected
   behavior.** It is an implementation under test, exactly like local Ollama models. Authoritative
   expected behavior is: approved product/architecture semantics, versioned golden expected outputs,
