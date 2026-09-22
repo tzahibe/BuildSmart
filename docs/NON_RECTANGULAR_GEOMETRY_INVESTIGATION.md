@@ -317,6 +317,16 @@ ever sees and tiles rectangles.
   kitchen median aspect by less than the reference gap it targets (2.75 → reference L-counter shape),
   the generalisation to more room-pairs is not worth pursuing.
 
+  **Spike run (Issue #107, 2026-09-23)**:
+  `docs/reports/non-rectangular-geometry-architecture-a-spike.md`. Result: implemented and
+  flagged off (`app.vertical_slice.room_merge.LIVING_KITCHEN_MERGE_ENABLED`, default `False`) —
+  the LIVING+KITCHEN CLOSED_ADJACENT case merges into one polygon room through `contract.py` +
+  `room_merge.py` alone, with zero solver changes, zero changes to any other room's own checks,
+  and a redesigned/polygon-variant form of every check the Issue named (C1, C2, C3, C6, C7, C8,
+  C9, C14, C16, C19, C20, C26, C27) scoped to the merged room only; renders as a real SVG
+  `<polygon>` (frontend, additive). See the spike report for the 432-context corpus measurement
+  (LOST=0 required), the M1 kitchen/dining aspect before/after, and the kill-criterion answer.
+
 ### B — Non-guillotine rectangular layout
 
 **What it produces**: rooms stay simple rectangles, but the PARTITION is a general rectangular

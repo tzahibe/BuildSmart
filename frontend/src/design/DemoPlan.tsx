@@ -69,6 +69,28 @@ export function wallStyle(construction: string, context: string) {
   return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
 }
 
+/** Architecture A spike (Issue #107): a merged room's own label centres on its polygon's AREA
+ *  centroid, not its bounding-box centre — the bbox centre of an L can land in the room's own
+ *  crook, outside the room entirely. Standard shoelace-formula polygon centroid; falls back to
+ *  the plain vertex average for a degenerate (near-zero-area) polygon. */
+function polygonCentroid(points: [number, number][]): { x: number; y: number } {
+  let area = 0, cx = 0, cy = 0
+  for (let i = 0; i < points.length; i++) {
+    const [x0, y0] = points[i]
+    const [x1, y1] = points[(i + 1) % points.length]
+    const cross = x0 * y1 - x1 * y0
+    area += cross
+    cx += (x0 + x1) * cross
+    cy += (y0 + y1) * cross
+  }
+  area /= 2
+  if (Math.abs(area) < 1e-9) {
+    const n = points.length
+    return { x: points.reduce((s, p) => s + p[0], 0) / n, y: points.reduce((s, p) => s + p[1], 0) / n }
+  }
+  return { x: cx / (6 * area), y: cy / (6 * area) }
+}
+
 /** Which way the arc turns, so it sweeps the quarter the leaf actually travels through rather than
  *  the opposite one. The cross product of (closed leaf) x (open leaf) about the hinge gives it. */
 function sweep(hx: number, hy: number, far: { x: number; y: number },
@@ -122,12 +144,28 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
               className="demo-room-flex" />
       ))}
 
+      {/* Architecture A spike (Issue #107): a merged room's own outer boundary, drawn as a real
+          SVG polygon — additive, alongside every other room's existing rectangle (drawn instead
+          via `design.walls`' own line segments, which the merge's wall-removal already makes
+          read as one continuous room with no extra code here). Absent/`null` for every ordinary
+          room, so this block draws nothing at all with the flag off. */}
+      {design.rooms.filter((room) => room.polygon_m && room.polygon_m.length > 0).map((room) => (
+        <polygon
+          key={`merged-${room.id}`}
+          points={room.polygon_m!.map(([px, py]) => `${px},${py}`).join(' ')}
+          className="demo-room-merged"
+        />
+      ))}
+
       {/* Rooms: name, realized NET dimensions, authoritative NET area. The label centres on the
           room's GROSS box — the rectangle the walls actually draw — while the printed numbers are
-          the usable (net) triple, so what's printed always multiplies out to the printed area. */}
+          the usable (net) triple, so what's printed always multiplies out to the printed area.
+          A merged room (Issue #107) centres on its own polygon's AREA CENTROID instead — its
+          bounding-box centre can land in the room's own crook, outside the room. */}
       {design.rooms.map((room) => {
-        const cx = room.x + room.gross_width_m / 2
-        const cy = room.y + room.gross_depth_m / 2
+        const centroid = room.polygon_m && room.polygon_m.length > 0 ? polygonCentroid(room.polygon_m) : null
+        const cx = centroid ? centroid.x : room.x + room.gross_width_m / 2
+        const cy = centroid ? centroid.y : room.y + room.gross_depth_m / 2
         const layout = roomLabelLayout(room)
         return (
           <text

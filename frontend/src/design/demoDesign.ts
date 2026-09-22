@@ -39,6 +39,14 @@ export interface DemoRoom {
   gross_depth_m: number
   gross_area_m2: number
   walls: Record<string, DemoWallFacts>
+  /** Architecture A spike (Issue #107), additive. `'RECTANGLE'` (the only value before this
+   *  field existed) for every ordinary room; `'L'` only for a room the LIVING+KITCHEN merge
+   *  spike produced — its boundary is `polygon_m`, not `x`/`y`/`gross_width_m`/`gross_depth_m`
+   *  (those still carry the room's own axis-aligned bounding box, for layout/labelling only). */
+  shape?: 'RECTANGLE' | 'L'
+  /** The room's own outer boundary, metres, plot-absolute, no closing duplicate point. `null`/
+   *  absent for a `'RECTANGLE'` room. */
+  polygon_m?: [number, number][] | null
 }
 
 export interface DemoWallSegment {
@@ -236,6 +244,16 @@ export interface DemoDesign {
   /** The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for every
    *  house the engine plans today; absent for a payload that predates the field. */
   footprints?: DemoRect[]
+  /** Architecture A spike (Issue #107), additive. Absent/`null` when the flag is off (today's
+   *  default) or this plan has no LIVING+KITCHEN CLOSED_ADJACENT pair. */
+  merge?: {
+    living_id: string
+    kitchen_id: string
+    merged_id: string
+    applied: boolean
+    checks: { check_id: string; passed: boolean; detail: string }[]
+    oriented_aspect: number
+  } | null
 }
 
 /** The rectangles a design is made of: its wings, or the one footprint when the payload has no
