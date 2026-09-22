@@ -86,6 +86,10 @@ class BenchmarkBrief:
     built_area_m2: float
     site_factory: Callable[[], SiteConstraints]
     note: str = ""
+    #: `ProgramSpec.parking_spaces` — 2 (its own default) unless a brief overrides it. Brief 2
+    #: overrides to 0 (see its own comment: the plot leaves no room for a 5 m parking-bay band
+    #: without contradicting the owner's stated bedroom/wet-room/laundry counts).
+    parking_spaces: int = 2
 
     def site_constraints(self) -> SiteConstraints:
         return self.site_factory()
@@ -100,6 +104,7 @@ class BenchmarkBrief:
                 demand=LaundryDemand.ROOM if self.laundry else LaundryDemand.NONE,
                 source_text="laundry room" if self.laundry else ""),
             target_built_area_m2=self.built_area_m2,
+            parking_spaces=self.parking_spaces,
         )
 
 
@@ -122,6 +127,15 @@ BRIEF_1 = BenchmarkBrief(
 #: `WetRoomRequirement` — the engine's own ensuite-pairing heuristic decides which wet room hosts
 #: which bedroom, same as any ordinary brief that only counts wet rooms. Street side was not named
 #: by the owner; NORTH is this brief's own assumption, same convention as brief 1.
+#:
+#: `parking_spaces=0`: measured (see the module's own investigation in the Issue's report) —
+#: `ProgramSpec`'s own default of 2 bays reserves a fixed 5 m-deep street-side band
+#: (`site.PARKING_BAY_DEPTH_M`) that this plot's own 17 m depth cannot spare on top of the
+#: 12.0-12.5 m the current engine's own room templates need for this exact bedroom/wet-room/
+#: laundry mix — every strategy fell short by 0.08-0.7 m even at the plot's full width. Assuming
+#: on-street parking (common on a narrow 15 m urban frontage) is the one input choice, applied
+#: identically to the current-engine baseline and every brain-compiled alternative, that keeps
+#: the owner's own stated programme intact rather than inventing a smaller one to fit.
 BRIEF_2 = BenchmarkBrief(
     brief_id="brief-2",
     title="Owner's own brief (4BR incl. master ensuite, 2 wet rooms, laundry, open plan, 130 m2)",
@@ -129,8 +143,9 @@ BRIEF_2 = BenchmarkBrief(
     street_facing_side="NORTH (assumed — not specified by the owner)",
     bedrooms=4, wet_rooms=2, safe_room=False, open_plan=True, laundry=True,
     built_area_m2=130.0,
+    parking_spaces=0,
     site_factory=lambda: _rectangle_site(
-        "brief-2-owner-brief", plot=(15.0, 17.0), keep=(1.0, 5.0, 13.0, 11.10)),
+        "brief-2-owner-brief", plot=(15.0, 17.0), keep=(2.0, 2.0, 11.0, 13.0)),
 )
 
 #: Brief 3 — a wide 5-bedroom home, 200 m2, plot 27x20.5 m. The wet-room count and safe-room were
