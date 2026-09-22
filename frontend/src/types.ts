@@ -174,12 +174,15 @@ export interface ProjectCreatePayload {
   city: string
   street: string
   plot_area_m2: number
-  plot_width_m: number
-  plot_depth_m: number
-  street_facing_side: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST'
-  setbacks: { front_m: number; side_m: number; rear_m: number }
   built_area_m2: number
   description: string
+  // AUTHORITATIVE SITE GEOMETRY — mirrors `backend/app/projects/models.py`'s `ProjectCreate`.
+  // Optional there (legacy callers/projects predate it); the demo form always sends it.
+  plot_width_m?: number
+  plot_depth_m?: number
+  street_facing_side?: 'NORTH' | 'SOUTH' | 'EAST' | 'WEST'
+  // The setback assumptions the offered footprint options were generated under.
+  setbacks?: { front_m: number; side_m: number; rear_m: number }
   // `null` is the main flow since feature 006 — the engine chooses the outline. A value is the
   // person's own outline from the form's "advanced" disclosure, and is authoritative.
   selected_footprint: SelectedFootprintPayload | null
