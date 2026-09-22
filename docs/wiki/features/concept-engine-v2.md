@@ -28,8 +28,14 @@ For the brief and the realized footprint of the plan `run_general` already chose
    (Issue #79) are tried instead, on the SAME outline `chosen_plan` was fit to: a hand-authored,
    bound/witness-sized HUB_LOBBY tree (compact lobby, rooms on ≥3 sides, the shared wet room at its
    head) and a hand-authored BRANCHED tree (two HALL leaves in adjacent, non-sibling subtrees,
-   joined by a `CASED_OPENING`), each scoped to exactly the programme shape it was calibrated and
-   verified against (see `concept_compilers.py`'s own module docstring) and `[]` otherwise.
+   joined by a `CASED_OPENING`). Each is scoped to the room-count shape it was calibrated and
+   verified against (see `concept_compilers.py`'s own module docstring) and `[]` otherwise — but
+   (attempt 3, 2026-09-22 lead direction) that shape no longer excludes a SAFE_ROOM or an
+   open-plan living room: both compilers carry an independently-combinable SAFE_ROOM-aware variant
+   (the safe room borders the lobby/hall directly, never through a bedroom, and reaches the
+   building envelope the same way a bedroom does) and an open-plan-aware variant (LIVING/KITCHEN
+   as one `open_groups` block, the same pattern `_front_band_concept` already uses), since those
+   are the norm in this product rather than the exception the original single shape covered.
 3. The first matching candidate is realized through the EXISTING `_realize` pipeline
    (doors/windows/furniture/validation, unchanged), VERIFIED (`concept_spec.verify_class` — a
    candidate whose declared class disagrees with what it realized to is DROPPED, never
@@ -100,13 +106,17 @@ renders it beside the plan title when present.
   outline's hub builder rejects far more often than it accepts on this corpus). Measured 71/404
   (17.6%) of PLANNED briefs showing ≥2 classes (`docs/reports/concept-engine-v2-diversity-
   baseline.md`).
-- **Measured diversity, Issue #79 (generator-level compilers + cross-outline search)**: the current
-  measurement, over the same frozen 432-context corpus's PLANNED cases, with `concept_compilers.
-  compile_hub_lobby`/`compile_branched` and `app.demo.service._augment_cross_outline_classes`
-  both wired in behind the same flag — see `docs/reports/concept-engine-v2-diversity-report.md`
-  for the current share of PLANNED briefs showing ≥2 classes, whether HUB_LOBBY/BRANCHED appear
-  among the shown classes, and the LOST/GAINED/primary_signature_changes regression counts.
-  `compile_hub_lobby`/`compile_branched` are each scoped to exactly ONE programme shape (see
+- **Measured diversity, Issue #79 attempt 2 (generator-level compilers, one shape each, +
+  cross-outline search)**: 79/404 (19.6%) of PLANNED briefs showed ≥2 classes — short of the 40%
+  bar. Root cause (measured): `compile_hub_lobby`/`compile_branched` shared one precondition (no
+  safe room, no open-plan living) that only 83/404 PLANNED briefs satisfied at all, capping their
+  contribution regardless of how general their own bedroom/wet-room sizing became.
+- **Measured diversity, Issue #79 attempt 3 (+ SAFE_ROOM-aware and open-plan-aware compiler
+  variants)**: the current measurement, over the same frozen 432-context corpus's PLANNED cases —
+  see `docs/reports/concept-engine-v2-diversity-report.md` for the current share of PLANNED briefs
+  showing ≥2 classes, whether HUB_LOBBY/BRANCHED appear among the shown classes, the per-
+  precondition eligibility breakdown, and the LOST/GAINED/primary_signature_changes regression
+  counts. `compile_hub_lobby`/`compile_branched` still each need a specific room-COUNT shape (see
   `concept_compilers.py`'s own module docstring for why a general arbitrary-programme version of
   either is out of scope here) — they contribute wherever a brief's programme matches that shape,
   never elsewhere.
@@ -125,11 +135,19 @@ Nothing — this is additive; `_alternative_plans` stays the flag-off path and i
   massing, massing selection, Multi-Level Phase 2 and stairs/vertical core fit this architecture —
   see `docs/reports/concept-engine-v2-owner-benchmark.md` and
   `docs/reports/concept-engine-v2-massing-multilevel-proposal.md`.
-- `compile_hub_lobby`/`compile_branched` (Issue #79) each serve exactly one programme shape; a
-  general arbitrary-programme version of either (a real bound/witness search over widths/depths/
-  bedroom counts, the way `concept_generator.plan_layout` does for SPINE) is named but not
-  attempted in `concept_compilers.py`'s own module/function docstrings — a real follow-up if the
-  owner wants HUB_LOBBY/BRANCHED coverage beyond that one shape each.
+- `compile_hub_lobby`/`compile_branched` (Issue #79) each still need a specific room-count shape
+  (2 bedrooms/2 wet rooms; 4 bedrooms or 3-with-a-safe-room/2 wet rooms), now crossed with
+  SAFE_ROOM/open-plan independently (attempt 3) rather than excluding them; a general arbitrary-
+  programme version of either (a real bound/witness search over widths/depths/bedroom counts, the
+  way `concept_generator.plan_layout` does for SPINE) is named but not attempted in
+  `concept_compilers.py`'s own module/function docstrings — a real follow-up if the owner wants
+  HUB_LOBBY/BRANCHED coverage beyond those room-count shapes. `compile_branched` was specifically
+  measured infeasible at 4 bedrooms + a safe room (5 stacked private rooms) at this tree's own
+  depth budget without breaking MASTER/BATH_1's own `RoomTemplate` bands — a named follow-up, not
+  attempted.
+- If the diversity report's residual-population breakdown still leaves briefs short of the 40%
+  bar after attempt 3, that residue (with its exact reasons) is the owner's decision, not
+  something this Issue's own scope resolves further — see the diversity report.
 - RING circulation is still not produced by any builder — explicitly out of scope for Issue #79 as
   it was for #75-#78.
 
@@ -138,12 +156,13 @@ Nothing — this is additive; `_alternative_plans` stays the flag-off path and i
 `docs/reports/concept-engine-v2-diversity-baseline.md` (Issue #75, flag-off baseline: 49/404,
 12.1%), `docs/reports/concept-engine-v2-adaptation-report.md` (Issue #76, offline `adapt` ladder
 measurement), `docs/reports/concept-engine-v2-diversity-report.md` (Issue #78's single-outline
-flag-on measurement, then re-measured by Issue #79 with the compilers + cross-outline search
-wired in), `docs/reports/concept-engine-v2-owner-benchmark.md`,
+flag-on measurement, re-measured by Issue #79 attempt 2 with the compilers + cross-outline search
+wired in — 19.6% — and again by attempt 3 with the SAFE_ROOM-aware/open-plan-aware compiler
+variants), `docs/reports/concept-engine-v2-owner-benchmark.md`,
 `docs/reports/concept-engine-v2-massing-multilevel-proposal.md`.
 
 ## Last verified against git
 
-Branch `agent/79-concept-engine-v2-5-5-generator-level-pa`, based on
-`origin/integration/concept-engine-v2` at the commit this Issue's work sits on top of (`84207d5`,
-`14f556b`, `8c850ed`, `1ac5970`).
+Branch `agent/79-concept-engine-v2-5-5-generator-level-pa`, attempt 3 (2026-09-22), on top of
+attempt 2's commit `58ed851` and `origin/integration/concept-engine-v2` at `84207d5`, `14f556b`,
+`8c850ed`, `1ac5970`.

@@ -170,21 +170,65 @@ def aggregate(per_brief: list[dict]) -> dict:
     }
 
 
-def _compiler_eligible_count(cases: list[dict]) -> int:
-    """How many PLANNED cases even satisfy `concept_compilers.compile_hub_lobby`/
-    `compile_branched`'s own shared precondition (no safe room, no open-plan living) — the
-    structural ceiling on what those two compilers could EVER contribute, independent of how
-    general their own bedroom/wet-room sizing becomes (Issue #79's own AC-3 finding: this caps
-    out well under the 40% bar by itself, since 246/404 PLANNED cases carry a safe room and
-    213/404 carry open-plan living, and the two overlap)."""
-    return sum(1 for c in cases
-              if not c["context"].get("safe_room") and not c["context"].get("open_plan"))
+def _hub_lobby_eligible(context: dict) -> bool:
+    """`concept_compilers.compile_hub_lobby`'s own precondition (attempt 3, 2026-09-22): exactly
+    2 bedrooms and 2 wet rooms — `safe_room`/`open_plan` no longer exclude a brief, each is its
+    own supported variant (`_hub_lobby_unsupported`)."""
+    return context.get("bedrooms") == 2 and context.get("wet_rooms") == 2
+
+
+def _branched_eligible(context: dict) -> bool:
+    """`concept_compilers.compile_branched`'s own precondition (attempt 3): 2 wet rooms, and
+    either 4 bedrooms without a safe room or 3 bedrooms WITH one (`_branched_unsupported`) —
+    `open_plan` no longer excludes a brief."""
+    if context.get("wet_rooms") != 2:
+        return False
+    if context.get("safe_room"):
+        return context.get("bedrooms") == 3
+    return context.get("bedrooms") == 4
+
+
+def _compiler_eligibility_breakdown(cases: list[dict]) -> dict:
+    """Per-precondition breakdown (lead direction after attempt 2, 2026-09-22, (c)): how many
+    PLANNED cases satisfy `compile_hub_lobby`'s own precondition, `compile_branched`'s own, either,
+    and how many PLANNED cases satisfy NEITHER (the residual population still excluded, with the
+    reason each one is excluded) — the structural ceiling on what the two compilers could
+    contribute, independent of how general their own bedroom/wet-room sizing becomes."""
+    n = len(cases)
+    hub_elig = [c for c in cases if _hub_lobby_eligible(c["context"])]
+    branched_elig = [c for c in cases if _branched_eligible(c["context"])]
+    either = [c for c in cases
+             if _hub_lobby_eligible(c["context"]) or _branched_eligible(c["context"])]
+    excluded = [c for c in cases
+               if not _hub_lobby_eligible(c["context"]) and not _branched_eligible(c["context"])]
+    reason_counter: Counter = Counter()
+    for c in excluded:
+        ctx = c["context"]
+        bedrooms, wet_rooms, safe = ctx.get("bedrooms"), ctx.get("wet_rooms"), ctx.get("safe_room")
+        if wet_rooms != 2:
+            reason_counter[f"wet_rooms={wet_rooms} (neither compiler supports != 2)"] += 1
+        elif safe and bedrooms not in (2, 3):
+            reason_counter[f"safe_room=True, bedrooms={bedrooms} "
+                          "(hub_lobby needs 2 w/o safe; branched needs 3 w/ safe)"] += 1
+        elif not safe and bedrooms not in (2, 4):
+            reason_counter[f"safe_room=False, bedrooms={bedrooms} "
+                          "(hub_lobby needs 2; branched needs 4)"] += 1
+        else:
+            reason_counter[f"bedrooms={bedrooms}, safe_room={safe} (no compiler's shape)"] += 1
+    return {
+        "n_briefs": n,
+        "hub_lobby_eligible_count": len(hub_elig),
+        "branched_eligible_count": len(branched_elig),
+        "either_eligible_count": len(either),
+        "excluded_count": len(excluded),
+        "excluded_reasons": dict(sorted(reason_counter.items(), key=lambda kv: -kv[1])),
+    }
 
 
 def diversity_report(corpus_path: Path = _CORPUS_PATH) -> dict:
     cases = _planned_cases(corpus_path)
     stats = aggregate(score_briefs(cases))
-    stats["compiler_eligible_count"] = _compiler_eligible_count(cases)
+    stats["eligibility"] = _compiler_eligibility_breakdown(cases)
     return stats
 
 
@@ -217,24 +261,37 @@ def render_report(stats: dict) -> str:
     for cls, count in stats["class_counts"].items():
         lines.append(f"- {cls}: {count}")
     lines.append("")
-    if "compiler_eligible_count" in stats:
+    if "eligibility" in stats:
         n = stats["n_briefs"]
-        elig = stats["compiler_eligible_count"]
+        elig = stats["eligibility"]
+        share = stats["share_with_2_or_more_classes"]
+        verdict = "meets" if share >= 0.40 else "below"
         lines += [
-            "## AC-3 assessment (Issue #79)",
+            "## AC-3 assessment (Issue #79, attempt 3)",
             "",
             f"Share with ≥2 classes shown: {stats['briefs_with_2_or_more_classes']}/{n} "
-            f"({100 * stats['share_with_2_or_more_classes']:.1f}%) — below the 40% bar. "
-            f"`concept_compilers.compile_hub_lobby`/`compile_branched` share one precondition (no "
-            f"safe room, no open-plan living): only {elig}/{n} PLANNED cases satisfy it at all "
-            "(246/404 carry a safe room, 213/404 carry open-plan living), which caps what those "
-            "two compilers could contribute regardless of how general their own bedroom/wet-room "
-            "sizing becomes. Closing the gap to 40% needs safe-room-aware and open-plan-aware "
-            "compiler variants (or an equivalent broader generator change) covering most of the "
-            "remaining precondition gap — a substantially larger scope than this Issue's own two "
-            "single-shape compilers, named as a follow-up rather than attempted here.",
+            f"({100 * share:.1f}%) — {verdict} the 40% bar.",
+            "",
+            "### Per-precondition eligibility breakdown (lead direction 2026-09-22 (c))",
+            "",
+            "`compile_hub_lobby` and `compile_branched` now each support a SAFE_ROOM-aware and an "
+            "open-plan-aware variant (attempt 3); the remaining precondition is the room-count "
+            "shape each was calibrated and verified against — 2 bedrooms/2 wet rooms for "
+            "`compile_hub_lobby`, and 2 wet rooms plus either 4 bedrooms (no safe room) or 3 "
+            "bedrooms (with one) for `compile_branched`.",
+            "",
+            f"- `compile_hub_lobby`-eligible: {elig['hub_lobby_eligible_count']}/{n}",
+            f"- `compile_branched`-eligible: {elig['branched_eligible_count']}/{n}",
+            f"- eligible for either compiler: {elig['either_eligible_count']}/{n} "
+            f"({100 * elig['either_eligible_count'] / n:.1f}%)" if n else "n/a",
+            f"- excluded from both (residual population): {elig['excluded_count']}/{n}",
+            "",
+            "#### Residual population excluded from both compilers, by reason",
             "",
         ]
+        for reason, count in elig["excluded_reasons"].items():
+            lines.append(f"- {reason}: {count}")
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 
@@ -259,7 +316,7 @@ def main() -> None:
 
     if args.finalize:
         report_stats = aggregate(_load_resume(args.resume))
-        report_stats["compiler_eligible_count"] = _compiler_eligible_count(_planned_cases(_CORPUS_PATH))
+        report_stats["eligibility"] = _compiler_eligibility_breakdown(_planned_cases(_CORPUS_PATH))
     elif args.start is not None or args.end is not None:
         cases = _planned_cases(_CORPUS_PATH)[args.start:args.end]
         rows = _load_resume(args.resume) + score_briefs(cases)

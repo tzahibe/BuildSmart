@@ -96,12 +96,78 @@ def _branched_case():
     return spec, tuple(adapt(buildable).candidates), buildable
 
 
+def _hub_lobby_safe_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2,
+                                        open_plan_living=False, parking_spaces=0))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
+def _hub_lobby_open_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=2,
+                                        open_plan_living=True, parking_spaces=0))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
+def _hub_lobby_safe_open_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=2, safe_room=True, wet_rooms=2,
+                                        open_plan_living=True, parking_spaces=0))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
+def _branched_safe_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    corridor = CorridorRequirement(mode=CorridorWidthMode.MINIMUM, width_m=0.9)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=3, wet_rooms=2, safe_room=True,
+                                        open_plan_living=False, parking_spaces=0,
+                                        corridor=corridor))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
+def _branched_open_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    corridor = CorridorRequirement(mode=CorridorWidthMode.MINIMUM, width_m=0.9)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=4, wet_rooms=2, safe_room=False,
+                                        open_plan_living=True, parking_spaces=0,
+                                        corridor=corridor))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
+def _branched_safe_open_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    corridor = CorridorRequirement(mode=CorridorWidthMode.MINIMUM, width_m=0.9)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=3, wet_rooms=2, safe_room=True,
+                                        open_plan_living=True, parking_spaces=0,
+                                        corridor=corridor))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
 _CASES = {
     CirculationClass.SPINE: _spine_case,
     CirculationClass.FRONT_BAND: _front_band_case,
     CirculationClass.TWO_WING: _two_wing_case,
     CirculationClass.HUB_LOBBY: _hub_lobby_case,
     CirculationClass.BRANCHED: _branched_case,
+}
+
+#: SAFE_ROOM-aware / open-plan-aware compiler variants (lead direction after attempt 2,
+#: 2026-09-22): each precondition-relaxed case still emits a HUB_LOBBY/BRANCHED candidate that
+#: verifies on the realized plan, exactly like the base cases above.
+_VARIANT_CASES = {
+    "hub_lobby_safe": (CirculationClass.HUB_LOBBY, _hub_lobby_safe_case, concept_compilers.compile_hub_lobby),
+    "hub_lobby_open": (CirculationClass.HUB_LOBBY, _hub_lobby_open_case, concept_compilers.compile_hub_lobby),
+    "hub_lobby_safe_open": (CirculationClass.HUB_LOBBY, _hub_lobby_safe_open_case, concept_compilers.compile_hub_lobby),
+    "branched_safe": (CirculationClass.BRANCHED, _branched_safe_case, concept_compilers.compile_branched),
+    "branched_open": (CirculationClass.BRANCHED, _branched_open_case, concept_compilers.compile_branched),
+    "branched_safe_open": (CirculationClass.BRANCHED, _branched_safe_open_case, concept_compilers.compile_branched),
 }
 
 
@@ -130,6 +196,33 @@ def test_every_compiler_emits_verified_classes_and_drops_mismatches(circulation_
     for candidate, plan in ok_plans:
         assert verify_class(candidate, plan) is None, (
             circulation_class, plan.circulation_class, candidate.rationale)
+
+
+@pytest.mark.parametrize("variant", list(_VARIANT_CASES))
+def test_safe_room_and_open_plan_variants_emit_verified_classes(variant):
+    """Lead direction after attempt 2 (2026-09-22): SAFE_ROOM-aware and open-plan-aware variants
+    of `compile_hub_lobby`/`compile_branched` still emit a candidate that verifies on the realized
+    plan, carries a SAFE_ROOM when the programme asked for one, and connects LIVING/KITCHEN with
+    an OPEN_CONNECTION (no door between them) when the programme is open-plan."""
+    circulation_class, case, compile_fn = _VARIANT_CASES[variant]
+    spec, outline, buildable = case()
+    candidates = compile_fn(spec, outline[0].rect)
+    assert candidates, f"{variant} compiled nothing on its own canonical fixture"
+    assert all(c.circulation_class is circulation_class for c in candidates)
+
+    realized = _realize_all(spec, buildable, candidates)
+    ok_plans = [(c, p) for c, p in realized if p.ok]
+    assert ok_plans, (variant, [chk.detail for c, p in realized for chk in p.validation.checks
+                                if not chk.passed])
+    for candidate, plan in ok_plans:
+        assert verify_class(candidate, plan) is None, (variant, plan.circulation_class)
+        zone_ids = {r.zone_id for r in plan.design.rooms}
+        if spec.program.safe_room:
+            assert "SAFE_ROOM" in zone_ids, (variant, zone_ids)
+        if spec.program.open_plan_living:
+            living_kitchen_door = any(
+                {d.a, d.b} == {"LIVING", "KITCHEN"} for d in plan.design.interior_doors)
+            assert not living_kitchen_door, (variant, "LIVING-KITCHEN should be an open connection")
 
 
 def test_a_mismatching_candidate_is_dropped_not_relabelled():
