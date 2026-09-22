@@ -99,25 +99,61 @@ than the true polygon area (proving C27's redesign is actually needed), and that
 `contract._apply_room_merge` produces exactly ONE `RoomOut` with `shape="L"` and a populated
 `polygon_m`, with the two source rooms gone and every wall/door correctly remapped.
 
-## 4. 432-context corpus measurement (AC-2, AC-3)
+## 4. Two real bugs the corpus measurement found
 
-`spikes/failure_log_sweep/living_kitchen_merge_ab.py`, run against
-`tests/regression_corpus/corpus.json` (the same trusted 432-context snapshot Issue #66 froze).
+Running the sweep against real production geometry (not the hand-built unit fixture) surfaced two
+genuine defects, both fixed before this report's numbers below:
 
-<!-- FILL-IN: exact numbers from the AB sweep run, 2026-09-23 -->
+1. **A shapely floating-point adjacency bug, one candidate produced an unhandled crash instead of
+   a clean refusal.** Two real, genuinely flush-adjacent rectangles — `LIVING(x=3.55, w=7.6)` and
+   `KITCHEN(x=11.15)` — should touch exactly at `x=11.15`, but `3.55 + 7.6` evaluates in Python
+   float arithmetic to `11.149999999999999`, off by ~1e-15. Shapely's boolean `union()` uses EXACT
+   arithmetic and treats that as a real (if minuscule) gap, returning a `MultiPolygon` — two
+   separate rectangles — instead of one simple polygon; `compute_geometry` raised, and because the
+   solver had already reached `to_demo_design` for that candidate, the exception was NOT caught by
+   `DemoGenerationError`'s handling and would have surfaced as an unhandled 500 rather than a clean
+   refusal. **Fix**: `_xyxy` rounds every coordinate to 6 decimal places before any shapely
+   construction — real coordinates come from `u_to_m` (grid units), so this loses no genuine
+   precision, and it makes two coordinates that `_side_between`'s own `_EPS` tolerance already
+   considers equal bit-for-bit equal again before shapely ever sees them.
+2. **C27 rejected the common case — a flush merge — as if it were a defect.** The check's first
+   draft required the bounding-box area to be STRICTLY LARGER than the true polygon area (proving
+   the redesigned formula was "necessary"), but the Issue's own scope explicitly allows a flush
+   merge ("an L, or a rectangle if they happen to align flush") as a legitimate, passing outcome —
+   and on the real corpus it is the COMMON case (LIVING/KITCHEN pairs from a guillotine tree are
+   often the same height or width as each other). Every one of the first 41 real candidates found
+   failed C27 for exactly this reason before the fix. **Fix**: C27's gate is now just "the reported
+   area matches the true polygon area" (true for a flush merge too, since area-agreement is
+   trivial when there is no notch); whether the bounding-box formula would have overstated the area
+   is still reported as a diagnostic fact in the check's own detail string, not folded into the
+   pass/fail gate.
+
+Both are exactly the kind of finding a 2-week spike against a hand-built fixture alone would have
+missed — `test_living_kitchen_merge_spike.py`'s own fixture is a deliberately partial-edge (non-
+flush) adjacency, so it never exercised either bug; a regression test for the flush case
+(`test_flush_merge_is_a_rectangle_not_a_degenerate_polygon`) is in the test file.
+
+## 5. 432-context corpus measurement (AC-2, AC-3)
+
+`spikes/failure_log_sweep/living_kitchen_merge_ab.py`, run in bounded chunks against
+`tests/regression_corpus/corpus.json` (the same trusted 432-context snapshot Issue #66 froze) —
+each context takes ~2-3s through the real outline-search pipeline per flag state, so the full
+corpus is chunked into bounded runs merged into one accumulated result file (see the script's own
+docstring); `--report` prints the aggregate below.
+
+<!-- FILL-IN: exact numbers once every chunk has run, 2026-09-23 -->
 
 - **AC-2 (flag OFF)**: `room_merge.LIVING_KITCHEN_MERGE_ENABLED` defaults to `False`; `plan_merge`
   returns `None` unconditionally in that state before touching any geometry — the flag-off path is
   provably untouched by inspection (the very first line of `plan_merge`), and the sweep's own OFF
   pass is what today's baseline already is. **PASS.**
-- **AC-3 (flag ON)**: LOST=`<FILL>`, `<FILL>` primary-signature changes, every one attributable to
-  a merge candidate that was found AND passed its own checks (`merge.applied=True`) in that
-  context's own primary — named per-context in the sweep's own console output (reproduce with the
-  command in §6). `<FILL>` candidates found across the corpus, `<FILL>` applied, `<FILL>` rejected
-  (found but failed one of their own checks — the plan is then drawn exactly as it would be with
-  the flag off, per `MergeOut.applied=False`).
+- **AC-3 (flag ON)**: over `<FILL>`/432 contexts run so far — LOST=`<FILL>`, crashes=`<FILL>`,
+  `<FILL>` primary-signature changes, every one attributable to a merge candidate that was found
+  AND passed its own checks (`merge.applied=True`) in that context's own primary. `<FILL>`
+  candidates found, `<FILL>` applied, `<FILL>` rejected (found but failed one of their own checks
+  — the plan is then drawn exactly as it would be with the flag off, per `MergeOut.applied=False`).
 
-## 5. M1 kitchen/dining aspect, and the kill criterion (AC-4)
+## 6. M1 kitchen/dining aspect, and the kill criterion (AC-4)
 
 Over the `<FILL>` contexts where a merge actually APPLIED: kitchen/dining aspect median
 **before** (mean of the two source rooms' own gross long/short ratio, read off the SAME context's
@@ -136,15 +172,19 @@ aspect) was `<FILL>`.
 - **M1 aspect move vs the 2.75 reference gap**: <FILL>.
 - **Verdict**: <FILL — PROVEN / KILLED, and the one-sentence reason>.
 
-## 6. Reproducing this spike
+## 7. Reproducing this spike
 
 ```
 cd backend
 uv run pytest -q tests/vertical_slice/test_living_kitchen_merge_spike.py -v
-uv run python spikes/failure_log_sweep/living_kitchen_merge_ab.py
+uv run python spikes/failure_log_sweep/living_kitchen_merge_ab.py --start 0 --count 120
+uv run python spikes/failure_log_sweep/living_kitchen_merge_ab.py --start 120 --count 120
+uv run python spikes/failure_log_sweep/living_kitchen_merge_ab.py --start 240 --count 120
+uv run python spikes/failure_log_sweep/living_kitchen_merge_ab.py --start 360 --count 72
+uv run python spikes/failure_log_sweep/living_kitchen_merge_ab.py --report
 ```
 
-## 7. Out of scope, deliberately untouched
+## 8. Out of scope, deliberately untouched
 
 Per the Issue's own scope: any room-pair merge other than LIVING+KITCHEN, turning the flag on by
 default, any change to the solver (`geometry_core/`), Architecture B or C. `contract.RoomOut.walls`
@@ -154,6 +194,13 @@ authoritative wall geometry for every room, merged or not, already lives in
 `DemoDesign.walls`/`open_interfaces`). Net area for the merged room is the plain sum of the two
 source rooms' own net areas — it does not reclaim the sliver of wall thickness the opened seam
 frees, a conservative, documented simplification (the same direction `_open_corridor_to_public`'s
-own C14 conservatism already takes). `quality.exposure`/`quality.wet_privacy` still list the two
-source room ids individually (built off the raw pre-merge solver output) even when a merge
-applies — a known, disclosed inconsistency with `DemoDesign.rooms`, not fixed in this spike.
+own C14 conservatism already takes). `quality.exposure`/`quality.wet_privacy`/`quality.signal`/`quality.notices` all still refer to the
+two source room ids individually (computed off the raw pre-merge solver output, before
+`_apply_room_merge` runs) even when a merge applies — a known, disclosed inconsistency with the
+now-merged `DemoDesign.rooms`, not fixed in this spike.
+The frontend room label (`demoRoomLabel.ts`) prints a merged room's `width_m × depth_m` (its own
+axis-aligned bounding box) beside `area_m2` (the true polygon area) exactly as it does for a
+rectangle — for an L these two numbers do not multiply out to match, a real, disclosed cosmetic
+gap; redesigning the label for a polygon room (e.g. printing the polygon area alone, no
+width×depth pair) is a reasonable follow-up, not attempted here since the Issue's own deliverable
+is validation + basic polygon rendering, not label polish.

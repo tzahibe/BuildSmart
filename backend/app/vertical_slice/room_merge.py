@@ -39,9 +39,22 @@ TOL_M2 = 0.01
 _DEFAULT_MAX_ASPECT = 2.5
 
 
+#: Coordinates are rounded to this many decimal places before any shapely construction — real
+#: coordinates come from `u_to_m` (grid units), so this loses no real geometric precision, but it
+#: closes a genuine bug this spike found on the real corpus: `rect.x + rect.w` (Python float
+#: arithmetic) can differ from the touching neighbour's own `x` by ~1e-15, which shapely's EXACT
+#: boolean ops treat as a real (if minuscule) gap — `union()` then returns a `MultiPolygon` (two
+#: separate rectangles) instead of one simple polygon for a perfectly ordinary, flush-adjacent
+#: pair. Rounding both rectangles' coordinates the same way makes two nominally-equal coordinates
+#: bit-for-bit equal again, which is what `_side_between`/`_shared_len_m`'s own `_EPS` tolerance
+#: already assumes they are.
+_COORD_DECIMALS = 6
+
+
 def _xyxy(rect_m: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
     x, y, w, h = rect_m
-    return x, y, x + w, y + h
+    return (round(x, _COORD_DECIMALS), round(y, _COORD_DECIMALS),
+           round(x + w, _COORD_DECIMALS), round(y + h, _COORD_DECIMALS))
 
 
 def _side_between(a: tuple[float, float, float, float],
@@ -316,22 +329,28 @@ def validate_merged_room(candidate: MergeCandidate, geometry: MergedGeometry,
                         "not applicable — the merged room is not a circulation zone"))
 
     # C27 — displayed dimensions consistent with realized geometry. REDESIGNED formula: for a
-    # polygon room, area is the polygon's OWN area, never a bounding-box width x depth product —
-    # this asserts BOTH that the reported area matches the true polygon area AND that the naive
-    # rectangle formula would have been wrong (proving the redesign was actually necessary, not
-    # merely different).
+    # polygon room, area is the polygon's OWN area, never a bounding-box width x depth product.
+    # The gate itself is just that the reported area matches the true polygon area — true for
+    # BOTH an L and a flush-rectangle merge (the Issue's own "or a rectangle if they happen to
+    # align flush" case is a legitimate, passing outcome, not a defect). Whether the bounding-box
+    # formula would have overstated the area is reported as a diagnostic fact alongside the gate,
+    # not folded into it — an L needs the redesigned formula to be CORRECT, a flush merge simply
+    # doesn't need it to be DIFFERENT from the naive one.
     bbox_w, bbox_h = geometry.bbox_m[2], geometry.bbox_m[3]
     bbox_product = bbox_w * bbox_h
     true_area = merged_polygon.area
     area_matches = abs(true_area - geometry.gross_area_m2) <= TOL_M2
-    bbox_would_be_wrong = bbox_product > true_area + TOL_M2
+    bbox_overstates = bbox_product > true_area + TOL_M2
     checks.append(Check("C27", "displayed dimensions consistent with realized geometry (merged pair)",
-                        area_matches and bbox_would_be_wrong,
+                        area_matches,
                         f"reported gross area {geometry.gross_area_m2:.2f} m2 matches the union "
-                        f"polygon's own area {true_area:.2f} m2; the bounding-box product "
-                        f"{bbox_product:.2f} m2 would have overstated it by "
-                        f"{bbox_product - true_area:.2f} m2 — the redesigned formula is not "
-                        f"merely different, it is necessary"))
+                        f"polygon's own area {true_area:.2f} m2"
+                        + (f"; the bounding-box product {bbox_product:.2f} m2 would have "
+                           f"overstated it by {bbox_product - true_area:.2f} m2 — the redesigned "
+                           f"formula is necessary here, not merely different"
+                           if bbox_overstates else
+                           "; this merge happens to be flush (no notch), so the bounding-box "
+                           "product agrees with the polygon area here too")))
 
     return checks
 
