@@ -2,9 +2,11 @@ import type { DemoRoom } from './demoDesign'
 
 /** Lays out a room's label — name, realized dimensions, area — so it stays inside the rectangle.
  *
- * Presentation only. The dimensions are the room's own realized rectangle (`width_m` × `depth_m`),
- * never the template it was planned from, and the area is the backend's authoritative `area_m2`
- * (net of walls, which is why it is not simply width × depth).
+ * Presentation only. The printed dimensions are the room's own realized NET rectangle (`width_m`
+ * × `depth_m`), never the template it was planned from, and the area is the backend's own
+ * authoritative `area_m2`, which the backend guarantees equals that pair's product (check C27) —
+ * unlike the room's GROSS box (`gross_width_m` × `gross_depth_m`) the label is actually centred
+ * and fitted within.
  *
  * The default is three stacked lines. A room too shallow for three lines gets the dimensions and
  * area on one compact line; a room narrower than its label but deep enough to hold it sideways
@@ -97,11 +99,15 @@ export function roomLabelLayout(room: DemoRoom): RoomLabelLayout {
     { segments: [...dims, { text: ' · ' }, ...area], kind: 'compact', font: DETAIL_FONT },
   ]
 
-  // Sideways only helps a room deeper than it is wide.
-  const orientations: boolean[] = room.depth_m > room.width_m ? [false, true] : [false]
+  // Fits within the room's GROSS box — the rectangle actually drawn — even though the printed
+  // dimensions are the smaller NET pair; a room deeper than it is wide (by its built footprint)
+  // is the one sideways helps.
+  const boxWidth = room.gross_width_m
+  const boxDepth = room.gross_depth_m
+  const orientations: boolean[] = boxDepth > boxWidth ? [false, true] : [false]
   const candidates = [threeLines, twoLines].flatMap((stack) =>
     orientations.map((rotated) => {
-      const [w, d] = rotated ? [room.depth_m, room.width_m] : [room.width_m, room.depth_m]
+      const [w, d] = rotated ? [boxDepth, boxWidth] : [boxWidth, boxDepth]
       return { stack, rotated, scale: fitScale(stack, w, d) }
     }),
   )

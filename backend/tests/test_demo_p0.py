@@ -205,11 +205,13 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # one) lives in `quality`, and only a room far past it becomes a notice. `laundry_notice`
     # (2026-09-16, activation) stays None here — none of these briefs request a laundry room.
     # `metrics` (Issue #17, M1–M6) is additive and always present on a delivered plan.
+    # `constraints` (Issue #35) is additive too — one entry for a brief with an authoritative
+    # SAFE_ROOM requirement, empty for a brief without one.
     # `exposure` (Issue #19) is additive too — one entry per room.
     # `wet_privacy` (Issue #37) is additive too — one entry per wet room.
     assert "quality" in body and set(body["quality"]) == {
-        "over_preferred", "signal", "notices", "laundry_notice", "metrics", "exposure",
-        "wet_privacy"}
+        "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints",
+        "exposure", "wet_privacy"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 
@@ -295,7 +297,9 @@ def test_no_internal_corridor_crossing_door(client, case):
             span = ((door["x"] - half, door["y"]), (door["x"] + half, door["y"]))
         for hall in halls:
             hx, hy = hall["x"], hall["y"]
-            hx2, hy2 = hx + hall["width_m"], hy + hall["depth_m"]
+            # The GROSS (wall-centerline) rectangle — a door opens on a wall, which runs along
+            # the gross boundary, not the smaller net one the room's own wall insets produced.
+            hx2, hy2 = hx + hall["gross_width_m"], hy + hall["gross_depth_m"]
             on_boundary = any(
                 abs(sx - bx) < eps and abs(ex - bx) < eps
                 for bx in (hx, hx2)
@@ -820,14 +824,20 @@ def _rel_run(tmp_path, monkeypatch, *relations, side_m=14.14, brief=BRIEF_3BR_SA
 
 
 def _shared_boundary_m(design: dict, a_type: str, b_type: str) -> float:
-    """Longest shared boundary between any room of each type, measured off the returned plan."""
+    """Longest shared boundary between any room of each type, measured off the returned plan.
+
+    Uses each room's GROSS (wall-centerline) rectangle — two rooms' NET rectangles never actually
+    touch, since each has already been inset away from the shared wall by its own half-thickness.
+    """
     def rooms(t):
         return [r for r in design["rooms"] if r["type"] == t]
     best = 0.0
     for ra in rooms(a_type):
         for rb in rooms(b_type):
-            x_overlap = min(ra["x"] + ra["width_m"], rb["x"] + rb["width_m"]) - max(ra["x"], rb["x"])
-            y_overlap = min(ra["y"] + ra["depth_m"], rb["y"] + rb["depth_m"]) - max(ra["y"], rb["y"])
+            x_overlap = (min(ra["x"] + ra["gross_width_m"], rb["x"] + rb["gross_width_m"])
+                        - max(ra["x"], rb["x"]))
+            y_overlap = (min(ra["y"] + ra["gross_depth_m"], rb["y"] + rb["gross_depth_m"])
+                        - max(ra["y"], rb["y"]))
             if abs(x_overlap) < 1e-9 and y_overlap > 1e-9:
                 best = max(best, y_overlap)
             elif abs(y_overlap) < 1e-9 and x_overlap > 1e-9:
@@ -1487,9 +1497,11 @@ def test_the_entrance_opens_into_the_room_it_names(client):
     entrance = next(d for d in body["doors"] if d["is_entrance"])
     room = next(r for r in body["rooms"] if r["id"] == entrance["b"])
 
-    assert room["x"] <= entrance["x"] <= room["x"] + room["width_m"], (
+    # The door sits on the room's GROSS (wall-centerline) span, not its net usable one — a door on
+    # an exterior wall can land right at the edge the net rectangle has already inset away from.
+    assert room["x"] <= entrance["x"] <= room["x"] + room["gross_width_m"], (
         f"the door names {entrance['b']} but is at x={entrance['x']}, "
-        f"outside its span {room['x']}..{room['x'] + room['width_m']}")
+        f"outside its span {room['x']}..{room['x'] + room['gross_width_m']}")
     assert abs(room["y"] - entrance["y"]) < 1e-6, "the door is not on that room's street wall"
 
 
