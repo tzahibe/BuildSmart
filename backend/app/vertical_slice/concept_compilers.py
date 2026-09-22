@@ -27,12 +27,16 @@ One interface, `compile(pattern, spec, outline) -> list[ConceptCandidate]`:
                                   (compact lobby with rooms on 4-5 sides, the shared wet room at
                                   its head), calibrated to and VERIFIED against the real solver and
                                   every validator — never past a ROOM_TEMPLATES bound, so nothing
-                                  here is a hard-limit relaxation — for 2 bedrooms/2 wet rooms
+                                  here is a hard-limit relaxation — for 2 bedrooms/2-or-3 wet rooms
                                   (`_hub_lobby_unsupported`), WITH a SAFE_ROOM-aware variant and an
                                   open-plan-aware variant, independently combinable (lead direction
                                   after attempt 2, 2026-09-22: SAFE_ROOM/open-plan are the norm in
                                   this product, not the exception the original single shape
-                                  covered). Because `patterns_for` still routinely NAMES
+                                  covered), and a third-wet-room (GUEST_WC) variant whose own room
+                                  is sized from `ROOM_TEMPLATES[TOILET]` rather than a fixed
+                                  literal (review follow-up, attempt 4 — see `compile_hub_lobby`'s
+                                  own docstring; not yet combined with SAFE_ROOM). Because
+                                  `patterns_for` still routinely NAMES
                                   `HUB_LOBBY` for common footprint families (the 21-plan census
                                   prior this Issue's own wiki page cites), `concept_engine_v2`
                                   tries this compiler on every brief that pattern is offered for —
@@ -120,13 +124,20 @@ def compile(pattern: "Pattern", spec: "ArchitecturalSpec",
 
 # --------------------------------------------------------------------------- HUB_LOBBY
 
-#: The exact programme shape `compile_hub_lobby` supports — see the module docstring for why. 2
-#: bedrooms (a master plus one), 2 wet rooms (the master's ensuite plus one shared bathroom, the
-#: `resolve_wet_rooms` default for this exact combination). `safe_room`/`open_plan_living` are
-#: BOTH supported (lead direction, 2026-09-22, attempt 3): a SAFE_ROOM row and/or an open-plan
-#: LIVING/KITCHEN group, see `compile_hub_lobby`'s own docstring for how each changes the tree.
+#: The programme shape `compile_hub_lobby` supports — see the module docstring for why. 2
+#: bedrooms (a master plus one). `safe_room`/`open_plan_living` are BOTH supported (lead
+#: direction, 2026-09-22, attempt 3): a SAFE_ROOM row and/or an open-plan LIVING/KITCHEN group,
+#: see `compile_hub_lobby`'s own docstring for how each changes the tree. `wet_rooms` (attempt 4,
+#: review follow-up): 2 (the master's ensuite plus one shared bathroom, `resolve_wet_rooms`'s
+#: default) OR 3 (the same two PLUS a GUEST_WC, `resolve_wet_rooms`'s zone id TOILET_1) — the
+#: extra room's own size comes from `cg.ROOM_TEMPLATES[ProgramRole.TOILET]` (its real min/target/
+#: max area and min short side), not a fixed literal, so the tree adapts to the ACTUAL role the
+#: programme adds rather than staying blind to any wet-room count but exactly 2. Not yet combined
+#: with `safe_room` — a 3-way south-row split (BATH_2 | SAFE_ROOM | TOILET_1) is a further step,
+#: named as a follow-up rather than attempted here.
 _HUB_LOBBY_BEDROOMS = 2
-_HUB_LOBBY_WET_ROOMS = 2
+_HUB_LOBBY_WET_ROOMS_NO_TOILET = 2
+_HUB_LOBBY_WET_ROOMS_WITH_TOILET = 3
 
 #: Gross metres, hand-calibrated and verified against the real solver + every validator (C1-C29),
 #: never past a `concept_generator.ROOM_TEMPLATES` bound — see the module docstring. `MASTER_W`
@@ -166,9 +177,24 @@ def _hub_lobby_unsupported(spec: "ArchitecturalSpec") -> str | None:
     program = spec.program
     if program.bedrooms != _HUB_LOBBY_BEDROOMS:
         return f"compile_hub_lobby supports exactly {_HUB_LOBBY_BEDROOMS} bedrooms, not {program.bedrooms}"
-    if program.wet_rooms != _HUB_LOBBY_WET_ROOMS:
-        return f"compile_hub_lobby supports exactly {_HUB_LOBBY_WET_ROOMS} wet rooms, not {program.wet_rooms}"
+    if program.wet_rooms == _HUB_LOBBY_WET_ROOMS_WITH_TOILET and program.safe_room:
+        return "compile_hub_lobby's 3-wet-room GUEST_WC row is not yet combined with a safe room"
+    if program.wet_rooms not in (_HUB_LOBBY_WET_ROOMS_NO_TOILET, _HUB_LOBBY_WET_ROOMS_WITH_TOILET):
+        return (f"compile_hub_lobby supports {_HUB_LOBBY_WET_ROOMS_NO_TOILET} or "
+               f"{_HUB_LOBBY_WET_ROOMS_WITH_TOILET} wet rooms, not {program.wet_rooms}")
     return None
+
+
+def _toilet_sliver_width_m(row_depth_m: float) -> float:
+    """`TOILET_1`'s own width for a south-row of depth `row_depth_m`, sized from
+    `ProgramRole.TOILET`'s real `ROOM_TEMPLATES` entry — its target area at this depth, never
+    under its own minimum short side plus the edge inset every leaf needs — rounded to the
+    engine's own 0.05 m cut grid. Derived from the role's template, not a fixed literal: the one
+    thing that changes if `ROOM_TEMPLATES[TOILET]` is ever recalibrated."""
+    template = cg.ROOM_TEMPLATES[ProgramRole.TOILET]
+    width = max(template.target_area_m2 / row_depth_m,
+               template.min_short_side_m + cg._EDGE_INSET_ALLOWANCE_M)
+    return round(width / 0.05) * 0.05
 
 
 def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[ConceptCandidate]":
@@ -181,7 +207,13 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     the rest of that row PLUS all of BEDROOM_1's width, so it borders HALL directly (never through
     a bedroom — `access_rules.ALLOWED_ENTERED_FROM`) and reaches the EAST exterior wall in the
     same row (`exposure_policy`'s REQUIRED exterior+window for `ProgramRole.SAFE_ROOM`) — 5 doors,
-    rooms on 5 sides. `spec.program.open_plan_living` (independently) only changes the LIVING-
+    rooms on 5 sides. WITH a third wet room instead (`spec.program.wet_rooms == 3`, attempt 4),
+    the south row splits the OTHER way: TOILET_1 (a GUEST_WC, `_toilet_sliver_width_m`-sized from
+    its own `ROOM_TEMPLATES` entry, never a fixed literal) takes the west sliver under HALL, and
+    BATH_2 keeps the remainder — the same "one leaf keeps a real slice of HALL's own width, the
+    other takes the rest of the row" split `SAFE_ROOM` uses above, with the two rooms' structural
+    roles swapped. Not yet combined with a safe room (`_hub_lobby_unsupported`).
+    `spec.program.open_plan_living` (independently) only changes the LIVING-
     KITCHEN edge from DOOR to OPEN_CONNECTION plus `open_groups`; it never touches the tree. See
     the module docstring for why this is a hand-sized tree rather than
     `concept_generator._hub_concept`'s own (measured-broken) builder, and `_hub_lobby_unsupported`
@@ -190,6 +222,7 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     if _hub_lobby_unsupported(spec) is not None:
         return []
     has_safe = spec.program.safe_room
+    has_toilet = spec.program.wet_rooms == _HUB_LOBBY_WET_ROOMS_WITH_TOILET
     open_plan = spec.program.open_plan_living
     master_w = _MASTER_W_SAFE_M if has_safe else _MASTER_W_M
     md = _MD_SAFE_M if has_safe else _MD_M
@@ -197,6 +230,7 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     hd = _HD_SAFE_M if has_safe else _HD_M
     fd = _FD_SAFE_M if has_safe else _FD_M
     bd1 = fd  # invariant: md + bd1 == hd + fd, always bd1 == fd since md == hd in both variants
+    toilet_w = _toilet_sliver_width_m(fd) if has_toilet else 0.0
 
     max_w_m, max_h_m = cg.u_to_m(candidate.w), cg.u_to_m(candidate.h)
     east_w = lobby_w + _BEDROOM1_W_M
@@ -220,6 +254,11 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     ]
     if has_safe:
         zones.append(z("SAFE_ROOM", (ProgramRole.SAFE_ROOM,), 9.0, 10.5, 14.0, 2.4, aspect=2.5))
+    if has_toilet:
+        toilet_template = cg.ROOM_TEMPLATES[ProgramRole.TOILET]
+        zones.append(z("TOILET_1", (ProgramRole.TOILET,), toilet_template.min_area_m2,
+                       toilet_template.target_area_m2, toilet_template.max_area_m2,
+                       toilet_template.min_short_side_m, aspect=toilet_template.max_aspect_ratio))
 
     def v(a, b, fixed_m: float | None) -> Split:
         return Split(Cut.V, a, b, m_to_u(fixed_m) if fixed_m is not None else None)
@@ -234,6 +273,9 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     hub_east = v(L("HALL"), L("BEDROOM_1"), fixed_m=lobby_w)
     if has_safe:
         south_row = v(L("BATH_2"), L("SAFE_ROOM"), fixed_m=_BATH2_SLIVER_M)
+        east_part = h(hub_east, south_row, fixed_m=hd)
+    elif has_toilet:
+        south_row = v(L("TOILET_1"), L("BATH_2"), fixed_m=toilet_w)
         east_part = h(hub_east, south_row, fixed_m=hd)
     else:
         east_part = h(hub_east, L("BATH_2"), fixed_m=hd)
@@ -253,6 +295,8 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     ]
     if has_safe:
         edges.append(DesiredAccessEdge("HALL", "SAFE_ROOM", ConnectionKind.DOOR))
+    if has_toilet:
+        edges.append(DesiredAccessEdge("HALL", "TOILET_1", ConnectionKind.DOOR))
     access = DesiredAccessTopology(tuple(edges))
     open_groups = (("LIVING", "KITCHEN"),) if open_plan else ()
     fixture = Fixture("GEN_HUB_LOBBY", (wing,), tuple(zones), access, open_groups=open_groups)
@@ -262,6 +306,9 @@ def compile_hub_lobby(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Conce
     if has_safe:
         rationale = ("hand-sized compact lobby with a safe room: rooms on 5 sides, the safe room "
                     "and the shared bathroom both reached from the lobby directly")
+    if has_toilet:
+        rationale = ("hand-sized compact lobby with a guest WC: rooms on 5 sides, a GUEST_WC "
+                    "sized from its own room template sits under the lobby beside the shared bath")
     candidate_out = cg.ConceptCandidate(
         concept, cg.ConceptStrategy.HUB_PRIVATE_WING, (0,),
         circulation_class=CirculationClass.HUB_LOBBY,

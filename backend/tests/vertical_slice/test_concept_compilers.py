@@ -112,6 +112,14 @@ def _hub_lobby_open_case():
     return spec, tuple(adapt(buildable).candidates), buildable
 
 
+def _hub_lobby_toilet_case():
+    buildable = _rect_buildable(24.0, 22.0)
+    spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
+                             ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=3,
+                                        open_plan_living=False, parking_spaces=0))
+    return spec, tuple(adapt(buildable).candidates), buildable
+
+
 def _hub_lobby_safe_open_case():
     buildable = _rect_buildable(24.0, 22.0)
     spec = ArchitecturalSpec(PlotSpec(24.0, 28.0),
@@ -165,6 +173,7 @@ _VARIANT_CASES = {
     "hub_lobby_safe": (CirculationClass.HUB_LOBBY, _hub_lobby_safe_case, concept_compilers.compile_hub_lobby),
     "hub_lobby_open": (CirculationClass.HUB_LOBBY, _hub_lobby_open_case, concept_compilers.compile_hub_lobby),
     "hub_lobby_safe_open": (CirculationClass.HUB_LOBBY, _hub_lobby_safe_open_case, concept_compilers.compile_hub_lobby),
+    "hub_lobby_toilet": (CirculationClass.HUB_LOBBY, _hub_lobby_toilet_case, concept_compilers.compile_hub_lobby),
     "branched_safe": (CirculationClass.BRANCHED, _branched_safe_case, concept_compilers.compile_branched),
     "branched_open": (CirculationClass.BRANCHED, _branched_open_case, concept_compilers.compile_branched),
     "branched_safe_open": (CirculationClass.BRANCHED, _branched_safe_open_case, concept_compilers.compile_branched),
@@ -219,6 +228,8 @@ def test_safe_room_and_open_plan_variants_emit_verified_classes(variant):
         zone_ids = {r.zone_id for r in plan.design.rooms}
         if spec.program.safe_room:
             assert "SAFE_ROOM" in zone_ids, (variant, zone_ids)
+        if spec.program.wet_rooms == 3:
+            assert "TOILET_1" in zone_ids, (variant, zone_ids)
         if spec.program.open_plan_living:
             living_kitchen_door = any(
                 {d.a, d.b} == {"LIVING", "KITCHEN"} for d in plan.design.interior_doors)

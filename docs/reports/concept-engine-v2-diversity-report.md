@@ -41,3 +41,15 @@ Share with ≥2 classes shown: 104/404 (25.7%) — below the 40% bar.
 - safe_room=False, bedrooms=5 (hub_lobby needs 2; branched needs 4): 2
 - safe_room=False, bedrooms=6 (hub_lobby needs 2; branched needs 4): 2
 
+### Review follow-up (attempt 4, not yet re-measured)
+
+`compile_hub_lobby` now also serves `wet_rooms=3` (bedrooms=2, no safe room): a GUEST_WC
+(`TOILET_1`) sized from its own `ROOM_TEMPLATES` entry rather than a fixed literal, addressing the
+independent review's major finding that the compilers' fixed geometry did not adapt to wet-room
+count. This directly reduces the `wet_rooms=1`/`wet_rooms=3` residual population above (252/340,
+62% of the exclusions) for the `bedrooms=2` slice of it. The figures above were NOT regenerated
+this attempt — the sandboxed fixer session this change was made in cannot execute
+`spikes/failure_log_sweep/concept_diversity_v2.py` or the test suite (no script/test execution
+permission available); re-running the sweep is the next step before this line is trusted as
+current.
+
