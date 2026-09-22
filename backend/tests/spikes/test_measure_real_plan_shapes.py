@@ -99,3 +99,15 @@ def test_classify_room_shape_unit_l_shape():
 def test_classify_room_shape_unit_other_for_a_triangle():
     triangle = [[0.0, 0.0], [4.0, 0.0], [2.0, 3.0], [0.0, 0.0]]
     assert classify_room_shape(triangle) == OTHER
+
+
+def test_classify_room_shape_self_intersecting_bowtie_ring_keeps_largest_piece():
+    """Issue #106: a self-intersecting ("bowtie") ring -- two squares joined at a single crossing
+    point, as seen on the full 199-plan corpus's resplan_3728 BATHROOM_2 -- makes Shapely's
+    buffer(0) repair split into a MultiPolygon (a 2x2 and a 3x3 square) instead of one Polygon.
+    _polygon_from_ring must keep the largest piece rather than crashing on `.exterior`."""
+    bowtie = [
+        [0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [0.0, 0.0],
+        [3.0, 0.0], [6.0, 0.0], [6.0, 3.0], [3.0, 3.0], [3.0, 0.0],
+    ]
+    assert classify_room_shape(bowtie) == RECTANGLE
