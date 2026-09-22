@@ -157,8 +157,12 @@ def test_merged_room_passes_validation_and_renders_as_polygon(monkeypatch):
         contract.DoorOut(a="HALL_1", b="LIVING_1", kind="DOOR", width_m=0.9, x=0.0, y=2.0,
                          orientation="vertical"),
     ]
+    opens = [
+        contract.OpenInterface(orientation="vertical", coord=9.0, start=1.0, end=3.0,
+                               room_ids=["KITCHEN_1", "DINING_1"]),
+    ]
     new_rooms, new_walls, new_opens, new_doors = contract._apply_room_merge(
-        result, rooms_out, walls, [], doors)
+        result, rooms_out, walls, opens, doors)
 
     ids = {r.id for r in new_rooms}
     assert "LIVING_1" not in ids and "KITCHEN_1" not in ids
@@ -178,6 +182,9 @@ def test_merged_room_passes_validation_and_renders_as_polygon(monkeypatch):
 
     # The door from the hall into the (former) living room now names the merged room.
     assert new_doors[0].a == "HALL_1" and new_doors[0].b == result.merged_id
+
+    # The open interface from the (former) kitchen to DINING now names the merged room too.
+    assert new_opens[0].room_ids == [result.merged_id, "DINING_1"]
 
 
 def test_flush_merge_is_a_rectangle_not_a_degenerate_polygon(monkeypatch):
