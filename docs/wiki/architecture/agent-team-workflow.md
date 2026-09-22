@@ -735,6 +735,25 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
 - ROOT-integration children keep their own branch during a period (#76/#77 → `integration/concept-engine-v2`);
   everything else integrates into the period branch and lands with its rollup.
 
+## Night of 2026-09-21/22 (owner merge authorization until the morning) — lessons
+
+- A rollup Issue must never become a worker task: a fixer's publish failure on the rollup requeued #90, the
+  scheduler CLAIMED it, and a worker squashed the integration branch onto `agent/90-…` and opened a second
+  rollup PR (#98, tree-identical). Fixed: `_worker_failed` blocks a rollup instead of requeueing it, `schedule`
+  blocks a QUEUED rollup, a rollup's review findings stay with the lead. Repair of the live record: close the
+  duplicate PR, point the record back at the integration PR, reset the `90-rollup` worktree, `resume-pr
+  --rereview`.
+- Every `pull_request: edited` event re-runs the whole CI (gate 4 ≈ 1 h) on the head that just went READY: the
+  rollup's READY summary is now a PR COMMENT, never a body edit. Gate 1 recognizes a rollup PR by its Issue's
+  `agent:rollup` label as well as by an `integration/` head.
+- A gate-3 target that TIMES OUT (`test_every_door_out_carries_hinge_and_swing`, 1800 s) is a test defect or a
+  hang, not "AC evidence failed": dispatch the fixer with the exact target and the timeout.
+- Concept Engine child 5 (#79): HUB_LOBBY / BRANCHED compilers reachable, but their precondition (no SAFE_ROOM,
+  no open plan) covers only 83/404 briefs → 19.6 %; the lead directed safe-room-aware and open-plan-aware
+  variants inside the ROOT's scope (the 40 % bar unchanged). POC child C (#96): the Geometry Core shape-curve
+  query ignores a node's own forced split when reporting to its parent — a real engine note; realization
+  ≈ 150 s per POC plan (acceptable offline).
+
 ## Last verified against git
 
 `648292f2` (main) + home branch `9876cb7`+ (§42 ROOT integration branches, priority order); before that `7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.
