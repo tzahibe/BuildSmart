@@ -940,6 +940,39 @@ def cmd_remote(config: Config, args) -> int:
 
 # -- owner updates from the Team Lead -----------------------------------------------------------
 
+def cmd_notify_photo(config: Config, args) -> int:
+    """Send the owner one or more PNG/SVG plan images on Telegram (SVG is rasterised with macOS
+    QuickLook, `qlmanage -t`, when no PNG is given). Synchronous — the images go out now."""
+    import subprocess, tempfile
+    from agent_team.remote.transport import HttpTelegramTransport, resolve_token
+    store = StateStore(config.state_db_path)
+    owner = store.owner()
+    if owner is None:
+        print("no paired owner — run `agentctl remote pair`", file=sys.stderr)
+        return 2
+    token = resolve_token(config.telegram_token_env, config.telegram_env_file)
+    tg = HttpTelegramTransport(token)
+    sent = 0
+    for i, path in enumerate(args.images):
+        src = Path(path)
+        data: bytes
+        if src.suffix.lower() == ".svg":
+            with tempfile.TemporaryDirectory() as td:
+                proc = subprocess.run(["qlmanage", "-t", "-s", str(args.size), "-o", td, str(src)], capture_output=True, text=True)
+                pngs = list(Path(td).glob("*.png"))
+                if proc.returncode != 0 or not pngs:
+                    print(f"{src}: SVG rasterisation failed: {proc.stderr[-200:]}", file=sys.stderr)
+                    continue
+                data = pngs[0].read_bytes()
+        else:
+            data = src.read_bytes()
+        caption = args.captions[i] if args.captions and i < len(args.captions) else src.stem
+        tg.send_photo(owner["chat_id"], data, caption=caption, filename=src.stem + ".png")
+        sent += 1
+    print(f"sent {sent} photo(s) to the owner")
+    return 0 if sent else 1
+
+
 def cmd_notify(config: Config, args) -> int:
     """Send the owner a progress update on Telegram (through the outbox: delivered by the running
     remote service, deduplicated, retried). The Team Lead uses this so the owner is never left
@@ -1131,6 +1164,8 @@ def build_parser() -> argparse.ArgumentParser:
     r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
     rem.set_defaults(fn=cmd_remote)
     s = sub.add_parser("notify"); s.add_argument("text", help="Hebrew update for the owner ('-' reads stdin)"); s.set_defaults(fn=cmd_notify)
+    s = sub.add_parser("notify-photo"); s.add_argument("images", nargs="+", help="PNG or SVG files (SVG rasterised via qlmanage)")
+    s.add_argument("--caption", dest="captions", action="append", help="one per image, in order"); s.add_argument("--size", type=int, default=1600); s.set_defaults(fn=cmd_notify_photo)
     s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)
     s = sub.add_parser("uninstall"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_uninstall)
     return p
