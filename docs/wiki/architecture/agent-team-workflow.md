@@ -171,7 +171,11 @@ Fail-fast, for PRs from `agent/**` to `main`:
 3. **gate-3-verification** (`ci/verify.py`) — runs every `AC-n -> target` from the manifest; an AC
    without a passing target fails the gate. No model is consulted.
 4. **gate-4-regression** (`agent-regression.yml`, when required: regression domains / a
-   `regression:corpus` target and backend product code changed, or HIGH risk) — replays the
+   `regression:corpus` target and backend product code changed, HIGH risk, or a change to gate-4's
+   own base-snapshot selection machinery — `ci/plan.py`'s `REGRESSION_MACHINERY`, so an O1-O3
+   change to `agent-regression.yml`/`agent-snapshot.yml`/`ci/snapshot_store.py`/
+   `ci/regression_gate.py` always self-validates on real CI evidence instead of being skipped as
+   "no backend product code changed") — replays the
    frozen 432-context corpus at the merge-base (cached by SHA) and at the head with
    `backend/spikes/failure_log_sweep/corpus_snapshot.py`, runs `TEST_MODE=REGRESSION` corpus
    tests, and evaluates the Issue's budget (`regression_budget.py`): before/after planned/refused,

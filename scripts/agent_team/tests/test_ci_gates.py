@@ -113,6 +113,21 @@ def test_plan_decides_gates():
     assert d["frontend_changed"] and d["orchestrator_changed"] and not d["regression_required"]
 
 
+def test_regression_machinery_changes_self_validate_even_without_backend_product():
+    # AC-4 (Issue #68): a PR that changes gate-4's own base-snapshot selection machinery must run
+    # gate-4 itself, so the mechanism produces real evidence instead of being skipped as "no
+    # backend product code changed" — the exact gap the independent review found.
+    d = plan.decide([".github/workflows/agent-regression.yml", "docs/x.md"], None)
+    assert d["regression_required"] and "self-validate" in d["regression_reason"]
+    d = plan.decide([".github/workflows/agent-snapshot.yml"], {"regression_required": False, "risk": "LOW"})
+    assert d["regression_required"]
+    d = plan.decide(["scripts/agent_team/ci/snapshot_store.py"], {"regression_required": False, "risk": "LOW"})
+    assert d["regression_required"]
+    # an unrelated orchestrator file must not trip this — only the named machinery files do
+    d = plan.decide(["scripts/agent_team/cli.py"], None)
+    assert not d["regression_required"]
+
+
 def test_backend_docs_alone_do_not_trigger_the_fast_tier():
     m = {"regression_required": True, "risk": "MEDIUM"}
     d = plan.decide(["backend/README.md", "docs/wiki/x.md"], m)
