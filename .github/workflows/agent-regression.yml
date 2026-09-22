@@ -17,6 +17,16 @@
 # before running it, so a merge-base that predates `--shard`/`corpus_hash` (true of every real PR
 # until this Issue reaches main) still shards correctly and writes a comparable `corpus_hash` —
 # only the harness script comes from head, run against the base's own `app` code and corpus.
+#
+# O2 (Issue #68), shadow mode: the base snapshot is always still computed locally as above; in
+# addition, `resolve` looks up a *trusted* copy of it — the v2 Actions cache (written only by
+# `agent-snapshot.yml`'s `push` runs on main/integration/**) then, on a miss, that run's own
+# artifact — validates it (`agent_team.ci.snapshot_store`: right head_sha, exactly 432 contexts,
+# matching corpus_hash) and, on a valid hit, compares it against the locally computed
+# `base_snapshot.json`, failing the job on any difference. The old v1 cache (never actually shared
+# across PRs — see docs/CI_SNAPSHOT_CACHE_DESIGN.md) is removed; a `pull_request` run never writes
+# the v2 key itself. Local computation is only skipped once several real PRs show the trusted
+# store always agrees — not scheduled by this Issue.
 name: agent-regression
 
 on:
@@ -32,16 +42,24 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
-  # Resolves the merge-base once and checks (lookup-only) whether its snapshot is already cached,
-  # so the matrix job below knows whether it needs to shard the base corpus too.
+  # Resolves the merge-base once and looks up (lookup-only) whether a *trusted* snapshot of it
+  # already exists — O2 (Issue #68): the v2 Actions cache, written only by a `push` run of
+  # `agent-snapshot.yml` on `main`/`integration/**` (a `pull_request` run cannot write there), and,
+  # on a miss, that `push` run's own artifact via the GitHub API. Shadow mode: a hit here never
+  # skips the local computation below — both refs are always sharded, so a freshly computed base
+  # snapshot is always available to compare the trusted candidate against (see the `regression`
+  # job). The old v1 cache (recomputed by every PR sharing a base, never actually shared across
+  # PRs — see docs/CI_SNAPSHOT_CACHE_DESIGN.md) is removed.
   resolve:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       base_sha: ${{ steps.base.outputs.sha }}
-      cache_hit: ${{ steps.cache.outputs.cache-hit }}
+      v2_cache_hit: ${{ steps.v2cache.outputs.cache-hit }}
+      artifact_run_id: ${{ steps.artifact_lookup.outputs.run_id }}
       refs: ${{ steps.refs.outputs.refs }}
     steps:
       - uses: actions/checkout@v4
@@ -55,25 +73,43 @@ jobs:
           BASE=$(git merge-base "origin/${{ inputs.base_ref }}" HEAD)
           echo "sha=$BASE" >> "$GITHUB_OUTPUT"
           echo "merge-base: $BASE"
-      - name: Check cached base snapshot (lookup only)
-        id: cache
+      - name: Check trusted v2 cache (lookup only)
+        id: v2cache
         uses: actions/cache/restore@v4
         with:
-          path: .agent/ci/base_snapshot.json
-          key: corpus-snapshot-v1-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+          path: .agent/ci/base_snapshot_trusted.json
+          key: corpus-snapshot-v2-${{ steps.base.outputs.sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
           lookup-only: true
-      - name: Decide which refs need sharding
-        id: refs
+      - name: Look up the push-triggered snapshot artifact (only if the v2 cache missed)
+        id: artifact_lookup
+        if: steps.v2cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ steps.cache.outputs.cache-hit }}" == "true" ]; then
-            echo 'refs=["head"]' >> "$GITHUB_OUTPUT"
+          BASE_SHA="${{ steps.base.outputs.sha }}"
+          set +e
+          API_OUTPUT=$(gh api "repos/${{ github.repository }}/actions/workflows/agent-snapshot.yml/runs?head_sha=$BASE_SHA&event=push&status=success&per_page=5" \
+            --jq '[.workflow_runs[] | select(.head_branch == "main" or (.head_branch | startswith("integration/")))][0].id // empty' 2>&1)
+          API_STATUS=$?
+          set -e
+          if [ "$API_STATUS" -ne 0 ]; then
+            # A 404 here means agent-snapshot.yml isn't on the default branch yet (this PR
+            # introduces it) — the trusted store is cold, not broken; treat it as "no run found"
+            # rather than failing the gate. Any other gh failure surfaces the same way: no
+            # candidate, computed locally, reason visible in the summary.
+            echo "push-artifact lookup for base $BASE_SHA failed (treated as no candidate): $API_OUTPUT"
+            RUN_ID=""
           else
-            echo 'refs=["head","base"]' >> "$GITHUB_OUTPUT"
+            RUN_ID="$API_OUTPUT"
           fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "push-artifact lookup for base $BASE_SHA: run_id=${RUN_ID:-none}"
+      - name: "Decide which refs need sharding (shadow mode: always shard both, for comparison)"
+        id: refs
+        run: echo 'refs=["head","base"]' >> "$GITHUB_OUTPUT"
 
-  # O3: N=4 parallel shards per ref that needs a fresh snapshot (head always; base only on a cache
-  # miss). Each shard replays disjoint contexts (`--shard I/N`, index % N == I by sorted context
-  # key) and uploads its own result document.
+  # O3: N=4 parallel shards per ref. Each shard replays disjoint contexts (`--shard I/N`,
+  # index % N == I by sorted context key) and uploads its own result document.
   snapshot:
     needs: resolve
     runs-on: ubuntu-latest
@@ -143,38 +179,31 @@ jobs:
           name: head-snapshot-merged
           path: .agent/ci/head_snapshot.json
       - name: Download base shards
-        if: needs.resolve.outputs.cache_hit != 'true'
         uses: actions/download-artifact@v4
         with:
           pattern: snapshot-shard-base-*
           path: .agent/ci
           merge-multiple: true
       - name: Merge base shards
-        if: needs.resolve.outputs.cache_hit != 'true'
         working-directory: backend
         run: |
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --merge \
             "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" \
             $GITHUB_WORKSPACE/.agent/ci/shard-base-*.json
       - name: Upload merged base snapshot
-        if: needs.resolve.outputs.cache_hit != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: base-snapshot-merged
           path: .agent/ci/base_snapshot.json
       - name: Record sharded wall time
-        env:
-          CACHE_HIT: ${{ needs.resolve.outputs.cache_hit }}
         run: |
           HEAD_SECONDS=$(python3 -c "import json; print(json.load(open('.agent/ci/head_snapshot.json'))['seconds'])")
+          BASE_SECONDS=$(python3 -c "import json; print(json.load(open('.agent/ci/base_snapshot.json'))['seconds'])")
           {
             echo "### O3 sharded snapshot timing (shadow mode)"
             echo "- head snapshot: slowest of 4 shards finished in ${HEAD_SECONDS}s (shards ran in parallel matrix jobs)"
+            echo "- base snapshot: slowest of 4 shards finished in ${BASE_SECONDS}s (O2 shadow mode: always computed, even on a trusted-store hit)"
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$CACHE_HIT" != "true" ]; then
-            BASE_SECONDS=$(python3 -c "import json; print(json.load(open('.agent/ci/base_snapshot.json'))['seconds'])")
-            echo "- base snapshot (cache miss): slowest of 4 shards finished in ${BASE_SECONDS}s" >> "$GITHUB_STEP_SUMMARY"
-          fi
 
   # The pre-existing single-node computation, unchanged, kept as shadow mode's ground truth. Runs
   # concurrently with `snapshot`/`merge` (both depend only on `resolve`), so sharding adds no wall
@@ -194,7 +223,6 @@ jobs:
       - name: Ensure .agent/ci exists
         run: mkdir -p "$GITHUB_WORKSPACE/.agent/ci"
       - name: Base snapshot (clean checkout at merge-base, single-node ground truth)
-        if: needs.resolve.outputs.cache_hit != 'true'
         run: |
           git fetch --no-tags origin "${{ inputs.base_ref }}"
           git worktree add --detach ../base "${{ needs.resolve.outputs.base_sha }}"
@@ -207,7 +235,6 @@ jobs:
           uv sync --group dev
           uv run python spikes/failure_log_sweep/corpus_snapshot.py --save "$GITHUB_WORKSPACE/.agent/ci/base_snapshot_single.json" --workers 4
       - uses: actions/upload-artifact@v4
-        if: needs.resolve.outputs.cache_hit != 'true'
         with:
           name: base-snapshot-single
           path: .agent/ci/base_snapshot_single.json
@@ -253,22 +280,13 @@ jobs:
             "$GITHUB_WORKSPACE/.agent/ci/head_snapshot.json" "$GITHUB_WORKSPACE/.agent/ci/head_snapshot_single.json" \
             | tee -a "$GITHUB_STEP_SUMMARY"
           exit "${PIPESTATUS[0]}"
-      - name: Restore cached base snapshot
-        id: cache
-        if: needs.resolve.outputs.cache_hit == 'true'
-        uses: actions/cache/restore@v4
-        with:
-          path: .agent/ci/base_snapshot.json
-          key: corpus-snapshot-v1-${{ needs.resolve.outputs.base_sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
       - name: Download merged + single-node base snapshots
-        if: needs.resolve.outputs.cache_hit != 'true'
         uses: actions/download-artifact@v4
         with:
           pattern: base-snapshot-*
           path: .agent/ci
           merge-multiple: true
       - name: Compare base snapshots
-        if: needs.resolve.outputs.cache_hit != 'true'
         working-directory: backend
         run: |
           set +e
@@ -276,16 +294,65 @@ jobs:
             "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" "$GITHUB_WORKSPACE/.agent/ci/base_snapshot_single.json" \
             | tee -a "$GITHUB_STEP_SUMMARY"
           exit "${PIPESTATUS[0]}"
-      # Save the base snapshot cache only after it has been proven equivalent to the single-node
-      # ground truth above — the merge-base is immutable, so the cache is valid even if a later
-      # step fails or the job is cancelled (actions/cache@v4's post step would not save on a
-      # cancelled job).
-      - name: Save base snapshot cache
-        if: needs.resolve.outputs.cache_hit != 'true'
-        uses: actions/cache/save@v4
+      # O2 (Issue #68): try the trusted store for the base snapshot — the v2 Actions cache first,
+      # then the push run's own artifact on a miss — and validate whatever comes back (right
+      # head_sha, exactly 432 contexts, matching corpus_hash) before trusting it; an invalid or
+      # missing candidate is rejected with a named reason, never used. Shadow mode: this never
+      # replaces the local computation above (`base_snapshot.json`) — a valid trusted candidate is
+      # additionally compared against it, and any difference fails the job. A `pull_request` run
+      # never writes the v2 key itself — it cannot reach the branch's cache scope. See
+      # docs/CI_SNAPSHOT_CACHE_DESIGN.md and docs/wiki/architecture/agent-team-workflow.md,
+      # gate-4 section.
+      - name: Restore trusted v2 cache (real restore)
+        id: v2_restore
+        if: needs.resolve.outputs.v2_cache_hit == 'true'
+        uses: actions/cache/restore@v4
         with:
-          path: .agent/ci/base_snapshot.json
-          key: corpus-snapshot-v1-${{ needs.resolve.outputs.base_sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+          path: .agent/ci/base_snapshot_trusted.json
+          key: corpus-snapshot-v2-${{ needs.resolve.outputs.base_sha }}-${{ hashFiles('backend/tests/regression_corpus/corpus.json') }}
+      - name: Download the push run's snapshot artifact
+        id: artifact_download
+        if: needs.resolve.outputs.v2_cache_hit != 'true' && needs.resolve.outputs.artifact_run_id != ''
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: corpus-snapshot-${{ needs.resolve.outputs.base_sha }}
+          run-id: ${{ needs.resolve.outputs.artifact_run_id }}
+          github-token: ${{ github.token }}
+          path: .agent/ci/trusted-artifact
+      - name: Locate the downloaded artifact file
+        if: steps.artifact_download.outcome == 'success'
+        run: cp .agent/ci/trusted-artifact/snapshot.json .agent/ci/base_snapshot_trusted_artifact.json
+      - name: Select trusted base-snapshot source
+        id: select
+        env:
+          PYTHONPATH: scripts
+        run: |
+          CORPUS_HASH=$(python3 -c "import hashlib; print(hashlib.sha256(open('backend/tests/regression_corpus/corpus.json', 'rb').read()).hexdigest())")
+          V2_FLAG=""
+          [ -f ".agent/ci/base_snapshot_trusted.json" ] && V2_FLAG="--v2-cache .agent/ci/base_snapshot_trusted.json"
+          ART_FLAG=""
+          [ -f ".agent/ci/base_snapshot_trusted_artifact.json" ] && ART_FLAG="--push-artifact .agent/ci/base_snapshot_trusted_artifact.json"
+          uv run --project scripts/agent_team python -m agent_team.ci.snapshot_store select \
+            --expected-head-sha "${{ needs.resolve.outputs.base_sha }}" \
+            --expected-corpus-hash "$CORPUS_HASH" \
+            --expected-count 432 \
+            $V2_FLAG $ART_FLAG \
+            --github-output "$GITHUB_OUTPUT" \
+            --step-summary "$GITHUB_STEP_SUMMARY"
+      - name: Compare base snapshots (trusted store vs local compute)
+        if: steps.select.outputs.source != 'computed'
+        working-directory: backend
+        run: |
+          set +e
+          TRUSTED_FILE="$GITHUB_WORKSPACE/.agent/ci/base_snapshot_trusted.json"
+          if [ "${{ steps.select.outputs.source }}" == "push_artifact" ]; then
+            TRUSTED_FILE="$GITHUB_WORKSPACE/.agent/ci/base_snapshot_trusted_artifact.json"
+          fi
+          uv run python spikes/failure_log_sweep/corpus_snapshot.py --assert-equal \
+            "$TRUSTED_FILE" "$GITHUB_WORKSPACE/.agent/ci/base_snapshot.json" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
       # O1 (Issue #66), shadow mode: the frozen-outcome invariants (status + refusal code per
       # context) are also evaluated straight from the head snapshot above — no corpus replay. The
       # old replay stays below as the ground truth; "Compare invariants verdicts" fails the job if
@@ -375,4 +442,7 @@ jobs:
             .agent/ci/invariants_replay.json
             .agent/ci/head_snapshot.json
             .agent/ci/head_snapshot_single.json
+            .agent/ci/base_snapshot.json
+            .agent/ci/base_snapshot_trusted.json
+            .agent/ci/base_snapshot_trusted_artifact.json
           if-no-files-found: warn
