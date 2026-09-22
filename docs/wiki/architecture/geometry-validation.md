@@ -223,20 +223,24 @@ with **`ENTRANCE_DEAD_END`** (`app.demo.service._finish`) when C25 is the ONLY f
 same "one specific reason at a time" discipline `ENTRANCE_NO_ARRIVAL_ROOM`/`LAUNDRY_UNPLACEABLE`
 follow.
 
-**The engine topology invariant (AC-3), verified rather than newly enforced.** The Issue's
-"required behavior" asks that the corridor's endpoint be derived from the last door it serves,
-never the footprint boundary, as an ENGINE change (`concept_generator.py`/`l_parti.py`). The sweep
-found this already holds today for every real candidate measured (spine and L parti): a spine
-column's rows sum to exactly the wing's own depth by construction (`_row_depths`), so the hall's
-far end always coincides with the last row's own boundary; the L parti's hall sits inside
-`H(band, V(column, HALL))`, never touching the street independently of the band. No context in the
-432-context corpus, the canonical baseline, or a real L-massing candidate
-(`l_shaped_site_front_arm`) shows a stub, matching `circulation_metrics.py`'s own C26 EXTREME-case
-precedent (a fixture that codebase's generator does not currently produce by accident). No
-`concept_generator.py`/`l_parti.py` code change was made; `test_entrance_circulation.py`'s
-`test_corridor_ends_at_the_last_served_door_not_at_the_boundary` proves the invariant against REAL
-realized spine and L candidates so a FUTURE regression is caught — the same additive,
-defense-in-depth spirit C24/C25/C26 all follow.
+**The engine topology invariant (AC-3), now structurally enforced at construction, not just
+measured.** The Issue's "required behavior" asks that the corridor's endpoint be derived from the
+last door it serves, never the footprint boundary, as an ENGINE change (`concept_generator.py`/
+`l_parti.py`). HALL is built as a `Cut.V` sibling of the columns it serves (spine, front-band) or
+pinned to the seam's own length (L parti), so its own rectangle always inherits that shared
+dimension by construction; `_row_depths`/`_distribute_column_surplus` independently guarantee
+every column's rows sum to EXACTLY that same dimension (refusing the proportion —
+`ROOM_ABOVE_MAXIMUM_AREA`/`COLUMN_DEPTH_EXCEEDED` — rather than ever leaving a residual depth no
+row absorbs). `concept_generator._assert_corridor_extent` (used at both the spine's and the
+front-band's `Leaf("HALL")` construction sites) and `l_parti`'s use of the same helper at the seam
+now read that guarantee back off the REALIZED row layout and check it against the corridor's own
+dimension at every candidate build — turning "no context in the 432-context corpus shows a stub"
+from an empirical sweep finding into a checked structural invariant that fails closed
+(`AssertionError`) if a future change to the row-distribution guarantee ever let the two diverge,
+rather than silently reintroducing a dead corridor stub beyond the entrance's last served door.
+`test_entrance_circulation.py`'s `test_corridor_ends_at_the_last_served_door_not_at_the_boundary`
+proves the same invariant end-to-end against REAL realized spine and L candidates — the same
+additive, defense-in-depth spirit C24/C25/C26 all follow.
 
 **`QualityOut.entrance_sequence`** (additive): arrival zone, pocket length, whether a public
 opening exists, distance to it, private doors passed, the foyer heuristic, and the tunnel text —
