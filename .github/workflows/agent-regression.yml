@@ -87,8 +87,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           BASE_SHA="${{ steps.base.outputs.sha }}"
-          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/agent-snapshot.yml/runs?head_sha=$BASE_SHA&event=push&status=success&per_page=5" \
-            --jq '[.workflow_runs[] | select(.head_branch == "main" or (.head_branch | startswith("integration/")))][0].id // empty')
+          set +e
+          API_OUTPUT=$(gh api "repos/${{ github.repository }}/actions/workflows/agent-snapshot.yml/runs?head_sha=$BASE_SHA&event=push&status=success&per_page=5" \
+            --jq '[.workflow_runs[] | select(.head_branch == "main" or (.head_branch | startswith("integration/")))][0].id // empty' 2>&1)
+          API_STATUS=$?
+          set -e
+          if [ "$API_STATUS" -ne 0 ]; then
+            # A 404 here means agent-snapshot.yml isn't on the default branch yet (this PR
+            # introduces it) — the trusted store is cold, not broken; treat it as "no run found"
+            # rather than failing the gate. Any other gh failure surfaces the same way: no
+            # candidate, computed locally, reason visible in the summary.
+            echo "push-artifact lookup for base $BASE_SHA failed (treated as no candidate): $API_OUTPUT"
+            RUN_ID=""
+          else
+            RUN_ID="$API_OUTPUT"
+          fi
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
           echo "push-artifact lookup for base $BASE_SHA: run_id=${RUN_ID:-none}"
       - name: "Decide which refs need sharding (shadow mode: always shard both, for comparison)"
