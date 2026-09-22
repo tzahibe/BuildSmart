@@ -85,8 +85,10 @@ from app.vertical_slice.geometry_core.model import (
     m_to_u,
     u_to_m,
 )
+from app.vertical_slice.exposure_policy import REQUIRED_EXTERIOR_ROLES
 from app.vertical_slice.safe_adapter import AdapterOutcome, adapt as safe_adapt, build_buildable_region
 from app.vertical_slice.spec import ArchitecturalSpec, LaundryDemand, PlotSpec
+from app.vertical_slice.windows import DAYLIGHT_ROLES
 
 from spikes.architectural_brain.adaptation import AdaptedConcept
 from spikes.architectural_brain.brief import Brief
@@ -140,22 +142,34 @@ def _h_chain(zone_ids: list[str]) -> Node:
     return Split(Cut.H, Leaf(zone_ids[0]), _h_chain(zone_ids[1:]), None)
 
 
-def _adapted_target_area_m2(adapted: AdaptedConcept, role: ProgramRole) -> float | None:
-    """The mean area `adaptation.adapt`'s `RESIZE_ROOMS`/`BEDROOM_COUNT_ADJUST` gave this role,
-    or `None` if the adapted concept has no room of it — this is the one place the ADAPTED
-    concept (as opposed to the brief's own authoritative counts/kinds) actually shapes the
-    realized geometry: which target area within `ROOM_TEMPLATES`' own [min, max] bound a room
-    starts from."""
+def _adapted_target_area_m2(adapted: AdaptedConcept, role: ProgramRole,
+                            instance_index: int = 0) -> float | None:
+    """The area `adaptation.adapt`'s `RESIZE_ROOMS`/`BEDROOM_COUNT_ADJUST` gave the
+    `instance_index`-th adapted room of this role (donor order), or the role's own MEAN if this
+    role has fewer adapted rooms than `instance_index` needs (e.g. a `BEDROOM_COUNT_ADJUST`-added
+    bedroom past the donor's own count) — `None` if the adapted concept has no room of it at all.
+    This is the one place the ADAPTED concept (as opposed to the brief's own authoritative
+    counts/kinds) actually shapes the realized geometry: which target area within
+    `ROOM_TEMPLATES`' own [min, max] bound a room starts from. Reading a SPECIFIC instance rather
+    than always the role's own mean is what lets `RESIZE_ROOMS`'s own donor-proportion carry-
+    forward (`adaptation.py`'s own docstring) actually reach the realized geometry: a role's mean
+    is, by construction, always exactly the role's fixed target regardless of the donor's own
+    internal spread — see this module's own investigation in the Issue's report for the measured
+    case (two different donors realizing to byte-identical geometry) this fixes."""
     matches = [r.area_m2 for r in adapted.rooms if _room_role(r.room_type) is role]
-    return sum(matches) / len(matches) if matches else None
+    if not matches:
+        return None
+    if instance_index < len(matches):
+        return matches[instance_index]
+    return sum(matches) / len(matches)
 
 
 def _zone(zone_id: str, role: ProgramRole, extra_roles: tuple[ProgramRole, ...] = (),
-         adapted: AdaptedConcept | None = None) -> ZoneSpec:
+         adapted: AdaptedConcept | None = None, instance_index: int = 0) -> ZoneSpec:
     template = generator.ROOM_TEMPLATES[role]
     target = template.target_area_m2
     if adapted is not None:
-        override = _adapted_target_area_m2(adapted, role)
+        override = _adapted_target_area_m2(adapted, role, instance_index)
         if override is not None:
             target = min(max(override, template.min_area_m2), template.max_area_m2)
     return ZoneSpec(
@@ -202,9 +216,12 @@ def _wet_topology(program, adapted: AdaptedConcept):
     zones: dict[str, ZoneSpec] = {}
     ensuite_pairs: list[tuple[str, str]] = []
     shared: list[str] = []
+    role_counts: dict[ProgramRole, int] = {}
     for w in resolved:
         role = ProgramRole.TOILET if w.kind.value == "guest_wc" else ProgramRole.BATHROOM
-        zones[w.zone_id] = _zone(w.zone_id, role, adapted=adapted)
+        instance_index = role_counts.get(role, 0)
+        role_counts[role] = instance_index + 1
+        zones[w.zone_id] = _zone(w.zone_id, role, adapted=adapted, instance_index=instance_index)
         if w.host_zone is not None:
             ensuite_pairs.append((w.host_zone, w.zone_id))
         else:
@@ -222,11 +239,15 @@ def _programme_of(brief: Brief, adapted: AdaptedConcept) -> tuple[_Programme, tu
     ]
 
     bedroom_zone_ids = wet_rooms_module.bedroom_zones(program)
-    bedroom_zones = {
-        zid: _zone(zid, ProgramRole.MASTER_BEDROOM if zid == "MASTER" else ProgramRole.BEDROOM,
-                  adapted=adapted)
-        for zid in bedroom_zone_ids
-    }
+    bedroom_zones = {}
+    bedroom_instance_index = 0
+    for zid in bedroom_zone_ids:
+        if zid == "MASTER":
+            bedroom_zones[zid] = _zone(zid, ProgramRole.MASTER_BEDROOM, adapted=adapted)
+        else:
+            bedroom_zones[zid] = _zone(zid, ProgramRole.BEDROOM, adapted=adapted,
+                                       instance_index=bedroom_instance_index)
+            bedroom_instance_index += 1
 
     wet_zones, ensuite_pairs, shared_wet_ids, resolved_wet_rooms = _wet_topology(program, adapted)
     ensuite_by_host = dict(ensuite_pairs)
@@ -675,6 +696,193 @@ def _solve_spine_search(programme: _Programme, candidate_rect: Rect,
     return None, last_error
 
 
+#: Depth trials for the double-loaded SPINE variant's own front foyer (`HALL` below) — kept small
+#: and few: the foyer only needs to satisfy the HALL role's own [min_short_side, max_aspect_ratio]
+#: bound at whatever width the rest of the search finds, not to host anything beyond circulation,
+#: so a handful of shallow trials is enough (see `_compile_spine_double_loaded`'s own docstring for
+#: why DEPTH is the scarce resource this variant exists to spend less of).
+_HALL_STRIP_DEPTH_TRIALS_M = (1.5, 2.0, 2.5, 3.0)
+
+
+def _compile_spine_double_loaded(programme: _Programme, h_u: int, hh_u: int,
+                                 candidate_rect: Rect) -> tuple[Fixture, SolveResult] | None:
+    """A SINGLE-WING SPINE variant that trades DEPTH for WIDTH — `_compile_two_wing_stacked`'s own
+    double-loaded private-column trick (GROUP1 | a shared hall | GROUP2), ported to ONE wing
+    instead of two. Exists for sites (`briefs.BRIEF_2`) where the safe-geometry adapter offers only
+    ONE candidate rectangle — so `_solve_two_wing_search` cannot even attempt a second wing — but
+    the private programme's own room count is too large for `_compile_spine`'s single-column,
+    height-stacked private stack to fit within the plot's own depth (measured: brief-2's 7 private
+    rooms need more cumulative min-short-side depth than the plot's 13 m keep depth offers at any
+    width `_solve_spine_search` tries — splitting the SAME 7 rooms into two roughly-half-height
+    columns side of a hall, as this function does, needs only about half that cumulative depth per
+    column, the identical trade TWO_WING's own double-loaded compiler already makes).
+
+    THE HALL IS BUILT AS A T, NOT A SINGLE COLUMN, so it can border `PUBLIC` *and* both flanking
+    private groups without an explicit alignment search (unlike `_compile_two_wing_stacked`'s own
+    two-wing seam, which needs one because its two halves sit on independent rectangles):
+    `HALL` (the bar of the T) is forced to the FULL width of the private block, so it borders
+    `PUBLIC` along a real, if partial, shared edge regardless of `PUBLIC`'s own width, and borders
+    `HALL_SPINE` (the stem) along `HALL_SPINE`'s own full width; `HALL_SPINE` is forced to the
+    FULL depth of the private groups' own row, so it borders EVERY room in `GROUP1`/`GROUP2` (each
+    one a slice of that row's shared vertical boundary) — the same reasoning
+    `_compile_two_wing_stacked`'s own GROUP1/GROUP2 flanking already relies on.
+
+    ONLY the outer two splits (`PUBLIC` vs the private block's own width; `HALL` vs the group row's
+    own depth) are FORCED (`fixed_at_u`), at widths/depths read off their own ISOLATED feasible
+    sets exactly as `_compile_spine` already does for its own public/hall/private columns. The
+    INNER split — `GROUP1` vs `HALL_SPINE` vs `GROUP2`, all three sharing the group row's own width
+    — is deliberately left UNFORCED: measured directly (this module's own investigation in the
+    Issue's report), forcing it from three SEPARATE isolated probes (one per zone) each assumes
+    EXTERIOR-thick walls on every boundary, including the two that are actually INTERIOR partitions
+    once combined — summing those three conservative minimums came out wider than the plot's own
+    keep width on brief-2 even though the real, combined arrangement fits with room to spare; the
+    frozen engine's own bottom-up `assign()` resolves the three real (thinner) partition walls
+    correctly when given the group row's own width as ONE already-determined quantity, exactly the
+    same shape-curve mechanism `_compile_spine`/`_compile_front_band` already lean on for every
+    split they have no architectural reason to force (see this module's own docstring).
+
+    EXPOSURE (C8/C19): of the group row's own three columns, only the EAST one (whichever group is
+    the OUTER, last child below) reaches the wing's own true east wall for its FULL depth — the
+    WEST one only ever reaches PUBLIC's own interior partition, on whichever ONE room ends up at
+    the row's own single south-facing slot. An H-chain's own internal split is left UNFORCED same
+    as the group row's (see above), so the frozen engine's own `assign()` is free to reorder rooms
+    WITHIN a group for its own fit reasons — measured directly: which room lands at that slot is
+    NOT controlled by this function's own list order, so a multi-room WEST group with more than one
+    exposure-requiring room cannot be relied on to fix itself by sorting. Two group splits are
+    reliable regardless of `assign()`'s own choice: a WEST group with ZERO exposure-requiring rooms
+    (nothing to rely on the slot for), or a WEST group that is a SINGLE room (no other room in that
+    column to compete with it for the one south edge, so it lands there necessarily). This function
+    searches the SAME order-preserving contiguous splits `_private_groups` would ever offer for the
+    best-scoring one of those two shapes, nearest `_private_groups`'s own default split, and falls
+    back to that default (best-effort, may still leave a residual validation failure) only if
+    brief's own private programme genuinely admits neither shape.
+    """
+    if hh_u >= h_u:
+        return None
+
+    zone_by_id = {z.zone_id: z for z in programme.private_zones}
+    rest_u = h_u - hh_u
+
+    def _needs_exposure(zid: str) -> bool:
+        roles = set(zone_by_id[zid].roles)
+        return bool(roles & (REQUIRED_EXTERIOR_ROLES | DAYLIGHT_ROLES))
+
+    def _west_tree(rooms: list[str]) -> Node | None:
+        """`rooms`' own H-chain — UNFORCED (see this function's own docstring) if it carries at
+        most one exposure-requiring room already, else that ONE room's position is FORCED to the
+        row's own south edge (the one slot this column's rooms can rely on for exposure at all)
+        via the SAME candidate-height-range approach `_hall_and_private_splits` already uses for
+        its own forced splits — `None` if no height split both fits and admits a real width at
+        that exact height for each half."""
+        exposure_rooms = [z for z in rooms if _needs_exposure(z)]
+        if len(exposure_rooms) != 1 or len(rooms) == 1:
+            return _h_chain(rooms)
+        exposure_room = exposure_rooms[0]
+        others = [z for z in rooms if z != exposure_room]
+        range_others = _group_height_range_m(others, zone_by_id)
+        range_exposure = _group_height_range_m([exposure_room], zone_by_id)
+        if range_others is None or range_exposure is None:
+            return None
+        lo_u = max(m_to_u(range_others[0]), rest_u - m_to_u(range_exposure[1]), 1)
+        hi_u = min(m_to_u(range_others[1]), rest_u - m_to_u(range_exposure[0]), rest_u - 1)
+        for split_u in range(lo_u, hi_u + 1):
+            if (_widths_at_exact_height(others, zone_by_id, split_u) and
+                    _widths_at_exact_height([exposure_room], zone_by_id, rest_u - split_u)):
+                return Split(Cut.H, _h_chain(others), Leaf(exposure_room), split_u)
+        return None
+
+    order = list(programme.private_order)
+    default_group1, default_group2 = _private_groups(programme)
+    default_split = len(default_group1)
+
+    scored: list[tuple[tuple[int, int], list[str], list[str]]] = []
+    for split_idx in range(1, len(order)):
+        g1, g2 = order[:split_idx], order[split_idx:]
+        n1 = sum(_needs_exposure(z) for z in g1)
+        n2 = sum(_needs_exposure(z) for z in g2)
+        west_n = min(n1, n2)
+        if west_n > 1:
+            continue  # not exposure-reliable — the default split below is tried last instead
+        scored.append(((west_n, abs(split_idx - default_split)), g1, g2))
+    scored.sort(key=lambda t: t[0])
+    # Reliable splits FIRST (best-scoring first), the default (balanced by area, not exposure —
+    # may still leave a residual C8/C19 failure) tried only once none of them can even solve.
+    candidate_splits = [(g1, g2) for _, g1, g2 in scored] + [(default_group1, default_group2)]
+
+    public_tree = _h_chain([z.zone_id for z in programme.public_zones])
+    public_widths = _feasible_widths_u_at_height(public_tree, tuple(programme.public_zones), h_u)
+    if not public_widths:
+        return None
+
+    for group1, group2 in candidate_splits:
+        # Whichever side still has an exposure-requiring room (or, for the default split, whichever
+        # side happens to carry more of them) goes EAST — the row's own true-exterior column.
+        if sum(_needs_exposure(z) for z in group1) >= sum(_needs_exposure(z) for z in group2):
+            west_group, east_group = group2, group1
+        else:
+            west_group, east_group = group1, group2
+
+        group1_tree = _west_tree(west_group)
+        if group1_tree is None:
+            continue
+        group2_tree = _h_chain(east_group)
+        hall_spine_zone = _hall_zone("HALL_SPINE", len(programme.private_order))
+        segment_of = {zid: "HALL_SPINE" for zid in group1 + group2}
+        hall_zone = _zone("HALL", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
+        zones = programme.public_zones + (hall_zone, hall_spine_zone) + programme.private_zones
+        open_groups = (("LIVING", "DINING", "KITCHEN"),)
+        edges = [
+            DesiredAccessEdge("HALL", "LIVING", ConnectionKind.DOOR),
+            DesiredAccessEdge("LIVING", "DINING", ConnectionKind.OPEN_CONNECTION),
+            DesiredAccessEdge("DINING", "KITCHEN", ConnectionKind.OPEN_CONNECTION),
+            DesiredAccessEdge("HALL", "HALL_SPINE", ConnectionKind.DOOR),
+        ]
+        edges.extend(_private_access_edges(programme, segment_of))
+        access = DesiredAccessTopology(tuple(edges))
+
+        for pub_w in public_widths:
+            if pub_w > candidate_rect.w:
+                continue
+            groups_row = Split(Cut.V, group1_tree,
+                               Split(Cut.V, Leaf("HALL_SPINE"), group2_tree, None), None)
+            private_block = Split(Cut.H, Leaf("HALL"), groups_row, hh_u)
+            tree = Split(Cut.V, public_tree, private_block, pub_w)
+            origin = gp._place_footprint(candidate_rect, u_to_m(candidate_rect.w), u_to_m(h_u))
+            wing = Wing("W", origin[0], origin[1], candidate_rect.w, h_u, tree)
+            fixture = Fixture("BRAIN_SPINE_DOUBLE_LOADED", (wing,), zones, access,
+                              open_groups=open_groups)
+            try:
+                return fixture, solve_fixture(fixture)
+            except GeometryInfeasible:
+                continue
+    return None
+
+
+def _solve_spine_double_loaded_search(programme: _Programme, candidate_rect: Rect,
+                                      ) -> tuple[Fixture, SolveResult] | tuple[None, str]:
+    """Tries each (total depth, foyer depth) combination — see `_compile_spine_double_loaded`'s
+    own docstring for why splitting depth this way, rather than `_compile_spine`'s single column,
+    is the point of this search existing at all."""
+    last_error = "no depth/foyer-depth combination was attempted"
+    for depth_m in _DEPTH_TRIALS_M:
+        if depth_m > _MAX_WING_DEPTH_M:
+            continue
+        h_u = m_to_u(depth_m)
+        if h_u > candidate_rect.h:
+            continue
+        for hh_m in _HALL_STRIP_DEPTH_TRIALS_M:
+            hh_u = m_to_u(hh_m)
+            if hh_u >= h_u:
+                continue
+            built = _compile_spine_double_loaded(programme, h_u, hh_u, candidate_rect)
+            if built is None:
+                last_error = (f"depth {depth_m} m / foyer depth {hh_m} m: no width combination "
+                             f"both fit and solved")
+                continue
+            return built
+    return None, last_error
+
+
 def _two_wing_layout(public_rect: Rect, private_rect: Rect) -> tuple[bool, int] | None:
     """Whether `public_rect` is the WEST rectangle, and the shared X boundary the two rects meet
     at — `None` if they do not share an exact vertical edge (the only adjacency this compiler's
@@ -925,6 +1133,12 @@ def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief:
         entrance_zone_id = "HALL_A"
     else:
         fixture, solve_or_error = _solve_spine_search(programme, candidate_rect)
+        if fixture is None:
+            # The single-column private stack refused outright (see `_solve_spine_search`'s own
+            # error) — try the double-loaded variant, which trades the SAME candidate rectangle's
+            # spare width for less depth per private room stack (see
+            # `_compile_spine_double_loaded`'s own docstring for when this actually helps).
+            fixture, solve_or_error = _solve_spine_double_loaded_search(programme, candidate_rect)
         strategy = generator.ConceptStrategy.SPINE_PUBLIC_PRIVATE
         declared_class = concept_spec.CirculationClass.SPINE
         entrance_zone_id = "HALL"

@@ -7,16 +7,16 @@ REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -> `current.svg`
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (A) | OTHER | REALIZED | SPINE | True | 149.9 |
-| concept-1 (B) | FRONT_BAND | REALIZED | SPINE | True | 150.3 |
+| concept-0 (A) | OTHER | REALIZED | SPINE | True | 191.5 |
+| concept-1 (B) | FRONT_BAND | REALIZED | SPINE | True | 4.0 |
 
 ## What adaptation changed
 
 ### concept-0
-- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -> total 102.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -> total 102.0 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 
 ### concept-1
-- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -> total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -> total 85.0 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -> 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
 
 ## Refusal / rejection reasons

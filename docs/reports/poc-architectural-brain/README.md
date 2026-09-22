@@ -45,20 +45,33 @@ Realized, `ok=True`, **circulation_class=FRONT_BAND**, in 1.6 s.
 | | ![brief-1 brain-A](brief-1/brain-A.svg) | ![brief-1 brain-B](brief-1/brain-B.svg) |
 | realized class | SPINE | SPINE |
 | `ok` | True | True |
-| time | 149.9 s | 150.3 s |
+| time | 191.5 s | 4.0 s |
 | donor references | different (see `brief-1/references.md`) | different |
 | adaptations | RESIZE_ROOMS only | RESIZE_ROOMS + BEDROOM_COUNT_ADJUST (+1) |
 
-**Honest finding:** brain-A and brain-B are sourced from two DIFFERENT retrieved donor plans with
-different declared patterns (`OTHER` vs `FRONT_BAND`) and different adaptation operations — but
-they realize to the **identical geometry** (every measurement in `brief-1/comparison.md` matches to
-the metre). Cause: `adaptation.py`'s `RESIZE_ROOMS` replaces every room's area with a **fixed
-per-type constant** (`TARGET_AREA_M2`), never the donor's own proportions — so once two donors
-converge on the same brief-authoritative room *types and counts*, their adapted programmes are
-byte-identical inputs to `realize.py`'s deterministic compiler, which then produces the same
-output. The retrieval/synthesis layer (#95) is genuinely diverse (different WHY, different
-patterns cited); this realization layer (#96) currently throws that diversity away for anything
-that isn't the concept's `circulation_class` label.
+**Honest finding (MODIFY item 1 attempted, see Recommendation below):** brain-A and brain-B are
+sourced from two DIFFERENT retrieved donor plans with different declared patterns (`OTHER` vs
+`FRONT_BAND`) and different adaptation operations — and, after this attempt's fix, genuinely
+DIFFERENT per-room target areas (`adaptation.py`'s `RESIZE_ROOMS` now carries each donor's own
+room-area proportions forward instead of a fixed per-type constant — measured: brain-A's three
+non-master bedrooms target 11.06/13.70/10.19 m², brain-B's target 9.25/12.64/14.0 m², genuinely
+different, not the identical 12.0 m² each donor got before this attempt). They STILL realize to the
+**identical geometry** (every measurement in `brief-1/comparison.md` still matches to the metre; the
+two SVGs differ only in matplotlib's own auto-generated clip-path ids and render timestamp — a
+byte-for-byte diff confirms it). Cause, root-caused this attempt (not the same cause as before): on
+this brief's own tight site, `geometry_core.engine`'s frozen bottom-up shape-curve search
+(`assign`/`leaf_shapes`) admits only ONE feasible footprint depth across `_DEPTH_TRIALS_M`, and once
+that depth (and each column's own forced width) is fixed, the individual room heights within an
+H-chain are themselves pinned to the ONE combination satisfying every room's own
+[min_short_side, max_aspect_ratio] bound at that exact width — there is no remaining freedom for a
+"target area preference" to express itself in (brain-B's own 4.0 s solve time, vs brain-A's 191.5 s,
+shows it found that ONE combination far faster, not a DIFFERENT one). This is a property of the
+frozen Geometry Core `assign()` this POC does not touch (out of scope, AC-2), not a bug in the fix:
+different donor proportions DO now reach the compiler's own inputs (verified above), they just do
+not survive this specific site's own tight feasibility margin. The retrieval/synthesis layer (#95)
+is genuinely diverse (different WHY, different patterns cited); this realization layer (#96) now
+carries that diversity all the way to the compiler's per-room targets, but brief-1's own site
+geometry still collapses it before it reaches the drawing.
 
 ---
 
@@ -76,18 +89,30 @@ Realized, `ok=True`, **circulation_class=SPINE**, in 0.2 s.
 
 ### B — brain alternatives
 
-**REFUSED — 0 realized alternatives.** Both attempted concepts (`concept-0` FRONT_BAND-labeled,
-`concept-1` OTHER-labeled) refuse identically: *"no footprint size solved for the SPINE template:
-depth 13.0 m: no width combination both fit and solved"* — the plot's own keep depth (13.0 m, the
-hard ceiling after setbacks) is not enough for `realize.py`'s single-column, height-stacked SPINE
-compiler on this room mix, even though the SAME room mix fits under the current, more sophisticated
-`concept_generator` (which tries several strategies this spike's one minimal compiler does not
-reimplement — `FRONT_PUBLIC_BAND`, `SPINE_SERVICE_CLUSTER`, `BRANCHED_TWO_STACK`, etc.; see
-`brief-3/current.json`'s own notes for the full strategy list the production engine tries).
+**REALIZED, `ok=False` — 2/2 (MODIFY item 3 attempted, see Recommendation below).** Attempt 1's
+single-column SPINE compiler refused both concepts outright (the plot's own 13.0 m keep depth is
+not enough to height-stack this brief's 7 private rooms in one column). This attempt adds a
+double-loaded single-wing SPINE variant (`realize.py`'s `_compile_spine_double_loaded` —
+TWO_WING's own width-for-depth trick, ported to one wing) as a fallback the compiler now tries when
+the single-column search fails: it solves for BOTH concepts in ~22 s each, where before neither
+realized anything at all. Both still fail validation the SAME way: **`C19`/`C8`** — one bedroom
+(`BEDROOM_3`) lands with no exterior wall of its own. Root cause, measured: this brief's own private
+programme has its two non-exposure-requiring rooms (`BATH_1`, `BATH_2`) positioned so that NO
+order-preserving split of the room list gives one whole side zero exposure-requiring rooms (every
+split's smaller side still carries at least one) — an H-chain's own internal split is deliberately
+left unforced (see `_compile_spine_double_loaded`'s own docstring for why), so `assign()` is free to
+place that one residual room anywhere in its own group, not necessarily the one south-facing slot
+the group's own column offers. The compiler tries several exposure-aware group splits (including an
+explicit forced-position one) before falling back to the default area-balanced split, but on THIS
+brief's own room mix none of them both solves geometrically AND lands the residual room correctly —
+still a real, measurable step from "0 realized" to "realizes, one room short of passing," reported
+honestly rather than hidden (`brief-2/comparison.md`'s own "Realized-but-failing-validation plans"
+section names the exact failing checks).
 
-**Honest finding:** on the tightest of the 3 briefs, the brain is currently a regression: it
-realizes nothing, where the production engine already solves the same brief. This is a genuine gap
-in `realize.py`'s own minimal single-wing compiler, not a validator or corpus limitation.
+**Honest finding:** on the tightest of the 3 briefs, the brain no longer refuses outright, but does
+not yet match the production engine's own `ok=True` result on this brief either. This is a genuine,
+now-narrower gap in `realize.py`'s own minimal single-wing compiler (one room's own exterior
+exposure), not a validator or corpus limitation, and not the SAME gap this attempt started from.
 
 ---
 
@@ -138,7 +163,7 @@ structurally cannot solve on this particular site.
 | brain-A | 1 | SPINE | 170.1 | 152.6 | 0.179 | 9 | 5.94 | 0.67 | True | 2 |
 | brain-B | 1 | SPINE | 170.1 | 152.6 | 0.179 | 9 | 5.94 | 0.67 | True | 2 |
 | current | 2 | SPINE | 128.7 | 117.3 | 0.141 | 6 | 9.29 | 1.00 | True | 2 |
-| brain | 2 | — | — | — | (0 realized alternatives — see brief-2 section) | | | | | |
+| brain | 2 | SPINE | 143.0 | 130.1 | (REALIZED, ok=False — C19/C8, see brief-2 section; not tabulated as a comparable result) | | | | | |
 | current | 3 | — | — | — | (REFUSED — see brief-3 section) | | | | | |
 | brain-A | 3 | TWO_WING | 154.4 | 140.2 | 0.221 | 9 | 3.09 | 0.67 | True | 2 |
 
@@ -161,7 +186,7 @@ rather than invented for this POC.
 | AC-2 | Every realized POC plan through the unchanged `_realize` chain; diff touches no `validation.py`/`geometry_core/`/`doors.py`/`windows.py` | **MET** | `test_poc_plans_come_from_the_unchanged_realize_chain` PASSES (genuine check-registry comparison, not mocked). Diff for this Issue touches only `spikes/architectural_brain/*`, `tests/architectural_brain/*`, `docs/reports/poc-architectural-brain/*` — confirm with `git diff --stat` against the review target list. |
 | AC-3 | 3 fixed benchmark briefs, current-engine baseline recorded, deterministic re-render | **MET** | `test_benchmark_briefs.py` (6/6 passing): brief-1/2 solve+validate; brief-3's refusal is itself the recorded, deterministic baseline (its own documented engine limitation, not a crash). |
 | AC-4 | This README: side-by-side SVGs for all 3 briefs, references+WHY, extracted ideas, adaptation changes, measurements table, GO/MODIFY/STOP | **MET** | This page. `references.md`/`comparison.md` per brief. |
-| Goal | "≥ 2 genuinely different alternatives for one brief" (Goal section, not a numbered AC) | **PARTIALLY MET** | Brief-1's two brain alternatives differ in DONOR/rationale but realize to identical geometry (see brief-1's "honest finding" above) — genuinely different provenance, not genuinely different drawings. |
+| Goal | "≥ 2 genuinely different alternatives for one brief" (Goal section, not a numbered AC) | **PARTIALLY MET** | Brief-1's two brain alternatives differ in DONOR/rationale AND now in per-room target areas (verified, MODIFY item 1) but still realize to identical geometry — root-caused this attempt to the frozen Geometry Core's own tight feasibility margin on this site, not to the adaptation fix (see brief-1's "honest finding" above). Genuinely different provenance and inputs, not yet genuinely different drawings. |
 
 ### The AC-1 finding
 
@@ -204,34 +229,49 @@ current concept generator's own repertoire does not reach here at all.**
 
 ### What is NOT yet better
 
-- Brief-2: the brain currently realizes NOTHING where the production engine already solves — a
-  regression on this specific brief (this spike's compiler is deliberately minimal; the production
-  generator's several strategies were not reimplemented, per Required Behavior 1's "minimal spike
-  compiler... where they exist" allowance).
+- Brief-2: the brain now realizes (both attempted concepts, via the new double-loaded SPINE
+  variant), but neither reaches `ok=True` — both fail `C19`/`C8` on the same one bedroom, where the
+  production engine already solves the whole brief cleanly. Narrower than attempt 1's "realizes
+  nothing" regression, but still not a match (this spike's compiler is deliberately minimal; the
+  production generator's several strategies were not reimplemented, per Required Behavior 1's
+  "minimal spike compiler... where they exist" allowance).
 - Brief-1: the brain's own "alternatives" are geometrically identical to each other despite
-  different donor provenance — the promise of "genuinely different" (Goal section) is not delivered
-  within one topology, because `RESIZE_ROOMS` collapses every donor's own proportions to one fixed
-  per-type constant.
+  different donor provenance AND (after this attempt's fix) genuinely different per-room target
+  areas — the promise of "genuinely different" (Goal section) is not delivered within one topology,
+  now root-caused to the frozen Geometry Core's own tight feasibility margin on this site rather
+  than to `RESIZE_ROOMS` collapsing donor proportions (that part is fixed, measured, and does not
+  reach the drawing here regardless).
 - AC-1's cross-topology diversity within one brief: not reached (see above).
 
 ## Recommendation: MODIFY
 
-**GO** would claim the brain is unambiguously better today — it is not: brief-2 is a regression,
-brief-1's "alternatives" do not actually vary, and AC-1's own bar is not met. **STOP** would throw
-away brief-3's real result — a genuine, validated topology the current engine cannot produce on a
-site the current engine cannot solve at all, delivered end-to-end through the unchanged engine and
-every existing validator, in a fraction of a second. **MODIFY**, specifically:
+**GO** would claim the brain is unambiguously better today — it is not: brief-2 still does not reach
+`ok=True`, brief-1's alternatives still realize to identical geometry, and AC-1's own bar is not
+met. **STOP** would throw away brief-3's real result — a genuine, validated topology the current
+engine cannot produce on a site the current engine cannot solve at all, delivered end-to-end through
+the unchanged engine and every existing validator, in a fraction of a second — AND this attempt's
+own measured progress on items 1/3 below (brief-2 now realizes; brief-1's per-room inputs are now
+genuinely donor-proportional even though the site swallows the difference). **MODIFY**, specifically:
 
-1. Let `RESIZE_ROOMS` (or a new adaptation operation) carry the donor's own room-area *proportions*
-   forward instead of a fixed per-type constant, so different donors produce genuinely different
-   geometry within one topology (closes brief-1's gap).
+1. **Attempted this pass, DID NOT close the gap.** `RESIZE_ROOMS` now carries the donor's own
+   room-area proportions forward instead of a fixed per-type constant (`adaptation.py`), and
+   `realize.py`'s `_zone()` now reads a SPECIFIC donor room's own adapted area per output zone
+   instance instead of averaging every matching room to one role-wide constant — verified: brief-1's
+   two donors now feed genuinely different per-bedroom targets into the compiler. They still realize
+   to identical geometry, root-caused this attempt to the frozen Geometry Core's own tight
+   feasibility margin on brief-1's site (see brief-1's "honest finding" above) — a deeper, now
+   narrower gap than the one this item started from, and one this POC's own scope (no Geometry Core
+   changes) cannot close further.
 2. When Concept Engine v2's own compilers (`concept_compilers.py`, child #79) land on
    `integration/concept-engine-v2`, integrate them here for HUB_LOBBY/BRANCHED — the Team Lead's own
    planned merge — which is the most direct path to AC-1 (a 3rd topology family opens real
-   cross-topology diversity options this 2-compiler POC cannot reach).
-3. Extend `realize.py`'s SPINE compiler with the SAME double-loaded (width-based) private-column
-   trick TWO_WING already uses, as a single-wing variant — brief-2's own regression is exactly the
-   "needs more depth than the plot offers" failure double-loading was built to solve for TWO_WING.
+   cross-topology diversity options this 2-compiler POC cannot reach). Not started this pass.
+3. **Attempted this pass, PARTIAL.** `realize.py` now has a double-loaded single-wing SPINE variant
+   (`_compile_spine_double_loaded`, TWO_WING's own width-for-depth trick ported to one wing), tried
+   as a fallback whenever the single-column search refuses. Brief-2 now realizes both attempted
+   concepts (was 0/2) but neither reaches `ok=True` — both fail `C19`/`C8` on one bedroom lacking
+   exterior exposure (see brief-2's "honest finding" above for the measured root cause and why the
+   compiler's own exposure-aware group-split search could not close it on THIS room mix).
 
 None of this is a validator, Geometry Core, doors/windows or Concept Engine v2 change — every item
 above is scoped to `spikes/architectural_brain/` (`realize.py` / `adaptation.py`) plus an
@@ -249,3 +289,13 @@ integration step already planned by the Team Lead.
 - HUB_LOBBY is not compiled here at all (see `realize.py`'s module docstring for why a minimal
   spike compiler cannot produce one within a realistic house depth) — deferred to #79, per the Team
   Lead's own direction.
+- The double-loaded single-wing SPINE variant (`_compile_spine_double_loaded`, this attempt) is
+  slower than the plain single-column search when BOTH refuse (~15–22 s of extra search per refused
+  concept, since it is only tried as a fallback) and, on brief-2's own room mix, still leaves one
+  room without a validator-required exterior wall — see brief-2's own "honest finding" above; not
+  optimised or further engineered past this attempt's own budget.
+- `_zone()`'s new per-instance donor-area matching (MODIFY item 1) is verified to change the
+  compiler's own INPUTS but, on brief-1's own tight site, does not change the realized OUTPUT — see
+  brief-1's own "honest finding" above for the measured reason (the frozen Geometry Core's own
+  `assign()` admits only one feasible combination once the footprint and column widths are forced,
+  leaving no room for a target-area preference to matter).

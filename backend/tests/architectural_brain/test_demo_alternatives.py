@@ -9,7 +9,7 @@ from app.vertical_slice import concept_spec
 from app.vertical_slice import general_pipeline as gp
 from app.vertical_slice import validation as validation_stage
 from app.vertical_slice.spec import PlotSpec
-from tests.architectural_brain.briefs import BRIEF_1, BRIEF_3
+from tests.architectural_brain.briefs import BRIEF_1, BRIEF_2, BRIEF_3
 
 from spikes.architectural_brain.adaptation import Rejection, adapt
 from spikes.architectural_brain.brief import Brief
@@ -84,6 +84,24 @@ def test_one_brief_yields_two_different_verified_topologies_that_pass_every_vali
             return
     raise AssertionError("no benchmark brief realized >= 2 alternatives with different, "
                          "non-SPINE-only realized_circulation_class values")
+
+
+def test_brief_2_now_realizes_at_least_one_brain_alternative():
+    """Issue #96 MODIFY item 3: brief-2's own room mix refused outright (0/N realized) on the
+    single-column SPINE compiler alone -- the new double-loaded single-wing SPINE fallback
+    (`realize.py`'s `_compile_spine_double_loaded`) must turn at least one synthesized concept into
+    a genuine ``RealizedPlan`` (a real, unchanged-`_realize`-chain validation report attached),
+    even though it is not yet required to pass every validator (see
+    ``docs/reports/poc-architectural-brain/brief-2/comparison.md`` for the honestly-reported
+    residual `C19`/`C8` failure this attempt did not close)."""
+    results = _realize_all(BRIEF_2, limit=1)
+    assert results, "brief-2 synthesized no concepts at all -- nothing to realize"
+    _, outcome = results[0]
+    assert isinstance(outcome, gp.RealizedPlan), (
+        f"brief-2's first synthesized concept did not realize at all (got {outcome!r}) -- "
+        "MODIFY item 3's own double-loaded fallback did not turn a refusal into a real plan")
+    assert isinstance(outcome.validation, validation_stage.ValidationReport)
+    assert outcome.validation.checks, "the realized brief-2 plan ran no real validation checks"
 
 
 def _known_check_ids() -> set[str]:

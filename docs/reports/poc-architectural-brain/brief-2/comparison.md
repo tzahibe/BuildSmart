@@ -7,23 +7,26 @@ REALIZED, ok=True, circulation_class=SPINE in 0.2s -> `current.svg`
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (-) | FRONT_BAND | REFUSED | - | - | 0.6 |
-| concept-1 (-) | OTHER | REFUSED | - | - | 0.6 |
+| concept-0 (-) | FRONT_BAND | REALIZED | SPINE | False | 22.0 |
+| concept-1 (-) | OTHER | REALIZED | SPINE | False | 22.0 |
 
 ## What adaptation changed
 
 ### concept-0
-- **RESIZE_ROOMS**: total 127.4 m2 across 8 donor rooms -> total 80.5 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 127.4 m2 across 8 donor rooms -> total 80.5 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -> 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
 
 ### concept-1
-- **RESIZE_ROOMS**: total 122.1 m2 across 7 donor rooms -> total 80.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 122.1 m2 across 7 donor rooms -> total 80.0 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -> 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
 
 ## Refusal / rejection reasons
 
-- concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved
-- concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved
+
+## Realized-but-failing-validation plans
+
+- concept-0: REALIZED, ok=False -- failing checks: C19, C8
+- concept-1: REALIZED, ok=False -- failing checks: C19, C8
 
 ## Measurements table (realized-and-ok plans, plus the current baseline)
 

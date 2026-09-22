@@ -10,10 +10,10 @@
       "kind": "RESIZE_ROOMS",
       "before": "total 190.7 m2 across 10 donor rooms",
       "after": "total 102.0 m2 after per-type target resizing",
-      "reason": "each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room"
+      "reason": "each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target"
     }
   ],
-  "elapsed_s": 149.9,
+  "elapsed_s": 191.5,
   "outcome": "REALIZED",
   "ok": true,
   "realized_circulation_class": "SPINE",

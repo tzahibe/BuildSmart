@@ -10,7 +10,7 @@
       "kind": "RESIZE_ROOMS",
       "before": "total 122.1 m2 across 7 donor rooms",
       "after": "total 80.0 m2 after per-type target resizing",
-      "reason": "each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room"
+      "reason": "each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target"
     },
     {
       "kind": "BEDROOM_COUNT_ADJUST",
@@ -19,7 +19,35 @@
       "reason": "brief requires 4 bedroom(s); added 1 to match, each at its own target area"
     }
   ],
-  "elapsed_s": 0.6,
-  "outcome": "REFUSED",
-  "reason": "no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved"
+  "elapsed_s": 22.0,
+  "outcome": "REALIZED",
+  "ok": false,
+  "realized_circulation_class": "SPINE",
+  "failing_checks": [
+    "C19",
+    "C8"
+  ],
+  "rationale": "architectural-brain POC: synthesized concept-1 (circulation_class=OTHER, zoning=PUBLIC_PRIVATE_WINGS) adapted with 2 operation(s), compiled to the SPINE template",
+  "measurements": {
+    "gross_area_m2": 143.0,
+    "net_area_m2": 130.11,
+    "wall_iterations": 1,
+    "over_preferred": false,
+    "entrance_opens_into": "HALL",
+    "entrance_room_roles": [
+      "HALL",
+      "CIRCULATION"
+    ],
+    "m1_habitable_aspect_median": 1.1129032258064517,
+    "m1_habitable_aspect_max": 2.0185185185185186,
+    "m2_habitable_on_envelope_ratio": 0.8571428571428571,
+    "m3_circulation_share": 0.20541958041958042,
+    "m4_hall_door_count": 8,
+    "m4_hall_aspect_median": 6.276344086021505,
+    "m5_wet_adjacency_ratio": 0.5,
+    "m6_public_zone_contiguous": true,
+    "wasted_circulation_share": 0.20541958041958042,
+    "wet_core_cluster_count": 2,
+    "wet_core_plumbing_complexity_index": 2
+  }
 }

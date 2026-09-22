@@ -301,6 +301,20 @@ def cmd_comparison(brief_id: str) -> None:
             lines.append(f"- {a['concept_id']}: {a['outcome']} -- {a['reason']}")
     lines.append("")
 
+    # AC-2: "the demo lists each realized plan's validation result" -- REALIZED-but-not-ok plans
+    # carry a real validation report same as any other realized candidate (Required Behavior 1's
+    # own docstring), so their own failing check ids are listed here just as plainly as a
+    # REFUSED/REJECTED reason is above -- never a silently-dropped `ok: false`.
+    failing = [a for a in alts if a.get("outcome") == "REALIZED" and not a.get("ok")
+              and a.get("failing_checks")]
+    if failing:
+        lines.append("## Realized-but-failing-validation plans")
+        lines.append("")
+        for a in failing:
+            lines.append(f"- {a['concept_id']}: REALIZED, ok=False -- failing checks: "
+                         f"{', '.join(a['failing_checks'])}")
+        lines.append("")
+
     lines.append("## Measurements table (realized-and-ok plans, plus the current baseline)")
     lines.append("")
     rows = []

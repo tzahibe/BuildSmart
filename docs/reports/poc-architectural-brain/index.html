@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>POC — Architectural Brain from Real Floor Plans</title>
 <style>body{font-family:-apple-system,Segoe UI,sans-serif;margin:0;padding:16px 24px;background:#faf9f6;color:#1d1d1f} h1{margin:0 0 4px} .verdict{display:inline-block;padding:4px 10px;border-radius:6px;background:#fff3cd;border:1px solid #e0c060;font-weight:600} section{margin:28px 0;padding:16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px} .row{display:flex;flex-wrap:wrap;gap:16px} figure{flex:1 1 420px;margin:0;min-width:320px} figcaption{font-weight:600;margin-bottom:6px} img{width:100%;height:auto;border:1px solid #ddd;background:#fff} .none{padding:40px;border:1px dashed #bbb;color:#777;text-align:center} pre{white-space:pre-wrap;font-size:12px;line-height:1.35;background:#f6f6f6;padding:10px;border-radius:6px;max-height:420px;overflow:auto} details{margin-top:10px}</style></head><body>
 <h1>POC — Architectural Brain from Real Floor Plans</h1>
-<p>Side by side: <b>A — current engine</b> (concept_generator) vs <b>B — real-plan brain</b> (ResPlan corpus → retrieval → synthesis → adaptation → the unchanged Geometry Core + validators). Status of this page: the demo committed by child C, attempt 2 (2026-09-22 08:xx). Verdict so far: <span class="verdict">MODIFY</span> — see the README below.</p>
+<p>Side by side: <b>A — current engine</b> (concept_generator) vs <b>B — real-plan brain</b> (ResPlan corpus → retrieval → synthesis → adaptation → the unchanged Geometry Core + validators). Status of this page: the demo committed by child C, attempt 3 (2026-09-22, MODIFY items 1+3 attempted). Verdict so far: <span class="verdict">MODIFY</span> — see the README below.</p>
 <section><h2>Brief 1 — challenging family home: 4 bedrooms + SAFE_ROOM + 3 wet rooms, ~200 m², plot 17×30.5, street north</h2><div class="row"><figure><figcaption>A — current engine (FRONT_BAND)</figcaption><img src="brief-1/current.svg" alt="A — current engine (FRONT_BAND)"></figure><figure><figcaption>B — brain alternative A (SPINE)</figcaption><img src="brief-1/brain-A.svg" alt="B — brain alternative A (SPINE)"></figure><figure><figcaption>B — brain alternative B (SPINE — identical geometry, known gap)</figcaption><img src="brief-1/brain-B.svg" alt="B — brain alternative B (SPINE — identical geometry, known gap)"></figure></div>
 <details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Challenging family home (4BR + SAFE_ROOM + 3 wet rooms, ~200 m2) (brief-1)
 
@@ -165,17 +165,18 @@ REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -&gt; `current.svg`
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (A) | OTHER | REALIZED | SPINE | True | 149.9 |
-| concept-1 (B) | FRONT_BAND | REALIZED | SPINE | True | 150.3 |
+| concept-0 (A) | OTHER | REALIZED | SPINE | True | 191.5 |
+| concept-1 (B) | FRONT_BAND | REALIZED | SPINE | True | 4.0 |
 
 ## What adaptation changed
 
 ### concept-0
-- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -&gt; total 102.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -&gt; total 102.0 m2 after per-type target resizing (each room type&#x27;s aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room&#x27;s OWN share of that aggregate carries the donor&#x27;s own proportion forward)
 
 ### concept-1
-- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -&gt; total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -&gt; total 85.0 m2 after per-type target resizing (each room type&#x27;s aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room&#x27;s OWN share of that aggregate carries the donor&#x27;s own proportion forward)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
+(attempt 3: per-room targets now genuinely differ per donor -- e.g. concept-0&#x27;s bedrooms target 11.06/13.70/10.19 m2, concept-1&#x27;s target 9.25/12.64/14.0 m2 -- but the realized geometry is still byte-identical; see README&#x27;s brief-1 &quot;honest finding&quot; below for the measured cause)
 
 ## Refusal / rejection reasons
 
@@ -188,7 +189,8 @@ REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -&gt; `current.svg`
 | brain-A (concept-0) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
 | brain-B (concept-1) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
 </pre></details></section>
-<section><h2>Brief 2 — the owner&#x27;s brief: 4 bedrooms (3 + master ensuite), 2 wet rooms, laundry, open plan, 130 m², plot 15×17</h2><div class="row"><figure><figcaption>A — current engine (SPINE)</figcaption><img src="brief-2/current.svg" alt="A — current engine (SPINE)"></figure><figure><figcaption>B — brain</figcaption><div class="none">no brain alternative realized on this brief yet (the spike compiler lacks the double-loaded single-wing variant) — MODIFY item 3</div></figure></div>
+<section><h2>Brief 2 — the owner&#x27;s brief: 4 bedrooms (3 + master ensuite), 2 wet rooms, laundry, open plan, 130 m², plot 15×17</h2><div class="row"><figure><figcaption>A — current engine (SPINE)</figcaption><img src="brief-2/current.svg" alt="A — current engine (SPINE)"></figure><figure><figcaption>B — brain alternative A (SPINE, ok=False: C19/C8)</figcaption><img src="brief-2/alt-0.svg" alt="B — brain alternative A (SPINE, ok=False: C19/C8)"></figure><figure><figcaption>B — brain alternative B (SPINE, ok=False: C19/C8)</figcaption><img src="brief-2/alt-1.svg" alt="B — brain alternative B (SPINE, ok=False: C19/C8)"></figure></div>
+<p><i>Attempt 3 update: both concepts now REALIZE via the new double-loaded single-wing SPINE variant (were 0/2 REFUSED before) — neither reaches ok=True yet (both fail C19/C8 on one bedroom lacking exterior exposure). See README §Brief 2 and MODIFY item 3.</i></p>
 <details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Owner&#x27;s own brief (4BR incl. master ensuite, 2 wet rooms, laundry, open plan, 130 m2) (brief-2)
 
 Retrieved (k=15) from the 199-plan corpus, best-first:
@@ -365,29 +367,30 @@ REALIZED, ok=True, circulation_class=SPINE in 0.2s -&gt; `current.svg`
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (-) | FRONT_BAND | REFUSED | - | - | 0.6 |
-| concept-1 (-) | OTHER | REFUSED | - | - | 0.6 |
+| concept-0 (-) | FRONT_BAND | REALIZED | SPINE | False | 22.0 |
+| concept-1 (-) | OTHER | REALIZED | SPINE | False | 22.0 |
 
 ## What adaptation changed
 
 ### concept-0
-- **RESIZE_ROOMS**: total 127.4 m2 across 8 donor rooms -&gt; total 80.5 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 127.4 m2 across 8 donor rooms -&gt; total 80.5 m2 after per-type target resizing (each room type&#x27;s aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room&#x27;s OWN share of that aggregate carries the donor&#x27;s own proportion forward)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
 
 ### concept-1
-- **RESIZE_ROOMS**: total 122.1 m2 across 7 donor rooms -&gt; total 80.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 122.1 m2 across 7 donor rooms -&gt; total 80.0 m2 after per-type target resizing (each room type&#x27;s aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room&#x27;s OWN share of that aggregate carries the donor&#x27;s own proportion forward)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -&gt; 4 bedroom(s) (brief requires 4 bedroom(s); added 1 to match, each at its own target area)
 
-## Refusal / rejection reasons
+## Realized-but-failing-validation plans
 
-- concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved
-- concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved
+- concept-0: REALIZED, ok=False -- failing checks: C19, C8
+- concept-1: REALIZED, ok=False -- failing checks: C19, C8
 
 ## Measurements table (realized-and-ok plans, plus the current baseline)
 
 | plan | class | gross_area_m2 | net_area_m2 | m3_circulation_share | m4_hall_door_count | m4_hall_aspect_median | m5_wet_adjacency_ratio | m6_public_zone_contiguous | wet_core_cluster_count | entrance_opens_into |
 |---|---|---|---|---|---|---|---|---|---|---|
 | current | SPINE | 128.7 | 117.26 | 0.1414141414141414 | 6 | 9.285714285714286 | 1.0 | True | 2 | HALL |
+(attempt 3: both alt-0/alt-1 now realize at gross 143.0 / net 130.1 m2 but ok=False, so not tabulated as a comparable result -- see brief-2/alt-0.json / alt-1.json)
 </pre></details></section>
 <section><h2>Brief 3 — wide 5-bedroom home, 200 m², plot 27×20.5 (Z-massing site)</h2><div class="row"><figure><figcaption>A — current engine</figcaption><div class="none">REFUSED: the current generator tried 7 strategies, none tiles this site</div></figure><figure><figcaption>B — brain alternative A (TWO_WING) — validated, 0.2 s</figcaption><img src="brief-3/brain-A.svg" alt="B — brain alternative A (TWO_WING) — validated, 0.2 s"></figure></div>
 <details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Wide 5-bedroom home (200 m2, wide plot — assumed 3 wet rooms, no safe room) (brief-3)
@@ -628,20 +631,23 @@ Realized, `ok=True`, **circulation_class=FRONT_BAND**, in 1.6 s.
 | | ![brief-1 brain-A](brief-1/brain-A.svg) | ![brief-1 brain-B](brief-1/brain-B.svg) |
 | realized class | SPINE | SPINE |
 | `ok` | True | True |
-| time | 149.9 s | 150.3 s |
+| time | 191.5 s | 4.0 s |
 | donor references | different (see `brief-1/references.md`) | different |
 | adaptations | RESIZE_ROOMS only | RESIZE_ROOMS + BEDROOM_COUNT_ADJUST (+1) |
 
-**Honest finding:** brain-A and brain-B are sourced from two DIFFERENT retrieved donor plans with
-different declared patterns (`OTHER` vs `FRONT_BAND`) and different adaptation operations — but
-they realize to the **identical geometry** (every measurement in `brief-1/comparison.md` matches to
-the metre). Cause: `adaptation.py`&#x27;s `RESIZE_ROOMS` replaces every room&#x27;s area with a **fixed
-per-type constant** (`TARGET_AREA_M2`), never the donor&#x27;s own proportions — so once two donors
-converge on the same brief-authoritative room *types and counts*, their adapted programmes are
-byte-identical inputs to `realize.py`&#x27;s deterministic compiler, which then produces the same
-output. The retrieval/synthesis layer (#95) is genuinely diverse (different WHY, different
-patterns cited); this realization layer (#96) currently throws that diversity away for anything
-that isn&#x27;t the concept&#x27;s `circulation_class` label.
+**Honest finding (attempt 3 update):** brain-A and brain-B are sourced from two DIFFERENT retrieved
+donor plans with different declared patterns (`OTHER` vs `FRONT_BAND`) and different adaptation
+operations — and, after this attempt&#x27;s fix, genuinely DIFFERENT per-room target areas
+(`RESIZE_ROOMS` now carries each donor&#x27;s own room-area proportions forward instead of a fixed
+per-type constant — brain-A&#x27;s bedrooms target 11.06/13.70/10.19 m², brain-B&#x27;s target
+9.25/12.64/14.0 m²). They STILL realize to the **identical geometry** (byte-identical SVG geometry;
+every measurement in `brief-1/comparison.md` still matches to the metre). Cause, root-caused this
+attempt: on this brief&#x27;s own tight site, the frozen Geometry Core&#x27;s own `assign()` admits only ONE
+feasible footprint depth, and once that depth and each column&#x27;s own width are forced, individual
+room heights are pinned to the ONE combination satisfying every room&#x27;s own bounds — no freedom
+left for a target-area preference to matter (brain-B solved in 4.0 s vs brain-A&#x27;s 191.5 s — it
+found that SAME one combination faster, not a different one). Out of scope to fix further (Geometry
+Core is frozen, AC-2).
 
 ---
 
@@ -659,18 +665,19 @@ Realized, `ok=True`, **circulation_class=SPINE**, in 0.2 s.
 
 ### B — brain alternatives
 
-**REFUSED — 0 realized alternatives.** Both attempted concepts (`concept-0` FRONT_BAND-labeled,
-`concept-1` OTHER-labeled) refuse identically: *&quot;no footprint size solved for the SPINE template:
-depth 13.0 m: no width combination both fit and solved&quot;* — the plot&#x27;s own keep depth (13.0 m, the
-hard ceiling after setbacks) is not enough for `realize.py`&#x27;s single-column, height-stacked SPINE
-compiler on this room mix, even though the SAME room mix fits under the current, more sophisticated
-`concept_generator` (which tries several strategies this spike&#x27;s one minimal compiler does not
-reimplement — `FRONT_PUBLIC_BAND`, `SPINE_SERVICE_CLUSTER`, `BRANCHED_TWO_STACK`, etc.; see
-`brief-3/current.json`&#x27;s own notes for the full strategy list the production engine tries).
+**REALIZED, `ok=False` — 2/2 (attempt 3 update).** Attempt 1&#x27;s single-column SPINE compiler
+refused both concepts outright (the plot&#x27;s own 13.0 m keep depth is not enough to height-stack
+this brief&#x27;s 7 private rooms in one column). This attempt adds a double-loaded single-wing SPINE
+variant (TWO_WING&#x27;s own width-for-depth trick, ported to one wing) as a fallback — it solves for
+BOTH concepts in ~22 s each, where before neither realized anything at all. Both still fail
+validation the SAME way: **`C19`/`C8`** — one bedroom (`BEDROOM_3`) lands with no exterior wall of
+its own (measured root cause: no order-preserving split of this brief&#x27;s own room list gives one
+whole side zero exposure-requiring rooms).
 
-**Honest finding:** on the tightest of the 3 briefs, the brain is currently a regression: it
-realizes nothing, where the production engine already solves the same brief. This is a genuine gap
-in `realize.py`&#x27;s own minimal single-wing compiler, not a validator or corpus limitation.
+**Honest finding:** on the tightest of the 3 briefs, the brain no longer refuses outright, but does
+not yet match the production engine&#x27;s own `ok=True` result either. A genuine, now-narrower gap in
+`realize.py`&#x27;s own minimal single-wing compiler (one room&#x27;s own exterior exposure), not the same
+gap this attempt started from.
 
 ---
 
@@ -721,7 +728,7 @@ structurally cannot solve on this particular site.
 | brain-A | 1 | SPINE | 170.1 | 152.6 | 0.179 | 9 | 5.94 | 0.67 | True | 2 |
 | brain-B | 1 | SPINE | 170.1 | 152.6 | 0.179 | 9 | 5.94 | 0.67 | True | 2 |
 | current | 2 | SPINE | 128.7 | 117.3 | 0.141 | 6 | 9.29 | 1.00 | True | 2 |
-| brain | 2 | — | — | — | (0 realized alternatives — see brief-2 section) | | | | | |
+| brain | 2 | SPINE | 143.0 | 130.1 | (REALIZED, ok=False — C19/C8, see brief-2 section; not tabulated as a comparable result) | | | | | |
 | current | 3 | — | — | — | (REFUSED — see brief-3 section) | | | | | |
 | brain-A | 3 | TWO_WING | 154.4 | 140.2 | 0.221 | 9 | 3.09 | 0.67 | True | 2 |
 
@@ -744,7 +751,7 @@ rather than invented for this POC.
 | AC-2 | Every realized POC plan through the unchanged `_realize` chain; diff touches no `validation.py`/`geometry_core/`/`doors.py`/`windows.py` | **MET** | `test_poc_plans_come_from_the_unchanged_realize_chain` PASSES (genuine check-registry comparison, not mocked). Diff for this Issue touches only `spikes/architectural_brain/*`, `tests/architectural_brain/*`, `docs/reports/poc-architectural-brain/*` — confirm with `git diff --stat` against the review target list. |
 | AC-3 | 3 fixed benchmark briefs, current-engine baseline recorded, deterministic re-render | **MET** | `test_benchmark_briefs.py` (6/6 passing): brief-1/2 solve+validate; brief-3&#x27;s refusal is itself the recorded, deterministic baseline (its own documented engine limitation, not a crash). |
 | AC-4 | This README: side-by-side SVGs for all 3 briefs, references+WHY, extracted ideas, adaptation changes, measurements table, GO/MODIFY/STOP | **MET** | This page. `references.md`/`comparison.md` per brief. |
-| Goal | &quot;≥ 2 genuinely different alternatives for one brief&quot; (Goal section, not a numbered AC) | **PARTIALLY MET** | Brief-1&#x27;s two brain alternatives differ in DONOR/rationale but realize to identical geometry (see brief-1&#x27;s &quot;honest finding&quot; above) — genuinely different provenance, not genuinely different drawings. |
+| Goal | &quot;≥ 2 genuinely different alternatives for one brief&quot; (Goal section, not a numbered AC) | **PARTIALLY MET** | Brief-1&#x27;s two brain alternatives differ in DONOR/rationale AND now in per-room target areas (verified, MODIFY item 1) but still realize to identical geometry — root-caused this attempt to the frozen Geometry Core&#x27;s own tight feasibility margin on this site (see brief-1&#x27;s &quot;honest finding&quot; above). Genuinely different provenance and inputs, not yet genuinely different drawings. |
 
 ### The AC-1 finding
 
@@ -787,34 +794,45 @@ current concept generator&#x27;s own repertoire does not reach here at all.**
 
 ### What is NOT yet better
 
-- Brief-2: the brain currently realizes NOTHING where the production engine already solves — a
-  regression on this specific brief (this spike&#x27;s compiler is deliberately minimal; the production
-  generator&#x27;s several strategies were not reimplemented, per Required Behavior 1&#x27;s &quot;minimal spike
-  compiler... where they exist&quot; allowance).
+- Brief-2: the brain now realizes (both attempted concepts, via the new double-loaded SPINE
+  variant), but neither reaches `ok=True` — both fail `C19`/`C8` on the same one bedroom, where the
+  production engine already solves the whole brief cleanly. Narrower than attempt 1&#x27;s &quot;realizes
+  nothing&quot; regression, but still not a match (this spike&#x27;s compiler is deliberately minimal; the
+  production generator&#x27;s several strategies were not reimplemented, per Required Behavior 1&#x27;s
+  &quot;minimal spike compiler... where they exist&quot; allowance).
 - Brief-1: the brain&#x27;s own &quot;alternatives&quot; are geometrically identical to each other despite
-  different donor provenance — the promise of &quot;genuinely different&quot; (Goal section) is not delivered
-  within one topology, because `RESIZE_ROOMS` collapses every donor&#x27;s own proportions to one fixed
-  per-type constant.
+  different donor provenance AND (after this attempt&#x27;s fix) genuinely different per-room target
+  areas — the promise of &quot;genuinely different&quot; (Goal section) is not delivered within one topology,
+  now root-caused to the frozen Geometry Core&#x27;s own tight feasibility margin on this site rather
+  than to `RESIZE_ROOMS` collapsing donor proportions (that part is fixed, measured, and does not
+  reach the drawing here regardless).
 - AC-1&#x27;s cross-topology diversity within one brief: not reached (see above).
 
 ## Recommendation: MODIFY
 
-**GO** would claim the brain is unambiguously better today — it is not: brief-2 is a regression,
-brief-1&#x27;s &quot;alternatives&quot; do not actually vary, and AC-1&#x27;s own bar is not met. **STOP** would throw
-away brief-3&#x27;s real result — a genuine, validated topology the current engine cannot produce on a
-site the current engine cannot solve at all, delivered end-to-end through the unchanged engine and
-every existing validator, in a fraction of a second. **MODIFY**, specifically:
+**GO** would claim the brain is unambiguously better today — it is not: brief-2 still does not reach
+`ok=True`, brief-1&#x27;s alternatives still realize to identical geometry, and AC-1&#x27;s own bar is not
+met. **STOP** would throw away brief-3&#x27;s real result — a genuine, validated topology the current
+engine cannot produce on a site the current engine cannot solve at all, delivered end-to-end through
+the unchanged engine and every existing validator, in a fraction of a second — AND this attempt&#x27;s
+own measured progress on items 1/3 below. **MODIFY**, specifically:
 
-1. Let `RESIZE_ROOMS` (or a new adaptation operation) carry the donor&#x27;s own room-area *proportions*
-   forward instead of a fixed per-type constant, so different donors produce genuinely different
-   geometry within one topology (closes brief-1&#x27;s gap).
+1. **Attempted this pass, DID NOT close the gap.** `RESIZE_ROOMS` now carries the donor&#x27;s own
+   room-area proportions forward instead of a fixed per-type constant, and `realize.py`&#x27;s `_zone()`
+   now reads a SPECIFIC donor room&#x27;s own adapted area per output zone instance instead of averaging
+   every matching room to one role-wide constant — verified: brief-1&#x27;s two donors now feed
+   genuinely different per-bedroom targets into the compiler. They still realize to identical
+   geometry, root-caused this attempt to the frozen Geometry Core&#x27;s own tight feasibility margin on
+   brief-1&#x27;s site — a deeper, now narrower gap than the one this item started from, and one this
+   POC&#x27;s own scope (no Geometry Core changes) cannot close further.
 2. When Concept Engine v2&#x27;s own compilers (`concept_compilers.py`, child #79) land on
    `integration/concept-engine-v2`, integrate them here for HUB_LOBBY/BRANCHED — the Team Lead&#x27;s own
    planned merge — which is the most direct path to AC-1 (a 3rd topology family opens real
-   cross-topology diversity options this 2-compiler POC cannot reach).
-3. Extend `realize.py`&#x27;s SPINE compiler with the SAME double-loaded (width-based) private-column
-   trick TWO_WING already uses, as a single-wing variant — brief-2&#x27;s own regression is exactly the
-   &quot;needs more depth than the plot offers&quot; failure double-loading was built to solve for TWO_WING.
+   cross-topology diversity options this 2-compiler POC cannot reach). Not started this pass.
+3. **Attempted this pass, PARTIAL.** `realize.py` now has a double-loaded single-wing SPINE variant
+   (TWO_WING&#x27;s own width-for-depth trick ported to one wing), tried as a fallback whenever the
+   single-column search refuses. Brief-2 now realizes both attempted concepts (was 0/2) but neither
+   reaches `ok=True` — both fail `C19`/`C8` on one bedroom lacking exterior exposure.
 
 None of this is a validator, Geometry Core, doors/windows or Concept Engine v2 change — every item
 above is scoped to `spikes/architectural_brain/` (`realize.py` / `adaptation.py`) plus an
