@@ -112,11 +112,19 @@ renders it beside the plan title when present.
   safe room, no open-plan living) that only 83/404 PLANNED briefs satisfied at all, capping their
   contribution regardless of how general their own bedroom/wet-room sizing became.
 - **Measured diversity, Issue #79 attempt 3 (+ SAFE_ROOM-aware and open-plan-aware compiler
-  variants)**: the current measurement, over the same frozen 432-context corpus's PLANNED cases —
-  see `docs/reports/concept-engine-v2-diversity-report.md` for the current share of PLANNED briefs
-  showing ≥2 classes, whether HUB_LOBBY/BRANCHED appear among the shown classes, the per-
-  precondition eligibility breakdown, and the LOST/GAINED/primary_signature_changes regression
-  counts. `compile_hub_lobby`/`compile_branched` still each need a specific room-COUNT shape (see
+  variants)**: 104/404 (25.7%) of PLANNED briefs showed ≥2 classes — up from attempt 2's 19.6%,
+  still short of the 40% bar. LOST 0, GAINED 0, primary_signature_changes 0. HUB_LOBBY is among the
+  shown classes (29). Root cause, re-measured (`docs/reports/concept-engine-v2-diversity-
+  report.md`'s per-precondition breakdown): `compile_hub_lobby`/`compile_branched` are each
+  eligible for a specific room-COUNT shape, not a specific safe-room/open-plan combination anymore
+  — 34/404 and 30/404 respectively, 64/404 (15.8%) for either — but 340/404 briefs still fall
+  outside BOTH shapes, and the single largest reason by far is `wet_rooms != 2` (252/404, 62% of
+  all PLANNED briefs) — neither compiler supports any wet-room count other than exactly 2, a
+  dimension attempt 3's SAFE_ROOM/open-plan work did not touch. The remaining exclusions are
+  bedroom counts outside each compiler's own room-count shape. Per the lead's own direction: this
+  residual population, with its exact reasons, is the owner's decision, not resolved further by
+  this Issue's own scope — see the diversity report for the full breakdown.
+- `compile_hub_lobby`/`compile_branched` still each need a specific room-COUNT shape (see
   `concept_compilers.py`'s own module docstring for why a general arbitrary-programme version of
   either is out of scope here) — they contribute wherever a brief's programme matches that shape,
   never elsewhere.
@@ -158,7 +166,8 @@ Nothing — this is additive; `_alternative_plans` stays the flag-off path and i
 measurement), `docs/reports/concept-engine-v2-diversity-report.md` (Issue #78's single-outline
 flag-on measurement, re-measured by Issue #79 attempt 2 with the compilers + cross-outline search
 wired in — 19.6% — and again by attempt 3 with the SAFE_ROOM-aware/open-plan-aware compiler
-variants), `docs/reports/concept-engine-v2-owner-benchmark.md`,
+variants — 25.7%, still below the 40% bar, residual population and reasons in the report),
+`docs/reports/concept-engine-v2-owner-benchmark.md`,
 `docs/reports/concept-engine-v2-massing-multilevel-proposal.md`.
 
 ## Last verified against git

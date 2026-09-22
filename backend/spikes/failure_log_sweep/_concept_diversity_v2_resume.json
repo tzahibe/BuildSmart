@@ -944,9 +944,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -955,9 +956,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -979,9 +981,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1001,9 +1004,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1023,9 +1027,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1080,9 +1085,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1127,8 +1133,9 @@
     "gained": false,
     "primary_signature_changed": false,
     "n_shown": 3,
-    "n_classes": 1,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1315,9 +1322,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1337,9 +1345,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1393,9 +1402,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1416,8 +1426,9 @@
     "gained": false,
     "primary_signature_changed": false,
     "n_shown": 3,
-    "n_classes": 1,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1492,9 +1503,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1514,9 +1526,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 2,
-    "n_classes": 1,
+    "n_shown": 3,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1558,9 +1571,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1591,9 +1605,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1613,9 +1628,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1657,9 +1673,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1690,9 +1707,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1734,9 +1752,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1768,8 +1787,9 @@
     "gained": false,
     "primary_signature_changed": false,
     "n_shown": 3,
-    "n_classes": 1,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1800,9 +1820,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1833,9 +1854,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1866,9 +1888,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1899,9 +1922,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
@@ -1932,9 +1956,10 @@
     "lost": false,
     "gained": false,
     "primary_signature_changed": false,
-    "n_shown": 1,
-    "n_classes": 1,
+    "n_shown": 2,
+    "n_classes": 2,
     "classes": [
+      "HUB_LOBBY",
       "SPINE"
     ]
   },
