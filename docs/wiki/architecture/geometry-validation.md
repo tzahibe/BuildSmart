@@ -704,3 +704,10 @@ and test runs (`test_entrance_circulation.py`, targeted AC-8 suites green). Bran
 and Issue #35's SAFE_ROOM typed-constraint work) to resolve a PR conflict: resolved textual
 conflicts in this page, `contract.py`, `test_demo_p0.py` and `docs/PROJECT_STATE.md` by keeping
 both sides' additive sections/fields, then re-ran this Issue's own targets against the merged tree.
+
+`8617a4b` (branch `agent/22-entrance-to-circulation-integration-the`); merged `origin/main` a
+second time (bringing in Issue #67's CI O3 corpus-snapshot sharding and Issue #102's
+non-rectangular-geometry investigation, both unrelated to C25) to resolve a second PR conflict:
+resolved textual conflicts in `contract.py`, `test_demo_p0.py`, `docs/PROJECT_STATE.md` and this
+page by keeping both sides' additive sections/fields, then re-ran this Issue's own targets against
+the merged tree.

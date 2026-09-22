@@ -3,7 +3,9 @@
 Outputs (GITHUB_OUTPUT): backend_changed, frontend_changed, orchestrator_changed,
 regression_required. Regression is required when the manifest says so (regression domains or a
 `regression:corpus` target) AND product backend code actually changed — a docs-only PR under a
-backend Issue does not burn 10 minutes of corpus replay, and the skip is recorded explicitly.
+backend Issue does not burn 10 minutes of corpus replay, and the skip is recorded explicitly. It
+is also required, regardless of the manifest or backend code, when the PR changes gate-4's own
+base-snapshot selection machinery (`REGRESSION_MACHINERY`) — that machinery must self-validate.
 """
 from __future__ import annotations
 
@@ -19,6 +21,15 @@ BACKEND_PRODUCT = ("backend/app/", "backend/pyproject.toml", "backend/uv.lock", 
 BACKEND_CODE = ("backend/app/", "backend/tests/", "backend/spikes/", "backend/pyproject.toml", "backend/uv.lock")
 FRONTEND = ("frontend/",)
 ORCHESTRATOR = ("scripts/agent_team/", "scripts/agentctl", ".agent/config.yaml", ".github/workflows/")
+# gate-4's own base-snapshot selection machinery (O1-O3): a PR that changes how the trusted
+# source is looked up, validated or compared must run gate-4 itself so the mechanism proves
+# itself on real CI evidence, even when it touches no backend/app/ product code (e.g. Issue #68).
+REGRESSION_MACHINERY = (
+    ".github/workflows/agent-regression.yml",
+    ".github/workflows/agent-snapshot.yml",
+    "scripts/agent_team/ci/snapshot_store.py",
+    "scripts/agent_team/ci/regression_gate.py",
+)
 
 
 def decide(changed: list[str], manifest: dict | None) -> dict:
@@ -26,11 +37,16 @@ def decide(changed: list[str], manifest: dict | None) -> dict:
     backend_code = any(f.startswith(BACKEND_CODE) for f in changed)
     frontend = any(f.startswith(FRONTEND) for f in changed)
     orchestrator = any(f.startswith(ORCHESTRATOR) for f in changed)
+    machinery = any(f in REGRESSION_MACHINERY for f in changed)
     wants = bool(manifest and manifest.get("regression_required"))
     risk = (manifest or {}).get("risk", "MEDIUM")
-    regression = (wants and backend_product) or (risk == "HIGH" and backend_product)
-    reason = ("required by contract and backend product code changed" if regression else
-              "not required: " + ("contract does not require it" if not wants else "no backend product code changed"))
+    regression = machinery or (wants and backend_product) or (risk == "HIGH" and backend_product)
+    if machinery:
+        reason = "required: gate-4's own regression-selection machinery changed — must self-validate"
+    elif regression:
+        reason = "required by contract and backend product code changed"
+    else:
+        reason = "not required: " + ("contract does not require it" if not wants else "no backend product code changed")
     return {"backend_changed": backend_code, "frontend_changed": frontend, "orchestrator_changed": orchestrator,
             "regression_required": regression, "regression_reason": reason, "changed_count": len(changed)}
 
