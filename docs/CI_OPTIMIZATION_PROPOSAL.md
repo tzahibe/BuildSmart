@@ -41,9 +41,21 @@ the job if the merged and single-node documents ever differ after normalising vo
 merged snapshot, only after the compare step passed. **Removal criterion**: the single-node path is
 only deleted after several real PRs show the two paths always agree — not scheduled by this Issue.
 
-## O2 — the snapshot store (not started)
+## O2 — the trusted snapshot store (Issue #68)
 
-Not yet proposed as an Issue.
+**Status: shipped in shadow mode**, not yet the removal. A new `push`-triggered workflow
+(`agent-snapshot.yml`, `on: push: branches: [main, "integration/**"]`) computes, validates (exactly
+432 contexts, `head_sha` == the pushed SHA, `corpus_hash` recorded —
+`scripts/agent_team/ci/snapshot_store.py`) and stores the snapshot of every commit that lands on
+`main`/`integration/**`: the Actions cache (`corpus-snapshot-v2-<sha>-<corpus-hash>`, in that
+branch's cache scope) and a 30-day artifact (`corpus-snapshot-<sha>`). Gate-4's `resolve`/`regression`
+jobs look up that trusted store for the merge-base snapshot — v2 cache, then the artifact on a miss —
+validate whatever comes back the same way, and, on a valid hit, compare it against the base snapshot
+gate-4 still computes locally (shadow mode never skips the local computation). The old v1 cache
+(scoped to the PR's own merge ref, never actually shared across PRs — see
+`docs/CI_SNAPSHOT_CACHE_DESIGN.md`) is removed; a `pull_request` run never writes the v2 key itself.
+**Removal criterion**: the local base computation is only skipped after several real PRs show the
+trusted store always agrees — not scheduled by this Issue.
 
 ## Regression budget policy
 
