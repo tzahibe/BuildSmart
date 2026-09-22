@@ -23,6 +23,7 @@ permissions:
   contents: read
   issues: read
   pull-requests: read
+  actions: read   # gate-4/O2: gh api lookup + actions/download-artifact for the trusted-store artifact
 
 jobs:
   gate-1-contract:

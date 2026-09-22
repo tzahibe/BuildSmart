@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from agent_team.ci import contract_check, plan, regression_gate, verify
+from agent_team.ci import contract_check, plan, regression_gate, snapshot_store, verify
 from agent_team.github_client import FakeGitHub
 from agent_team.issue_contract import parse_budget_value
 from agent_team.labels import metadata_labels
@@ -334,8 +334,11 @@ def test_regression_workflow_shards_the_corpus_snapshot_across_matrix_jobs():
     assert "PIPESTATUS" in compare_step["run"] and 'exit "${PIPESTATUS[0]}"' in compare_step["run"]
     assert not compare_step.get("continue-on-error")
 
+    # O2 (Issue #68): the base snapshot is now always computed locally (shadow mode compares it
+    # against the trusted store, but never skips computing it), so this step no longer gates on a
+    # cache hit — see test_gate4_removes_v1_cache_and_looks_up_v2_then_artifact.
     base_compare_step = reg_steps["Compare base snapshots"]
-    assert base_compare_step.get("if") == "needs.resolve.outputs.cache_hit != 'true'"
+    assert "if" not in base_compare_step
     assert "--assert-equal" in base_compare_step["run"]
     assert not base_compare_step.get("continue-on-error")
 
@@ -366,6 +369,129 @@ def test_gate1_accepts_an_integration_branch_base(repo_config):
     pr["base"]["ref"] = "feature/other"
     rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
     assert {c["name"]: c["ok"] for c in rep.checks}["PR targets base branch"] is False
+
+
+def _snapshot_doc(sha="abc123", corpus_hash="hash1", count=432):
+    return {"sha": sha, "corpus_hash": corpus_hash, "results": {f"ctx{i}": {"status": "PLANNED"} for i in range(count)}}
+
+
+def test_snapshot_validation_rejects_wrong_sha_and_count():
+    """AC-1: `agent-snapshot.yml` (and gate-4, on a restored/downloaded candidate) trusts a
+    snapshot only if its head_sha, context count and corpus_hash all match what is expected —
+    each violation is rejected with a distinct, named reason."""
+    good = _snapshot_doc()
+    ok = snapshot_store.validate_snapshot(good, "abc123", "hash1", 432)
+    assert ok.ok
+
+    wrong_sha = snapshot_store.validate_snapshot(good, "different-sha", "hash1", 432)
+    assert not wrong_sha.ok and "head_sha mismatch" in wrong_sha.reason
+
+    wrong_count = snapshot_store.validate_snapshot(_snapshot_doc(count=430), "abc123", "hash1", 432)
+    assert not wrong_count.ok and "context count mismatch" in wrong_count.reason
+
+    wrong_hash = snapshot_store.validate_snapshot(good, "abc123", "different-hash", 432)
+    assert not wrong_hash.ok and "corpus_hash mismatch" in wrong_hash.reason
+
+    missing = snapshot_store.validate_snapshot(None, "abc123", "hash1", 432)
+    assert not missing.ok and "no snapshot document" in missing.reason
+
+
+def test_base_snapshot_source_order_and_rejection():
+    """AC-2: gate-4's lookup order is v2 cache -> push artifact -> computed; an invalid/missing
+    candidate is rejected with a named reason and the next source in order is tried."""
+    good = _snapshot_doc()
+
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", good, None, 432)
+    assert sel.source == "v2_cache" and sel.rejected == []
+
+    bad_v2 = _snapshot_doc(sha="stale-sha")
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", bad_v2, good, 432)
+    assert sel.source == "push_artifact"
+    assert sel.rejected == [("v2_cache", "head_sha mismatch: snapshot has 'stale-sha', expected 'abc123'")]
+
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", None, good, 432)
+    assert sel.source == "push_artifact" and sel.rejected == [("v2_cache", "not available (cache/artifact miss)")]
+
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", None, None, 432)
+    assert sel.source == "computed"
+    assert [r[0] for r in sel.rejected] == ["v2_cache", "push_artifact"]
+
+
+def test_shadow_compare_fails_on_difference():
+    """AC-3: in shadow mode a trusted-store hit still triggers the local base-snapshot compute,
+    and the "Compare base snapshots (trusted store vs local compute)" step fails the job on any
+    difference — the same `--assert-equal`/`describe_snapshot_diff` machinery gate-4 already uses
+    for O3's merged-vs-single-node comparison."""
+    import sys
+    sys.path.insert(0, str(REPO_ROOT / "backend"))
+    from spikes.failure_log_sweep.corpus_snapshot import describe_snapshot_diff, snapshots_equal
+
+    trusted = {"sha": "abc123", "corpus_hash": "hash1", "workers": 4,
+               "results": {"ctx1": {"status": "PLANNED", "sig": [[1, 2]]}}}
+    computed_same = {"sha": "abc123", "corpus_hash": "hash1", "workers": 4, "seconds": 12.3, "written_at": "t",
+                     "results": {"ctx1": {"status": "PLANNED", "sig": [[1, 2]], "ms": 5.0}}}
+    assert snapshots_equal(trusted, computed_same)
+
+    computed_diff = {"sha": "abc123", "corpus_hash": "hash1", "workers": 4,
+                     "results": {"ctx1": {"status": "PLANNED", "sig": [[9, 9]]}}}
+    assert not snapshots_equal(trusted, computed_diff)
+    assert any("ctx1" in d for d in describe_snapshot_diff(trusted, computed_diff))
+
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-regression.yml").read_text())
+    reg_steps = {s.get("name"): s for s in doc["jobs"]["regression"]["steps"] if "name" in s}
+    trust_compare = reg_steps["Compare base snapshots (trusted store vs local compute)"]
+    assert trust_compare.get("if") == "steps.select.outputs.source != 'computed'"
+    assert "--assert-equal" in trust_compare["run"]
+    assert not trust_compare.get("continue-on-error")
+
+    select_step = reg_steps["Select trusted base-snapshot source"]
+    assert "snapshot_store.py select" in select_step["run"] or "agent_team.ci.snapshot_store select" in select_step["run"]
+
+
+def test_agent_snapshot_workflow_triggers_on_push_and_validates_before_storing():
+    """AC-1: `agent-snapshot.yml` runs on push to main/integration/**, validates the freshly
+    computed snapshot before trusting it, then saves it under the v2 cache key and as an artifact."""
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-snapshot.yml").read_text())
+    on = doc[True] if True in doc else doc["on"]
+    assert on["push"]["branches"] == ["main", "integration/**"]
+    assert doc.get("concurrency", {}).get("cancel-in-progress") is False
+
+    jobs = doc["jobs"]
+    store_job = jobs["merge-and-store"]
+    steps = {s.get("name"): s for s in store_job["steps"] if "name" in s}
+    validate_step = steps["Validate before trusting/saving"]
+    assert "snapshot_store.py validate" in validate_step["run"] or "agent_team.ci.snapshot_store validate" in validate_step["run"]
+    assert "--expected-count 432" in validate_step["run"]
+
+    save_step = steps["Save snapshot to the trusted cache (v2)"]
+    assert "corpus-snapshot-v2-" in save_step["with"]["key"]
+    assert "actions/cache/save" in save_step["uses"]
+
+    upload_step = steps["Upload the snapshot artifact"]
+    assert "actions/upload-artifact" in upload_step["uses"]
+    assert upload_step["with"].get("retention-days") == 30
+    assert "corpus-snapshot-" in upload_step["with"]["name"]
+
+    step_order = list(steps)
+    assert step_order.index("Validate before trusting/saving") < step_order.index("Save snapshot to the trusted cache (v2)")
+
+
+def test_gate4_removes_v1_cache_and_looks_up_v2_then_artifact():
+    """Cache hygiene (Issue #68, item 4): the v1 restore/save steps are gone; gate-4 looks up the
+    v2 cache first, then the push-run artifact on a miss, before falling back to computing."""
+    text = (REPO_ROOT / ".github/workflows/agent-regression.yml").read_text()
+    assert "corpus-snapshot-v1-" not in text
+    assert "corpus-snapshot-v2-" in text
+
+    doc = yaml.safe_load(text)
+    resolve_steps = {s.get("name"): s for s in doc["jobs"]["resolve"]["steps"] if "name" in s}
+    v2_step = resolve_steps["Check trusted v2 cache (lookup only)"]
+    assert v2_step["with"]["key"].startswith("corpus-snapshot-v2-")
+    assert v2_step["with"].get("lookup-only") is True
+
+    artifact_step = resolve_steps["Look up the push-triggered snapshot artifact (only if the v2 cache missed)"]
+    assert artifact_step.get("if") == "steps.v2cache.outputs.cache-hit != 'true'"
+    assert "event=push" in artifact_step["run"]
 
 
 def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):
