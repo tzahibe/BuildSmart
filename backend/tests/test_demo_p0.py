@@ -2045,11 +2045,13 @@ def test_the_living_side_accepts_only_its_three_values(client):
     assert client.put(f"/projects/{project_id}/review", json={"public_open_side": "north"}).status_code == 422
 
 
-@pytest.mark.regression
 def test_every_door_out_carries_hinge_and_swing():
-    """Issue #38, AC-3: every door of every PLANNED corpus design carries `hinge_x`/`hinge_y`/
-    `swing_deg` — the renderer's whole door-symbol contract (`DoorSymbol.tsx`) is built on these
-    three fields plus `swings_into` existing on every single door, never a subset."""
+    """Issue #38, AC-3 (gate-3 evidence): every door of a deterministic, stratified sample of PLANNED
+    corpus designs carries `hinge_x`/`hinge_y`/`swing_deg` + `swings_into` — the renderer's whole
+    door-symbol contract (`DoorSymbol.tsx`). The FULL corpus is checked by
+    `tests/regression_corpus/test_door_contract_corpus.py` in the regression tier: replaying all 404
+    PLANNED contexts here took > 1800 s on CI (gate 3's budget), so this fast tier takes every 34th
+    case in corpus order (~12 briefs spanning the bedroom / wet-room / footprint range)."""
     import json
     import os
 
@@ -2063,8 +2065,10 @@ def test_every_door_out_carries_hinge_and_swing():
 
     planned = [c for c in corpus["cases"] if c["expected_outcome"] == "PLANNED"]
     assert planned, "corpus.json has no PLANNED cases to check"
+    sample = planned[::34]                      # deterministic: corpus order is frozen in git
+    assert len(sample) >= 10
     checked = 0
-    for case in planned:
+    for case in sample:
         project = project_from_context(case["context"])
         result = generate_demo_design(project)
         for door in result.design.doors:
