@@ -368,6 +368,16 @@ touching room shape at all.
   hand-encoded layout, the reuse estimate above is wrong and B's effort number needs revising upward
   before further investment.
 
+  **Spike run (Issue #108, 2026-09-23)**:
+  `docs/reports/non-rectangular-geometry-architecture-b-spike.md`. Result: the reuse claim
+  substantially holds — 24/25 `validate()` checks (including C1/C3/C9/C20/C27), doors/windows,
+  furniture feasibility, `design_output.assemble`, the demo contract, all six M1-M6 metrics and
+  both renderers accepted a hand-encoded, genuinely non-guillotine `dict[str, Rect]` with zero
+  `app/` code changes; C22 needs a solver-output change (`Wing.seam_leaf_sides`), not a validator
+  rewrite. B's downstream-integration effort is revised down (~6-10 eng-weeks from ~8-14); the
+  solver itself and the corpus-regression risk are untouched by the spike and remain the dominant,
+  unproven cost — the ROOT-level recommendation in §6 below is unchanged.
+
 ### C — Polygonal layout
 
 **What it produces**: rooms as simple polygons inside a free (non-rectangular) envelope —
