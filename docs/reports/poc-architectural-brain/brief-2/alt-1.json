@@ -1,0 +1,25 @@
+{
+  "brief_id": "brief-2",
+  "index": 1,
+  "concept_id": "concept-1",
+  "declared_circulation_class": "OTHER",
+  "zoning": "PUBLIC_PRIVATE_WINGS",
+  "wet_core_strategy": "DISPERSED",
+  "adaptations": [
+    {
+      "kind": "RESIZE_ROOMS",
+      "before": "total 122.1 m2 across 7 donor rooms",
+      "after": "total 80.0 m2 after per-type target resizing",
+      "reason": "each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room"
+    },
+    {
+      "kind": "BEDROOM_COUNT_ADJUST",
+      "before": "3 bedroom(s)",
+      "after": "4 bedroom(s)",
+      "reason": "brief requires 4 bedroom(s); added 1 to match, each at its own target area"
+    }
+  ],
+  "elapsed_s": 0.6,
+  "outcome": "REFUSED",
+  "reason": "no footprint size solved for the SPINE template: depth 13.0 m: no width combination both fit and solved"
+}
