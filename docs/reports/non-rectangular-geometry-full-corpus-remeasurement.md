@@ -33,9 +33,16 @@ The 19-plan fixture never contains a self-intersecting ring, so this path was ne
 before. **Fix**: `_polygon_from_ring` now keeps the largest-area polygon piece when the repaired
 geometry is a `MultiPolygon`/`GeometryCollection` (the standard repair for a self-intersecting ring),
 so classification still runs on one simple polygon — a 4-line, purely defensive change,
-`backend/spikes/geometry_shapes/measure_real_plan_shapes.py`'s `_polygon_from_ring`. **Verified
-inert on the frozen 19-plan fixture**: `tests/spikes/test_measure_real_plan_shapes.py` passes
-unchanged, 10/10, before and after the fix (no fixture room takes the new branch). Both corpora
+`backend/spikes/geometry_shapes/measure_real_plan_shapes.py`'s `_polygon_from_ring`. **Covered by a
+new unit test**: `test_classify_room_shape_self_intersecting_bowtie_ring_keeps_largest_piece`
+(added to `tests/spikes/test_measure_real_plan_shapes.py`) reproduces the same failure mode with a
+synthetic self-intersecting ring (two squares joined at one crossing point, so `buffer(0)` splits
+into a 2-piece `MultiPolygon`) — the actual corpus room is not reachable from this repo, so this
+synthetic ring is what makes the fix regression-tested in CI rather than only manually verified
+against a corpus this branch cannot commit. **Verified inert on the frozen 19-plan fixture**: the
+original 10/10 `tests/spikes/test_measure_real_plan_shapes.py` assertions pass unchanged before and
+after the fix (no fixture room takes the new branch) — the file now has 11/11 passing with the new
+test added. Both corpora
 below were re-run after the fix, as required.
 
 ## Room shapes — §3.1 comparison (10 cm simplification, default 1.0 m² artefact filter)
