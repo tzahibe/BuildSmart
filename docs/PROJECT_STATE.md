@@ -66,6 +66,9 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   `.agent/proposals/roadmap/cev2-*.md`) — approved by the owner 2026-09-20 as ROOT #74 (children #75–#79,
   #79 conditional); implementation is in progress through the agent team, nothing merged yet.
 
+- Non-rectangular geometry (what it takes to realize real-plan shapes) — ROOT #102, owner-approved 2026-09-22,
+  investigation only; the POC Architectural Brain (ROOT #93) runs in parallel on its own branch.
+
 ## Agent-team Issues
 
 - **#24 Work reports and structured failure records** — every failure transition (worker

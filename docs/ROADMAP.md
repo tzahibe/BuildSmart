@@ -98,6 +98,15 @@ unchanged engine and validators, 3 fixed briefs, side-by-side SVG demo, measurem
 Branch `integration/poc-architectural-brain` (from the Concept Engine v2 branch). Priority: after the basic P0,
 beside Concept Engine v2 (#79 keeps running). Success and failure criteria are in the ROOT contract.
 
+## Investigation — non-rectangular geometry — ROOT #102 (owner-approved 2026-09-22, no implementation)
+
+The owner's observation on the POC demo: everything is rectangles inside rectangles (the slicing-tree Geometry Core).
+#102 inventories the rectangle assumption module by module, measures real-plan shapes on the ResPlan corpus
+(rectangular / L-shaped / other rooms, guillotine vs non-guillotine layouts, envelopes), compares three candidate
+architectures (A slicing tree + room merging, B non-guillotine rectangular dissection, C polygonal layout) on reuse /
+redesign / effort / risk / Concept Engine fit, and ends with a recommendation + proposed ROOT/children. Decides the
+next big step after Concept Engine v2 and the POC.
+
 ## P1 product ROOTs (order after the Concept Engine; #39/#40 may run in parallel with children 1–3 once the concept ↔ realized-plan interface is stable)
 
 | Owner item | ROOT | Depends on | Priority (owner 2026-09-20) | Merged old-roadmap topics |
