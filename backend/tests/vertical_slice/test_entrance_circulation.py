@@ -13,6 +13,8 @@ quality signal the sweep did find.
 """
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from app.geometry_domain.constraints import BuildableRegion
@@ -105,22 +107,21 @@ def dead_stub_beside_entrance_design(dx: float = 0.0, dy: float = 0.0,
     )
 
 
-def _fixed_equivalent_design() -> GeometricDesign:
-    """The SAME shape with the corridor's nearest opening brought within the calibrated limit —
-    demonstrating the topology fix's effect (AC-2): no wall/stub directly beyond the door, C25
-    passes cleanly."""
-    hall = _room("HALL", ("HALL", "CIRCULATION"), (0.0, 0.0, 2.0, 8.0))
-    living = _room("LIVING", ("LIVING",), (2.0, 0.0, 4.0, 2.0))
-    doors = [_door("HALL", "LIVING", "vertical", (2.0, 1.0))]
-    entrance = DoorOut(a="OUTSIDE", b="HALL", kind="ENTRANCE_DOOR", width_m=1.0,
-                      center_m=(1.0, 0.0), orientation="horizontal", placeable=True,
-                      shared_length_m=1.0)
-    return GeometricDesign(
-        plot_m=(0.0, 0.0, 20.0, 16.0), footprint_m=(0.0, 0.0, 10.0, 8.0),
-        rooms=(hall, living), interior_doors=tuple(doors), entrance_door=entrance,
-        windows=(), parking_m=(), garden=(), entrance_walk_m=(0.0, 0.0, 1.0, 1.0),
-        gross_area_m2=24.0, net_area_m2=24.0, wall_iterations=0,
-    )
+def _corrected_dead_stub_beside_entrance_design() -> GeometricDesign:
+    """THE FAILURE FIXTURE ITSELF (`dead_stub_beside_entrance_design`), corrected: the front door
+    now opens into HALL — the very zone that, in the failure fixture, is a separate, disconnected
+    stub beside it — instead of past it into LIVING, and HALL gains one more door onward to LIVING
+    near the street. Same rooms (LIVING, HALL, STORAGE), same STORAGE leaf and its door, same
+    footprint; only the entrance/arrival topology changes. This is what Issue #22 actually asks
+    for — "the front door leads to a circulation node" — demonstrated as a direct correction of the
+    fixture AC-5 names, not a different, unrelated design. AC-2/AC-4: C25 passes, and the access
+    graph shows door -> HALL (circulation) -> LIVING (public)."""
+    base = dead_stub_beside_entrance_design()
+    near_street_door = _door("HALL", "LIVING", "vertical", (5.0, 0.5))
+    entrance = dataclasses.replace(base.entrance_door, b="HALL", center_m=(6.0, 0.0))
+    return dataclasses.replace(
+        base, entrance_door=entrance,
+        interior_doors=base.interior_doors + (near_street_door,))
 
 
 def _foyer_design() -> GeometricDesign:
@@ -222,9 +223,15 @@ def l_plan():
 # --------------------------------------------------------------------------- AC-2
 
 def test_no_dead_end_wall_in_front_of_the_entrance_on_the_failure_fixture():
-    design = _fixed_equivalent_design()
-    seq = es.measure(design)
+    """THE FAILURE FIXTURE ITSELF: C25 fails on `dead_stub_beside_entrance_design` (the same 1.5 m
+    stub AC-5 names) and passes, with no wall segment/corridor stub beyond the door, once that one
+    dimension is corrected (`_corrected_dead_stub_beside_entrance_design`)."""
+    broken_seq = es.measure(dead_stub_beside_entrance_design())
+    assert es.classify_pocket(broken_seq) is not None
+
+    seq = es.measure(_corrected_dead_stub_beside_entrance_design())
     assert es.classify_pocket(seq) is None
+    assert not seq.stray_pockets
     assert seq.pocket_length_m <= es.ENTRANCE_POCKET_MAX_M
 
 
@@ -278,12 +285,18 @@ def test_corridor_ends_at_the_last_served_door_not_at_the_boundary(which, reques
 # --------------------------------------------------------------------------- AC-4
 
 def test_arrival_zone_is_a_circulation_node(canonical_design):
+    """AC-4, on the canonical fixture and on THE FAILURE FIXTURE ITSELF: the realized access graph
+    shows door -> arrival zone -> a public opening. On `dead_stub_beside_entrance_design` (broken),
+    the arrival zone is not a circulation node at all; on the corrected variant, the front door
+    opens into HALL — a genuine circulation zone — which itself opens onward to LIVING (public)."""
     seq = es.measure(canonical_design)
     assert seq.has_public_opening
     assert es.classify_pocket(seq) is None
 
-    fixed = _fixed_equivalent_design()
-    seq2 = es.measure(fixed)
+    broken_seq = es.measure(dead_stub_beside_entrance_design())
+    assert es.classify_pocket(broken_seq) is not None
+
+    seq2 = es.measure(_corrected_dead_stub_beside_entrance_design())
     assert seq2.is_circulation_arrival
     assert seq2.has_public_opening
     assert es.classify_pocket(seq2) is None

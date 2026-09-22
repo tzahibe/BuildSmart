@@ -176,18 +176,20 @@ uses:
   through further circulation.
 - **TUNNEL** (`classify_tunnel`, NON-BLOCKING): the walking distance from the entrance to the
   first PUBLIC-group room reached, threading only through further circulation, plus how many
-  PRIVATE rooms' doors were passed on the way. Reported and available as a candidate tiebreak
-  (`entrance_sequence_prefers`, `hub_guard`/`circulation_prefers`-style, tested directly), never a
-  gate — fixing a genuine tunnel is a parti change (a future "Entrance Sequence Quality" Issue),
-  and a blocking check there would violate LOST = 0. NOT wired into
-  `general_pipeline._guard_demoted_hub`: that function's own existing test mocks `plan.design` as
-  a bare `SimpleNamespace(gross_area_m2=...)`, which `entrance_sequence.measure` cannot read
-  (`.entrance_door` missing) — wiring it there means editing Issue #36's own test fixture for a
-  hub-only path already unreachable on the corpus (`row-sharing-topology-limit` memory), not worth
-  the risk. The ranking function itself is real and tested
-  (`test_tunnel_sequence_is_reported_and_ranked_down_but_not_refused`); wiring it into a live
-  candidate-selection path is left for whichever future Issue makes a hub candidate reachable
-  again.
+  PRIVATE rooms' doors were passed on the way. Reported and wired into `run_general`'s own
+  candidate loop as a STRICT tiebreak (`entrance_sequence_prefers`, `hub_guard`/
+  `circulation_prefers`-style), never a gate — fixing a genuine tunnel is a parti change (a future
+  "Entrance Sequence Quality" Issue), and a blocking check there would violate LOST = 0.
+  `general_pipeline.run_general`, next to `_entrance_rank`: among candidates that already validate
+  AND are otherwise EQUAL under both existing ranking terms — the generator's own area-proximity
+  order (`concept_generator.py` already sorts `generated.candidates` by closeness to the target
+  area before `run_general` ever sees them) and `_entrance_rank` (HALL/CIRCULATION vs LIVING vs
+  neither) — the candidate with the shorter tunnel wins; it never promotes a worse-area or
+  worse-entrance-rank candidate. NOT wired into `general_pipeline._guard_demoted_hub`: that
+  function's own existing test mocks `plan.design` as a bare `SimpleNamespace(gross_area_m2=...)`,
+  which `entrance_sequence.measure` cannot read (`.entrance_door` missing) — wiring it there means
+  editing Issue #36's own test fixture for a hub-only path already unreachable on the corpus
+  (`row-sharing-topology-limit` memory), not worth the risk.
 
 **`ENTRANCE_POCKET_MAX_M` (4.0 m), `ENTRANCE_STRAY_POCKET_MAX_M` (0.6 m) and
 `ENTRANCE_TUNNEL_MAX_M` (4.0 m)** are all PARAMETER · UNVERIFIED, calibrated on
@@ -625,9 +627,12 @@ Beyond these two: none currently tracked at the Wiki level from the pre-#17 stat
 A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
 above. A fourth, from Issue #22: **Entrance Sequence Quality** — fixing a genuine TUNNEL (a long
 walk past bedroom doors before the first public room, measured on 342/404 corpus contexts today,
-see the Entrance-to-circulation integration section above) is a parti change, not a validation
-change; `entrance_sequence_prefers` exists and is tested but is not wired into a live
-candidate-selection path yet.
+see the Entrance-to-circulation integration section above) by changing the parti itself remains a
+parti change, not a validation change, and out of scope; `entrance_sequence_prefers` is wired as a
+STRICT candidate tiebreak in `run_general`'s own loop (see that section above) — it can only
+choose between candidates already equal on area proximity and `_entrance_rank`, so it narrows
+which of several otherwise-tied candidates is shown, never fixes a tunnel the generator has no
+non-tunnel alternative for.
 
 ## Evidence/history
 
