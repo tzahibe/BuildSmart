@@ -150,6 +150,9 @@ jobs:
   gate-4-regression:
     needs: [gate-2-static, gate-3-verification]
     if: needs.gate-2-static.outputs.regression_required == 'true'
+    permissions:
+      contents: read
+      actions: read   # O2: gh api lookup + actions/download-artifact for the trusted-store artifact
     uses: ./.github/workflows/agent-regression.yml
     with:
       head_sha: ${{ github.event.pull_request.head.sha }}
