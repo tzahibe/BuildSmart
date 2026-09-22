@@ -27,9 +27,19 @@ fails the job if the two verdicts (or the replay itself) disagree. **Removal cri
 replay step is only deleted after several real PRs show identical verdicts between the two paths —
 not scheduled by this Issue.
 
-## O3 — sharding (not started)
+## O3 — sharding (Issue #67)
 
-Not yet proposed as an Issue.
+**Status: shipped in shadow mode**, not yet the removal. `corpus_snapshot.py` gained `--shard I/N`
+(deterministic partition of the corpus by sorted context key, `index % N == I`) and `--merge` (union
+of N shard documents into one, refusing a missing/duplicated context key or a `head_sha`/
+`corpus_hash` mismatch). Gate-4 now computes each snapshot two ways: N=4 parallel matrix jobs
+(`snapshot` + `merge`) producing `head_snapshot.json`/`base_snapshot.json`, and the pre-existing
+single-node replay (`single_node` job) producing `*_snapshot_single.json` — the two run concurrently,
+so sharding adds no wall time of its own while shadow mode is on. A "Compare * snapshots" step fails
+the job if the merged and single-node documents ever differ after normalising volatile fields
+(`ms`/`seconds` timings, `written_at`). Budget evaluation and every other assertion consume the
+merged snapshot, only after the compare step passed. **Removal criterion**: the single-node path is
+only deleted after several real PRs show the two paths always agree — not scheduled by this Issue.
 
 ## O2 — the snapshot store (not started)
 
