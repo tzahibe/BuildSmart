@@ -1,0 +1,26 @@
+{
+  "brief_id": "brief-3",
+  "index": 1,
+  "concept_id": "concept-1",
+  "declared_circulation_class": "FRONT_BAND",
+  "zoning": "PUBLIC_FRONT_PRIVATE_REAR",
+  "wet_core_strategy": "DISPERSED",
+  "realization_intent_source_plan_id": "1996",
+  "adaptations": [
+    {
+      "kind": "RESIZE_ROOMS",
+      "before": "total 215.3 m2 across 8 donor rooms",
+      "after": "total 85.0 m2 after per-type target resizing",
+      "reason": "each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target"
+    },
+    {
+      "kind": "BEDROOM_COUNT_ADJUST",
+      "before": "3 bedroom(s)",
+      "after": "5 bedroom(s)",
+      "reason": "brief requires 5 bedroom(s); added 2 to match, each at its own target area"
+    }
+  ],
+  "elapsed_s": 12.1,
+  "outcome": "REFUSED",
+  "reason": "no footprint size solved for the SPINE template: depth 10.0 m / foyer depth 3.0 m: no width combination both fit and solved"
+}

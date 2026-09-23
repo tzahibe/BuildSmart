@@ -1,0 +1,1262 @@
+"""``realize_concept(concept, adapted, brief, site) -> RealizedPlan | Refusal`` (Issue #96, C/3).
+
+Compiles a synthesized+adapted concept (Issue #95: ``synthesis.ConceptSpec`` +
+``adaptation.AdaptedConcept``) into a Geometry Core ``Fixture`` (slicing tree + zones + access),
+then hands it to the SAME chain every real BuildSmart plan goes through:
+``app.vertical_slice.geometry_core.engine.solve_fixture`` (frozen, unchanged) and
+``app.vertical_slice.general_pipeline._realize`` (doors, windows, furniture, validation, assembly —
+unchanged). Nothing here re-implements or bypasses a single validator: this module's own job ends
+the moment a ``Fixture`` exists, and everything after that is the existing engine.
+
+WHERE THIS REUSES THE EXISTING ENGINE RATHER THAN INVENTING ONE (Concept Engine v2's own
+compilers, "where they exist" per Issue #96's Required Behavior 1):
+
+  * ``app.vertical_slice.wet_rooms.resolve_wet_rooms`` / ``.bedroom_zones`` — the SAME zone-naming
+    and ensuite-hosting resolver every real brief uses (``MASTER``/``BEDROOM_n``,
+    ``BATH_n``/``TOILET_n``, ensuite host assignment). The adapted concept's own
+    ``wet_core_strategy`` (Issue #95) decides only WHICH already-resolved wet room, if any, is
+    additionally read as this compiler's own ensuite pairing signal (see ``_wet_topology``) — the
+    brief's ``ProgramSpec.wet_room_kinds`` stays the one authoritative source `resolve_wet_rooms`
+    reads, exactly as every other caller of that function does.
+  * ``app.vertical_slice.concept_generator.ROOM_TEMPLATES`` — the SAME per-role min/target/max
+    area, min short side and max aspect ratio every real concept's ``ZoneSpec`` is built from.
+  * ``app.vertical_slice.general_pipeline._place_footprint`` — the SAME footprint-centring
+    convention every real candidate is placed by.
+  * ``app.vertical_slice.geometry_core.engine.solve_fixture`` / ``GeometryInfeasible`` and
+    ``app.vertical_slice.general_pipeline._realize`` — completely unchanged; see this module's
+    own docstring for exactly what "unchanged" is checked against (AC-2).
+
+WHAT IS THIS MODULE'S OWN, MINIMAL SPIKE COMPILATION (no equivalent exists in Concept Engine v2,
+which only ever FILTERS ``concept_generator.generate_concepts``'s own candidates for one brief —
+it never turns an externally retrieved/adapted room list into a fresh slicing tree):
+
+  * the TREE TOPOLOGY per ``ConceptSpec.circulation_class`` — ``_compile_spine``/
+    ``_compile_front_band``/``_compile_two_wing`` below. Every internal split is LEFT UNFORCED
+    (``fixed_at_u=None``): the frozen engine's own bottom-up shape-curve search
+    (``geometry_core.engine.assign``/``leaf_shapes``) decides every room's actual position and
+    size within its own ``ZoneSpec`` bounds, proportioned by target area — the SAME mechanism
+    ``concept_generator.py``'s own builders lean on for every split they do not have an
+    architectural reason to force. This compiler forces nothing.
+  * the WING SIZE search (``_solve_with_size_search``): the compiler does not know in advance
+    which (width, height) the combined shape curve admits, so it tries a small deterministic grid
+    of plausible sizes (a few overall aspect ratios x a few area paddings) and keeps the first that
+    solves — never a hidden retry that could silently prefer a worse plan, since ANY solved size is
+    equally valid geometry for a rectangle whose own room mix decides its proportions, not the
+    other way round.
+  * HUB_LOBBY is NOT compiled (falls back to the SPINE template — see ``_TOPOLOGY_FOR_CLASS``): a
+    genuine hub (a compact, near-square lobby reached by every room around it) needs a real 2-D
+    layout a minimal single-column compiler cannot produce within a realistic house depth (a
+    hub's own ``HUB_TEMPLATE`` bound is far tighter than a spine hall's — see the module's own
+    measured infeasibility note in the Issue's report). Documented, not hidden: AC-1 only needs
+    TWO distinct realized classes, and SPINE + TWO_WING already delivers that.
+"""
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+
+from app.geometry_domain.constraints import SiteConstraints
+from app.vertical_slice import concept_generator as generator
+from app.vertical_slice import concept_spec
+from app.vertical_slice import general_pipeline as gp
+from app.vertical_slice import wet_rooms as wet_rooms_module
+from app.vertical_slice.concept import Concept
+from app.vertical_slice.geometry_core.engine import (
+    GeometryInfeasible,
+    SolveResult,
+    _collect_sets,
+    derive_wall_types,
+    solve_fixture,
+)
+from app.vertical_slice.geometry_core.model import (
+    ConnectionKind,
+    Cut,
+    DesiredAccessEdge,
+    DesiredAccessTopology,
+    Fixture,
+    Leaf,
+    Node,
+    ProgramRole,
+    Rect,
+    Side,
+    Split,
+    Wing,
+    ZoneSpec,
+    m_to_u,
+    u_to_m,
+)
+from app.vertical_slice.exposure_policy import REQUIRED_EXTERIOR_ROLES
+from app.vertical_slice.safe_adapter import AdapterOutcome, adapt as safe_adapt, build_buildable_region
+from app.vertical_slice.spec import ArchitecturalSpec, LaundryDemand, PlotSpec
+from app.vertical_slice.windows import DAYLIGHT_ROLES
+
+from spikes.architectural_brain.adaptation import AdaptedConcept
+from spikes.architectural_brain.brief import Brief
+from spikes.architectural_brain.realization_intent import RealizationIntent
+from spikes.architectural_brain.synthesis import ConceptSpec as SynthesizedConcept
+
+#: `SynthesizedConcept.circulation_class` (the corpus vocabulary — `patterns._circulation_class`)
+#: -> which template below compiles it. HUB_LOBBY/BRANCHED/OTHER/UNKNOWN fall back to SPINE — see
+#: the module docstring for why HUB_LOBBY specifically is not attempted.
+_SPINE = "SPINE"
+_FRONT_BAND = "FRONT_BAND"
+_TWO_WING = "TWO_WING"
+
+#: A full-height single hall leaf only has a satisfiable width when the wing depth is at most
+#: sqrt(max_area * max_aspect_ratio) — beyond that no width admits both bounds at once (see
+#: `_hall_zone`, which scales `max_area` to how many private rooms this hall must reach). This
+#: cap uses `_hall_zone`'s own worst-case ceiling (10 private rooms) with a safety margin, so it
+#: stays a fixed, cheap bound to filter trial sizes by rather than a per-call computation.
+_MAX_WING_DEPTH_M = 23.0
+
+#: The overall-footprint DEPTHS this compiler tries. Every column's own WIDTH at a given depth is
+#: computed deterministically (`_min_width_u_at_height`), never guessed — depth is the only
+#: dimension actually searched.
+_DEPTH_TRIALS_M = (4.0, 5.0, 6.0, 7.0, 8.5, 10.0, 11.0, 13.0, 15.0, 17.0, 19.0, 20.5, 22.0)
+
+
+@dataclass(frozen=True)
+class Refusal:
+    """This concept could not be realized at all — never a silently-wrong plan.
+
+    Distinct from a `RealizedPlan` whose own `.validation` failed some check: that plan DID solve
+    and is shown with its failing checks listed (Required Behavior 3). A `Refusal` is returned
+    when no geometry could be built in the first place (the adapted concept's own feasibility
+    rejection, or every tried footprint size was `GeometryInfeasible`).
+    """
+
+    concept_id: str
+    reason: str
+    failing_checks: tuple[str, ...] = ()
+
+
+def _room_role(room_type: str) -> ProgramRole | None:
+    try:
+        return ProgramRole(room_type)
+    except ValueError:
+        return None
+
+
+def layout_signature(design) -> tuple:
+    """A deterministic fingerprint of a realized ``GeometricDesign``'s own room geometry —
+    ``(zone_id, rounded rect_m)`` pairs, sorted. Two ``RealizedPlan``s with the SAME signature drew
+    byte-identical room rectangles (Issue #109's own "brief 1 collapse"); a DIFFERENT signature is
+    what proves the donor's own room proportions (AC-2) actually reached the realized geometry,
+    not just the adapted concept's intermediate room list."""
+    return tuple(sorted(
+        (r.zone_id, tuple(round(v, 3) for v in r.rect_m)) for r in design.rooms
+    ))
+
+
+def _h_chain(zone_ids: list[str]) -> Node:
+    if len(zone_ids) == 1:
+        return Leaf(zone_ids[0])
+    return Split(Cut.H, Leaf(zone_ids[0]), _h_chain(zone_ids[1:]), None)
+
+
+def _adapted_target_area_m2(adapted: AdaptedConcept, role: ProgramRole,
+                            instance_index: int = 0) -> float | None:
+    """The area `adaptation.adapt`'s `RESIZE_ROOMS`/`BEDROOM_COUNT_ADJUST` gave the
+    `instance_index`-th adapted room of this role (donor order), or the role's own MEAN if this
+    role has fewer adapted rooms than `instance_index` needs (e.g. a `BEDROOM_COUNT_ADJUST`-added
+    bedroom past the donor's own count) — `None` if the adapted concept has no room of it at all.
+    This is the one place the ADAPTED concept (as opposed to the brief's own authoritative
+    counts/kinds) actually shapes the realized geometry: which target area within
+    `ROOM_TEMPLATES`' own [min, max] bound a room starts from. Reading a SPECIFIC instance rather
+    than always the role's own mean is what lets `RESIZE_ROOMS`'s own donor-proportion carry-
+    forward (`adaptation.py`'s own docstring) actually reach the realized geometry: a role's mean
+    is, by construction, always exactly the role's fixed target regardless of the donor's own
+    internal spread — see this module's own investigation in the Issue's report for the measured
+    case (two different donors realizing to byte-identical geometry) this fixes."""
+    matches = [r.area_m2 for r in adapted.rooms if _room_role(r.room_type) is role]
+    if not matches:
+        return None
+    if instance_index < len(matches):
+        return matches[instance_index]
+    return sum(matches) / len(matches)
+
+
+def _donor_room_id(adapted: AdaptedConcept, role: ProgramRole, instance_index: int = 0) -> str | None:
+    """The specific donor room id `_adapted_target_area_m2` reads THIS zone's own area override
+    from — `adaptation._resize_rooms` sets `AdaptedRoom.id = room.id` from the donor's own
+    `PlanReference.rooms`, so this id is exactly what `RealizationIntent.room_proportions` (Issue
+    #109, built from the SAME reference) is keyed by. `None` when no single donor room maps here:
+    no room of this role at all, this instance fell back to the role's own MEAN
+    (`_adapted_target_area_m2`'s own `instance_index >= len(matches)` case — an aggregate, not one
+    room), or the matched room is one `adaptation._adjust_bedroom_count` SYNTHESISED
+    (`BEDROOM_ADAPTED_*` — never a real donor id, never a `RealizationIntent` fact to invent)."""
+    matches = [r for r in adapted.rooms if _room_role(r.room_type) is role]
+    if not matches or instance_index >= len(matches):
+        return None
+    room_id = matches[instance_index].id
+    return None if room_id.startswith("BEDROOM_ADAPTED_") else room_id
+
+
+def _intent_target_area_m2(intent: RealizationIntent, donor_room_id: str | None,
+                           template) -> float | None:
+    """The donor's OWN proportion of this room TYPE's target area (Issue #109 AC-2) — never the
+    donor's raw `area_m2` (a different plot's own absolute scale), never `adaptation.py`'s fixed
+    per-type constant alone: `template.target_area_m2 * area_share_of_type` recovers exactly the
+    per-room area `RoomProportion`'s own docstring promises, sourced from `RealizationIntent`
+    itself rather than `AdaptedConcept`'s already-computed one — so this compiler's own room
+    sizing is driven by the INTENT (Required Behaviour 2), not a parallel computation of the same
+    fact. `None` when `donor_room_id` has no fact on `intent` at all (never invented)."""
+    if donor_room_id is None:
+        return None
+    proportion = next((p for p in intent.room_proportions if p.room_id == donor_room_id), None)
+    if proportion is None:
+        return None
+    return template.target_area_m2 * proportion.area_share_of_type
+
+
+def _zone(zone_id: str, role: ProgramRole, extra_roles: tuple[ProgramRole, ...] = (),
+         adapted: AdaptedConcept | None = None, instance_index: int = 0,
+         intent: RealizationIntent | None = None,
+         donor_by_zone: dict[str, str] | None = None) -> ZoneSpec:
+    template = generator.ROOM_TEMPLATES[role]
+    target = template.target_area_m2
+    donor_room_id = _donor_room_id(adapted, role, instance_index) if adapted is not None else None
+    if adapted is not None:
+        override = _adapted_target_area_m2(adapted, role, instance_index)
+        if override is not None:
+            target = min(max(override, template.min_area_m2), template.max_area_m2)
+    if intent is not None:
+        intent_target = _intent_target_area_m2(intent, donor_room_id, template)
+        if intent_target is not None:
+            target = min(max(intent_target, template.min_area_m2), template.max_area_m2)
+    if donor_by_zone is not None and donor_room_id is not None:
+        donor_by_zone[zone_id] = donor_room_id
+    return ZoneSpec(
+        zone_id, (role,) + extra_roles,
+        template.min_area_m2, target, template.max_area_m2,
+        template.min_short_side_m, template.max_aspect_ratio,
+    )
+
+
+def _zone_area_m2(zone: ZoneSpec) -> float:
+    return zone.net_area_target_m2
+
+
+@dataclass(frozen=True)
+class _Programme:
+    """The room composition this compiler builds a fixture from — derived from the brief's own
+    authoritative requirements (bedroom count, wet-room kinds via `wet_rooms.resolve_wet_rooms`),
+    never from the donor plan's own room list (Required Behavior 1: authoritative facts always
+    win over anything a reference/adapted concept suggests)."""
+
+    public_zones: tuple[ZoneSpec, ...]
+    private_zones: tuple[ZoneSpec, ...]
+    private_order: tuple[str, ...]
+    ensuite_pairs: tuple[tuple[str, str], ...]   # (host bedroom zone id, wet room zone id)
+    shared_wet_zone_ids: tuple[str, ...]
+    hall_role_zone: ZoneSpec
+    entrance_public_zone_id: str
+
+
+def _wet_topology(program, adapted: AdaptedConcept, intent: RealizationIntent | None = None,
+                  donor_by_zone: dict[str, str] | None = None):
+    """The brief's own `resolve_wet_rooms` result, partitioned into (zone_id -> ZoneSpec),
+    ensuite (host, wet_zone) pairs and shared (hall-entered) wet zone ids.
+
+    `resolve_wet_rooms` reads `program.wet_room_kinds` — the brief's own stated requirement,
+    unaffected by adaptation (`adaptation.adapt` never mutates `brief.program`) — so it is the
+    correct, sufficient source for WHICH wet rooms exist and whether each is an ensuite; this
+    compiler does not re-derive that from the adapted concept's `wet_core_strategy` (that field
+    explains, for the demo's own record, why `adapt` needed a `WET_ZONE_ADJUST` operation to make
+    a CLUSTERED donor able to host the brief's ensuite at all — never a second source of truth for
+    hosting once the brief itself already states it). `adapted`/`intent` are threaded through only
+    for their per-role target AREAS (`_zone`'s own arguments).
+    """
+    resolved = wet_rooms_module.resolve_wet_rooms(program)
+    zones: dict[str, ZoneSpec] = {}
+    ensuite_pairs: list[tuple[str, str]] = []
+    shared: list[str] = []
+    role_counts: dict[ProgramRole, int] = {}
+    for w in resolved:
+        role = ProgramRole.TOILET if w.kind.value == "guest_wc" else ProgramRole.BATHROOM
+        instance_index = role_counts.get(role, 0)
+        role_counts[role] = instance_index + 1
+        zones[w.zone_id] = _zone(w.zone_id, role, adapted=adapted, instance_index=instance_index,
+                                 intent=intent, donor_by_zone=donor_by_zone)
+        if w.host_zone is not None:
+            ensuite_pairs.append((w.host_zone, w.zone_id))
+        else:
+            shared.append(w.zone_id)
+    return zones, tuple(ensuite_pairs), tuple(shared), resolved
+
+
+def _programme_of(brief: Brief, adapted: AdaptedConcept, intent: RealizationIntent | None = None,
+                  ) -> tuple[_Programme, tuple, dict[str, str]]:
+    """Builds this brief/adapted concept's own `_Programme`, plus (Issue #109) the `zone_id ->
+    donor room id` correspondence established while doing so — every zone `_zone` matched to a
+    SPECIFIC donor room (`_donor_room_id`), regardless of whether `intent` actually had a fact for
+    it. Exposed publicly via `donor_room_id_by_zone` for `preservation.py`, since this mapping is a
+    pure function of `(brief, adapted)` alone — independent of whether the geometry solved."""
+    program = brief.program
+    donor_by_zone: dict[str, str] = {}
+
+    public_zones = [
+        _zone("LIVING", ProgramRole.LIVING, adapted=adapted, intent=intent, donor_by_zone=donor_by_zone),
+        _zone("DINING", ProgramRole.DINING, adapted=adapted, intent=intent, donor_by_zone=donor_by_zone),
+        _zone("KITCHEN", ProgramRole.KITCHEN, adapted=adapted, intent=intent, donor_by_zone=donor_by_zone),
+    ]
+
+    bedroom_zone_ids = wet_rooms_module.bedroom_zones(program)
+    bedroom_zones = {}
+    bedroom_instance_index = 0
+    for zid in bedroom_zone_ids:
+        if zid == "MASTER":
+            bedroom_zones[zid] = _zone(zid, ProgramRole.MASTER_BEDROOM, adapted=adapted,
+                                       intent=intent, donor_by_zone=donor_by_zone)
+        else:
+            bedroom_zones[zid] = _zone(zid, ProgramRole.BEDROOM, adapted=adapted,
+                                       instance_index=bedroom_instance_index,
+                                       intent=intent, donor_by_zone=donor_by_zone)
+            bedroom_instance_index += 1
+
+    wet_zones, ensuite_pairs, shared_wet_ids, resolved_wet_rooms = _wet_topology(
+        program, adapted, intent=intent, donor_by_zone=donor_by_zone)
+    ensuite_by_host = dict(ensuite_pairs)
+
+    order: list[str] = []
+    private_zones: list[ZoneSpec] = []
+    for zid in bedroom_zone_ids:
+        order.append(zid)
+        private_zones.append(bedroom_zones[zid])
+        if zid in ensuite_by_host:
+            wet_zid = ensuite_by_host[zid]
+            order.append(wet_zid)
+            private_zones.append(wet_zones[wet_zid])
+
+    if program.safe_room:
+        order.append("SAFE_ROOM")
+        private_zones.append(_zone("SAFE_ROOM", ProgramRole.SAFE_ROOM, adapted=adapted,
+                                   intent=intent, donor_by_zone=donor_by_zone))
+
+    for zid in shared_wet_ids:
+        order.append(zid)
+        private_zones.append(wet_zones[zid])
+
+    if program.laundry.demand is LaundryDemand.ROOM:
+        order.append("LAUNDRY")
+        private_zones.append(_zone("LAUNDRY", ProgramRole.LAUNDRY, adapted=adapted,
+                                   intent=intent, donor_by_zone=donor_by_zone))
+
+    hall_zone = _zone("HALL", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
+
+    return _Programme(
+        public_zones=tuple(public_zones),
+        private_zones=tuple(private_zones),
+        private_order=tuple(order),
+        ensuite_pairs=ensuite_pairs,
+        shared_wet_zone_ids=shared_wet_ids,
+        hall_role_zone=hall_zone,
+        entrance_public_zone_id="LIVING",
+    ), resolved_wet_rooms, donor_by_zone
+
+
+def donor_room_id_by_zone(brief: Brief, adapted: AdaptedConcept) -> dict[str, str]:
+    """Issue #109: the `zone_id -> donor room id` correspondence `realize_concept` compiles this
+    brief/adapted concept's programme with — computed independently here (not carried on
+    `gp.RealizedPlan`, an unmodified production dataclass this Issue does not touch) so
+    `preservation.py` can translate `RealizationIntent`'s donor-room-id-keyed facts onto realized
+    zone ids for ANY already-realized plan, without `realize_concept` itself needing to return
+    anything beyond the `RealizedPlan | Refusal` its existing callers (Issue #96's own demo/tests)
+    already depend on. `intent`-independent (`_donor_room_id`'s own matching never reads `intent`
+    — see `_zone`), so the caller does not need `intent` on hand to compute this."""
+    _, _, mapping = _programme_of(brief, adapted)
+    return mapping
+
+
+def _hall_zone(hall_id: str, room_count: int) -> ZoneSpec:
+    """A hall segment's own ZoneSpec, its `max_area_m2` scaled to how many private rooms it
+    reaches — the same allowance `concept_generator.py`'s own comment on `ROOM_TEMPLATES[HALL]`
+    already describes ("a geometric safety ceiling for long ... spines") and that module's own
+    `scale_program` elasticity already lets a real hall grow past for a bigger house. This
+    compiler makes that same allowance explicit, per compiled instance — never a change to
+    `ROOM_TEMPLATES` itself, and the geometric hard limits (`min_short_side_m`, `max_aspect_ratio`)
+    are the template's own, unmodified.
+    """
+    template = generator.ROOM_TEMPLATES[ProgramRole.HALL]
+    max_area = max(template.max_area_m2, 6.0 * room_count)
+    return ZoneSpec(
+        hall_id, (ProgramRole.HALL, ProgramRole.CIRCULATION),
+        template.min_area_m2, template.target_area_m2, max_area,
+        template.min_short_side_m, template.max_aspect_ratio,
+    )
+
+
+def _private_groups(programme: _Programme) -> tuple[list[str], list[str]]:
+    """`private_order` split into two ORDER-PRESERVING groups (an ensuite stays adjacent to its
+    host, never separated) at the point the cumulative target area first reaches half the total —
+    see `_hall_and_private_node` for why a single column of many private rooms is split into two
+    hall-matched groups at all."""
+    order = list(programme.private_order)
+    zone_by_id = {z.zone_id: z for z in programme.private_zones}
+    total = sum(zone_by_id[z].net_area_target_m2 for z in order)
+    cum = 0.0
+    split_idx = len(order)
+    for i, zid in enumerate(order):
+        cum += zone_by_id[zid].net_area_target_m2
+        if cum >= total / 2:
+            split_idx = i + 1
+            break
+    group1, group2 = order[:split_idx], order[split_idx:]
+    if not group1 or not group2:
+        split_idx = max(1, len(order) - 1)
+        group1, group2 = order[:split_idx], order[split_idx:]
+    return group1, group2
+
+
+#: Generous bounds for the standalone feasibility probes below (`_probe_shape_set`) — large
+#: enough that no real column's own [min_short_side, max_aspect_ratio, max_area] bounds are ever
+#: clipped by the probe's own box, so what comes back is the TREE's true feasible set, not an
+#: artefact of the bound chosen to query it.
+_PROBE_BOUND_W_U = m_to_u(60.0)
+_PROBE_BOUND_H_U = m_to_u(400.0)
+
+
+def _probe_shape_set(tree: Node, zones: tuple[ZoneSpec, ...],
+                     open_groups: tuple[tuple[str, ...], ...] = ()):
+    """The root `ShapeSet` (height_u -> {width_u, ...}) a tree of `zones` composes to, queried
+    directly from the frozen engine's own bottom-up computation
+    (`geometry_core.engine._collect_sets`/`leaf_shapes`) — this module's own compiled trees are
+    built from EXACTLY this data rather than a guessed proportional split, which is what makes
+    every FORCED position below actually land inside the real feasible set (see the module's own
+    investigation in the Issue's report for a measured case where a guess did not).
+
+    IMPORTANT: a probe over a SUBTREE in isolation (e.g. just the hall segments, without the
+    public/private siblings it will actually be built beside) derives EXTERIOR-thick walls on
+    every boundary that would, in the real combined fixture, be a thin PARTITION wall shared with
+    a neighbour — the isolated probe is then MORE conservative than reality on those sides and
+    can miss real feasible widths (measured in the module's own investigation in the Issue's
+    report). Callers computing a FINAL width to build a fixture with therefore probe the WHOLE
+    combined tree they are about to build (same zones, same `open_groups`), not a sub-piece of
+    it; sub-tree probes here (`_group_height_range_m`) are only ever used for an internal HEIGHT
+    decision, never for the width this function is walled/inset-sensitive about."""
+    wing = Wing("PROBE", 0, 0, _PROBE_BOUND_W_U, _PROBE_BOUND_H_U, tree)
+    fixture = Fixture("PROBE", (wing,), zones, DesiredAccessTopology(()), open_groups=open_groups)
+    walls = derive_wall_types(fixture, wing, None, None)
+    try:
+        return _collect_sets(tree, fixture, walls, _PROBE_BOUND_W_U, _PROBE_BOUND_H_U, {})
+    except GeometryInfeasible:
+        return None
+
+
+def _group_height_range_m(zone_ids: list[str], zone_by_id: dict[str, ZoneSpec]) -> tuple[float, float] | None:
+    """The (min, max) TOTAL height a stacked H-chain of `zone_ids` can be composed to, at ANY
+    width — see `_probe_shape_set`."""
+    s = _probe_shape_set(_h_chain(zone_ids), tuple(zone_by_id[z] for z in zone_ids))
+    if s is None:
+        return None
+    heights = sorted(s.keys())
+    return u_to_m(heights[0]), u_to_m(heights[-1])
+
+
+def _feasible_widths_u_at_height(tree: Node, zones: tuple[ZoneSpec, ...], height_u: int,
+                                 limit: int = 6,
+                                 open_groups: tuple[tuple[str, ...], ...] = ()) -> list[int]:
+    """Up to `limit` SMALLEST widths (grid units) a `tree` of `zones` can be composed to at
+    EXACTLY `height_u`, ascending — `[]` if no width admits that height at all.
+
+    ALWAYS called on the WHOLE tree that will actually be built (with the SAME `open_groups`),
+    never a sub-piece of it — see `_probe_shape_set`'s own docstring for why an isolated sub-tree
+    probe's wall-thickness assumptions do not match the real combined fixture's, which is what
+    makes this the correct way to find a wing's own total width instead of leaving
+    `geometry_core.engine.assign`'s own proportional-to-target-area heuristic to divide it among
+    siblings on its own."""
+    s = _probe_shape_set(tree, zones, open_groups)
+    if s is None:
+        return []
+    widths = s.get(height_u)
+    return sorted(widths)[:limit] if widths else []
+
+
+def _min_width_u_at_height(tree: Node, zones: tuple[ZoneSpec, ...], height_u: int) -> int | None:
+    """The single smallest width — see `_feasible_widths_u_at_height`."""
+    widths = _feasible_widths_u_at_height(tree, zones, height_u, limit=1)
+    return widths[0] if widths else None
+
+
+def _widths_at_exact_height(zone_ids: list[str], zone_by_id: dict[str, ZoneSpec],
+                            height_u: int) -> set[int]:
+    """Widths (grid units) an UNFORCED H-chain of `zone_ids` can be composed to at EXACTLY
+    `height_u` — accurate via `_collect_sets` because `zone_ids` here is always a group/leaf list
+    with NO forced position of its own (see `_HallPrivateSplit`'s own docstring for why a node
+    that DOES carry a forced position cannot be queried this same way)."""
+    s = _probe_shape_set(_h_chain(zone_ids), tuple(zone_by_id[z] for z in zone_ids))
+    return s.get(height_u, set()) if s else set()
+
+
+@dataclass(frozen=True)
+class _HallPrivateSplit:
+    """One candidate (group1, group2) height split, with `private_widths`/`hall_widths` —
+    EXACT sets of widths each of `private_tree`/`hall_tree` can ACTUALLY be forced to at this
+    split, verified leaf-by-leaf via `_widths_at_exact_height`.
+
+    WHY THIS EXISTS (not `_probe_shape_set` on `private_tree`/`hall_tree` themselves):
+    `geometry_core.engine._collect_sets`'s bottom-up combine reports the shape set a node's
+    PARENT would see if that node's OWN internal split were free to land anywhere — it does NOT
+    filter by the node's own `fixed_at_u`. A node that itself carries a forced split (both
+    `private_tree` and `hall_tree` do, at `group1`/`group2`'s and `hall1`/`hall2`'s own forced
+    height boundary) therefore reports a WIDER, too-permissive width set to whatever queries it
+    directly — measured in the module's own investigation in the Issue's report: `assign()` would
+    pick a width from that too-permissive set, then fail exactly at THIS split's own forced
+    position once it tried to lay the node out for real. Computing `private_widths`/`hall_widths`
+    as the INTERSECTION of each half's own (unforced, thus accurately queryable) width set at its
+    OWN forced height is what actually matches what `assign()` can honour.
+    """
+
+    private_tree: Node
+    hall_tree: Node
+    private_widths: list[int]
+    hall_widths: list[int]
+    hall_zones: tuple[ZoneSpec, ZoneSpec]
+    segment_of: dict[str, str]
+    primary_hall_id: str
+
+    def combined_tree(self, hall_first: bool, hall_w_u: int, private_w_u: int) -> Node:
+        """The (hall | private) subtree with the OUTER split ALSO forced — at `hall_w_u` if hall
+        is first, at `private_w_u` otherwise (`Split.fixed_at_u` only fixes the FIRST child) —
+        for exactly the same reason `private_tree`/`hall_tree`'s own splits are forced above:
+        leaving this position to `assign()`'s own guess reintroduces the identical failure mode
+        one level up.
+        """
+        if hall_first:
+            return Split(Cut.V, self.hall_tree, self.private_tree, hall_w_u)
+        return Split(Cut.V, self.private_tree, self.hall_tree, private_w_u)
+
+
+#: How many different (group1, group2) height splits `_hall_and_private_splits` offers.
+#: More than one exists because a split that looks feasible from each group's OWN isolated
+#: height range (`_group_height_range_m`, computed with pass-1/structural wall types only) can
+#: still turn out infeasible once the real multi-pass solve discovers an RC wall neighbouring a
+#: SAFE_ROOM in one group — thickening that group's own insets in a way this module's own probes
+#: cannot see ahead of an actual solve (see the module's own investigation in the Issue's
+#: report). Trying several candidate splits, nearest the area-proportional one first, is what
+#: recovers from that without hand-modelling every possible RC adjacency.
+_HALL_SPLIT_CANDIDATE_LIMIT = 6
+
+#: How many (width) options `_HallPrivateSplit.private_widths`/`.hall_widths` each keep.
+_HALL_WIDTH_CANDIDATE_LIMIT = 8
+
+
+def _hall_and_private_splits(programme: _Programme, hall_id: str, wing_h_u: int,
+                             limit: int = _HALL_SPLIT_CANDIDATE_LIMIT) -> list[_HallPrivateSplit]:
+    """Up to `limit` `_HallPrivateSplit` candidates for DIFFERENT (group1, group2) height splits,
+    nearest the area-proportional split first — see `_HALL_SPLIT_CANDIDATE_LIMIT`'s own docstring
+    for why more than one is offered. `[]` if no split lands inside both groups' real feasible
+    height ranges at all, or admits no verified width for either half."""
+    group1, group2 = _private_groups(programme)
+    zone_by_id = {z.zone_id: z for z in programme.private_zones}
+    range1 = _group_height_range_m(group1, zone_by_id)
+    range2 = _group_height_range_m(group2, zone_by_id)
+    if range1 is None or range2 is None:
+        return []
+    min1, max1 = range1
+    min2, max2 = range2
+    wing_h_m = u_to_m(wing_h_u)
+    lo_u = max(m_to_u(min1), wing_h_u - m_to_u(max2), 1)
+    hi_u = min(m_to_u(max1), wing_h_u - m_to_u(min2), wing_h_u - 1)
+    if lo_u > hi_u:
+        return []
+
+    total = sum(z.net_area_target_m2 for z in zone_by_id.values())
+    frac1 = sum(zone_by_id[z].net_area_target_m2 for z in group1) / total if total else 0.5
+    target_u = m_to_u(wing_h_m * frac1)
+    split_options = sorted(range(lo_u, hi_u + 1), key=lambda u: abs(u - target_u))[:limit]
+
+    hall1_id, hall2_id = f"{hall_id}_1", f"{hall_id}_2"
+    hall_zones = (_hall_zone(hall1_id, len(group1)), _hall_zone(hall2_id, len(group2)))
+    hall_zone_by_id = {hall1_id: hall_zones[0], hall2_id: hall_zones[1]}
+    segment_of = {zid: hall1_id for zid in group1}
+    segment_of.update({zid: hall2_id for zid in group2})
+
+    out = []
+    for split_u in split_options:
+        rest_u = wing_h_u - split_u
+        private_widths = sorted(_widths_at_exact_height(group1, zone_by_id, split_u)
+                                & _widths_at_exact_height(group2, zone_by_id, rest_u))
+        if not private_widths:
+            continue
+        hall_widths = sorted(_widths_at_exact_height([hall1_id], hall_zone_by_id, split_u)
+                             & _widths_at_exact_height([hall2_id], hall_zone_by_id, rest_u))
+        if not hall_widths:
+            continue
+        private_tree = Split(Cut.H, _h_chain(group1), _h_chain(group2), split_u)
+        hall_tree = Split(Cut.H, Leaf(hall1_id), Leaf(hall2_id), split_u)
+        out.append(_HallPrivateSplit(
+            private_tree, hall_tree,
+            private_widths[:_HALL_WIDTH_CANDIDATE_LIMIT], hall_widths[:_HALL_WIDTH_CANDIDATE_LIMIT],
+            hall_zones, segment_of, hall1_id))
+    return out
+
+
+def _private_access_edges(programme: _Programme, segment_of: dict[str, str]) -> list[DesiredAccessEdge]:
+    """Every private room's own door — to its ensuite host, or to whichever hall segment
+    `segment_of` says it borders. Shared with `_compile_two_wing`, which needs these edges
+    WITHOUT the public-side ones `_access_for_spine` adds on top (wing B never touches LIVING
+    directly; only `HALL_A` does)."""
+    edges = [DesiredAccessEdge(host, wet_zid, ConnectionKind.DOOR)
+            for host, wet_zid in programme.ensuite_pairs]
+    ensuite_ids = {w for _, w in programme.ensuite_pairs}
+    for zid in programme.private_order:
+        if zid in ensuite_ids:
+            continue
+        edges.append(DesiredAccessEdge(segment_of[zid], zid, ConnectionKind.DOOR))
+    return edges
+
+
+def _access_for_spine(programme: _Programme, segment_of: dict[str, str],
+                      hall_zones: tuple[ZoneSpec, ZoneSpec]) -> DesiredAccessTopology:
+    hall1_id, hall2_id = hall_zones[0].zone_id, hall_zones[1].zone_id
+    edges = [
+        DesiredAccessEdge(hall1_id, "LIVING", ConnectionKind.DOOR),
+        DesiredAccessEdge("LIVING", "DINING", ConnectionKind.OPEN_CONNECTION),
+        DesiredAccessEdge("DINING", "KITCHEN", ConnectionKind.OPEN_CONNECTION),
+        # HALL_1 and HALL_2 are adjacent by construction (the two children of one forced H
+        # split) — without a door between them, every private room `segment_of` routed to
+        # HALL_2 would be unreachable from the entrance (C5) whenever the entrance/public side
+        # only connects to HALL_1.
+        DesiredAccessEdge(hall1_id, hall2_id, ConnectionKind.DOOR),
+    ]
+    edges.extend(_private_access_edges(programme, segment_of))
+    return DesiredAccessTopology(tuple(edges))
+
+
+def _compile_spine(programme: _Programme, h_u: int,
+                   candidate_rect: Rect) -> tuple[Fixture, SolveResult] | None:
+    """Builds and solves the SPINE fixture at the given depth. The hall/private HEIGHT split is a
+    real design decision this module makes (`_hall_and_private_candidates`); the overall WING
+    WIDTH at that depth is not guessed but read off the WHOLE tree's own true feasible set
+    (`_feasible_widths_u_at_height`, probed on the complete tree — see that function's own
+    docstring for why a probe on a sub-piece in isolation is not reliable here), leaving
+    `geometry_core.engine.assign` to pick every internal split within a width already known to
+    admit one. Returns `None` if this depth is infeasible, or no width that fits `candidate_rect`
+    both exists and solves."""
+    public_tree = _h_chain([z.zone_id for z in programme.public_zones])
+    public_widths = _feasible_widths_u_at_height(public_tree, tuple(programme.public_zones), h_u)
+    if not public_widths:
+        return None
+    open_groups = (("LIVING", "DINING", "KITCHEN"),)
+
+    # Every width on every level (public, hall, private) is tried in combination — see
+    # `_HallPrivateSplit`'s own docstring for why each is independently verified rather than
+    # composed from a single guess at any level.
+    for hp in _hall_and_private_splits(programme, "HALL", h_u):
+        access = _access_for_spine(programme, hp.segment_of, hp.hall_zones)
+        zones = programme.public_zones + hp.hall_zones + programme.private_zones
+        for hall_w_u in hp.hall_widths:
+            for private_w_u in hp.private_widths:
+                hap_w_u = hall_w_u + private_w_u
+                hall_and_private = hp.combined_tree(True, hall_w_u, private_w_u)
+                for public_w_u in public_widths:
+                    w_u = public_w_u + hap_w_u
+                    if w_u > candidate_rect.w:
+                        continue
+                    tree = Split(Cut.V, public_tree, hall_and_private, public_w_u)
+                    origin = gp._place_footprint(candidate_rect, u_to_m(w_u), u_to_m(h_u))
+                    wing = Wing("W", origin[0], origin[1], w_u, h_u, tree)
+                    fixture = Fixture("BRAIN_SPINE", (wing,), zones, access, open_groups=open_groups)
+                    try:
+                        return fixture, solve_fixture(fixture)
+                    except GeometryInfeasible:
+                        continue
+    return None
+
+
+def _v_chain(zone_ids: list[str]) -> Node:
+    if len(zone_ids) == 1:
+        return Leaf(zone_ids[0])
+    return Split(Cut.V, Leaf(zone_ids[0]), _v_chain(zone_ids[1:]), None)
+
+
+def _compile_two_wing(programme: _Programme, public_is_west: bool, ha_u: int, hb_u: int,
+                      public_rect: Rect, private_rect: Rect, boundary_x: int, origin_y: int,
+                      ) -> tuple[Fixture, SolveResult] | None:
+    """Builds and solves both wings at the given depths. `len(fixture.wings) > 1` is exactly
+    `realized_circulation_class`'s TWO_WING test, so the topology genuinely reads as two-wing
+    regardless of internal structure.
+
+    Every column width is computed via `_feasible_widths_u_at_height`/`_min_width_u_at_height`
+    (see those functions' own docstrings) rather than guessed, and both wings are positioned
+    flush against `boundary_x` (whichever side each rectangle is on) so however wide each ends
+    up, the two halls meet at the exact shared edge between the two safe rectangles, giving the
+    cross-wing door a real physical interface. Returns `None` if no computed width combination
+    both fits each wing's own rectangle and solves.
+    """
+    # A safe-adapter "arm" rectangle is typically shallower than the primary one (brief 3's own
+    # L site measures 7 m vs 14 m) — side by side (`_v_chain`, sharing height) rather than stacked
+    # (`_h_chain`, sharing width and summing height) is what actually fits 3 public rooms into a
+    # shallow wing; see the module's own investigation in the Issue's report for the measured
+    # minimum stacked height (8.5 m) this avoids depending on.
+    public_tree = _v_chain([z.zone_id for z in programme.public_zones])
+    public_w_u = _min_width_u_at_height(public_tree, tuple(programme.public_zones), ha_u)
+    hall_a_zone = _zone("HALL_A", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
+    hall_a_w_u = _min_width_u_at_height(Leaf("HALL_A"), (hall_a_zone,), ha_u)
+    if public_w_u is None or hall_a_w_u is None:
+        return None
+    wa_u = public_w_u + hall_a_w_u
+    if wa_u > public_rect.w:
+        return None
+
+    # Wing B's private stack gets the SAME hall-matched grouping SPINE uses (see
+    # `_hall_and_private_node`) — an L site's primary rectangle is not automatically deep enough
+    # for a single-column stack either (measured on brief 3's own site: 14 m offered, >= 18.8 m
+    # needed). `hall_first=public_is_west` puts HALL_B on whichever side of wing B actually faces
+    # wing A: if public (wing A) is WEST, wing B sits to its east, so HALL_B must be wing B's OWN
+    # west-facing (first) side; matching this function's own docstring.
+    if public_is_west:
+        tree_a = Split(Cut.V, public_tree, Leaf("HALL_A"), public_w_u)
+        origin_a = (boundary_x - wa_u, origin_y)
+    else:
+        tree_a = Split(Cut.V, Leaf("HALL_A"), public_tree, hall_a_w_u)
+        origin_a = (boundary_x, origin_y)
+    wing_a = Wing("WA", origin_a[0], origin_a[1], wa_u, ha_u, tree_a)
+
+    # Every width on every level (wing B's hall, private, and their combined total) is tried in
+    # combination — see `_HallPrivateSplit`'s own docstring for why each is independently
+    # verified rather than composed from a single guess at any level.
+    for hp in _hall_and_private_splits(programme, "HALL_B", hb_u):
+        zones = programme.public_zones + (hall_a_zone,) + hp.hall_zones + programme.private_zones
+        for hall_w_u in hp.hall_widths:
+            for private_w_u in hp.private_widths:
+                wb_u = hall_w_u + private_w_u
+                if wb_u > private_rect.w:
+                    continue
+                hall_and_private_b = hp.combined_tree(public_is_west, hall_w_u, private_w_u)
+                origin_b = (boundary_x, origin_y) if public_is_west else (boundary_x - wb_u, origin_y)
+                wing_b = Wing("WB", origin_b[0], origin_b[1], wb_u, hb_u, hall_and_private_b)
+                fixture = _two_wing_fixture(programme, wing_a, wing_b, zones, hall_a_zone,
+                                            hp.hall_zones, hp.segment_of, hp.primary_hall_id)
+                try:
+                    return fixture, solve_fixture(fixture)
+                except GeometryInfeasible:
+                    continue
+    return None
+
+
+def _two_wing_fixture(programme: _Programme, wing_a: Wing, wing_b: Wing,
+                      zones: tuple[ZoneSpec, ...], hall_a_zone: ZoneSpec,
+                      hall_b_zones: tuple[ZoneSpec, ZoneSpec],
+                      segment_of: dict[str, str], primary_hall_b: str) -> Fixture:
+    hall_b1_id, hall_b2_id = hall_b_zones[0].zone_id, hall_b_zones[1].zone_id
+    edges = [
+        DesiredAccessEdge("HALL_A", "LIVING", ConnectionKind.DOOR),
+        DesiredAccessEdge("LIVING", "DINING", ConnectionKind.OPEN_CONNECTION),
+        DesiredAccessEdge("DINING", "KITCHEN", ConnectionKind.OPEN_CONNECTION),
+        DesiredAccessEdge("HALL_A", primary_hall_b, ConnectionKind.DOOR),
+        # HALL_B's own two segments are adjacent by construction (the two children of one
+        # forced H split) — without this door, every private room `segment_of` routed to the
+        # OTHER segment from `primary_hall_b` would be unreachable from the entrance (C5).
+        DesiredAccessEdge(hall_b1_id, hall_b2_id, ConnectionKind.DOOR),
+    ]
+    edges.extend(_private_access_edges(programme, segment_of))
+    access = DesiredAccessTopology(tuple(edges))
+    open_groups = (("LIVING", "DINING", "KITCHEN"),)
+    return Fixture("BRAIN_TWO_WING", (wing_a, wing_b), zones, access, open_groups=open_groups)
+
+
+def _solve_spine_search(programme: _Programme, candidate_rect: Rect,
+                        ) -> tuple[Fixture, SolveResult] | tuple[None, str]:
+    """Tries each depth in `_DEPTH_TRIALS_M`; `_compile_spine` computes every column's own width
+    deterministically (see its own docstring) and reports infeasibility as `None` rather than an
+    exception, so this loop only needs to move on to the next depth."""
+    last_error = "no depth trial was attempted"
+    for depth_m in _DEPTH_TRIALS_M:
+        if depth_m > _MAX_WING_DEPTH_M:
+            continue
+        h_u = m_to_u(depth_m)
+        if h_u > candidate_rect.h:
+            continue
+        built = _compile_spine(programme, h_u, candidate_rect)
+        if built is None:
+            last_error = f"depth {depth_m} m: no width combination both fit and solved"
+            continue
+        return built
+    return None, last_error
+
+
+#: Depth trials for the double-loaded SPINE variant's own front foyer (`HALL` below) — kept small
+#: and few: the foyer only needs to satisfy the HALL role's own [min_short_side, max_aspect_ratio]
+#: bound at whatever width the rest of the search finds, not to host anything beyond circulation,
+#: so a handful of shallow trials is enough (see `_compile_spine_double_loaded`'s own docstring for
+#: why DEPTH is the scarce resource this variant exists to spend less of).
+_HALL_STRIP_DEPTH_TRIALS_M = (1.5, 2.0, 2.5, 3.0)
+
+
+def _compile_spine_double_loaded(programme: _Programme, h_u: int, hh_u: int,
+                                 candidate_rect: Rect) -> tuple[Fixture, SolveResult] | None:
+    """A SINGLE-WING SPINE variant that trades DEPTH for WIDTH — `_compile_two_wing_stacked`'s own
+    double-loaded private-column trick (GROUP1 | a shared hall | GROUP2), ported to ONE wing
+    instead of two. Exists for sites (`briefs.BRIEF_2`) where the safe-geometry adapter offers only
+    ONE candidate rectangle — so `_solve_two_wing_search` cannot even attempt a second wing — but
+    the private programme's own room count is too large for `_compile_spine`'s single-column,
+    height-stacked private stack to fit within the plot's own depth (measured: brief-2's 7 private
+    rooms need more cumulative min-short-side depth than the plot's 13 m keep depth offers at any
+    width `_solve_spine_search` tries — splitting the SAME 7 rooms into two roughly-half-height
+    columns side of a hall, as this function does, needs only about half that cumulative depth per
+    column, the identical trade TWO_WING's own double-loaded compiler already makes).
+
+    THE HALL IS BUILT AS A T, NOT A SINGLE COLUMN, so it can border `PUBLIC` *and* both flanking
+    private groups without an explicit alignment search (unlike `_compile_two_wing_stacked`'s own
+    two-wing seam, which needs one because its two halves sit on independent rectangles):
+    `HALL` (the bar of the T) is forced to the FULL width of the private block, so it borders
+    `PUBLIC` along a real, if partial, shared edge regardless of `PUBLIC`'s own width, and borders
+    `HALL_SPINE` (the stem) along `HALL_SPINE`'s own full width; `HALL_SPINE` is forced to the
+    FULL depth of the private groups' own row, so it borders EVERY room in `GROUP1`/`GROUP2` (each
+    one a slice of that row's shared vertical boundary) — the same reasoning
+    `_compile_two_wing_stacked`'s own GROUP1/GROUP2 flanking already relies on.
+
+    ONLY the outer two splits (`PUBLIC` vs the private block's own width; `HALL` vs the group row's
+    own depth) are FORCED (`fixed_at_u`), at widths/depths read off their own ISOLATED feasible
+    sets exactly as `_compile_spine` already does for its own public/hall/private columns. The
+    INNER split — `GROUP1` vs `HALL_SPINE` vs `GROUP2`, all three sharing the group row's own width
+    — is deliberately left UNFORCED: measured directly (this module's own investigation in the
+    Issue's report), forcing it from three SEPARATE isolated probes (one per zone) each assumes
+    EXTERIOR-thick walls on every boundary, including the two that are actually INTERIOR partitions
+    once combined — summing those three conservative minimums came out wider than the plot's own
+    keep width on brief-2 even though the real, combined arrangement fits with room to spare; the
+    frozen engine's own bottom-up `assign()` resolves the three real (thinner) partition walls
+    correctly when given the group row's own width as ONE already-determined quantity, exactly the
+    same shape-curve mechanism `_compile_spine`/`_compile_front_band` already lean on for every
+    split they have no architectural reason to force (see this module's own docstring).
+
+    EXPOSURE (C8/C19): of the group row's own three columns, only the EAST one (whichever group is
+    the OUTER, last child below) reaches the wing's own true east wall for its FULL depth — the
+    WEST one only ever reaches PUBLIC's own interior partition, on whichever ONE room ends up at
+    the row's own single south-facing slot. An H-chain's own internal split is left UNFORCED same
+    as the group row's (see above), so the frozen engine's own `assign()` is free to reorder rooms
+    WITHIN a group for its own fit reasons — measured directly: which room lands at that slot is
+    NOT controlled by this function's own list order, so a multi-room WEST group with more than one
+    exposure-requiring room cannot be relied on to fix itself by sorting. Two group splits are
+    reliable regardless of `assign()`'s own choice: a WEST group with ZERO exposure-requiring rooms
+    (nothing to rely on the slot for), or a WEST group that is a SINGLE room (no other room in that
+    column to compete with it for the one south edge, so it lands there necessarily). This function
+    searches the SAME order-preserving contiguous splits `_private_groups` would ever offer for the
+    best-scoring one of those two shapes, nearest `_private_groups`'s own default split, and falls
+    back to that default (best-effort, may still leave a residual validation failure) only if
+    brief's own private programme genuinely admits neither shape.
+    """
+    if hh_u >= h_u:
+        return None
+
+    zone_by_id = {z.zone_id: z for z in programme.private_zones}
+    rest_u = h_u - hh_u
+
+    def _needs_exposure(zid: str) -> bool:
+        roles = set(zone_by_id[zid].roles)
+        return bool(roles & (REQUIRED_EXTERIOR_ROLES | DAYLIGHT_ROLES))
+
+    def _west_tree(rooms: list[str]) -> Node | None:
+        """`rooms`' own H-chain — UNFORCED (see this function's own docstring) if it carries at
+        most one exposure-requiring room already, else that ONE room's position is FORCED to the
+        row's own south edge (the one slot this column's rooms can rely on for exposure at all)
+        via the SAME candidate-height-range approach `_hall_and_private_splits` already uses for
+        its own forced splits — `None` if no height split both fits and admits a real width at
+        that exact height for each half."""
+        exposure_rooms = [z for z in rooms if _needs_exposure(z)]
+        if len(exposure_rooms) != 1 or len(rooms) == 1:
+            return _h_chain(rooms)
+        exposure_room = exposure_rooms[0]
+        others = [z for z in rooms if z != exposure_room]
+        range_others = _group_height_range_m(others, zone_by_id)
+        range_exposure = _group_height_range_m([exposure_room], zone_by_id)
+        if range_others is None or range_exposure is None:
+            return None
+        lo_u = max(m_to_u(range_others[0]), rest_u - m_to_u(range_exposure[1]), 1)
+        hi_u = min(m_to_u(range_others[1]), rest_u - m_to_u(range_exposure[0]), rest_u - 1)
+        for split_u in range(lo_u, hi_u + 1):
+            if (_widths_at_exact_height(others, zone_by_id, split_u) and
+                    _widths_at_exact_height([exposure_room], zone_by_id, rest_u - split_u)):
+                return Split(Cut.H, _h_chain(others), Leaf(exposure_room), split_u)
+        return None
+
+    order = list(programme.private_order)
+    default_group1, default_group2 = _private_groups(programme)
+    default_split = len(default_group1)
+
+    scored: list[tuple[tuple[int, int], list[str], list[str]]] = []
+    for split_idx in range(1, len(order)):
+        g1, g2 = order[:split_idx], order[split_idx:]
+        n1 = sum(_needs_exposure(z) for z in g1)
+        n2 = sum(_needs_exposure(z) for z in g2)
+        west_n = min(n1, n2)
+        if west_n > 1:
+            continue  # not exposure-reliable — the default split below is tried last instead
+        scored.append(((west_n, abs(split_idx - default_split)), g1, g2))
+    scored.sort(key=lambda t: t[0])
+    # Reliable splits FIRST (best-scoring first), the default (balanced by area, not exposure —
+    # may still leave a residual C8/C19 failure) tried only once none of them can even solve.
+    candidate_splits = [(g1, g2) for _, g1, g2 in scored] + [(default_group1, default_group2)]
+
+    public_tree = _h_chain([z.zone_id for z in programme.public_zones])
+    public_widths = _feasible_widths_u_at_height(public_tree, tuple(programme.public_zones), h_u)
+    if not public_widths:
+        return None
+
+    for group1, group2 in candidate_splits:
+        # Whichever side still has an exposure-requiring room (or, for the default split, whichever
+        # side happens to carry more of them) goes EAST — the row's own true-exterior column.
+        if sum(_needs_exposure(z) for z in group1) >= sum(_needs_exposure(z) for z in group2):
+            west_group, east_group = group2, group1
+        else:
+            west_group, east_group = group1, group2
+
+        group1_tree = _west_tree(west_group)
+        if group1_tree is None:
+            continue
+        group2_tree = _h_chain(east_group)
+        hall_spine_zone = _hall_zone("HALL_SPINE", len(programme.private_order))
+        segment_of = {zid: "HALL_SPINE" for zid in group1 + group2}
+        hall_zone = _zone("HALL", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
+        zones = programme.public_zones + (hall_zone, hall_spine_zone) + programme.private_zones
+        open_groups = (("LIVING", "DINING", "KITCHEN"),)
+        edges = [
+            DesiredAccessEdge("HALL", "LIVING", ConnectionKind.DOOR),
+            DesiredAccessEdge("LIVING", "DINING", ConnectionKind.OPEN_CONNECTION),
+            DesiredAccessEdge("DINING", "KITCHEN", ConnectionKind.OPEN_CONNECTION),
+            DesiredAccessEdge("HALL", "HALL_SPINE", ConnectionKind.DOOR),
+        ]
+        edges.extend(_private_access_edges(programme, segment_of))
+        access = DesiredAccessTopology(tuple(edges))
+
+        for pub_w in public_widths:
+            if pub_w > candidate_rect.w:
+                continue
+            groups_row = Split(Cut.V, group1_tree,
+                               Split(Cut.V, Leaf("HALL_SPINE"), group2_tree, None), None)
+            private_block = Split(Cut.H, Leaf("HALL"), groups_row, hh_u)
+            tree = Split(Cut.V, public_tree, private_block, pub_w)
+            origin = gp._place_footprint(candidate_rect, u_to_m(candidate_rect.w), u_to_m(h_u))
+            wing = Wing("W", origin[0], origin[1], candidate_rect.w, h_u, tree)
+            fixture = Fixture("BRAIN_SPINE_DOUBLE_LOADED", (wing,), zones, access,
+                              open_groups=open_groups)
+            try:
+                return fixture, solve_fixture(fixture)
+            except GeometryInfeasible:
+                continue
+    return None
+
+
+def _solve_spine_double_loaded_search(programme: _Programme, candidate_rect: Rect,
+                                      ) -> tuple[Fixture, SolveResult] | tuple[None, str]:
+    """Tries each (total depth, foyer depth) combination — see `_compile_spine_double_loaded`'s
+    own docstring for why splitting depth this way, rather than `_compile_spine`'s single column,
+    is the point of this search existing at all."""
+    last_error = "no depth/foyer-depth combination was attempted"
+    for depth_m in _DEPTH_TRIALS_M:
+        if depth_m > _MAX_WING_DEPTH_M:
+            continue
+        h_u = m_to_u(depth_m)
+        if h_u > candidate_rect.h:
+            continue
+        for hh_m in _HALL_STRIP_DEPTH_TRIALS_M:
+            hh_u = m_to_u(hh_m)
+            if hh_u >= h_u:
+                continue
+            built = _compile_spine_double_loaded(programme, h_u, hh_u, candidate_rect)
+            if built is None:
+                last_error = (f"depth {depth_m} m / foyer depth {hh_m} m: no width combination "
+                             f"both fit and solved")
+                continue
+            return built
+    return None, last_error
+
+
+def _two_wing_layout(public_rect: Rect, private_rect: Rect) -> tuple[bool, int] | None:
+    """Whether `public_rect` is the WEST rectangle, and the shared X boundary the two rects meet
+    at — `None` if they do not share an exact vertical edge (the only adjacency this compiler's
+    minimal two-wing template positions against; see `_compile_two_wing`'s own docstring)."""
+    if public_rect.x2 == private_rect.x:
+        return True, public_rect.x2
+    if private_rect.x2 == public_rect.x:
+        return False, private_rect.x2
+    return None
+
+
+def _stacked_two_wing_layout(rect_a: Rect, rect_b: Rect,
+                             ) -> tuple[Rect, Rect, int, int] | None:
+    """Whether `rect_a`/`rect_b` share a HORIZONTAL edge (one rectangle's `y2` exactly equal to
+    the other's `y`) with a real X overlap — the OTHER adjacency this compiler's two-wing
+    templates can build against, alongside `_two_wing_layout`'s vertical one (see
+    `_compile_two_wing_stacked`'s own docstring for why a horizontal boundary needs an entirely
+    different internal layout, not just a rotated copy of the vertical one). Returns
+    `(north_rect, south_rect, overlap_x0_u, overlap_x1_u)`, or `None` if neither order shares an
+    exact horizontal edge with a positive-width overlap."""
+    for north, south in ((rect_a, rect_b), (rect_b, rect_a)):
+        if north.y2 != south.y:
+            continue
+        x0, x1 = max(north.x, south.x), min(north.x2, south.x2)
+        if x1 > x0:
+            return north, south, x0, x1
+    return None
+
+
+#: How many (group) width options `_compile_two_wing_stacked` keeps per zone at a given height.
+_DOUBLE_LOADED_WIDTH_LIMIT = 10
+
+
+def _compile_two_wing_stacked(programme: _Programme, north_rect: Rect, south_rect: Rect,
+                              ) -> tuple[Fixture, SolveResult] | None:
+    """Builds and solves a NORTH wing (public zones + a small entrance hall) directly above a
+    SOUTH wing whose own private rooms are DOUBLE-LOADED — two parallel `_h_chain`s (`group1`/
+    `group2`, `_private_groups`'s own order-preserving split) either side of a single central
+    hall, sharing ONE height rather than summing two.
+
+    WHY THIS EXISTS, ALONGSIDE `_compile_two_wing` (see `briefs.BRIEF_3`'s own comment for the
+    measured numbers): height-STACKING all of a brief's private rooms in one column
+    (`_compile_two_wing`'s vertical-boundary model) needs a total depth that is an INVARIANT of
+    the room mix, not of where the stack is split — for brief 3's 5-bedroom/3-wet-room programme,
+    ~18.9 m, far more than either rectangle of a vertical L offers. DOUBLE-LOADING the same rooms
+    (west group | hall | east group) needs only ~8-8.5 m of WIDTH at any height from ~10.5-14 m —
+    but that central hall cannot ALSO be the one thing touching an outside VERTICAL edge: it would
+    need to be adjacent to both flanking groups AND to the boundary at once, and no linear column
+    arrangement gives one leaf three neighbours. A HORIZONTAL boundary sidesteps this.
+
+    THE ALIGNMENT (this is the part `_compile_two_wing` does not need): `HALL_A`/`HALL_B` must
+    share the EXACT same absolute x-range for the wing seam to be a full, honest one (C22 — a
+    partial abutment is a defect whether declared or not, see `validation._seam_defects`'s own
+    docstring), forced the same way `_compile_two_wing`'s own `_HallPrivateSplit.combined_tree`
+    forces an outer split position — never left to `assign()`'s own guess. `HALL_A` and `HALL_B`
+    are forced to the SAME width (`shared_hall_widths`, the intersection of what each hall's own
+    template allows at its own wing's very different height); the wing containing `HALL_B` is
+    built FLUSH to `south_rect`'s own west edge, and `HALL_A`'s wing is then SHIFTED
+    (`origin_x_a`) so `HALL_A` starts at the exact same x as `HALL_B`.
+
+    That shift also puts PART of `PUBLIC` directly over `GROUP1` (the west private group,
+    immediately left of `HALL_B`) — measured (see the module's own investigation in the Issue's
+    report): an UNFORCED internal public split does not reliably land on a room boundary there,
+    so `LIVING`'s own width is ALSO forced, to EXACTLY `GROUP1`'s width, landing `LIVING` directly
+    over `GROUP1` with no residue on either side (`KITCHEN`+`DINING`, further west, end exactly
+    where `GROUP1` begins and so touch nothing of the other wing at all — no seam needed for
+    them). `GROUP2` (east of `HALL_B`) always lands beyond `north_rect`'s own reach, so it needs
+    no seam either. Every quantity constraining a solve — `HALL_A`'s wing fitting inside
+    `north_rect`, `HALL_B`'s own width leaving `GROUP2` entirely past the seam, `LIVING` and
+    `GROUP1` sharing one exact width — is checked or forced before a single `solve_fixture` call,
+    never discovered by trial and error on the built geometry.
+
+    Wing widths here are the EXACT sum of their own forced children (never the surrounding
+    rectangle's own, generally larger, width — leaving slack there would silently hand `GROUP2`/
+    `KITCHEN`+`DINING` a DIFFERENT, unverified width from whatever this search already confirmed
+    feasible). Both wings use their full rectangle DEPTH (never a shallower trial): more depth
+    only ever makes a double-loaded group's own stack easier to fit, so there is no shallower
+    alternative worth trying — unlike `_compile_two_wing`'s single column, whose depth trades
+    directly against the OTHER wing's own available width.
+    """
+    group1, group2 = _private_groups(programme)
+    private_by_id = {z.zone_id: z for z in programme.private_zones}
+    public_by_id = {z.zone_id: z for z in programme.public_zones}
+    hall_b_zone = _hall_zone("HALL_B", len(programme.private_order))
+    hall_a_zone = _zone("HALL_A", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
+    kd_tree = _v_chain(["KITCHEN", "DINING"])
+
+    hb_u, ha_u = south_rect.h, north_rect.h
+    w2_opts = sorted(_widths_at_exact_height(group2, private_by_id, hb_u))[:_DOUBLE_LOADED_WIDTH_LIMIT]
+    # w1 is GROUP1's own width; LIVING is forced to the SAME width (see this function's own
+    # docstring) — the intersection of what each zone's own template allows at its own height.
+    group1_widths = set(_widths_at_exact_height(group1, private_by_id, hb_u))
+    living_widths = set(_widths_at_exact_height(["LIVING"], public_by_id, ha_u))
+    w1_opts = sorted(group1_widths & living_widths)[:_DOUBLE_LOADED_WIDTH_LIMIT]
+    kd_opts = sorted(_feasible_widths_u_at_height(
+        kd_tree, (public_by_id["KITCHEN"], public_by_id["DINING"]), ha_u,
+        limit=_DOUBLE_LOADED_WIDTH_LIMIT))
+    # HALL_A/HALL_B must ALSO share one exact width, widest first (a wider shared hall was
+    # measured to convert to a solve faster).
+    hall_b_widths = set(_widths_at_exact_height(["HALL_B"], {"HALL_B": hall_b_zone}, hb_u))
+    hall_a_widths = set(_widths_at_exact_height(["HALL_A"], {"HALL_A": hall_a_zone}, ha_u))
+    shared_hall_widths = sorted(hall_b_widths & hall_a_widths, reverse=True)
+    if not (w1_opts and w2_opts and kd_opts and shared_hall_widths):
+        return None
+
+    zones = programme.public_zones + (hall_a_zone, hall_b_zone) + programme.private_zones
+    ensuite_ids = {w for _, w in programme.ensuite_pairs}
+    group1_top = group1[0]
+
+    for wh in shared_hall_widths:
+        for w1 in w1_opts:
+            for w2 in w2_opts:
+                width_b = w1 + wh + w2
+                if width_b > south_rect.w:
+                    continue
+                # GROUP2 must land entirely past north_rect's own reach (`_stacked_two_wing_layout`
+                # only guarantees an overlap up to `north_rect.x2`) -- otherwise its own topmost
+                # room would straddle the seam, an undeclarable PARTIAL abutment either way.
+                if south_rect.x + w1 + wh > north_rect.x2:
+                    continue
+                hall_b_x0 = south_rect.x + w1
+                for kd_w in kd_opts:
+                    pub_w = kd_w + w1
+                    width_a = pub_w + wh
+                    origin_x_a = hall_b_x0 - pub_w
+                    if origin_x_a < north_rect.x or origin_x_a + width_a > north_rect.x2:
+                        continue
+
+                    south_tree = Split(Cut.V, _h_chain(group1),
+                                       Split(Cut.V, Leaf("HALL_B"), _h_chain(group2), wh), w1)
+                    # PUBLIC: [KITCHEN|DINING (west, clear of the seam) | LIVING (east, width=w1,
+                    # forced to land exactly over GROUP1)] | HALL_A (further east) -- see this
+                    # function's own docstring for why LIVING's width is forced at all.
+                    north_tree = Split(Cut.V, Split(Cut.V, kd_tree, Leaf("LIVING"), kd_w),
+                                       Leaf("HALL_A"), pub_w)
+                    wing_b = Wing("WB", south_rect.x, south_rect.y, width_b, south_rect.h,
+                                 south_tree, seam_leaf_sides=((group1_top, Side.N), ("HALL_B", Side.N)))
+                    wing_a = Wing("WA", origin_x_a, north_rect.y, width_a, north_rect.h,
+                                 north_tree, seam_leaf_sides=(("HALL_A", Side.S), ("LIVING", Side.S)))
+
+                    edges = [
+                        DesiredAccessEdge("HALL_A", "LIVING", ConnectionKind.DOOR),
+                        DesiredAccessEdge("LIVING", "DINING", ConnectionKind.OPEN_CONNECTION),
+                        DesiredAccessEdge("DINING", "KITCHEN", ConnectionKind.OPEN_CONNECTION),
+                        DesiredAccessEdge("HALL_A", "HALL_B", ConnectionKind.DOOR),
+                    ]
+                    edges.extend(DesiredAccessEdge(host, wet, ConnectionKind.DOOR)
+                                for host, wet in programme.ensuite_pairs)
+                    edges.extend(DesiredAccessEdge("HALL_B", zid, ConnectionKind.DOOR)
+                                for zid in programme.private_order if zid not in ensuite_ids)
+                    access = DesiredAccessTopology(tuple(edges))
+                    open_groups = (("LIVING", "DINING", "KITCHEN"),)
+                    fixture = Fixture("BRAIN_TWO_WING_STACKED", (wing_a, wing_b), zones, access,
+                                      open_groups=open_groups)
+                    try:
+                        return fixture, solve_fixture(fixture)
+                    except GeometryInfeasible:
+                        continue
+    return None
+
+
+def _solve_two_wing_search(programme: _Programme, candidates: tuple,
+                           ) -> tuple[Fixture, SolveResult] | tuple[None, str]:
+    """Tries the private programme against each of the first two safe candidates (whichever one
+    the geometry actually offers as adjacent to the other), trying a VERTICAL boundary
+    (`_two_wing_layout`/`_compile_two_wing`, each wing's own depth independently via
+    `_DEPTH_TRIALS_M`) first, then a HORIZONTAL one (`_stacked_two_wing_layout`/
+    `_compile_two_wing_stacked`) if no vertical trial solved."""
+    if len(candidates) < 2:
+        return None, ("fewer than 2 safe rectangles on this site — TWO_WING needs a second, "
+                      "adjacent safe rectangle to place the second wing in")
+
+    last_error = "no candidate pairing shared an exact adjacent edge"
+    for private_rect, public_rect in ((candidates[0].rect, candidates[1].rect),
+                                      (candidates[1].rect, candidates[0].rect)):
+        layout = _two_wing_layout(public_rect, private_rect)
+        if layout is None:
+            continue
+        public_is_west, boundary_x = layout
+        origin_y = max(public_rect.y, private_rect.y)
+        public_avail_h = public_rect.y2 - origin_y
+        private_avail_h = private_rect.y2 - origin_y
+        if public_avail_h <= 0 or private_avail_h <= 0:
+            last_error = "the two candidates' Y ranges do not overlap"
+            continue
+
+        for depth_a_m in _DEPTH_TRIALS_M:
+            if depth_a_m > _MAX_WING_DEPTH_M:
+                continue
+            ha_u = m_to_u(depth_a_m)
+            if ha_u > public_avail_h:
+                continue
+            for depth_b_m in _DEPTH_TRIALS_M:
+                hb_u = m_to_u(depth_b_m)
+                if hb_u > private_avail_h or depth_b_m > _MAX_WING_DEPTH_M:
+                    continue
+                built = _compile_two_wing(programme, public_is_west, ha_u, hb_u,
+                                          public_rect, private_rect, boundary_x, origin_y)
+                if built is None:
+                    last_error = (f"wing A depth {depth_a_m} m / wing B depth {depth_b_m} m: "
+                                 f"no width combination fit both candidate rectangles and solved")
+                    continue
+                return built
+
+    stacked = _stacked_two_wing_layout(candidates[0].rect, candidates[1].rect)
+    if stacked is not None:
+        north_rect, south_rect, _, _ = stacked
+        built = _compile_two_wing_stacked(programme, north_rect, south_rect)
+        if built is not None:
+            return built
+        last_error = ("north/south candidate pair shared a horizontal edge but no aligned "
+                     "double-loaded width combination fit and solved")
+    return None, last_error
+
+
+#: `circulation_class` value -> which compiler builds it. Anything not listed (including
+#: FRONT_BAND/HUB_LOBBY/BRANCHED/OTHER/UNKNOWN) falls back to SPINE — see the module docstring.
+_TOPOLOGY_FOR_CLASS = {_TWO_WING: _TWO_WING}
+
+
+def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief: Brief,
+                    site: SiteConstraints, plot_size_m: tuple[float, float], index: int = 0,
+                    intent: RealizationIntent | None = None,
+                    ) -> "gp.RealizedPlan | Refusal":
+    """Compile `concept`/`adapted` into a `Fixture`, then run it through the UNCHANGED
+    `solve_fixture` + `general_pipeline._realize` chain (doors, windows, furniture, validation,
+    assembly, `concept_spec.realized_circulation_class`).
+
+    `intent` (Issue #109, optional — every existing caller keeps working unchanged): when given,
+    each zone's own target area is driven by the DONOR'S OWN proportion of that room type
+    (`RealizationIntent.room_proportions`, `_intent_target_area_m2`) rather than `adapted`'s
+    already-resized area alone — see `_zone`'s own docstring. `donor_room_id_by_zone(brief,
+    adapted)` recovers the SAME zone-id -> donor-room-id correspondence this call used, for a
+    caller (`preservation.py`) that needs to translate `intent`'s facts onto the realized geometry
+    afterward.
+
+    Returns a `Refusal` if no geometry could be built at all (adaptation already rejected the
+    concept, or every tried footprint size was `GeometryInfeasible`); otherwise a `RealizedPlan`
+    — which may itself carry failing validation checks (`.ok is False`), exactly as any other
+    realized candidate in this codebase can.
+    """
+    programme, resolved_wet_rooms, _ = _programme_of(brief, adapted, intent=intent)
+
+    buildable = build_buildable_region(site)
+    adapter_result = safe_adapt(buildable)
+    if adapter_result.outcome is not AdapterOutcome.SOLVED or not adapter_result.candidates:
+        return Refusal(concept.concept_id,
+                       f"no safe solver geometry on this site: {adapter_result.outcome.value}")
+    candidate_rect = adapter_result.candidates[0].rect
+
+    topology = _TOPOLOGY_FOR_CLASS.get(concept.circulation_class, _SPINE)
+
+    if topology == _TWO_WING:
+        fixture, solve_or_error = _solve_two_wing_search(programme, adapter_result.candidates)
+        strategy = generator.ConceptStrategy.MULTI_WING_SPLIT
+        declared_class = concept_spec.CirculationClass.TWO_WING
+        entrance_zone_id = "HALL_A"
+    else:
+        fixture, solve_or_error = _solve_spine_search(programme, candidate_rect)
+        if fixture is None:
+            # The single-column private stack refused outright (see `_solve_spine_search`'s own
+            # error) — try the double-loaded variant, which trades the SAME candidate rectangle's
+            # spare width for less depth per private room stack (see
+            # `_compile_spine_double_loaded`'s own docstring for when this actually helps).
+            fixture, solve_or_error = _solve_spine_double_loaded_search(programme, candidate_rect)
+        strategy = generator.ConceptStrategy.SPINE_PUBLIC_PRIVATE
+        declared_class = concept_spec.CirculationClass.SPINE
+        entrance_zone_id = "HALL"
+
+    if fixture is None:
+        return Refusal(concept.concept_id,
+                       f"no footprint size solved for the {topology} template: {solve_or_error}",
+                       failing_checks=(str(solve_or_error),))
+    solve = solve_or_error
+
+    inner_concept = Concept(fixture, entrance_zone_id, Side.N,
+                           u_to_m(fixture.wings[0].w_u), u_to_m(fixture.wings[0].h_u))
+    used_area_m2 = fixture.footprint_area_m2()
+    candidate = generator.ConceptCandidate(
+        concept=inner_concept,
+        strategy=strategy,
+        wing_orders=tuple(range(len(fixture.wings))),
+        circulation_class=declared_class,
+        rationale=f"architectural-brain POC: synthesized {concept.concept_id} "
+                 f"(circulation_class={concept.circulation_class}, zoning={concept.zoning}) "
+                 f"adapted with {len(adapted.adaptations)} operation(s), compiled to the "
+                 f"{topology} template",
+        used_area_m2=used_area_m2,
+        unused_wing_area_m2=0.0,
+        wet_rooms=resolved_wet_rooms,
+    )
+
+    arch_spec = ArchitecturalSpec(
+        plot=PlotSpec(width_m=plot_size_m[0], depth_m=plot_size_m[1]), program=brief.program)
+    plan = gp._realize(arch_spec, buildable, site, candidate, index, solve, ())
+    return plan
