@@ -664,6 +664,22 @@ sections come back `not_measured`. `backend/scripts/reference_benchmark.py --con
 the report for one `tests/regression_corpus/corpus.json` context; not wired into
 `agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
 
+## Concept topology contract (ConceptSpec, Issue #75)
+
+2026-09-20. `app/vertical_slice/concept_spec.py` — metadata only, no behaviour change (see the
+Issue). `CirculationClass` (SPINE, FRONT_BAND, HUB_LOBBY, BRANCHED, RING, TWO_WING) is set
+explicitly by whichever builder produces a `ConceptCandidate` (`concept_generator.py`'s spine
+allocations, `_front_band_candidate`, `_hub_candidate`; `l_parti.py`'s `_candidate_from`).
+`realized_circulation_class` recomputes the same fact from the SOLVED geometry (hall aspect, door
+count and hall-room adjacency via `validation.realized_connections`, wing count) and is attached to
+every `general_pipeline.RealizedPlan` as `.circulation_class`; `verify_class(candidate, plan)`
+reports any mismatch. `topologically_distinct(a, b)` is a pure comparison of two candidates'
+`ConceptSpec`s (class, zoning split, wet-core grouping by host) — BRANCHED and RING are not
+produced by any builder today. `spikes/failure_log_sweep/concept_diversity.py` measures, on the
+frozen regression corpus, the share of PLANNED briefs whose shown plan set already spans 2+
+classes — the "before" baseline for the Concept Engine v2 ROOT, committed at
+`docs/reports/concept-engine-v2-diversity-baseline.md`.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -780,3 +796,8 @@ non-rectangular-geometry investigation, both unrelated to C25) to resolve a seco
 resolved textual conflicts in `contract.py`, `test_demo_p0.py`, `docs/PROJECT_STATE.md` and this
 page by keeping both sides' additive sections/fields, then re-ran this Issue's own targets against
 the merged tree.
+
+`648292f` (branch `agent/75-concept-engine-v2-1-5-conceptspec-contra`, based on `origin/main`);
+the Concept topology contract (ConceptSpec) section above documents Issue #75, verified against
+this session's own implementation and test runs (887 realized candidates across every builder,
+0 `verify_class` mismatches; frozen-corpus regression unaffected).

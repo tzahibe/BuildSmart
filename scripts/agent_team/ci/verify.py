@@ -18,11 +18,16 @@ from agent_team.ci.common import GateReport, repo_root, run, write_report
 
 def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, str]:
     if kind == "pytest":
+        # Wall-clock budgets are calibrated on the developer machine, not CI evidence — the same
+        # policy gate-2-static already applies to its full-suite run (`WALLCLOCK_BUDGETS=off`,
+        # `backend/tests/wallclock.py`): functional assertions in a budgeted test keep running,
+        # only the timing assertion becomes a no-op. Applied here too so a per-AC pytest target run
+        # on the shared runner isn't held to a budget calibrated on a faster machine.
         # TEST_MODE=REGRESSION so a target carrying the `regression` marker (tests/conftest.py)
         # actually executes here instead of being silently skipped-but-exit-0 and recorded as a
         # false PASS (Issue #38 review finding). Harmless for unmarked targets: TEST_MODE only
         # gates marker collection, nothing else reads it.
-        env = {"TEST_MODE": "REGRESSION"}
+        env = {"WALLCLOCK_BUDGETS": "off", "TEST_MODE": "REGRESSION"}
         if target.startswith("scripts/agent_team/tests/"):
             proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout, env=env)
         else:

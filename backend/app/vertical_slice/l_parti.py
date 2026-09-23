@@ -38,6 +38,7 @@ from enum import Enum
 
 from . import concept_generator as cg
 from .concept import Concept
+from .concept_spec import CirculationClass
 from .concept_generator import (
     ConceptCandidate,
     ConceptRejection,
@@ -731,6 +732,7 @@ def _candidate_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], plan: LPl
     return ConceptCandidate(
         Concept(fixture, HALL, Side.N, u_to_m(bbox_x2 - bbox_x), u_to_m(bbox_y2 - bbox_y)),
         STRATEGY, (primary.order, arm.order),
+        circulation_class=CirculationClass.TWO_WING,
         rationale=(f"L: {rationale}; arm {g.side.value} at the {g.end.value}, "
                    f"{u_to_m(plan.arm.w):.2f} x {plan.arm_len_m:.2f} m ({len(plan.arm_rows)} rows); "
                    f"primary {u_to_m(plan.primary.w):.2f} x {u_to_m(plan.primary.h):.2f} m: "

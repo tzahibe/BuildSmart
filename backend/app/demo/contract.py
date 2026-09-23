@@ -426,6 +426,21 @@ class SearchSummary(BaseModel):
     total_latency_ms: float
 
 
+class ConceptOut(BaseModel):
+    """One plan's concept, in the person's own language (Issue #78, Concept Engine v2 4/5).
+
+    `circulation_class` is `concept_spec.CirculationClass.value` — the SAME class
+    `concept_spec.realized_circulation_class(plan)` computed for this exact plan (AC-3); `label`
+    and `rationale` are `concept_engine_v2.concept_label`'s Hebrew text for it. `None` on
+    `DemoDesign.concept` for every payload `general_pipeline.CONCEPT_ENGINE_V2_ENABLED` did not
+    label — flag-off output is unaffected either way.
+    """
+
+    circulation_class: str
+    label: str
+    rationale: str
+
+
 class DemoDesign(BaseModel):
     plot: RectOut
     #: The building's bounding box — the footprint itself for a one-wing house.
@@ -456,6 +471,8 @@ class DemoDesign(BaseModel):
     #: The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for
     #: every house the engine plans today; empty only for a payload that predates the field.
     footprints: list[RectOut] = []
+    #: Issue #78. `None` unless `general_pipeline.CONCEPT_ENGINE_V2_ENABLED` labelled this plan.
+    concept: ConceptOut | None = None
 
 
 # --------------------------------------------------------------------------- the building
@@ -1008,10 +1025,13 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    outline: OutlineOut | None = None,
                    family: str | None = None,
                    notes: list[str] | None = None,
+                   concept: ConceptOut | None = None,
                    constraint: TypedConstraint | None = None) -> DemoDesign:
     """`constraint` (Issue #35): the spec's SAFE_ROOM `TypedConstraint`, attached to
     `QualityOut.constraints` when the brief actually carries one (`source != NONE`) — `None`
-    (the default) keeps every caller that predates this parameter unchanged."""
+    (the default) keeps every caller that predates this parameter unchanged. `concept`
+    (Issue #78) is the circulation-class label of the plan this contract describes, set only
+    when the Concept Engine v2 stage produced it."""
     walls, opens = _wall_segments(design)
     walls, opens = _open_corridor_to_public(design, walls, opens)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
@@ -1069,6 +1089,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         quality=quality_of(design),
         outline=outline,
         family=family,
+        concept=concept,
     )
     # M1–M6 (Issue #17) need the FLATTENED walls/open-interfaces/doors this function just built
     # (adjacency, hall doors, open-plan joins) — data `quality_of(design)` above never sees, since
