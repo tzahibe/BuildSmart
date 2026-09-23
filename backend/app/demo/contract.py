@@ -18,7 +18,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import circulation_metrics, furnishability, interior_layout, quality_metrics
+from app.vertical_slice import (circulation_metrics, entrance_sequence, furnishability,
+                                interior_layout, quality_metrics)
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
@@ -246,6 +247,28 @@ class ExposureOut(BaseModel):
     no_window_reason: str | None = None
 
 
+class EntranceSequenceOut(BaseModel):
+    """The entrance-to-circulation sequence (Issue #22, `app.vertical_slice.entrance_sequence`):
+    where the front door arrives, whether that arrival zone is itself circulation, the POCKET
+    (walking distance to the arrival zone's own nearest other opening — C25's own blocking fact)
+    and the TUNNEL (walking distance to the first PUBLIC-group room, with private doors passed on
+    the way — reported, never gating; see that module's docstring for why). `tunnel` is the
+    non-blocking quality-signal text (`None` when the walk is not a tunnel). `stray_pockets` is the
+    OTHER blocking shape — every OTHER circulation zone independently fronting the street with an
+    unserved stub beside the entrance (`[]` when none); also C25's own blocking fact."""
+
+    arrival_zone: str | None = None
+    arrival_roles: list[str] = []
+    is_circulation_arrival: bool = False
+    pocket_length_m: float = 0.0
+    has_public_opening: bool = False
+    distance_to_public_m: float | None = None
+    private_doors_passed: int = 0
+    foyer: bool = False
+    tunnel: str | None = None
+    stray_pockets: list[list] = []
+
+
 class ConstraintOut(BaseModel):
     """One `TypedConstraint` (Issue #35), as the person-facing screen and support tooling read it —
     including WHERE the requirement came from, so a request never looks like it was invented by
@@ -306,6 +329,9 @@ class QualityOut(BaseModel):
     #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
     #: per room.
     usability: list[UsabilityOut] = []
+    #: The entrance-to-circulation sequence (Issue #22), additive. `None` only for a payload built
+    #: before this field existed — every plan `to_demo_design` produces from here on attaches one.
+    entrance_sequence: EntranceSequenceOut | None = None
 
 
 class WindowOut(BaseModel):
@@ -1126,6 +1152,24 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # M1-M6 reads, so a check, a ranking decision and this report can never disagree about what a
     # plan's circulation looks like.
     circulation = circulation_metrics.measure(design)
+    # Entrance sequence (Issue #22) reads the SAME raw `SolvedDesign` circulation does, for the
+    # same reason: a check (C25), a ranking decision and this report must never disagree about
+    # what a plan's entrance sequence looks like.
+    entrance_seq = entrance_sequence.measure(design)
+    entrance_seq_out = EntranceSequenceOut(
+        arrival_zone=entrance_seq.arrival_zone,
+        arrival_roles=list(entrance_seq.arrival_roles),
+        is_circulation_arrival=entrance_seq.is_circulation_arrival,
+        #: `math.inf` only for a fully sealed arrival zone (no other opening at all) — capped for
+        #: JSON (`Infinity` is not valid JSON); `classify_pocket` already flagged it either way.
+        pocket_length_m=min(entrance_seq.pocket_length_m, 999.0),
+        has_public_opening=entrance_seq.has_public_opening,
+        distance_to_public_m=entrance_seq.distance_to_public_m,
+        private_doors_passed=entrance_seq.private_doors_passed,
+        foyer=entrance_seq.foyer,
+        tunnel=entrance_sequence.classify_tunnel(entrance_seq),
+        stray_pockets=[[zone_id, length] for zone_id, length in entrance_seq.stray_pockets],
+    )
     # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
@@ -1141,6 +1185,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
             "exposure": exposure,
             "wet_privacy": wet_privacy,
             "usability": usability,
+            "entrance_sequence": entrance_seq_out,
             "notices": [*demo.quality.notices, *_usability_notices(design, usability)]})
     })
 

@@ -2871,6 +2871,35 @@ def _free_twin(candidate: ConceptCandidate) -> ConceptCandidate:
 FREE_TWIN_RATIONALE = "cut positions chosen by the solver"
 
 
+def _corridor_served_extent_m(*row_depths_lists: list[float]) -> float:
+    """The far edge, measured from the corridor's own start, of the LAST row served on either
+    side of it — the deepest of the columns the corridor runs beside.
+
+    Issue #22, Required behaviour 1: the corridor leaf's own endpoint must be STRUCTURALLY
+    derived from the last door it serves, not merely coincide with the wing edge. `_row_depths`/
+    `_distribute_column_surplus` already guarantee every column's own rows sum to exactly that
+    column's `column_depth` — this reads that guarantee back off the REALIZED row layout, so the
+    corridor's construction site can assert its own length against it (`_assert_corridor_extent`)
+    rather than simply inheriting the wing's height because a `Split` sibling always does.
+    """
+    return max(sum(depths) for depths in row_depths_lists)
+
+
+def _assert_corridor_extent(corridor_depth_m: float, where: str,
+                            *row_depths_lists: list[float]) -> None:
+    """Fail closed — never silently — if a corridor leaf's own length ever stopped matching the
+    last door it serves (see `_corridor_served_extent_m`). Holds for every real plan today (the
+    432-context sweep behind `docs/ENTRANCE_CIRCULATION_SWEEP.md` found zero counter-examples);
+    this turns that empirical fact into a checked structural invariant instead of an assumption,
+    so a future change to the row-distribution guarantee cannot silently reintroduce a dead
+    corridor stub beyond the entrance's last served door (C25)."""
+    served = _corridor_served_extent_m(*row_depths_lists)
+    assert abs(corridor_depth_m - served) <= 1e-6, (
+        f"{where}: corridor leaf is {corridor_depth_m:.4f} m but its last served door is at "
+        f"{served:.4f} m — the corridor's own extent must be derived from the last door it "
+        f"serves, not the wing edge (Issue #22)")
+
+
 def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                   strategy: ConceptStrategy, rationale: str,
                   footprint: Rect, plan: LayoutPlan, *, repartitioned: bool = False,
@@ -2896,6 +2925,11 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
     east_tree = _forced_chain(plan.east.rows, plan.east.row_depths_m,
                               plan.east.width_m - _EDGE_INSET_ALLOWANCE_M, open_block,
                               exterior_first=False)
+    # HALL is a `Cut.V` sibling of west/east, so its own rectangle inherits the wing's full
+    # height (`fh`) by construction. `_assert_corridor_extent` checks that this always equals
+    # the REALIZED extent of the last row served on either side (Issue #22) rather than assuming
+    # the two coincide.
+    _assert_corridor_extent(fh, "spine hall", plan.west.row_depths_m, plan.east.row_depths_m)
     tree = Split(Cut.V, west_tree,
                  Split(Cut.V, Leaf("HALL"), east_tree, m_to_u(plan.hall_w_m)),
                  m_to_u(plan.west.width_m))
@@ -3192,6 +3226,10 @@ def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], can
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
 
     band_tree = _forced_v_chain(public, public_widths)
+    # HALL is a `Cut.V` sibling of the rear west/east columns, so its own rectangle inherits the
+    # rear's height (`fh - band_depth`) by construction; check that against the REALIZED extent
+    # of the last row served on either side (Issue #22).
+    _assert_corridor_extent(fh - band_depth, "front-band hall", west_depths, east_depths)
     rear = Split(Cut.V,
                  _forced_chain(west_rows, west_depths, west_w - _EDGE_INSET_ALLOWANCE_M,
                                exterior_first=True),

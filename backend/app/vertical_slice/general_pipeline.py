@@ -31,6 +31,7 @@ from app.geometry_domain.primitives import MultiRegion
 
 from . import circulation_metrics
 from . import concept_generator as generator
+from . import entrance_sequence
 from . import footprint as footprint_module
 from . import hub_guard
 from . import l_massing_guard
@@ -477,6 +478,13 @@ def run_general(buildable: BuildableRegion, *,
     # instant the best possible rank is reached, so a brief whose first valid candidate already has
     # a HALL/CIRCULATION entrance costs exactly what it did before this Issue.
     best_entrance_rank: int | None = None
+    # ENTRANCE SEQUENCE TIEBREAK (Issue #22, hub_guard-style): a STRICT tiebreak, never a gate —
+    # `entrance_sequence_prefers` only decides between candidates already equal under BOTH of the
+    # existing ranking terms (the generator's own area-proximity order `generated.candidates`
+    # already arrives in, and `_entrance_rank` above). A candidate is never promoted past a better
+    # area-proximity or a better entrance rank for a shorter tunnel; it only breaks a genuine tie.
+    best_used_area_m2: float | None = None
+    best_entrance_seq: entrance_sequence.EntranceSequence | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         # Tier 2 (`concept_generator.Repartition`) is strictly second: its candidates sit after
@@ -503,9 +511,20 @@ def run_general(buildable: BuildableRegion, *,
                                 f"but failed validation: {', '.join(failed) or 'safety'}")
                 continue
             rank = _entrance_rank(candidate_plan)
-            if best_entrance_rank is None or rank < best_entrance_rank:
+            candidate_seq = entrance_sequence.measure(candidate_plan.design)
+            take = best_entrance_rank is None or rank < best_entrance_rank
+            if (not take and rank == best_entrance_rank
+                    and best_used_area_m2 is not None
+                    and abs(concept_candidate.used_area_m2 - best_used_area_m2) < 1e-9
+                    and best_entrance_seq is not None
+                    and entrance_sequence.entrance_sequence_prefers(
+                        best_entrance_seq, candidate_seq) is None):
+                take = True
+            if take:
                 chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
                 best_entrance_rank = rank
+                best_used_area_m2 = concept_candidate.used_area_m2
+                best_entrance_seq = candidate_seq
             if fast_path and best_entrance_rank == 0:
                 break
             continue
