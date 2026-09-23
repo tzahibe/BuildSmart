@@ -5,11 +5,20 @@ never a single global scale factor. Every operation is recorded as an ``Adaptati
 Operations implemented (see AC-3 -- "records >= 1 semantic operation per adapted concept", not
 every operation the Issue names is required per candidate):
 
-- ``RESIZE_ROOMS`` (always applied): each room's area is replaced by a fixed per-TYPE target
-  (``TARGET_AREA_M2`` below), never by multiplying every room by one factor. Because each donor
-  room's own area differs from its type's fixed target by a different relative amount, the
-  before/after ratio is different per room type BY CONSTRUCTION -- this is what "changes room-area
-  ratios non-uniformly, no global scaling" means and how ``test_adaptation.py`` verifies it.
+- ``RESIZE_ROOMS`` (always applied): each room type's TOTAL area across the donor's own rooms of
+  that type is anchored to a fixed per-TYPE target (``TARGET_AREA_M2`` below), but each individual
+  room's own SHARE of that total carries the donor's own proportion forward (``room.area_m2 /``
+  the donor's own mean area for that type) rather than collapsing every room of one type to the
+  same constant. Two donors whose rooms of one type are sized differently relative to each other
+  (e.g. one donor's two bedrooms are near-equal, another's are skewed) therefore adapt to
+  DIFFERENT individual room areas even when both target the SAME aggregate per type -- this is
+  what makes two different donors realize to genuinely different geometry within one topology
+  (Issue #96's own finding: before this, ``RESIZE_ROOMS`` discarded every donor's own proportions,
+  so two different donors with the same brief-authoritative room types/counts adapted to
+  byte-identical room lists and realized to identical geometry). The aggregate-per-type ratio is
+  still non-uniform across types BY CONSTRUCTION (each type's own donor-mean differs from its own
+  fixed target by a different relative amount) -- this is what "changes room-area ratios
+  non-uniformly, no global scaling" means and how ``test_adaptation.py`` verifies it.
 - ``BEDROOM_COUNT_ADJUST`` (when the donor's bedroom count differs from ``brief.program.bedrooms``):
   adds or removes bedroom-type rooms at the fixed target area, preserving every other room.
 - ``WET_ZONE_ADJUST`` (when the brief asks for an ensuite but the donor's ``wet_core_strategy`` is
@@ -141,17 +150,34 @@ def _feasibility_rejection(concept: ConceptSpec, brief: Brief, site: PlotSpec) -
 
 def _resize_rooms(concept: ConceptSpec) -> tuple[tuple[AdaptedRoom, ...], Adaptation]:
     before_total = sum(r.area_m2 for r in concept.baseline_rooms)
+
+    # This donor's OWN mean area per room type -- the anchor `proportion` below is measured
+    # against, so a type with only one donor room always gets proportion=1.0 (nothing to be
+    # proportionate TO), while a type with several donor rooms of different sizes carries their
+    # OWN relative spread forward into the adapted areas.
+    type_totals: dict[str, float] = {}
+    type_counts: dict[str, int] = {}
+    for room in concept.baseline_rooms:
+        type_totals[room.type] = type_totals.get(room.type, 0.0) + room.area_m2
+        type_counts[room.type] = type_counts.get(room.type, 0) + 1
+    type_mean = {t: type_totals[t] / type_counts[t] for t in type_totals}
+
     adapted: list[AdaptedRoom] = []
     for room in concept.baseline_rooms:
         target = TARGET_AREA_M2.get(room.type, room.area_m2)
-        adapted.append(AdaptedRoom(id=room.id, room_type=room.type, area_m2=target))
+        mean_for_type = type_mean.get(room.type, room.area_m2)
+        proportion = room.area_m2 / mean_for_type if mean_for_type > 1e-9 else 1.0
+        adapted.append(AdaptedRoom(id=room.id, room_type=room.type, area_m2=target * proportion))
     after_total = sum(r.area_m2 for r in adapted)
     adaptation = Adaptation(
         kind="RESIZE_ROOMS",
         before=f"total {before_total:.1f} m2 across {len(concept.baseline_rooms)} donor rooms",
         after=f"total {after_total:.1f} m2 after per-type target resizing",
-        reason="each room type resized to its own architectural target area, independently -- "
-              "never a single scale factor applied to every room")
+        reason="each room type's aggregate resized to its own architectural target area, "
+              "independently -- never a single scale factor applied to every room -- and each "
+              "individual room's OWN share of that aggregate carries the donor's own proportion "
+              "forward, so a different donor with a different internal size spread adapts to "
+              "different individual room areas even at the same aggregate target")
     return tuple(adapted), adaptation
 
 

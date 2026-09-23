@@ -1,0 +1,44 @@
+{
+  "brief_id": "brief-1",
+  "index": 0,
+  "concept_id": "concept-0",
+  "declared_circulation_class": "OTHER",
+  "zoning": "CENTRAL_PUBLIC",
+  "wet_core_strategy": "DISPERSED",
+  "adaptations": [
+    {
+      "kind": "RESIZE_ROOMS",
+      "before": "total 190.7 m2 across 10 donor rooms",
+      "after": "total 102.0 m2 after per-type target resizing",
+      "reason": "each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target"
+    }
+  ],
+  "elapsed_s": 191.5,
+  "outcome": "REALIZED",
+  "ok": true,
+  "realized_circulation_class": "SPINE",
+  "failing_checks": [],
+  "rationale": "architectural-brain POC: synthesized concept-0 (circulation_class=OTHER, zoning=CENTRAL_PUBLIC) adapted with 1 operation(s), compiled to the SPINE template",
+  "measurements": {
+    "gross_area_m2": 170.05,
+    "net_area_m2": 152.55,
+    "wall_iterations": 2,
+    "over_preferred": false,
+    "entrance_opens_into": "HALL_1",
+    "entrance_room_roles": [
+      "HALL",
+      "CIRCULATION"
+    ],
+    "m1_habitable_aspect_median": 1.4999999999999998,
+    "m1_habitable_aspect_max": 2.393939393939394,
+    "m2_habitable_on_envelope_ratio": 1.0,
+    "m3_circulation_share": 0.1787709497206704,
+    "m4_hall_door_count": 9,
+    "m4_hall_aspect_median": 5.9375,
+    "m5_wet_adjacency_ratio": 0.6666666666666666,
+    "m6_public_zone_contiguous": true,
+    "wasted_circulation_share": 0.1787709497206704,
+    "wet_core_cluster_count": 2,
+    "wet_core_plumbing_complexity_index": 3
+  }
+}

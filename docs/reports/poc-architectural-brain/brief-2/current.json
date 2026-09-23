@@ -1,0 +1,31 @@
+{
+  "brief_id": "brief-2",
+  "elapsed_s": 0.2,
+  "outcome": "SOLVED",
+  "ok": true,
+  "notes": [],
+  "circulation_class": "SPINE",
+  "failing_checks": [],
+  "measurements": {
+    "gross_area_m2": 128.7,
+    "net_area_m2": 117.26,
+    "wall_iterations": 2,
+    "over_preferred": false,
+    "entrance_opens_into": "HALL",
+    "entrance_room_roles": [
+      "HALL",
+      "CIRCULATION"
+    ],
+    "m1_habitable_aspect_median": 1.1384615384615384,
+    "m1_habitable_aspect_max": 1.9615384615384612,
+    "m2_habitable_on_envelope_ratio": 1.0,
+    "m3_circulation_share": 0.1414141414141414,
+    "m4_hall_door_count": 6,
+    "m4_hall_aspect_median": 9.285714285714286,
+    "m5_wet_adjacency_ratio": 1.0,
+    "m6_public_zone_contiguous": true,
+    "wasted_circulation_share": 0.1414141414141414,
+    "wet_core_cluster_count": 2,
+    "wet_core_plumbing_complexity_index": 2
+  }
+}

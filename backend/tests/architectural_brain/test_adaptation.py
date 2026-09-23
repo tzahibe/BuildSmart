@@ -51,6 +51,51 @@ def test_room_area_ratios_change_non_uniformly_no_global_scaling():
     )
 
 
+def test_resize_rooms_carries_the_donor_own_proportions_forward():
+    """Issue #96 MODIFY item 1: two donors with the SAME room type/count but a DIFFERENT internal
+    size spread must adapt to DIFFERENT individual room areas, not the same fixed per-type
+    constant -- this is what lets two different donors realize to genuinely different geometry
+    within one topology (`realize.py`'s own `_zone`/`_adapted_target_area_m2` then reads a
+    SPECIFIC donor room's own adapted area per output zone instance)."""
+    skewed = _minimal_concept(
+        circulation_class="OTHER", zoning="PUBLIC_PRIVATE_WINGS", wet_core_strategy="DISPERSED",
+        baseline_rooms=(
+            _one_room("LIVING_0", "LIVING", 20.0),
+            _one_room("BEDROOM_0", "BEDROOM", 20.0),
+            _one_room("BEDROOM_1", "BEDROOM", 30.0),
+        ),
+    )
+    even = _minimal_concept(
+        circulation_class="OTHER", zoning="PUBLIC_PRIVATE_WINGS", wet_core_strategy="DISPERSED",
+        baseline_rooms=(
+            _one_room("LIVING_0", "LIVING", 20.0),
+            _one_room("BEDROOM_0", "BEDROOM", 25.0),
+            _one_room("BEDROOM_1", "BEDROOM", 25.0),
+        ),
+    )
+    brief = Brief(program=ProgramSpec(bedrooms=2, safe_room=False, wet_rooms=0))
+    site = PlotSpec(width_m=30.0, depth_m=30.0)
+
+    skewed_adapted = adapt(skewed, brief, site)
+    even_adapted = adapt(even, brief, site)
+    assert isinstance(skewed_adapted, AdaptedConcept) and isinstance(even_adapted, AdaptedConcept)
+
+    skewed_bedrooms = sorted(r.area_m2 for r in skewed_adapted.rooms if r.room_type == "BEDROOM")
+    even_bedrooms = sorted(r.area_m2 for r in even_adapted.rooms if r.room_type == "BEDROOM")
+
+    # The skewed donor's own bedrooms (20/30, ratio 2:3) must NOT adapt to equal areas -- carrying
+    # the donor's own proportion forward, not collapsing to the fixed per-type constant every
+    # bedroom got before this fix.
+    assert round(skewed_bedrooms[0], 6) != round(skewed_bedrooms[1], 6)
+    assert round(skewed_bedrooms[1] / skewed_bedrooms[0], 3) == round(30.0 / 20.0, 3)
+    # The even donor's own bedrooms (25/25, ratio 1:1) DO adapt to equal areas -- proportion
+    # carry-forward is donor-specific, not a blanket "always differ" rule.
+    assert round(even_bedrooms[0], 6) == round(even_bedrooms[1], 6)
+    # Different donors, same aggregate target per type -- the skewed donor's own bedrooms differ
+    # from the even donor's, room for room, because the input areas differ.
+    assert skewed_bedrooms != even_bedrooms
+
+
 def _minimal_concept(circulation_class: str, zoning: str, wet_core_strategy: str,
                      baseline_rooms: tuple[Room, ...], wet_room_kinds: tuple[str, ...] = (),
                      bedrooms: int = 3, wet_rooms: int = 2, safe_room: bool = True) -> ConceptSpec:
