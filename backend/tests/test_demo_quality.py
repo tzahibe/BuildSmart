@@ -203,3 +203,30 @@ def test_every_door_and_window_hosts_on_a_wall():
             for wall in design.walls:
                 assert wall.wall_class in ("EXTERIOR", "INTERIOR", "WET_SERVICE", "PROTECTED")
                 assert wall.thickness_m and wall.thickness_m > 0
+
+
+# ------------------------------------------------------------------ Issue #39: interior layout
+
+def test_layout_objects_present_for_planned_designs():
+    """AC-3: the contract exposes `layout` (engine-placed semantic objects, Issue #39) for every
+    PLANNED design it delivers — primary, every alternative, and every level of a building — never
+    just for the demo pipeline's own canonical fixture; a room whose role this Issue does not
+    furnish is simply absent from it, never an error."""
+    result = svc.generate_demo_design(_project(WIDE_SQUARE))
+    room_ids = {r.id for r in result.design.rooms}
+    assert result.design.layout  # at least one placed object on a real, furnished brief
+    for obj in result.design.layout:
+        assert obj.room_id in room_ids
+        assert obj.width_m > 0 and obj.depth_m > 0
+        # the clearance rect always contains the object's own footprint
+        assert obj.clearance_x <= obj.x + 1e-6 and obj.clearance_y <= obj.y + 1e-6
+        assert obj.clearance_x + obj.clearance_width_m >= obj.x + obj.width_m - 1e-6
+        assert obj.clearance_y + obj.clearance_depth_m >= obj.y + obj.depth_m - 1e-6
+    for alternative in result.alternatives:
+        assert isinstance(alternative.layout, list)
+    if result.building is not None:
+        for level in result.building.levels:
+            assert isinstance(level.design.layout, list)
+
+    second = svc.generate_demo_design(_project(OVER_CAPACITY))
+    assert isinstance(second.design.layout, list)

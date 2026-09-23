@@ -2,6 +2,7 @@ import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
 import { DoorSymbol } from '../components/plan/DoorSymbol'
 import { Walls, WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle } from '../components/plan/Walls'
+import { InteriorLayout } from '../components/plan/InteriorLayout'
 import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
 
@@ -143,6 +144,10 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
           OPEN interface has no wall segment at all, so open-plan reads as one continuous space by
           construction. */}
       <Walls walls={design.walls} />
+
+      {/* Engine-placed semantic layout objects (Issue #39) — drawn under the doors/windows so a
+          door's swing arc always stays legible over any furniture near it. */}
+      <InteriorLayout objects={design.layout ?? []} />
 
       {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
           90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —
