@@ -69,6 +69,28 @@ def test_unusable_bedroom_fails_c30():
     assert "BEDROOM" in check.detail and "BED" in check.detail
 
 
+def test_bedroom_fits_bed_not_wardrobe_is_not_unusable():
+    """Boundary case AC-1's own wording implies ("without room for a bed + wardrobe") but
+    `REQUIRED_ITEMS` deliberately does not gate on: a 1.5 x 2.0 m bedroom fits the BED (it takes
+    the 1.5 m wall, the room's full 2.0 m depth) but has no wall left the WARDROBE clears — yet
+    stays required_placed=True / not UNUSABLE, because WARDROBE is excluded from BEDROOM's
+    `REQUIRED_ITEMS` by design (see that dict's own docstring and `validation.check_furnishability`
+    module docstring for the calibration reasoning). C30 does not fail it."""
+    room = _room("BEDROOM", ("BEDROOM",), 1.5, 2.0)
+    design = _design((room,))
+    layout = layout_for_room(room, design)
+    assert {o.kind for o in layout.placed} == {"BED"}
+    assert {u.kind for u in layout.unplaceable} == {"WARDROBE"}
+
+    usability = compute_usability_for_room(room, design, layout)
+    assert usability.required_placed is True
+    assert usability.missing_required == ()
+    assert usability.tier != UNUSABLE
+
+    check = check_furnishability(design)
+    assert check.passed is True, check.detail
+
+
 # --------------------------------------------------------------------------- AC-2: POOR, not failed
 
 def test_blocked_path_is_poor_not_failed():

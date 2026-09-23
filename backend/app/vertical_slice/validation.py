@@ -206,25 +206,30 @@ def check_furnishability(design: GeometricDesign) -> Check:
     disclosure/ranking data only, on `QualityOut.usability` (`app.demo.contract`), the same
     two-tier discipline C29 holds for wet-room privacy.
 
-    DELIBERATELY NOT CALLED FROM `validate()` — measured, not assumed: wiring this into the same
-    per-candidate `validate()` every candidate is checked against during search (where C26/C29 both
-    live) was tried and MEASURED to fail closed on real, otherwise-fully-valid candidates this
-    codebase already accepts — not just synthetic edge cases. Even with `REQUIRED_ITEMS` narrowed
-    to BED alone (BEDROOM/MASTER_BEDROOM), the full backend test suite went from 0 to 29 new
-    failures: ordinary 2BR/3BR end-to-end briefs (`test_demo_p0.py::
-    test_generated_plan_passes_every_hard_check`), L-massing candidacy, multi-level primary
-    selection, and the strip-room programmes this repo already tolerates as a real, accepted
-    trade-off (`docs/wiki/architecture/geometry-validation.md`'s own strip-room history) — because
-    `interior_layout.py`'s placement is a single independent pass per item, per wall (no packing
-    two items onto the same wall, no trying every rotation), a documented, real gap
-    (`interior_layout.py`'s own "Known follow-ups") that this Issue's "Placement itself (Issue 9)"
-    scope explicitly forbids touching. Gating live candidate acceptance on it — at search time OR
-    at the final `to_demo_design` stage, both measured — would violate Issue #40's own AC-3
-    regression budget (LOST 0, status_changes 0), so this check is defined, fully tested (this
-    module's own test file, `test_furnishability.py`), and ready — the same "available, not wired"
-    precedent `wet_core.candidate_wet_core_key`/`better_candidate` already sets in this codebase —
-    for a caller once `interior_layout.py`'s placement gains same-wall packing/rotation (its own
-    documented follow-up), not before.
+    OPEN SCOPE DECISION — NOT WIRED INTO `validate()`, NOT THE FIXER'S CALL TO CLOSE: Issue #40's
+    Required Behavior asks C30 to "fail closed" on UNUSABLE; Issue #40's own AC-3 regression
+    budget requires LOST 0 / status_changes 0 on the corpus. Wiring this call into `validate()`
+    satisfies the first and breaks the second — MEASURED twice now, not assumed: the original
+    implementation measured 0 -> 29 new failures with `REQUIRED_ITEMS` narrowed to BED alone; a
+    fresh, independent re-measurement on 2026-09-23 (`uv run pytest -q tests/vertical_slice/` with
+    C30 temporarily wired into `validate()`, current `REQUIRED_ITEMS`) reproduced the same class
+    of failure at 23 failed / 604 passed — `test_strip_rooms.py`, `test_l_parti.py`,
+    `test_concept_generator.py`, `test_general_pipeline.py`, `test_primary_selection.py`,
+    `test_quality_repartition.py`, `test_laundry_room.py`, `test_baseline_and_decoupling.py` — the
+    same root cause both times: `interior_layout.py`'s placement is a single independent pass per
+    item per wall (no packing two items onto the same wall, no trying every rotation), a
+    documented, real gap (`interior_layout.py`'s own "Known follow-ups") that Issue #40's own
+    "Placement itself (Issue 9)" out-of-scope line forbids this Issue from closing.
+
+    THIS IS A PRODUCT/SCOPE CONFLICT BETWEEN TWO PARTS OF THE SAME CONTRACT, not a bug a diff can
+    close: either (a) wire C30 live and accept a LOST/status_changes count far outside the AC-3
+    budget stated above (a maintainer call, since only the maintainer can widen a regression
+    budget), or (b) keep C30 disclosure-only for Issue #40 and open a follow-up Issue against
+    `interior_layout.py`'s placement pass (same-wall packing/rotation) that C30 can safely gate on
+    once landed. This module does not pick (a) or (b) — it is defined, fully tested (this module's
+    own test file, `test_furnishability.py`), and ready for whichever a maintainer decision picks,
+    the same "available, not wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate`
+    already sets in this codebase.
     """
     usability_records = furnishability.compute_usability(
         design, interior_layout.compute_layout(design))

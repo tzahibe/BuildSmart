@@ -118,20 +118,28 @@ blocks a window, and a diagnostic "usable wall length" figure — rolled up into
 ACCEPTABLE / POOR / UNUSABLE.
 
 **`validation.check_furnishability` (C30) exists, is fully tested, and is NOT called from
-`validate()`** — the one deliberate deviation from the Issue's own "fails closed via C30" wording,
-made after measuring rather than assuming: wiring it into the same per-candidate `validate()` C26/
-C29 already live in (at search time), or as a final-only gate mirroring C27's own precedent, was
-each tried and MEASURED to fail closed on real, otherwise-fully-valid plans this codebase already
-accepts — ordinary 2BR/3BR end-to-end briefs among them, not just synthetic edge cases (29 new
-failures across the backend test suite with either wiring, even with `REQUIRED_ITEMS` narrowed to
-BED alone). The root cause is `interior_layout.py`'s own placement algorithm: a single independent
-pass per item, per wall, with no packing two items onto the same wall and no rotation search — a
-real, already-documented gap (this page's own "Known follow-ups" below), and closing it is Issue
-9's placement scope, explicitly out of bounds here. `check_furnishability` is defined, tested
-(`test_furnishability.py`) and ready for a caller once that gap closes — the same "available, not
-wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate` already sets in this
-codebase. `usability_key`/`better_candidate` (`furnishability.py`) are the equivalent, similarly
-unwired, ranking-preference functions for POOR/UNUSABLE counts.
+`validate()` — OPEN SCOPE DECISION, not a closed one.** Issue #40 asks C30 to "fail closed" on
+UNUSABLE; Issue #40's own AC-3 regression budget requires LOST 0 / status_changes 0. Wiring C30
+into `validate()` satisfies the first and breaks the second, MEASURED twice: the original
+implementation measured 0 -> 29 new failures (`REQUIRED_ITEMS` narrowed to BED alone); an
+independent re-measurement on 2026-09-23 (C30 temporarily wired, current `REQUIRED_ITEMS`,
+`uv run pytest -q tests/vertical_slice/`) reproduced the same failure class at 23 failed / 604
+passed, spanning `test_strip_rooms.py`, `test_l_parti.py`, `test_concept_generator.py`,
+`test_general_pipeline.py`, `test_primary_selection.py`, `test_quality_repartition.py`,
+`test_laundry_room.py`, `test_baseline_and_decoupling.py` — ordinary 2BR/3BR/4BR end-to-end
+briefs, not just synthetic edge cases. The root cause both times is `interior_layout.py`'s own
+placement algorithm: a single independent pass per item, per wall, with no packing two items onto
+the same wall and no rotation search — a real, already-documented gap (this page's own "Known
+follow-ups" below), and closing it is Issue 9's placement scope, explicitly out of bounds here.
+This is a genuine conflict between two parts of the same Issue's contract, not something this PR
+resolves unilaterally: either (a) wire C30 live and accept a regression far outside the AC-3
+budget (a maintainer call — only a maintainer can widen that budget), or (b) keep C30
+disclosure-only for Issue #40 and open a follow-up Issue against `interior_layout.py`'s placement
+pass that C30 can safely gate on once it lands. `check_furnishability` is defined, tested
+(`test_furnishability.py`) and ready for whichever a maintainer decision picks — the same
+"available, not wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate` already sets
+in this codebase. `usability_key`/`better_candidate` (`furnishability.py`) are the equivalent,
+similarly unwired, ranking-preference functions for POOR/UNUSABLE counts.
 
 POOR (required objects placed, but no clear access path from the door, or one blocks a window) is
 disclosure-only, additive, and safe regardless: `app.demo.contract.QualityOut.usability` (one
@@ -167,8 +175,9 @@ matters to C30 specifically).
 Issue #39 contract and acceptance criteria; `docs/architecture_reference/quality_rubric.md` section
 N ("Fixture & Clearance Awareness") — this Issue delivers that section's first deterministic signal.
 Issue #40 (furnishability/usability, `furnishability.py`) extends the same section with the tiered
-usability signal, and documents (`validation.check_furnishability`'s own docstring) the measured
-reason C30 stays defined-but-unwired.
+usability signal, and flags (`validation.check_furnishability`'s own docstring) the measured
+conflict between "C30 fails closed" and the AC-3 regression budget as an open scope decision for
+the maintainer — not resolved by this PR — see that docstring's "OPEN SCOPE DECISION" section.
 
 ## Last verified against git
 
