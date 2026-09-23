@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import (circulation_metrics, entrance_sequence, interior_layout,
-                                quality_metrics)
+                                public_composition, quality_metrics)
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
@@ -266,6 +266,23 @@ class EntranceSequenceOut(BaseModel):
     stray_pockets: list[list] = []
 
 
+class PublicCompositionOut(BaseModel):
+    """Kitchen/dining/living composition standing (Issue #41,
+    `app.vertical_slice.public_composition.PublicComposition`) — see that module's docstring for
+    what each field means. Display/ranking data only; the one hard rule it backs (C31) lives in
+    `validation.py`. A `None` field means the plan genuinely has no room of the kind that fact
+    needs, never a measured defect."""
+
+    kitchen_dining_related: bool | None = None
+    dining_living_related: bool | None = None
+    public_zone_coherent: bool | None = None
+    entrance_reaches_public: bool = False
+    living_exterior_exposed: bool | None = None
+    living_has_window: bool | None = None
+    blocked_public_rooms: list[str] = []
+    composition_score: float = 0.0
+
+
 class ConstraintOut(BaseModel):
     """One `TypedConstraint` (Issue #35), as the person-facing screen and support tooling read it —
     including WHERE the requirement came from, so a request never looks like it was invented by
@@ -325,6 +342,10 @@ class QualityOut(BaseModel):
     #: The entrance-to-circulation sequence (Issue #22), additive. `None` only for a payload built
     #: before this field existed — every plan `to_demo_design` produces from here on attaches one.
     entrance_sequence: EntranceSequenceOut | None = None
+    #: Kitchen/dining/living composition standing (Issue #41), additive. `None` only for a payload
+    #: built before this field existed — every plan `to_demo_design` produces from here on attaches
+    #: one.
+    public_composition: PublicCompositionOut | None = None
 
 
 class WindowOut(BaseModel):
@@ -1198,6 +1219,20 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
     exposure = _exposure_of(design)
+    # Public-zone composition (Issue #41) reads the SAME raw `SolvedDesign` circulation/entrance
+    # sequence do, for the same reason: a check (C31), a ranking decision and this report must
+    # never disagree about what a plan's kitchen/dining/living composition looks like.
+    composition = public_composition.measure(design)
+    composition_out = PublicCompositionOut(
+        kitchen_dining_related=composition.kitchen_dining_related,
+        dining_living_related=composition.dining_living_related,
+        public_zone_coherent=composition.public_zone_coherent,
+        entrance_reaches_public=composition.entrance_reaches_public,
+        living_exterior_exposed=composition.living_exterior_exposed,
+        living_has_window=composition.living_has_window,
+        blocked_public_rooms=list(composition.blocked_public_rooms),
+        composition_score=composition.composition_score,
+    )
     wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
     wet_core = (WetCoreOut(**dataclasses.asdict(design.wet_core))
                if design.wet_core is not None else None)
@@ -1207,7 +1242,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
             "constraints": constraints_out,
             "exposure": exposure,
             "wet_privacy": wet_privacy,
-            "entrance_sequence": entrance_seq_out})
+            "entrance_sequence": entrance_seq_out,
+            "public_composition": composition_out})
     })
 
 

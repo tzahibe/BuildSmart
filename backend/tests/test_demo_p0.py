@@ -210,9 +210,10 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # `exposure` (Issue #19) is additive too — one entry per room.
     # `wet_privacy` (Issue #37) is additive too — one entry per wet room.
     # `entrance_sequence` (Issue #22) is additive too — always present on a delivered plan.
+    # `public_composition` (Issue #41) is additive too — always present on a delivered plan.
     assert "quality" in body and set(body["quality"]) == {
         "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints",
-        "exposure", "wet_privacy", "entrance_sequence"}
+        "exposure", "wet_privacy", "entrance_sequence", "public_composition"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 

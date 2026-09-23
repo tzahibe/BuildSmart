@@ -60,8 +60,9 @@ def test_all_slice_checks_still_pass(cases, case_id):
     # aspect), C21 (template maximum area), C23 (entrance opens into an allowed arrival room),
     # C24 (access topology obeys the door rules), C25 (Issue #22, no dead-space pocket at the
     # entrance), C26 (no extreme dedicated circulation), C28 (doors usable — Issue #38), C29
-    # (Issue #37, wet-room privacy) and C33 (the wall semantic model — Issue #45) always do.
-    assert len(report.checks) == 26
+    # (Issue #37, wet-room privacy), C31 (Issue #41, public-zone composition) and C33 (the wall
+    # semantic model — Issue #45) always do.
+    assert len(report.checks) == 27
     assert report.ok, "; ".join(f"{c.check_id}: {c.detail}" for c in report.failures())
 
 
