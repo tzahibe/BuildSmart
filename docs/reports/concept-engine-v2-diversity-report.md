@@ -19,14 +19,16 @@
 
 Share with ≥2 classes shown: 113/404 (28.0%) — below the 40% bar.
 
-### Per-precondition eligibility breakdown (lead direction 2026-09-22 (c))
+### Per-precondition eligibility breakdown (lead direction 2026-09-22 (c); `compile_branched` column re-run 2026-09-23, Issue #130)
 
 `compile_hub_lobby` and `compile_branched` now each support a SAFE_ROOM-aware and an open-plan-aware variant (attempt 3); what still bounds them is the room-count shape each was calibrated and verified against. Every count and every reason below is read from the compilers themselves (`_hub_lobby_unsupported` / `_branched_unsupported`), never from a restatement of their preconditions here — the earlier restatement went stale the moment attempt 4 added `compile_hub_lobby`'s 3-wet-room GUEST_WC row, and under-reported what the code already covered (review finding, attempt 5).
 
+**Issue #130 (2026-09-23, rollup repair)**: C26's dead-end rule (Issue #36) merged into `main` after `compile_branched`'s tree was authored and now refuses it on every shape it used to support (measured on the realized canonical fixture and all three SAFE_ROOM/open-plan variants — the same "3 corridor dead ends exceeds 2" failure every time, structural rather than sizing-driven). `compile_branched` now declines unconditionally, so its eligible count below is 0/404 — every brief that used to be `compile_branched`-eligible has moved into the residual population, re-attributed to its own current (now permanent) decline reason. This eligibility table was re-run directly against the corpus (cheap: `_hub_lobby_unsupported`/`_branched_unsupported` read the programme only, no solving); the "briefs with 2+ classes shown"/"circulation class counts" sections above predate this Issue and were **not** re-run (`compile_branched` already contributed 0 to those in the attempt-3 measurement — it never appears in the class-count list above — so this narrowing is not expected to move them; a full corpus re-sweep was out of scope for this Issue's own repair).
+
 - `compile_hub_lobby`-eligible: 40/404
-- `compile_branched`-eligible: 30/404
-- eligible for either compiler: 70/404 (17.3%)
-- excluded from both (residual population): 334/404
+- `compile_branched`-eligible: 0/404 (was 30/404 before Issue #130)
+- eligible for either compiler: 40/404 (9.9%, was 70/404, 17.3%)
+- excluded from both (residual population): 364/404
 
 #### Residual population excluded from both compilers, by reason
 
@@ -34,6 +36,7 @@ Share with ≥2 classes shown: 113/404 (28.0%) — below the 40% bar.
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 1 · branched: compile_branched supports exactly 3 bedrooms with a safe room, not 1: 43
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 1 · branched: compile_branched supports exactly 4 bedrooms without a safe room, not 1: 42
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 3 · branched: compile_branched supports exactly 4 bedrooms without a safe room, not 3: 33
+- hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 3 · branched: compile_branched's own two-hall tree produces 3 corridor dead ends (HALL_A's own west and east ends, HALL_B's own south end) on every supported programme shape, exceeding C26's limit of 2 (Issue #36) — declines unconditionally until the tree is redesigned (Issue #130): 22
 - hub_lobby: compile_hub_lobby's 3-wet-room GUEST_WC row is not yet combined with a safe room · branched: compile_branched supports exactly 3 bedrooms with a safe room, not 2: 21
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 5 · branched: compile_branched supports exactly 3 bedrooms with a safe room, not 5: 21
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 3 · branched: compile_branched supports exactly 2 wet rooms, not 3: 20
@@ -44,5 +47,6 @@ Share with ≥2 classes shown: 113/404 (28.0%) — below the 40% bar.
 - hub_lobby: compile_hub_lobby supports 2 or 3 wet rooms, not 1 · branched: compile_branched supports exactly 4 bedrooms without a safe room, not 2: 11
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 6 · branched: compile_branched supports exactly 3 bedrooms with a safe room, not 6: 11
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 5 · branched: compile_branched supports exactly 4 bedrooms without a safe room, not 5: 9
+- hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 4 · branched: compile_branched's own two-hall tree produces 3 corridor dead ends (HALL_A's own west and east ends, HALL_B's own south end) on every supported programme shape, exceeding C26's limit of 2 (Issue #36) — declines unconditionally until the tree is redesigned (Issue #130): 8
 - hub_lobby: compile_hub_lobby supports exactly 2 bedrooms, not 6 · branched: compile_branched supports exactly 4 bedrooms without a safe room, not 6: 6
 

@@ -128,6 +128,15 @@ renders it beside the plan title when present.
   `concept_compilers.py`'s own module docstring for why a general arbitrary-programme version of
   either is out of scope here) — they contribute wherever a brief's programme matches that shape,
   never elsewhere.
+- **`compile_branched` declines every programme (Issue #130, 2026-09-23)**: C26's dead-end rule
+  (Issue #36) merged into `main` after this tree was authored — HALL_A's own west and east ends
+  and HALL_B's own south end are structurally unserved dead ends (3, over C26's limit of 2) on
+  every shape the compiler used to support (measured on the realized canonical fixture and all
+  three SAFE_ROOM/open-plan variants), so it now returns `[]` unconditionally
+  (`concept_compilers._BRANCHED_C26_CONFLICT_REASON`) rather than emit a plan the validators
+  refuse. `compile_hub_lobby` is unaffected. The tree/sizing code is kept, gated off, as the
+  starting point for a retopologizing follow-up (moving MASTER beside HALL_A's own west end so a
+  door can land there) — not attempted here.
 - `CONCEPT_ENGINE_V2_MAX_REALIZATIONS` bounds cost, not correctness: a class that genuinely has no
   realizable candidate contributes nothing to the alternatives set regardless of budget.
 
@@ -166,7 +175,9 @@ Nothing — this is additive; `_alternative_plans` stays the flag-off path and i
 measurement), `docs/reports/concept-engine-v2-diversity-report.md` (Issue #78's single-outline
 flag-on measurement, re-measured by Issue #79 attempt 2 with the compilers + cross-outline search
 wired in — 19.6% — and again by attempt 3 with the SAFE_ROOM-aware/open-plan-aware compiler
-variants — 25.7%, still below the 40% bar, residual population and reasons in the report),
+variants — 25.7%, still below the 40% bar, residual population and reasons in the report; the
+`compile_branched`-eligibility column re-run again by Issue #130, 2026-09-23: 0/404, C26 having
+made the compiler decline unconditionally),
 `docs/reports/concept-engine-v2-owner-benchmark.md`,
 `docs/reports/concept-engine-v2-massing-multilevel-proposal.md`.
 
@@ -174,4 +185,8 @@ variants — 25.7%, still below the 40% bar, residual population and reasons in 
 
 Branch `agent/79-concept-engine-v2-5-5-generator-level-pa`, attempt 3 (2026-09-22), on top of
 attempt 2's commit `58ed851` and `origin/integration/concept-engine-v2` at `84207d5`, `14f556b`,
-`8c850ed`, `1ac5970`.
+`8c850ed`, `1ac5970`. Re-verified by Issue #130 (2026-09-23, rollup repair) on branch
+`agent/130-concept-engine-v2-rollup-repair-the-flag`, after `main` merged into
+`integration/concept-engine-v2` at `145f582`: `compile_branched` gated off unconditionally
+(C26/Issue #36), a test-helper gross/net signature mismatch fixed in
+`tests/test_concept_engine_v2.py`, flag OFF untouched.

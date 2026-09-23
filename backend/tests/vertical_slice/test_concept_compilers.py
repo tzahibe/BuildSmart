@@ -5,8 +5,13 @@ realized plan (`concept_spec.verify_class`), on the canonical fixtures this modu
 candidate whose declared class disagrees with what it actually realizes to is DROPPED by
 `concept_engine_v2._best_for_class`, never re-labelled and never scored.
 
-AC-2: a canonical 4-bedroom fixture realizes a BRANCHED concept with every bedroom's door on a
-hall segment (HALL_A or HALL_B) and C5/C14/C24 green.
+AC-2 (original, Issue #79): a canonical 4-bedroom fixture realizes a BRANCHED concept with every
+bedroom's door on a hall segment (HALL_A or HALL_B) and C5/C14/C24 green. Issue #130 (2026-09-23,
+rollup repair): C26's dead-end rule (Issue #36) merged into `main` after this tree was authored and
+now refuses it on every shape `compile_branched` supports — `compile_branched` declines
+unconditionally (`concept_compilers._BRANCHED_C26_CONFLICT_REASON`) rather than emit a plan the
+validators refuse; `test_branched_concept_declines_after_c26_dead_end_rule` below replaces the
+original AC-2 realization test with this decline, stated-reason behavior.
 """
 from __future__ import annotations
 
@@ -158,25 +163,36 @@ def _branched_safe_open_case():
     return spec, tuple(adapt(buildable).candidates), buildable
 
 
+#: BRANCHED is excluded here (Issue #130): `compile_branched` now declines every programme it
+#: used to support (C26's dead-end rule, Issue #36, merged after this tree was authored) — its own
+#: dedicated decline tests are `test_branched_concept_declines_after_c26_dead_end_rule` and
+#: `test_branched_variants_decline_after_c26_dead_end_rule` below, not this generic "compiles and
+#: verifies" sweep.
 _CASES = {
     CirculationClass.SPINE: _spine_case,
     CirculationClass.FRONT_BAND: _front_band_case,
     CirculationClass.TWO_WING: _two_wing_case,
     CirculationClass.HUB_LOBBY: _hub_lobby_case,
-    CirculationClass.BRANCHED: _branched_case,
 }
 
 #: SAFE_ROOM-aware / open-plan-aware compiler variants (lead direction after attempt 2,
-#: 2026-09-22): each precondition-relaxed case still emits a HUB_LOBBY/BRANCHED candidate that
-#: verifies on the realized plan, exactly like the base cases above.
+#: 2026-09-22): each precondition-relaxed case still emits a HUB_LOBBY candidate that verifies on
+#: the realized plan, exactly like the base cases above. The BRANCHED variants moved to
+#: `_BRANCHED_VARIANT_CASES` (Issue #130 — they now decline, like every other BRANCHED shape).
 _VARIANT_CASES = {
     "hub_lobby_safe": (CirculationClass.HUB_LOBBY, _hub_lobby_safe_case, concept_compilers.compile_hub_lobby),
     "hub_lobby_open": (CirculationClass.HUB_LOBBY, _hub_lobby_open_case, concept_compilers.compile_hub_lobby),
     "hub_lobby_safe_open": (CirculationClass.HUB_LOBBY, _hub_lobby_safe_open_case, concept_compilers.compile_hub_lobby),
     "hub_lobby_toilet": (CirculationClass.HUB_LOBBY, _hub_lobby_toilet_case, concept_compilers.compile_hub_lobby),
-    "branched_safe": (CirculationClass.BRANCHED, _branched_safe_case, concept_compilers.compile_branched),
-    "branched_open": (CirculationClass.BRANCHED, _branched_open_case, concept_compilers.compile_branched),
-    "branched_safe_open": (CirculationClass.BRANCHED, _branched_safe_open_case, concept_compilers.compile_branched),
+}
+
+#: Every BRANCHED shape this compiler otherwise supports (Issue #130): each declines, citing the
+#: SAME C26 conflict reason, since the conflict is in the tree, not the sizing.
+_BRANCHED_VARIANT_CASES = {
+    "branched": _branched_case,
+    "branched_safe": _branched_safe_case,
+    "branched_open": _branched_open_case,
+    "branched_safe_open": _branched_safe_open_case,
 }
 
 
@@ -257,33 +273,26 @@ def test_a_mismatching_candidate_is_dropped_not_relabelled():
     assert result_ok is not None and result_ok.ok
 
 
-def test_branched_concept_realizes_with_all_bedrooms_on_a_hall():
-    """AC-2: the canonical 4-bedroom BRANCHED fixture realizes with every bedroom's door on a
-    hall segment (HALL_A or HALL_B) and C5, C14, C24 green."""
+def test_branched_concept_declines_after_c26_dead_end_rule():
+    """Issue #130 (rollup repair): C26's dead-end rule (Issue #36) merged into `main` after this
+    tree was authored — the canonical 4-bedroom BRANCHED fixture's own tree puts a corridor dead
+    end at each of HALL_A's own two ends and HALL_B's own south end (3, over C26's limit of 2),
+    structurally rather than by sizing, so `compile_branched` declines it outright, with a stated
+    reason, rather than emit a plan the validators refuse — the same fixture that used to satisfy
+    the original AC-2 (Issue #79) now proves the decline instead.
+    """
     spec, outline, buildable = _branched_case()
-    candidates = concept_compilers.compile_branched(spec, outline[0].rect)
-    assert len(candidates) == 1
-    candidate = candidates[0]
+    assert concept_compilers.compile_branched(spec, outline[0].rect) == []
+    reason = concept_compilers._branched_unsupported(spec)
+    assert reason == concept_compilers._BRANCHED_C26_CONFLICT_REASON
+    assert "C26" in reason and "dead end" in reason
 
-    solve = solve_fixture(candidate.concept.fixture)
-    plan = _realize(spec, buildable, None, candidate, 0, solve, ())
 
-    assert plan.ok, [c.detail for c in plan.validation.checks if not c.passed]
-    assert plan.circulation_class is CirculationClass.BRANCHED
-    assert verify_class(candidate, plan) is None
-
-    hall_ids = {"HALL_A", "HALL_B"}
-    bedroom_ids = {"MASTER", "BEDROOM_1", "BEDROOM_2", "BEDROOM_3"}
-    doors_by_room = {rid: [] for rid in bedroom_ids}
-    for door in plan.design.interior_doors:
-        for rid in bedroom_ids:
-            if rid in (door.a, door.b):
-                other = door.b if door.a == rid else door.a
-                doors_by_room[rid].append(other)
-    for rid, others in doors_by_room.items():
-        assert others and any(o in hall_ids for o in others), (rid, others)
-
-    by_id = {c.check_id: c for c in plan.validation.checks}
-    assert by_id["C5"].passed, by_id["C5"].detail
-    assert by_id["C24"].passed, by_id["C24"].detail
-    assert by_id["C14"].passed, by_id["C14"].detail
+@pytest.mark.parametrize("variant", list(_BRANCHED_VARIANT_CASES))
+def test_branched_variants_decline_after_c26_dead_end_rule(variant):
+    """Every BRANCHED shape this compiler otherwise supports declines for the SAME reason (Issue
+    #130) — the conflict is in the tree's own topology, not in any one variant's sizing."""
+    case = _BRANCHED_VARIANT_CASES[variant]
+    spec, outline, buildable = case()
+    assert concept_compilers.compile_branched(spec, outline[0].rect) == []
+    assert concept_compilers._branched_unsupported(spec) == concept_compilers._BRANCHED_C26_CONFLICT_REASON

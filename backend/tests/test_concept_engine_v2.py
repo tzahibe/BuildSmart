@@ -43,7 +43,11 @@ def _demo_design_rooms(design) -> tuple:
 
 
 def _realized_plan_rooms(design) -> tuple:
-    return tuple((r.zone_id, *r.rect_m) for r in design.rooms)
+    # `r.rect_m` is the GROSS (centerline) rect; `DemoDesign.rooms` pairs that same GROSS corner
+    # with the NET width/depth (`app.demo.contract.RoomOut`'s own documented convention) — using
+    # `net_w_m`/`net_h_m` here, not `rect_m`'s own width/height, is what makes the two signatures
+    # comparable at all once a room's walls have real thickness.
+    return tuple((r.zone_id, r.rect_m[0], r.rect_m[1], r.net_w_m, r.net_h_m) for r in design.rooms)
 
 
 class _ClassRecorder:
