@@ -1,4 +1,4 @@
-# Architectural Quality Rubric (A–O)
+# Architectural Quality Rubric (A–P)
 
 Status: reference document, not a Wiki page — see `docs/wiki/architecture/knowledge-system.md` for
 how this file relates to the authority hierarchy. This is the canonical list every later
@@ -422,3 +422,41 @@ relationship to where it will actually sit.
 - **How a reviewer applies it**: confirm the footprint respects known setbacks/buildable polygon
   (deterministic, already available); treat orientation/solar judgment as advisory only until a
   check exists, and never invent a stated orientation preference the user didn't give.
+
+## P. Master Suite Access & Privacy
+
+The master bedroom, its ensuite and any linked wardrobe/dressing room should relate to each other
+sensibly: the ensuite door reachable without walking through the bed's own clearance, no unwanted
+sight line from the hall straight to the bed or the ensuite door once the bedroom door is open, and
+a coherent wardrobe relationship (in the room, a dedicated dressing room, or genuinely none) — none
+of it a single mandated arrangement.
+
+- **Deterministic signal**: **Master-suite access and privacy (Issue #42, `master_suite.py`)** —
+  per `MASTER_BEDROOM` zone, a `MasterSuite` record: `ensuite_access` (direct off the bedroom, vs.
+  entered from circulation — the only state C17 lets an ENSUITE reach), `wardrobe_relationship`
+  (a linked `DRESSING_ROOM`, an in-room fit by area, or none), `hall_sight_line_to_bed` /
+  `hall_sight_line_to_ensuite_door` (a straight-ahead sight-line test through the open bedroom
+  door, the same facing-wall/span-overlap technique `wet_privacy.py`'s `direct_sight_line` uses),
+  and `ensuite_route_crosses_bed` / `wardrobe_route_crosses_bed` (does the straight path from the
+  bedroom's own entry door to that door cross the bed's own conservative clearance footprint, the
+  same placeholder-envelope discipline `door_clearance.py`'s wet-fixture footprint already uses).
+  The ONE hard rule is already `validation.py`'s C24 (a room — an ensuite or a dressing room —
+  reachable only by passing through another private room fails the access-topology check); this
+  Issue adds no new blocking rule. `suite_score`/`candidate_suite_key`/`better_candidate` are a
+  soft ranking preference only, mirroring `wet_privacy.candidate_privacy_key` — no caller is wired
+  to it by this Issue; it exists the same way `wet_core`'s own ranking key did before a caller
+  used it.
+- **Reference comparison**: not yet established — no corpus of reference plans has been measured
+  for master-suite routing/sight-line quality specifically.
+- **Semantic review**: whether a suite that scores well on these signals also reads as a *coherent*
+  suite in the drawing (does the wardrobe sit conveniently between the bed and the ensuite, or just
+  technically avoid the bed's footprint) — the deterministic signals are a floor, not a full
+  judgment of the suite's layout.
+- **How a reviewer applies it**: for any master suite, read its `MasterSuite` record before judging
+  the drawing by eye — an `ensuite_route_crosses_bed` or `wardrobe_route_crosses_bed` of `True` is
+  exactly the case worth a second look, even though C24 alone does not fail the plan on it.
+
+Note on lettering: the Issue contract that introduced this section asked for "section M," but that
+letter was already in use for Multi-Level Vertical Coherence by the time this section was written —
+renaming or renumbering an unrelated, already-documented section was out of this Issue's scope, so
+this content was appended as a new section instead.

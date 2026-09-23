@@ -47,6 +47,7 @@ from .site import SitePlan
 from .spec import CorridorRequirement, WetRoomKind
 from . import wet_privacy as wet_privacy_module
 from .wet_rooms import ResolvedWetRoom
+from .walls import WallClass, derive_walls, door_id as _wall_door_id, window_id as _wall_window_id
 from .windows import DAYLIGHT_ROLES, Window, seam_sides_of
 
 TOL_M2 = 0.01
@@ -713,6 +714,41 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                 "; ".join(bad) or f"{seams} declared seam sides abut the other wing in full, none "
                                   f"exterior or glazed; {len(fixture.wings)} wings joined by a "
                                   f"realized connection; every room inside its wing")
+
+    # C33 — the wall semantic model (`walls.py`, Issue #45): every real door/window sits on a wall
+    # that HOSTS it, and every safe-room wall not itself on the envelope is classified PROTECTED.
+    # Reuses `circulation_design` (C26 above) rather than assembling a second one — the same
+    # cheap, pure, already-solved-geometry reformatting pass C26's own comment justifies calling
+    # twice; a third call here costs microseconds, not a real duplicate-computation concern. Only
+    # PLACEABLE doors and windows that were actually given width are checked: a door/window C7/C8
+    # already refused has no real position to hold a wall to, and this check must never
+    # misdiagnose that as its own, separate defect. `width_m > 0` (not just `placeable`) excludes
+    # the multi-level upper-level's own placeholder `entrance_door` (`building_coordinator.py`'s
+    # `Door("STAIR", "STAIR", ..., 0.0, ...)`, `placeable=True` but "no real leaf" by its own
+    # comment) — the same real-door convention `door_clearance.py` already uses.
+    walls_out = derive_walls(circulation_design)
+    hosted_ids = {h for w in walls_out for h in w.hosts}
+    door_defects = [
+        f"{d.a}-{d.b}: no wall hosts this door"
+        for d in (*circulation_design.interior_doors, circulation_design.entrance_door)
+        if d.placeable and d.width_m > 0 and _wall_door_id(d.a, d.b) not in hosted_ids
+    ]
+    window_defects = [
+        f"{w.zone_id}:{w.side}: no wall hosts this window"
+        for w in circulation_design.windows
+        if w.width_m > 0 and _wall_window_id(w.zone_id, w.side) not in hosted_ids
+    ]
+    safe_zone_ids = {z.zone_id for z in fixture.zones if z.is_safe_room and z.zone_id in rects}
+    protected_defects = [
+        f"{w.id}: touches safe room {sid} but is classified {w.wall_class.value}, not PROTECTED"
+        for w in walls_out for sid in safe_zone_ids
+        if sid in w.zones and w.wall_class not in (WallClass.PROTECTED, WallClass.EXTERIOR)
+    ]
+    wall_defects = door_defects + window_defects + protected_defects
+    rep.add("C33", "every door/window hosted on a wall; safe-room walls PROTECTED",
+            not wall_defects, "; ".join(wall_defects) or
+            f"{len(walls_out)} walls; every placeable door/window hosted, every safe-room wall "
+            f"protected")
 
     return rep
 
