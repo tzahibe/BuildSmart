@@ -65,8 +65,8 @@ def _passing_report(*check_ids: str) -> ValidationReport:
 # --------------------------------------------------------------------------- candidate detection
 
 
-def test_flag_off_never_finds_or_applies_a_merge():
-    assert room_merge.LIVING_KITCHEN_MERGE_ENABLED is False
+def test_flag_off_never_finds_or_applies_a_merge(monkeypatch):
+    monkeypatch.setattr(room_merge, "LIVING_KITCHEN_MERGE_ENABLED", False)
     design = _fake_design([_living(), _kitchen()])
     report = _passing_report("C7", "C8", "C9", "C19")
     assert room_merge.plan_merge(design, report) is None

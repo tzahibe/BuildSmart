@@ -220,23 +220,13 @@ def cmd_report() -> None:
           f"median {statistics.median(applied_aspects):.2f}")
 
     # ------------------------------------------------------------------------- the flip rule
-    lost_ok = len(lost) == 0
-    crashes_ok = len(crashes_off) == 0 and len(crashes_on) == 0
-    status_ok = len(status_changes) == 0
-    refusal_ok = len(refusal_code_changes) == 0
-    m_ok = not regressions
-    conditions = {
-        "LOST == 0": lost_ok, "crashes == 0": crashes_ok,
-        "status_changes == 0": status_ok, "refusal_code_changes == 0": refusal_ok,
-        "no M1-M6 regression beyond tolerance": m_ok,
-    }
-    default_on = all(conditions.values())
+    from app.vertical_slice import room_merge
+    default_on, verdict = room_merge.decide_default(
+        lost=len(lost), crashes=len(crashes_off) + len(crashes_on),
+        status_changes=len(status_changes), refusal_code_changes=len(refusal_code_changes),
+        m_regressions=regressions)
     complete = bool(total) and len(off) == total
-    p(f"\nFLIP RULE ({'COMPLETE' if complete else 'PARTIAL'} — {len(off)}/{total or '?'}):")
-    for name, ok in conditions.items():
-        p(f"  {name}: {'PASS' if ok else 'FAIL'}")
-    p(f"  => default {'ON' if default_on else 'OFF'}"
-      + ("" if default_on else " — at least one condition failed, see above"))
+    p(f"\nFLIP RULE ({'COMPLETE' if complete else 'PARTIAL'} — {len(off)}/{total or '?'}): {verdict}")
 
     with open(Path(__file__).with_name("stage0_merge_ab_report.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
