@@ -506,6 +506,26 @@ sections come back `not_measured`. `backend/scripts/reference_benchmark.py --con
 the report for one `tests/regression_corpus/corpus.json` context; not wired into
 `agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
 
+## Rectilinear realizer — non-guillotine geometry (Issue #117, flag OFF)
+
+2026-09-23. `geometry_core.engine.solve_fixture` only ever produces a GUILLOTINE partition (a
+binary slicing tree, every cut a straight line across a subtree) — measured (Issue #102/#106):
+1/199 real plans qualify. `app/vertical_slice/rectilinear_realizer.py`
+(`RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it — the production path is
+untouched) is a genuinely non-guillotine realizer, proven on a hand-built L+U fixture (real
+rectilinear polygons, zero residual area, `is_guillotine_separable` returns `False`) and on 10 real
+corpus layouts (9/10 realized — see `docs/reports/rectilinear-realizer/stage1-gate.md`), through
+the UNCHANGED validator chain, with zero validator/threshold changes anywhere in the diff. Two
+constructions: PINWHEEL (spike #108's own 5-room windmill topology, generalized into a small
+alternating-fit solver over each arm's own target area) and NOTCH-CARVE (`carve_l`/`carve_u`/
+`carve_t` — a "big" zone's rectangle minus 1-2 smaller "notch" rooms cut from its boundary,
+decomposed as a proper grid so every internal edge is a clean 1:1 `WallMap` boundary). A
+notch-carve group's own per-cell C3/C20/C21 are NOT authoritative for the merged room (a
+NEEDS-POLYGON-VARIANT finding); `_group_checks` generalizes `room_merge.py`'s own redesigned C1/
+C2/C3/C20/C27 (the LIVING+KITCHEN merge spike, Issue #107) from a 2-way merge to N cells. Deciding
+WHERE rooms go (wiring a retrieved/generated layout in) is explicitly Stage 2, out of this Issue's
+scope — the realizer's own input is a PLACED layout (adjacency/placement/exposure already decided).
+
 ## The merged public room — LIVING+KITCHEN, ON by default (Issue #118)
 
 Stage 0 of the rectilinear-realizer programme (2026-09-23). Spike #107's LIVING+KITCHEN merge
@@ -627,9 +647,17 @@ as they existed pre-merge; combined check count).
 conflicts in this page, `contract.py` and `validation.py` by keeping both sides' additive
 sections/fields, then re-ran this Issue's own targets against the merged tree.
 
+Branch `agent/117-stage-1-2-2-the-gate-a-non-guillotine-re`, based on
+`origin/integration/rectilinear-realizer`: the Rectilinear realizer section above documents Issue
+#117, verified against this session's own implementation (`app/vertical_slice/
+rectilinear_realizer.py`, `RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it)
+and test runs (`test_rectilinear_realizer.py`, the full `tests/vertical_slice` suite green,
+`spikes/geometry_shapes/stage1_gate.py` against 10 real corpus contexts — see the linked report).
+
 Branch `agent/118-stage-0-1-2-ship-the-merged-public-room`, based on
 `origin/integration/rectilinear-realizer` (spike #107 already on this branch's base): the merged
 public room section above documents Issue #118 Stage 0, verified against this session's own
 implementation and test runs — the full 432-context A/B (`docs/reports/rectilinear-realizer/
 stage0-merge-ab.md`), the fast suite (1517 passed, 0 failed, 478 skipped, 9 xfailed) with the flag
-flipped ON, and the three new `test_living_kitchen_merge_spike.py` unit tests.
+flipped ON, and the three new `test_living_kitchen_merge_spike.py` unit tests, including this
+merge's own conflict resolution (both stage sections kept side by side, #117 before #118).
