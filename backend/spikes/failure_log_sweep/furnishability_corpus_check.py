@@ -8,6 +8,10 @@ not wired live, see `validation.check_furnishability`'s own docstring), and repo
      final delivered design (primary only) — additive disclosure data, reported for the PR per
      Issue #40's own AC-3 requirement, never a gate.
 
+Runs the 432 cases across a `ProcessPoolExecutor` (one process per core) — each case is fully
+independent, so this only speeds up the same replay `test_frozen_regression_corpus.py` does one at
+a time; it does not change what is measured.
+
     uv run python spikes/failure_log_sweep/furnishability_corpus_check.py
 """
 from __future__ import annotations
@@ -16,6 +20,7 @@ import json
 import sys
 import time
 from collections import Counter
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -26,6 +31,31 @@ from spikes.failure_log_sweep.sweep import project_from_context  # noqa: E402
 
 _CORPUS_PATH = (Path(__file__).resolve().parents[2] / "tests" / "regression_corpus"
                / "corpus.json")
+
+
+def _process_case(case: dict) -> dict:
+    """Runs in a worker process (`ProcessPoolExecutor` below) — the 432-context corpus is CPU-bound
+    and embarrassingly parallel (each case is fully independent), so this is a pure speed-up of the
+    same replay `test_frozen_regression_corpus.py` does one at a time; it changes nothing about
+    what is measured."""
+    project = project_from_context(case["context"])
+    expected = case["expected_outcome"]
+    try:
+        result = generate_demo_design(project)
+        actual = "PLANNED"
+    except DemoGenerationError as exc:
+        actual = "REFUSED"
+        actual_code = exc.code
+    out = {"source_key": case["source_key"], "expected": expected, "actual": actual}
+    if actual != expected:
+        return out
+    if expected == "REFUSED" and actual_code != case["expected_code"]:
+        out["expected_code"] = case["expected_code"]
+        out["actual_code"] = actual_code
+        return out
+    if actual == "PLANNED":
+        out["tiers"] = [u.tier for u in result.design.quality.usability]
+    return out
 
 
 def main() -> None:
@@ -39,29 +69,20 @@ def main() -> None:
     tier_counts: Counter[str] = Counter()
     room_count = 0
     started = time.perf_counter()
-    for i, case in enumerate(cases, start=1):
-        project = project_from_context(case["context"])
-        expected = case["expected_outcome"]
-        try:
-            result = generate_demo_design(project)
-            actual = "PLANNED"
-        except DemoGenerationError as exc:
-            actual = "REFUSED"
-            actual_code = exc.code
-        if actual != expected:
-            status_changed.append((case["source_key"], expected, actual))
-            if expected == "PLANNED":
-                lost.append(case["source_key"])
-            continue
-        if expected == "REFUSED" and actual_code != case["expected_code"]:
-            status_changed.append((case["source_key"], case["expected_code"], actual_code))
-            continue
-        if actual == "PLANNED":
-            for u in result.design.quality.usability:
-                tier_counts[u.tier] += 1
-            room_count += len(result.design.quality.usability)
-        if i % 100 == 0:
-            print(f"  {i}/{len(cases)}", flush=True)
+    with ProcessPoolExecutor() as pool:
+        for i, out in enumerate(pool.map(_process_case, cases, chunksize=4), start=1):
+            expected, actual = out["expected"], out["actual"]
+            if actual != expected:
+                status_changed.append((out["source_key"], expected, actual))
+                if expected == "PLANNED":
+                    lost.append(out["source_key"])
+            elif "actual_code" in out:
+                status_changed.append((out["source_key"], out["expected_code"], out["actual_code"]))
+            elif "tiers" in out:
+                tier_counts.update(out["tiers"])
+                room_count += len(out["tiers"])
+            if i % 50 == 0:
+                print(f"  {i}/{len(cases)}", flush=True)
     print(f"done in {time.perf_counter() - started:.0f}s")
 
     print(f"\nLOST: {len(lost)}  status_changed: {len(status_changed)}")

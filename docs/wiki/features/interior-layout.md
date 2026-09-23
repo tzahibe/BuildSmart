@@ -172,8 +172,9 @@ reason C30 stays defined-but-unwired.
 
 ## Last verified against git
 
-Branch `agent/39-architectural-interior-layout-mvp-engine`, based on `origin/main` at `aadba01`:
-verified against this session's own implementation and test runs (`test_interior_layout.py`,
-`test_demo_quality.py`'s full file, the frontend's full `npm test`, `npx tsc --noEmit`, `oxlint`,
-and a 4/8-shard sample of the 432-context regression corpus — 216 contexts, 0 crashes; the full
-before/after corpus compare is CI's own gate-4 job, not re-run standalone here).
+Branch `agent/40-furnishability-usability-validation-room`, based on `origin/main` at `42f558b`:
+verified against this session's own implementation and test runs (`test_furnishability.py`,
+`test_demo_p0.py`, `test_baseline_and_decoupling.py` — 138 tests, 0 failures — and a full,
+single-process replay of the 432-context regression corpus via `furnishability_corpus_check.py`:
+LOST 0, status_changed 0, tier distribution GOOD 67.6% / ACCEPTABLE 0.0% / POOR 29.4% / UNUSABLE
+3.0% over 3822 rooms).
