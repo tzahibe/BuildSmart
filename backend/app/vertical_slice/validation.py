@@ -22,9 +22,11 @@ from . import access_rules
 from . import circulation_metrics
 from . import door_clearance
 from . import footprint as footprint_module
+from . import furnishability
+from . import interior_layout
 from .concept_generator import ROOM_TEMPLATES
 from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, TypedConstraint
-from .design_output import assemble as assemble_design
+from .design_output import GeometricDesign, assemble as assemble_design
 from .doors import ALLOWED_ENTRANCE_ROLES, Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
@@ -191,6 +193,45 @@ def check_realized_dimensions(rooms: Iterable[_DisplayedRoom], gross_area_m2: fl
                 "; ".join(bad) or "every room's width x depth matches its own area (net and "
                                   "gross), no net rect exceeds its own gross rect, and the "
                                   "building total matches the sum of realized rooms")
+
+
+def check_furnishability(design: GeometricDesign) -> Check:
+    """C30 — furnishability / usability (Issue #40), a standalone, directly-testable function the
+    same shape `check_realized_dimensions` (C27) already is — takes a realized `GeometricDesign`,
+    returns one `Check`, no `Fixture`/`rects`/`walls` machinery needed to exercise it. Fails closed
+    ONLY on the UNUSABLE tier — a room whose role has a REQUIRED item (`furnishability.
+    REQUIRED_ITEMS`) that `interior_layout.py` could not place ANYWHERE in the room. POOR (objects
+    placed, but no clear access path from the door, or one blocks a window) is never a gate here —
+    disclosure/ranking data only, on `QualityOut.usability` (`app.demo.contract`), the same
+    two-tier discipline C29 holds for wet-room privacy.
+
+    DELIBERATELY NOT CALLED FROM `validate()` — measured, not assumed: wiring this into the same
+    per-candidate `validate()` every candidate is checked against during search (where C26/C29 both
+    live) was tried and MEASURED to fail closed on real, otherwise-fully-valid candidates this
+    codebase already accepts — not just synthetic edge cases. Even with `REQUIRED_ITEMS` narrowed
+    to BED alone (BEDROOM/MASTER_BEDROOM), the full backend test suite went from 0 to 29 new
+    failures: ordinary 2BR/3BR end-to-end briefs (`test_demo_p0.py::
+    test_generated_plan_passes_every_hard_check`), L-massing candidacy, multi-level primary
+    selection, and the strip-room programmes this repo already tolerates as a real, accepted
+    trade-off (`docs/wiki/architecture/geometry-validation.md`'s own strip-room history) — because
+    `interior_layout.py`'s placement is a single independent pass per item, per wall (no packing
+    two items onto the same wall, no trying every rotation), a documented, real gap
+    (`interior_layout.py`'s own "Known follow-ups") that this Issue's "Placement itself (Issue 9)"
+    scope explicitly forbids touching. Gating live candidate acceptance on it — at search time OR
+    at the final `to_demo_design` stage, both measured — would violate Issue #40's own AC-3
+    regression budget (LOST 0, status_changes 0), so this check is defined, fully tested (this
+    module's own test file, `test_furnishability.py`), and ready — the same "available, not wired"
+    precedent `wet_core.candidate_wet_core_key`/`better_candidate` already sets in this codebase —
+    for a caller once `interior_layout.py`'s placement gains same-wall packing/rotation (its own
+    documented follow-up), not before.
+    """
+    usability_records = furnishability.compute_usability(
+        design, interior_layout.compute_layout(design))
+    unusable_rooms = [u for u in usability_records if u.tier == furnishability.UNUSABLE]
+    return Check(
+        "C30", "rooms are furnishable (every required object fits somewhere)", not unusable_rooms,
+        "; ".join(f"{u.room_id}: {', '.join(u.missing_required)}" for u in unusable_rooms) or
+        f"all {len(usability_records)} rooms furnishable")
 
 
 def _side_between(a: Rect, b: Rect) -> Side | None:

@@ -209,9 +209,10 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # SAFE_ROOM requirement, empty for a brief without one.
     # `exposure` (Issue #19) is additive too — one entry per room.
     # `wet_privacy` (Issue #37) is additive too — one entry per wet room.
+    # `usability` (Issue #40) is additive too — one entry per room.
     assert "quality" in body and set(body["quality"]) == {
         "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints",
-        "exposure", "wet_privacy"}
+        "exposure", "wet_privacy", "usability"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 
