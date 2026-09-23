@@ -25,7 +25,7 @@ BASELINE_INTERIOR_DOORS = 7
 #: non-required window attempt for wet rooms (BATHROOM) on top of the pre-existing
 #: DAYLIGHT_ROLES set — this baseline's 2 bathrooms both land on a real exterior wall.
 BASELINE_WINDOWS = 9
-BASELINE_CHECK_COUNT = 25  # C13 realized connectivity; C16 the entrance's own realization; C17 bathroom access; C18 parking clear of the house; C19 required rooms touch an exterior wall; C20 template aspect; C21 template maximum area; C23 entrance opens into an allowed arrival room; C24 access topology obeys the door rules; C26 no extreme dedicated circulation; C28 doors usable; C29 (Issue #37) wet-room privacy; C33 (Issue #45) the wall semantic model — additive, runs on every plan
+BASELINE_CHECK_COUNT = 26  # C13 realized connectivity; C16 the entrance's own realization; C17 bathroom access; C18 parking clear of the house; C19 required rooms touch an exterior wall; C20 template aspect; C21 template maximum area; C23 entrance opens into an allowed arrival room; C24 access topology obeys the door rules; C25 (Issue #22) no dead-space pocket at the entrance — additive; C26 no extreme dedicated circulation; C28 doors usable; C29 (Issue #37) wet-room privacy — additive, runs on every plan with wet rooms; C33 (Issue #45) the wall semantic model — additive, runs on every plan
 #: Between Phase 1 of the room-size work (hard maxima at the template values, 2026-09-15) and the
 #: two-level model the frozen slice failed C21: its hand-authored 5.7 m rooms column realizes two
 #: bedrooms at 15.40 m2 against the 14 m2 maximum. Under the two-level model 14 is the PREFERRED
