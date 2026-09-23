@@ -1,0 +1,316 @@
+{
+  "architectural_pattern": {
+    "bedroom_grouping": 1.0,
+    "circulation_class": "SPINE",
+    "circulation_nodes": 1,
+    "circulation_ratio": 0.3333,
+    "corridor_length_m": 6.0,
+    "entrance_relationship": "TO_HALL",
+    "exposure_pattern": 1.0,
+    "plan_id": "synthetic-spine-01",
+    "public_composition": "UNKNOWN",
+    "relationships": {
+      "bedrooms_private_circulation": 1.0,
+      "dining_kitchen": "NOT_PRESENT",
+      "entrance_public": "NOT_CONNECTED",
+      "living_dining": "NOT_PRESENT",
+      "wet_bedrooms_public": null
+    },
+    "topology_depth": 1,
+    "wet_core_strategy": "UNKNOWN",
+    "zoning": "UNKNOWN"
+  },
+  "plan_reference": {
+    "access_edges": [
+      {
+        "kind": "DOOR",
+        "room_a": "CIRCULATION_0",
+        "room_b": "BEDROOM_0"
+      },
+      {
+        "kind": "DOOR",
+        "room_a": "CIRCULATION_0",
+        "room_b": "BEDROOM_1"
+      },
+      {
+        "kind": "DOOR",
+        "room_a": "CIRCULATION_0",
+        "room_b": "BEDROOM_2"
+      }
+    ],
+    "adjacency_edges": [
+      {
+        "room_a": "CIRCULATION_0",
+        "room_b": "BEDROOM_0"
+      },
+      {
+        "room_a": "CIRCULATION_0",
+        "room_b": "BEDROOM_1"
+      },
+      {
+        "room_a": "CIRCULATION_0",
+        "room_b": "BEDROOM_2"
+      }
+    ],
+    "derived": {
+      "footprint_area_m2": 18.0,
+      "room_type_counts": {
+        "BEDROOM": 3,
+        "CIRCULATION": 1
+      },
+      "scale_m_per_px": 1.0,
+      "wall_thickness_m": 0.2
+    },
+    "doors": [
+      {
+        "id": "DOOR_0",
+        "is_exterior": false,
+        "polygon": [
+          [
+            0.8,
+            0.9
+          ],
+          [
+            1.2,
+            0.9
+          ],
+          [
+            1.2,
+            1.1
+          ],
+          [
+            0.8,
+            1.1
+          ]
+        ],
+        "room_ids": [
+          "CIRCULATION_0",
+          "BEDROOM_0"
+        ]
+      },
+      {
+        "id": "DOOR_1",
+        "is_exterior": false,
+        "polygon": [
+          [
+            2.8,
+            0.9
+          ],
+          [
+            3.2,
+            0.9
+          ],
+          [
+            3.2,
+            1.1
+          ],
+          [
+            2.8,
+            1.1
+          ]
+        ],
+        "room_ids": [
+          "CIRCULATION_0",
+          "BEDROOM_1"
+        ]
+      },
+      {
+        "id": "DOOR_2",
+        "is_exterior": false,
+        "polygon": [
+          [
+            4.8,
+            0.9
+          ],
+          [
+            5.2,
+            0.9
+          ],
+          [
+            5.2,
+            1.1
+          ],
+          [
+            4.8,
+            1.1
+          ]
+        ],
+        "room_ids": [
+          "CIRCULATION_0",
+          "BEDROOM_2"
+        ]
+      }
+    ],
+    "entrance": {
+      "room_id": "CIRCULATION_0",
+      "side": "W"
+    },
+    "footprint": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        6.0,
+        0.0
+      ],
+      [
+        6.0,
+        3.0
+      ],
+      [
+        0.0,
+        3.0
+      ]
+    ],
+    "plan_id": "synthetic-spine-01",
+    "provenance": {
+      "citation": "Hand-built for architectural_brain test fixtures -- not derived from ResPlan.",
+      "licence": "N/A (synthetic fixture)",
+      "source_dataset": "SYNTHETIC",
+      "source_plan_id": "synthetic-spine-01",
+      "unit_type": "UNKNOWN"
+    },
+    "rooms": [
+      {
+        "area_m2": 6.0,
+        "depth_m": 1.0,
+        "exposure_known": true,
+        "exterior_exposure": [],
+        "id": "CIRCULATION_0",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            0.0
+          ],
+          [
+            6.0,
+            1.0
+          ],
+          [
+            0.0,
+            1.0
+          ]
+        ],
+        "type": "CIRCULATION",
+        "width_m": 6.0
+      },
+      {
+        "area_m2": 4.0,
+        "depth_m": 2.0,
+        "exposure_known": true,
+        "exterior_exposure": [
+          "N"
+        ],
+        "id": "BEDROOM_0",
+        "polygon": [
+          [
+            0.0,
+            1.0
+          ],
+          [
+            2.0,
+            1.0
+          ],
+          [
+            2.0,
+            3.0
+          ],
+          [
+            0.0,
+            3.0
+          ]
+        ],
+        "type": "BEDROOM",
+        "width_m": 2.0
+      },
+      {
+        "area_m2": 4.0,
+        "depth_m": 2.0,
+        "exposure_known": true,
+        "exterior_exposure": [
+          "N"
+        ],
+        "id": "BEDROOM_1",
+        "polygon": [
+          [
+            2.0,
+            1.0
+          ],
+          [
+            4.0,
+            1.0
+          ],
+          [
+            4.0,
+            3.0
+          ],
+          [
+            2.0,
+            3.0
+          ]
+        ],
+        "type": "BEDROOM",
+        "width_m": 2.0
+      },
+      {
+        "area_m2": 4.0,
+        "depth_m": 2.0,
+        "exposure_known": true,
+        "exterior_exposure": [
+          "N"
+        ],
+        "id": "BEDROOM_2",
+        "polygon": [
+          [
+            4.0,
+            1.0
+          ],
+          [
+            6.0,
+            1.0
+          ],
+          [
+            6.0,
+            3.0
+          ],
+          [
+            4.0,
+            3.0
+          ]
+        ],
+        "type": "BEDROOM",
+        "width_m": 2.0
+      }
+    ],
+    "schema_version": "1.0",
+    "walls": [
+      {
+        "id": "WALL_0",
+        "polygon": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            6.0,
+            0.0
+          ],
+          [
+            6.0,
+            0.1
+          ],
+          [
+            0.0,
+            0.1
+          ]
+        ]
+      }
+    ],
+    "windows": []
+  }
+}

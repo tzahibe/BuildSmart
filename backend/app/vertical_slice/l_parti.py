@@ -690,6 +690,12 @@ def _candidate_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], plan: LPl
     # The arm: rows across the seam; every row's corridor-side member is a declared seam side.
     arm_tree = cg._forced_chain(plan.arm_rows, plan.arm_depths_m, u_to_m(plan.arm.w) - inset,
                                 exterior_first=(g.side is ArmSide.WEST))
+    # HALL's own length is `arm_len_m` by construction (see the module docstring: "its length IS
+    # the arm's length"), served on both sides of the seam — the column rows inside the primary
+    # wing and the arm rows across it. Check that against the REALIZED extent of the last row on
+    # each side (Issue #22), rather than assuming the shared length is always correct.
+    cg._assert_corridor_extent(plan.arm_len_m, "L-parti hall",
+                               plan.column_depths_m, plan.arm_depths_m)
     seam_member = (lambda row: row[0]) if g.side is ArmSide.EAST else (lambda row: row[-1])
     arm_seams = tuple((seam_member(row).zone_id, g.arm_seam_side) for row in plan.arm_rows)
 

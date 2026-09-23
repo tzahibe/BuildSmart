@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from agent_team.ci import contract_check, plan, regression_gate, verify
+from agent_team.ci import contract_check, plan, regression_gate, snapshot_store, verify
 from agent_team.github_client import FakeGitHub
 from agent_team.issue_contract import parse_budget_value
 from agent_team.labels import metadata_labels
@@ -113,6 +113,21 @@ def test_plan_decides_gates():
     assert d["frontend_changed"] and d["orchestrator_changed"] and not d["regression_required"]
 
 
+def test_regression_machinery_changes_self_validate_even_without_backend_product():
+    # AC-4 (Issue #68): a PR that changes gate-4's own base-snapshot selection machinery must run
+    # gate-4 itself, so the mechanism produces real evidence instead of being skipped as "no
+    # backend product code changed" — the exact gap the independent review found.
+    d = plan.decide([".github/workflows/agent-regression.yml", "docs/x.md"], None)
+    assert d["regression_required"] and "self-validate" in d["regression_reason"]
+    d = plan.decide([".github/workflows/agent-snapshot.yml"], {"regression_required": False, "risk": "LOW"})
+    assert d["regression_required"]
+    d = plan.decide(["scripts/agent_team/ci/snapshot_store.py"], {"regression_required": False, "risk": "LOW"})
+    assert d["regression_required"]
+    # an unrelated orchestrator file must not trip this — only the named machinery files do
+    d = plan.decide(["scripts/agent_team/cli.py"], None)
+    assert not d["regression_required"]
+
+
 def test_backend_docs_alone_do_not_trigger_the_fast_tier():
     m = {"regression_required": True, "risk": "MEDIUM"}
     d = plan.decide(["backend/README.md", "docs/wiki/x.md"], m)
@@ -159,22 +174,40 @@ def test_run_target_resolves_orchestrator_and_backend_pytest_targets(monkeypatch
         stderr = ""
 
     def fake_run(cmd, cwd, timeout=1800, env=None):
-        calls.append((cmd, str(cwd)))
+        calls.append((cmd, str(cwd), env))
         return FakeProc()
 
     monkeypatch.setattr(verify, "run", fake_run)
 
     ok, detail = verify.run_target("pytest", "scripts/agent_team/tests/test_work_reports.py::test_x", tmp_path)
     assert ok
-    cmd, cwd = calls[-1]
+    cmd, cwd, env = calls[-1]
     assert cmd == "uv run --project scripts/agent_team pytest -q -p no:cacheprovider scripts/agent_team/tests/test_work_reports.py::test_x"
     assert cwd == str(tmp_path)          # the repository root, not backend/
+    assert env == {"TEST_MODE": "REGRESSION"}
 
     ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
     assert ok
-    cmd, cwd = calls[-1]
+    cmd, cwd, env = calls[-1]
     assert cmd == "uv run pytest -q -p no:cacheprovider tests/test_x.py::test_y"
     assert cwd == str(tmp_path / "backend")
+    assert env == {"TEST_MODE": "REGRESSION"}
+
+
+def test_run_target_pytest_fails_a_silently_skipped_target(monkeypatch, tmp_path: Path):
+    """A `regression`-marked pytest target that pytest skips (exit code 0, 0 passed) must not be
+    recorded as a PASS: that was the exact false-positive an independent review caught on Issue #38
+    (test_every_door_out_carries_hinge_and_swing skipped without TEST_MODE, still exit 0)."""
+    class FakeSkippedProc:
+        returncode = 0
+        stdout = "1 skipped"
+        stderr = ""
+
+    monkeypatch.setattr(verify, "run", lambda cmd, cwd, timeout=1800, env=None: FakeSkippedProc())
+
+    ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
+    assert not ok
+    assert "skipped" in detail
 
 
 def test_verify_uses_injected_runner(tmp_path: Path):
@@ -299,6 +332,55 @@ def test_regression_workflow_runs_shadow_mode_invariants_and_compares_them():
     assert "invariants_from_snapshot.json" in upload_paths and "invariants_replay.json" in upload_paths
 
 
+def test_regression_workflow_shards_the_corpus_snapshot_across_matrix_jobs():
+    """Issue #67 (O3): gate-4 computes each corpus snapshot both by a single-node replay (ground
+    truth) and by N=4 parallel matrix jobs merged into one document; a compare step fails the job
+    if the two ever disagree. Parses the real workflow YAML, not a copy of it."""
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-regression.yml").read_text())
+    jobs = doc["jobs"]
+
+    # the matrix shard job
+    snapshot_job = jobs["snapshot"]
+    matrix = snapshot_job["strategy"]["matrix"]
+    assert matrix["shard"] == [0, 1, 2, 3]
+    shard_step = next(s for s in snapshot_job["steps"] if "run" in s and "--shard" in s["run"])
+    assert "--shard" in shard_step["run"] and "corpus_snapshot.py" in shard_step["run"]
+
+    # the merge job
+    merge_job = jobs["merge"]
+    assert merge_job["needs"] == ["resolve", "snapshot"]
+    merge_steps = {s.get("name"): s for s in merge_job["steps"] if "name" in s}
+    assert "--merge" in merge_steps["Merge head shards"]["run"]
+
+    # the single-node step stays, now in its own job
+    single_node_job = jobs["single_node"]
+    single_steps = {s.get("name"): s for s in single_node_job["steps"] if "name" in s}
+    assert "Head snapshot (single-node ground truth)" in single_steps
+    assert "--shard" not in single_steps["Head snapshot (single-node ground truth)"]["run"]
+
+    # the compare step, and it fails the job on a difference
+    regression_job = jobs["regression"]
+    assert regression_job["needs"] == ["resolve", "merge", "single_node"]
+    reg_steps = {s.get("name"): s for s in regression_job["steps"] if "name" in s}
+    compare_step = reg_steps["Compare head snapshots"]
+    assert "--assert-equal" in compare_step["run"]
+    assert "PIPESTATUS" in compare_step["run"] and 'exit "${PIPESTATUS[0]}"' in compare_step["run"]
+    assert not compare_step.get("continue-on-error")
+
+    # O2 (Issue #68): the base snapshot is now always computed locally (shadow mode compares it
+    # against the trusted store, but never skips computing it), so this step no longer gates on a
+    # cache hit — see test_gate4_removes_v1_cache_and_looks_up_v2_then_artifact.
+    base_compare_step = reg_steps["Compare base snapshots"]
+    assert "if" not in base_compare_step
+    assert "--assert-equal" in base_compare_step["run"]
+    assert not base_compare_step.get("continue-on-error")
+
+    # budget evaluation and the invariants steps still consume the canonical (merged) filenames
+    budget_step = reg_steps["Evaluate the regression budget"]
+    assert "base_snapshot.json" in budget_step["run"] and "head_snapshot.json" in budget_step["run"]
+    assert "head_snapshot_single.json" not in budget_step["run"]
+
+
 def test_fake_github_state_label_is_idempotent():
     gh = FakeGitHub()
     gh.add_issue(1, "t", "b", ["agent:queued", "domain:qa"])
@@ -320,6 +402,129 @@ def test_gate1_accepts_an_integration_branch_base(repo_config):
     pr["base"]["ref"] = "feature/other"
     rep = evaluate(pr, {"number": 29, "state": "open", "title": "[agent] x", "body": "", "labels": []}, repo_config)
     assert {c["name"]: c["ok"] for c in rep.checks}["PR targets base branch"] is False
+
+
+def _snapshot_doc(sha="abc123", corpus_hash="hash1", count=432):
+    return {"sha": sha, "corpus_hash": corpus_hash, "results": {f"ctx{i}": {"status": "PLANNED"} for i in range(count)}}
+
+
+def test_snapshot_validation_rejects_wrong_sha_and_count():
+    """AC-1: `agent-snapshot.yml` (and gate-4, on a restored/downloaded candidate) trusts a
+    snapshot only if its head_sha, context count and corpus_hash all match what is expected —
+    each violation is rejected with a distinct, named reason."""
+    good = _snapshot_doc()
+    ok = snapshot_store.validate_snapshot(good, "abc123", "hash1", 432)
+    assert ok.ok
+
+    wrong_sha = snapshot_store.validate_snapshot(good, "different-sha", "hash1", 432)
+    assert not wrong_sha.ok and "head_sha mismatch" in wrong_sha.reason
+
+    wrong_count = snapshot_store.validate_snapshot(_snapshot_doc(count=430), "abc123", "hash1", 432)
+    assert not wrong_count.ok and "context count mismatch" in wrong_count.reason
+
+    wrong_hash = snapshot_store.validate_snapshot(good, "abc123", "different-hash", 432)
+    assert not wrong_hash.ok and "corpus_hash mismatch" in wrong_hash.reason
+
+    missing = snapshot_store.validate_snapshot(None, "abc123", "hash1", 432)
+    assert not missing.ok and "no snapshot document" in missing.reason
+
+
+def test_base_snapshot_source_order_and_rejection():
+    """AC-2: gate-4's lookup order is v2 cache -> push artifact -> computed; an invalid/missing
+    candidate is rejected with a named reason and the next source in order is tried."""
+    good = _snapshot_doc()
+
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", good, None, 432)
+    assert sel.source == "v2_cache" and sel.rejected == []
+
+    bad_v2 = _snapshot_doc(sha="stale-sha")
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", bad_v2, good, 432)
+    assert sel.source == "push_artifact"
+    assert sel.rejected == [("v2_cache", "head_sha mismatch: snapshot has 'stale-sha', expected 'abc123'")]
+
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", None, good, 432)
+    assert sel.source == "push_artifact" and sel.rejected == [("v2_cache", "not available (cache/artifact miss)")]
+
+    sel = snapshot_store.select_base_snapshot("abc123", "hash1", None, None, 432)
+    assert sel.source == "computed"
+    assert [r[0] for r in sel.rejected] == ["v2_cache", "push_artifact"]
+
+
+def test_shadow_compare_fails_on_difference():
+    """AC-3: in shadow mode a trusted-store hit still triggers the local base-snapshot compute,
+    and the "Compare base snapshots (trusted store vs local compute)" step fails the job on any
+    difference — the same `--assert-equal`/`describe_snapshot_diff` machinery gate-4 already uses
+    for O3's merged-vs-single-node comparison."""
+    import sys
+    sys.path.insert(0, str(REPO_ROOT / "backend"))
+    from spikes.failure_log_sweep.corpus_snapshot import describe_snapshot_diff, snapshots_equal
+
+    trusted = {"sha": "abc123", "corpus_hash": "hash1", "workers": 4,
+               "results": {"ctx1": {"status": "PLANNED", "sig": [[1, 2]]}}}
+    computed_same = {"sha": "abc123", "corpus_hash": "hash1", "workers": 4, "seconds": 12.3, "written_at": "t",
+                     "results": {"ctx1": {"status": "PLANNED", "sig": [[1, 2]], "ms": 5.0}}}
+    assert snapshots_equal(trusted, computed_same)
+
+    computed_diff = {"sha": "abc123", "corpus_hash": "hash1", "workers": 4,
+                     "results": {"ctx1": {"status": "PLANNED", "sig": [[9, 9]]}}}
+    assert not snapshots_equal(trusted, computed_diff)
+    assert any("ctx1" in d for d in describe_snapshot_diff(trusted, computed_diff))
+
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-regression.yml").read_text())
+    reg_steps = {s.get("name"): s for s in doc["jobs"]["regression"]["steps"] if "name" in s}
+    trust_compare = reg_steps["Compare base snapshots (trusted store vs local compute)"]
+    assert trust_compare.get("if") == "steps.select.outputs.source != 'computed'"
+    assert "--assert-equal" in trust_compare["run"]
+    assert not trust_compare.get("continue-on-error")
+
+    select_step = reg_steps["Select trusted base-snapshot source"]
+    assert "snapshot_store.py select" in select_step["run"] or "agent_team.ci.snapshot_store select" in select_step["run"]
+
+
+def test_agent_snapshot_workflow_triggers_on_push_and_validates_before_storing():
+    """AC-1: `agent-snapshot.yml` runs on push to main/integration/**, validates the freshly
+    computed snapshot before trusting it, then saves it under the v2 cache key and as an artifact."""
+    doc = yaml.safe_load((REPO_ROOT / ".github/workflows/agent-snapshot.yml").read_text())
+    on = doc[True] if True in doc else doc["on"]
+    assert on["push"]["branches"] == ["main", "integration/**"]
+    assert doc.get("concurrency", {}).get("cancel-in-progress") is False
+
+    jobs = doc["jobs"]
+    store_job = jobs["merge-and-store"]
+    steps = {s.get("name"): s for s in store_job["steps"] if "name" in s}
+    validate_step = steps["Validate before trusting/saving"]
+    assert "snapshot_store.py validate" in validate_step["run"] or "agent_team.ci.snapshot_store validate" in validate_step["run"]
+    assert "--expected-count 432" in validate_step["run"]
+
+    save_step = steps["Save snapshot to the trusted cache (v2)"]
+    assert "corpus-snapshot-v2-" in save_step["with"]["key"]
+    assert "actions/cache/save" in save_step["uses"]
+
+    upload_step = steps["Upload the snapshot artifact"]
+    assert "actions/upload-artifact" in upload_step["uses"]
+    assert upload_step["with"].get("retention-days") == 30
+    assert "corpus-snapshot-" in upload_step["with"]["name"]
+
+    step_order = list(steps)
+    assert step_order.index("Validate before trusting/saving") < step_order.index("Save snapshot to the trusted cache (v2)")
+
+
+def test_gate4_removes_v1_cache_and_looks_up_v2_then_artifact():
+    """Cache hygiene (Issue #68, item 4): the v1 restore/save steps are gone; gate-4 looks up the
+    v2 cache first, then the push-run artifact on a miss, before falling back to computing."""
+    text = (REPO_ROOT / ".github/workflows/agent-regression.yml").read_text()
+    assert "corpus-snapshot-v1-" not in text
+    assert "corpus-snapshot-v2-" in text
+
+    doc = yaml.safe_load(text)
+    resolve_steps = {s.get("name"): s for s in doc["jobs"]["resolve"]["steps"] if "name" in s}
+    v2_step = resolve_steps["Check trusted v2 cache (lookup only)"]
+    assert v2_step["with"]["key"].startswith("corpus-snapshot-v2-")
+    assert v2_step["with"].get("lookup-only") is True
+
+    artifact_step = resolve_steps["Look up the push-triggered snapshot artifact (only if the v2 cache missed)"]
+    assert artifact_step.get("if") == "steps.v2cache.outputs.cache-hit != 'true'"
+    assert "event=push" in artifact_step["run"]
 
 
 def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):

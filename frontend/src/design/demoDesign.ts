@@ -20,6 +20,11 @@ export interface DemoWallFacts {
   can_take_a_window: boolean
 }
 
+/** `x`/`y` is the room's GROSS rectangle's corner — the centerline allocation the walls (drawn
+ * from this same rectangle) actually run along. `width_m`/`depth_m`/`area_m2` are the NET
+ * (usable, wall-inset) triple: `width_m * depth_m === area_m2` always (backend check C27).
+ * `gross_width_m`/`gross_depth_m`/`gross_area_m2` are the drawing rectangle at `x`,`y` — see
+ * `docs/wiki/architecture/geometry-validation.md` ("Realized dimensions: gross vs net"). */
 export interface DemoRoom {
   id: string
   type: string
@@ -30,6 +35,9 @@ export interface DemoRoom {
   width_m: number
   depth_m: number
   area_m2: number
+  gross_width_m: number
+  gross_depth_m: number
+  gross_area_m2: number
   walls: Record<string, DemoWallFacts>
 }
 
@@ -58,6 +66,9 @@ export interface DemoDoor {
   swings_into?: string
   hinge_x?: number
   hinge_y?: number
+  /** The open leaf's own direction in degrees (`doors.py::Door.swing_deg`: 0=+x, 90=+y, 180=-x,
+   *  270=-y) — `DoorSymbol` places the leaf from this alone, never from a room lookup. */
+  swing_deg?: number
   a: string
   b: string
   kind: string
@@ -74,6 +85,24 @@ export interface DemoWindow {
   width_m: number
   x: number
   y: number
+}
+
+/** One engine-placed semantic layout object (Issue #39) — mirrors `app.demo.contract.
+ * LayoutObjectOut` exactly. `clearance_*` always contains the object's own footprint (`x`/`y`/
+ * `width_m`/`depth_m`): a footprint plus its required use clearance, never a disjoint zone. The
+ * renderer draws these as-is — never inventing a decorative object of its own. */
+export interface DemoLayoutObject {
+  kind: string
+  room_id: string
+  x: number
+  y: number
+  width_m: number
+  depth_m: number
+  rotation_deg: number
+  clearance_x: number
+  clearance_y: number
+  clearance_width_m: number
+  clearance_depth_m: number
 }
 
 export interface DemoValidation {
@@ -221,6 +250,9 @@ export interface DemoDesign {
   open_interfaces: DemoOpenInterface[]
   doors: DemoDoor[]
   windows: DemoWindow[]
+  /** Engine-placed semantic layout objects (Issue #39). Absent/empty for a payload that predates
+   *  the field, or a plan with no role this Issue furnishes. */
+  layout?: DemoLayoutObject[]
   parking: DemoRect[]
   garden: DemoRect[]
   entrance_walk: DemoRect

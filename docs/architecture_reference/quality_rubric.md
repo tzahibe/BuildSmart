@@ -1,4 +1,4 @@
-# Architectural Quality Rubric (A–O)
+# Architectural Quality Rubric (A–P)
 
 Status: reference document, not a Wiki page — see `docs/wiki/architecture/knowledge-system.md` for
 how this file relates to the authority hierarchy. This is the canonical list every later
@@ -113,16 +113,27 @@ drawing.
 - **Deterministic signal**: M3 (circulation share of total area) and M4 (hall long/short aspect,
   `COMPACT_HALL_ASPECT_MAX = 1.5`, `quality_metrics.py`); `wasted_circulation_share`
   (`app.demo.contract.QualityOut.metrics`) for the portion of circulation past the compact
-  threshold.
+  threshold. **Issue #36** (`circulation_metrics.py`) adds, from realized geometry: dedicated
+  circulation area/ratio, per-segment length (`longest_segment_m`, `total_length_m`,
+  `narrowest_width_m`), and — with topology, section E — dead-end/turn/duplication counts, all
+  carried as `QualityOut.metrics.circulation_*`. **C26 "no extreme dedicated circulation"**
+  (`validation.py`) fails closed only when ratio, longest segment or dead-end count exceed the
+  calibrated `EXTREME_*` constants (`circulation_metrics.py`) — an ordinary long corridor still
+  passes; only a genuinely disproportionate one fails.
 - **Reference comparison**: M3's median (~11%) is already at the 21-plan reference band (8–14%) —
   NOT a gap (`architectural-quality-gaps-measured` memory, `docs/wiki/architecture/geometry-
   validation.md`). M4 is the real gap: hall long/short median 9.4 vs. ~18/21 reference plans having
-  a compact hub (~2.5–3.5 m square, 0% compact today).
+  a compact hub (~2.5–3.5 m square, 0% compact today). The `EXTREME_*` thresholds are calibrated so
+  today's plans pass with headroom (worst measured: ratio 0.18, longest segment 17.3 m on an 8 x
+  28 m footprint — deeper than the frozen corpus's own deepest footprint, 24 m) — they catch a
+  future regression, not today's median.
 - **Semantic review**: whether a corridor that measures compact on M4 also *functions* as a hub
   (do the rooms it serves actually cluster around it, or does a short-but-isolated hall still read
   as a dead appendage).
 - **How a reviewer applies it**: M3 alone rarely flags a real plan; M4 near or above ~2 is the
   actionable signal — check whether the hall reads as a spine on the drawing before accepting it.
+  A C26 failure names which of ratio/longest-segment/dead-ends it is — check that reason against
+  the drawing, not just the number.
 
 ## E. Circulation Topology & Access Sequence
 
@@ -131,10 +142,14 @@ that rooms genuinely branch from, an entrance sequence that leads somewhere, and
 serving as the only route between unrelated parts of the house.
 
 - **Deterministic signal**: C5 (reachability from the entrance, `validation.py`) covers the legal
-  minimum (every room is reachable at all); topology quality itself (hub-vs-spine, dead-end
-  detection, chained-access) has no deterministic check yet. Planned: ROADMAP P0 "Entrance-to-
-  Circulation Integration" (Issue #22, depends on #20) and P2 "Hallways / Circulation Quality" (no
-  Issue number assigned yet).
+  minimum (every room is reachable at all). **Issue #36** (P2 "Hallways / Circulation Quality",
+  `circulation_metrics.py`) adds dead-end count (a circulation-room end with neither a placeable
+  door nor an open-plan join), turn count (direction changes along the realized entrance →
+  farthest-room BFS path) and duplicated-segment count (circulation rooms not directly joined but
+  serving an overlapping set of rooms) — all reported on `QualityOut.metrics`, and dead-end count
+  additionally gates C26 (section D). Chained-access (a room reachable only by passing through an
+  unrelated one) and the entrance sequence itself remain uncovered — ROADMAP P0 "Entrance-to-
+  Circulation Integration" (Issue #22, depends on #20).
 - **Reference comparison**: the same 21-plan census that grounds M4 shows the hub-parti topology
   professional plans converge on; spec 005 (hub-private-wing) attempted to reproduce it and was
   rejected on two hard acceptance gates (`specs/005-hub-private-wing/RESULTS.md`) — the gap is
@@ -331,18 +346,31 @@ Rooms with fixtures (bathrooms, toilets, kitchens, laundry) need real clearance 
 — a door should not swing into a toilet or sink, a room should not be sized to its template band
 while ignoring what has to physically fit inside it.
 
-- **Deterministic signal**: none merged yet — rooms are planned as typed rectangles without
-  fixture-level geometry. Planned: ROADMAP P1 "Kitchen / Bathroom fixture-aware planning" (no Issue
-  number assigned yet).
+- **Deterministic signal (partial — Issue #39, 2026-09-23)**: `app/vertical_slice/interior_layout.py`
+  places typed `LayoutObject`s per room role (bed/wardrobe, sofa/coffee table/focal wall, dining
+  table, kitchen counter run, bathroom/WC fixtures) off the realized geometry, deterministically,
+  with each object's own required clearance rectangle — and reports an item `unplaceable` (never
+  forcing it) when the room's geometry, a door's swing envelope, or another object leaves no room
+  for it. `app.demo.contract.QualityOut`'s `DemoDesign.layout` exposes every PLACED object; the
+  frontend (`InteriorLayout.tsx`) draws them as-is. Furnishability SCORING (whether a plan's overall
+  furnishability should influence ranking) remains Issue 10's, out of scope here — this Issue is
+  placement and disclosure only, additive, never a validation gate. Door-vs-wet-fixture swing
+  avoidance (C28, `door_clearance.py`) still uses its own conservative placeholder fixture footprint
+  independently, not this module's real placements — reconciling the two is a future follow-up, not
+  attempted here.
 - **Reference comparison**: the guest-WC spec's size band (1.5–3.0 m² net, short side 0.9–1.2 m,
   aspect ≤ 2.2, `specs/009-guest-wc-placement/spec.md` decision D) is the first place this repo
   ties a room's dimensions to what a fixture actually needs, even without simulating the fixture
-  itself — a useful reference point until fixture-aware planning exists.
-- **Semantic review**: whether a door's swing arc, once fixtures are eventually modeled, actually
-  clears them — entirely a semantic/visual judgment until a deterministic clearance check exists.
-- **How a reviewer applies it**: until fixture-aware planning lands, manually check each wet room
-  against the guest-WC size band as a proxy floor, and flag any door drawn to swing across the
-  room's short dimension in a small wet room.
+  itself — a useful reference point independent of the placement above.
+- **Semantic review**: whether kitchen counter-run/island proportions and bedroom furniture reads
+  as architecturally plausible (not merely non-overlapping) remains a semantic/visual judgment —
+  `interior_layout.py`'s item sizes are PARAMETER · UNVERIFIED placeholders, the same disclosure
+  discipline as `MIN_FURNITURE_ENVELOPE_M`/`WINDOW_MIN_WIDTH_M`, not a sourced furniture catalogue.
+- **How a reviewer applies it**: check `DemoDesign.layout` for a plan's furnished rooms against the
+  drawing — an object's rect should read as sitting flush against its own wall, clear of the door's
+  swing arc; a room with no `layout` entries for a role this Issue covers (bedroom/master/living/
+  dining/kitchen/bathroom/WC) is either an out-of-scope role or every item reported unplaceable —
+  check the room's own proportions before assuming a bug.
 
 ## O. Site & Orientation Fit
 
@@ -363,3 +391,41 @@ relationship to where it will actually sit.
 - **How a reviewer applies it**: confirm the footprint respects known setbacks/buildable polygon
   (deterministic, already available); treat orientation/solar judgment as advisory only until a
   check exists, and never invent a stated orientation preference the user didn't give.
+
+## P. Master Suite Access & Privacy
+
+The master bedroom, its ensuite and any linked wardrobe/dressing room should relate to each other
+sensibly: the ensuite door reachable without walking through the bed's own clearance, no unwanted
+sight line from the hall straight to the bed or the ensuite door once the bedroom door is open, and
+a coherent wardrobe relationship (in the room, a dedicated dressing room, or genuinely none) — none
+of it a single mandated arrangement.
+
+- **Deterministic signal**: **Master-suite access and privacy (Issue #42, `master_suite.py`)** —
+  per `MASTER_BEDROOM` zone, a `MasterSuite` record: `ensuite_access` (direct off the bedroom, vs.
+  entered from circulation — the only state C17 lets an ENSUITE reach), `wardrobe_relationship`
+  (a linked `DRESSING_ROOM`, an in-room fit by area, or none), `hall_sight_line_to_bed` /
+  `hall_sight_line_to_ensuite_door` (a straight-ahead sight-line test through the open bedroom
+  door, the same facing-wall/span-overlap technique `wet_privacy.py`'s `direct_sight_line` uses),
+  and `ensuite_route_crosses_bed` / `wardrobe_route_crosses_bed` (does the straight path from the
+  bedroom's own entry door to that door cross the bed's own conservative clearance footprint, the
+  same placeholder-envelope discipline `door_clearance.py`'s wet-fixture footprint already uses).
+  The ONE hard rule is already `validation.py`'s C24 (a room — an ensuite or a dressing room —
+  reachable only by passing through another private room fails the access-topology check); this
+  Issue adds no new blocking rule. `suite_score`/`candidate_suite_key`/`better_candidate` are a
+  soft ranking preference only, mirroring `wet_privacy.candidate_privacy_key` — no caller is wired
+  to it by this Issue; it exists the same way `wet_core`'s own ranking key did before a caller
+  used it.
+- **Reference comparison**: not yet established — no corpus of reference plans has been measured
+  for master-suite routing/sight-line quality specifically.
+- **Semantic review**: whether a suite that scores well on these signals also reads as a *coherent*
+  suite in the drawing (does the wardrobe sit conveniently between the bed and the ensuite, or just
+  technically avoid the bed's footprint) — the deterministic signals are a floor, not a full
+  judgment of the suite's layout.
+- **How a reviewer applies it**: for any master suite, read its `MasterSuite` record before judging
+  the drawing by eye — an `ensuite_route_crosses_bed` or `wardrobe_route_crosses_bed` of `True` is
+  exactly the case worth a second look, even though C24 alone does not fail the plan on it.
+
+Note on lettering: the Issue contract that introduced this section asked for "section M," but that
+letter was already in use for Multi-Level Vertical Coherence by the time this section was written —
+renaming or renumbering an unrelated, already-documented section was out of this Issue's scope, so
+this content was appended as a new section instead.

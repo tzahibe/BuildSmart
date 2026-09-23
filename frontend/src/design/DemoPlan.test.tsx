@@ -14,6 +14,7 @@ function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
       {
         id: 'LIVING', type: 'LIVING', name: 'סלון',
         x: 3, y: 5.5, width_m: 5, depth_m: 6, area_m2: 27.4,
+        gross_width_m: 5, gross_depth_m: 6, gross_area_m2: 30,
         walls: {
           N: { construction: 'STANDARD_PARTITION', boundary_context: 'EXTERIOR', can_take_a_window: true },
           S: { construction: 'NONE', boundary_context: 'INTERIOR', can_take_a_window: false },
@@ -123,7 +124,8 @@ describe('DemoPlan', () => {
     const casedOpening = design({
       doors: [
         { a: 'HALL', b: 'LIVING', kind: 'CASED_OPENING', width_m: 0.9, x: 8, y: 8,
-          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5,
+          swing_deg: 180 },
       ],
     })
     const { container } = render(<DemoPlan design={casedOpening} />)
@@ -137,7 +139,8 @@ describe('DemoPlan', () => {
     const ordinaryDoor = design({
       doors: [
         { a: 'HALL', b: 'LIVING', kind: 'DOOR', width_m: 0.9, x: 8, y: 8,
-          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5,
+          swing_deg: 180 },
       ],
     })
     const { container } = render(<DemoPlan design={ordinaryDoor} />)

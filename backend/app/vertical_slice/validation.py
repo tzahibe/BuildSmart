@@ -16,10 +16,16 @@ accept the candidate, not just asserted on in a test.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Iterable, Protocol
 
 from . import access_rules
+from . import circulation_metrics
+from . import door_clearance
+from . import entrance_sequence
 from . import footprint as footprint_module
 from .concept_generator import ROOM_TEMPLATES
+from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, TypedConstraint
+from .design_output import assemble as assemble_design
 from .doors import ALLOWED_ENTRANCE_ROLES, Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
@@ -111,6 +117,9 @@ class Check:
 @dataclass
 class ValidationReport:
     checks: list[Check] = field(default_factory=list)
+    #: Non-blocking quality notes (Issue #38's corridor-obstruction note is the first of these) —
+    #: additive, never affects `ok`. Empty for every report built before this field existed.
+    notes: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -121,6 +130,68 @@ class ValidationReport:
 
     def failures(self) -> list[Check]:
         return [c for c in self.checks if not c.passed]
+
+
+#: C27's tolerance — the same order of magnitude as `TOL_M2`'s siblings elsewhere in this file,
+#: loose enough to absorb the `round(..., 4)` rounding `net_rect_m` already does, tight enough that
+#: a real definitional mismatch (net dims paired with a gross area, or vice versa) always trips it.
+DIMENSION_CONSISTENCY_TOLERANCE_M2 = 0.05
+
+
+class _DisplayedRoom(Protocol):
+    """What C27 needs off a product-path room — matches `app.demo.contract.RoomOut` structurally
+    so this module never has to import the demo contract (which itself imports this module)."""
+
+    id: str
+    width_m: float
+    depth_m: float
+    area_m2: float
+    gross_width_m: float
+    gross_depth_m: float
+    gross_area_m2: float
+
+
+def check_realized_dimensions(rooms: Iterable[_DisplayedRoom], gross_area_m2: float) -> Check:
+    """C27 — displayed dimensions consistent with realized geometry.
+
+    Runs on the numbers a person actually sees (the assembled `RoomOut` list and the building's
+    own `gross_area_m2`), not the internal solver geometry — a mismatch introduced anywhere
+    between the two (the historical bug: NET area labelled onto a GROSS rectangle) is exactly what
+    this catches. Three things must hold, each within `DIMENSION_CONSISTENCY_TOLERANCE_M2`:
+
+      1. every room's own net width x depth equals its own net area;
+      2. every room's own gross width x depth equals its own gross area, and the net rectangle
+         never exceeds its own declared gross rectangle (a wall inset only ever shrinks a room);
+      3. the building's `gross_area_m2` equals the sum of every room's `gross_area_m2` — true by
+         construction for a real centerline-tiled footprint, so this is a cross-check on the
+         DISPLAYED numbers, not a re-derivation of the tiling proof itself.
+
+    On a real solved design this always passes — `net_rect_m` computes net width/height/area
+    together, so they cannot disagree unless something between the solver and the contract
+    re-derives or overwrites one of them. That is precisely the bug class this exists to catch.
+    """
+    bad: list[str] = []
+    gross_sum = 0.0
+    for room in rooms:
+        net_computed = room.width_m * room.depth_m
+        if abs(net_computed - room.area_m2) > DIMENSION_CONSISTENCY_TOLERANCE_M2:
+            bad.append(f"{room.id}: net {room.width_m:.2f}x{room.depth_m:.2f}="
+                      f"{net_computed:.2f} m2 != declared net area {room.area_m2:.2f} m2")
+        gross_computed = room.gross_width_m * room.gross_depth_m
+        if abs(gross_computed - room.gross_area_m2) > DIMENSION_CONSISTENCY_TOLERANCE_M2:
+            bad.append(f"{room.id}: gross {room.gross_width_m:.2f}x{room.gross_depth_m:.2f}="
+                      f"{gross_computed:.2f} m2 != declared gross area {room.gross_area_m2:.2f} m2")
+        if room.width_m > room.gross_width_m + 1e-6 or room.depth_m > room.gross_depth_m + 1e-6:
+            bad.append(f"{room.id}: net rect {room.width_m:.2f}x{room.depth_m:.2f} exceeds its "
+                      f"own gross rect {room.gross_width_m:.2f}x{room.gross_depth_m:.2f}")
+        gross_sum += gross_computed
+    if abs(gross_sum - gross_area_m2) > DIMENSION_CONSISTENCY_TOLERANCE_M2:
+        bad.append(f"building gross area {gross_area_m2:.2f} m2 != sum of realized room "
+                  f"rectangles {gross_sum:.2f} m2")
+    return Check("C27", "displayed dimensions consistent with realized geometry", not bad,
+                "; ".join(bad) or "every room's width x depth matches its own area (net and "
+                                  "gross), no net rect exceeds its own gross rect, and the "
+                                  "building total matches the sum of realized rooms")
 
 
 def _side_between(a: Rect, b: Rect) -> Side | None:
@@ -161,7 +232,8 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
              relationships: tuple = (),
              wet_rooms: tuple[ResolvedWetRoom, ...] = (),
              entry_seed: str = "OUTSIDE",
-             skip_site_checks: bool = False) -> ValidationReport:
+             skip_site_checks: bool = False,
+             constraint: TypedConstraint | None = None) -> ValidationReport:
     """`entry_seed`/`skip_site_checks` (multi-level Phase 1, additive): a level with no street —
     an upper storey, entered by its `VerticalCore` — seeds C5 from the core's zone id instead of
     `OUTSIDE` (which the fixture does not have) and does not run the SITE checks (C10-C12, C16,
@@ -171,6 +243,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     identical seed and the identical set of checks it always got. `ONLY CHECKS THAT ACTUALLY RUN
     APPEAR IN THE REPORT` (the same discipline `building_validation.py` states for its own V
     checks) — a skipped site check is simply absent, never reported as an unearned pass.
+
+    `constraint` (Issue #35, additive, default `None` = today's behaviour exactly): when given and
+    `authoritative`, C4 also fails if no zone realizes it — see the check below for why this closes
+    a real silent-pass gap the check's original loop had.
     """
     rep = ValidationReport()
 
@@ -270,7 +346,18 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         _, _, na = net_rect_m(z.zone_id, rects[z.zone_id], walls)
         if na < z.net_area_min_m2 - 1e-6:
             bad.append(f"{z.zone_id} net {na} below regulated minimum {z.net_area_min_m2}")
-    rep.add("C4", "safe room valid (RC envelope + regulated minimum)", not bad, "; ".join(bad) or "safe room compliant")
+    # Issue #35, stage assertion 2/3 — "an authoritative SAFE_ROOM constraint is realized". The
+    # loop above only ever looks at zones that ARE safe rooms; a fallback ladder, a candidate
+    # swap, or a fixture that never declared the zone at all would leave `bad` empty and this
+    # check reporting "compliant" on a design that has no safe room at all — a false pass, not a
+    # caught defect. This is deliberately keyed on the REALIZED rect (`z.zone_id in rects`), not
+    # merely on the zone being declared in `fixture.zones`: a zone the concept declared but the
+    # solver never gave a rectangle to is exactly as dropped as one the concept never declared.
+    if constraint is not None and constraint.authoritative:
+        if not any(z.is_safe_room and z.zone_id in rects for z in fixture.zones):
+            bad.append(SAFE_ROOM_NOT_REALIZED_DETAIL)
+    rep.add("C4", "safe room valid (RC envelope + regulated minimum; an authoritative SAFE_ROOM "
+            "constraint is realized)", not bad, "; ".join(bad) or "safe room compliant")
 
     # C5 — all required spaces accessible, over the REALIZED graph.
     #
@@ -330,6 +417,17 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         bad.append("entrance door not placeable on the street-facing wall")
     rep.add("C7", "doors physically placeable", not bad, "; ".join(bad) or f"{len(interior_doors) + 1} doors placeable")
 
+    # C28 — doors usable (door_clearance.py, Issue #38): no door-door, door-wall or door-fixture
+    # conflict, and every door meets the access-rules width for its role pair. Fails closed, like
+    # C7. The engine (doors.py's swing choice, `door_clearance.resolve_swings`) has already tried
+    # flipping a conflicting door's swing to the room on the other side BEFORE this runs — a
+    # caller that skips that step simply gets a stricter C28, never a wrong one.
+    door_defects = door_clearance.check_doors_usable(
+        fixture, rects, walls, [*interior_doors, entrance_door])
+    rep.add("C28", "doors usable (no door-door/door-wall/door-fixture conflict, correct access width)",
+            not door_defects, "; ".join(door_defects) or
+            f"{len(interior_doors) + 1} doors usable")
+
     # C19 — required rooms touch an exterior wall (exposure_policy.py, Issue #19). A GEOMETRIC
     # fact only (`envelope_sides`), deliberately separate from C8 below: this is a planning-
     # topology error (the room was placed with no exterior wall at all) rather than a
@@ -361,6 +459,25 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     bad = [f"{f.zone_id} net {f.net_w_m:.2f}x{f.net_h_m:.2f} cannot inscribe {f.envelope_m} m"
            for f in furniture if f.fits is False]
     rep.add("C9", "furniture-envelope feasibility", not bad, "; ".join(bad) or "all furnished zones fit")
+
+    # C26 — no extreme dedicated circulation (`circulation_metrics.py`, Issue #36). Fails closed
+    # only for an EXTREME corridor (ratio, longest segment or dead-end count past the calibrated
+    # limits) — an ordinary long corridor, the spine parti's by construction, is untouched. Reads
+    # the SAME realized geometry every other check here does; the minimal `GeometricDesign` built
+    # for it is measured and discarded, never the one the pipeline goes on to assemble and draw.
+    # `assemble` itself is a cheap, pure reformatting pass over already-solved rects/walls/doors
+    # (no solving, no I/O) — this second call costs microseconds, not a real duplicate-computation
+    # concern. Threading the assembled design back out of `validate()` instead would widen its
+    # return contract at both of its call sites (`general_pipeline.py` and `pipeline.py`) for a
+    # cost this check does not need to pay.
+    circulation_design = assemble_design(fixture, rects, walls, 0, interior_doors, entrance_door,
+                                         windows, furniture, site)
+    circulation = circulation_metrics.measure(circulation_design)
+    extreme = circulation_metrics.classify_extreme(circulation)
+    rep.add("C26", "no extreme dedicated circulation", extreme is None,
+            extreme or f"circulation ratio {circulation.ratio:.0%}, longest segment "
+                      f"{circulation.longest_segment_m or 0:.2f} m, {circulation.dead_end_count} "
+                      f"dead end(s) — within the calibrated limits")
 
     if not skip_site_checks:
         # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)
@@ -433,6 +550,22 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                 f"{target} role(s) {role_list}"
                 + ("" if entrance_ok else " — not HALL, CIRCULATION or LIVING"))
 
+        # C25 — no dead-space pocket at the entrance (`entrance_sequence.py`, Issue #22). Fails
+        # closed when the arrival zone is circulation and more than `ENTRANCE_POCKET_MAX_M` of it
+        # is unserved beyond the entrance door, when a SEPARATE circulation zone independently
+        # fronts the street with more than `ENTRANCE_STRAY_POCKET_MAX_M` of unserved depth beside
+        # the entrance, or when the arrival zone has no path at all to a PUBLIC-group room. Reuses
+        # `circulation_design` — the SAME minimal `GeometricDesign` C26 above already assembled
+        # purely to measure this plan, never a second build. The TUNNEL signal
+        # (`entrance_sequence.classify_tunnel`) is deliberately NOT gated here — see that module's
+        # own docstring for why a long walk past bedrooms before the living room is a ranking
+        # signal, not a defect.
+        entrance_seq = entrance_sequence.measure(circulation_design)
+        pocket_defect = entrance_sequence.classify_pocket(entrance_seq)
+        rep.add("C25", "no dead-space pocket at the entrance", pocket_defect is None,
+                pocket_defect or f"arrival zone {entrance_seq.arrival_zone} opens onward with no "
+                                  f"unserved pocket")
+
     # C13 — every DECLARED access edge is physically realized.
     #
     # DesiredAccessTopology is preserved as design INTENT; this check is the comparison between
@@ -481,6 +614,10 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                     corridor.satisfied_by(realized),
                     f"requested {corridor.mode.value} {corridor.width_m:.2f} m, "
                     f"realized {realized:.2f} m")
+            # Non-blocking (Issue #38): the corridor is walkable with every door closed — this
+            # only discloses that an open leaf would narrow it below what was requested.
+            rep.notes.extend(door_clearance.corridor_obstruction_notes(
+                fixture, [*interior_doors, entrance_door], corridor, realized))
 
     # C15 — requested room relationships, measured on the REALIZED geometry.
     #

@@ -37,6 +37,7 @@ from app.vertical_slice.concept_generator import (
     build_room_program,
     program_capacity_gross_m2,
 )
+from app.vertical_slice.constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, SafeRoomDropped
 from app.vertical_slice.relationships import describe
 from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import doors as doors_stage
@@ -64,6 +65,7 @@ from .contract import (
     DemoBuilding,
     DemoDesign,
     DemoPlanSet,
+    InconsistentGeometryError,
     OutlineOut,
     OutlineTried,
     SearchSummary,
@@ -86,6 +88,7 @@ _FEASIBILITY_CODES = frozenset({
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
     "ENTRANCE_NO_ARRIVAL_ROOM",
+    "ENTRANCE_DEAD_END",
     "LAUNDRY_UNPLACEABLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
@@ -250,6 +253,23 @@ def generate_demo_design(project: Project,
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
 
     spec = spec_for(project)
+    # Issue #35, stage assertion 1/3, caught at the product boundary: `generate_concepts` raises
+    # `SafeRoomDropped` the moment the concept stage's own room programme loses an authoritative
+    # SAFE_ROOM constraint. That is a refusal like any other in this module, not a Python
+    # exception a caller has to know about — translated here, once, for every outline this
+    # request plans.
+    try:
+        return _generate_demo_design(project, spec, on_stage)
+    except SafeRoomDropped as exc:
+        raise DemoGenerationError(
+            "SAFE_ROOM_DROPPED",
+            "לא נציג תוכנית: חדר הממ\"ד שביקשת נעלם במהלך התכנון, ולא נציג תוכנית שלא כוללת אותו.",
+            str(exc),
+        ) from exc
+
+
+def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None] | None = None
+                          ) -> DemoResult:
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
@@ -880,10 +900,21 @@ def _result_from(project: Project, spec, selection: PlanSelection,
         notes = [n for n in (capacity_note(spec, plan.design.gross_area_m2),) if n]
         if item is selection.primary and offered is not None and person is not None:
             notes.append(outline_note(person, offered))
-        return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
-                              corridor=spec.program.corridor, relationships=plan.relationships,
-                              outline=orr.outline.as_out(), family=plan.family_signature,
-                              notes=notes or None, concept=_concept_of(plan))
+        try:
+            return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
+                                  corridor=spec.program.corridor, relationships=plan.relationships,
+                                  outline=orr.outline.as_out(), family=plan.family_signature,
+                                  notes=notes or None, constraint=spec.safe_room_constraint,
+                                  concept=_concept_of(plan))
+        except InconsistentGeometryError as error:
+            # C27 failing here is never a real solved design's fault (see its own docstring) — a
+            # bug between the solver and this contract, so the product refuses rather than shows a
+            # plan whose own numbers disagree with each other.
+            raise DemoGenerationError(
+                "INCONSISTENT_GEOMETRY",
+                "התוכנית שנוצרה מכילה מידות שאינן תואמות את השטח המחושב עבורה, ולכן לא הוצגה.",
+                error.detail,
+            ) from error
 
     primary = design_of(selection.primary)
     _, primary_plan = selection.primary
@@ -1060,6 +1091,19 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
     """The refusal path: every outline was planned and none produced a validated plan. `result`
     is the first outline's run — the person's own when they gave one — and `outlines` is all of
     them, for the diagnostics."""
+    # Issue #35, stage assertion 2/3, escalated: C4 fails this specific way ONLY when the spec
+    # carries an authoritative SAFE_ROOM constraint and no candidate realized it — checked first,
+    # like every other check-specific diagnosis below, because it names an exact, actionable
+    # cause the generic "failed validation" message would otherwise swallow.
+    if (result.validation is not None and not result.validation.ok
+            and any(c.check_id == "C4" and SAFE_ROOM_NOT_REALIZED_DETAIL in c.detail
+                    for c in result.validation.failures())):
+        raise DemoGenerationError(
+            "SAFE_ROOM_DROPPED",
+            "לא הצלחנו לשמר את חדר הממ\"ד שביקשת בתוכנית שנוצרה, ולכן לא נציג תוכנית שלא כוללת אותו.",
+            "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
+            diagnostics=_diagnostics(result, spec, outlines))
+
     # A hard relationship that no candidate could realize is its own outcome: the geometry could
     # not be arranged that way with this programme, which is NOT a claim that no such house exists.
     if (result.outcome is not AdapterOutcome.SOLVED
@@ -1165,6 +1209,22 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                     f"ישירות מהרחוב. בתצורה שנוצרה עבור הבקשה הזו, הרחוב פונה רק אל: {named}.",
                     "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
                     diagnostics=_diagnostics(result, spec, outlines))
+
+    # ENTRANCE-TO-CIRCULATION INTEGRATION (Issue #22). C25 alone failing means the front door
+    # lands in a dead-space pocket — an unserved corridor stub directly beyond the door, or an
+    # arrival zone with no path onward to a public room — rather than a generic planning defect.
+    # Gated on C25 being the ONLY failure so an unrelated defect (furniture, corridor width, ...)
+    # is never misdiagnosed as an entrance problem.
+    if (result.design is not None and result.validation is not None and not result.validation.ok
+            and [c.check_id for c in result.validation.failures()] == ["C25"]):
+        detail = next(c.detail for c in result.validation.failures() if c.check_id == "C25")
+        raise DemoGenerationError(
+            "ENTRANCE_DEAD_END",
+            "הכניסה לבית נפתחת אל מרחב תנועה ללא המשך — קטע מסדרון סתום ליד הדלת, או הול כניסה "
+            "שאין ממנו מעבר לחלל ציבורי. אפשר להגדיל את שטח הבנייה או לשנות את המתאר שנבחר — לא "
+            "נציג תוכנית עם כניסה שמובילה למבוי סתום.",
+            f"C25: {detail}",
+            diagnostics=_diagnostics(result, spec, outlines))
 
     # HARD GATE. A plan is never returned as successful while a validation check is failing —
     # including C13, the realized-connectivity invariant.

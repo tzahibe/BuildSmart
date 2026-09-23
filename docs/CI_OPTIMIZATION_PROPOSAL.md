@@ -27,13 +27,35 @@ fails the job if the two verdicts (or the replay itself) disagree. **Removal cri
 replay step is only deleted after several real PRs show identical verdicts between the two paths —
 not scheduled by this Issue.
 
-## O3 — sharding (not started)
+## O3 — sharding (Issue #67)
 
-Not yet proposed as an Issue.
+**Status: shipped in shadow mode**, not yet the removal. `corpus_snapshot.py` gained `--shard I/N`
+(deterministic partition of the corpus by sorted context key, `index % N == I`) and `--merge` (union
+of N shard documents into one, refusing a missing/duplicated context key or a `head_sha`/
+`corpus_hash` mismatch). Gate-4 now computes each snapshot two ways: N=4 parallel matrix jobs
+(`snapshot` + `merge`) producing `head_snapshot.json`/`base_snapshot.json`, and the pre-existing
+single-node replay (`single_node` job) producing `*_snapshot_single.json` — the two run concurrently,
+so sharding adds no wall time of its own while shadow mode is on. A "Compare * snapshots" step fails
+the job if the merged and single-node documents ever differ after normalising volatile fields
+(`ms`/`seconds` timings, `written_at`). Budget evaluation and every other assertion consume the
+merged snapshot, only after the compare step passed. **Removal criterion**: the single-node path is
+only deleted after several real PRs show the two paths always agree — not scheduled by this Issue.
 
-## O2 — the snapshot store (not started)
+## O2 — the trusted snapshot store (Issue #68)
 
-Not yet proposed as an Issue.
+**Status: shipped in shadow mode**, not yet the removal. A new `push`-triggered workflow
+(`agent-snapshot.yml`, `on: push: branches: [main, "integration/**"]`) computes, validates (exactly
+432 contexts, `head_sha` == the pushed SHA, `corpus_hash` recorded —
+`scripts/agent_team/ci/snapshot_store.py`) and stores the snapshot of every commit that lands on
+`main`/`integration/**`: the Actions cache (`corpus-snapshot-v2-<sha>-<corpus-hash>`, in that
+branch's cache scope) and a 30-day artifact (`corpus-snapshot-<sha>`). Gate-4's `resolve`/`regression`
+jobs look up that trusted store for the merge-base snapshot — v2 cache, then the artifact on a miss —
+validate whatever comes back the same way, and, on a valid hit, compare it against the base snapshot
+gate-4 still computes locally (shadow mode never skips the local computation). The old v1 cache
+(scoped to the PR's own merge ref, never actually shared across PRs — see
+`docs/CI_SNAPSHOT_CACHE_DESIGN.md`) is removed; a `pull_request` run never writes the v2 key itself.
+**Removal criterion**: the local base computation is only skipped after several real PRs show the
+trusted store always agrees — not scheduled by this Issue.
 
 ## Regression budget policy
 

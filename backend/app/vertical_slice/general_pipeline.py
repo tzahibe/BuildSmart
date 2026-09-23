@@ -29,13 +29,16 @@ from app.geometry_domain.constraints import (
 )
 from app.geometry_domain.primitives import MultiRegion
 
+from . import circulation_metrics
 from . import concept_engine_v2
 from . import concept_generator as generator
 from . import concept_spec
+from . import entrance_sequence
 from . import footprint as footprint_module
 from . import hub_guard
 from . import l_massing_guard
 from . import doors as doors_stage
+from . import door_clearance
 from . import relationships as relationships_stage
 from . import furniture as furniture_stage
 from . import site as site_stage
@@ -499,6 +502,13 @@ def run_general(buildable: BuildableRegion, *,
     # instant the best possible rank is reached, so a brief whose first valid candidate already has
     # a HALL/CIRCULATION entrance costs exactly what it did before this Issue.
     best_entrance_rank: int | None = None
+    # ENTRANCE SEQUENCE TIEBREAK (Issue #22, hub_guard-style): a STRICT tiebreak, never a gate —
+    # `entrance_sequence_prefers` only decides between candidates already equal under BOTH of the
+    # existing ranking terms (the generator's own area-proximity order `generated.candidates`
+    # already arrives in, and `_entrance_rank` above). A candidate is never promoted past a better
+    # area-proximity or a better entrance rank for a shorter tunnel; it only breaks a genuine tie.
+    best_used_area_m2: float | None = None
+    best_entrance_seq: entrance_sequence.EntranceSequence | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         # Tier 2 (`concept_generator.Repartition`) is strictly second: its candidates sit after
@@ -525,9 +535,20 @@ def run_general(buildable: BuildableRegion, *,
                                 f"but failed validation: {', '.join(failed) or 'safety'}")
                 continue
             rank = _entrance_rank(candidate_plan)
-            if best_entrance_rank is None or rank < best_entrance_rank:
+            candidate_seq = entrance_sequence.measure(candidate_plan.design)
+            take = best_entrance_rank is None or rank < best_entrance_rank
+            if (not take and rank == best_entrance_rank
+                    and best_used_area_m2 is not None
+                    and abs(concept_candidate.used_area_m2 - best_used_area_m2) < 1e-9
+                    and best_entrance_seq is not None
+                    and entrance_sequence.entrance_sequence_prefers(
+                        best_entrance_seq, candidate_seq) is None):
+                take = True
+            if take:
                 chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
                 best_entrance_rank = rank
+                best_used_area_m2 = concept_candidate.used_area_m2
+                best_entrance_seq = candidate_seq
             if fast_path and best_entrance_rank == 0:
                 break
             continue
@@ -759,13 +780,27 @@ def _guard_demoted_hub(spec: ArchitecturalSpec, buildable: BuildableRegion,
             continue
         reason = hub_guard.hub_keeps_primary(hub_guard.proportions_of(hub_plan.design),
                                              hub_guard.proportions_of(plan.design))
-        if reason is not None:
-            failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
-                            f"{chosen_index} ({chosen.strategy.value}): {reason}")
-            return candidate, index, hub_plan
-        failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) replaces "
-                        f"the demoted hub (candidate {index}): replacement is better")
-        return chosen, chosen_index, plan
+        if reason is None:
+            failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) "
+                            f"replaces the demoted hub (candidate {index}): replacement is better")
+            return chosen, chosen_index, plan
+        # CIRCULATION QUALITY (Issue #36, hub_guard-style): hub_guard says the hub's bedroom/wet
+        # proportions earn it the stay — but a hub whose realized circulation is not actually more
+        # compact than the replacement's has not delivered the one thing a hub parti exists for
+        # (specs/005). This narrows hub_guard's own decision further; it never overrides it the
+        # other way — a hub is never handed the primary FOR its circulation when hub_guard already
+        # said the replacement wins on proportions (`circulation_prefers`'s own docstring is why).
+        circulation_reason = circulation_metrics.circulation_prefers(
+            circulation_metrics.measure(hub_plan.design), hub_plan.design.gross_area_m2,
+            circulation_metrics.measure(plan.design), plan.design.gross_area_m2)
+        if circulation_reason is None:
+            failures.append(f"circulation guard: candidate {chosen_index} ({chosen.strategy.value}) "
+                            f"replaces the demoted hub (candidate {index}): its circulation is "
+                            f"more compact than the hub's")
+            return chosen, chosen_index, plan
+        failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
+                        f"{chosen_index} ({chosen.strategy.value}): {reason}")
+        return candidate, index, hub_plan
     return chosen, chosen_index, plan
 
 
@@ -817,6 +852,12 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
     entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
                                                     entrance_zone_id, wings)
+    # Conflict avoidance BEFORE C28 (Issue #38): the entrance door itself never flips (there is no
+    # other side of the street), but it stays IN this call so an interior door can still be flipped
+    # away from a conflict WITH it.
+    resolved_doors = door_clearance.resolve_swings(
+        concept.fixture, rects, solve.walls, [*interior_doors, entrance_door])
+    *interior_doors, entrance_door = resolved_doors
     windows = windows_stage.generate_windows(concept.fixture, rects, footprint, wings)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 
@@ -830,6 +871,7 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
         # brief's, or an eligible rearrangement's) — resolved, padded and defaulted, so a legacy
         # brief is held to its defaults and never skipped (C17 fails closed on absence).
         wet_rooms=candidate.wet_rooms,
+        constraint=spec.safe_room_constraint,
     )
     stage("assemble")
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
