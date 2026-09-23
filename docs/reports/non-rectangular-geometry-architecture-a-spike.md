@@ -151,9 +151,13 @@ against the current (post-fix) code, before the numbers below were recorded.
 - **AC-2 (flag OFF)**: `room_merge.LIVING_KITCHEN_MERGE_ENABLED` defaults to `False`; `plan_merge`
   returns `None` unconditionally in that state before touching any geometry — the flag-off path is
   provably untouched by inspection (the very first line of `plan_merge`), and the sweep's own OFF
-  pass is what today's baseline already is; every one of the 432 OFF re-runs this session also
-  reproduced byte-identically (0 crashes, 404/404 still PLANNED, same signatures as the pre-spike
-  baseline). **PASS.**
+  pass IS today's baseline (this same 432-context corpus, run with the flag off, produces the
+  signatures AC-3 diffs against below); every one of the 432 OFF re-runs this session completed
+  cleanly (0 crashes, 404/404 still PLANNED). This spike did not additionally diff the OFF pass
+  against a separately-stored pre-4b7cf47 snapshot — `plan_merge`'s unconditional early return and
+  `sweep.signature()`'s read of only `type/x/y/gross_width_m/gross_depth_m` (unaffected by this
+  spike's additive `RoomOut.shape`/`polygon_m`/`DemoDesign.merge` fields) make that comparison
+  provably redundant, not merely assumed. **PASS.**
 - **AC-3 (flag ON)**: full 432/432 contexts. Of the 404 contexts that plan at all (28 REFUSED both
   ON and OFF, unrelated to this spike): **LOST=0, crashes=0 on both sides.** 236/404 (58%)
   primary signatures are byte-identical OFF vs ON; **168/404 (42%) changed**, and every single one
