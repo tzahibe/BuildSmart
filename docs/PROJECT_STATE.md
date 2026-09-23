@@ -100,6 +100,11 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   stash/checkout/reset from a session.
 - **Corridor opening** (hall↔LDK) is a contract-level post-process (`app/demo/contract.py`), not
   an engine change.
+- **Corridor-endpoint invariant (C25, Issue #22)**: a circulation zone's own endpoint must be
+  derived from the last door it serves, never extend past it for no reason — verified against real
+  spine/L candidates (`test_entrance_circulation.py`), no live corpus/fixture violation found
+  (see `docs/ENTRANCE_CIRCULATION_SWEEP.md`). `ENTRANCE_DEAD_END` is the demo refusal code when C25
+  alone fails.
 - **`INCONSISTENT_GEOMETRY`** (Issue #34) is a `DemoGenerationError` refusal code raised when
   validation check C27 finds a `RoomOut`'s displayed width×depth disagreeing with its own area (or
   the building's `gross_area_m2` disagreeing with the sum of its rooms') — see the Geometry /
