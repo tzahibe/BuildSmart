@@ -1,5 +1,10 @@
 # POC Architectural Brain — realization through the existing engine (Issue #96, C/3)
 
+**This page is Phase 1, kept as the frozen baseline (its own SVG links now point at files Track 1
+overwrote in place — see `phase2.md`'s own note).** For the 3-column CURRENT ENGINE / BRAIN PHASE 1
+/ BRAIN PHASE 2 comparison, the full measurement table, the collapse-case root causes and the
+GO-A/GO-B/GO-C-LATER/STOP decision gate, see **[`phase2.md`](phase2.md)** (Issue #111).
+
 **The question this POC exists to answer:** did access to real architectural experience (the
 Issue #94 corpus + #95's retrieve/synthesize/adapt) give BuildSmart an architectural brain that is
 *visibly* better than the current hand-designed concept generator?

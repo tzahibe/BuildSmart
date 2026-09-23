@@ -1,8 +1,17 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><title>POC — Architectural Brain from Real Floor Plans</title>
 <style>body{font-family:-apple-system,Segoe UI,sans-serif;margin:0;padding:16px 24px;background:#faf9f6;color:#1d1d1f} h1{margin:0 0 4px} .verdict{display:inline-block;padding:4px 10px;border-radius:6px;background:#fff3cd;border:1px solid #e0c060;font-weight:600} section{margin:28px 0;padding:16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px} .row{display:flex;flex-wrap:wrap;gap:16px} figure{flex:1 1 420px;margin:0;min-width:320px} figcaption{font-weight:600;margin-bottom:6px} img{width:100%;height:auto;border:1px solid #ddd;background:#fff} .none{padding:40px;border:1px dashed #bbb;color:#777;text-align:center} pre{white-space:pre-wrap;font-size:12px;line-height:1.35;background:#f6f6f6;padding:10px;border-radius:6px;max-height:420px;overflow:auto} details{margin-top:10px}</style></head><body>
 <h1>POC — Architectural Brain from Real Floor Plans</h1>
-<p>Side by side: <b>A — current engine</b> (concept_generator) vs <b>B — real-plan brain</b> (ResPlan corpus → retrieval → synthesis → adaptation → the unchanged Geometry Core + validators). Status of this page: the demo committed by child C, attempt 3 (2026-09-22, MODIFY items 1+3 attempted). Verdict so far: <span class="verdict">MODIFY</span> — see the README below.</p>
-<section><h2>Brief 1 — challenging family home: 4 bedrooms + SAFE_ROOM + 3 wet rooms, ~200 m², plot 17×30.5, street north</h2><div class="row"><figure><figcaption>A — current engine (FRONT_BAND)</figcaption><img src="brief-1/current.svg" alt="A — current engine (FRONT_BAND)"></figure><figure><figcaption>B — brain alternative A (SPINE)</figcaption><img src="brief-1/brain-A.svg" alt="B — brain alternative A (SPINE)"></figure><figure><figcaption>B — brain alternative B (SPINE — identical geometry, known gap)</figcaption><img src="brief-1/brain-B.svg" alt="B — brain alternative B (SPINE — identical geometry, known gap)"></figure></div>
+<p>Three columns per brief, on the SAME 3 fixed benchmark briefs: <b>CURRENT ENGINE</b>
+(concept_generator) · <b>BRAIN PHASE 1</b> (Issue #96's committed SPINE/TWO_WING realization,
+extracted from commit 166630c and kept as the baseline) · <b>BRAIN PHASE 2</b> (Track 1 #110's
+HUB_LOBBY/BRANCHED compilers + Track 3 #109's RealizationIntent/PreservationReport, on top of the
+same retrieval → synthesis → adaptation → unchanged Geometry Core + validators chain). Phase 1's
+own MODIFY verdict is unchanged and kept below (README). <b>PHASE 2's own decision-gate verdict:
+<span class="verdict">GO-B</span></b> — a non-guillotine rectangular realizer is the recommended
+next Geometry Core; full evidence, the per-brief measurement tables, and every collapse case's
+named cause: <a href="phase2.md">phase2.md</a>.</p>
+<section><h2>Brief 1 — challenging family home: 4 bedrooms + SAFE_ROOM + 3 wet rooms, ~200 m², plot 17×30.5, street north</h2><div class="row"><figure><figcaption>CURRENT ENGINE (FRONT_BAND)</figcaption><img src="brief-1/current.svg" alt="CURRENT ENGINE (FRONT_BAND)"></figure><figure><figcaption>BRAIN PHASE 1 — concept-0 (SPINE, donor 13630)</figcaption><img src="brief-1/phase1-brain-A.svg" alt="BRAIN PHASE 1 — concept-0 (SPINE, donor 13630)"></figure><figure><figcaption>BRAIN PHASE 1 — concept-1 (SPINE — identical geometry to concept-0, known gap, donor 1996)</figcaption><img src="brief-1/phase1-brain-B.svg" alt="BRAIN PHASE 1 — concept-1 (SPINE — identical geometry, donor 1996)"></figure><figure><figcaption>BRAIN PHASE 2 — concept-0 (relabelled BRANCHED, same geometry — see phase2.md &quot;the collapse&quot;)</figcaption><img src="brief-1/brain-A.svg" alt="BRAIN PHASE 2 — concept-0 (BRANCHED, same geometry as Phase 1)"></figure><figure><figcaption>BRAIN PHASE 2 — concept-1 (relabelled BRANCHED, same geometry)</figcaption><img src="brief-1/brain-B.svg" alt="BRAIN PHASE 2 — concept-1 (BRANCHED, same geometry as Phase 1)"></figure></div>
+<p><i>HUB_LOBBY/BRANCHED compiler probes (Track 1, retrieval-independent) both REFUSE on this brief: BRANCHED needs exactly 3 bedrooms with a safe room (brief has 4); HUB_LOBBY needs exactly 2 (brief has 4). Neither new Track 1 compiler ever fires here — see phase2.md.</i></p>
 <details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Challenging family home (4BR + SAFE_ROOM + 3 wet rooms, ~200 m2) (brief-1)
 
 Retrieved (k=15) from the 199-plan corpus, best-first:
@@ -189,8 +198,8 @@ REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -&gt; `current.svg`
 | brain-A (concept-0) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
 | brain-B (concept-1) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
 </pre></details></section>
-<section><h2>Brief 2 — the owner&#x27;s brief: 4 bedrooms (3 + master ensuite), 2 wet rooms, laundry, open plan, 130 m², plot 15×17</h2><div class="row"><figure><figcaption>A — current engine (SPINE)</figcaption><img src="brief-2/current.svg" alt="A — current engine (SPINE)"></figure><figure><figcaption>B — brain alternative A (SPINE, ok=False: C19/C8)</figcaption><img src="brief-2/alt-0.svg" alt="B — brain alternative A (SPINE, ok=False: C19/C8)"></figure><figure><figcaption>B — brain alternative B (SPINE, ok=False: C19/C8)</figcaption><img src="brief-2/alt-1.svg" alt="B — brain alternative B (SPINE, ok=False: C19/C8)"></figure></div>
-<p><i>Attempt 3 update: both concepts now REALIZE via the new double-loaded single-wing SPINE variant (were 0/2 REFUSED before) — neither reaches ok=True yet (both fail C19/C8 on one bedroom lacking exterior exposure). See README §Brief 2 and MODIFY item 3.</i></p>
+<section><h2>Brief 2 — the owner&#x27;s brief: 4 bedrooms (3 + master ensuite), 2 wet rooms, laundry, open plan, 130 m², plot 15×17</h2><div class="row"><figure><figcaption>CURRENT ENGINE (SPINE, ok=True)</figcaption><img src="brief-2/current.svg" alt="CURRENT ENGINE (SPINE, ok=True)"></figure><figure><figcaption>BRAIN PHASE 1 — concept-0 (SPINE, ok=False: C19/C8, donor 9302)</figcaption><img src="brief-2/phase1-alt-0.svg" alt="BRAIN PHASE 1 — concept-0 (SPINE, ok=False, donor 9302)"></figure><figure><figcaption>BRAIN PHASE 1 — concept-1 (SPINE, ok=False: C19/C8, donor 518)</figcaption><img src="brief-2/phase1-alt-1.svg" alt="BRAIN PHASE 1 — concept-1 (SPINE, ok=False, donor 518)"></figure><figure><figcaption>BRAIN PHASE 2 — concept-0 (relabelled BRANCHED, same failure, same geometry near-identically)</figcaption><img src="brief-2/alt-0.svg" alt="BRAIN PHASE 2 — concept-0 (BRANCHED, ok=False)"></figure><figure><figcaption>BRAIN PHASE 2 — concept-1 (relabelled BRANCHED, same failure)</figcaption><img src="brief-2/alt-1.svg" alt="BRAIN PHASE 2 — concept-1 (BRANCHED, ok=False)"></figure></div>
+<p><i>Both phases REALIZE via the double-loaded single-wing SPINE variant (were 0/2 REFUSED in the very first attempt) — neither reaches ok=True (both fail C19/C8 on one bedroom lacking exterior exposure). BRANCHED/HUB_LOBBY compiler probes (Track 1) both REFUSE: BRANCHED&#x27;s own witness sizing finds no fit on this site; HUB_LOBBY needs exactly 2 bedrooms. See phase2.md §Brief 2 and README §Brief 2 / MODIFY item 3.</i></p>
 <details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Owner&#x27;s own brief (4BR incl. master ensuite, 2 wet rooms, laundry, open plan, 130 m2) (brief-2)
 
 Retrieved (k=15) from the 199-plan corpus, best-first:
@@ -392,7 +401,8 @@ REALIZED, ok=True, circulation_class=SPINE in 0.2s -&gt; `current.svg`
 | current | SPINE | 128.7 | 117.26 | 0.1414141414141414 | 6 | 9.285714285714286 | 1.0 | True | 2 | HALL |
 (attempt 3: both alt-0/alt-1 now realize at gross 143.0 / net 130.1 m2 but ok=False, so not tabulated as a comparable result -- see brief-2/alt-0.json / alt-1.json)
 </pre></details></section>
-<section><h2>Brief 3 — wide 5-bedroom home, 200 m², plot 27×20.5 (Z-massing site)</h2><div class="row"><figure><figcaption>A — current engine</figcaption><div class="none">REFUSED: the current generator tried 7 strategies, none tiles this site</div></figure><figure><figcaption>B — brain alternative A (TWO_WING) — validated, 0.2 s</figcaption><img src="brief-3/brain-A.svg" alt="B — brain alternative A (TWO_WING) — validated, 0.2 s"></figure></div>
+<section><h2>Brief 3 — wide 5-bedroom home, 200 m², plot 27×20.5 (Z-massing site)</h2><div class="row"><figure><figcaption>CURRENT ENGINE</figcaption><div class="none">REFUSED: the current generator tried 7 strategies, none tiles this site</div></figure><figure><figcaption>BRAIN PHASE 1 — concept-5 (TWO_WING, donor 681) — validated, 0.2 s</figcaption><img src="brief-3/phase1-brain-A.svg" alt="BRAIN PHASE 1 — concept-5 (TWO_WING) — validated"></figure><figure><figcaption>BRAIN PHASE 2 — concept-5 (TWO_WING, unchanged geometry) — validated, 0.3 s</figcaption><img src="brief-3/brain-A.svg" alt="BRAIN PHASE 2 — concept-5 (TWO_WING) — validated, unchanged"></figure></div>
+<p><i>This POC&#x27;s one genuinely different, visible result in BOTH phases: the current generator refuses this exact site/programme outright; the brain realizes a fully validated TWO_WING plan through the unchanged engine. BRANCHED/HUB_LOBBY compiler probes (Track 1) both REFUSE (bedroom-count preconditions: 4-without-safe-room and 2 respectively; brief has 5). See phase2.md §Brief 3.</i></p>
 <details open><summary>Retrieved references — why each was retrieved · extracted ideas</summary><pre># References -- Wide 5-bedroom home (200 m2, wide plot — assumed 3 wet rooms, no safe room) (brief-3)
 
 Retrieved (k=15) from the 199-plan corpus, best-first:
@@ -584,6 +594,24 @@ REFUSED (outcome=INSUFFICIENT_RECTANGULAR_CAPACITY): FRONT_PUBLIC_BAND/ROOM_SHAP
 |---|---|---|---|---|---|---|---|---|---|---|
 | brain-A (concept-5) | TWO_WING | 154.35 | 140.22 | 0.22076449627470038 | 9 | 3.085106382978723 | 0.6666666666666666 | True | 2 | HALL_A |
 </pre></details></section>
+<section><h2>PHASE 2 decision gate</h2>
+<p>Full evidence in <a href="phase2.md">phase2.md</a>. Summary: across all 3 fixed briefs, every
+Phase-2-vs-Phase-1 difference is either the SPINE→BRANCHED relabelling artifact (Issue #79&#x27;s
+classifier extension — no new geometry) or the already-Phase-1-adjacent double-loaded SPINE
+fallback on brief 2; Track 1&#x27;s new HUB_LOBBY/BRANCHED compilers never fire on any of the 3 briefs
+(every room count falls outside both compilers&#x27; own narrow preconditions). ROOT #105&#x27;s spikes
+(read from the sibling <code>integration/non-rectangular-geometry</code> branch): #106 found 0% of
+199 real reference plans are guillotine-separable and 95.5% of real building envelopes are
+irregular polygons — a structural ceiling on the current guillotine solver, not a calibration gap;
+#107 proved a real, low-risk room-merge win (LOST=0, -44% kitchen/dining aspect on 42% of the
+432-context corpus) that stays within the existing solver; #108 found the downstream pipeline
+(validators, M1-M6, contract, renderers, frontend) accepts non-guillotine geometry with zero
+<code>app/</code> changes, at a revised ~6-10 engineer-week integration estimate — the unbuilt
+solver itself remains the dominant, unresolved cost. <b>Recommendation:
+<span class="verdict">GO-B</span></b> — a non-guillotine rectangular realizer is the recommended
+next Geometry Core; see phase2.md&#x27;s own "Decision gate" section for the full GO-A/GO-B/GO-C-LATER/
+STOP reasoning and what would change the answer.</p>
+</section>
 <section><h2>README — measurements, failure-criteria checklist, recommendation</h2><pre># POC Architectural Brain — realization through the existing engine (Issue #96, C/3)
 
 **The question this POC exists to answer:** did access to real architectural experience (the
