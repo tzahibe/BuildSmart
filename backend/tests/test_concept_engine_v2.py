@@ -219,3 +219,30 @@ def test_cross_outline_search_adds_a_second_class():
     assert CC.FRONT_BAND in classes
     for _, plan in found:
         assert plan.ok
+
+
+# --------------------------------------------------------------------------- Issue #79 review
+# finding (attempt 5): the diversity report's "excluded from both compilers" section was computed
+# from hand-written copies of the two compilers' preconditions, and the hub-lobby copy was never
+# updated when attempt 4 taught `compile_hub_lobby` a 3-wet-room (GUEST_WC) variant — so the
+# committed report reported a population as excluded that the code already served. The copies are
+# gone (the helpers now ask the compilers themselves), and this holds the two together whatever the
+# implementation becomes: the report's eligibility must equal the compiler's own verdict across the
+# programme matrix, because the Issue's lead direction accepts AC-3's shortfall ONLY while the
+# residual population is documented accurately.
+
+@pytest.mark.parametrize("bedrooms", [1, 2, 3, 4, 5])
+@pytest.mark.parametrize("wet_rooms", [1, 2, 3, 4])
+@pytest.mark.parametrize("safe_room", [False, True])
+def test_report_eligibility_mirrors_each_compilers_own_precondition(bedrooms, wet_rooms, safe_room):
+    from app.vertical_slice.concept_compilers import _branched_unsupported, _hub_lobby_unsupported
+    from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec
+    from spikes.failure_log_sweep.concept_diversity_v2 import (_branched_eligible,
+                                                               _hub_lobby_eligible)
+
+    spec = ArchitecturalSpec(plot=PlotSpec(width_m=16.0, depth_m=20.0),
+                             program=ProgramSpec(bedrooms=bedrooms, wet_rooms=wet_rooms,
+                                                 safe_room=safe_room))
+    context = {"bedrooms": bedrooms, "wet_rooms": wet_rooms, "safe_room": safe_room}
+    assert _hub_lobby_eligible(context) is (_hub_lobby_unsupported(spec) is None)
+    assert _branched_eligible(context) is (_branched_unsupported(spec) is None)

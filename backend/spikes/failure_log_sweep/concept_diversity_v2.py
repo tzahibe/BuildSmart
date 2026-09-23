@@ -29,7 +29,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.demo import service as svc  # noqa: E402
 from app.vertical_slice import general_pipeline as gp  # noqa: E402
+from app.vertical_slice.concept_compilers import (_branched_unsupported,  # noqa: E402
+                                                  _hub_lobby_unsupported)
 from app.vertical_slice.concept_spec import CirculationClass  # noqa: E402
+from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec  # noqa: E402
 from spikes.failure_log_sweep.sweep import project_from_context  # noqa: E402
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -170,22 +173,34 @@ def aggregate(per_brief: list[dict]) -> dict:
     }
 
 
+def _spec_for(context: dict) -> ArchitecturalSpec:
+    """A spec carrying this context's PROGRAMME, for asking a compiler whether it supports it.
+
+    Both compiler preconditions (`concept_compilers._hub_lobby_unsupported` /
+    `_branched_unsupported`) read `spec.program` only, so the plot is nominal — the programme is
+    the whole question here."""
+    return ArchitecturalSpec(
+        plot=PlotSpec(width_m=float(context.get("plot_width_m") or 16.0),
+                      depth_m=float(context.get("plot_depth_m") or 20.0)),
+        program=ProgramSpec(bedrooms=int(context.get("bedrooms") or 0),
+                            wet_rooms=int(context.get("wet_rooms") or 0),
+                            safe_room=bool(context.get("safe_room"))))
+
+
 def _hub_lobby_eligible(context: dict) -> bool:
-    """`concept_compilers.compile_hub_lobby`'s own precondition (attempt 3, 2026-09-22): exactly
-    2 bedrooms and 2 wet rooms — `safe_room`/`open_plan` no longer exclude a brief, each is its
-    own supported variant (`_hub_lobby_unsupported`)."""
-    return context.get("bedrooms") == 2 and context.get("wet_rooms") == 2
+    """Whether `compile_hub_lobby` supports this brief — ASKED OF THE COMPILER ITSELF.
+
+    This used to be a hand-written copy of the precondition, and it silently went stale when
+    attempt 4 taught the compiler a 3-wet-room (GUEST_WC) variant: the committed report then
+    reported briefs as excluded that the code already served (review finding, attempt 5). The copy
+    is gone — a report about what the compilers cover now cannot disagree with them."""
+    return _hub_lobby_unsupported(_spec_for(context)) is None
 
 
 def _branched_eligible(context: dict) -> bool:
-    """`concept_compilers.compile_branched`'s own precondition (attempt 3): 2 wet rooms, and
-    either 4 bedrooms without a safe room or 3 bedrooms WITH one (`_branched_unsupported`) —
-    `open_plan` no longer excludes a brief."""
-    if context.get("wet_rooms") != 2:
-        return False
-    if context.get("safe_room"):
-        return context.get("bedrooms") == 3
-    return context.get("bedrooms") == 4
+    """Whether `compile_branched` supports this brief, asked of the compiler itself (see
+    `_hub_lobby_eligible` for why this is not a copy of the precondition)."""
+    return _branched_unsupported(_spec_for(context)) is None
 
 
 def _compiler_eligibility_breakdown(cases: list[dict]) -> dict:
@@ -201,20 +216,15 @@ def _compiler_eligibility_breakdown(cases: list[dict]) -> dict:
              if _hub_lobby_eligible(c["context"]) or _branched_eligible(c["context"])]
     excluded = [c for c in cases
                if not _hub_lobby_eligible(c["context"]) and not _branched_eligible(c["context"])]
+    # Each excluded brief is labelled with the two compilers' OWN refusal messages, never with a
+    # restatement of their preconditions in this file's prose: the prose copy is what went stale
+    # after attempt 4 (review finding, attempt 5), and a report of what the compilers do not cover
+    # has to be quoted from them to stay true as they generalize.
     reason_counter: Counter = Counter()
     for c in excluded:
-        ctx = c["context"]
-        bedrooms, wet_rooms, safe = ctx.get("bedrooms"), ctx.get("wet_rooms"), ctx.get("safe_room")
-        if wet_rooms != 2:
-            reason_counter[f"wet_rooms={wet_rooms} (neither compiler supports != 2)"] += 1
-        elif safe and bedrooms not in (2, 3):
-            reason_counter[f"safe_room=True, bedrooms={bedrooms} "
-                          "(hub_lobby needs 2 w/o safe; branched needs 3 w/ safe)"] += 1
-        elif not safe and bedrooms not in (2, 4):
-            reason_counter[f"safe_room=False, bedrooms={bedrooms} "
-                          "(hub_lobby needs 2; branched needs 4)"] += 1
-        else:
-            reason_counter[f"bedrooms={bedrooms}, safe_room={safe} (no compiler's shape)"] += 1
+        spec = _spec_for(c["context"])
+        reason_counter[f"hub_lobby: {_hub_lobby_unsupported(spec)} · "
+                      f"branched: {_branched_unsupported(spec)}"] += 1
     return {
         "n_briefs": n,
         "hub_lobby_eligible_count": len(hub_elig),
@@ -275,10 +285,12 @@ def render_report(stats: dict) -> str:
             "### Per-precondition eligibility breakdown (lead direction 2026-09-22 (c))",
             "",
             "`compile_hub_lobby` and `compile_branched` now each support a SAFE_ROOM-aware and an "
-            "open-plan-aware variant (attempt 3); the remaining precondition is the room-count "
-            "shape each was calibrated and verified against — 2 bedrooms/2 wet rooms for "
-            "`compile_hub_lobby`, and 2 wet rooms plus either 4 bedrooms (no safe room) or 3 "
-            "bedrooms (with one) for `compile_branched`.",
+            "open-plan-aware variant (attempt 3); what still bounds them is the room-count shape "
+            "each was calibrated and verified against. Every count and every reason below is read "
+            "from the compilers themselves (`_hub_lobby_unsupported` / `_branched_unsupported`), "
+            "never from a restatement of their preconditions here — the earlier restatement went "
+            "stale the moment attempt 4 added `compile_hub_lobby`'s 3-wet-room GUEST_WC row, and "
+            "under-reported what the code already covered (review finding, attempt 5).",
             "",
             f"- `compile_hub_lobby`-eligible: {elig['hub_lobby_eligible_count']}/{n}",
             f"- `compile_branched`-eligible: {elig['branched_eligible_count']}/{n}",
