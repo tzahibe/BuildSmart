@@ -38,47 +38,71 @@ of real envelopes are irregular polygons — the current solver's output space c
 
 ### Required behavior
 
-Executed through child Issues, all on this ROOT's own integration branch (created from
-`integration/rectilinear-realizer` with `integration/poc-architectural-brain` merged into it, so one branch
-finally carries both the intent and the realizer):
+Executed through child Issues on this ROOT's own integration branch (created from
+`integration/rectilinear-realizer` with the POC's `RealizationIntent` work on it, so one branch finally
+carries both the intent and the realizer). The owner set the execution ORDER explicitly (2026-09-23,
+under a subscription quota limit — "do not burn quota on a broad run before there is one deep, complete
+proof"); depth first, breadth only after each gate passes.
 
-1. **Placement derived from the donor, not chosen**: the `RealizationIntent` (adjacency, access, relative
-   placement, exposure, clusters, wet-core groups, entrance relationship) plus the brief's programme and
-   buildable region produce the PLACED layout the Stage 1 realizer consumes. The donor's own structure is the
-   objective; no topology catalogue, no template table, no parti list.
+**Step 0 — one shared, explicit contract between every child, BEFORE any full implementation.** Written
+once and used by all of them, never re-invented per child:
+   - how a DONOR ROOM is identified (its stable id, and how that id survives retrieval, synthesis and adaptation);
+   - how SEED GEOMETRY is represented (the donor's own partition carried as data, before any repair);
+   - exactly what goes into `RealizationIntent` (which facts, in which units, in whose coordinate frame);
+   - exactly what the non-guillotine realizer RECEIVES (the placed-layout structure, its invariants, its refusal contract);
+   - how WET ROOMS and SAFE_ROOM are represented end to end (including what C17/C29 need to run);
+   - how ROOM IDENTITY is preserved along the whole chain — donor room -> intent fact -> seed cell -> repaired cell -> realized zone.
 
-   **Start from the donor's own partition and repair it — do not search the layout space blind.** The donor
-   plan is already a feasible arrangement of exactly these rooms: normalise its own room polygons onto the
-   brief's buildable region, then repair that seed to the brief (per-type target areas, the programme's room
-   counts, the site's own exposure and entrance side, rectilinear snapping) and hand the repaired placement to
-   the realizer. A blind search over placements is both unnecessary and the likeliest way to lose the very
-   facts this ROOT is measured on — the seed preserves adjacency, clusters and relative placement BY
-   CONSTRUCTION, and repair only has to keep them.
-2. **Wet rooms and SAFE_ROOM are realized on this path**, with `ResolvedWetRoom` reconstructed so C17/C29 run
-   like they do on the production path — a plan without bathrooms and a MAMAD is not a result.
-3. **Donor-room correspondence is kept**: every room the brief actually contains maps to a realized zone, so a
-   fact is never lost merely because the pipeline forgot which donor room it came from
-   (`DONOR_ROOM_NOT_REALIZED` -> 0 for rooms in the brief; a room legitimately dropped by adaptation is
-   reported as adapted, not as lost).
-4. **No hidden guillotine fallback**: when the rectilinear path cannot realize a layout it REFUSES with a
-   stated reason and the refusal is what the caller sees. Falling back to the guillotine realizer silently —
-   or labelling a guillotine result as a Stage 2 result — is a defect, not a safety net. #79's
-   HUB_LOBBY/BRANCHED compilers may be kept as reference/test/fallback CANDIDATES but must not run on the main
-   path and must not be generalized.
-5. **The measurement is the deliverable**: the same three fixed benchmark briefs, the same
-   `preservation.py` fact taxonomy, three columns (current engine / Phase 2 baseline / Stage 2) with the
-   per-fact PRESERVED/LOST table and every refusal reason, plus the realized SVGs.
-6. Nothing merges to `main` from this ROOT without the owner's explicit approval; with the flags OFF the
-   frozen 432-context corpus stays byte-identical.
+**Milestone 1 (the first and only milestone until it passes) — ONE COMPLETE HOUSE, end to end.** One
+representative brief, carried the whole way: donor -> `RealizationIntent` -> donor seed -> repair/adaptation
+-> non-guillotine geometry -> validators -> preservation report. From the first day it must contain EVERY
+room, the wet rooms, SAFE_ROOM where the brief asks for one, the entrance, adjacency/access, public/private
+zoning and proportions, checked by the SAME validators including C17 and C29. Not three briefs. Not twenty.
+
+   Its deliverable is the evidence set for that single case: the donor's own SVG; the seed BEFORE repair;
+   the geometry AFTER repair; the final SVG; PRESERVED/LOST per fact; adjacency %; placement %;
+   access / zoning / wet-core / proportions; EVERY repair that was applied and why; and whether there was a
+   refusal — with its explicit reason.
+
+**The first decision point (the owner's, on that evidence):**
+   - the donor's structure is still clearly recognisable after repair AND the validators pass -> continue
+     immediately to the three fixed benchmark briefs (Gate 2);
+   - the repair distorts the plan until the donor structure has all but disappeared -> STOP, run no breadth,
+     and first isolate WHICH step destroys the seed: envelope fitting, area re-targeting, room-count
+     adaptation, entrance/exposure, rectilinear snapping, or a hard constraint.
+
+**Gate 2 (only after Milestone 1 passes)**: the three fixed benchmark briefs with adjacency >= 50%,
+placement >= 50%, zero `GUILLOTINE_IMPOSSIBLE`, zero hidden fallback, no validator relaxation.
+
+**Gate 3 (only after Gate 2 passes)**: ~20 briefs with donor/result side by side, to test generalisation
+and diversity.
+
+**Two rules that hold at every step:**
+   - **No guillotine fallback, ever.** When Stage 2 cannot realize, it returns a REFUSAL with its reason.
+     Returning a result from the old path — or labelling one as a Stage 2 result — is a defect.
+   - **Start from the donor's own partition and repair it; never search the layout space blind.** The donor
+     plan is already a feasible arrangement of exactly these rooms, so the seed preserves adjacency,
+     clusters and relative placement BY CONSTRUCTION and repair only has to keep them.
+
+#79's HUB_LOBBY/BRANCHED compilers stay out of the main path: no generalisation, no new topologies. The
+single thing this ROOT exists to prove: **a retrieved real plan can seed a new plan, survive adaptation to
+new requirements, and still measurably preserve its architectural DNA.**
+
+Nothing merges to `main` from this ROOT without the owner's explicit approval; with the flags OFF the frozen
+432-context corpus stays byte-identical.
+
+Gate 2 and Gate 3 are executed by their own child Issues, created only after the owner reads Milestone 1's
+evidence and decides to continue — deliberately NOT acceptance criteria of this ROOT, so that no breadth work
+can start before the deep proof exists.
 
 ### Acceptance Criteria
 
 - AC-1: with every Stage 2 flag OFF the frozen 432-context corpus is byte-identical to the base (LOST 0, primary_signature_changes 0, refusal codes unchanged)
-- AC-2: on the three fixed briefs, aggregate adjacency preservation is at least 50% and relative placement at least 50%, against the pinned Phase 2 baseline of 14-17% and 0%
-- AC-3: access, public/private clusters, wet-core groups and room proportions are each no worse than the pinned Phase 2 baseline, and the committed report states every one of them per brief and per donor
-- AC-4: zero lost facts carry the reason GUILLOTINE_IMPOSSIBLE on the Stage 2 path, and zero carry DONOR_ROOM_NOT_REALIZED for a room the brief contains; every remaining loss carries its own stated reason
-- AC-5: every realized Stage 2 plan contains its wet rooms and, where the brief asks for one, its SAFE_ROOM, with C17/C29 among the checks that ran and passed
-- AC-6: a refusal on the Stage 2 path surfaces as a refusal with its reason — a test proves no guillotine result is ever returned or labelled in its place
+- AC-2: the shared contract (donor-room identity, seed geometry, RealizationIntent content, the realizer's input and refusal contract, wet-room/SAFE_ROOM representation, room-identity propagation) is committed and every child uses those types — no second representation of the same fact anywhere
+- AC-3: ONE representative brief is carried donor -> intent -> seed -> repair -> non-guillotine geometry -> validators -> preservation report, and its evidence set is committed: donor SVG, seed before repair, geometry after repair, final SVG, PRESERVED/LOST per fact with adjacency and placement percentages, access/zoning/wet-core/proportions, every repair applied with its reason, and any refusal with its explicit reason
+- AC-4: that plan contains every room the brief asks for including its wet rooms and, where required, SAFE_ROOM, with C17 and C29 among the checks that ran and passed
+- AC-5: zero lost facts carry the reason GUILLOTINE_IMPOSSIBLE on the Stage 2 path, and zero carry DONOR_ROOM_NOT_REALIZED for a room the brief contains
+- AC-6: a Stage 2 failure returns a refusal with its reason — a test proves no guillotine-path result is ever returned or labelled as a Stage 2 result
 - AC-7: no validator, hard limit or production code path is relaxed or bypassed, and every new behaviour sits behind its own flag
 
 ### Out of scope
@@ -110,10 +134,12 @@ geometry-core (shared), validator-core (shared), planner-core (shared), knowledg
 ### Verification plan
 
 - AC-1 -> regression:corpus
-- AC-2 -> file:docs/reports/stage2-intent-realization/measurement.md ; grep:docs/reports/stage2-intent-realization/measurement.md:adjacency
-- AC-3 -> grep:docs/reports/stage2-intent-realization/measurement.md:room_proportions
-- AC-4 -> pytest:backend/tests/architectural_brain/test_stage2_preservation.py
-- AC-5 -> pytest:backend/tests/architectural_brain/test_stage2_wet_rooms_and_safe_room.py
+- AC-2 -> pytest:backend/tests/architectural_brain/test_stage2_contract.py
+- AC-2 -> file:docs/stage2/CONTRACT.md
+- AC-3 -> file:docs/reports/stage2-intent-realization/milestone-1.md
+- AC-3 -> grep:docs/reports/stage2-intent-realization/milestone-1.md:placement
+- AC-4 -> pytest:backend/tests/architectural_brain/test_stage2_wet_rooms_and_safe_room.py
+- AC-5 -> pytest:backend/tests/architectural_brain/test_stage2_preservation.py
 - AC-6 -> pytest:backend/tests/architectural_brain/test_stage2_no_guillotine_fallback.py
 - AC-7 -> pytest:backend/tests/architectural_brain/test_stage2_flags_default_off.py
 - AC-7 -> review:no validator, hard limit or production path is relaxed or bypassed, and every new behaviour is flag-gated and OFF by default
