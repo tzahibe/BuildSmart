@@ -7,28 +7,78 @@ REFUSED (outcome=INSUFFICIENT_RECTANGULAR_CAPACITY): FRONT_PUBLIC_BAND/ROOM_SHAP
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (-) | OTHER | REFUSED | - | - | 0.5 |
-| concept-1 (-) | FRONT_BAND | REFUSED | - | - | 0.5 |
+| concept-0 (-) | OTHER | REFUSED | - | - | 12.1 |
+| concept-1 (-) | FRONT_BAND | REFUSED | - | - | 12.1 |
 | concept-5 (A) | TWO_WING | REALIZED | TWO_WING | True | 0.2 |
 
 ## What adaptation changed
 
 ### concept-0
-- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -> total 102.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 190.7 m2 across 10 donor rooms -> total 102.0 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 - **BEDROOM_COUNT_ADJUST**: 4 bedroom(s) -> 5 bedroom(s) (brief requires 5 bedroom(s); added 1 to match, each at its own target area)
 
 ### concept-1
-- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -> total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 215.3 m2 across 8 donor rooms -> total 85.0 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -> 5 bedroom(s) (brief requires 5 bedroom(s); added 2 to match, each at its own target area)
 
 ### concept-5
-- **RESIZE_ROOMS**: total 143.6 m2 across 8 donor rooms -> total 85.0 m2 after per-type target resizing (each room type resized to its own architectural target area, independently -- never a single scale factor applied to every room)
+- **RESIZE_ROOMS**: total 143.6 m2 across 8 donor rooms -> total 85.0 m2 after per-type target resizing (each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target)
 - **BEDROOM_COUNT_ADJUST**: 3 bedroom(s) -> 5 bedroom(s) (brief requires 5 bedroom(s); added 2 to match, each at its own target area)
 
 ## Refusal / rejection reasons
 
-- concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m: no width combination both fit and solved
-- concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m: no width combination both fit and solved
+- concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m / foyer depth 3.0 m: no width combination both fit and solved
+- concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m / foyer depth 3.0 m: no width combination both fit and solved
+
+## RealizationIntent preservation (Issue #109 Track 3)
+
+### PRESERVED / LOST -- concept-5 (donor 681)
+
+| fact class | preserved | total | ratio |
+|---|---|---|---|
+| adjacency | 1 | 13 | 8% |
+| access | 5 | 6 | 83% |
+| exposure | 0 | 0 | n/a |
+| placement | 0 | 8 | 0% |
+| clusters | 0 | 2 | 0% |
+| wet_core_groups | 1 | 2 | 50% |
+| entrance_relationship | 0 | 1 | 0% |
+| room_proportions | 2 | 7 | 29% |
+| footprint_relationships | 1 | 2 | 50% |
+
+LOST facts:
+
+- **adjacency** BATHROOM_0-BEDROOM_1 (realized BATH_1/BEDROOM_2 do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BATHROOM_0-BEDROOM_2 (realized BATH_1/BEDROOM_3 do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BATHROOM_1-BATHROOM_2 -- DONOR_ROOM_NOT_REALIZED
+- **adjacency** BATHROOM_1-BEDROOM_2 (realized BATH_2/BEDROOM_3 do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BATHROOM_1-LIVING_0 (realized BATH_2/LIVING do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BATHROOM_2-BEDROOM_2 -- DONOR_ROOM_NOT_REALIZED
+- **adjacency** BATHROOM_2-LIVING_0 -- DONOR_ROOM_NOT_REALIZED
+- **adjacency** BEDROOM_0-LIVING_0 (realized BEDROOM_1/LIVING do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BEDROOM_1-BEDROOM_2 (realized BEDROOM_2/BEDROOM_3 do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BEDROOM_1-LIVING_0 (realized BEDROOM_2/LIVING do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** BEDROOM_2-LIVING_0 (realized BEDROOM_3/LIVING do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **adjacency** KITCHEN_0-LIVING_0 (realized KITCHEN/LIVING do not touch) -- GUILLOTINE_IMPOSSIBLE
+- **access** BATHROOM_2-LIVING_0 (DOOR) -- DONOR_ROOM_NOT_REALIZED
+- **placement** LIVING_0 (donor BELOW/RIGHT): realized LIVING is FRONT/RIGHT -- GUILLOTINE_IMPOSSIBLE
+- **placement** KITCHEN_0 (donor BELOW/RIGHT): realized KITCHEN is FRONT/LEFT -- GUILLOTINE_IMPOSSIBLE
+- **placement** BEDROOM_0 (donor ABOVE/RIGHT): realized BEDROOM_1 is REAR/RIGHT -- GUILLOTINE_IMPOSSIBLE
+- **placement** BEDROOM_1 (donor ABOVE/LEFT): realized BEDROOM_2 is REAR/RIGHT -- GUILLOTINE_IMPOSSIBLE
+- **placement** BEDROOM_2 (donor ABOVE/LEFT): realized BEDROOM_3 is FRONT/RIGHT -- GUILLOTINE_IMPOSSIBLE
+- **placement** BATHROOM_0 (donor ABOVE/LEFT): realized BATH_1 is REAR/RIGHT -- GUILLOTINE_IMPOSSIBLE
+- **placement** BATHROOM_1 (donor BELOW/LEFT): realized BATH_2 is REAR/RIGHT -- GUILLOTINE_IMPOSSIBLE
+- **placement** BATHROOM_2 (donor BELOW/LEFT) -- DONOR_ROOM_NOT_REALIZED
+- **clusters** public: split across 2 disconnected groups -- GUILLOTINE_IMPOSSIBLE
+- **clusters** private: split across 2 disconnected groups -- GUILLOTINE_IMPOSSIBLE
+- **wet_core_groups** group ['BATHROOM_1', 'BATHROOM_2']: ['BATHROOM_2'] not realized -- DONOR_ROOM_NOT_REALIZED
+- **entrance_relationship** donor entrance -> TO_LIVING, realized entrance -> TO_HALL -- GUILLOTINE_IMPOSSIBLE
+- **room_proportions** BEDROOM_0/BEDROOM_1: donor share=0.691, realized share=1.043 -- BUDGET
+- **room_proportions** BEDROOM_1/BEDROOM_2: donor share=0.824, realized share=1.043 -- BUDGET
+- **room_proportions** BEDROOM_2/BEDROOM_3: donor share=1.486, realized share=0.913 -- BUDGET
+- **room_proportions** BATHROOM_0/BATH_1: donor share=0.962, realized share=1.216 -- BUDGET
+- **room_proportions** BATHROOM_1/BATH_2: donor share=1.014, realized share=0.784 -- BUDGET
+- **footprint_relationships** aspect_ratio: donor=1.824, realized=1.069 -- GUILLOTINE_IMPOSSIBLE
 
 ## Measurements table (realized-and-ok plans, plus the current baseline)
 

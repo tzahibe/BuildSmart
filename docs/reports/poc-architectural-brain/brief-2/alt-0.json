@@ -5,6 +5,7 @@
   "declared_circulation_class": "FRONT_BAND",
   "zoning": "CENTRAL_PUBLIC",
   "wet_core_strategy": "DISPERSED",
+  "realization_intent_source_plan_id": "9302",
   "adaptations": [
     {
       "kind": "RESIZE_ROOMS",
@@ -19,7 +20,7 @@
       "reason": "brief requires 4 bedroom(s); added 1 to match, each at its own target area"
     }
   ],
-  "elapsed_s": 22.0,
+  "elapsed_s": 17.8,
   "outcome": "REALIZED",
   "ok": false,
   "realized_circulation_class": "SPINE",
@@ -30,7 +31,7 @@
   "rationale": "architectural-brain POC: synthesized concept-0 (circulation_class=FRONT_BAND, zoning=CENTRAL_PUBLIC) adapted with 2 operation(s), compiled to the SPINE template",
   "measurements": {
     "gross_area_m2": 143.0,
-    "net_area_m2": 130.12,
+    "net_area_m2": 130.18,
     "wall_iterations": 1,
     "over_preferred": false,
     "entrance_opens_into": "HALL",
@@ -38,16 +39,303 @@
       "HALL",
       "CIRCULATION"
     ],
-    "m1_habitable_aspect_median": 1.1500000000000001,
-    "m1_habitable_aspect_max": 2.0185185185185186,
+    "m1_habitable_aspect_median": 1.3571428571428572,
+    "m1_habitable_aspect_max": 1.7727272727272727,
     "m2_habitable_on_envelope_ratio": 0.8571428571428571,
-    "m3_circulation_share": 0.20541958041958047,
+    "m3_circulation_share": 0.20541958041958042,
     "m4_hall_door_count": 8,
     "m4_hall_aspect_median": 6.276344086021505,
     "m5_wet_adjacency_ratio": 0.5,
     "m6_public_zone_contiguous": true,
-    "wasted_circulation_share": 0.20541958041958047,
+    "wasted_circulation_share": 0.20541958041958042,
     "wet_core_cluster_count": 2,
-    "wet_core_plumbing_complexity_index": 2
+    "wet_core_plumbing_complexity_index": 3
+  },
+  "layout_signature": [
+    [
+      "BATH_1",
+      [
+        5.3,
+        8.65,
+        3.35,
+        2.4
+      ]
+    ],
+    [
+      "BATH_2",
+      [
+        10.2,
+        11.25,
+        2.8,
+        1.85
+      ]
+    ],
+    [
+      "BEDROOM_1",
+      [
+        5.3,
+        11.05,
+        3.35,
+        3.95
+      ]
+    ],
+    [
+      "BEDROOM_2",
+      [
+        10.2,
+        3.5,
+        2.8,
+        3.8
+      ]
+    ],
+    [
+      "BEDROOM_3",
+      [
+        10.2,
+        7.3,
+        2.8,
+        3.95
+      ]
+    ],
+    [
+      "DINING",
+      [
+        2.0,
+        7.85,
+        3.3,
+        3.7
+      ]
+    ],
+    [
+      "HALL",
+      [
+        5.3,
+        2.0,
+        7.7,
+        1.5
+      ]
+    ],
+    [
+      "HALL_SPINE",
+      [
+        8.65,
+        3.5,
+        1.55,
+        11.5
+      ]
+    ],
+    [
+      "KITCHEN",
+      [
+        2.0,
+        11.55,
+        3.3,
+        3.45
+      ]
+    ],
+    [
+      "LAUNDRY",
+      [
+        10.2,
+        13.1,
+        2.8,
+        1.9
+      ]
+    ],
+    [
+      "LIVING",
+      [
+        2.0,
+        2.0,
+        3.3,
+        5.85
+      ]
+    ],
+    [
+      "MASTER",
+      [
+        5.3,
+        3.5,
+        3.35,
+        5.15
+      ]
+    ]
+  ],
+  "preservation": {
+    "schema_version": "1.0",
+    "source_plan_id": "9302",
+    "concept_id": "concept-0",
+    "fact_classes": [
+      {
+        "fact_class": "adjacency",
+        "preserved": 2,
+        "total": 12,
+        "preserved_ratio": 0.1667,
+        "lost": [
+          {
+            "detail": "BATHROOM_0-LIVING_0 (realized BATH_1/LIVING do not touch)",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_0-LIVING_0 (realized BEDROOM_1/LIVING do not touch)",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_1-LIVING_0 (realized BEDROOM_2/LIVING do not touch)",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_1-TOILET_0",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          },
+          {
+            "detail": "BEDROOM_2-LIVING_0 (realized BEDROOM_3/LIVING do not touch)",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_2-STORAGE_0",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          },
+          {
+            "detail": "KITCHEN_0-LIVING_0 (realized KITCHEN/LIVING do not touch)",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "KITCHEN_0-STORAGE_0",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          },
+          {
+            "detail": "LIVING_0-STORAGE_0",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          },
+          {
+            "detail": "LIVING_0-TOILET_0",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          }
+        ]
+      },
+      {
+        "fact_class": "access",
+        "preserved": 4,
+        "total": 5,
+        "preserved_ratio": 0.8,
+        "lost": [
+          {
+            "detail": "LIVING_0-TOILET_0 (DOOR)",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          }
+        ]
+      },
+      {
+        "fact_class": "exposure",
+        "preserved": 4,
+        "total": 6,
+        "preserved_ratio": 0.6667,
+        "lost": [
+          {
+            "detail": "BATHROOM_0 (donor sides=['N']): realized BATH_1 has 0 exterior side(s)",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "TOILET_0 (donor sides=['S'])",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          }
+        ]
+      },
+      {
+        "fact_class": "placement",
+        "preserved": 0,
+        "total": 8,
+        "preserved_ratio": 0.0,
+        "lost": [
+          {
+            "detail": "LIVING_0 (donor FRONT/ABOVE): realized LIVING is FRONT/LEFT",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "KITCHEN_0 (donor REAR/ABOVE): realized KITCHEN is REAR/LEFT",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_0 (donor FRONT/ABOVE): realized BEDROOM_1 is REAR/LEFT",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_1 (donor REAR/BELOW): realized BEDROOM_2 is FRONT/RIGHT",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BEDROOM_2 (donor REAR/BELOW): realized BEDROOM_3 is REAR/RIGHT",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "BATHROOM_0 (donor FRONT/ABOVE): realized BATH_1 is REAR/LEFT",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "TOILET_0 (donor FRONT/BELOW)",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          },
+          {
+            "detail": "STORAGE_0 (donor REAR/BELOW)",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          }
+        ]
+      },
+      {
+        "fact_class": "clusters",
+        "preserved": 0,
+        "total": 2,
+        "preserved_ratio": 0.0,
+        "lost": [
+          {
+            "detail": "public: split across 2 disconnected groups",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          },
+          {
+            "detail": "private: split across 2 disconnected groups",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          }
+        ]
+      },
+      {
+        "fact_class": "wet_core_groups",
+        "preserved": 1,
+        "total": 2,
+        "preserved_ratio": 0.5,
+        "lost": [
+          {
+            "detail": "group ['TOILET_0']: ['TOILET_0'] not realized",
+            "reason": "DONOR_ROOM_NOT_REALIZED"
+          }
+        ]
+      },
+      {
+        "fact_class": "entrance_relationship",
+        "preserved": 0,
+        "total": 1,
+        "preserved_ratio": 0.0,
+        "lost": [
+          {
+            "detail": "donor entrance -> TO_LIVING, realized entrance -> TO_HALL",
+            "reason": "GUILLOTINE_IMPOSSIBLE"
+          }
+        ]
+      },
+      {
+        "fact_class": "room_proportions",
+        "preserved": 6,
+        "total": 6,
+        "preserved_ratio": 1.0,
+        "lost": []
+      },
+      {
+        "fact_class": "footprint_relationships",
+        "preserved": 2,
+        "total": 2,
+        "preserved_ratio": 1.0,
+        "lost": []
+      }
+    ]
   }
 }

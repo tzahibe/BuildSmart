@@ -92,6 +92,7 @@ from app.vertical_slice.windows import DAYLIGHT_ROLES
 
 from spikes.architectural_brain.adaptation import AdaptedConcept
 from spikes.architectural_brain.brief import Brief
+from spikes.architectural_brain.realization_intent import RealizationIntent
 from spikes.architectural_brain.synthesis import ConceptSpec as SynthesizedConcept
 
 #: `SynthesizedConcept.circulation_class` (the corpus vocabulary — `patterns._circulation_class`)
@@ -136,6 +137,17 @@ def _room_role(room_type: str) -> ProgramRole | None:
         return None
 
 
+def layout_signature(design) -> tuple:
+    """A deterministic fingerprint of a realized ``GeometricDesign``'s own room geometry —
+    ``(zone_id, rounded rect_m)`` pairs, sorted. Two ``RealizedPlan``s with the SAME signature drew
+    byte-identical room rectangles (Issue #109's own "brief 1 collapse"); a DIFFERENT signature is
+    what proves the donor's own room proportions (AC-2) actually reached the realized geometry,
+    not just the adapted concept's intermediate room list."""
+    return tuple(sorted(
+        (r.zone_id, tuple(round(v, 3) for v in r.rect_m)) for r in design.rooms
+    ))
+
+
 def _h_chain(zone_ids: list[str]) -> Node:
     if len(zone_ids) == 1:
         return Leaf(zone_ids[0])
@@ -164,14 +176,56 @@ def _adapted_target_area_m2(adapted: AdaptedConcept, role: ProgramRole,
     return sum(matches) / len(matches)
 
 
+def _donor_room_id(adapted: AdaptedConcept, role: ProgramRole, instance_index: int = 0) -> str | None:
+    """The specific donor room id `_adapted_target_area_m2` reads THIS zone's own area override
+    from — `adaptation._resize_rooms` sets `AdaptedRoom.id = room.id` from the donor's own
+    `PlanReference.rooms`, so this id is exactly what `RealizationIntent.room_proportions` (Issue
+    #109, built from the SAME reference) is keyed by. `None` when no single donor room maps here:
+    no room of this role at all, this instance fell back to the role's own MEAN
+    (`_adapted_target_area_m2`'s own `instance_index >= len(matches)` case — an aggregate, not one
+    room), or the matched room is one `adaptation._adjust_bedroom_count` SYNTHESISED
+    (`BEDROOM_ADAPTED_*` — never a real donor id, never a `RealizationIntent` fact to invent)."""
+    matches = [r for r in adapted.rooms if _room_role(r.room_type) is role]
+    if not matches or instance_index >= len(matches):
+        return None
+    room_id = matches[instance_index].id
+    return None if room_id.startswith("BEDROOM_ADAPTED_") else room_id
+
+
+def _intent_target_area_m2(intent: RealizationIntent, donor_room_id: str | None,
+                           template) -> float | None:
+    """The donor's OWN proportion of this room TYPE's target area (Issue #109 AC-2) — never the
+    donor's raw `area_m2` (a different plot's own absolute scale), never `adaptation.py`'s fixed
+    per-type constant alone: `template.target_area_m2 * area_share_of_type` recovers exactly the
+    per-room area `RoomProportion`'s own docstring promises, sourced from `RealizationIntent`
+    itself rather than `AdaptedConcept`'s already-computed one — so this compiler's own room
+    sizing is driven by the INTENT (Required Behaviour 2), not a parallel computation of the same
+    fact. `None` when `donor_room_id` has no fact on `intent` at all (never invented)."""
+    if donor_room_id is None:
+        return None
+    proportion = next((p for p in intent.room_proportions if p.room_id == donor_room_id), None)
+    if proportion is None:
+        return None
+    return template.target_area_m2 * proportion.area_share_of_type
+
+
 def _zone(zone_id: str, role: ProgramRole, extra_roles: tuple[ProgramRole, ...] = (),
-         adapted: AdaptedConcept | None = None, instance_index: int = 0) -> ZoneSpec:
+         adapted: AdaptedConcept | None = None, instance_index: int = 0,
+         intent: RealizationIntent | None = None,
+         donor_by_zone: dict[str, str] | None = None) -> ZoneSpec:
     template = generator.ROOM_TEMPLATES[role]
     target = template.target_area_m2
+    donor_room_id = _donor_room_id(adapted, role, instance_index) if adapted is not None else None
     if adapted is not None:
         override = _adapted_target_area_m2(adapted, role, instance_index)
         if override is not None:
             target = min(max(override, template.min_area_m2), template.max_area_m2)
+    if intent is not None:
+        intent_target = _intent_target_area_m2(intent, donor_room_id, template)
+        if intent_target is not None:
+            target = min(max(intent_target, template.min_area_m2), template.max_area_m2)
+    if donor_by_zone is not None and donor_room_id is not None:
+        donor_by_zone[zone_id] = donor_room_id
     return ZoneSpec(
         zone_id, (role,) + extra_roles,
         template.min_area_m2, target, template.max_area_m2,
@@ -199,7 +253,8 @@ class _Programme:
     entrance_public_zone_id: str
 
 
-def _wet_topology(program, adapted: AdaptedConcept):
+def _wet_topology(program, adapted: AdaptedConcept, intent: RealizationIntent | None = None,
+                  donor_by_zone: dict[str, str] | None = None):
     """The brief's own `resolve_wet_rooms` result, partitioned into (zone_id -> ZoneSpec),
     ensuite (host, wet_zone) pairs and shared (hall-entered) wet zone ids.
 
@@ -209,8 +264,8 @@ def _wet_topology(program, adapted: AdaptedConcept):
     compiler does not re-derive that from the adapted concept's `wet_core_strategy` (that field
     explains, for the demo's own record, why `adapt` needed a `WET_ZONE_ADJUST` operation to make
     a CLUSTERED donor able to host the brief's ensuite at all — never a second source of truth for
-    hosting once the brief itself already states it). `adapted` is threaded through only for its
-    per-role target AREAS (`_zone`'s own `adapted` argument).
+    hosting once the brief itself already states it). `adapted`/`intent` are threaded through only
+    for their per-role target AREAS (`_zone`'s own arguments).
     """
     resolved = wet_rooms_module.resolve_wet_rooms(program)
     zones: dict[str, ZoneSpec] = {}
@@ -221,7 +276,8 @@ def _wet_topology(program, adapted: AdaptedConcept):
         role = ProgramRole.TOILET if w.kind.value == "guest_wc" else ProgramRole.BATHROOM
         instance_index = role_counts.get(role, 0)
         role_counts[role] = instance_index + 1
-        zones[w.zone_id] = _zone(w.zone_id, role, adapted=adapted, instance_index=instance_index)
+        zones[w.zone_id] = _zone(w.zone_id, role, adapted=adapted, instance_index=instance_index,
+                                 intent=intent, donor_by_zone=donor_by_zone)
         if w.host_zone is not None:
             ensuite_pairs.append((w.host_zone, w.zone_id))
         else:
@@ -229,13 +285,20 @@ def _wet_topology(program, adapted: AdaptedConcept):
     return zones, tuple(ensuite_pairs), tuple(shared), resolved
 
 
-def _programme_of(brief: Brief, adapted: AdaptedConcept) -> tuple[_Programme, tuple]:
+def _programme_of(brief: Brief, adapted: AdaptedConcept, intent: RealizationIntent | None = None,
+                  ) -> tuple[_Programme, tuple, dict[str, str]]:
+    """Builds this brief/adapted concept's own `_Programme`, plus (Issue #109) the `zone_id ->
+    donor room id` correspondence established while doing so — every zone `_zone` matched to a
+    SPECIFIC donor room (`_donor_room_id`), regardless of whether `intent` actually had a fact for
+    it. Exposed publicly via `donor_room_id_by_zone` for `preservation.py`, since this mapping is a
+    pure function of `(brief, adapted)` alone — independent of whether the geometry solved."""
     program = brief.program
+    donor_by_zone: dict[str, str] = {}
 
     public_zones = [
-        _zone("LIVING", ProgramRole.LIVING, adapted=adapted),
-        _zone("DINING", ProgramRole.DINING, adapted=adapted),
-        _zone("KITCHEN", ProgramRole.KITCHEN, adapted=adapted),
+        _zone("LIVING", ProgramRole.LIVING, adapted=adapted, intent=intent, donor_by_zone=donor_by_zone),
+        _zone("DINING", ProgramRole.DINING, adapted=adapted, intent=intent, donor_by_zone=donor_by_zone),
+        _zone("KITCHEN", ProgramRole.KITCHEN, adapted=adapted, intent=intent, donor_by_zone=donor_by_zone),
     ]
 
     bedroom_zone_ids = wet_rooms_module.bedroom_zones(program)
@@ -243,13 +306,16 @@ def _programme_of(brief: Brief, adapted: AdaptedConcept) -> tuple[_Programme, tu
     bedroom_instance_index = 0
     for zid in bedroom_zone_ids:
         if zid == "MASTER":
-            bedroom_zones[zid] = _zone(zid, ProgramRole.MASTER_BEDROOM, adapted=adapted)
+            bedroom_zones[zid] = _zone(zid, ProgramRole.MASTER_BEDROOM, adapted=adapted,
+                                       intent=intent, donor_by_zone=donor_by_zone)
         else:
             bedroom_zones[zid] = _zone(zid, ProgramRole.BEDROOM, adapted=adapted,
-                                       instance_index=bedroom_instance_index)
+                                       instance_index=bedroom_instance_index,
+                                       intent=intent, donor_by_zone=donor_by_zone)
             bedroom_instance_index += 1
 
-    wet_zones, ensuite_pairs, shared_wet_ids, resolved_wet_rooms = _wet_topology(program, adapted)
+    wet_zones, ensuite_pairs, shared_wet_ids, resolved_wet_rooms = _wet_topology(
+        program, adapted, intent=intent, donor_by_zone=donor_by_zone)
     ensuite_by_host = dict(ensuite_pairs)
 
     order: list[str] = []
@@ -264,7 +330,8 @@ def _programme_of(brief: Brief, adapted: AdaptedConcept) -> tuple[_Programme, tu
 
     if program.safe_room:
         order.append("SAFE_ROOM")
-        private_zones.append(_zone("SAFE_ROOM", ProgramRole.SAFE_ROOM, adapted=adapted))
+        private_zones.append(_zone("SAFE_ROOM", ProgramRole.SAFE_ROOM, adapted=adapted,
+                                   intent=intent, donor_by_zone=donor_by_zone))
 
     for zid in shared_wet_ids:
         order.append(zid)
@@ -272,7 +339,8 @@ def _programme_of(brief: Brief, adapted: AdaptedConcept) -> tuple[_Programme, tu
 
     if program.laundry.demand is LaundryDemand.ROOM:
         order.append("LAUNDRY")
-        private_zones.append(_zone("LAUNDRY", ProgramRole.LAUNDRY, adapted=adapted))
+        private_zones.append(_zone("LAUNDRY", ProgramRole.LAUNDRY, adapted=adapted,
+                                   intent=intent, donor_by_zone=donor_by_zone))
 
     hall_zone = _zone("HALL", ProgramRole.HALL, extra_roles=(ProgramRole.CIRCULATION,))
 
@@ -284,7 +352,20 @@ def _programme_of(brief: Brief, adapted: AdaptedConcept) -> tuple[_Programme, tu
         shared_wet_zone_ids=shared_wet_ids,
         hall_role_zone=hall_zone,
         entrance_public_zone_id="LIVING",
-    ), resolved_wet_rooms
+    ), resolved_wet_rooms, donor_by_zone
+
+
+def donor_room_id_by_zone(brief: Brief, adapted: AdaptedConcept) -> dict[str, str]:
+    """Issue #109: the `zone_id -> donor room id` correspondence `realize_concept` compiles this
+    brief/adapted concept's programme with — computed independently here (not carried on
+    `gp.RealizedPlan`, an unmodified production dataclass this Issue does not touch) so
+    `preservation.py` can translate `RealizationIntent`'s donor-room-id-keyed facts onto realized
+    zone ids for ANY already-realized plan, without `realize_concept` itself needing to return
+    anything beyond the `RealizedPlan | Refusal` its existing callers (Issue #96's own demo/tests)
+    already depend on. `intent`-independent (`_donor_room_id`'s own matching never reads `intent`
+    — see `_zone`), so the caller does not need `intent` on hand to compute this."""
+    _, _, mapping = _programme_of(brief, adapted)
+    return mapping
 
 
 def _hall_zone(hall_id: str, room_count: int) -> ZoneSpec:
@@ -1105,17 +1186,26 @@ _TOPOLOGY_FOR_CLASS = {_TWO_WING: _TWO_WING}
 
 def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief: Brief,
                     site: SiteConstraints, plot_size_m: tuple[float, float], index: int = 0,
+                    intent: RealizationIntent | None = None,
                     ) -> "gp.RealizedPlan | Refusal":
     """Compile `concept`/`adapted` into a `Fixture`, then run it through the UNCHANGED
     `solve_fixture` + `general_pipeline._realize` chain (doors, windows, furniture, validation,
     assembly, `concept_spec.realized_circulation_class`).
+
+    `intent` (Issue #109, optional — every existing caller keeps working unchanged): when given,
+    each zone's own target area is driven by the DONOR'S OWN proportion of that room type
+    (`RealizationIntent.room_proportions`, `_intent_target_area_m2`) rather than `adapted`'s
+    already-resized area alone — see `_zone`'s own docstring. `donor_room_id_by_zone(brief,
+    adapted)` recovers the SAME zone-id -> donor-room-id correspondence this call used, for a
+    caller (`preservation.py`) that needs to translate `intent`'s facts onto the realized geometry
+    afterward.
 
     Returns a `Refusal` if no geometry could be built at all (adaptation already rejected the
     concept, or every tried footprint size was `GeometryInfeasible`); otherwise a `RealizedPlan`
     — which may itself carry failing validation checks (`.ok is False`), exactly as any other
     realized candidate in this codebase can.
     """
-    programme, resolved_wet_rooms = _programme_of(brief, adapted)
+    programme, resolved_wet_rooms, _ = _programme_of(brief, adapted, intent=intent)
 
     buildable = build_buildable_region(site)
     adapter_result = safe_adapt(buildable)

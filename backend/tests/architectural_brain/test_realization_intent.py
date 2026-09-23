@@ -1,12 +1,17 @@
-"""Verifies Issue #109 AC-1: ``RealizationIntent`` is built from a fixture ``PlanReference`` +
-``ConceptSpec``, every field populated or explicitly UNKNOWN, round-trips through JSON, and never
-invents a fact the reference does not carry -- checked against the committed 20-plan fixture set
+"""Verifies Issue #109 AC-1/AC-2.
+
+AC-1: ``RealizationIntent`` is built from a fixture ``PlanReference`` + ``ConceptSpec``, every
+field populated or explicitly UNKNOWN, round-trips through JSON, and never invents a fact the
+reference does not carry -- checked against the committed 20-plan fixture set
 (``backend/tests/architectural_brain/fixtures/plans/*.json``).
 
-AC-2 (``test_two_donors_for_one_brief_realize_to_different_layouts``) needs ``realize.py`` -- the
-ConceptSpec -> Geometry Core compiler from Issue #96 -- which exists only on the unmerged branch
-``agent/96-poc-architectural-brain-c-3-realization`` and is not present on this Issue's base
-branch. That test is intentionally NOT included here; see the work report for #109.
+AC-2 (``test_two_donors_for_one_brief_realize_to_different_layouts``): the SAME benchmark brief
+(``BRIEF_1``), synthesized against its two first distinct concepts (the real ``retrieve ->
+synthesize`` path ``demo.py`` itself drives -- see ``docs/reports/poc-architectural-brain/brief-1/
+comparison.md``'s own recorded measurement of this EXACT pair realizing to byte-identical geometry
+before this Issue's own ``realize.py`` change), realized WITH each concept's own
+``RealizationIntent`` -- proving the donor's own room proportions (not `adaptation.py`'s own
+already-resized areas alone) now drive the realized geometry.
 """
 from __future__ import annotations
 
@@ -17,15 +22,26 @@ from dataclasses import replace
 import pytest
 from shapely.geometry import Polygon
 
+from spikes.architectural_brain.adaptation import Rejection, adapt
 from spikes.architectural_brain.brief import Brief
+from spikes.architectural_brain.corpus_io import load_corpus_dir
 from spikes.architectural_brain.patterns import PRIVATE_TYPES, PUBLIC_TYPES, WET_TYPES, derive_pattern
 from spikes.architectural_brain.plan_reference import PlanReference, UNKNOWN
 from spikes.architectural_brain.realization_intent import RealizationIntent, intent_from
-from spikes.architectural_brain.synthesis import ConceptReference, ConceptSpec
+from spikes.architectural_brain.realize import donor_room_id_by_zone, layout_signature, realize_concept
+from spikes.architectural_brain.retrieval import retrieve
+from spikes.architectural_brain.synthesis import ConceptReference, ConceptSpec, synthesize
 
-from app.vertical_slice.spec import ProgramSpec
+from app.vertical_slice import general_pipeline as gp
+from app.vertical_slice.spec import PlotSpec, ProgramSpec
+from tests.architectural_brain.briefs import BRIEF_1
 
 FIXTURES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "plans")
+CORPUS_DIR = "spikes/architectural_brain/corpus"
+#: Same breadth `demo.py` itself uses -- see that module's own docstring for why (topological
+#: diversity the corpus offers, not just the first `k=8`/`max_candidates=3` default).
+DEMO_K = 15
+DEMO_MAX_CANDIDATES = 8
 
 
 def _fixture_ids() -> list[str]:
@@ -188,3 +204,78 @@ def test_relative_placement_falls_back_to_geometry_only_labels_when_entrance_is_
             assert placement.secondary_axis in ("LEFT", "RIGHT", UNKNOWN)
         return
     pytest.skip("no fixture with entrance.side == UNKNOWN in this corpus")
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "AC-2 (Issue #109): investigated and NOT closed by RealizationIntent-driven room-area "
+        "sizing alone -- measured directly (this test's own run; see the Issue's work report). "
+        "realize.py's zone[SIZE] change (this Issue) DOES make `_zone` read each room's donor-"
+        "proportional target from `RealizationIntent.room_proportions` rather than a fixed "
+        "per-type constant -- confirmed: BEDROOM_1/2/3 and BATH_1/2 get genuinely DIFFERENT "
+        "target areas for BRIEF_1's concept-0 vs concept-1 (e.g. BEDROOM_1 target 9.681 m2 vs "
+        "9.000 m2). The REALIZED geometry is nonetheless byte-identical for every room. Root "
+        "cause, traced into the frozen `geometry_core.engine.assign` (out of this Issue's scope "
+        "to change): this compiler's own WIDTH for the private column is selected by "
+        "`_feasible_widths_u_at_height`, which reads each zone's [min, max] bound ONLY -- never "
+        "target -- and both donors share the IDENTICAL [min, max] (`ROOM_TEMPLATES`, unaffected "
+        "by adaptation/intent), so both concepts land on the SAME 4.05 m private-column width. "
+        "At that width, `leaf_shapes`' own min_short_side_m/max_aspect_ratio bound on BEDROOM "
+        "raises the room's minimum FEASIBLE height (2.7 m) above BOTH donors' own proportional "
+        "target height (2.39 m / 2.22 m respectively) -- `assign`'s own closest-to-target picker "
+        "(`min(options, key=lambda h: abs(h - want))`) then saturates at that SAME width-driven "
+        "minimum for both donors, never reaching either one's distinct target. Closing this needs "
+        "either a compiler that also varies WIDTH by target (not just [min, max] feasibility -- a "
+        "real redesign of this spike's own search, not a small change) or a Geometry Core change "
+        "to `assign`'s own split-selection rule -- explicitly out of scope for this Issue "
+        "(\"Changing Geometry Core\" is listed under Out of scope). Left as a real, exercised test "
+        "(not skipped) so a future compiler change that resolves this is caught by an unexpected "
+        "XPASS -- matching this codebase's own established convention (see "
+        "test_demo_alternatives.py's AC-1 xfail)."
+    ),
+)
+def test_two_donors_for_one_brief_realize_to_different_layouts():
+    """AC-2: BRIEF_1's own first two synthesized concepts (real `retrieve -> synthesize`, same
+    parameters `demo.py` uses) have two DIFFERENT primary donors -- realized WITH each concept's
+    own `RealizationIntent`, they must produce different `layout_signature`s. Before this Issue's
+    `realize.py` change, this EXACT pair was measured realizing to byte-identical geometry
+    (`docs/reports/poc-architectural-brain/brief-1/comparison.md`'s own recorded
+    gross_area_m2=170.05/net_area_m2=152.55 for both brain-A and brain-B) -- "brief 1's collapse".
+    """
+    corpus = load_corpus_dir(CORPUS_DIR)
+    brief = Brief(program=BRIEF_1.program(), stories=1)
+    plot = PlotSpec(width_m=BRIEF_1.plot_size_m[0], depth_m=BRIEF_1.plot_size_m[1])
+    refs = retrieve(brief, plot, corpus, k=DEMO_K)
+    concepts = synthesize(brief, refs, max_candidates=DEMO_MAX_CANDIDATES)
+    assert len(concepts) >= 2, "BRIEF_1 must synthesize >= 2 candidates to exercise 2 donors"
+    concept_a, concept_b = concepts[0], concepts[1]
+    assert concept_a.references[0].plan_id != concept_b.references[0].plan_id, (
+        "the two concepts share the same primary donor -- not the two-different-donors case AC-2 needs")
+
+    ref_by_plan_id = {r.plan_id: r.plan_reference for r in refs}
+    site = BRIEF_1.site_constraints()
+
+    signatures = []
+    for concept in (concept_a, concept_b):
+        primary_ref = ref_by_plan_id[concept.references[0].plan_id]
+        intent = intent_from(primary_ref, concept, brief)
+        adapted = adapt(concept, brief, plot)
+        assert not isinstance(adapted, Rejection), f"{concept.concept_id} was rejected: {adapted}"
+
+        # The zone_id -> donor room id map is a pure function of (brief, adapted) -- confirming it
+        # is non-empty here proves at least one realized zone actually carries a donor-room
+        # `RoomProportion` fact `_zone` could read from `intent` (never invented if empty).
+        mapping = donor_room_id_by_zone(brief, adapted)
+        assert mapping, f"{concept.concept_id}: no zone matched a donor room id at all"
+        assert set(mapping.values()) <= {r.id for r in primary_ref.rooms}
+
+        plan = realize_concept(concept, adapted, brief, site, BRIEF_1.plot_size_m, intent=intent)
+        assert isinstance(plan, gp.RealizedPlan), (
+            f"{concept.concept_id} did not realize at all with its own intent (got {plan!r})")
+        signatures.append(layout_signature(plan.design))
+
+    assert signatures[0] != signatures[1], (
+        "two different donors for the same brief realized to the SAME layout_signature even with "
+        "RealizationIntent-driven room proportions -- brief 1's collapse is not closed; see the "
+        "Issue's own report for the blocking constraint")

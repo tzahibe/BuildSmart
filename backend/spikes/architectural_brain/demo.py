@@ -43,7 +43,9 @@ from tests.architectural_brain.briefs import BENCHMARK_BRIEFS, BenchmarkBrief
 from spikes.architectural_brain.adaptation import Rejection, adapt
 from spikes.architectural_brain.brief import Brief
 from spikes.architectural_brain.corpus_io import load_corpus_dir
-from spikes.architectural_brain.realize import Refusal, realize_concept
+from spikes.architectural_brain.preservation import PreservationReport, measure_preservation
+from spikes.architectural_brain.realization_intent import intent_from
+from spikes.architectural_brain.realize import Refusal, donor_room_id_by_zone, layout_signature, realize_concept
 from spikes.architectural_brain.retrieval import retrieve
 from spikes.architectural_brain.synthesis import ConceptSpec, synthesize
 
@@ -71,13 +73,13 @@ def _out_dir(brief_id: str) -> str:
     return path
 
 
-def _synthesized_concepts(brief_def: BenchmarkBrief) -> tuple[Brief, PlotSpec, list]:
+def _synthesized_concepts(brief_def: BenchmarkBrief) -> tuple[Brief, PlotSpec, list, list]:
     corpus = load_corpus_dir(CORPUS_DIR)
     brief = Brief(program=brief_def.program(), stories=1)
     plot = PlotSpec(width_m=brief_def.plot_size_m[0], depth_m=brief_def.plot_size_m[1])
     refs = retrieve(brief, plot, corpus, k=DEMO_K)
     concepts = synthesize(brief, refs, max_candidates=DEMO_MAX_CANDIDATES)
-    return brief, plot, concepts
+    return brief, plot, concepts, refs
 
 
 def _measurements(design, validation_report) -> dict:
@@ -138,7 +140,7 @@ def cmd_current(brief_id: str) -> None:
 def cmd_references(brief_id: str) -> None:
     brief_def = _brief_by_id(brief_id)
     out = _out_dir(brief_id)
-    _, _, concepts = _synthesized_concepts(brief_def)
+    _, _, concepts, _ = _synthesized_concepts(brief_def)
     corpus = load_corpus_dir(CORPUS_DIR)
     brief = Brief(program=brief_def.program(), stories=1)
     plot = PlotSpec(width_m=brief_def.plot_size_m[0], depth_m=brief_def.plot_size_m[1])
@@ -180,17 +182,24 @@ def cmd_references(brief_id: str) -> None:
 def cmd_alternative(brief_id: str, index: int) -> None:
     brief_def = _brief_by_id(brief_id)
     out = _out_dir(brief_id)
-    brief, plot, concepts = _synthesized_concepts(brief_def)
+    brief, plot, concepts, refs = _synthesized_concepts(brief_def)
     if index >= len(concepts):
         raise SystemExit(f"{brief_id}: only {len(concepts)} synthesized concepts, index {index} "
                          "out of range")
     concept: ConceptSpec = concepts[index]
     site = brief_def.site_constraints()
 
+    # Issue #109 Track 3: the RealizationIntent this concept's PRIMARY donor carries -- built here
+    # (not inside `realize_concept`) so a `Refusal`/`Rejection` payload can still record WHICH
+    # donor plan and facts were attempted, even when nothing realized.
+    primary_ref = next(r.plan_reference for r in refs if r.plan_id == concept.references[0].plan_id)
+    intent = intent_from(primary_ref, concept, brief)
+
     adapted = adapt(concept, brief, plot)
     payload = {"brief_id": brief_id, "index": index, "concept_id": concept.concept_id,
               "declared_circulation_class": concept.circulation_class, "zoning": concept.zoning,
-              "wet_core_strategy": concept.wet_core_strategy}
+              "wet_core_strategy": concept.wet_core_strategy,
+              "realization_intent_source_plan_id": intent.source_plan_id}
     if isinstance(adapted, Rejection):
         payload["outcome"] = "REJECTED"
         payload["reason"] = adapted.reason
@@ -200,7 +209,8 @@ def cmd_alternative(brief_id: str, index: int) -> None:
 
     payload["adaptations"] = [dataclasses.asdict(a) for a in adapted.adaptations]
     t0 = time.time()
-    plan = realize_concept(concept, adapted, brief, site, brief_def.plot_size_m, index=index)
+    plan = realize_concept(concept, adapted, brief, site, brief_def.plot_size_m, index=index,
+                           intent=intent)
     dt = time.time() - t0
     payload["elapsed_s"] = round(dt, 1)
 
@@ -217,6 +227,12 @@ def cmd_alternative(brief_id: str, index: int) -> None:
     payload["failing_checks"] = [c.check_id for c in plan.validation.failures()]
     payload["rationale"] = plan.concept.rationale
     payload["measurements"] = _measurements(plan.design, plan.validation)
+    payload["layout_signature"] = [[zid, list(rect)] for zid, rect in layout_signature(plan.design)]
+
+    mapping = donor_room_id_by_zone(brief, adapted)
+    preservation_report = measure_preservation(intent, plan, mapping)
+    payload["preservation"] = preservation_report.to_dict()
+
     svg_path = os.path.join(out, f"alt-{index}.svg")
     from app.vertical_slice.renderer import render
     render(plan.design, svg_path,
@@ -313,6 +329,51 @@ def cmd_comparison(brief_id: str) -> None:
         for a in failing:
             lines.append(f"- {a['concept_id']}: REALIZED, ok=False -- failing checks: "
                          f"{', '.join(a['failing_checks'])}")
+        lines.append("")
+
+    # Issue #109 Track 3 AC-4: the PRESERVED/LOST block per realized alternative that carries a
+    # `preservation` fact (every REALIZED plan produced by this Issue's own `cmd_alternative`;
+    # older sidecars written before this Issue simply have no `preservation` key and are skipped
+    # here, never crashing this command).
+    lines.append("## RealizationIntent preservation (Issue #109 Track 3)")
+    lines.append("")
+    any_preservation = False
+    for a in alts:
+        if a.get("outcome") != "REALIZED" or "preservation" not in a:
+            continue
+        any_preservation = True
+        report = PreservationReport.from_dict(a["preservation"])
+        lines.append(report.to_markdown())
+    if not any_preservation:
+        lines.append("(no realized alternative carries a RealizationIntent preservation report)")
+        lines.append("")
+
+    # AC-4's own second requirement: when two plans of this brief realize to the SAME geometry,
+    # name the constraint that caused the collapse -- grouped by `layout_signature` (a
+    # JSON-serializable [[zone_id, [x, y, w, h]], ...] list; converted to a hashable tuple here).
+    signature_groups: dict[tuple, list[str]] = {}
+    for a in alts:
+        if a.get("outcome") != "REALIZED" or "layout_signature" not in a:
+            continue
+        sig = tuple((zid, tuple(rect)) for zid, rect in a["layout_signature"])
+        signature_groups.setdefault(sig, []).append(a["concept_id"])
+    collapsed = [names for names in signature_groups.values() if len(names) > 1]
+    if collapsed:
+        lines.append("## Layout collapse (identical realized geometry from different donors)")
+        lines.append("")
+        for names in collapsed:
+            lines.append(
+                f"- {', '.join(names)} realized to BYTE-IDENTICAL geometry. Root cause (measured, "
+                "see `tests/architectural_brain/test_realization_intent.py::"
+                "test_two_donors_for_one_brief_realize_to_different_layouts`, xfail-documented): "
+                "`realize.py`'s own compiler selects each private column's WIDTH from "
+                "`ROOM_TEMPLATES`' [min, max] area bound only -- identical for both donors, since "
+                "it comes from the brief's own authoritative room counts (the owner's explicit "
+                "requirement), never from the donor plan. Only within THAT already-fixed width "
+                "does `RealizationIntent.room_proportions`' donor-specific TARGET area get a say "
+                "(`geometry_core.engine.assign`'s closest-to-target picker) -- here both donors' "
+                "own proportional targets fall below the width-driven minimum feasible height, so "
+                "both saturate at the same minimum regardless of their different donors.")
         lines.append("")
 
     lines.append("## Measurements table (realized-and-ok plans, plus the current baseline)")
