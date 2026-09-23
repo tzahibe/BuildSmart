@@ -1,6 +1,7 @@
 import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
 import { DoorSymbol } from '../components/plan/DoorSymbol'
+import { Walls, WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle } from '../components/plan/Walls'
 import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
 
@@ -11,9 +12,12 @@ import './DemoPlan.css'
  * is, not whether two spaces are open to each other, not where a window goes, not what is
  * reachable. If a fact is not on the object, it is not drawn.
  *
- * Wall weight follows the backend's own construction/context facts rather than a guess:
- * an exterior wall is heavy, an RC safe-room wall is heavier and coloured, a partition is light,
- * and an `OPEN` boundary is drawn as a deliberate absence. */
+ * Wall weight follows the backend's own semantic class and real thickness (Issue #45) — an
+ * exterior wall is heavy, an RC/PROTECTED safe-room wall is heavier and coloured, a partition is
+ * light, and an `OPEN` boundary is drawn as a deliberate absence. The drawing itself lives in
+ * `components/plan/Walls.tsx`; `WALL_STYLE`/`EXTERIOR_WALL_STYLE`/`wallStyle` are re-exported here
+ * so `PlanLegend`'s swatches stay sourced from the SAME values as the plan. */
+export { WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle }
 
 const PAD_M = 1.5
 
@@ -52,22 +56,6 @@ export function planViewBox(design: DemoDesign): string {
   const y1 = Math.min(maxY + margin, plot.y + plot.depth_m + PAD_M)
 
   return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`
-}
-
-/** Exported so `PlanLegend` swatches are drawn from the SAME values as the plan itself — a legend
- * that keeps its own copy of the colours is a legend that eventually lies about the drawing. */
-export const WALL_STYLE: Record<string, { color: string; width: number }> = {
-  RC_SAFE_ROOM: { color: '#b03a2e', width: 0.3 },
-  STRUCTURAL: { color: '#1a1a1a', width: 0.26 },
-  STANDARD_PARTITION: { color: '#8b939c', width: 0.1 },
-}
-
-export const EXTERIOR_WALL_STYLE = { color: '#1a1a1a', width: 0.26 }
-
-export function wallStyle(construction: string, context: string) {
-  if (construction === 'RC_SAFE_ROOM') return WALL_STYLE.RC_SAFE_ROOM
-  if (context === 'EXTERIOR') return EXTERIOR_WALL_STYLE
-  return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
 }
 
 /** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
@@ -151,21 +139,10 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
         )
       })}
 
-      {/* Walls, weighted by the backend's construction/context facts. An OPEN interface has no
-          wall segment at all, so open-plan reads as one continuous space by construction. */}
-      {design.walls.map((wall, i) => {
-        const style = wallStyle(wall.construction, wall.boundary_context)
-        const [x1, y1, x2, y2] =
-          wall.orientation === 'vertical'
-            ? [wall.coord, wall.start, wall.coord, wall.end]
-            : [wall.start, wall.coord, wall.end, wall.coord]
-        return (
-          <line
-            key={`wall-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke={style.color} strokeWidth={style.width} strokeLinecap="butt"
-          />
-        )
-      })}
+      {/* Walls, weighted by the backend's own semantic class and real thickness (Issue #45). An
+          OPEN interface has no wall segment at all, so open-plan reads as one continuous space by
+          construction. */}
+      <Walls walls={design.walls} />
 
       {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
           90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —

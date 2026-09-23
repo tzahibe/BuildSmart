@@ -28,10 +28,11 @@ from app.vertical_slice.concept_generator import (
     ROOM_TEMPLATES,
 )
 from app.vertical_slice.design_output import GeometricDesign as SolvedDesign
-from app.vertical_slice.geometry_core.model import ProgramRole, u_to_m
+from app.vertical_slice.geometry_core.model import ProgramRole, WALL_THICKNESS_M, WallType, u_to_m
 from app.vertical_slice.validation import ValidationReport, check_realized_dimensions
 from app.vertical_slice.building import Building
 from app.vertical_slice.building_validation import BuildingValidationReport, validate_building
+from app.vertical_slice.walls import WET_ROLES, classify as classify_wall
 
 #: A room's realized total below this fraction of its own template TARGET, in a plan that also
 #: contains an explicitly requested LAUNDRY room, is disclosed via `QualityOut.laundry_notice`.
@@ -113,6 +114,17 @@ class WallSegment(BaseModel):
     construction: str         # STANDARD_PARTITION | RC_SAFE_ROOM | ...
     boundary_context: str     # EXTERIOR | INTERIOR
     room_ids: list[str]
+    #: The wall semantic model (Issue #45, `app.vertical_slice.walls`): a single-value class this
+    #: same segment collapses `construction`/`boundary_context` into — EXTERIOR | INTERIOR |
+    #: WET_SERVICE | PROTECTED, see that module's docstring for the precedence. `thickness_m` is
+    #: the real wall thickness this segment was solved with (`geometry_core.model.WALL_THICKNESS_M`),
+    #: not a value the renderer has to look up itself. `id` is what `DoorOut.wall_id`/
+    #: `WindowOut.wall_id` reference. All three are `None` only for a `WallSegment` built directly
+    #: by a caller outside `_wall_segments` (a test fixture predating this Issue) — every payload
+    #: `to_demo_design` produces sets them.
+    id: str | None = None
+    wall_class: str | None = None
+    thickness_m: float | None = None
 
 
 class OpenInterface(BaseModel):
@@ -142,6 +154,10 @@ class DoorOut(BaseModel):
     hinge_x: float = 0.0
     hinge_y: float = 0.0
     swing_deg: float = 0.0
+    #: The `WallSegment.id` this door is realized on (Issue #45) — `None` only when the door's own
+    #: wall was cosmetically opened by `_open_corridor_to_public`, which never happens for a real
+    #: door (see that function's own "no DOOR lies on it" precondition).
+    wall_id: str | None = None
 
 
 class QualitySignal(BaseModel):
@@ -291,6 +307,10 @@ class WindowOut(BaseModel):
     width_m: float
     x: float
     y: float
+    #: The `WallSegment.id` this window is realized on (Issue #45) — a window is always on an
+    #: EXTERIOR segment, which `_open_corridor_to_public` never touches, so this is `None` only
+    #: for a payload built before this field existed.
+    wall_id: str | None = None
 
 
 class RectOut(BaseModel):
@@ -552,6 +572,10 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
     """
     rooms = {r.zone_id: r for r in design.rooms}
     is_safe = {r.zone_id: "SAFE_ROOM" in [str(x) for x in r.roles] for r in design.rooms}
+    #: The wall semantic model's own "wet room" role set (Issue #45) — reused, not re-derived, so
+    #: this segment's `wall_class` and `walls.py`'s own C33 check never disagree about what wet
+    #: means.
+    is_wet = {r.zone_id: bool(WET_ROLES & {str(x) for x in r.roles}) for r in design.rooms}
 
     def neighbours_along(room, side, orientation, coord, start, end):
         """The pieces of this side, split where the room on the other side changes."""
@@ -591,6 +615,12 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
 
     walls: dict[tuple, WallSegment] = {}
     opens: dict[tuple, OpenInterface] = {}
+    #: Per-key accumulators for the wall-class collapse (Issue #45) — kept apart from `WallSegment`
+    #: itself (`construction`/`boundary_context` already fully determine the DRAWING; these three
+    #: are the ADDITIONAL facts `walls.classify` needs) so the existing merge above is untouched.
+    touches_safe: dict[tuple, bool] = {}
+    touches_wet: dict[tuple, bool] = {}
+    thickness_of: dict[tuple, float] = {}
     for room in design.rooms:
         x, y, w, h = room.rect_m
         edges = {
@@ -601,6 +631,7 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
         }
         for side, (orientation, coord, start, end) in edges.items():
             facts = room.wall_facts[side]
+            raw_thickness_m = WALL_THICKNESS_M[WallType(room.walls[side])]
             for lo, hi, facing in neighbours_along(room, side, orientation, coord, start, end):
                 construction = facts.construction.value
                 # Reinforced concrete belongs to the safe room's own envelope, not to every
@@ -618,6 +649,11 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
                     elif room.zone_id not in entry.room_ids:
                         entry.room_ids.append(room.zone_id)
                     continue
+                touches_safe[key] = touches_safe.get(key, False) or bool(
+                    is_safe.get(room.zone_id) or (facing and is_safe.get(facing)))
+                touches_wet[key] = touches_wet.get(key, False) or bool(
+                    is_wet.get(room.zone_id) or (facing and is_wet.get(facing)))
+                thickness_of[key] = max(thickness_of.get(key, 0.0), raw_thickness_m)
                 entry = walls.get(key)
                 if entry is None:
                     walls[key] = WallSegment(
@@ -631,7 +667,18 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
                     # A pair disagrees only when one of them is the safe room; that side wins.
                     if construction == "RC_SAFE_ROOM":
                         entry.construction = construction
-    return list(walls.values()), list(opens.values())
+
+    out_walls: list[WallSegment] = []
+    for i, (key, seg) in enumerate(walls.items()):
+        seg.id = f"wall-{i}"
+        seg.wall_class = classify_wall(
+            on_envelope=seg.boundary_context == "EXTERIOR",
+            touches_safe=touches_safe.get(key, False),
+            touches_wet=touches_wet.get(key, False),
+        ).value
+        seg.thickness_m = thickness_of.get(key, 0.0)
+        out_walls.append(seg)
+    return out_walls, list(opens.values())
 
 
 _CIRCULATION_ROLES = frozenset({"HALL", "CIRCULATION"})
@@ -651,6 +698,42 @@ def _door_crosses(door, orientation: str, coord: float, start: float, end: float
         return False
     half = door.width_m / 2
     return door.center_m[along] - half < end - _EPS and door.center_m[along] + half > start + _EPS
+
+
+_SIDE_ORIENTATION = {"N": "horizontal", "S": "horizontal", "E": "vertical", "W": "vertical"}
+
+
+def _wall_id_for_door(door: DoorOut, walls: list[WallSegment]) -> str | None:
+    """Which `WallSegment.id` (Issue #45) this REALIZED, contract-level door sits on, or `None`.
+
+    Every real door keeps its own wall (`_open_corridor_to_public`'s "no DOOR lies on it"
+    precondition), so `None` is unreachable for a door that survived to `demo.doors` — only a
+    payload built with a hand-made `WallSegment` fixture that omits `id` could produce it."""
+    along, across = (1, 0) if door.orientation == "vertical" else (0, 1)
+    pos = (door.x, door.y)
+    half = door.width_m / 2
+    for wall in walls:
+        if wall.orientation != door.orientation or abs(pos[across] - wall.coord) > _EPS:
+            continue
+        if pos[along] - half < wall.end - _EPS and pos[along] + half > wall.start + _EPS:
+            return wall.id
+    return None
+
+
+def _wall_id_for_window(window: WindowOut, walls: list[WallSegment]) -> str | None:
+    """Which `WallSegment.id` (Issue #45) this REALIZED, contract-level window sits on, or `None`
+    — a window is always on an EXTERIOR segment, which `_open_corridor_to_public` never touches."""
+    orientation = _SIDE_ORIENTATION[window.side]
+    along, across = (1, 0) if orientation == "vertical" else (0, 1)
+    pos = (window.x, window.y)
+    half = window.width_m / 2
+    for wall in walls:
+        if (wall.orientation != orientation or window.room_id not in wall.room_ids
+                or abs(pos[across] - wall.coord) > _EPS):
+            continue
+        if pos[along] - half < wall.end - _EPS and pos[along] + half > wall.start + _EPS:
+            return wall.id
+    return None
 
 
 def _open_corridor_to_public(design: SolvedDesign, walls: list[WallSegment],
@@ -980,6 +1063,17 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     c27 = check_realized_dimensions(rooms_out, design.gross_area_m2)
     if not c27.passed:
         raise InconsistentGeometryError(c27.detail)
+    windows_out = [WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
+                             x=w.center_m[0], y=w.center_m[1])
+                   for w in design.windows if w.width_m > 0]
+    # Issue #45: every door/window references the wall it hosts on. Done here, once, over the
+    # FINAL (cosmetically-opened) `walls` list, rather than in `_wall_segments` itself — a door's
+    # own wall is guaranteed to survive that cosmetic pass (see `_wall_id_for_door`'s docstring),
+    # so this never silently disagrees with what got drawn.
+    for door in doors:
+        door.wall_id = _wall_id_for_door(door, walls)
+    for window in windows_out:
+        window.wall_id = _wall_id_for_window(window, walls)
     demo = DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),
@@ -988,9 +1082,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         walls=walls,
         open_interfaces=opens,
         doors=doors,
-        windows=[WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
-                           x=w.center_m[0], y=w.center_m[1])
-                 for w in design.windows if w.width_m > 0],
+        windows=windows_out,
         parking=[_rect(p) for p in design.parking_m],
         garden=[_rect(r) for g in design.garden for r in g.rects_m],
         entrance_walk=_rect(design.entrance_walk_m),

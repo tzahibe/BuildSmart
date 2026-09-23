@@ -561,6 +561,74 @@ sections come back `not_measured`. `backend/scripts/reference_benchmark.py --con
 the report for one `tests/regression_corpus/corpus.json` context; not wired into
 `agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
 
+## Wall semantic model and C33 (Issue #45)
+
+2026-09-23. Before this Issue, a wall existed only as PER-ROOM-SIDE facts (`WallMap`, keyed
+`zone_id, side`; the contract's `RoomOut.walls`/`wall_facts`, same keying) — there was no single
+list a door, a window or a fixture could reference by id, and no class distinguishing a wet room's
+own wall or a safe room's from an ordinary partition (`geometry_core.model.WallType` has only
+`EXTERIOR`/`PARTITION`/`RC_SAFE_ROOM`/`OPEN`, a SOLVING-oriented enum, not a schedule).
+
+**`app/vertical_slice/walls.py`**: `Wall(id, wall_class, thickness_m, segment, zones, hosts,
+structural_candidate)`, derived from the realized geometry (`design_output.GeometricDesign`) by
+`derive_walls`. `WallClass` is a single-value collapse of the orthogonal facts `WallFacts` already
+keeps separate (`boundary_context`, `construction`) — `classify(on_envelope, touches_safe,
+touches_wet)` is the one function that decides it, precedence highest first:
+
+  1. **EXTERIOR** — on the building envelope (`boundary_context`), REGARDLESS of construction
+     underneath — including a safe room's own outward wall. This is not an arbitrary choice: it is
+     the same fact `WallFacts`'s own docstring exists to preserve ("a ממ"ד wall that is also on
+     the building envelope resolves to RC_SAFE_ROOM and the EXTERIOR fact is destroyed" — the
+     exact defect that made `WallFacts` orthogonal in the first place, Issue #19). Collapsing
+     PROTECTED over EXTERIOR here would silently reintroduce that defect one layer up, this time
+     for the wall schedule.
+  2. **PROTECTED** — construction is `RC_SAFE_ROOM` and NOT on the envelope — the safe room's own
+     walls facing the rest of the house.
+  3. **WET_SERVICE** — an ordinary interior partition where at least one side is a wet room
+     (`BATHROOM`/`TOILET` — the same role set `wet_core.py`'s own "wet room" nodes use, so the two
+     never disagree about what "wet" means).
+  4. **INTERIOR** — everything else.
+
+`thickness_m` comes from the same `WALL_THICKNESS_M` table the solver itself uses (the raw
+`WallType` each contributing zone-side carries), never a new constant. `hosts` carries the
+door/window ids realized on that segment (position-matched: same orientation, same coordinate, the
+opening's span inside the segment's own span) — **never fixture ids today**: no fixture-PLACEMENT
+engine exists anywhere in this codebase (`furniture.py` is a per-zone bounding-box feasibility
+SCREEN, no fixture position), so there is nothing real to host; `hosts` is accurately empty of
+them, not a stub. `structural_candidate` is always `False` — a placeholder field for a FUTURE
+structural engine (this codebase performs no structural engineering: no load paths, no bearing
+analysis) to record its own opinion on without changing this type's shape.
+
+**C33 "every door/window hosted on a wall; safe-room walls PROTECTED"** (`validation.py`, after
+C22): reuses the same `GeometricDesign` C26 already assembles for measurement (the identical
+cheap, pure, already-solved-geometry reformatting pass, called a third time), runs `derive_walls`
+on it, and fails closed on (a) a PLACEABLE door or window with real width (`width_m > 0` — the same
+"real door" convention `door_clearance.py` uses; this is what correctly excludes the multi-level
+upper level's own placeholder `entrance_door`, `building_coordinator.py`'s
+`Door("STAIR", "STAIR", ..., 0.0, ...)`, `placeable=True` but zero-width) with no hosting wall in
+`hosts`, and (b) a safe-room zone touching a wall classified neither PROTECTED nor EXTERIOR.
+
+**The contract** (`app.demo.contract`): `WallSegment` (`DemoDesign.walls`) gains `id`,
+`wall_class`, `thickness_m` — computed inline in `_wall_segments` (reusing `walls.classify` and
+`walls.WET_ROLES` so the drawing's own enrichment can never disagree with `derive_walls`/C33 about
+what "wet" or "protected" means), NOT via a second parallel wall derivation. The three fields are
+additive (`| None = None`) so a hand-built `WallSegment` fixture that predates this Issue keeps
+working unchanged. `DoorOut.wall_id`/`WindowOut.wall_id` (additive) are resolved once, in
+`to_demo_design`, against the FINAL (cosmetically `_open_corridor_to_public`-adjusted) `walls`
+list — safe because a door-bearing wall segment is never opened by that cosmetic pass (its own "no
+DOOR lies on it" precondition), so a real door always keeps a wall to reference. `RoomOut.walls`
+(the per-room side dict) is untouched, kept exactly as before for compatibility.
+
+**The frontend**: wall drawing moved out of `DemoPlan.tsx` into its own `components/plan/Walls.tsx`
+(`frontend/src/components/plan/Walls.test.tsx`), which draws colour/width from `wall_class`/
+`thickness_m` when a segment carries them, falling back to the legacy `construction`/
+`boundary_context` styling unchanged for a payload/fixture built before this Issue.
+`WALL_STYLE`/`EXTERIOR_WALL_STYLE`/`wallStyle` are re-exported from `DemoPlan.tsx` so
+`PlanLegend.tsx`'s swatches stay sourced from the same values without changes there.
+
+**Out of scope, deliberately untouched** (per the Issue's own scope note): structural engineering
+of any kind, DXF output, compliance rules keyed on wall class.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -654,3 +722,9 @@ as they existed pre-merge; combined check count).
 `origin/main` a second time to pick up `6d18c1f` (Issue #36, circulation metrics); resolved textual
 conflicts in this page, `contract.py` and `validation.py` by keeping both sides' additive
 sections/fields, then re-ran this Issue's own targets against the merged tree.
+
+`aadba01` (branch `agent/45-wall-semantic-model-exterior-interior-we`, based on `origin/main`): the
+Wall semantic model and C33 section above documents Issue #45, verified against this session's own
+implementation and test runs (`test_walls.py`, `test_demo_quality.py`, the full `vertical_slice`
+suite green at 603 passed/9 xfailed, the full frontend suite green at 193 tests, a full 432-context
+corpus sweep with 0 crashes and 0 contexts refused on C33).

@@ -41,6 +41,11 @@ export interface DemoRoom {
   walls: Record<string, DemoWallFacts>
 }
 
+/** `wall_class` collapses `construction`/`boundary_context` into the single semantic class the
+ * backend's wall model (`app.vertical_slice.walls`, Issue #45) computes — EXTERIOR | INTERIOR |
+ * WET_SERVICE | PROTECTED. `id` is what `DemoDoor.wall_id`/`DemoWindow.wall_id` reference.
+ * `thickness_m` is the REAL solved wall thickness — the renderer no longer guesses it from
+ * `construction` alone. All three are `undefined` only for a payload built before this Issue. */
 export interface DemoWallSegment {
   orientation: 'horizontal' | 'vertical'
   coord: number
@@ -49,6 +54,9 @@ export interface DemoWallSegment {
   construction: string
   boundary_context: string
   room_ids: string[]
+  id?: string
+  wall_class?: 'EXTERIOR' | 'INTERIOR' | 'WET_SERVICE' | 'PROTECTED'
+  thickness_m?: number
 }
 
 /** A boundary two spaces share with NO wall. Drawn as a deliberate absence, not by omission. */
@@ -77,6 +85,9 @@ export interface DemoDoor {
   y: number
   orientation: 'horizontal' | 'vertical'
   is_entrance: boolean
+  /** `DemoWallSegment.id` this door is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
 }
 
 export interface DemoWindow {
@@ -85,6 +96,9 @@ export interface DemoWindow {
   width_m: number
   x: number
   y: number
+  /** `DemoWallSegment.id` this window is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
 }
 
 export interface DemoValidation {
