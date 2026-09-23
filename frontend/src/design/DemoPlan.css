@@ -19,3 +19,9 @@
 .demo-door-arc { stroke: #9aa4ae; stroke-width: 0.035; fill: none; stroke-dasharray: 0.18 0.12; }
 .demo-door-jamb { stroke: #8b939c; stroke-width: 0.05; }
 .demo-window-label { font-size: 0.3px; fill: #2f7fd6; text-anchor: middle; dominant-baseline: middle; }
+.demo-layout-object-rect { fill: #eef2f6; stroke: #9aa4ae; stroke-width: 0.03; }
+.demo-layout-object-label {
+  font-size: 0.22px; fill: #5f6368; text-anchor: middle; dominant-baseline: middle;
+  pointer-events: none;
+}
+.demo-layout-object--focal-wall .demo-layout-object-rect { fill: #c9d3dc; stroke: none; }
