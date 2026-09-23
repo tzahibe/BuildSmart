@@ -7,9 +7,10 @@ POCKET — every real plan's nearest opening off the arrival zone measures well 
 `ENTRANCE_POCKET_MAX_M`, and no real candidate ever has a second circulation zone at all, so
 `ENTRANCE_STRAY_POCKET_MAX_M` never has a real context to conflict with either. This is the SAME
 situation `circulation_metrics.py`'s own C26 EXTREME case is in (see that test module's own
-docstring): the fixture below is hand-built for exactly that reason, not a shortcut. The L-massing
-candidate below IS real generator output, and is the TUNNEL exemplar (AC-6) — a real, non-blocking
-quality signal the sweep did find.
+docstring): the fixture below is hand-built for exactly that reason, not a shortcut. The TUNNEL
+exemplar (AC-6) is hand-built for the same reason — the L-massing candidate that first showed it
+is generator output whose brief/site no longer yields a validating 2W plan, so `l_plan` skips and
+a skipped test proves nothing; `_tunnel_design` states that shape deterministically instead.
 """
 from __future__ import annotations
 
@@ -381,8 +382,41 @@ def test_the_demo_path_refuses_with_entrance_dead_end(monkeypatch):
 
 # --------------------------------------------------------------------------- AC-6
 
-def test_tunnel_sequence_is_reported_and_ranked_down_but_not_refused(l_plan):
-    seq = es.measure(l_plan.design)
+def _tunnel_design() -> GeometricDesign:
+    """A TUNNEL entrance sequence, hand-built for the same reason every other fixture in this
+    module is (see the module docstring): the front door opens into a genuine circulation zone —
+    so C25 has nothing to refuse — but the walk from that arrival zone to the first PUBLIC room
+    runs the whole length of the corridor, past two bedroom doors, well beyond
+    `ENTRANCE_TUNNEL_MAX_M`. The L-massing candidate this AC originally measured is generator
+    output that no longer validates for its brief/site (`l_plan` skips), and a test that skips
+    proves nothing — the shape it demonstrated is what matters, and it is stated here exactly.
+
+    Nearest opening off HALL is BED_1's door 2.0 m from the entrance, so `pocket_length_m` stays
+    far under `ENTRANCE_POCKET_MAX_M` (not a pocket), HALL is the only circulation zone (no stray
+    pocket), and LIVING is reachable — every C25 failure mode is deliberately absent."""
+    hall = _room("HALL", ("HALL", "CIRCULATION"), (0.0, 0.0, 10.0, 1.4), area=14.0)
+    bed_1 = _room("BED_1", ("BEDROOM",), (2.0, 1.4, 4.0, 4.0))
+    bed_2 = _room("BED_2", ("BEDROOM",), (6.0, 1.4, 4.0, 4.0))
+    living = _room("LIVING", ("LIVING",), (10.0, 0.0, 4.0, 5.4))
+    doors = (_door("HALL", "BED_1", "horizontal", (3.0, 1.4)),
+             _door("HALL", "BED_2", "horizontal", (7.0, 1.4)),
+             _door("HALL", "LIVING", "vertical", (10.0, 0.7)))
+    entrance = DoorOut(a="OUTSIDE", b="HALL", kind="ENTRANCE_DOOR", width_m=1.0,
+                       center_m=(1.0, 0.0), orientation="horizontal", placeable=True,
+                       shared_length_m=1.0)
+    return GeometricDesign(
+        plot_m=(0.0, 0.0, 24.0, 18.0), footprint_m=(0.0, 0.0, 14.0, 5.4),
+        rooms=(hall, bed_1, bed_2, living), interior_doors=doors, entrance_door=entrance,
+        windows=(), parking_m=(), garden=(), entrance_walk_m=(0.0, 0.0, 1.0, 1.0),
+        gross_area_m2=75.6, net_area_m2=75.6, wall_iterations=0,
+    )
+
+
+def test_tunnel_sequence_is_reported_and_ranked_down_but_not_refused():
+    seq = es.measure(_tunnel_design())
+    assert seq.is_circulation_arrival and seq.has_public_opening
+    assert seq.distance_to_public_m > es.ENTRANCE_TUNNEL_MAX_M
+    assert seq.private_doors_passed == 2
     tunnel = es.classify_tunnel(seq)
     assert tunnel is not None
     assert es.classify_pocket(seq) is None  # not refused: the pocket gate is unaffected
