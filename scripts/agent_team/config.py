@@ -109,6 +109,12 @@ class Config:
     known_locks: tuple[str, ...]
     implied_locks_by_domain: dict[str, tuple[str, ...]]
     lock_stale_after_seconds: int
+    # Locks served as SHARED even where an Issue asks for them exclusively (owner 2026-09-23, "no
+    # worker may rest"): every agent works in its own worktree on its own branch, so a second agent
+    # on the same core cannot corrupt the first one's work — the only real cost is a merge conflict
+    # at integration, which the fixer resolves. Cores where concurrent design genuinely cannot be
+    # reconciled (CI infra, the database schema, the requirements parser) are deliberately absent.
+    concurrent_locks: tuple[str, ...]
 
     # repair / policy
     max_repair_attempts: int
@@ -293,6 +299,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         known_locks=tuple(locks.get("known") or ()),
         implied_locks_by_domain=implied,
         lock_stale_after_seconds=int(locks.get("stale_after_seconds", 7200)),
+        concurrent_locks=tuple(locks.get("concurrent") or ()),
         max_repair_attempts=int(_need(repair, "max_attempts", "repair")),
         risk_policy=risk_policy,
         regression_domains=tuple(raw.get("regression_domains") or ("backend", "geometry", "validator")),

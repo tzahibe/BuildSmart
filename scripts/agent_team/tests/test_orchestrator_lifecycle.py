@@ -294,8 +294,10 @@ def test_dependency_gates_scheduling(env):
 
 def test_lock_conflict_serializes_issues(env):
     config, gh, clock, _ = env
-    _add_issue(gh, 20, risk="LOW", locks="planner-core (exclusive)")
-    _add_issue(gh, 21, risk="LOW", locks="planner-core (exclusive)")
+    # ci-infra is the exclusivity that survives `locks.concurrent` (owner 2026-09-23): the product
+    # cores are served shared, one pipeline definition still is not.
+    _add_issue(gh, 20, risk="LOW", locks="ci-infra (exclusive)")
+    _add_issue(gh, 21, risk="LOW", locks="ci-infra (exclusive)")
     runner = FakeAgentRunner(script={"worker": _worker_that_commits(), "reviewer": APPROVE})
     orch = _orch(config, gh, clock, runner)
     # keep #20's worker "running" (its first run crashes) so its exclusive lock is still held when #21 is planned
@@ -307,7 +309,7 @@ def test_lock_conflict_serializes_issues(env):
         return _worker_that_commits()(spec)
     runner.script["worker"] = worker
     rep = orch.tick()
-    assert rep.started == [20] and "planner-core(exclusive) held by #20" in rep.waiting[21]
+    assert rep.started == [20] and "ci-infra(exclusive) held by #20" in rep.waiting[21]
     assert [l.issue_id for l in orch.store.locks_held()] == [20]
     orch.wait_for_threads(timeout=30)
     # #20 was requeued after the crash and runs again first (FIFO); once its PR is open its lock is

@@ -58,7 +58,9 @@ claude:
   # "auto" resolves: $CLAUDE_BIN, then `claude` on PATH, then the newest VS Code extension binary.
   binary: auto
   effort: high
-  worker_timeout_seconds: 5400              # HEAVY Issues (validator + corpus) need more than an hour; the usage guard bounds cost
+  worker_timeout_seconds: 9000              # 5400 -> 9000 on 2026-09-23: Stage 1 (#117, a non-guillotine realizer)
+                                            # timed out at 90 min mid-implementation after real progress; a HEAVY
+                                            # engine Issue needs the same headroom CI gets. The usage guard bounds cost.
   repair_timeout_seconds: 2400
   reviewer_timeout_seconds: 1200
   domain_lead_timeout_seconds: 1200
@@ -121,17 +123,17 @@ claude:
   domain_lead_tools: [Read, Grep, Glob]
 
 resources:
-  max_worker_agents: 3              # raised 2->3 on 2026-09-17 with the owner's permission (M1 Pro 10c/32GB); usage guard live
-  max_reviewer_agents: 1
+  max_worker_agents: 4              # 3->4 on 2026-09-23 (owner: "no worker may rest"); CPU/RAM guards + usage guard still bound it
+  max_reviewer_agents: 2            # 1->2 on 2026-09-23: a single reviewer serialized the PR->REVIEW leg and left workers waiting
   max_domain_leads: 1
-  weighted_capacity: 9              # 3 HEAVY runs may overlap (owner 2026-09-20: never let a worker rest; the fixers waited on 5+3 > 7)
+  weighted_capacity: 12             # 4 HEAVY runs may overlap (owner 2026-09-23: maximum throughput, no worker idle)
   weights: {LIGHT: 1, MEDIUM: 2, HEAVY: 3}
   cpu_threshold_percent: 75         # do not spawn when the machine-wide CPU is above this
   min_free_memory_gb: 6
   probe_window_seconds: 3           # CPU sampling window
   # Heavy validation (full pytest, corpus regression, sweeps) uses its own pool so that agent
   # slots being free never means "run three regression sweeps at once".
-  heavy_job_concurrency: 1
+  heavy_job_concurrency: 2          # 1->2 on 2026-09-23: one corpus sweep must not park every other heavy Issue
   heavy_job_stale_after_seconds: 5400
 
 locks:
@@ -146,6 +148,16 @@ locks:
     - database-schema
     - ci-infra
     - docs
+  # Locks served as SHARED even when an Issue (or the implied default below) asks for them
+  # exclusively. Owner 2026-09-23, "no worker may rest, as few blockages as possible": every agent
+  # works in its own worktree on its own branch, so two agents on the same core cannot overwrite
+  # each other — the worst case is a merge conflict at integration, which the fixer resolves. That
+  # was measured the same day: ONE exclusive holder (#117) parked #110, #118, #40, #41 and even
+  # #45's own repair, with three workers idle at 20% CPU. Cores where concurrent design genuinely
+  # cannot be reconciled are deliberately NOT listed and keep full exclusive semantics: ci-infra
+  # (one pipeline definition), database-schema (one migration order), requirements-parser (one
+  # prompt/schema contract).
+  concurrent: [geometry-core, validator-core, planner-core, frontend-review, knowledge-index, docs]
   # Domain -> locks implied when the Issue does not spell them out.
   implied_by_domain:
     geometry: [geometry-core]
@@ -224,12 +236,12 @@ governance:
   # heavy_job_concurrency above); within them the Team Lead/scheduler uses every slot that is safe.
   # max_active_issues counts ROOT Issues with work in flight (children count toward their ROOT;
   # READY_FOR_OWNER does not count — a PR waiting for the owner never stops unrelated work).
-  max_active_issues: 6
+  max_active_issues: 9              # 6->9 on 2026-09-23: the cap, not the workers, was parking ready Issues
   # Owner priority order of ROOT Issues (2026-09-20): finish CI/repair first (not a claim matter), then
   # the open basic P0, then Concept Engine v2 (#74, children inherit), then Interior/Furnishability
   # (#39/#40), the CI optimization chain (one infra worker at most), the rest of P1, then drawing/polish.
   # Unlisted ROOTs come after the listed ones, FIFO.
-  priority_roots: [35, 38, 22, 34, 36, 93, 105, 74, 102, 39, 40, 66, 67, 68, 41, 43, 42, 45, 46]   # 93 = POC Architectural Brain (owner 2026-09-21), after P0, beside Concept Engine
+  priority_roots: [35, 38, 22, 34, 36, 93, 105, 116, 74, 102, 39, 40, 66, 67, 68, 41, 43, 42, 45, 46]   # 93 = POC Architectural Brain (owner 2026-09-21), after P0, beside Concept Engine
   # Per-domain cap on Issues in flight (owner: "use at most one worker for infra").
   max_active_by_domain:
     infra: 1
