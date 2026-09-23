@@ -23,6 +23,7 @@ from . import circulation_metrics
 from . import door_clearance
 from . import entrance_sequence
 from . import footprint as footprint_module
+from . import public_composition
 from .concept_generator import ROOM_TEMPLATES
 from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, TypedConstraint
 from .design_output import assemble as assemble_design
@@ -565,6 +566,21 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         rep.add("C25", "no dead-space pocket at the entrance", pocket_defect is None,
                 pocket_defect or f"arrival zone {entrance_seq.arrival_zone} opens onward with no "
                                   f"unserved pocket")
+
+        # C31 — public-zone composition: no public room reachable solely through a furniture zone
+        # with no path (`public_composition.py`, Issue #41). Fails closed ONLY on the hard rule
+        # (a LIVING/DINING/KITCHEN room whose only realized path from the entrance is blocked by
+        # another room's own furniture clearance, with no way around it) — everything else that
+        # module measures (kitchen-dining/dining-living relationships, public-zone coherence,
+        # living exposure) is quality/ranking data only, never a gate, and open plan is never
+        # penalized as such. Reuses the SAME minimal `circulation_design` C25/C26 above already
+        # assembled, like C25 does.
+        composition = public_composition.measure(circulation_design)
+        composition_bad = public_composition.hard_violations(composition)
+        rep.add("C31", "public rooms reachable without crossing a furniture-blocked path",
+                not composition_bad,
+                "; ".join(composition_bad) or
+                f"every public room's realized path is clear of a furniture-blocked pass-through")
 
     # C13 — every DECLARED access edge is physically realized.
     #

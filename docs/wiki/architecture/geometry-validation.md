@@ -642,6 +642,80 @@ branch is never reached; the wiring is real and tested (fixture-level and a mock
 `contract.to_demo_design` off the same raw `SolvedDesign` M1–M6 and C26 already read, independently
 of M3 (`quality_metrics.py` itself is untouched).
 
+## Public-zone composition and C31 (Issue #41)
+
+Issue #41 (2026-09-23). M6 already reports whether the public zone is one contiguous open-plan
+group; the hub parti and the strip-room quality tier already shape public rooms; the corridor
+opening (`app.demo.contract._open_corridor_to_public`) already opens the hall<->LDK wall visually.
+Nothing before this Issue evaluated the kitchen-dining-living RELATIONSHIPS themselves, the
+entrance's relation to the public zone, or whether a person's walking path from the entrance to a
+public room is obstructed by another room's own furniture.
+
+**Measurement**: `app/vertical_slice/public_composition.py`, `measure(design) -> PublicComposition`
+— pure and deterministic, reading a realized `GeometricDesign` (`design_output.py`, the SAME type
+`circulation_metrics.py`/`entrance_sequence.py` read) plus the Issue #39 layout objects
+(`interior_layout.compute_layout`) for the furniture-clearance signal. Per plan:
+
+- **`kitchen_dining_related`/`dining_living_related`**: is KITCHEN linked to DINING (respectively
+  DINING to LIVING) by a door or an open-plan join, over the realized access graph — `None` only
+  when the plan has no room of one of the two roles.
+- **`public_zone_coherent`**: mirrors `quality_metrics._public_zone_contiguous` (M6) exactly — every
+  LIVING/DINING/KITCHEN room one connected OPEN-PLAN group — computed independently here since M6
+  reads `DemoDesign`, a different type. `None` when fewer than two LDK rooms exist.
+- **`entrance_reaches_public`**: is any LDK room reachable at all from the entrance's arrival zone.
+- **`living_exterior_exposed`/`living_has_window`**: LIVING's own exterior-wall/window facts (reuses
+  `wall_facts.is_on_envelope`/`design.windows`, the same data C19/C8 read) — `None` with no LIVING.
+- **`blocked_public_rooms`**: C31's own defect list (below).
+- **`composition_score`**: one aggregate, LOWER IS BETTER, for a caller comparing two otherwise-equal
+  candidate plans (`composition_prefers`, mirrors `circulation_prefers`/`entrance_sequence_prefers`'s
+  shape) — **not currently wired into any candidate-ranking call site**, the same "additive, ready
+  data + a comparison helper, not yet wired" state `wet_core.py`'s own ranking preference documents;
+  a future Issue can wire it the same way. `public_zone_coherent` is NEVER read by the score — open
+  plan costs nothing by construction, which is what makes AC-1 ("never penalize openness") hold
+  structurally rather than by a threshold choice.
+
+**THE HARD RULE — C31 "public rooms reachable without crossing a furniture-blocked path"**
+(`validation.py`, next to C29, under the same `skip_site_checks` gate C25 uses — a multi-level upper
+storey has no street entrance concept to measure a path from): fails closed ONLY when a
+LIVING/DINING/KITCHEN room the PLAIN access graph says IS reachable (so C31 never misdiagnoses a
+C5 unreachability as its own defect) has NO route from the entrance that avoids every intermediate
+room's own placed-furniture clearance zone. Reuses the SAME minimal `circulation_design` C25/C26
+already assemble for this plan, like C25 does.
+
+**Why this needs a real multi-path search, not "is the shortest path blocked"**: the first
+implementation checked only the single BFS-shortest room-to-room path and broke a genuine L-massing
+candidate in the frozen test suite (`test_demo_p0.py`'s L-orientation preference test) — an
+open-plan LIVING/DINING/KITCHEN group has more than one route between any two of its rooms (the
+open joins form a small graph, not a chain), and a furniture-blocked pass-through on the
+shortest-found route does not mean the room is unreachable when another route is open. The fix
+(`_furniture_reachable_rooms`) walks a graph of `(room, entered-from-opening)` nodes: crossing a
+doorway between two rooms always succeeds (physical connectivity is already established, the same
+fact C5's `realized_connections` proves); CONTINUING further, from one opening of a room to
+ANOTHER of its own openings, requires that specific pass-through's own free-space connectivity —
+computed as `shapely`, the room's net rectangle minus the union of every placed item's
+`clearance_rect_m` (`interior_layout.LayoutObject`), testing whether the entry and exit opening
+points sit in the SAME connected piece. A room with three doors can be blocked between one pair and
+open between another; an alternate route through a DIFFERENT room is explored like any other graph
+edge. `blocked_public_rooms` is the set difference: graph-reachable LDK rooms minus
+furniture-reachable ones — genuinely "no path", never merely "the first path tried is blocked".
+
+**Corpus impact**: additive by construction on every plan with no furniture obstruction (the
+overwhelming majority — `interior_layout.py`'s own placement already keeps a freestanding item's
+clearance inside the room and refuses to place it at all, `unplaceable`, when it cannot; a room too
+small to fit the item leaves NO furniture in the way, never a false block). The 432-context frozen
+regression corpus was not independently re-measured before/after this Issue in this session (see the
+PR's own regression evidence for the authoritative before/after comparison); the fast vertical_slice
+suite (630 tests), the broader backend fast suite, and the `wet_room_corpus` suite (75 tests) all
+pass unchanged except for two additive check-count baselines
+(`test_baseline_and_decoupling.BASELINE_CHECK_COUNT`, `test_general_pipeline.
+test_all_slice_checks_still_pass`, both 25 -> 26 for the new C31 entry) and one additive contract
+field-set assertion (`test_demo_p0.py`'s `quality` key-set, now including `public_composition`).
+
+**`QualityOut.public_composition`** (additive): every field above, computed in
+`contract.to_demo_design` off the same raw `SolvedDesign` circulation/entrance-sequence already
+read, so a check, a ranking decision and this report can never disagree about what a plan's
+kitchen/dining/living composition looks like.
+
 ## Architectural quality rubric and anti-pattern library
 
 The measured gaps above (circulation topology, wet-room adjacency, public-room strips) are three
@@ -681,6 +755,14 @@ the report for one `tests/regression_corpus/corpus.json` context; not wired into
   what was tried since and why it did not close the gap). Re-attempting the hub parti is
   explicitly OUT OF SCOPE for Issue #17; any future attempt should start from why v1–v2.1 failed,
   not repeat the same seat count.
+
+A fifth, from Issue #41: **`public_composition.composition_prefers` is not wired into any
+candidate-ranking call site.** The data (`PublicComposition`/`composition_score`) and the comparator
+are real and tested; wiring them into `run_general`'s own tiebreak chain (the same STRICT,
+already-equal-on-everything-else pattern `entrance_sequence_prefers` uses) was deliberately not
+attempted in this Issue to keep the corpus regression risk to the C31 hard gate alone — see
+`wet_core.py`'s own ranking preference for the identical precedent ("ready for whenever a hub
+candidate is reachable again"). A future Issue can wire it the same way.
 
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
 A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
@@ -780,3 +862,12 @@ non-rectangular-geometry investigation, both unrelated to C25) to resolve a seco
 resolved textual conflicts in `contract.py`, `test_demo_p0.py`, `docs/PROJECT_STATE.md` and this
 page by keeping both sides' additive sections/fields, then re-ran this Issue's own targets against
 the merged tree.
+
+`7995695` (branch `agent/41-public-zone-composition-kitchen-dining-a`, based on `origin/main`): the
+Public-zone composition and C31 (Issue #41) section above documents this branch's own work,
+verified against this session's own implementation and test runs (`test_public_composition.py`, the
+full `vertical_slice` suite — 630 tests — and the broader backend fast suite, all green; a real
+regression this session found and fixed mid-implementation — the first algorithm checked only the
+single BFS-shortest path and broke a real L-massing candidate in `test_demo_p0.py`, fixed by the
+multi-path free-space search documented above). The 432-context frozen regression corpus was not
+independently re-measured in this session — see the PR's own regression evidence.
