@@ -439,10 +439,21 @@ class _WingBuild:
     seam_right_ids: tuple[str, ...] = ()  # cells whose E side may seam to a wing on the right
 
 
+#: A zone's declared `min_short_side_m` is NET (clear internal, after wall insets — see
+#: `geometry_core.model.ZoneSpec`'s own docstring), but the constructions here can only bound the
+#: GROSS/centerline rectangle before wall types are known. Padding the target by twice the
+#: heaviest single-side inset (EXTERIOR, 0.15 m) is a conservative, correct pre-check: a zone
+#: with two exterior/partition sides on its short axis loses at most this much, so a rectangle
+#: whose GROSS short side already clears `min_short_side_m + _INSET_MARGIN_M` cannot fail the
+#: real, NET-dimension C3 check downstream — found empirically (a gross-only pre-check let a
+#: zone through whose real net short side was 0.10 m under its own bound).
+_INSET_MARGIN_M = 0.30
+
+
 def _build_pinwheel_wing(w: PinwheelWing, origin: tuple[int, int]) -> _WingBuild | Refusal:
     w_u, h_u = m_to_u(w.width_m), m_to_u(w.height_m)
     min_short_u = m_to_u(min(w.n.min_short_side_m, w.e.min_short_side_m, w.s.min_short_side_m,
-                              w.w.min_short_side_m, w.center.min_short_side_m))
+                              w.w.min_short_side_m, w.center.min_short_side_m) + _INSET_MARGIN_M)
     solved = _solve_pinwheel(w_u, h_u, w.n.target_area_m2, w.e.target_area_m2, w.s.target_area_m2,
                               w.w.target_area_m2, min_short_u)
     if solved is None:
@@ -465,10 +476,10 @@ def _build_pinwheel_wing(w: PinwheelWing, origin: tuple[int, int]) -> _WingBuild
                             f"{zi.zone_id}: pinwheel-realized area {area:.2f} m2 outside "
                             f"[{zi.min_area_m2},{zi.max_area_m2}]")
         short = min(u_to_m(r.w), u_to_m(r.h))
-        if short < zi.min_short_side_m - 1e-6:
+        if short < zi.min_short_side_m + _INSET_MARGIN_M - 1e-6:
             return Refusal("SHORT_SIDE_INFEASIBLE",
-                            f"{zi.zone_id}: pinwheel-realized short side {short:.2f} m < "
-                            f"{zi.min_short_side_m} m")
+                            f"{zi.zone_id}: pinwheel-realized short side {short:.2f} m (gross) < "
+                            f"{zi.min_short_side_m} m (net) + {_INSET_MARGIN_M} m inset margin")
         rects[zi.zone_id] = r
         roles[zi.zone_id] = (zi.role,)
         specs[zi.zone_id] = _zone_spec(zi)
@@ -489,7 +500,7 @@ def _carve_group(group: ShapeGroupIntent, container: Rect) -> tuple[list[Rect], 
     if group.family == "L":
         notch = group.notches[0]
         dims = _wh_for_area(notch.target_area_m2, _L_NOTCH_PREFERRED_ASPECT,
-                             m_to_u(notch.min_short_side_m), max_w_u, max_h_u)
+                             m_to_u(notch.min_short_side_m + _INSET_MARGIN_M), max_w_u, max_h_u)
         if dims is None:
             return Refusal("NOTCH_INFEASIBLE",
                             f"{notch.zone_id}: no corner notch fits {notch.target_area_m2} m2 "
@@ -500,7 +511,7 @@ def _carve_group(group: ShapeGroupIntent, container: Rect) -> tuple[list[Rect], 
         notch = group.notches[0]
         max_w_edge_u = container.w - 2 * m_to_u(_MIN_SHORT_SIDE_FLOOR_M)
         dims = _wh_for_area(notch.target_area_m2, _U_NOTCH_PREFERRED_ASPECT,
-                             m_to_u(notch.min_short_side_m), max_w_edge_u, max_h_u)
+                             m_to_u(notch.min_short_side_m + _INSET_MARGIN_M), max_w_edge_u, max_h_u)
         if dims is None:
             return Refusal("NOTCH_INFEASIBLE",
                             f"{notch.zone_id}: no edge notch fits {notch.target_area_m2} m2 "
@@ -509,17 +520,16 @@ def _carve_group(group: ShapeGroupIntent, container: Rect) -> tuple[list[Rect], 
         return big_rects, [notch_rect], [notch]
     if group.family == "T":
         left, right = group.notches
-        h_u = max(m_to_u(max(left.min_short_side_m, right.min_short_side_m)),
-                   round(container.h * 0.35 / UNIT_M))
+        min_short_padded = max(left.min_short_side_m, right.min_short_side_m) + _INSET_MARGIN_M
+        h_u = max(m_to_u(min_short_padded), round(container.h * 0.35 / UNIT_M))
         h_u = min(h_u, max_h_u)
         for _ in range(6):
-            w_left_u = max(m_to_u(left.min_short_side_m),
+            w_left_u = max(m_to_u(left.min_short_side_m + _INSET_MARGIN_M),
                             round(left.target_area_m2 / (h_u * UNIT_M) / UNIT_M))
-            w_right_u = max(m_to_u(right.min_short_side_m),
+            w_right_u = max(m_to_u(right.min_short_side_m + _INSET_MARGIN_M),
                              round(right.target_area_m2 / (h_u * UNIT_M) / UNIT_M))
             stem_w_u = container.w - w_left_u - w_right_u
-            if stem_w_u >= m_to_u(_MIN_SHORT_SIDE_FLOOR_M) and h_u >= m_to_u(
-                    max(left.min_short_side_m, right.min_short_side_m)):
+            if stem_w_u >= m_to_u(_MIN_SHORT_SIDE_FLOOR_M) and h_u >= m_to_u(min_short_padded):
                 big_rects, notch_rects = carve_t(container, group.edge, w_left_u, w_right_u, h_u)
                 return big_rects, notch_rects, [left, right]
             h_u += m_to_u(0.2)
@@ -588,10 +598,10 @@ def _build_row_wing(w: RowWing, origin: tuple[int, int]) -> _WingBuild | Refusal
                                 f"{zi.zone_id}: row-realized area {area:.2f} m2 outside "
                                 f"[{zi.min_area_m2},{zi.max_area_m2}]")
             short = min(u_to_m(container.w), u_to_m(container.h))
-            if short < zi.min_short_side_m - 1e-6:
+            if short < zi.min_short_side_m + _INSET_MARGIN_M - 1e-6:
                 return Refusal("SHORT_SIDE_INFEASIBLE",
-                                f"{zi.zone_id}: row-realized short side {short:.2f} m < "
-                                f"{zi.min_short_side_m} m")
+                                f"{zi.zone_id}: row-realized short side {short:.2f} m (gross) < "
+                                f"{zi.min_short_side_m} m (net) + {_INSET_MARGIN_M} m inset margin")
             rects[zi.zone_id] = container
             roles[zi.zone_id] = (zi.role,)
             specs[zi.zone_id] = _zone_spec(zi)
@@ -856,8 +866,12 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
                 walls[(zone_id, side)] = WallType.EXTERIOR
 
     # Cross-wing seams: an OPEN-free, EXTERIOR-free PARTITION already resulted from the adjacency
-    # loop above wherever two wings' cells touch; nothing further is needed for wall typing, but
-    # `Wing.seam_leaf_sides` must name every such pair for C22.
+    # loop above wherever two wings' cells touch; `Wing.seam_leaf_sides` must name every such pair
+    # for C22, AND — since a wing boundary carries no access edge of its own (each `_WingBuild`
+    # only connects cells WITHIN its own wing) — a DOOR edge is added for every seam pair too,
+    # matching `hand_encoded_fixture.py`'s own GALLERY-BED2 precedent: without it the seam-adjacent
+    # cell on the far wing is a real, walled room with no way in at all (found empirically: C5/C24
+    # both fail on exactly that cell otherwise).
     wings_out = []
     seam_sides: dict[str, tuple[tuple[str, Side], ...]] = {}
     for i, wb in enumerate(wing_builds):
@@ -868,6 +882,7 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
                 for rid in prev.seam_right_ids:
                     if rects[lid].shared_edge_len_u(rects[rid]) > 0:
                         sides.append((lid, Side.W))
+                        access_pairs.append((rid, lid))
         if i < len(wing_builds) - 1:
             nxt = wing_builds[i + 1]
             for rid in wb.seam_right_ids:
