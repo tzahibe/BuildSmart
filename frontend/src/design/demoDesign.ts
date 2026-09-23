@@ -66,6 +66,9 @@ export interface DemoDoor {
   swings_into?: string
   hinge_x?: number
   hinge_y?: number
+  /** The open leaf's own direction in degrees (`doors.py::Door.swing_deg`: 0=+x, 90=+y, 180=-x,
+   *  270=-y) — `DoorSymbol` places the leaf from this alone, never from a room lookup. */
+  swing_deg?: number
   a: string
   b: string
   kind: string

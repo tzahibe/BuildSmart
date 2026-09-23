@@ -61,6 +61,7 @@ class DoorOut:
     #: Architectural decisions made by the engine, drawn by the renderer — never inferred there.
     swings_into: str = ""
     hinge_m: tuple[float, float] = (0.0, 0.0)
+    swing_deg: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -136,6 +137,7 @@ def _door_out(d: Door) -> DoorOut:
         orientation=d.orientation, placeable=d.placeable, shared_length_m=d.shared_length_m,
         swings_into=d.swings_into,
         hinge_m=(u_to_m(d.hinge_at[0]), u_to_m(d.hinge_at[1])),
+        swing_deg=d.swing_deg,
     )
 
 

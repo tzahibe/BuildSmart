@@ -36,6 +36,7 @@ from . import footprint as footprint_module
 from . import hub_guard
 from . import l_massing_guard
 from . import doors as doors_stage
+from . import door_clearance
 from . import relationships as relationships_stage
 from . import furniture as furniture_stage
 from . import site as site_stage
@@ -807,6 +808,12 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
     entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
                                                     entrance_zone_id, wings)
+    # Conflict avoidance BEFORE C28 (Issue #38): the entrance door itself never flips (there is no
+    # other side of the street), but it stays IN this call so an interior door can still be flipped
+    # away from a conflict WITH it.
+    resolved_doors = door_clearance.resolve_swings(
+        concept.fixture, rects, solve.walls, [*interior_doors, entrance_door])
+    *interior_doors, entrance_door = resolved_doors
     windows = windows_stage.generate_windows(concept.fixture, rects, footprint, wings)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 

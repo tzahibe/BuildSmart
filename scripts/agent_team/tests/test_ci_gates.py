@@ -174,22 +174,40 @@ def test_run_target_resolves_orchestrator_and_backend_pytest_targets(monkeypatch
         stderr = ""
 
     def fake_run(cmd, cwd, timeout=1800, env=None):
-        calls.append((cmd, str(cwd)))
+        calls.append((cmd, str(cwd), env))
         return FakeProc()
 
     monkeypatch.setattr(verify, "run", fake_run)
 
     ok, detail = verify.run_target("pytest", "scripts/agent_team/tests/test_work_reports.py::test_x", tmp_path)
     assert ok
-    cmd, cwd = calls[-1]
+    cmd, cwd, env = calls[-1]
     assert cmd == "uv run --project scripts/agent_team pytest -q -p no:cacheprovider scripts/agent_team/tests/test_work_reports.py::test_x"
     assert cwd == str(tmp_path)          # the repository root, not backend/
+    assert env == {"TEST_MODE": "REGRESSION"}
 
     ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
     assert ok
-    cmd, cwd = calls[-1]
+    cmd, cwd, env = calls[-1]
     assert cmd == "uv run pytest -q -p no:cacheprovider tests/test_x.py::test_y"
     assert cwd == str(tmp_path / "backend")
+    assert env == {"TEST_MODE": "REGRESSION"}
+
+
+def test_run_target_pytest_fails_a_silently_skipped_target(monkeypatch, tmp_path: Path):
+    """A `regression`-marked pytest target that pytest skips (exit code 0, 0 passed) must not be
+    recorded as a PASS: that was the exact false-positive an independent review caught on Issue #38
+    (test_every_door_out_carries_hinge_and_swing skipped without TEST_MODE, still exit 0)."""
+    class FakeSkippedProc:
+        returncode = 0
+        stdout = "1 skipped"
+        stderr = ""
+
+    monkeypatch.setattr(verify, "run", lambda cmd, cwd, timeout=1800, env=None: FakeSkippedProc())
+
+    ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
+    assert not ok
+    assert "skipped" in detail
 
 
 def test_verify_uses_injected_runner(tmp_path: Path):
