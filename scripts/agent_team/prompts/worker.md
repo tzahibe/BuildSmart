@@ -63,6 +63,21 @@ Domains: {{domains}} · Risk: {{risk}} · Resource class: {{resource_class}}
    `status: "blocked"` naming the exact command and how long it needs. Commit early and often:
    the worktree is reused on a retry, but only committed work is visible to the report.
 
+9. **The exact command forms your sandbox allows** (anything else is denied outright, with no
+   approval prompt — four Issues stalled on 2026-09-22/23 by running denied forms):
+   - Python / tests: `uv run pytest -q ...` and `uv run python ...` from `backend/`
+     (`uv run --project scripts/agent_team pytest ...` for the orchestrator's own tests).
+     **Never** bare `python`, `python3`, `pytest`, `.venv/bin/python`, a wrapper shell script or
+     `dangerouslyDisableSandbox` — all denied.
+   - Frontend: `npm test`, `npm run …`, `npx vitest …`, `npx tsc …` from `frontend/`.
+   - Git in YOUR worktree only: `git status/diff/log/show`, `git add …`, `git commit …`.
+     **Never** `git merge`, `rebase`, `reset`, `checkout`, `stash`, `fetch`, `push`, `worktree`,
+     or any `gh` command — the orchestrator does all of those. A merge you need is already left
+     in progress for you (see below); if it is not, report `status: "blocked"` and say so.
+   - Reading: `ls`, `cat`, `head`, `tail`, `wc`, `grep`, `find`, `sed -n` — inside the worktree.
+   If a needed command is denied, do not retry it in another form: commit what you have and
+   report `status: "blocked"` naming the exact command.
+
 # Merge left by the Team Lead
 If `git status` shows unmerged paths (a `MERGE_HEAD` exists), the Team Lead started a merge of the
 base branch into this branch because the base moved. Resolve every conflict keeping BOTH intents
