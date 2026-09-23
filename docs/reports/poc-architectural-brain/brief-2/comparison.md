@@ -7,8 +7,17 @@ REALIZED, ok=True, circulation_class=SPINE in 0.2s -> `current.svg`
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (-) | FRONT_BAND | REALIZED | SPINE | False | 17.8 |
-| concept-1 (-) | OTHER | REALIZED | SPINE | False | 17.6 |
+| concept-0 (-) | FRONT_BAND | REALIZED | BRANCHED | False | 23.0 |
+| concept-1 (-) | OTHER | REALIZED | BRANCHED | False | 22.8 |
+
+## Compiler probes (Issue #110): HUB_LOBBY / BRANCHED, independent of retrieval
+
+`concept_compilers.compile_hub_lobby`/`compile_branched` tried directly against this brief's own authoritative programme/site (`realize_compiled_topology`) -- never gated on whether a retrieved donor reference happened to declare that class (see `demo.py`'s own module docstring).
+
+| class | outcome | realized class | ok | time (s) |
+|---|---|---|---|---|
+| BRANCHED | REFUSED | - | - | 0.1 |
+| HUB_LOBBY | REFUSED | - | - | 0.1 |
 
 ## What adaptation changed
 
@@ -22,6 +31,18 @@ REALIZED, ok=True, circulation_class=SPINE in 0.2s -> `current.svg`
 
 ## Refusal / rejection reasons
 
+- compiled-branched: REFUSED -- BRANCHED compiler (concept_compilers.py) declined: BRANCHED's own witness sizing search found no fit for this programme within ROOM_TEMPLATES' own bounds, or the resulting footprint exceeds this site's own safe candidate rectangle
+- compiled-hub_lobby: REFUSED -- HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 4
+
+## ATTEMPTED / REALIZED / REFUSED by circulation class (Issue #110)
+
+| circulation class | attempted | realized (ok, concept) | refused (reason) |
+|---|---|---|---|
+| SPINE | yes | - | - |
+  - Note: SPINE was attempted (a synthesized concept routed to it) but never REALIZED as SPINE -- its own two-hall-segment split always satisfies the merged BRANCHED classifier instead (see the BRANCHED row/note below).
+| TWO_WING | no | - | - |
+| HUB_LOBBY | yes | - | compiled-hub_lobby: HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 4 |
+| BRANCHED | yes | - | compiled-branched: BRANCHED compiler (concept_compilers.py) declined: BRANCHED's own witness sizing search found no fit for this programme within ROOM_TEMPLATES' own bounds, or the resulting footprint exceeds this site's own safe candidate rectangle |
 
 ## Realized-but-failing-validation plans
 

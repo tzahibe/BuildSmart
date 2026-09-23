@@ -20,10 +20,10 @@
       "reason": "brief requires 4 bedroom(s); added 1 to match, each at its own target area"
     }
   ],
-  "elapsed_s": 17.6,
+  "elapsed_s": 22.8,
   "outcome": "REALIZED",
   "ok": false,
-  "realized_circulation_class": "SPINE",
+  "realized_circulation_class": "BRANCHED",
   "failing_checks": [
     "C19",
     "C8"

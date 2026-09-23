@@ -1,0 +1,8 @@
+{
+  "brief_id": "brief-2",
+  "concept_id": "compiled-branched",
+  "declared_circulation_class": "BRANCHED",
+  "elapsed_s": 0.1,
+  "outcome": "REFUSED",
+  "reason": "BRANCHED compiler (concept_compilers.py) declined: BRANCHED's own witness sizing search found no fit for this programme within ROOM_TEMPLATES' own bounds, or the resulting footprint exceeds this site's own safe candidate rectangle"
+}
