@@ -806,6 +806,18 @@ DOOR lies on it" precondition), so a real door always keeps a wall to reference.
 **Out of scope, deliberately untouched** (per the Issue's own scope note): structural engineering
 of any kind, DXF output, compliance rules keyed on wall class.
 
+## Stage 2 shared contract (Issue #133)
+
+`docs/stage2/CONTRACT.md` (implementation: `app/vertical_slice/stage2/contract.py`, pinned by
+`tests/architectural_brain/test_stage2_contract.py` and
+`tests/architectural_brain/test_stage2_no_guillotine_fallback.py`) defines the vocabulary every
+later Stage 2 child (non-guillotine realization of a retrieved donor plan) speaks: donor room
+identity, seed geometry, `RealizationIntent` content, the realizer's input/refusal contract, and how
+wet rooms/SAFE_ROOM (`wet_rooms.ResolvedWetRoom`, C17/C29/C4 — unchanged, referenced not redefined)
+reach a non-guillotine realizer. Types only — no realization behaviour, nothing wired into this
+page's own validators or pipeline yet; this section is a pointer, not a status change, until a
+child actually lands realization behaviour.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
