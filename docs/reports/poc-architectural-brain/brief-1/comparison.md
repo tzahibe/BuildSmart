@@ -1,14 +1,23 @@
 # Comparison -- brief-1
 
 ## Current engine baseline
-REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -> `current.svg`
+REALIZED, ok=True, circulation_class=FRONT_BAND in 2.1s -> `current.svg`
 
 ## Brain alternatives
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (A) | OTHER | REALIZED | SPINE | True | 150.9 |
-| concept-1 (B) | FRONT_BAND | REALIZED | SPINE | True | 3.1 |
+| concept-0 (A) | OTHER | REALIZED | BRANCHED | True | 193.4 |
+| concept-1 (B) | FRONT_BAND | REALIZED | BRANCHED | True | 4.0 |
+
+## Compiler probes (Issue #110): HUB_LOBBY / BRANCHED, independent of retrieval
+
+`concept_compilers.compile_hub_lobby`/`compile_branched` tried directly against this brief's own authoritative programme/site (`realize_compiled_topology`) -- never gated on whether a retrieved donor reference happened to declare that class (see `demo.py`'s own module docstring).
+
+| class | outcome | realized class | ok | time (s) |
+|---|---|---|---|---|
+| BRANCHED | REFUSED | - | - | 0.1 |
+| HUB_LOBBY | REFUSED | - | - | 0.1 |
 
 ## What adaptation changed
 
@@ -21,6 +30,19 @@ REALIZED, ok=True, circulation_class=FRONT_BAND in 1.6s -> `current.svg`
 
 ## Refusal / rejection reasons
 
+- compiled-branched: REFUSED -- BRANCHED compiler (concept_compilers.py) declined: compile_branched supports exactly 3 bedrooms with a safe room, not 4
+- compiled-hub_lobby: REFUSED -- HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 4
+
+## ATTEMPTED / REALIZED / REFUSED by circulation class (Issue #110)
+
+| circulation class | attempted | realized (ok, concept) | refused (reason) |
+|---|---|---|---|
+| SPINE | yes | - | - |
+  - Note: SPINE was attempted (a synthesized concept routed to it) but never REALIZED as SPINE -- its own two-hall-segment split always satisfies the merged BRANCHED classifier instead (see the BRANCHED row/note below).
+| TWO_WING | no | - | - |
+| HUB_LOBBY | yes | - | compiled-hub_lobby: HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 4 |
+| BRANCHED | yes | concept-0, concept-1 | compiled-branched: BRANCHED compiler (concept_compilers.py) declined: compile_branched supports exactly 3 bedrooms with a safe room, not 4 |
+  - Note: `realized_circulation_class` labels ANY two directly-connected HALL/CIRCULATION zones BRANCHED (Issue #79's own classifier extension) -- the realized concept(s) above came from `realize.py`'s own SPINE compiler (its hall-segment split happens to match that same geometric signature), NOT from the imported `concept_compilers.compile_branched`, which is REFUSED on this brief (see the reason column and the compiler-probes table above).
 
 ## RealizationIntent preservation (Issue #109 Track 3)
 
@@ -126,5 +148,5 @@ LOST facts:
 | plan | class | gross_area_m2 | net_area_m2 | m3_circulation_share | m4_hall_door_count | m4_hall_aspect_median | m5_wet_adjacency_ratio | m6_public_zone_contiguous | wet_core_cluster_count | entrance_opens_into |
 |---|---|---|---|---|---|---|---|---|---|---|
 | current | FRONT_BAND | 189.8 | 172.31 | 0.08630136986301369 | 8 | 8.357142857142858 | 0.6666666666666666 | False | 2 | LIVING |
-| brain-A (concept-0) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
-| brain-B (concept-1) | SPINE | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
+| brain-A (concept-0) | BRANCHED | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |
+| brain-B (concept-1) | BRANCHED | 170.05 | 152.55 | 0.1787709497206704 | 9 | 5.9375 | 0.6666666666666666 | True | 2 | HALL_1 |

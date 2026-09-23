@@ -14,10 +14,10 @@
       "reason": "each room type's aggregate resized to its own architectural target area, independently -- never a single scale factor applied to every room -- and each individual room's OWN share of that aggregate carries the donor's own proportion forward, so a different donor with a different internal size spread adapts to different individual room areas even at the same aggregate target"
     }
   ],
-  "elapsed_s": 150.9,
+  "elapsed_s": 193.4,
   "outcome": "REALIZED",
   "ok": true,
-  "realized_circulation_class": "SPINE",
+  "realized_circulation_class": "BRANCHED",
   "failing_checks": [],
   "rationale": "architectural-brain POC: synthesized concept-0 (circulation_class=OTHER, zoning=CENTRAL_PUBLIC) adapted with 1 operation(s), compiled to the SPINE template",
   "measurements": {

@@ -20,7 +20,7 @@
       "reason": "brief requires 5 bedroom(s); added 1 to match, each at its own target area"
     }
   ],
-  "elapsed_s": 12.1,
+  "elapsed_s": 15.9,
   "outcome": "REFUSED",
   "reason": "no footprint size solved for the SPINE template: depth 10.0 m / foyer depth 3.0 m: no width combination both fit and solved"
 }

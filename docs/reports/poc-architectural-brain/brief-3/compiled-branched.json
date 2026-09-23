@@ -1,0 +1,8 @@
+{
+  "brief_id": "brief-3",
+  "concept_id": "compiled-branched",
+  "declared_circulation_class": "BRANCHED",
+  "elapsed_s": 0.2,
+  "outcome": "REFUSED",
+  "reason": "BRANCHED compiler (concept_compilers.py) declined: compile_branched supports exactly 4 bedrooms without a safe room, not 5"
+}

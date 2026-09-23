@@ -20,7 +20,7 @@
       "reason": "brief requires 5 bedroom(s); added 2 to match, each at its own target area"
     }
   ],
-  "elapsed_s": 0.2,
+  "elapsed_s": 0.3,
   "outcome": "REALIZED",
   "ok": true,
   "realized_circulation_class": "TWO_WING",

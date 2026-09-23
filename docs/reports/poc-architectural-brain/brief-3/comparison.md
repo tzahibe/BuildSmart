@@ -7,9 +7,18 @@ REFUSED (outcome=INSUFFICIENT_RECTANGULAR_CAPACITY): FRONT_PUBLIC_BAND/ROOM_SHAP
 
 | concept | declared class | outcome | realized class | ok | time (s) |
 |---|---|---|---|---|---|
-| concept-0 (-) | OTHER | REFUSED | - | - | 12.1 |
-| concept-1 (-) | FRONT_BAND | REFUSED | - | - | 12.1 |
-| concept-5 (A) | TWO_WING | REALIZED | TWO_WING | True | 0.2 |
+| concept-0 (-) | OTHER | REFUSED | - | - | 15.9 |
+| concept-1 (-) | FRONT_BAND | REFUSED | - | - | 15.8 |
+| concept-5 (A) | TWO_WING | REALIZED | TWO_WING | True | 0.3 |
+
+## Compiler probes (Issue #110): HUB_LOBBY / BRANCHED, independent of retrieval
+
+`concept_compilers.compile_hub_lobby`/`compile_branched` tried directly against this brief's own authoritative programme/site (`realize_compiled_topology`) -- never gated on whether a retrieved donor reference happened to declare that class (see `demo.py`'s own module docstring).
+
+| class | outcome | realized class | ok | time (s) |
+|---|---|---|---|---|
+| BRANCHED | REFUSED | - | - | 0.2 |
+| HUB_LOBBY | REFUSED | - | - | 0.2 |
 
 ## What adaptation changed
 
@@ -29,6 +38,18 @@ REFUSED (outcome=INSUFFICIENT_RECTANGULAR_CAPACITY): FRONT_PUBLIC_BAND/ROOM_SHAP
 
 - concept-0: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m / foyer depth 3.0 m: no width combination both fit and solved
 - concept-1: REFUSED -- no footprint size solved for the SPINE template: depth 10.0 m / foyer depth 3.0 m: no width combination both fit and solved
+- compiled-branched: REFUSED -- BRANCHED compiler (concept_compilers.py) declined: compile_branched supports exactly 4 bedrooms without a safe room, not 5
+- compiled-hub_lobby: REFUSED -- HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 5
+
+## ATTEMPTED / REALIZED / REFUSED by circulation class (Issue #110)
+
+| circulation class | attempted | realized (ok, concept) | refused (reason) |
+|---|---|---|---|
+| SPINE | yes | - | - |
+  - Note: SPINE was attempted (a synthesized concept routed to it) but never REALIZED as SPINE -- its own two-hall-segment split always satisfies the merged BRANCHED classifier instead (see the BRANCHED row/note below).
+| TWO_WING | yes | concept-5 | - |
+| HUB_LOBBY | yes | - | compiled-hub_lobby: HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 5 |
+| BRANCHED | yes | - | compiled-branched: BRANCHED compiler (concept_compilers.py) declined: compile_branched supports exactly 4 bedrooms without a safe room, not 5 |
 
 ## RealizationIntent preservation (Issue #109 Track 3)
 

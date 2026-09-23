@@ -1,0 +1,8 @@
+{
+  "brief_id": "brief-3",
+  "concept_id": "compiled-hub_lobby",
+  "declared_circulation_class": "HUB_LOBBY",
+  "elapsed_s": 0.2,
+  "outcome": "REFUSED",
+  "reason": "HUB_LOBBY compiler (concept_compilers.py) declined: compile_hub_lobby supports exactly 2 bedrooms, not 5"
+}

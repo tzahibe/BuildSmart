@@ -43,19 +43,27 @@ it never turns an externally retrieved/adapted room list into a fresh slicing tr
     solves — never a hidden retry that could silently prefer a worse plan, since ANY solved size is
     equally valid geometry for a rectangle whose own room mix decides its proportions, not the
     other way round.
-  * HUB_LOBBY is NOT compiled (falls back to the SPINE template — see ``_TOPOLOGY_FOR_CLASS``): a
+  * HUB_LOBBY/BRANCHED are NOT compiled by this module (Issue #110, POC Phase 2 Track 1): a
     genuine hub (a compact, near-square lobby reached by every room around it) needs a real 2-D
-    layout a minimal single-column compiler cannot produce within a realistic house depth (a
-    hub's own ``HUB_TEMPLATE`` bound is far tighter than a spine hall's — see the module's own
-    measured infeasibility note in the Issue's report). Documented, not hidden: AC-1 only needs
-    TWO distinct realized classes, and SPINE + TWO_WING already delivers that.
+    layout this module's own minimal single-column compilers were never built to produce, and a
+    genuinely bent two-hall corridor is not a shape ``_compile_spine``/``_compile_two_wing``
+    express either. Rather than re-invent either, ``realize_concept`` IMPORTS
+    ``app.vertical_slice.concept_compilers.compile_hub_lobby``/``compile_branched`` (Concept
+    Engine v2 child #79, out of scope to modify here) and hands them the SAME
+    ``ArchitecturalSpec``/candidate rectangle this module already built for its own compilers —
+    when the brief's programme does not match either compiler's own supported room-count shape
+    (``_hub_lobby_unsupported``/``_branched_unsupported``), or its witness sizing search finds no
+    fit, ``realize_concept`` REFUSES with that reason rather than falling back to SPINE, so a
+    declared HUB_LOBBY/BRANCHED concept is never silently relabelled.
 """
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass
 
 from app.geometry_domain.constraints import SiteConstraints
+from app.vertical_slice import concept_compilers
 from app.vertical_slice import concept_generator as generator
 from app.vertical_slice import concept_spec
 from app.vertical_slice import general_pipeline as gp
@@ -96,11 +104,14 @@ from spikes.architectural_brain.realization_intent import RealizationIntent
 from spikes.architectural_brain.synthesis import ConceptSpec as SynthesizedConcept
 
 #: `SynthesizedConcept.circulation_class` (the corpus vocabulary — `patterns._circulation_class`)
-#: -> which template below compiles it. HUB_LOBBY/BRANCHED/OTHER/UNKNOWN fall back to SPINE — see
-#: the module docstring for why HUB_LOBBY specifically is not attempted.
+#: -> which template below compiles it. FRONT_BAND/OTHER/UNKNOWN fall back to SPINE; HUB_LOBBY/
+#: BRANCHED are routed to `concept_compilers`'s own compilers (Issue #110) — see the module
+#: docstring.
 _SPINE = "SPINE"
 _FRONT_BAND = "FRONT_BAND"
 _TWO_WING = "TWO_WING"
+_HUB_LOBBY = "HUB_LOBBY"
+_BRANCHED = "BRANCHED"
 
 #: A full-height single hall leaf only has a satisfiable width when the wing depth is at most
 #: sqrt(max_area * max_aspect_ratio) — beyond that no width admits both bounds at once (see
@@ -1180,8 +1191,104 @@ def _solve_two_wing_search(programme: _Programme, candidates: tuple,
 
 
 #: `circulation_class` value -> which compiler builds it. Anything not listed (including
-#: FRONT_BAND/HUB_LOBBY/BRANCHED/OTHER/UNKNOWN) falls back to SPINE — see the module docstring.
-_TOPOLOGY_FOR_CLASS = {_TWO_WING: _TWO_WING}
+#: FRONT_BAND/OTHER/UNKNOWN) falls back to SPINE — see the module docstring.
+_TOPOLOGY_FOR_CLASS = {_TWO_WING: _TWO_WING, _HUB_LOBBY: _HUB_LOBBY, _BRANCHED: _BRANCHED}
+
+#: `topology` -> the `concept_compilers` function that builds it, and the function that explains
+#: WHY it declined a programme (Issue #110). Both are Concept Engine v2's own (`concept_compilers
+#: .py`, out of scope to modify here) — imported, never copied.
+_CONCEPT_COMPILER = {
+    _HUB_LOBBY: (concept_compilers.compile_hub_lobby, concept_compilers._hub_lobby_unsupported),
+    _BRANCHED: (concept_compilers.compile_branched, concept_compilers._branched_unsupported),
+}
+
+
+def _compile_and_realize(arch_spec: ArchitecturalSpec, buildable, site: SiteConstraints,
+                         candidate_rect: Rect, topology: str, index: int, concept_id: str,
+                         rationale_prefix: str) -> "gp.RealizedPlan | Refusal":
+    """HUB_LOBBY/BRANCHED (Issue #110, POC Phase 2 Track 1): tried on the given `candidate_rect`
+    through `concept_compilers`'s own `compile_hub_lobby`/`compile_branched` (Concept Engine v2
+    child #79) — never copied, never modified, never forced onto a site/programme it declines. A
+    programme shape neither compiler's own precondition serves (`_hub_lobby_unsupported`/
+    `_branched_unsupported`), or whose own witness sizing search finds no fit within this site's
+    candidate rectangle, REFUSES with that exact reason — this never silently falls back to
+    SPINE/TWO_WING instead.
+
+    Track 3's `RealizationIntent` (the donor's own per-room-type area share) is NOT threaded into
+    either compiler here: both build their own `ZoneSpec`s straight from `concept_generator
+    .ROOM_TEMPLATES`, with no `intent` parameter of their own (Concept Engine v2's own module,
+    out of scope to extend) — a HUB_LOBBY/BRANCHED realization's own room sizing is therefore the
+    template's plain target area, not the donor-proportioned one `_zone` gives SPINE/TWO_WING.
+
+    Shared by `_realize_via_concept_compiler` (retrieval-driven: `topology` is a SYNTHESIZED
+    concept's own declared class) and `realize_compiled_topology` (an independent probe of this
+    brief's own authoritative programme, not gated on retrieval at all) — the compile/solve/refuse
+    logic below is identical either way; only WHICH `concept_id`/rationale text to report differs.
+    """
+    compile_fn, unsupported_fn = _CONCEPT_COMPILER[topology]
+    compiled = compile_fn(arch_spec, candidate_rect)
+    if not compiled:
+        reason = unsupported_fn(arch_spec) or (
+            f"{topology}'s own witness sizing search found no fit for this programme within "
+            "ROOM_TEMPLATES' own bounds, or the resulting footprint exceeds this site's own "
+            "safe candidate rectangle")
+        return Refusal(concept_id, f"{topology} compiler (concept_compilers.py) declined: {reason}")
+
+    generator_candidate = compiled[0]
+    try:
+        solve = solve_fixture(generator_candidate.concept.fixture)
+    except GeometryInfeasible as exc:
+        return Refusal(concept_id,
+                       f"{topology} compiled tree failed to solve: {exc}",
+                       failing_checks=(str(exc),))
+
+    candidate = dataclasses.replace(
+        generator_candidate,
+        rationale=f"{rationale_prefix}, compiled via Concept Engine v2's own {topology} compiler "
+                 f"({generator_candidate.rationale})")
+    return gp._realize(arch_spec, buildable, site, candidate, index, solve, ())
+
+
+def _realize_via_concept_compiler(concept: SynthesizedConcept, adapted: AdaptedConcept,
+                                  arch_spec: ArchitecturalSpec, buildable, site: SiteConstraints,
+                                  candidate_rect: Rect, topology: str, index: int,
+                                  ) -> "gp.RealizedPlan | Refusal":
+    """`concept.circulation_class` (a SYNTHESIZED, retrieval-driven concept) names HUB_LOBBY or
+    BRANCHED — see `_compile_and_realize`'s own docstring for the compile/refuse behaviour."""
+    rationale_prefix = (f"architectural-brain POC: synthesized {concept.concept_id} "
+                        f"(circulation_class={concept.circulation_class}, zoning={concept.zoning}) "
+                        f"adapted with {len(adapted.adaptations)} operation(s)")
+    return _compile_and_realize(arch_spec, buildable, site, candidate_rect, topology, index,
+                                concept.concept_id, rationale_prefix)
+
+
+def realize_compiled_topology(brief: Brief, site: SiteConstraints, plot_size_m: tuple[float, float],
+                              topology: str, index: int = 0) -> "gp.RealizedPlan | Refusal":
+    """Issue #110: an INDEPENDENT probe of `concept_compilers.compile_hub_lobby`/`compile_branched`
+    against THIS brief's own authoritative `ProgramSpec`/site — never gated on whether the demo's
+    own retrieval corpus happens to surface a donor reference declaring `topology` (unlike
+    `realize_concept`, which only reaches `_compile_and_realize` when a SYNTHESIZED concept's own
+    `circulation_class` names one of these two). Mirrors Concept Engine v2's OWN production
+    dispatch (`concept_engine_v2._compiled_candidates_for`), which tries these compilers on every
+    brief regardless of what `patterns_for` names — "at the cost of one cheap shape check" (that
+    module's own docstring) — so the demo can report an honest ATTEMPTED/REALIZED/REFUSED answer
+    for HUB_LOBBY/BRANCHED even on a brief whose retrieved references never carry that class.
+    """
+    if topology not in _CONCEPT_COMPILER:
+        raise ValueError(f"not a concept_compilers topology: {topology}")
+    buildable = build_buildable_region(site)
+    adapter_result = safe_adapt(buildable)
+    concept_id = f"compiled-{topology.lower()}"
+    if adapter_result.outcome is not AdapterOutcome.SOLVED or not adapter_result.candidates:
+        return Refusal(concept_id,
+                       f"no safe solver geometry on this site: {adapter_result.outcome.value}")
+    candidate_rect = adapter_result.candidates[0].rect
+    arch_spec = ArchitecturalSpec(
+        plot=PlotSpec(width_m=plot_size_m[0], depth_m=plot_size_m[1]), program=brief.program)
+    rationale_prefix = ("architectural-brain POC: this brief's own authoritative programme "
+                        "(Issue #110 compiler probe — not gated on retrieval)")
+    return _compile_and_realize(arch_spec, buildable, site, candidate_rect, topology, index,
+                                concept_id, rationale_prefix)
 
 
 def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief: Brief,
@@ -1198,15 +1305,15 @@ def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief:
     already-resized area alone — see `_zone`'s own docstring. `donor_room_id_by_zone(brief,
     adapted)` recovers the SAME zone-id -> donor-room-id correspondence this call used, for a
     caller (`preservation.py`) that needs to translate `intent`'s facts onto the realized geometry
-    afterward.
+    afterward. NOT read when `concept.circulation_class` routes to HUB_LOBBY/BRANCHED (Issue #110)
+    — see `_realize_via_concept_compiler`'s own docstring for why.
 
     Returns a `Refusal` if no geometry could be built at all (adaptation already rejected the
-    concept, or every tried footprint size was `GeometryInfeasible`); otherwise a `RealizedPlan`
-    — which may itself carry failing validation checks (`.ok is False`), exactly as any other
-    realized candidate in this codebase can.
+    concept, every tried footprint size was `GeometryInfeasible`, or — for HUB_LOBBY/BRANCHED —
+    the imported `concept_compilers` compiler declined this programme/site); otherwise a
+    `RealizedPlan` — which may itself carry failing validation checks (`.ok is False`), exactly as
+    any other realized candidate in this codebase can.
     """
-    programme, resolved_wet_rooms, _ = _programme_of(brief, adapted, intent=intent)
-
     buildable = build_buildable_region(site)
     adapter_result = safe_adapt(buildable)
     if adapter_result.outcome is not AdapterOutcome.SOLVED or not adapter_result.candidates:
@@ -1214,7 +1321,16 @@ def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief:
                        f"no safe solver geometry on this site: {adapter_result.outcome.value}")
     candidate_rect = adapter_result.candidates[0].rect
 
+    arch_spec = ArchitecturalSpec(
+        plot=PlotSpec(width_m=plot_size_m[0], depth_m=plot_size_m[1]), program=brief.program)
+
     topology = _TOPOLOGY_FOR_CLASS.get(concept.circulation_class, _SPINE)
+
+    if topology in (_HUB_LOBBY, _BRANCHED):
+        return _realize_via_concept_compiler(concept, adapted, arch_spec, buildable, site,
+                                             candidate_rect, topology, index)
+
+    programme, resolved_wet_rooms, _ = _programme_of(brief, adapted, intent=intent)
 
     if topology == _TWO_WING:
         fixture, solve_or_error = _solve_two_wing_search(programme, adapter_result.candidates)
@@ -1256,7 +1372,5 @@ def realize_concept(concept: SynthesizedConcept, adapted: AdaptedConcept, brief:
         wet_rooms=resolved_wet_rooms,
     )
 
-    arch_spec = ArchitecturalSpec(
-        plot=PlotSpec(width_m=plot_size_m[0], depth_m=plot_size_m[1]), program=brief.program)
     plan = gp._realize(arch_spec, buildable, site, candidate, index, solve, ())
     return plan

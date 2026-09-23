@@ -20,10 +20,10 @@
       "reason": "brief requires 4 bedroom(s); added 1 to match, each at its own target area"
     }
   ],
-  "elapsed_s": 3.1,
+  "elapsed_s": 4.0,
   "outcome": "REALIZED",
   "ok": true,
-  "realized_circulation_class": "SPINE",
+  "realized_circulation_class": "BRANCHED",
   "failing_checks": [],
   "rationale": "architectural-brain POC: synthesized concept-1 (circulation_class=FRONT_BAND, zoning=PUBLIC_FRONT_PRIVATE_REAR) adapted with 2 operation(s), compiled to the SPINE template",
   "measurements": {
