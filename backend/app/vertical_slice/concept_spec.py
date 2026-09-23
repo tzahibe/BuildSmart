@@ -48,10 +48,11 @@ if TYPE_CHECKING:
 class CirculationClass(str, Enum):
     """How a house's circulation is organised — the tag every `ConceptCandidate` carries.
 
-    `BRANCHED` and `RING` are not produced by any builder today (`concept_generator.py`,
-    `l_parti.py`) — they exist so `realized_circulation_class` and `topologically_distinct` do not
-    need to change the day a future planner path produces one; making the generator ever emit them
-    is explicitly out of scope for this Issue.
+    `BRANCHED` is produced by `concept_compilers.compile_branched` (Issue #79) — a hand-authored
+    two-hall tree, never by `concept_generator.py`'s own strategies. `RING` is not produced by any
+    builder today — it exists so `realized_circulation_class` and `topologically_distinct` do not
+    need to change the day a future planner path produces one; making the generator ever emit a
+    RING plan is explicitly out of scope for this Issue.
     """
 
     SPINE = "SPINE"
@@ -367,6 +368,19 @@ def realized_circulation_class(fixture: Fixture, rects: dict[str, Rect], walls: 
 
     hall_ids = {z.zone_id for z in fixture.zones if _HALL_ROLES & set(z.roles)}
     hall_rects = [rects[h] for h in hall_ids if h in rects]
+
+    # BRANCHED (Issue #79): two HALL/CIRCULATION zones, in one wing, that are themselves directly
+    # connected — the generator-level compilers this Issue adds are the first to ever produce this
+    # (`concept_compilers.compile_branched`): two hall LEAVES in adjacent, non-sibling subtrees,
+    # joined by a declared CASED_OPENING edge (never an OPEN_CONNECTION — `_mark_open_interfaces`
+    # requires the group's leaves to be one subtree with a FULL matching edge, which a genuinely
+    # bent corridor never has). Checked before HUB_LOBBY/FRONT_BAND/SPINE below: a two-hall
+    # fixture with no direct hall-to-hall connection falls through to those, unchanged.
+    if len(hall_ids) >= 2:
+        connections = validation_module.realized_connections(rects, walls, interior_doors)
+        if any((c.a in hall_ids and c.b in hall_ids) for c in connections):
+            return CirculationClass.BRANCHED
+
     if hall_rects:
         connections = validation_module.realized_connections(rects, walls, interior_doors)
         hall_door_count = sum(

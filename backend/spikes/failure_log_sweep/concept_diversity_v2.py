@@ -1,4 +1,6 @@
-"""Concept Engine v2 (4/5) diversity measurement, flag ON — Issue #78.
+"""Concept Engine v2 diversity measurement, flag ON — Issue #78 (single-outline), re-run for
+Issue #79 (generator-level pattern compilers + cross-outline search, both wired in behind the
+same flag by this point in `demo.service`/`concept_engine_v2`).
 
     .venv/bin/python3 spikes/failure_log_sweep/concept_diversity_v2.py [--start N] [--end N]
         [--resume PATH] [--finalize]
@@ -27,7 +29,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from app.demo import service as svc  # noqa: E402
 from app.vertical_slice import general_pipeline as gp  # noqa: E402
+from app.vertical_slice.concept_compilers import (_branched_unsupported,  # noqa: E402
+                                                  _hub_lobby_unsupported)
 from app.vertical_slice.concept_spec import CirculationClass  # noqa: E402
+from app.vertical_slice.spec import ArchitecturalSpec, PlotSpec, ProgramSpec  # noqa: E402
 from spikes.failure_log_sweep.sweep import project_from_context  # noqa: E402
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -168,20 +173,88 @@ def aggregate(per_brief: list[dict]) -> dict:
     }
 
 
+def _spec_for(context: dict) -> ArchitecturalSpec:
+    """A spec carrying this context's PROGRAMME, for asking a compiler whether it supports it.
+
+    Both compiler preconditions (`concept_compilers._hub_lobby_unsupported` /
+    `_branched_unsupported`) read `spec.program` only, so the plot is nominal — the programme is
+    the whole question here."""
+    return ArchitecturalSpec(
+        plot=PlotSpec(width_m=float(context.get("plot_width_m") or 16.0),
+                      depth_m=float(context.get("plot_depth_m") or 20.0)),
+        program=ProgramSpec(bedrooms=int(context.get("bedrooms") or 0),
+                            wet_rooms=int(context.get("wet_rooms") or 0),
+                            safe_room=bool(context.get("safe_room"))))
+
+
+def _hub_lobby_eligible(context: dict) -> bool:
+    """Whether `compile_hub_lobby` supports this brief — ASKED OF THE COMPILER ITSELF.
+
+    This used to be a hand-written copy of the precondition, and it silently went stale when
+    attempt 4 taught the compiler a 3-wet-room (GUEST_WC) variant: the committed report then
+    reported briefs as excluded that the code already served (review finding, attempt 5). The copy
+    is gone — a report about what the compilers cover now cannot disagree with them."""
+    return _hub_lobby_unsupported(_spec_for(context)) is None
+
+
+def _branched_eligible(context: dict) -> bool:
+    """Whether `compile_branched` supports this brief, asked of the compiler itself (see
+    `_hub_lobby_eligible` for why this is not a copy of the precondition)."""
+    return _branched_unsupported(_spec_for(context)) is None
+
+
+def _compiler_eligibility_breakdown(cases: list[dict]) -> dict:
+    """Per-precondition breakdown (lead direction after attempt 2, 2026-09-22, (c)): how many
+    PLANNED cases satisfy `compile_hub_lobby`'s own precondition, `compile_branched`'s own, either,
+    and how many PLANNED cases satisfy NEITHER (the residual population still excluded, with the
+    reason each one is excluded) — the structural ceiling on what the two compilers could
+    contribute, independent of how general their own bedroom/wet-room sizing becomes."""
+    n = len(cases)
+    hub_elig = [c for c in cases if _hub_lobby_eligible(c["context"])]
+    branched_elig = [c for c in cases if _branched_eligible(c["context"])]
+    either = [c for c in cases
+             if _hub_lobby_eligible(c["context"]) or _branched_eligible(c["context"])]
+    excluded = [c for c in cases
+               if not _hub_lobby_eligible(c["context"]) and not _branched_eligible(c["context"])]
+    # Each excluded brief is labelled with the two compilers' OWN refusal messages, never with a
+    # restatement of their preconditions in this file's prose: the prose copy is what went stale
+    # after attempt 4 (review finding, attempt 5), and a report of what the compilers do not cover
+    # has to be quoted from them to stay true as they generalize.
+    reason_counter: Counter = Counter()
+    for c in excluded:
+        spec = _spec_for(c["context"])
+        reason_counter[f"hub_lobby: {_hub_lobby_unsupported(spec)} · "
+                      f"branched: {_branched_unsupported(spec)}"] += 1
+    return {
+        "n_briefs": n,
+        "hub_lobby_eligible_count": len(hub_elig),
+        "branched_eligible_count": len(branched_elig),
+        "either_eligible_count": len(either),
+        "excluded_count": len(excluded),
+        "excluded_reasons": dict(sorted(reason_counter.items(), key=lambda kv: -kv[1])),
+    }
+
+
 def diversity_report(corpus_path: Path = _CORPUS_PATH) -> dict:
-    return aggregate(score_briefs(_planned_cases(corpus_path)))
+    cases = _planned_cases(corpus_path)
+    stats = aggregate(score_briefs(cases))
+    stats["eligibility"] = _compiler_eligibility_breakdown(cases)
+    return stats
 
 
 def render_report(stats: dict) -> str:
     lines = [
-        "# Concept Engine v2 — diversity report, flag ON (Issue #78)",
+        "# Concept Engine v2 — diversity report, flag ON (Issue #79)",
         "",
         "`general_pipeline.CONCEPT_ENGINE_V2_ENABLED = True` for the duration of each call, over "
         "the frozen 432-context regression corpus's PLANNED cases: how many circulation classes a "
         "brief's SHOWN plan set (primary + alternatives) contains once "
-        "`concept_engine_v2.plans_per_class` replaces the ordinary alternatives walk, compared "
-        "against the flag-off baseline (`concept-engine-v2-diversity-baseline.md`, Issue #75: "
-        "49/404, 12.1%). Generated by `spikes/failure_log_sweep/concept_diversity_v2.py`.",
+        "`concept_engine_v2.plans_per_class`/`plans_per_class_cross_outline` (Issue #79's "
+        "generator-level pattern compilers, `concept_compilers.py`, plus cross-outline search) "
+        "replace the ordinary alternatives walk, compared against the flag-off baseline "
+        "(`concept-engine-v2-diversity-baseline.md`, Issue #75: 49/404, 12.1%) and the "
+        "single-outline Issue #78 measurement (71/404, 17.6%). Generated by "
+        "`spikes/failure_log_sweep/concept_diversity_v2.py`.",
         "",
         f"- PLANNED briefs measured: {stats['n_briefs']}",
         f"- briefs with 2 or more distinct circulation classes shown: "
@@ -198,6 +271,39 @@ def render_report(stats: dict) -> str:
     for cls, count in stats["class_counts"].items():
         lines.append(f"- {cls}: {count}")
     lines.append("")
+    if "eligibility" in stats:
+        n = stats["n_briefs"]
+        elig = stats["eligibility"]
+        share = stats["share_with_2_or_more_classes"]
+        verdict = "meets" if share >= 0.40 else "below"
+        lines += [
+            "## AC-3 assessment (Issue #79, attempt 3)",
+            "",
+            f"Share with ≥2 classes shown: {stats['briefs_with_2_or_more_classes']}/{n} "
+            f"({100 * share:.1f}%) — {verdict} the 40% bar.",
+            "",
+            "### Per-precondition eligibility breakdown (lead direction 2026-09-22 (c))",
+            "",
+            "`compile_hub_lobby` and `compile_branched` now each support a SAFE_ROOM-aware and an "
+            "open-plan-aware variant (attempt 3); what still bounds them is the room-count shape "
+            "each was calibrated and verified against. Every count and every reason below is read "
+            "from the compilers themselves (`_hub_lobby_unsupported` / `_branched_unsupported`), "
+            "never from a restatement of their preconditions here — the earlier restatement went "
+            "stale the moment attempt 4 added `compile_hub_lobby`'s 3-wet-room GUEST_WC row, and "
+            "under-reported what the code already covered (review finding, attempt 5).",
+            "",
+            f"- `compile_hub_lobby`-eligible: {elig['hub_lobby_eligible_count']}/{n}",
+            f"- `compile_branched`-eligible: {elig['branched_eligible_count']}/{n}",
+            f"- eligible for either compiler: {elig['either_eligible_count']}/{n} "
+            f"({100 * elig['either_eligible_count'] / n:.1f}%)" if n else "n/a",
+            f"- excluded from both (residual population): {elig['excluded_count']}/{n}",
+            "",
+            "#### Residual population excluded from both compilers, by reason",
+            "",
+        ]
+        for reason, count in elig["excluded_reasons"].items():
+            lines.append(f"- {reason}: {count}")
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 
@@ -222,6 +328,7 @@ def main() -> None:
 
     if args.finalize:
         report_stats = aggregate(_load_resume(args.resume))
+        report_stats["eligibility"] = _compiler_eligibility_breakdown(_planned_cases(_CORPUS_PATH))
     elif args.start is not None or args.end is not None:
         cases = _planned_cases(_CORPUS_PATH)[args.start:args.end]
         rows = _load_resume(args.resume) + score_briefs(cases)
