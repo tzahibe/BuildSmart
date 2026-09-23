@@ -10,6 +10,12 @@ file is evidence for.
 AC-1 is `test_fixture_layout_is_genuinely_non_guillotine`. Every other test is AC-2 evidence: each
 is named for the pipeline entry point it feeds the hand-encoded layout into, UNCHANGED — no test
 here modifies any module under `app/`.
+
+The LIVING+KITCHEN merge (Issue #118, `app.vertical_slice.room_merge`) is disabled for this
+module's own fixture only (`_merge_disabled_for_this_module` below): this fixture's LIVING and
+KITCHEN happen to be CLOSED_ADJACENT, so once that flag defaults ON it would fire here too — a
+real, additive interaction, but out of scope for THIS spike's own claim ("the existing pipeline
+accepts this fixture with ZERO code changes"), which predates and is orthogonal to Issue #118.
 """
 from __future__ import annotations
 
@@ -17,6 +23,7 @@ import pytest
 from shapely.geometry import Polygon
 
 from app.demo.contract import to_demo_design
+from app.vertical_slice import room_merge
 from app.vertical_slice.validation import check_realized_dimensions
 from app.vertical_slice import doors as doors_stage
 from app.vertical_slice import furniture as furniture_stage
@@ -35,6 +42,14 @@ from spikes.non_guillotine_reuse.hand_encoded_fixture import (
     build_wet_rooms,
     build_wing_rects,
 )
+
+
+@pytest.fixture(autouse=True)
+def _merge_disabled_for_this_module(monkeypatch):
+    """See the module docstring: this fixture's LIVING/KITCHEN pair is CLOSED_ADJACENT, so the
+    Issue #118 merge (default ON) would otherwise fire here — out of scope for this spike's own
+    "zero code changes" claim."""
+    monkeypatch.setattr(room_merge, "LIVING_KITCHEN_MERGE_ENABLED", False)
 
 
 @pytest.fixture(scope="module")

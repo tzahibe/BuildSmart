@@ -1,0 +1,29 @@
+accumulated: 432/432 contexts
+
+planned OFF=404  ON=404
+LOST: 0   crashes OFF=0 ON=0
+
+status_changes (any context whose PLANNED/REFUSED/CRASH class differs OFF vs ON): 0
+refusal_code_changes (both sides REFUSED, code differs): 0
+
+byte-identical primary signatures (OFF==ON): 236/404
+primary-signature changes: 168
+
+merge candidates found (flag ON, over the OFF-planned contexts): 191   applied: 168   rejected (own checks failed): 23
+  rejected on C6: 14
+  rejected on C3: 4
+  rejected on C20+C6: 3
+  rejected on C20: 2
+
+M1-M6 corpus deltas, flag OFF -> ON (before/after, over all PLANNED contexts):
+  M1 habitable aspect (median of per-plan medians): 1.674 -> 1.593  (diagnostic, not gated)
+  M2 habitable-on-envelope (mean of per-plan ratios): 1.000 -> 1.000  (diagnostic, not gated)
+  M3 circulation-share median: 0.1085 -> 0.1085  (tolerance 0.02)
+  M4 hall aspect median: 9.500 -> 9.500  (tolerance 0.2)
+  M5 wet-adjacency share: 0.4344 -> 0.4344  (tolerance 0.02)
+  M6 public-contiguous share: 0.5272 -> 0.9431  (tolerance 0.02)
+  M1-M6 regressions beyond tolerance: NONE
+
+merged room's own oriented (AABB) aspect over the 168 applied contexts: median 1.18
+
+FLIP RULE (COMPLETE — 432/432): flag defaults ON — LOST=0, crashes=0, status_changes=0, refusal_code_changes=0, no M1-M6 regression beyond tolerance

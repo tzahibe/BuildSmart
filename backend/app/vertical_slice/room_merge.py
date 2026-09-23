@@ -29,8 +29,43 @@ from .design_output import GeometricDesign as SolvedDesign, RoomOut as SolvedRoo
 from .geometry_core.model import ProgramRole
 from .validation import Check, ValidationReport
 
-#: Off by default — this is a spike, not a product rollout (Issue #107's own scope).
-LIVING_KITCHEN_MERGE_ENABLED = False
+#: Stage 0 (Issue #118): the flag's default follows `decide_default` below, applied against the
+#: 432-context corpus A/B (`scripts/stage0_merge_ab.py`,
+#: `docs/reports/rectilinear-realizer/stage0-merge-ab.md`) — set here to whatever that measurement
+#: concluded, not left permanently off like the #107 spike's own placeholder value. Measured
+#: 2026-09-23, full 432-context corpus: LOST=0, crashes=0, status_changes=0,
+#: refusal_code_changes=0, no M1-M6 regression beyond tolerance (M6 public-contiguous share
+#: actually IMPROVED, 52.7% -> 94.3%) — every `decide_default` condition holds, so ON.
+LIVING_KITCHEN_MERGE_ENABLED = True
+
+
+def decide_default(*, lost: int, crashes: int, status_changes: int, refusal_code_changes: int,
+                   m_regressions: "list[str]") -> tuple[bool, str]:
+    """The Stage 0 flip rule (Issue #118, AC-3), as one pure, tested function — the single source
+    of truth `scripts/stage0_merge_ab.py`'s own report calls to decide AND explain the verdict, so
+    the report's numbers and the flag's actual default can never silently disagree.
+
+    ON only when EVERY one of: LOST == 0, crashes == 0, status_changes == 0 (a context's
+    PLANNED/REFUSED/CRASH class never flips either way), refusal_code_changes == 0 (a context
+    REFUSED on both sides keeps the same code), and no M1-M6 corpus statistic
+    (`quality_metrics.find_regressions`) regresses beyond its own existing tolerance. Otherwise
+    OFF, with the reason named — never a partial flip and never a silent guess.
+    """
+    failures = []
+    if lost != 0:
+        failures.append(f"LOST={lost} (must be 0)")
+    if crashes != 0:
+        failures.append(f"crashes={crashes} (must be 0)")
+    if status_changes != 0:
+        failures.append(f"status_changes={status_changes} (must be 0)")
+    if refusal_code_changes != 0:
+        failures.append(f"refusal_code_changes={refusal_code_changes} (must be 0)")
+    if m_regressions:
+        failures.append(f"M1-M6 regressions beyond tolerance: {', '.join(m_regressions)}")
+    if failures:
+        return False, "flag stays OFF — " + "; ".join(failures)
+    return True, ("flag defaults ON — LOST=0, crashes=0, status_changes=0, "
+                  "refusal_code_changes=0, no M1-M6 regression beyond tolerance")
 
 _EPS = 1e-6
 TOL_M2 = 0.01

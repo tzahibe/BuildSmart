@@ -18,7 +18,7 @@ import pytest
 
 from app.demo import contract
 from app.geometry_domain.walls import BoundaryContext, Construction, WallFacts
-from app.vertical_slice import room_merge
+from app.vertical_slice import quality_metrics, reference_benchmark, room_merge
 from app.vertical_slice.design_output import RoomOut as SolvedRoomOut
 from app.vertical_slice.validation import Check, ValidationReport
 
@@ -65,8 +65,8 @@ def _passing_report(*check_ids: str) -> ValidationReport:
 # --------------------------------------------------------------------------- candidate detection
 
 
-def test_flag_off_never_finds_or_applies_a_merge():
-    assert room_merge.LIVING_KITCHEN_MERGE_ENABLED is False
+def test_flag_off_never_finds_or_applies_a_merge(monkeypatch):
+    monkeypatch.setattr(room_merge, "LIVING_KITCHEN_MERGE_ENABLED", False)
     design = _fake_design([_living(), _kitchen()])
     report = _passing_report("C7", "C8", "C9", "C19")
     assert room_merge.plan_merge(design, report) is None
@@ -220,6 +220,104 @@ def test_merge_rejected_when_the_combined_pair_is_too_small(monkeypatch):
     assert result.passed is False
     c3 = next(c for c in result.checks if c.check_id == "C3")
     assert not c3.passed
+
+
+# ------------------------------------------------------------------- AC-1 (Issue #118): quality
+
+
+def _contract_room(zone_id, type_, area, x, y, w, h) -> contract.RoomOut:
+    return contract.RoomOut(id=zone_id, type=type_, name=type_, x=x, y=y,
+                            width_m=w, depth_m=h, area_m2=area, gross_width_m=w,
+                            gross_depth_m=h, gross_area_m2=round(w * h, 4), walls={})
+
+
+def _merged_design_with_hall_and_bedroom():
+    """A LIVING(5x5)+KITCHEN(4x1.5, partial-edge) merge — a genuine L (the bbox is strictly
+    larger than the true union area, same shape family as
+    `test_merged_room_passes_validation_and_renders_as_polygon`) whose KITCHEN arm ALONE would
+    have read as a strip (gross aspect 4.0/1.5 = 2.67) had it stayed a standalone room — plus an
+    unrelated HALL and BEDROOM so M2/M3/M6 have something else to measure against. Built via
+    `room_merge.compute_geometry` + `contract._apply_room_merge` directly (not `plan_merge`'s own
+    validation, already covered above) — this fixture is about what `quality_metrics`/
+    `reference_benchmark` read off an ALREADY-APPLIED merge, matching a real
+    `MergeOut.applied=True` plan."""
+    living = _living()
+    kitchen = _kitchen(rect_m=(5.0, 1.0, 4.0, 1.5), net_w_m=3.8, net_h_m=1.3)
+    candidate = room_merge.MergeCandidate(living=living, kitchen=kitchen, side="E")
+    geometry = room_merge.compute_geometry(candidate)
+    merge = room_merge.MergeResult(living_id="LIVING_1", kitchen_id="KITCHEN_1",
+                                   merged_id="LIVING_1+KITCHEN_1", side="E",
+                                   geometry=geometry, checks=())
+    rooms_out = [
+        _contract_room("LIVING_1", "LIVING", living.net_area_m2, 0.0, 0.0, 5.0, 5.0),
+        _contract_room("KITCHEN_1", "KITCHEN", kitchen.net_area_m2, 5.0, 1.0, 4.0, 1.5),
+        _contract_room("HALL_1", "HALL", 4.5, 10.0, 0.0, 2.0, 2.25),
+        _contract_room("BEDROOM_1", "BEDROOM", 15.0, 20.0, 0.0, 4.0, 4.0),
+    ]
+    new_rooms, new_walls, new_opens, new_doors = contract._apply_room_merge(
+        merge, rooms_out, [], [], [])
+    merged_room = next(r for r in new_rooms if r.id == merge.merged_id)
+    design = SimpleNamespace(rooms=new_rooms, walls=new_walls, open_interfaces=new_opens,
+                             doors=new_doors)
+    return design, merged_room, kitchen, geometry
+
+
+def test_m1_aspect_reads_the_merged_rooms_own_shape_not_a_strip_arm_penalty():
+    """AC-1: M1's aspect for the merged room is the union's OWN bounding-box aspect — never
+    either source arm's own standalone aspect, which for the KITCHEN arm alone would have read as
+    a strip."""
+    design, merged_room, kitchen, geometry = _merged_design_with_hall_and_bedroom()
+    kitchen_standalone_aspect = kitchen.rect_m[2] / kitchen.rect_m[3]
+    assert kitchen_standalone_aspect == pytest.approx(2.667, abs=0.01)
+
+    aspects_by_type = dict(quality_metrics._habitable_aspects(design))
+    assert "LIVING" not in aspects_by_type and "KITCHEN" not in aspects_by_type, (
+        "the two source rooms must not appear standalone once merged")
+    assert aspects_by_type["LIVING_KITCHEN"] == pytest.approx(geometry.min_rotated_aspect, abs=0.01)
+    assert aspects_by_type["LIVING_KITCHEN"] < kitchen_standalone_aspect, (
+        "the merged room's own aspect must not inherit the strip penalty either arm would have "
+        "carried standalone")
+
+    metrics = quality_metrics.measure_design(design)
+    assert metrics.m1_habitable_aspect_max == pytest.approx(
+        max(aspects_by_type["LIVING_KITCHEN"], 1.0), abs=0.01)  # BEDROOM_1 is 4x4, aspect 1.0
+
+
+def test_m3_circulation_share_uses_the_merged_rooms_own_true_area_not_its_bounding_box():
+    """AC-1: the merged room's own AREA — the true union polygon area (`gross_area_m2`) — feeds
+    M3's plan-total denominator, never the bounding box's `width x depth` product, which
+    overstates a real (non-flush) L's true footprint."""
+    design, merged_room, kitchen, geometry = _merged_design_with_hall_and_bedroom()
+    bbox_w, bbox_h = geometry.bbox_m[2], geometry.bbox_m[3]
+    assert bbox_w * bbox_h > merged_room.gross_area_m2 + 0.01, (
+        "fixture must be a genuine (non-flush) L for this test to be meaningful")
+
+    metrics = quality_metrics.measure_design(design)
+    hall_area, bedroom_area = 4.5, 16.0
+    true_total = hall_area + bedroom_area + merged_room.gross_area_m2
+    bbox_total = hall_area + bedroom_area + bbox_w * bbox_h
+    assert metrics.m3_circulation_share == pytest.approx(hall_area / true_total, abs=1e-6)
+    assert metrics.m3_circulation_share != pytest.approx(hall_area / bbox_total, abs=1e-6)
+
+
+def test_public_zone_and_zoning_section_count_the_merged_room_as_one_contiguous_public_room():
+    """AC-1: with the merge collapsing LIVING+KITCHEN into the plan's only public room (no
+    DINING), both M6 (`quality_metrics`) and reference_benchmark's zoning section (C) must read
+    this as ONE contiguous public room, not 'nothing to measure' (`_zone_contiguous`'s own
+    escape hatch for fewer than two rooms in a zone)."""
+    design, merged_room, kitchen, geometry = _merged_design_with_hall_and_bedroom()
+
+    metrics = quality_metrics.measure_design(design)
+    assert metrics.m6_public_zone_contiguous is True
+
+    full_design = SimpleNamespace(
+        rooms=design.rooms, walls=design.walls, open_interfaces=design.open_interfaces,
+        doors=design.doors, windows=[], outline=None, quality=None,
+        gross_area_m2=sum(r.gross_area_m2 for r in design.rooms),
+        footprint=SimpleNamespace(width_m=14.0, depth_m=10.0))
+    report = reference_benchmark.benchmark(full_design, [])
+    c = report.section("C")
+    assert c.value["public_contiguous"] is True
 
 
 def test_a_check_the_whole_plan_already_failed_is_not_silently_inherited_as_a_pass(monkeypatch):

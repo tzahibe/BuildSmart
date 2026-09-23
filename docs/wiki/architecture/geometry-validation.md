@@ -526,6 +526,43 @@ C2/C3/C20/C27 (the LIVING+KITCHEN merge spike, Issue #107) from a 2-way merge to
 WHERE rooms go (wiring a retrieved/generated layout in) is explicitly Stage 2, out of this Issue's
 scope — the realizer's own input is a PLACED layout (adjacency/placement/exposure already decided).
 
+## The merged public room — LIVING+KITCHEN, ON by default (Issue #118)
+
+Stage 0 of the rectilinear-realizer programme (2026-09-23). Spike #107's LIVING+KITCHEN merge
+(`app/vertical_slice/room_merge.py` — an adjacent, CLOSED_ADJACENT LIVING leaf and KITCHEN leaf
+become one L-shaped room, or a plain rectangle when they happen to align flush; see that module's
+own docstring for the redesigned checks) is now a real, gated product feature:
+`LIVING_KITCHEN_MERGE_ENABLED = True`, the shipped default.
+
+**Quality reporting reads the merged room as ONE room** (`app/vertical_slice/quality_metrics.py`,
+`app/vertical_slice/reference_benchmark.py`): M3's circulation-share denominator, and reference
+benchmark sections B (circulation) and L (consistency), use a room's own `gross_area_m2` — never
+`gross_width_m * gross_depth_m`, which for a merged "L" room is only its bounding-box product and
+overstates a real (non-flush) L's true footprint. M6 (public-zone contiguity) and section C
+(zoning) read a plan whose public zone collapsed to a single merged room (no DINING alongside it)
+as contiguous, not "nothing to measure." M1 (habitable aspect) needed no code change: the merged
+room already replaces its two source rooms in `DemoDesign.rooms` before M1-M6 run, so its own
+bounding-box aspect is what gets measured — never either source room's own (possibly much worse)
+standalone aspect.
+
+**The flip rule** (`app.vertical_slice.room_merge.decide_default`, unit-tested directly): ON only
+when, over the full 432-context corpus, LOST=0, crashes=0, no context's PLANNED/REFUSED/CRASH
+class changes, no REFUSED context's code changes, and no M1-M6 corpus statistic regresses beyond
+its existing tolerance (the same four gated stats `test_quality_baseline.py` already checks).
+Measured 2026-09-23: 191 merge candidates, 168 (88%) applied, 23 (12%) rejected by their own
+checks (mostly C6 — a door already on the shared seam); LOST 0, crashes 0, 0 status/refusal
+changes, 168/404 primary-signature changes (all attributable to an applied merge); **M6
+public-contiguous share improved 52.7% → 94.3%**, M1's median habitable aspect improved
+1.674 → 1.593, M3/M4/M5 unchanged (none of those three ever involve a public room). Full report:
+`docs/reports/rectilinear-realizer/stage0-merge-ab.md`, with three before/after SVG pairs.
+
+**Known, disclosed gaps, inherited from spike #107, not addressed by this stage**: `quality.
+exposure`/`quality.wet_privacy`/`quality.signal`/`quality.notices` still refer to the two source
+room ids individually (computed off the raw pre-merge solver output). The frontend room label
+(`demoRoomLabel.ts`) prints a merged room's bounding-box `width_m × depth_m` beside its true
+polygon `area_m2` — the two numbers do not multiply out to match, for an L. Both are candidate
+follow-ups for a future stage, not this one.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -616,3 +653,11 @@ Branch `agent/117-stage-1-2-2-the-gate-a-non-guillotine-re`, based on
 rectilinear_realizer.py`, `RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it)
 and test runs (`test_rectilinear_realizer.py`, the full `tests/vertical_slice` suite green,
 `spikes/geometry_shapes/stage1_gate.py` against 10 real corpus contexts — see the linked report).
+
+Branch `agent/118-stage-0-1-2-ship-the-merged-public-room`, based on
+`origin/integration/rectilinear-realizer` (spike #107 already on this branch's base): the merged
+public room section above documents Issue #118 Stage 0, verified against this session's own
+implementation and test runs — the full 432-context A/B (`docs/reports/rectilinear-realizer/
+stage0-merge-ab.md`), the fast suite (1517 passed, 0 failed, 478 skipped, 9 xfailed) with the flag
+flipped ON, and the three new `test_living_kitchen_merge_spike.py` unit tests, including this
+merge's own conflict resolution (both stage sections kept side by side, #117 before #118).

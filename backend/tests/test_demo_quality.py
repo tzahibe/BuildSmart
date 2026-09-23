@@ -134,6 +134,17 @@ def test_every_room_width_depth_matches_its_area():
         result = svc.generate_demo_design(_project(fixture))
         for design in (result.design, *result.alternatives):
             for room in design.rooms:
+                # A merged "L" room (Issue #118) is the one documented exception: its
+                # width_m/depth_m/gross_width_m/gross_depth_m are the room's own AXIS-ALIGNED
+                # BOUNDING BOX (`RoomOut`'s own docstring), not a literal net/gross rectangle —
+                # area_m2/gross_area_m2 are the true polygon areas instead (C27's redesigned
+                # formula for this room, proven separately in
+                # test_living_kitchen_merge_spike.py). This product check is only meaningful for
+                # a room whose displayed rectangle IS its own shape.
+                if room.shape == "L":
+                    assert room.width_m <= room.gross_width_m + 1e-6
+                    assert room.depth_m <= room.gross_depth_m + 1e-6
+                    continue
                 assert abs(room.width_m * room.depth_m - room.area_m2) <= 0.05, \
                     (design.rooms, room.id, room.width_m, room.depth_m, room.area_m2)
                 assert abs(room.gross_width_m * room.gross_depth_m - room.gross_area_m2) <= 0.05, \
