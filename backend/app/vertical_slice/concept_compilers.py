@@ -55,16 +55,21 @@ One interface, `compile(pattern, spec, outline) -> list[ConceptCandidate]`:
                                   precedent this Issue points at is `app.demo.contract
                                   ._open_corridor_to_public`, which this module does not touch —
                                   see its own docstring for why the plain CASED_OPENING alone
-                                  already satisfies C5/C14/C24 without it). Supported for the
-                                  programme shape the canonical fixture and AC-2's test use — 4
-                                  bedrooms (a master plus three), 2 wet rooms (the master's ensuite
-                                  plus one shared bathroom), no FLEX/laundry — WITH a SAFE_ROOM-
-                                  aware variant (3 bedrooms, not 4 — the safe room takes the third
-                                  bedroom-class slot in the stack) and an open-plan-aware variant,
-                                  independently combinable (attempt 3, same lead direction);
-                                  declines (empty list) otherwise; see `compile_branched`'s own
-                                  docstring for why a general arbitrary-programme version, or a
-                                  4-bedroom-plus-safe-room shape, is out of scope here.
+                                  already satisfies C5/C14/C24 without it). Was supported (attempt
+                                  3) for a 4-bedroom/2-wet-room programme (a master plus three, the
+                                  master's ensuite plus one shared bathroom, no FLEX/laundry), WITH
+                                  a SAFE_ROOM-aware variant (3 bedrooms, the safe room taking the
+                                  third bedroom-class slot) and an open-plan-aware variant,
+                                  independently combinable. Issue #130 (2026-09-23): C26's
+                                  dead-end rule (Issue #36) merged into `main` after this tree was
+                                  authored and now refuses it on EVERY one of those shapes — the
+                                  tree puts a dead end at each of HALL_A's own two ends and HALL_B's
+                                  own south end, 3 over C26's limit of 2, structurally rather than
+                                  by sizing — so `compile_branched` now declines UNCONDITIONALLY
+                                  (`_BRANCHED_C26_CONFLICT_REASON`); see `compile_branched`'s own
+                                  docstring for why a general arbitrary-programme version, a
+                                  4-bedroom-plus-safe-room shape, or the retopologizing this C26
+                                  conflict would need, is out of scope here.
 
 Every emitted `ConceptCandidate` already carries `circulation_class` (`_hub_concept`/`_build`/
 etc. set it themselves, unchanged since Issue #75; `compile_branched` sets it explicitly here);
@@ -79,6 +84,7 @@ import math
 from typing import TYPE_CHECKING
 
 from . import concept_generator as cg
+from .circulation_metrics import EXTREME_DEAD_END_COUNT
 from .concept import Concept
 from .concept_spec import CirculationClass
 from .geometry_core.model import (
@@ -630,7 +636,30 @@ def _branched_sizing(has_safe: bool) -> tuple[float, float, float, float, float,
     return mw, hb_w, ew, pb, ha, master_d, bath1_d
 
 
+#: Issue #130 (2026-09-23, rollup repair): C26's dead-end rule (Issue #36) merged into `main`
+#: after this tree was authored and now refuses it on EVERY shape this compiler otherwise
+#: supports (measured on the realized canonical fixture and all three SAFE_ROOM/open-plan
+#: variants — identical failure each time): HALL_A's own west AND east ends sit on the building's
+#: exterior wall with no door at either END (MASTER's door lands on HALL_A's long SOUTH side, and
+#: the HALL_A/HALL_B `CASED_OPENING` lands away from both ends too, over the middle block's own
+#: width, never at x=0 or x=total_w), and HALL_B's own south end has nothing south of the bedroom
+#: stack to serve it either — 3 dead ends, structurally, regardless of sizing (`_branched_sizing`
+#: cannot change WHICH zone borders which end, only how big each one is). A retopologized tree
+#: (moving MASTER beside HALL_A's own west end rather than beneath it, so a door can land there)
+#: is a real follow-up, not attempted here — see `docs/reports/concept-engine-v2-diversity-
+#: report.md`.
+_BRANCHED_DEAD_END_COUNT = 3
+_BRANCHED_C26_CONFLICT_REASON = (
+    f"compile_branched's own two-hall tree produces {_BRANCHED_DEAD_END_COUNT} corridor dead "
+    f"ends (HALL_A's own west and east ends, HALL_B's own south end) on every supported "
+    f"programme shape, exceeding C26's limit of {EXTREME_DEAD_END_COUNT} (Issue #36) — declines "
+    f"unconditionally until the tree is redesigned (Issue #130)"
+)
+
+
 def _branched_unsupported(spec: "ArchitecturalSpec") -> str | None:
+    """Why `compile_branched` declines `spec` — a shape mismatch, or (Issue #130, now always)
+    the C26 dead-end conflict every shape it does match still hits."""
     program = spec.program
     expected_bedrooms = _BRANCHED_BEDROOMS_WITH_SAFE if program.safe_room else _BRANCHED_BEDROOMS_NO_SAFE
     if program.bedrooms != expected_bedrooms:
@@ -638,7 +667,7 @@ def _branched_unsupported(spec: "ArchitecturalSpec") -> str | None:
                f"{'with' if program.safe_room else 'without'} a safe room, not {program.bedrooms}")
     if program.wet_rooms != _BRANCHED_WET_ROOMS:
         return f"compile_branched supports exactly {_BRANCHED_WET_ROOMS} wet rooms, not {program.wet_rooms}"
-    return None
+    return _BRANCHED_C26_CONFLICT_REASON
 
 
 def compile_branched(spec: "ArchitecturalSpec", candidate: Rect) -> "list[ConceptCandidate]":
@@ -664,6 +693,13 @@ def compile_branched(spec: "ArchitecturalSpec", candidate: Rect) -> "list[Concep
 
     Declines (empty list, not an exception) for any other programme, exactly like every other
     builder in this module declines a programme it cannot serve.
+
+    Issue #130 (2026-09-23): this now declines EVERY programme, including its own previously-
+    supported shapes — see `_BRANCHED_C26_CONFLICT_REASON`/`_branched_unsupported`. The tree and
+    sizing search below are kept, unreached, as the starting point for the retopologizing
+    follow-up named there (the same "keep the code, gate it off" pattern `LAUNDRY_ROOM_ENABLED`/
+    `CONCEPT_ENGINE_V2_ENABLED` already use elsewhere in this codebase), not dead code left over
+    by accident.
     """
     if _branched_unsupported(spec) is not None:
         return []
