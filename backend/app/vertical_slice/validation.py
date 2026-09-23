@@ -20,6 +20,7 @@ from typing import Iterable, Protocol
 
 from . import access_rules
 from . import circulation_metrics
+from . import dead_space
 from . import door_clearance
 from . import entrance_sequence
 from . import footprint as footprint_module
@@ -478,6 +479,19 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
             extreme or f"circulation ratio {circulation.ratio:.0%}, longest segment "
                       f"{circulation.longest_segment_m or 0:.2f} m, {circulation.dead_end_count} "
                       f"dead end(s) — within the calibrated limits")
+
+    # C32 — no residual dead space INSIDE a zone past the hard limit (`dead_space.py`, Issue #43).
+    # C2 above already guarantees zero residual area OUTSIDE rooms; this is the INSIDE-zone twin.
+    # Fails closed ONLY on a STUB region (a corridor past its own last opening) past
+    # `dead_space.DEAD_SPACE_STUB_HARD_LIMIT_M` — the other three kinds `dead_space.measure`
+    # reports (SLIVER/CORNER/OVERSIZED_HALL) are quality data (`QualityOut.metrics`), never a gate
+    # here; see that module's own `classify_hard` docstring for why. Reuses the SAME minimal
+    # `GeometricDesign` C26 just assembled purely to measure this plan, never a second build.
+    dead = dead_space.measure(circulation_design)
+    dead_defect = dead_space.classify_hard(dead)
+    rep.add("C32", "no residual dead space past the hard limit", dead_defect is None,
+            dead_defect or f"{dead.dead_space_m2:.2f} m² of measured dead space, no stub past "
+                          f"{dead_space.DEAD_SPACE_STUB_HARD_LIMIT_M:.2f} m")
 
     if not skip_site_checks:
         # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)

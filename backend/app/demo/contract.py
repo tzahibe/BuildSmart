@@ -18,8 +18,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import (circulation_metrics, entrance_sequence, interior_layout,
-                                quality_metrics)
+from app.vertical_slice import (circulation_metrics, dead_space, entrance_sequence,
+                                interior_layout, quality_metrics)
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
@@ -179,7 +179,12 @@ class QualityMetricsOut(BaseModel):
     m4_hall_aspect_median: float | None = None
     m5_wet_adjacency_ratio: float | None = None
     m6_public_zone_contiguous: bool | None = None
+    #: Measured residual geometry INSIDE zones (Issue #43,
+    #: `app.vertical_slice.dead_space.measure`) — corridor stubs, undersized room slivers, door-
+    #: swing corner notches and oversized-hall excess. `0.0` only when no region was measured, not
+    #: a constant (see that module for what each kind means and the C32 hard gate).
     dead_space_m2: float = 0.0
+    dead_space_share: float = 0.0
     wasted_circulation_share: float = 0.0
     #: Dedicated-circulation facts (Issue #36), read off the SAME realized geometry independently
     #: of M3 — see `app.vertical_slice.circulation_metrics.CirculationMetrics` for how each is
@@ -891,10 +896,12 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
 
 
 def _metrics_out(m: quality_metrics.QualityMetrics, c: circulation_metrics.CirculationMetrics,
+                 d: dead_space.DeadSpaceMetrics,
                  wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
     return QualityMetricsOut(
         **dataclasses.asdict(m),
         **{f"circulation_{k}": v for k, v in dataclasses.asdict(c).items()},
+        dead_space_m2=d.dead_space_m2, dead_space_share=d.dead_space_share,
         wet_core=wet_core,
     )
 
@@ -1084,6 +1091,10 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # M1-M6 reads, so a check, a ranking decision and this report can never disagree about what a
     # plan's circulation looks like.
     circulation = circulation_metrics.measure(design)
+    # Dead space (Issue #43) reads the SAME raw `SolvedDesign` circulation/entrance-sequence do,
+    # for the same reason: C32 (`validation.py`), the ranking term and this report must never
+    # disagree about what a plan's residual geometry looks like.
+    dead = dead_space.measure(design)
     # Entrance sequence (Issue #22) reads the SAME raw `SolvedDesign` circulation does, for the
     # same reason: a check (C25), a ranking decision and this report must never disagree about
     # what a plan's entrance sequence looks like.
@@ -1111,7 +1122,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                if design.wet_core is not None else None)
     return demo.model_copy(update={
         "quality": demo.quality.model_copy(update={
-            "metrics": _metrics_out(metrics, circulation, wet_core),
+            "metrics": _metrics_out(metrics, circulation, dead, wet_core),
             "constraints": constraints_out,
             "exposure": exposure,
             "wet_privacy": wet_privacy,
