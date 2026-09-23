@@ -87,6 +87,24 @@ export interface DemoWindow {
   y: number
 }
 
+/** One engine-placed semantic layout object (Issue #39) — mirrors `app.demo.contract.
+ * LayoutObjectOut` exactly. `clearance_*` always contains the object's own footprint (`x`/`y`/
+ * `width_m`/`depth_m`): a footprint plus its required use clearance, never a disjoint zone. The
+ * renderer draws these as-is — never inventing a decorative object of its own. */
+export interface DemoLayoutObject {
+  kind: string
+  room_id: string
+  x: number
+  y: number
+  width_m: number
+  depth_m: number
+  rotation_deg: number
+  clearance_x: number
+  clearance_y: number
+  clearance_width_m: number
+  clearance_depth_m: number
+}
+
 export interface DemoValidation {
   passed: boolean
   /** Product language, e.g. "כל החדרים נגישים פיזית מהכניסה". Never raw check codes. */
@@ -222,6 +240,9 @@ export interface DemoDesign {
   open_interfaces: DemoOpenInterface[]
   doors: DemoDoor[]
   windows: DemoWindow[]
+  /** Engine-placed semantic layout objects (Issue #39). Absent/empty for a payload that predates
+   *  the field, or a plan with no role this Issue furnishes. */
+  layout?: DemoLayoutObject[]
   parking: DemoRect[]
   garden: DemoRect[]
   entrance_walk: DemoRect

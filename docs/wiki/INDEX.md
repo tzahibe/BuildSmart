@@ -31,6 +31,7 @@ specific page below for your task.**
 - [Room Proportion / Quality Tier](features/room-proportion-quality-tier.md) — IMPLEMENTED_MERGED
 - [Laundry](features/laundry.md) — INTEGRATED on `integration/laundry-into-main`, not yet on `main` (see page)
 - [Review Page — Quality Panel, Room Details, Refusal Notice](features/review-page.md) — IMPLEMENTED_MERGED
+- [Interior Layout](features/interior-layout.md) — IMPLEMENTED_MERGED
 
 ## Decisions
 
