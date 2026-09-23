@@ -49,6 +49,7 @@ from app.vertical_slice.general_pipeline import (
     RealizedPlan,
     run_general,
 )
+from app.vertical_slice.geometry_core.engine import solve_fixture
 from app.vertical_slice.safe_adapter import AdapterOutcome
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
 from app.vertical_slice.wet_privacy import candidate_privacy_key
@@ -288,6 +289,10 @@ def generate_demo_design(project: Project,
     selection = _select_plans(results, spec.program.target_built_area_m2, spec.concept)
     if selection is None:
         return _finish(project, spec, head, preference_dropped, outlines=results)
+    if gp.CONCEPT_ENGINE_V2_ENABLED:
+        # Cross-outline search (Issue #79, AC-5) — additive, after the ordinary selection so the
+        # primary and `plans_per_class`'s own alternatives are exactly what they were.
+        selection = _augment_cross_outline_classes(spec, project, results, selection)
     return _result_from(project, spec, selection, results, preference_dropped)
 
 
@@ -806,6 +811,45 @@ def _select_plans(results: list[OutlineResult],
                      or item[1].massing_signature not in massings_shown)):
             take(item)
     return PlanSelection(primary, tuple(shown[1:]))
+
+
+def _augment_cross_outline_classes(spec, project: Project, results: list[OutlineResult],
+                                   selection: PlanSelection) -> PlanSelection:
+    """Cross-outline search (Issue #79, AC-5): a pattern class the PRIMARY outline's own
+    candidates never offered `plans_per_class` (already spent, inside `run_general`) may still be
+    reachable on an OTHER outline the survey already ran (`_plan_outlines_until_one_plans`) —
+    every such outline's own `generated.candidates` sit unused on
+    `OutlineResult.result.candidates` (Issue #79's `GeneralSliceResult.candidates`), since a
+    surveyed outline runs with `max_alternatives=0`.
+
+    Never touches the primary plan or the alternatives `plans_per_class` already found for its own
+    outline (`selection.alternatives`) — only appends NEW plans, bounded by the same `_SHOWN_LIMIT`
+    the ordinary selection already holds to. A `realize` closure is built per OTHER outline,
+    re-deriving that outline's own `buildable` exactly as `_plan` does
+    (`_buildable_from`/`_with_outline`) — the same context that outline's own `run_general` call
+    already planned in, never a new one.
+    """
+    primary_orr, primary_plan = selection.primary
+    already_found = (primary_plan, *(p for _, p in selection.alternatives))
+    outlines: list[tuple[OutlineResult, concept_engine_v2.OutlineCandidates]] = []
+    for orr in results:
+        if orr is primary_orr or not orr.result.candidates:
+            continue
+        outline_buildable = _buildable_from(spec, _with_outline(project, orr.outline), orr.outline)
+
+        def realize(index: int, candidate, _buildable=outline_buildable) -> RealizedPlan:
+            solve = solve_fixture(candidate.concept.fixture)
+            return gp._realize(spec, _buildable, None, candidate, index, solve, ())
+
+        outlines.append((orr, concept_engine_v2.OutlineCandidates(orr.result.candidates, realize)))
+    if not outlines:
+        return selection
+    new_pairs = concept_engine_v2.plans_per_class_cross_outline(
+        spec, primary_plan, already_found, outlines)
+    if not new_pairs:
+        return selection
+    alternatives = (*selection.alternatives, *new_pairs)[:_SHOWN_LIMIT - 1]
+    return replace(selection, alternatives=alternatives)
 
 
 def _concept_of(plan: RealizedPlan) -> ConceptOut | None:

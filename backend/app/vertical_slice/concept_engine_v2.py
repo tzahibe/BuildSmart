@@ -8,9 +8,13 @@ S1-S3 of the bounded per-brief search, over data this run already has:
     S2  each pattern's class is COMPILED by filtering the candidates the EXISTING generator
         already built for this run (`concept_generator.generate_concepts`'s own output — the same
         pool `general_pipeline._alternative_plans` draws from, never a new generator path) down to
-        those whose own declared `circulation_class` matches the pattern's. The first that
-        REALIZES through the existing `_realize` pipeline (doors/windows/furniture/validation,
-        unchanged) and validates is SCORED (`concept_score.concept_score`, Issue #76).
+        those whose own declared `circulation_class` matches the pattern's; when that leaves
+        nothing (a class the generator's own strategies cannot produce at all — HUB_LOBBY,
+        BRANCHED), `concept_compilers.compile_hub_lobby`/`compile_branched` (Issue #79) are tried
+        instead, on the SAME outline `chosen_plan` was fit to. The first that REALIZES through the
+        existing `_realize` pipeline (doors/windows/furniture/validation, unchanged) and validates
+        is SCORED (`concept_score.concept_score`, Issue #76) and VERIFIED
+        (`concept_spec.verify_class`) — a mismatch is dropped, never re-labelled.
     S3  when the bounded adaptation ladder (`concept_score.adapt`) names a target concept, a
         SIBLING candidate already sitting in that same filtered list — never a new solve of
         geometry the generator didn't already produce — that already matches the adapted spec is
@@ -29,9 +33,10 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
+from . import concept_compilers
 from .concept_patterns import patterns_for
 from .concept_score import ConceptScore, adapt, better, concept_score
-from .concept_spec import CirculationClass, ConceptSpec, concept_spec_of
+from .concept_spec import CirculationClass, ConceptSpec, concept_spec_of, verify_class
 from .geometry_core.engine import GeometryInfeasible
 
 if TYPE_CHECKING:
@@ -152,6 +157,13 @@ def _best_for_class(realize: Realize, candidates_for_class: list[tuple[int, obje
             continue
         if not plan.ok:
             continue
+        if verify_class(candidate, plan) is not None:
+            # Issue #79, AC-1: a candidate whose declared `circulation_class` disagrees with what
+            # it actually realized to is dropped here, never re-labelled and never scored — the
+            # compilers this Issue adds (`concept_compilers.compile_hub_lobby`/`compile_branched`)
+            # are the first callers where a genuine mismatch is expected in the ordinary course of
+            # search (a witness-sized hub that still realizes as a plain SPINE hall, say).
+            continue
         score = concept_score(plan)
         if best_score is None or better(score, best_score) is score:
             best, best_score = plan, score
@@ -165,13 +177,38 @@ def _best_for_class(realize: Realize, candidates_for_class: list[tuple[int, obje
                     s_plan = realize(s_index, s_candidate)
                 except GeometryInfeasible:
                     s_plan = None
-                if s_plan is not None and s_plan.ok:
+                if s_plan is not None and s_plan.ok and verify_class(s_candidate, s_plan) is None:
                     s_score = concept_score(s_plan)
                     if best_score is None or better(s_score, best_score) is s_score:
                         best, best_score = s_plan, s_score
         if best is not None:
             break  # this class already has a verified plan; spend the rest of the budget elsewhere
     return best
+
+
+def _outline_rect_of(candidates: tuple):
+    """The one wing every one of `candidates` was fit to, as a `Rect` — what
+    `concept_compilers.compile_hub_lobby`/`compile_branched` need to place their own tree in
+    (Issue #79). `None` when `candidates` is empty (nothing to derive it from)."""
+    if not candidates:
+        return None
+    return candidates[0].concept.fixture.wings[0].rect()
+
+
+def _compiled_candidates_for(circulation_class: CirculationClass, spec: "ArchitecturalSpec",
+                             outline_rect) -> list:
+    """Generator-level pattern compilers (Issue #79) — tried ONLY when the generator's OWN
+    candidates for this outline carry nothing of `circulation_class` at all, so a brief that
+    already has a real one is never displaced by a compiled stand-in. `[]` for every class the
+    generator already builds itself (SPINE/FRONT_BAND/TWO_WING): `concept_compilers.compile`
+    would only re-derive what `candidates` already has, at the cost of a second generator call."""
+    if outline_rect is None:
+        return []
+    if circulation_class is CirculationClass.HUB_LOBBY:
+        return concept_compilers.compile_hub_lobby(spec, outline_rect)
+    if circulation_class is CirculationClass.BRANCHED:
+        return concept_compilers.compile_branched(spec, outline_rect)
+    return []
 
 
 def plans_per_class(spec: "ArchitecturalSpec", realize: Realize, candidates: tuple,
@@ -200,6 +237,7 @@ def plans_per_class(spec: "ArchitecturalSpec", realize: Realize, candidates: tup
             ordered_classes.append(candidate.circulation_class)
     seen_signatures = {chosen_plan.layout_signature}
     seen_classes = {chosen_plan.circulation_class}
+    outline_rect = chosen_plan.concept.concept.fixture.wings[0].rect()
     budget = [CONCEPT_ENGINE_V2_MAX_REALIZATIONS]
     found: list["RealizedPlan"] = []
     for circulation_class in ordered_classes:
@@ -211,6 +249,9 @@ def plans_per_class(spec: "ArchitecturalSpec", realize: Realize, candidates: tup
                                 if i != chosen_index and i not in skip
                                 and c.circulation_class == circulation_class]
         if not candidates_for_class:
+            compiled = _compiled_candidates_for(circulation_class, spec, outline_rect)
+            candidates_for_class = [(-(j + 1), c) for j, c in enumerate(compiled)]
+        if not candidates_for_class:
             continue
         plan = _best_for_class(realize, candidates_for_class, budget)
         if plan is None or plan.circulation_class is None:
@@ -220,4 +261,75 @@ def plans_per_class(spec: "ArchitecturalSpec", realize: Realize, candidates: tup
         seen_signatures.add(plan.layout_signature)
         seen_classes.add(plan.circulation_class)
         found.append(plan)
+    return tuple(found)
+
+
+@dataclass(frozen=True)
+class OutlineCandidates:
+    """One OTHER outline the service surveyed (Issue #79, AC-5): its own concept candidates
+    (`general_pipeline.GeneralSliceResult.candidates` — the SAME pool that outline's own
+    `run_general` call already built, never a second generator call) and a `realize` wrapper
+    closed over THAT outline's own `buildable`/`spec`. `demo.service` builds these from
+    `OutlineResult`s that are not the one already searched by `plans_per_class` above."""
+
+    candidates: tuple
+    realize: Realize
+
+
+def plans_per_class_cross_outline(
+        spec: "ArchitecturalSpec", chosen_plan: "RealizedPlan",
+        already_found: tuple["RealizedPlan", ...],
+        outlines: list[tuple[object, OutlineCandidates]],
+) -> tuple[tuple[object, "RealizedPlan"], ...]:
+    """Extends `plans_per_class`'s result across OTHER surveyed outlines (`demo.service
+    ._plan_outlines`), when the PRIMARY outline's own candidates (already searched by
+    `plans_per_class`, `already_found`) left a pattern class unfilled.
+
+    Never touches the primary outline's own candidates, `chosen_plan` or `already_found` — those
+    are `plans_per_class`'s own result. Only classes STILL missing from them are searched, in
+    `outlines` order, over each `OutlineCandidates.candidates` in turn until one verifies; the
+    first outline whose own candidates offer a class wins it (never every outline compared for the
+    same class — cost stays bounded exactly like `plans_per_class`'s own per-class budget).
+    `outlines` items carry an opaque caller key (`demo.service`'s own `OutlineResult`) so the
+    caller can attribute each returned plan to the outline it came from without this module
+    knowing anything about `demo.service`'s own types. Additive: the primary selection rule and
+    the flag-off path are untouched, and this function is never called from `run_general`'s own
+    single-outline path — only from the flag-on service-level orchestration, and only when more
+    than one outline was actually surveyed.
+    """
+    brief, outline = brief_and_outline_of(spec, chosen_plan)
+    patterns = patterns_for(brief, outline)
+    ordered_classes = list(dict.fromkeys(p.circulation_class for p in patterns))
+    for _key, oc in outlines:
+        for candidate in oc.candidates:
+            if candidate.circulation_class not in ordered_classes:
+                ordered_classes.append(candidate.circulation_class)
+
+    seen_classes = {chosen_plan.circulation_class, *(p.circulation_class for p in already_found)}
+    seen_signatures = {chosen_plan.layout_signature, *(p.layout_signature for p in already_found)}
+    budget = [CONCEPT_ENGINE_V2_MAX_REALIZATIONS]
+    found: list[tuple[object, "RealizedPlan"]] = []
+    for circulation_class in ordered_classes:
+        if budget[0] <= 0:
+            break
+        if circulation_class in seen_classes:
+            continue
+        for key, oc in outlines:
+            candidates_for_class = [(i, c) for i, c in enumerate(oc.candidates)
+                                    if c.circulation_class == circulation_class]
+            if not candidates_for_class:
+                compiled = _compiled_candidates_for(
+                    circulation_class, spec, _outline_rect_of(oc.candidates))
+                candidates_for_class = [(-(j + 1), c) for j, c in enumerate(compiled)]
+            if not candidates_for_class:
+                continue
+            plan = _best_for_class(oc.realize, candidates_for_class, budget)
+            if plan is None or plan.circulation_class is None:
+                continue
+            if plan.layout_signature in seen_signatures or plan.circulation_class in seen_classes:
+                continue
+            seen_signatures.add(plan.layout_signature)
+            seen_classes.add(plan.circulation_class)
+            found.append((key, plan))
+            break
     return tuple(found)

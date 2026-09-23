@@ -282,6 +282,12 @@ class GeneralSliceResult:
     #: Issue #75: the CHOSEN plan's `RealizedPlan.circulation_class` (`concept_spec.verify_class`
     #: material), carried through so a caller need not reconstruct a `RealizedPlan` to read it.
     circulation_class: concept_spec.CirculationClass | None = None
+    #: Issue #79, AC-5: every concept candidate `generator.generate_concepts` built for THIS run
+    #: (`generated.candidates`) — already computed regardless of `max_alternatives`, so exposing it
+    #: costs nothing new. `demo.service`'s cross-outline search reads this off a SURVEYED outline's
+    #: own result (`max_alternatives=0`, so `alternatives` above is empty) to compile a pattern
+    #: class the primary outline's own candidates never offered, without a second generator call.
+    candidates: tuple[generator.ConceptCandidate, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -564,7 +570,7 @@ def run_general(buildable: BuildableRegion, *,
             metrics=RunMetrics(solver_attempts=attempts,
                                latency_ms=round((time.perf_counter() - started) * 1000, 1),
                                **base_metrics),
-            notes=tuple(failures))
+            notes=tuple(failures), candidates=generated.candidates)
 
     if plan is None:  # the relationships path chose on score; realize the winner here
         plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve,
@@ -638,7 +644,8 @@ def run_general(buildable: BuildableRegion, *,
         # the same thing. Each alternative carries its own, for the same reason.
         relationships=plan.relationships,
         alternatives=alternatives,
-        circulation_class=plan.circulation_class)
+        circulation_class=plan.circulation_class,
+        candidates=generated.candidates)
 
 
 def _quality_twins_of(candidates: tuple, chosen) -> list[tuple[int, object]]:
