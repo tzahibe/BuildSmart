@@ -41,8 +41,6 @@ from dataclasses import dataclass
 from shapely.geometry import Point, box
 from shapely.ops import unary_union
 
-from app.geometry_domain.walls import Construction
-
 from . import interior_layout
 from .design_output import DoorOut, GeometricDesign, RoomOut
 from .geometry_core.model import WallType, WALL_THICKNESS_M
