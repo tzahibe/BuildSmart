@@ -21,6 +21,7 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
 | Review Page — Quality Panel, Room Details, Refusal Notice | IMPLEMENTED_MERGED | [wiki/features/review-page.md](wiki/features/review-page.md) |
+| Interior Layout (engine-placed semantic furniture objects) | IMPLEMENTED_MERGED | [wiki/features/interior-layout.md](wiki/features/interior-layout.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
 | Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; governance since 2026-09-18: owner approves ROOT Issues and merges, the Team Lead executes everything else (child Issues, parallel workers); Telegram control plane; on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
 | Product roadmap (owner-maintained, proposed only) | PROPOSED | [ROADMAP.md](ROADMAP.md) |

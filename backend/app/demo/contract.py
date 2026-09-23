@@ -18,7 +18,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import circulation_metrics, entrance_sequence, quality_metrics
+from app.vertical_slice import (circulation_metrics, entrance_sequence, interior_layout,
+                                quality_metrics)
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
@@ -325,6 +326,38 @@ class RectOut(BaseModel):
     depth_m: float
 
 
+class LayoutObjectOut(BaseModel):
+    """One engine-placed semantic layout object (Issue #39) — `app.vertical_slice.interior_layout.
+    LayoutObject`, as-is: the renderer draws these directly, never inventing decorative furniture
+    of its own. `clearance` always contains `rect` (footprint plus required use clearance)."""
+
+    kind: str
+    room_id: str
+    x: float
+    y: float
+    width_m: float
+    depth_m: float
+    rotation_deg: float
+    clearance_x: float
+    clearance_y: float
+    clearance_width_m: float
+    clearance_depth_m: float
+
+
+def _layout_out(design: SolvedDesign) -> list[LayoutObjectOut]:
+    out: list[LayoutObjectOut] = []
+    for room_layout in interior_layout.compute_layout(design):
+        for obj in room_layout.placed:
+            x, y, w, h = obj.rect_m
+            cx, cy, cw, ch = obj.clearance_rect_m
+            out.append(LayoutObjectOut(
+                kind=obj.kind, room_id=obj.room_id, x=x, y=y, width_m=w, depth_m=h,
+                rotation_deg=obj.rotation, clearance_x=cx, clearance_y=cy,
+                clearance_width_m=cw, clearance_depth_m=ch,
+            ))
+    return out
+
+
 class ValidationSummary(BaseModel):
     """Product language, not raw codes. `checks` keeps the codes for support/debugging."""
 
@@ -402,6 +435,10 @@ class DemoDesign(BaseModel):
     open_interfaces: list[OpenInterface]
     doors: list[DoorOut]
     windows: list[WindowOut]
+    #: Engine-placed semantic layout objects (Issue #39) — `[]` only for a payload built before
+    #: this field existed; every plan `to_demo_design` produces from here on attaches one entry per
+    #: PLACED object (never one per requested item — an unplaceable item is simply absent here).
+    layout: list[LayoutObjectOut] = []
     parking: list[RectOut]
     garden: list[RectOut]
     entrance_walk: RectOut
@@ -1016,6 +1053,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         windows=[WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
                            x=w.center_m[0], y=w.center_m[1])
                  for w in design.windows if w.width_m > 0],
+        layout=_layout_out(design),
         parking=[_rect(p) for p in design.parking_m],
         garden=[_rect(r) for g in design.garden for r in g.rects_m],
         entrance_walk=_rect(design.entrance_walk_m),
