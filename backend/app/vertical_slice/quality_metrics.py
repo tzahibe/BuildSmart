@@ -104,17 +104,22 @@ def _hall_room_ids(design: "DemoDesign") -> set[str]:
 
 
 def _hall_stats(design: "DemoDesign") -> dict:
+    # `gross_area_m2` (not `gross_width_m * gross_depth_m`) — identical for a RECTANGLE room
+    # (that product IS its `gross_area_m2`, by construction), but for a merged "L" room
+    # `gross_width_m`/`gross_depth_m` are the room's own AXIS-ALIGNED BOUNDING BOX, which
+    # overstates a real (non-flush) L's true footprint; `gross_area_m2` is always the room's own
+    # true area (Issue #118, AC-1).
     rooms = {r.id: r for r in design.rooms}
     halls = _hall_room_ids(design)
-    total = sum(r.gross_width_m * r.gross_depth_m for r in design.rooms)
-    circ_area = sum(r.gross_width_m * r.gross_depth_m for r in design.rooms if r.id in halls)
+    total = sum(r.gross_area_m2 for r in design.rooms)
+    circ_area = sum(r.gross_area_m2 for r in design.rooms if r.id in halls)
     aspects, wasted_area = [], 0.0
     for h in halls:
         r = rooms[h]
         a = max(r.gross_width_m, r.gross_depth_m) / max(min(r.gross_width_m, r.gross_depth_m), 1e-6)
         aspects.append(a)
         if a > COMPACT_HALL_ASPECT_MAX:
-            wasted_area += r.gross_width_m * r.gross_depth_m
+            wasted_area += r.gross_area_m2
     door_count = sum(1 for dr in design.doors if not dr.is_entrance and (dr.a in halls or dr.b in halls))
     return dict(
         circ_share=circ_area / total if total else 0.0,
@@ -164,6 +169,14 @@ def _open_adjacency(design: "DemoDesign") -> dict[str, set[str]]:
 def _public_zone_contiguous(design: "DemoDesign") -> bool | None:
     pub = [r.id for r in design.rooms if is_(PUBLIC, r.type)]
     if len(pub) < 2:
+        # A validated LIVING+KITCHEN merge (Issue #118) can leave exactly ONE public room (no
+        # DINING in the plan) — that IS one contiguous public room, more so than an open-plan
+        # join (there is no seam left at all), not "nothing to measure." `< 2` otherwise never
+        # happens on this codebase's own room programme (LIVING and KITCHEN are always both
+        # present), so this is scoped to the merge case, not a general threshold change.
+        if len(pub) == 1 and any(r.id == pub[0] and getattr(r, "shape", "RECTANGLE") == "L"
+                                 for r in design.rooms):
+            return True
         return None
     open_adj = _open_adjacency(design)
     seen: set[str] = set()
