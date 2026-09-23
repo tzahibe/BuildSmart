@@ -58,9 +58,10 @@ def test_all_slice_checks_still_pass(cases, case_id):
     # C14/C15 only run when a corridor width or a relationship was requested; C16, C17 (bathroom
     # access against the programme's requirements), C18, C19 (exterior exposure), C20 (template
     # aspect), C21 (template maximum area), C23 (entrance opens into an allowed arrival room),
-    # C24 (access topology obeys the door rules), C26 (no extreme dedicated circulation) and C29
+    # C24 (access topology obeys the door rules), C26 (no extreme dedicated circulation),
+    # C28 (doors usable — Issue #38) and C29
     # (Issue #37, wet-room privacy) always do.
-    assert len(report.checks) == 23
+    assert len(report.checks) == 24
     assert report.ok, "; ".join(f"{c.check_id}: {c.detail}" for c in report.failures())
 
 
