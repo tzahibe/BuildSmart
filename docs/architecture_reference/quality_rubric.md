@@ -346,18 +346,31 @@ Rooms with fixtures (bathrooms, toilets, kitchens, laundry) need real clearance 
 — a door should not swing into a toilet or sink, a room should not be sized to its template band
 while ignoring what has to physically fit inside it.
 
-- **Deterministic signal**: none merged yet — rooms are planned as typed rectangles without
-  fixture-level geometry. Planned: ROADMAP P1 "Kitchen / Bathroom fixture-aware planning" (no Issue
-  number assigned yet).
+- **Deterministic signal (partial — Issue #39, 2026-09-23)**: `app/vertical_slice/interior_layout.py`
+  places typed `LayoutObject`s per room role (bed/wardrobe, sofa/coffee table/focal wall, dining
+  table, kitchen counter run, bathroom/WC fixtures) off the realized geometry, deterministically,
+  with each object's own required clearance rectangle — and reports an item `unplaceable` (never
+  forcing it) when the room's geometry, a door's swing envelope, or another object leaves no room
+  for it. `app.demo.contract.QualityOut`'s `DemoDesign.layout` exposes every PLACED object; the
+  frontend (`InteriorLayout.tsx`) draws them as-is. Furnishability SCORING (whether a plan's overall
+  furnishability should influence ranking) remains Issue 10's, out of scope here — this Issue is
+  placement and disclosure only, additive, never a validation gate. Door-vs-wet-fixture swing
+  avoidance (C28, `door_clearance.py`) still uses its own conservative placeholder fixture footprint
+  independently, not this module's real placements — reconciling the two is a future follow-up, not
+  attempted here.
 - **Reference comparison**: the guest-WC spec's size band (1.5–3.0 m² net, short side 0.9–1.2 m,
   aspect ≤ 2.2, `specs/009-guest-wc-placement/spec.md` decision D) is the first place this repo
   ties a room's dimensions to what a fixture actually needs, even without simulating the fixture
-  itself — a useful reference point until fixture-aware planning exists.
-- **Semantic review**: whether a door's swing arc, once fixtures are eventually modeled, actually
-  clears them — entirely a semantic/visual judgment until a deterministic clearance check exists.
-- **How a reviewer applies it**: until fixture-aware planning lands, manually check each wet room
-  against the guest-WC size band as a proxy floor, and flag any door drawn to swing across the
-  room's short dimension in a small wet room.
+  itself — a useful reference point independent of the placement above.
+- **Semantic review**: whether kitchen counter-run/island proportions and bedroom furniture reads
+  as architecturally plausible (not merely non-overlapping) remains a semantic/visual judgment —
+  `interior_layout.py`'s item sizes are PARAMETER · UNVERIFIED placeholders, the same disclosure
+  discipline as `MIN_FURNITURE_ENVELOPE_M`/`WINDOW_MIN_WIDTH_M`, not a sourced furniture catalogue.
+- **How a reviewer applies it**: check `DemoDesign.layout` for a plan's furnished rooms against the
+  drawing — an object's rect should read as sitting flush against its own wall, clear of the door's
+  swing arc; a room with no `layout` entries for a role this Issue covers (bedroom/master/living/
+  dining/kitchen/bathroom/WC) is either an out-of-scope role or every item reported unplaceable —
+  check the room's own proportions before assuming a bug.
 
 ## O. Site & Orientation Fit
 
