@@ -137,28 +137,45 @@ flush) adjacency, so it never exercised either bug; a regression test for the fl
 
 `spikes/failure_log_sweep/living_kitchen_merge_ab.py`, run in bounded chunks against
 `tests/regression_corpus/corpus.json` (the same trusted 432-context snapshot Issue #66 froze) —
-each context takes ~2-3s through the real outline-search pipeline per flag state, so the full
+each context takes ~2-5s through the real outline-search pipeline per flag state, so the full
 corpus is chunked into bounded runs merged into one accumulated result file (see the script's own
 docstring); `--report` prints the aggregate below.
 
-<!-- FILL-IN: exact numbers once every chunk has run, 2026-09-23 -->
+An earlier accumulation of this same result file mixed chunks run before and after the two bug
+fixes in §4 (a partial re-run only refreshes the contexts named in its own `--start`/`--count`
+slice, silently leaving older, pre-fix entries for every context outside it) and misreported
+LOST=6/crashes=6 that do not reproduce against the code in this branch. The result file was
+deleted and the full 432-context sweep re-run from scratch, in one continuous session, entirely
+against the current (post-fix) code, before the numbers below were recorded.
 
 - **AC-2 (flag OFF)**: `room_merge.LIVING_KITCHEN_MERGE_ENABLED` defaults to `False`; `plan_merge`
   returns `None` unconditionally in that state before touching any geometry — the flag-off path is
   provably untouched by inspection (the very first line of `plan_merge`), and the sweep's own OFF
-  pass is what today's baseline already is. **PASS.**
-- **AC-3 (flag ON)**: over `<FILL>`/432 contexts run so far — LOST=`<FILL>`, crashes=`<FILL>`,
-  `<FILL>` primary-signature changes, every one attributable to a merge candidate that was found
-  AND passed its own checks (`merge.applied=True`) in that context's own primary. `<FILL>`
-  candidates found, `<FILL>` applied, `<FILL>` rejected (found but failed one of their own checks
-  — the plan is then drawn exactly as it would be with the flag off, per `MergeOut.applied=False`).
+  pass is what today's baseline already is; every one of the 432 OFF re-runs this session also
+  reproduced byte-identically (0 crashes, 404/404 still PLANNED, same signatures as the pre-spike
+  baseline). **PASS.**
+- **AC-3 (flag ON)**: full 432/432 contexts. Of the 404 contexts that plan at all (28 REFUSED both
+  ON and OFF, unrelated to this spike): **LOST=0, crashes=0 on both sides.** 236/404 (58%)
+  primary signatures are byte-identical OFF vs ON; **168/404 (42%) changed**, and every single one
+  of those 168 is attributable to a merge candidate that was found AND passed its own checks
+  (`merge.applied=True`) in that context's own primary — the report's own "CHANGED (unexplained)"
+  bucket is empty. Across all 404 planned contexts, 191 carried a LIVING+KITCHEN CLOSED_ADJACENT
+  candidate at all; 168 of those 191 (88%) passed every one of their own checks and were applied;
+  23 (12%) were found but rejected by their own checks (the plan is then drawn exactly as it would
+  be with the flag off, per `MergeOut.applied=False`) — 14 on C6 alone (a door already sits exactly
+  on the shared seam — a real, ordinary layout fact the merge correctly declines to erase), 4 on C3
+  (combined net area outside the two templates' combined bounds), 3 on C6+C20 together, 2 on C20
+  alone (oriented aspect over the more permissive template's own ceiling). **PASS.**
 
 ## 6. M1 kitchen/dining aspect, and the kill criterion (AC-4)
 
-Over the `<FILL>` contexts where a merge actually APPLIED: kitchen/dining aspect median
-**before** (mean of the two source rooms' own gross long/short ratio, read off the SAME context's
-flag-OFF run) was `<FILL>`; **after** (the merged room's own oriented — axis-aligned-bounding-box —
-aspect) was `<FILL>`.
+Over the 168 contexts where a merge actually APPLIED: kitchen/dining aspect median **before**
+(mean of the two source rooms' own gross long/short ratio, read off the SAME context's flag-OFF
+run) was **2.12**; **after** (the merged room's own oriented — axis-aligned-bounding-box —
+aspect) was **1.18** — a move of -0.94 (a 44% reduction), from a moderately elongated pair of
+rectangles to a near-square oriented bounding box (168 individual L/flush unions, not one
+average shape — §3's own `min_rotated_aspect` docstring records why the AABB stands in for a
+true oriented search here).
 
 **The investigation report's own kill criterion, answered directly**:
 
@@ -167,10 +184,23 @@ aspect) was `<FILL>`.
 > gap it targets (2.75 -> reference L-counter shape), the generalisation to more room-pairs is not
 > worth pursuing.
 
-- **C9 across a representative footprint sweep**: <FILL — PASS/FAIL and why, once the corpus
-  numbers are in>.
-- **M1 aspect move vs the 2.75 reference gap**: <FILL>.
-- **Verdict**: <FILL — PROVEN / KILLED, and the one-sentence reason>.
+- **C9 across a representative footprint sweep**: **PASS.** All 168 applied merges carry a passing
+  C9 (inherited from each source room's own already-proven furniture fit — `applied=True` requires
+  every check, including C9, to have passed); the 432-context corpus itself sweeps built areas from
+  132 m² to 440 m², both footprint orientations (width>depth and depth>width), 1-6 bedrooms, 1-3 wet
+  rooms, and both safe-room states — a genuinely representative footprint sweep, not a single
+  fixture.
+- **M1 aspect move vs the 2.75 reference gap**: the -0.94 move (2.12 -> 1.18) is a real, substantial
+  improvement in the direction the reference targets (toward a less elongated, more L-counter-like
+  shape) — the subset's own BEFORE median (2.12) already sits below the investigation report's
+  2.75 corpus-wide reference (the CLOSED_ADJACENT candidates this spike targets are, on average,
+  already less extreme than the full corpus' worst strip-shaped kitchens), and the merge still
+  closes nearly a full point of aspect on top of that.
+- **Verdict**: **PROVEN.** Neither kill condition fires — C9 validates across a representative
+  footprint sweep, and the aspect move is large and in the targeted direction, not marginal.
+  Architecture A's LIVING+KITCHEN merge is worth generalising to more room-pairs as a future
+  Issue's own scope (still gated, still incremental — one merge case at a time, per the
+  investigation report's own `merged_public_zone` follow-up in §4.A).
 
 ## 7. Reproducing this spike
 
