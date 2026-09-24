@@ -61,9 +61,16 @@ from dataclasses import dataclass, field
 from shapely.geometry import Polygon, box as _box
 from shapely.ops import unary_union
 
+from . import access_rules
 from . import footprint as footprint_module
 from .design_output import GeometricDesign, assemble as assemble_design
-from .doors import Door, build_entrance_door, generate_interior_doors, resolve_entrance
+from .doors import (
+    DOOR_MARGIN_M,
+    Door,
+    build_entrance_door,
+    generate_interior_doors,
+    resolve_entrance,
+)
 from .furniture import FurnitureCheck, check_furniture_feasibility
 from .geometry_core.engine import WallMap, net_rect_m
 from .geometry_core.model import (
@@ -488,6 +495,29 @@ def _build_pinwheel_wing(w: PinwheelWing, origin: tuple[int, int]) -> _WingBuild
         (w.n.zone_id, w.center.zone_id), (w.s.zone_id, w.center.zone_id),
         (w.e.zone_id, w.center.zone_id), (w.w.zone_id, w.center.zone_id),
     ]
+    # The four OUTER corners where two adjacent arms interlock — the same corners that make this
+    # topology non-guillotine in the first place (module docstring). Each corner's own street-side
+    # segment (N-E's overlap starts at y=oy; E-S/S-W/W-N follow the same pattern around the ring)
+    # is never reached by the spoke-only edges above: the spoke door sits inside the arm's overlap
+    # with `center`'s own band, never at the corner. By construction this is true for EVERY
+    # pinwheel wing, not this fixture's own areas, so it is wired unconditionally here — gated only
+    # by the same two facts a real door always needs: the access-rules table allows that role pair
+    # (a private arm never gets a corner door to a public one bypassing circulation) and the
+    # corner's own shared wall is wide enough for that pair's door class (C7).
+    for (slot_a, slot_b) in (("n", "e"), ("e", "s"), ("s", "w"), ("w", "n")):
+        zone_a, zone_b = intents[slot_a].zone_id, intents[slot_b].zone_id
+        rect_a, rect_b = rects[zone_a], rects[zone_b]
+        shared_u = rect_a.shared_edge_len_u(rect_b)
+        if shared_u <= 0:
+            continue
+        roles_a, roles_b = roles[zone_a], roles[zone_b]
+        if not access_rules.edge_role_pair_allowed(roles_a, roles_b):
+            continue
+        kind = access_rules.door_kind_for_zones(roles_a, roles_b)
+        needed_u = m_to_u(access_rules.DOOR_WIDTH_M[kind]) + 2 * m_to_u(DOOR_MARGIN_M)
+        if shared_u < needed_u:
+            continue
+        access_edges.append((zone_a, zone_b))
     return _WingBuild(w.wing_id, origin, (w_u, h_u), rects, roles, specs, [], zone_of_cell, {},
                        access_edges, seam_left_ids=(w.w.zone_id,), seam_right_ids=(w.e.zone_id,))
 
@@ -663,11 +693,18 @@ def _build_row_wing(w: RowWing, origin: tuple[int, int]) -> _WingBuild | Refusal
 
         slot_cells.append(list(big_cell_ids) + slot_notch_ids)
 
-    # One unified pass connecting every consecutive pair of slots through the BEST-touching cell
-    # pair (maximum shared edge length) — robust to which specific cell a carve happens to place
-    # at a slot's boundary, unlike guessing "rightmost of prev, leftmost of next".
+    # One unified pass connecting every consecutive pair of slots through the best-touching cell
+    # pair — robust to which specific cell a carve happens to place at a slot's boundary, unlike
+    # guessing "rightmost of prev, leftmost of next". Among candidates that can actually host a
+    # door of the pair's own required width (C7), the one closest to `oy` (every row wing's own
+    # street-facing edge — see the module docstring's single-row exposure argument) wins, not
+    # simply the longest shared edge: a notch-carve "big" zone's fragment nearest the street can
+    # have a much shorter shared edge than a fragment deep in the row, and picking the deep one
+    # is what stranded the near-entrance segment of a preceding HALL/CIRCULATION slot as unserved
+    # corridor (C25) — found on the real corpus, not a fixture-specific patch, since every slot in
+    # a `RowWing` shares this same street edge by construction.
     for i in range(len(slot_cells) - 1):
-        pair = _best_touching_pair(slot_cells[i], slot_cells[i + 1], rects)
+        pair = _best_touching_pair(slot_cells[i], slot_cells[i + 1], rects, roles, oy)
         if pair is None:
             return Refusal("SLOTS_DO_NOT_TOUCH",
                             f"no cell of slot {i} touches any cell of slot {i + 1}")
@@ -681,16 +718,49 @@ def _build_row_wing(w: RowWing, origin: tuple[int, int]) -> _WingBuild | Refusal
                        zone_of_cell, groups_out, access_edges, seam_left, seam_right)
 
 
-def _best_touching_pair(cells_a: list[str], cells_b: list[str],
-                         rects: dict[str, Rect]) -> tuple[str, str] | None:
-    best: tuple[str, str] | None = None
-    best_len = 0
+def _shared_span_mid(a: Rect, b: Rect, side: Side | None) -> int | None:
+    """The midpoint, in the axis the entrance-distance actually varies along, of the segment `a`
+    and `b` share — the Y midpoint for a vertical (E/W) shared wall, the X midpoint for a
+    horizontal (N/S) one. `None` when they do not share a wall at all."""
+    if side is None:
+        return None
+    if side in (Side.E, Side.W):
+        return (max(a.y, b.y) + min(a.y2, b.y2)) // 2
+    return (max(a.x, b.x) + min(a.x2, b.x2)) // 2
+
+
+def _best_touching_pair(cells_a: list[str], cells_b: list[str], rects: dict[str, Rect],
+                         roles: dict[str, tuple[ProgramRole, ...]] | None = None,
+                         near_u: int | None = None) -> tuple[str, str] | None:
+    """The cell pair a cross-slot access edge connects. With `roles`/`near_u` given (the row-wing's
+    own case): among candidates wide enough to host a real, placeable door for their own role pair
+    (C7), the one whose shared segment sits closest to `near_u` (every row wing's own street edge)
+    wins — see the caller's docstring. Without them (unused elsewhere today): the longest shared
+    edge, as before."""
+    candidates: list[tuple[str, str, int]] = []
     for a in cells_a:
         for b in cells_b:
             shared = rects[a].shared_edge_len_u(rects[b])
-            if shared > best_len:
-                best_len, best = shared, (a, b)
-    return best
+            if shared > 0:
+                candidates.append((a, b, shared))
+    if not candidates:
+        return None
+    if roles is None or near_u is None:
+        return max(candidates, key=lambda c: c[2])[:2]
+
+    placeable: list[tuple[str, str, int, int]] = []
+    for a, b, shared in candidates:
+        kind = access_rules.door_kind_for_zones(roles.get(a, ()), roles.get(b, ()))
+        needed = m_to_u(access_rules.DOOR_WIDTH_M[kind]) + 2 * m_to_u(DOOR_MARGIN_M)
+        if shared < needed:
+            continue
+        mid = _shared_span_mid(rects[a], rects[b], _side_between(rects[a], rects[b]))
+        if mid is not None:
+            placeable.append((a, b, shared, mid))
+    if not placeable:
+        return max(candidates, key=lambda c: c[2])[:2]
+    a, b, _, _ = min(placeable, key=lambda c: (abs(c[3] - near_u), -c[2]))
+    return a, b
 
 
 # --------------------------------------------------------------------------- assembly + validation

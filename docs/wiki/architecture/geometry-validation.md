@@ -746,23 +746,40 @@ child actually lands realization behaviour.
 
 ## Rectilinear realizer — non-guillotine geometry (Issue #117, flag OFF)
 
-2026-09-23. `geometry_core.engine.solve_fixture` only ever produces a GUILLOTINE partition (a
-binary slicing tree, every cut a straight line across a subtree) — measured (Issue #102/#106):
-1/199 real plans qualify. `app/vertical_slice/rectilinear_realizer.py`
-(`RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it — the production path is
-untouched) is a genuinely non-guillotine realizer, proven on a hand-built L+U fixture (real
-rectilinear polygons, zero residual area, `is_guillotine_separable` returns `False`) and on 10 real
-corpus layouts (9/10 realized — see `docs/reports/rectilinear-realizer/stage1-gate.md`), through
-the UNCHANGED validator chain, with zero validator/threshold changes anywhere in the diff. Two
-constructions: PINWHEEL (spike #108's own 5-room windmill topology, generalized into a small
-alternating-fit solver over each arm's own target area) and NOTCH-CARVE (`carve_l`/`carve_u`/
-`carve_t` — a "big" zone's rectangle minus 1-2 smaller "notch" rooms cut from its boundary,
-decomposed as a proper grid so every internal edge is a clean 1:1 `WallMap` boundary). A
-notch-carve group's own per-cell C3/C20/C21 are NOT authoritative for the merged room (a
-NEEDS-POLYGON-VARIANT finding); `_group_checks` generalizes `room_merge.py`'s own redesigned C1/
-C2/C3/C20/C27 (the LIVING+KITCHEN merge spike, Issue #107) from a 2-way merge to N cells. Deciding
-WHERE rooms go (wiring a retrieved/generated layout in) is explicitly Stage 2, out of this Issue's
-scope — the realizer's own input is a PLACED layout (adjacency/placement/exposure already decided).
+2026-09-23, re-run 2026-09-24 for Issue #136. `geometry_core.engine.solve_fixture` only ever
+produces a GUILLOTINE partition (a binary slicing tree, every cut a straight line across a
+subtree) — measured (Issue #102/#106): 1/199 real plans qualify. `app/vertical_slice.
+rectilinear_realizer.py` (`RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it —
+the production path is untouched) is a genuinely non-guillotine realizer, proven on a hand-built
+L+U fixture (real rectilinear polygons, zero residual area, `is_guillotine_separable` returns
+`False`) and on 10 real corpus layouts, through the UNCHANGED validator chain, with zero validator/
+threshold changes anywhere in the diff. Two constructions: PINWHEEL (spike #108's own 5-room
+windmill topology, generalized into a small alternating-fit solver over each arm's own target
+area) and NOTCH-CARVE (`carve_l`/`carve_u`/`carve_t` — a "big" zone's rectangle minus 1-2 smaller
+"notch" rooms cut from its boundary, decomposed as a proper grid so every internal edge is a clean
+1:1 `WallMap` boundary). A notch-carve group's own per-cell C3/C20/C21 are NOT authoritative for
+the merged room (a NEEDS-POLYGON-VARIANT finding); `_group_checks` generalizes `room_merge.py`'s
+own redesigned C1/C2/C3/C20/C27 (the LIVING+KITCHEN merge spike, Issue #107) from a 2-way merge to
+N cells. Deciding WHERE rooms go (wiring a retrieved/generated layout in) is explicitly Stage 2,
+out of this Issue's scope — the realizer's own input is a PLACED layout (adjacency/placement/
+exposure already decided).
+
+**Issue #136 — C25 (entrance-to-circulation integration, below) landed on main after this branch
+was cut, and refused both hand-built fixtures and 2 of the original 9 REALIZED real-corpus layouts
+(4.17-4.96 m of unserved corridor beyond the entrance, over `ENTRANCE_POCKET_MAX_M`).** The fix is
+entirely in the realizer's own door-placement construction, no validator touched: the row-wing's
+cross-slot door now prefers, among candidates wide enough for a real door, the one closest to the
+wing's own street edge rather than simply the longest shared cell edge; the pinwheel wing now also
+wires a door at each of the four corners where two arms physically interlock (the same corners
+that make the topology non-guillotine at all) wherever the access-rules table and door-width both
+allow it. Re-run against current main: **6/10 real corpus layouts realized** (down from the
+pre-C25 9/10 headline, for a reason UNRELATED to C25 — Issue #118 below also flipped
+`LIVING_KITCHEN_MERGE_ENABLED` to `True` by default, and this gate script's own room-pick
+heuristic did not recognise the resulting merged `LIVING_KITCHEN` room type at all until fixed;
+once fixed, 3 of the 10 real contexts are genuinely infeasible for the script's fixed proportional
+pinwheel-scaling heuristic, an honest SHORT_SIDE_INFEASIBLE/insufficient-usable-rooms refusal each
+time). Zero of the 10 refuse on C25 after the fix — see `docs/reports/rectilinear-realizer/
+stage1-gate.md`'s own "C25" section for the re-measured `pocket_length_m` per REALIZED layout.
 
 ## The merged public room — LIVING+KITCHEN, ON by default (Issue #118)
 
@@ -938,3 +955,15 @@ implementation and test runs — the full 432-context A/B (`docs/reports/rectili
 stage0-merge-ab.md`), the fast suite (1517 passed, 0 failed, 478 skipped, 9 xfailed) with the flag
 flipped ON, and the three new `test_living_kitchen_merge_spike.py` unit tests, including this
 merge's own conflict resolution (both stage sections kept side by side, #117 before #118).
+
+Branch `agent/136-stage-0-1-rollup-repair-the-rectilinear`, based on
+`origin/integration/rectilinear-realizer` after the Team Lead merged current main in (bringing in
+Issue #22/C25, the interior layout MVP, master-suite access and the wall semantic model): the
+Rectilinear realizer section above's C25 paragraph documents Issue #136, verified against this
+session's own implementation (`rectilinear_realizer.py`'s door-placement construction fix, no
+validator touched), `test_rectilinear_realizer.py` (6/6 passing against the merged base), the full
+`tests/vertical_slice` suite (665 passed, 1 skipped, 9 xfailed) and the full fast suite green, and
+the Stage 1 gate re-run against current main
+(`docs/reports/rectilinear-realizer/stage1-gate.md`, 6/10 realized, 0 refused on C25). Stage 0's
+own 432-context A/B (`stage0-merge-ab.md`) was not re-swept in this session (out of #136's own
+Verification Plan; noted there as an open item) — #136's own diff touches no production path.
