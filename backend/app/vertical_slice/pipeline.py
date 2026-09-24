@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from . import concept as concept_stage
 from . import doors as doors_stage
+from . import door_clearance
 from . import furniture as furniture_stage
 from . import site as site_stage
 from . import validation as validation_stage
@@ -55,6 +56,9 @@ def run_once(spec: ArchitecturalSpec, render_path: str) -> VerticalSliceResult:
     resolved = doors_stage.resolve_entrance(concept.fixture, rects, site.footprint)
     entrance_zone_id = resolved[0] if resolved else concept.entrance_zone_id
     entrance_door = doors_stage.build_entrance_door(site.entrance, site.footprint, entrance_zone_id)
+    resolved_doors = door_clearance.resolve_swings(
+        concept.fixture, rects, solve.walls, [*interior_doors, entrance_door])
+    *interior_doors, entrance_door = resolved_doors
     windows = windows_stage.generate_windows(concept.fixture, rects, site.footprint)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 

@@ -18,7 +18,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import circulation_metrics, quality_metrics, room_merge
+from app.vertical_slice import (circulation_metrics, entrance_sequence, interior_layout,
+                                quality_metrics, room_merge)
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
@@ -28,10 +29,11 @@ from app.vertical_slice.concept_generator import (
     ROOM_TEMPLATES,
 )
 from app.vertical_slice.design_output import GeometricDesign as SolvedDesign
-from app.vertical_slice.geometry_core.model import ProgramRole, u_to_m
+from app.vertical_slice.geometry_core.model import ProgramRole, WALL_THICKNESS_M, WallType, u_to_m
 from app.vertical_slice.validation import ValidationReport, check_realized_dimensions
 from app.vertical_slice.building import Building
 from app.vertical_slice.building_validation import BuildingValidationReport, validate_building
+from app.vertical_slice.walls import WET_ROLES, classify as classify_wall
 
 #: A room's realized total below this fraction of its own template TARGET, in a plan that also
 #: contains an explicitly requested LAUNDRY room, is disclosed via `QualityOut.laundry_notice`.
@@ -124,6 +126,17 @@ class WallSegment(BaseModel):
     construction: str         # STANDARD_PARTITION | RC_SAFE_ROOM | ...
     boundary_context: str     # EXTERIOR | INTERIOR
     room_ids: list[str]
+    #: The wall semantic model (Issue #45, `app.vertical_slice.walls`): a single-value class this
+    #: same segment collapses `construction`/`boundary_context` into — EXTERIOR | INTERIOR |
+    #: WET_SERVICE | PROTECTED, see that module's docstring for the precedence. `thickness_m` is
+    #: the real wall thickness this segment was solved with (`geometry_core.model.WALL_THICKNESS_M`),
+    #: not a value the renderer has to look up itself. `id` is what `DoorOut.wall_id`/
+    #: `WindowOut.wall_id` reference. All three are `None` only for a `WallSegment` built directly
+    #: by a caller outside `_wall_segments` (a test fixture predating this Issue) — every payload
+    #: `to_demo_design` produces sets them.
+    id: str | None = None
+    wall_class: str | None = None
+    thickness_m: float | None = None
 
 
 class OpenInterface(BaseModel):
@@ -145,11 +158,18 @@ class DoorOut(BaseModel):
     y: float
     orientation: str
     is_entrance: bool = False
-    #: The room the leaf opens into, and the hinged jamb — so the drawing can show a real door
-    #: symbol (leaf plus swing arc) instead of a gap in a wall, without deciding anything itself.
+    #: The room the leaf opens into, the hinged jamb, and the open leaf's own direction — so the
+    #: drawing can place a real door symbol (leaf plus swing arc) purely from these fields, without
+    #: deciding anything itself and without looking up the room `swings_into` names (Issue #38).
+    #: `swing_deg` is in degrees, `doors.py::Door.swing_deg`'s convention (0=+x, 90=+y, ...).
     swings_into: str = ""
     hinge_x: float = 0.0
     hinge_y: float = 0.0
+    swing_deg: float = 0.0
+    #: The `WallSegment.id` this door is realized on (Issue #45) — `None` only when the door's own
+    #: wall was cosmetically opened by `_open_corridor_to_public`, which never happens for a real
+    #: door (see that function's own "no DOOR lies on it" precondition).
+    wall_id: str | None = None
 
 
 class QualitySignal(BaseModel):
@@ -235,6 +255,28 @@ class ExposureOut(BaseModel):
     no_window_reason: str | None = None
 
 
+class EntranceSequenceOut(BaseModel):
+    """The entrance-to-circulation sequence (Issue #22, `app.vertical_slice.entrance_sequence`):
+    where the front door arrives, whether that arrival zone is itself circulation, the POCKET
+    (walking distance to the arrival zone's own nearest other opening — C25's own blocking fact)
+    and the TUNNEL (walking distance to the first PUBLIC-group room, with private doors passed on
+    the way — reported, never gating; see that module's docstring for why). `tunnel` is the
+    non-blocking quality-signal text (`None` when the walk is not a tunnel). `stray_pockets` is the
+    OTHER blocking shape — every OTHER circulation zone independently fronting the street with an
+    unserved stub beside the entrance (`[]` when none); also C25's own blocking fact."""
+
+    arrival_zone: str | None = None
+    arrival_roles: list[str] = []
+    is_circulation_arrival: bool = False
+    pocket_length_m: float = 0.0
+    has_public_opening: bool = False
+    distance_to_public_m: float | None = None
+    private_doors_passed: int = 0
+    foyer: bool = False
+    tunnel: str | None = None
+    stray_pockets: list[list] = []
+
+
 class ConstraintOut(BaseModel):
     """One `TypedConstraint` (Issue #35), as the person-facing screen and support tooling read it —
     including WHERE the requirement came from, so a request never looks like it was invented by
@@ -291,6 +333,9 @@ class QualityOut(BaseModel):
     #: One `WetPrivacyOut` per wet room (Issue #37), additive. `[]` for a plan with no wet rooms,
     #: or one built before this field existed.
     wet_privacy: list[WetPrivacyOut] = []
+    #: The entrance-to-circulation sequence (Issue #22), additive. `None` only for a payload built
+    #: before this field existed — every plan `to_demo_design` produces from here on attaches one.
+    entrance_sequence: EntranceSequenceOut | None = None
 
 
 class WindowOut(BaseModel):
@@ -299,6 +344,10 @@ class WindowOut(BaseModel):
     width_m: float
     x: float
     y: float
+    #: The `WallSegment.id` this window is realized on (Issue #45) — a window is always on an
+    #: EXTERIOR segment, which `_open_corridor_to_public` never touches, so this is `None` only
+    #: for a payload built before this field existed.
+    wall_id: str | None = None
 
 
 class RectOut(BaseModel):
@@ -306,6 +355,38 @@ class RectOut(BaseModel):
     y: float
     width_m: float
     depth_m: float
+
+
+class LayoutObjectOut(BaseModel):
+    """One engine-placed semantic layout object (Issue #39) — `app.vertical_slice.interior_layout.
+    LayoutObject`, as-is: the renderer draws these directly, never inventing decorative furniture
+    of its own. `clearance` always contains `rect` (footprint plus required use clearance)."""
+
+    kind: str
+    room_id: str
+    x: float
+    y: float
+    width_m: float
+    depth_m: float
+    rotation_deg: float
+    clearance_x: float
+    clearance_y: float
+    clearance_width_m: float
+    clearance_depth_m: float
+
+
+def _layout_out(design: SolvedDesign) -> list[LayoutObjectOut]:
+    out: list[LayoutObjectOut] = []
+    for room_layout in interior_layout.compute_layout(design):
+        for obj in room_layout.placed:
+            x, y, w, h = obj.rect_m
+            cx, cy, cw, ch = obj.clearance_rect_m
+            out.append(LayoutObjectOut(
+                kind=obj.kind, room_id=obj.room_id, x=x, y=y, width_m=w, depth_m=h,
+                rotation_deg=obj.rotation, clearance_x=cx, clearance_y=cy,
+                clearance_width_m=cw, clearance_depth_m=ch,
+            ))
+    return out
 
 
 class ValidationSummary(BaseModel):
@@ -416,6 +497,10 @@ class DemoDesign(BaseModel):
     open_interfaces: list[OpenInterface]
     doors: list[DoorOut]
     windows: list[WindowOut]
+    #: Engine-placed semantic layout objects (Issue #39) — `[]` only for a payload built before
+    #: this field existed; every plan `to_demo_design` produces from here on attaches one entry per
+    #: PLACED object (never one per requested item — an unplaceable item is simply absent here).
+    layout: list[LayoutObjectOut] = []
     parking: list[RectOut]
     garden: list[RectOut]
     entrance_walk: RectOut
@@ -594,6 +679,10 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
     """
     rooms = {r.zone_id: r for r in design.rooms}
     is_safe = {r.zone_id: "SAFE_ROOM" in [str(x) for x in r.roles] for r in design.rooms}
+    #: The wall semantic model's own "wet room" role set (Issue #45) — reused, not re-derived, so
+    #: this segment's `wall_class` and `walls.py`'s own C33 check never disagree about what wet
+    #: means.
+    is_wet = {r.zone_id: bool(WET_ROLES & {str(x) for x in r.roles}) for r in design.rooms}
 
     def neighbours_along(room, side, orientation, coord, start, end):
         """The pieces of this side, split where the room on the other side changes."""
@@ -633,6 +722,12 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
 
     walls: dict[tuple, WallSegment] = {}
     opens: dict[tuple, OpenInterface] = {}
+    #: Per-key accumulators for the wall-class collapse (Issue #45) — kept apart from `WallSegment`
+    #: itself (`construction`/`boundary_context` already fully determine the DRAWING; these three
+    #: are the ADDITIONAL facts `walls.classify` needs) so the existing merge above is untouched.
+    touches_safe: dict[tuple, bool] = {}
+    touches_wet: dict[tuple, bool] = {}
+    thickness_of: dict[tuple, float] = {}
     for room in design.rooms:
         x, y, w, h = room.rect_m
         edges = {
@@ -643,6 +738,7 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
         }
         for side, (orientation, coord, start, end) in edges.items():
             facts = room.wall_facts[side]
+            raw_thickness_m = WALL_THICKNESS_M[WallType(room.walls[side])]
             for lo, hi, facing in neighbours_along(room, side, orientation, coord, start, end):
                 construction = facts.construction.value
                 # Reinforced concrete belongs to the safe room's own envelope, not to every
@@ -660,6 +756,11 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
                     elif room.zone_id not in entry.room_ids:
                         entry.room_ids.append(room.zone_id)
                     continue
+                touches_safe[key] = touches_safe.get(key, False) or bool(
+                    is_safe.get(room.zone_id) or (facing and is_safe.get(facing)))
+                touches_wet[key] = touches_wet.get(key, False) or bool(
+                    is_wet.get(room.zone_id) or (facing and is_wet.get(facing)))
+                thickness_of[key] = max(thickness_of.get(key, 0.0), raw_thickness_m)
                 entry = walls.get(key)
                 if entry is None:
                     walls[key] = WallSegment(
@@ -673,7 +774,18 @@ def _wall_segments(design: SolvedDesign) -> tuple[list[WallSegment], list[OpenIn
                     # A pair disagrees only when one of them is the safe room; that side wins.
                     if construction == "RC_SAFE_ROOM":
                         entry.construction = construction
-    return list(walls.values()), list(opens.values())
+
+    out_walls: list[WallSegment] = []
+    for i, (key, seg) in enumerate(walls.items()):
+        seg.id = f"wall-{i}"
+        seg.wall_class = classify_wall(
+            on_envelope=seg.boundary_context == "EXTERIOR",
+            touches_safe=touches_safe.get(key, False),
+            touches_wet=touches_wet.get(key, False),
+        ).value
+        seg.thickness_m = thickness_of.get(key, 0.0)
+        out_walls.append(seg)
+    return out_walls, list(opens.values())
 
 
 _CIRCULATION_ROLES = frozenset({"HALL", "CIRCULATION"})
@@ -693,6 +805,42 @@ def _door_crosses(door, orientation: str, coord: float, start: float, end: float
         return False
     half = door.width_m / 2
     return door.center_m[along] - half < end - _EPS and door.center_m[along] + half > start + _EPS
+
+
+_SIDE_ORIENTATION = {"N": "horizontal", "S": "horizontal", "E": "vertical", "W": "vertical"}
+
+
+def _wall_id_for_door(door: DoorOut, walls: list[WallSegment]) -> str | None:
+    """Which `WallSegment.id` (Issue #45) this REALIZED, contract-level door sits on, or `None`.
+
+    Every real door keeps its own wall (`_open_corridor_to_public`'s "no DOOR lies on it"
+    precondition), so `None` is unreachable for a door that survived to `demo.doors` — only a
+    payload built with a hand-made `WallSegment` fixture that omits `id` could produce it."""
+    along, across = (1, 0) if door.orientation == "vertical" else (0, 1)
+    pos = (door.x, door.y)
+    half = door.width_m / 2
+    for wall in walls:
+        if wall.orientation != door.orientation or abs(pos[across] - wall.coord) > _EPS:
+            continue
+        if pos[along] - half < wall.end - _EPS and pos[along] + half > wall.start + _EPS:
+            return wall.id
+    return None
+
+
+def _wall_id_for_window(window: WindowOut, walls: list[WallSegment]) -> str | None:
+    """Which `WallSegment.id` (Issue #45) this REALIZED, contract-level window sits on, or `None`
+    — a window is always on an EXTERIOR segment, which `_open_corridor_to_public` never touches."""
+    orientation = _SIDE_ORIENTATION[window.side]
+    along, across = (1, 0) if orientation == "vertical" else (0, 1)
+    pos = (window.x, window.y)
+    half = window.width_m / 2
+    for wall in walls:
+        if (wall.orientation != orientation or window.room_id not in wall.room_ids
+                or abs(pos[across] - wall.coord) > _EPS):
+            continue
+        if pos[along] - half < wall.end - _EPS and pos[along] + half > wall.start + _EPS:
+            return wall.id
+    return None
 
 
 def _open_corridor_to_public(design: SolvedDesign, walls: list[WallSegment],
@@ -1007,6 +1155,10 @@ def summarize(report: ValidationReport,
                   if c.passed and c.check_id in _STATEMENTS]
     warnings = [f"{_STATEMENTS.get(c.check_id, c.name)}: {c.detail}" for c in report.failures()]
 
+    # Non-blocking quality notes (Issue #38's corridor-obstruction note today) — the plan passed
+    # validation; this is disclosure, not a failed check.
+    warnings.extend(report.notes)
+
     # Something true about THIS plan that the person must read before the drawing — a house that
     # fills what its rooms can and not what was asked (`service.capacity_note`). Carried verbatim,
     # unlike `unsupported`, which quotes a request back to them.
@@ -1048,7 +1200,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     walls, opens = _open_corridor_to_public(design, walls, opens)
     doors = [DoorOut(a=d.a, b=d.b, kind=d.kind, width_m=d.width_m, x=d.center_m[0],
                      y=d.center_m[1], orientation=d.orientation,
-                     swings_into=d.swings_into, hinge_x=d.hinge_m[0], hinge_y=d.hinge_m[1])
+                     swings_into=d.swings_into, hinge_x=d.hinge_m[0], hinge_y=d.hinge_m[1],
+                     swing_deg=d.swing_deg)
              for d in design.interior_doors]
     doors = _suppress_covered_cased_openings(doors, opens)
     entrance = design.entrance_door
@@ -1056,7 +1209,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                          x=entrance.center_m[0], y=entrance.center_m[1],
                          orientation=entrance.orientation, is_entrance=True,
                          swings_into=entrance.swings_into,
-                         hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1]))
+                         hinge_x=entrance.hinge_m[0], hinge_y=entrance.hinge_m[1],
+                         swing_deg=entrance.swing_deg))
     rooms_out = [RoomOut(
         id=r.zone_id, type=r.roles[0], name=_room_name(r),
         x=r.rect_m[0], y=r.rect_m[1], width_m=r.net_w_m, depth_m=r.net_h_m,
@@ -1090,6 +1244,17 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
             rooms_out, walls, opens, doors = _apply_room_merge(merge_plan, rooms_out, walls,
                                                                opens, doors)
 
+    windows_out = [WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
+                             x=w.center_m[0], y=w.center_m[1])
+                   for w in design.windows if w.width_m > 0]
+    # Issue #45: every door/window references the wall it hosts on. Done here, once, over the
+    # FINAL (cosmetically-opened) `walls` list, rather than in `_wall_segments` itself — a door's
+    # own wall is guaranteed to survive that cosmetic pass (see `_wall_id_for_door`'s docstring),
+    # so this never silently disagrees with what got drawn.
+    for door in doors:
+        door.wall_id = _wall_id_for_door(door, walls)
+    for window in windows_out:
+        window.wall_id = _wall_id_for_window(window, walls)
     demo = DemoDesign(
         plot=_rect(design.plot_m),
         footprint=_rect(design.footprint_m),
@@ -1098,9 +1263,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         walls=walls,
         open_interfaces=opens,
         doors=doors,
-        windows=[WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
-                           x=w.center_m[0], y=w.center_m[1])
-                 for w in design.windows if w.width_m > 0],
+        windows=windows_out,
+        layout=_layout_out(design),
         parking=[_rect(p) for p in design.parking_m],
         garden=[_rect(r) for g in design.garden for r in g.rects_m],
         entrance_walk=_rect(design.entrance_walk_m),
@@ -1132,6 +1296,24 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     # M1-M6 reads, so a check, a ranking decision and this report can never disagree about what a
     # plan's circulation looks like.
     circulation = circulation_metrics.measure(design)
+    # Entrance sequence (Issue #22) reads the SAME raw `SolvedDesign` circulation does, for the
+    # same reason: a check (C25), a ranking decision and this report must never disagree about
+    # what a plan's entrance sequence looks like.
+    entrance_seq = entrance_sequence.measure(design)
+    entrance_seq_out = EntranceSequenceOut(
+        arrival_zone=entrance_seq.arrival_zone,
+        arrival_roles=list(entrance_seq.arrival_roles),
+        is_circulation_arrival=entrance_seq.is_circulation_arrival,
+        #: `math.inf` only for a fully sealed arrival zone (no other opening at all) — capped for
+        #: JSON (`Infinity` is not valid JSON); `classify_pocket` already flagged it either way.
+        pocket_length_m=min(entrance_seq.pocket_length_m, 999.0),
+        has_public_opening=entrance_seq.has_public_opening,
+        distance_to_public_m=entrance_seq.distance_to_public_m,
+        private_doors_passed=entrance_seq.private_doors_passed,
+        foyer=entrance_seq.foyer,
+        tunnel=entrance_sequence.classify_tunnel(entrance_seq),
+        stray_pockets=[[zone_id, length] for zone_id, length in entrance_seq.stray_pockets],
+    )
     # Exposure (Issue #19) needs `design.rooms[].wall_facts`/`design.windows`, present on the raw
     # solver output but not on `quality_of`'s own narrow `SimpleNamespace`-shaped unit tests —
     # same reason metrics is attached here rather than threaded through `quality_of`.
@@ -1144,7 +1326,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
             "metrics": _metrics_out(metrics, circulation, wet_core),
             "constraints": constraints_out,
             "exposure": exposure,
-            "wet_privacy": wet_privacy})
+            "wet_privacy": wet_privacy,
+            "entrance_sequence": entrance_seq_out})
     })
 
 

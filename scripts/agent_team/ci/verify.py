@@ -18,13 +18,21 @@ from agent_team.ci.common import GateReport, repo_root, run, write_report
 
 def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, str]:
     if kind == "pytest":
+        # TEST_MODE=REGRESSION so a target carrying the `regression` marker (tests/conftest.py)
+        # actually executes here instead of being silently skipped-but-exit-0 and recorded as a
+        # false PASS (Issue #38 review finding). Harmless for unmarked targets: TEST_MODE only
+        # gates marker collection, nothing else reads it.
+        env = {"TEST_MODE": "REGRESSION"}
         if target.startswith("scripts/agent_team/tests/"):
-            proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout)
+            proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout, env=env)
         else:
             rel = target[len("backend/"):] if target.startswith("backend/") else target
-            proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout)
+            proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout, env=env)
         tail = (proc.stdout.strip().splitlines() or [""])[-1]
-        return proc.returncode == 0, tail[:300] or proc.stderr[-300:]
+        detail = tail[:300] or proc.stderr[-300:]
+        if proc.returncode == 0 and "passed" not in tail:
+            return False, f"no test actually passed (skipped or deselected): {detail}"
+        return proc.returncode == 0, detail
     if kind == "vitest":
         rel = target[len("frontend/"):] if target.startswith("frontend/") else target
         proc = run(f"npx vitest run {rel}", root / "frontend", timeout=timeout)

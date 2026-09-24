@@ -49,6 +49,11 @@ export interface DemoRoom {
   polygon_m?: [number, number][] | null
 }
 
+/** `wall_class` collapses `construction`/`boundary_context` into the single semantic class the
+ * backend's wall model (`app.vertical_slice.walls`, Issue #45) computes — EXTERIOR | INTERIOR |
+ * WET_SERVICE | PROTECTED. `id` is what `DemoDoor.wall_id`/`DemoWindow.wall_id` reference.
+ * `thickness_m` is the REAL solved wall thickness — the renderer no longer guesses it from
+ * `construction` alone. All three are `undefined` only for a payload built before this Issue. */
 export interface DemoWallSegment {
   orientation: 'horizontal' | 'vertical'
   coord: number
@@ -57,6 +62,9 @@ export interface DemoWallSegment {
   construction: string
   boundary_context: string
   room_ids: string[]
+  id?: string
+  wall_class?: 'EXTERIOR' | 'INTERIOR' | 'WET_SERVICE' | 'PROTECTED'
+  thickness_m?: number
 }
 
 /** A boundary two spaces share with NO wall. Drawn as a deliberate absence, not by omission. */
@@ -74,6 +82,9 @@ export interface DemoDoor {
   swings_into?: string
   hinge_x?: number
   hinge_y?: number
+  /** The open leaf's own direction in degrees (`doors.py::Door.swing_deg`: 0=+x, 90=+y, 180=-x,
+   *  270=-y) — `DoorSymbol` places the leaf from this alone, never from a room lookup. */
+  swing_deg?: number
   a: string
   b: string
   kind: string
@@ -82,6 +93,9 @@ export interface DemoDoor {
   y: number
   orientation: 'horizontal' | 'vertical'
   is_entrance: boolean
+  /** `DemoWallSegment.id` this door is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
 }
 
 export interface DemoWindow {
@@ -90,6 +104,27 @@ export interface DemoWindow {
   width_m: number
   x: number
   y: number
+  /** `DemoWallSegment.id` this window is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
+}
+
+/** One engine-placed semantic layout object (Issue #39) — mirrors `app.demo.contract.
+ * LayoutObjectOut` exactly. `clearance_*` always contains the object's own footprint (`x`/`y`/
+ * `width_m`/`depth_m`): a footprint plus its required use clearance, never a disjoint zone. The
+ * renderer draws these as-is — never inventing a decorative object of its own. */
+export interface DemoLayoutObject {
+  kind: string
+  room_id: string
+  x: number
+  y: number
+  width_m: number
+  depth_m: number
+  rotation_deg: number
+  clearance_x: number
+  clearance_y: number
+  clearance_width_m: number
+  clearance_depth_m: number
 }
 
 export interface DemoValidation {
@@ -227,6 +262,9 @@ export interface DemoDesign {
   open_interfaces: DemoOpenInterface[]
   doors: DemoDoor[]
   windows: DemoWindow[]
+  /** Engine-placed semantic layout objects (Issue #39). Absent/empty for a payload that predates
+   *  the field, or a plan with no role this Issue furnishes. */
+  layout?: DemoLayoutObject[]
   parking: DemoRect[]
   garden: DemoRect[]
   entrance_walk: DemoRect

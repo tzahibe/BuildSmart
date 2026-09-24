@@ -209,9 +209,10 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # SAFE_ROOM requirement, empty for a brief without one.
     # `exposure` (Issue #19) is additive too — one entry per room.
     # `wet_privacy` (Issue #37) is additive too — one entry per wet room.
+    # `entrance_sequence` (Issue #22) is additive too — always present on a delivered plan.
     assert "quality" in body and set(body["quality"]) == {
         "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints",
-        "exposure", "wet_privacy"}
+        "exposure", "wet_privacy", "entrance_sequence"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 
@@ -2053,3 +2054,36 @@ def test_the_living_side_preference_chooses_which_way_the_shown_l_faces(client, 
 def test_the_living_side_accepts_only_its_three_values(client):
     project_id = _prepare(client, BRIEF_3BR_SAFE_OPEN, width=12.5, depth=14.5)
     assert client.put(f"/projects/{project_id}/review", json={"public_open_side": "north"}).status_code == 422
+
+
+def test_every_door_out_carries_hinge_and_swing():
+    """Issue #38, AC-3 (gate-3 evidence): every door of a deterministic, stratified sample of PLANNED
+    corpus designs carries `hinge_x`/`hinge_y`/`swing_deg` + `swings_into` — the renderer's whole
+    door-symbol contract (`DoorSymbol.tsx`). The FULL corpus is checked by
+    `tests/regression_corpus/test_door_contract_corpus.py` in the regression tier: replaying all 404
+    PLANNED contexts here took > 1800 s on CI (gate 3's budget), so this fast tier takes every 34th
+    case in corpus order (~12 briefs spanning the bedroom / wet-room / footprint range)."""
+    import json
+    import os
+
+    from app.demo.service import generate_demo_design
+    from spikes.failure_log_sweep.sweep import project_from_context
+
+    corpus_path = os.path.join(
+        os.path.dirname(__file__), "regression_corpus", "corpus.json")
+    with open(corpus_path, encoding="utf-8") as f:
+        corpus = json.load(f)
+
+    planned = [c for c in corpus["cases"] if c["expected_outcome"] == "PLANNED"]
+    assert planned, "corpus.json has no PLANNED cases to check"
+    sample = planned[::34]                      # deterministic: corpus order is frozen in git
+    assert len(sample) >= 10
+    checked = 0
+    for case in sample:
+        project = project_from_context(case["context"])
+        result = generate_demo_design(project)
+        for door in result.design.doors:
+            assert door.swing_deg in (0.0, 90.0, 180.0, 270.0), (case["context"], door)
+            assert door.swings_into, (case["context"], door)
+            checked += 1
+    assert checked > 0

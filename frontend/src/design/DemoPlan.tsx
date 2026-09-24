@@ -1,5 +1,8 @@
 import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
+import { DoorSymbol } from '../components/plan/DoorSymbol'
+import { Walls, WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle } from '../components/plan/Walls'
+import { InteriorLayout } from '../components/plan/InteriorLayout'
 import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
 
@@ -10,9 +13,12 @@ import './DemoPlan.css'
  * is, not whether two spaces are open to each other, not where a window goes, not what is
  * reachable. If a fact is not on the object, it is not drawn.
  *
- * Wall weight follows the backend's own construction/context facts rather than a guess:
- * an exterior wall is heavy, an RC safe-room wall is heavier and coloured, a partition is light,
- * and an `OPEN` boundary is drawn as a deliberate absence. */
+ * Wall weight follows the backend's own semantic class and real thickness (Issue #45) — an
+ * exterior wall is heavy, an RC/PROTECTED safe-room wall is heavier and coloured, a partition is
+ * light, and an `OPEN` boundary is drawn as a deliberate absence. The drawing itself lives in
+ * `components/plan/Walls.tsx`; `WALL_STYLE`/`EXTERIOR_WALL_STYLE`/`wallStyle` are re-exported here
+ * so `PlanLegend`'s swatches stay sourced from the SAME values as the plan. */
+export { WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle }
 
 const PAD_M = 1.5
 
@@ -53,22 +59,6 @@ export function planViewBox(design: DemoDesign): string {
   return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`
 }
 
-/** Exported so `PlanLegend` swatches are drawn from the SAME values as the plan itself — a legend
- * that keeps its own copy of the colours is a legend that eventually lies about the drawing. */
-export const WALL_STYLE: Record<string, { color: string; width: number }> = {
-  RC_SAFE_ROOM: { color: '#b03a2e', width: 0.3 },
-  STRUCTURAL: { color: '#1a1a1a', width: 0.26 },
-  STANDARD_PARTITION: { color: '#8b939c', width: 0.1 },
-}
-
-export const EXTERIOR_WALL_STYLE = { color: '#1a1a1a', width: 0.26 }
-
-export function wallStyle(construction: string, context: string) {
-  if (construction === 'RC_SAFE_ROOM') return WALL_STYLE.RC_SAFE_ROOM
-  if (context === 'EXTERIOR') return EXTERIOR_WALL_STYLE
-  return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
-}
-
 /** Architecture A spike (Issue #107): a merged room's own label centres on its polygon's AREA
  *  centroid, not its bounding-box centre — the bbox centre of an L can land in the room's own
  *  crook, outside the room entirely. Standard shoelace-formula polygon centroid; falls back to
@@ -98,7 +88,6 @@ function sweep(hx: number, hy: number, far: { x: number; y: number },
   const cross = (far.x - hx) * (leaf.y - hy) - (far.y - hy) * (leaf.x - hx)
   return cross > 0 ? 1 : 0
 }
-
 /** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
  * construction — the backend puts the street, the parking bays and the entrance walk along `y = 0`
  * (`vertical_slice/site.py`) — which is what makes a compass truthful here and nowhere else in the
@@ -196,99 +185,36 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
         )
       })}
 
-      {/* Walls, weighted by the backend's construction/context facts. An OPEN interface has no
-          wall segment at all, so open-plan reads as one continuous space by construction. */}
-      {design.walls.map((wall, i) => {
-        const style = wallStyle(wall.construction, wall.boundary_context)
-        const [x1, y1, x2, y2] =
-          wall.orientation === 'vertical'
-            ? [wall.coord, wall.start, wall.coord, wall.end]
-            : [wall.start, wall.coord, wall.end, wall.coord]
-        return (
-          <line
-            key={`wall-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke={style.color} strokeWidth={style.width} strokeLinecap="butt"
-          />
-        )
-      })}
+      {/* Walls, weighted by the backend's own semantic class and real thickness (Issue #45). An
+          OPEN interface has no wall segment at all, so open-plan reads as one continuous space by
+          construction. */}
+      <Walls walls={design.walls} />
+
+      {/* Engine-placed semantic layout objects (Issue #39) — drawn under the doors/windows so a
+          door's swing arc always stays legible over any furniture near it. */}
+      <InteriorLayout objects={design.layout ?? []} />
 
       {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
           90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —
           "אין דבר כזה קיר פתוח לחדרים, אלא דלתות". A CASED_OPENING is the one exception: it is
-          still a real interruption in the wall (the door line below draws that), but there is no
-          leaf and no arc, because the backend declared this opening to have no door hardware at
-          all — see `_build_access` in concept_generator.py for why the living room's entrance is
-          always one of these.
+          still a real interruption in the wall, but there is no leaf and no arc, because the
+          backend declared this opening to have no door hardware at all — see `_build_access` in
+          concept_generator.py for why the living room's entrance is always one of these.
 
-          Every fact here comes from the backend: where the opening is, which room the leaf swings
-          into, and which jamb it hangs from. The renderer does the trigonometry and nothing else,
-          which is the same boundary that stopped it inventing doors in the first place. */}
-      {design.doors.map((door, i) => {
-        const half = door.width_m / 2
-        const vertical = door.orientation === 'vertical'
-        const [x1, y1, x2, y2] = vertical
-          ? [door.x, door.y - half, door.x, door.y + half]
-          : [door.x - half, door.y, door.x + half, door.y]
-
-        // The hinge is one end of the opening; the leaf swings from there into `swings_into`.
-        const hx = door.hinge_x ?? x1
-        const hy = door.hinge_y ?? y1
-        const room = design.rooms.find((r) => r.id === door.swings_into)
-        const hasLeaf = door.kind !== 'CASED_OPENING'
-
-        let leaf: { x: number; y: number } | null = null
-        if (room && hasLeaf) {
-          // Perpendicular to the wall, toward the room's own side of it — the room's GROSS
-          // (built) centre, since the door sits on the gross rectangle's own boundary.
-          const inward = vertical
-            ? Math.sign(room.x + room.gross_width_m / 2 - door.x)
-            : Math.sign(room.y + room.gross_depth_m / 2 - door.y)
-          leaf = vertical
-            ? { x: hx + inward * door.width_m, y: hy }
-            : { x: hx, y: hy + inward * door.width_m }
-        }
-
-        // The far jamb — where the arc ends, and where the leaf would lie when closed.
-        const far = vertical
-          ? { x: door.x, y: hy === y1 ? y2 : y1 }
-          : { x: hx === x1 ? x2 : x1, y: door.y }
-
-        // A cased opening has no leaf to mark its bounds, so short jamb ticks — perpendicular to
-        // the opening, at each end — stand in for the door symbol an architect would otherwise
-        // draw there.
-        const jamb = 0.12
-        const jambDx = vertical ? jamb : 0
-        const jambDy = vertical ? 0 : jamb
-
-        return (
-          <g key={`door-${i}`}>
-            {/* the opening itself: the wall does not run through here */}
-            <line x1={x1} y1={y1} x2={x2} y2={y2}
-                  className={
-                    door.is_entrance ? 'demo-door demo-door--entrance'
-                      : hasLeaf ? 'demo-door'
-                      : 'demo-door demo-door--cased'
-                  } />
-            {leaf ? (
-              <>
-                <path
-                  d={`M ${far.x} ${far.y} A ${door.width_m} ${door.width_m} 0 0 ${
-                    sweep(hx, hy, far, leaf)} ${leaf.x} ${leaf.y}`}
-                  className="demo-door-arc"
-                />
-                <line x1={hx} y1={hy} x2={leaf.x} y2={leaf.y} className="demo-door-leaf" />
-              </>
-            ) : !hasLeaf && !door.is_entrance ? (
-              <>
-                <line x1={x1 - jambDx} y1={y1 - jambDy} x2={x1 + jambDx} y2={y1 + jambDy}
-                      className="demo-door-jamb" />
-                <line x1={x2 - jambDx} y1={y2 - jambDy} x2={x2 + jambDx} y2={y2 + jambDy}
-                      className="demo-door-jamb" />
-              </>
-            ) : null}
-          </g>
-        )
-      })}
+          Every fact here comes from the backend (`swings_into`/`hinge_x`/`hinge_y`/`swing_deg`,
+          Issue #38) — `DoorSymbol` does the trigonometry and nothing else, with no room lookup of
+          its own, which is the same boundary that stopped this renderer inventing doors in the
+          first place. */}
+      {design.doors.map((door, i) => (
+        <DoorSymbol
+          key={`door-${i}`}
+          door={{
+            x: door.x, y: door.y, width_m: door.width_m, orientation: door.orientation,
+            hinge_x: door.hinge_x, hinge_y: door.hinge_y, swing_deg: door.swing_deg,
+            is_entrance: door.is_entrance, hasLeaf: door.kind !== 'CASED_OPENING',
+          }}
+        />
+      ))}
 
       {/* Windows: only where the backend says one exists. */}
       {design.windows.map((window, i) => {

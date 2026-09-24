@@ -151,6 +151,164 @@ rather than fabricate an entrance. The fix is a small street-side foyer the plan
 existing area budget — a new zone, which is planner/generator work, not a validation or ranking
 change — deliberately left for a future Issue rather than attempted here.
 
+## Entrance-to-circulation integration (C25)
+
+Issue #22 (2026-09-20). C23 above decides WHICH room the door opens into; it says nothing about
+whether that room actually LEADS anywhere, or whether a different circulation zone happens to
+touch the street uselessly beside it. `app.vertical_slice.entrance_sequence` measures the entrance
+SEQUENCE off realized geometry (`GeometricDesign`, the same input `circulation_metrics.py`/C26
+reads), the same "measure real plans, then set the limit with headroom above them" discipline C26
+uses:
+
+- **POCKET** (blocking): the walking distance from the entrance door to the NEAREST other opening
+  (a door, or an open-plan join) reachable from the arrival zone — dead space directly behind the
+  front door with no function. Measured "nearest in any direction", not "the far wall straight
+  ahead": an ordinary spine hall's own far end (opposite the entrance) is a KNOWN, ACCEPTED dead
+  end by construction (`circulation_metrics.dead_end_count` tolerates exactly one), and a compact
+  hub with doors branching off near the entrance is the architecturally preferred topology
+  (specs/005) — neither is a pocket.
+- **STRAY POCKET** (blocking, the OTHER shape the Issue's "Current behavior" names: "leaving the
+  corridor's street-facing end as a blind pocket beside the entrance"): any OTHER circulation zone
+  (not the arrival zone) that independently fronts the street with more than
+  `ENTRANCE_STRAY_POCKET_MAX_M` of unserved depth before its own first opening, measured from its
+  own street-wall midpoint.
+- **NO PUBLIC OPENING** (blocking): no PUBLIC-group room is reachable from the arrival zone at all,
+  through further circulation.
+- **TUNNEL** (`classify_tunnel`, NON-BLOCKING): the walking distance from the entrance to the
+  first PUBLIC-group room reached, threading only through further circulation, plus how many
+  PRIVATE rooms' doors were passed on the way. Reported and wired into `run_general`'s own
+  candidate loop as a STRICT tiebreak (`entrance_sequence_prefers`, `hub_guard`/
+  `circulation_prefers`-style), never a gate — fixing a genuine tunnel is a parti change (a future
+  "Entrance Sequence Quality" Issue), and a blocking check there would violate LOST = 0.
+  `general_pipeline.run_general`, next to `_entrance_rank`: among candidates that already validate
+  AND are otherwise EQUAL under both existing ranking terms — the generator's own area-proximity
+  order (`concept_generator.py` already sorts `generated.candidates` by closeness to the target
+  area before `run_general` ever sees them) and `_entrance_rank` (HALL/CIRCULATION vs LIVING vs
+  neither) — the candidate with the shorter tunnel wins; it never promotes a worse-area or
+  worse-entrance-rank candidate. NOT wired into `general_pipeline._guard_demoted_hub`: that
+  function's own existing test mocks `plan.design` as a bare `SimpleNamespace(gross_area_m2=...)`,
+  which `entrance_sequence.measure` cannot read (`.entrance_door` missing) — wiring it there means
+  editing Issue #36's own test fixture for a hub-only path already unreachable on the corpus
+  (`row-sharing-topology-limit` memory), not worth the risk.
+
+**`ENTRANCE_POCKET_MAX_M` (4.0 m), `ENTRANCE_STRAY_POCKET_MAX_M` (0.6 m) and
+`ENTRANCE_TUNNEL_MAX_M` (4.0 m)** are all PARAMETER · UNVERIFIED, calibrated on
+`scripts/entrance_sequence_sweep.py`'s sweep of the full 432-context frozen regression corpus plus
+geometry fixtures (`docs/ENTRANCE_CIRCULATION_SWEEP.md`) — not a code minimum, the same discipline
+`circulation_metrics.EXTREME_RATIO`/`EXTREME_LONGEST_SEGMENT_M` use. These are two DIFFERENT
+real-world distributions, so they get two DIFFERENT constants rather than sharing one:
+
+- `ENTRANCE_POCKET_MAX_M` governs the ARRIVAL zone's own pocket (`_pocket_length_m`). The Issue's
+  own illustrative default (0.6 m) does not survive contact with real plans here: `pocket_length_m`
+  measures 0.00-3.28 m across the corpus's 404 PLANNED contexts (mean 1.82 m — an ordinary hall's
+  own width plus jamb clearance before the first room off it, a normal architectural fact, not
+  wasted space), so 0.6 m would refuse most plans in the corpus. 4.0 m sits with real headroom
+  above every measured NORMAL plan while still catching a genuinely dead stub (0 pocket failures
+  on the full corpus, 0 "no public opening" failures) — a decision the owner may revisit.
+- `ENTRANCE_STRAY_POCKET_MAX_M` governs `_stray_pockets` — a SEPARATE circulation zone beside the
+  entrance. This shape needs no headroom: every real spine candidate has exactly one `HALL` leaf
+  (`concept_generator.py`'s `_concept_from`), so the sweep found ZERO PLANNED contexts with a
+  second circulation zone at all. The constant therefore carries the Issue's own literal 0.6 m
+  default unchanged, giving it a genuine protective margin (AC-5's fixture, a 1.5 m stub, fails it
+  directly — no adversarial scaling needed) rather than one backed into just above the corpus's
+  own observed maximum.
+
+342/404 contexts DO show a TUNNEL signal — a real, common, non-blocking fact about this
+generator's spine parti, not a defect.
+
+**C25 "no dead-space pocket at the entrance"** (`validation.py`, next to C23, under the same
+`skip_site_checks` gate): fails closed on either blocking condition above, reusing the SAME minimal
+`GeometricDesign` C26 already assembles for this plan (never a second build). The demo path refuses
+with **`ENTRANCE_DEAD_END`** (`app.demo.service._finish`) when C25 is the ONLY failing check — the
+same "one specific reason at a time" discipline `ENTRANCE_NO_ARRIVAL_ROOM`/`LAUNDRY_UNPLACEABLE`
+follow.
+
+**The engine topology invariant (AC-3), now structurally enforced at construction, not just
+measured.** The Issue's "required behavior" asks that the corridor's endpoint be derived from the
+last door it serves, never the footprint boundary, as an ENGINE change (`concept_generator.py`/
+`l_parti.py`). HALL is built as a `Cut.V` sibling of the columns it serves (spine, front-band) or
+pinned to the seam's own length (L parti), so its own rectangle always inherits that shared
+dimension by construction; `_row_depths`/`_distribute_column_surplus` independently guarantee
+every column's rows sum to EXACTLY that same dimension (refusing the proportion —
+`ROOM_ABOVE_MAXIMUM_AREA`/`COLUMN_DEPTH_EXCEEDED` — rather than ever leaving a residual depth no
+row absorbs). `concept_generator._assert_corridor_extent` (used at both the spine's and the
+front-band's `Leaf("HALL")` construction sites) and `l_parti`'s use of the same helper at the seam
+now read that guarantee back off the REALIZED row layout and check it against the corridor's own
+dimension at every candidate build — turning "no context in the 432-context corpus shows a stub"
+from an empirical sweep finding into a checked structural invariant that fails closed
+(`AssertionError`) if a future change to the row-distribution guarantee ever let the two diverge,
+rather than silently reintroducing a dead corridor stub beyond the entrance's last served door.
+`test_entrance_circulation.py`'s `test_corridor_ends_at_the_last_served_door_not_at_the_boundary`
+proves the same invariant end-to-end against REAL realized spine and L candidates — the same
+additive, defense-in-depth spirit C24/C25/C26 all follow.
+
+**`QualityOut.entrance_sequence`** (additive): arrival zone, pocket length, whether a public
+opening exists, distance to it, private doors passed, the foyer heuristic, and the tunnel text —
+computed in `contract.to_demo_design` off the same raw `SolvedDesign` C25/M1–M6 already read.
+
+**Intentional foyer.** A HALL zone with its own program area and a nearby opening onward passes
+C25 cleanly and is reported `foyer=True` — never flagged as a pocket; `foyer` is a reporting-only
+heuristic (HALL role + a clean sequence), never a gate.
+
+**Out of scope, deliberately** (per the Issue): the arrival-room policy itself (#20, C23 above),
+furniture/decorative foyer design, and fixing a genuine tunnel by changing the parti (a future
+Issue) — a blocking check for the tunnel would violate LOST = 0.
+
+## Door usability and swing (C28)
+
+Issue #38 (2026-09-18). C7 proves a door is PLACEABLE (real clearance on the shared wall). Nothing
+before this Issue checked whether the leaf, once hung, is actually USABLE: two doors swinging into
+the same corner, a door swinging into a wet-room fixture, a door that cannot reach 90 degrees open
+because the room behind it is too shallow, or a door narrower than the access-rules width for its
+role pair. `app/vertical_slice/door_clearance.py` adds all four:
+
+- **The swing envelope**: `Door.swing_deg` (`doors.py`) is the open leaf's own direction in
+  degrees (0=+x, 90=+y, 180=-x, 270=-y in the grid's own axes) — always exactly 90° from the wall
+  the door is set into, computed by `doors.swing_deg_for`/`hinge_at_for` at the SAME point `_swing`
+  already decides `swings_into`/`hinge_at`. `door_clearance.swing_envelope_m` builds the quarter-
+  circle (a pie slice, apex `hinge_at`, radius `width_m`) from these two facts.
+- **Door-door**: overlapping swing envelopes — two leaves colliding in a shared corner is exactly
+  this fact (their sectors overlap outright).
+- **Door-wall**: the leaf's own room does not have enough NET depth, beyond the door's wall, in the
+  swing direction — the leaf would hit the room's own far wall before reaching 90°.
+- **Door-fixture**: the envelope intersects a conservative wet-room fixture footprint
+  (`WET_FIXTURE_FOOTPRINT_M`, a WC-pan-and-clearance box anchored at the TOILET/BATHROOM zone's own
+  net-rect corner farthest from the door(s) entering it) — a placeholder approximation, not a real
+  fixture catalogue (Issue 9 owns real furniture/fixture placement), same disclosure discipline as
+  `windows.py`'s glazing fractions.
+- **Access width**: the realized door is narrower than `access_rules.DOOR_WIDTH_M` for its role
+  pair — normally unreachable (widths already come from that table), kept as the check that would
+  catch a future path drifting from it.
+
+**Engine-side conflict avoidance, before failing.** `door_clearance.resolve_swings` runs BEFORE
+C28: it flips a conflicting door's swing to the room on the OTHER side of it (`doors.hinge_at_for`/
+`swing_deg_for`, recomputed for that other zone) whenever that strictly reduces the door-door/
+door-wall/door-fixture defect count, one flip at a time, deterministically, until no further flip
+helps. Called once per realized level, right after `generate_interior_doors`, in every pipeline
+path (`pipeline.py`, `general_pipeline.py::_realize`, `building_coordinator.py::_realize_upper`) —
+the entrance door is included in the conflict scan (so an interior door can still be flipped away
+from a conflict WITH it) but never flips itself (there is no other side of the street). Access-
+width defects are never swing-dependent, so C28 fails closed on those regardless of resolution.
+
+**C28 "doors usable"** (`validation.py`, next to C7): fails closed on whatever `resolve_swings`
+could not fix. A non-blocking quality note (`ValidationReport.notes`, merged into
+`ValidationSummary.warnings` in `contract.summarize`) discloses — never fails — a door whose open
+leaf would narrow a requested corridor (C14) below its required width.
+
+**The contract** (`DoorOut`, both `design_output.py` and `app/demo/contract.py`): every door now
+also carries `swing_deg` alongside the existing `swings_into`/`hinge_x`/`hinge_y`. The frontend's
+`DoorSymbol` (`frontend/src/components/plan/DoorSymbol.tsx`, used by `DemoPlan.tsx`) draws the leaf
+and its swing arc from `hinge_x`/`hinge_y`/`swing_deg` ALONE — no room lookup, replacing the
+renderer's previous `design.rooms.find(...)`-based direction inference. A door missing `swing_deg`
+(a payload built before this field existed) draws with no leaf and no arc, never a guessed one.
+
+**Corpus impact**: additive by construction — `resolve_swings` only ever changes
+`swings_into`/`hinge_at`/`swing_deg` (never `a`/`b`/`kind`/`width_m`/`center_u`/`orientation`/
+`placeable`/`shared_length_m`), which nothing except C28 and the door contract reads, so a flip can
+never change any OTHER check's outcome or a plan's primary signature (`spikes/failure_log_sweep/
+sweep.py::signature` reads only room type/rect). C28 passes on the canonical fixture and the 432-
+context regression corpus unchanged.
+
 ## Windows and exterior exposure (C19/C8)
 
 Issue #19 (2026-09-18). A room's relationship to the building envelope is two separate questions
@@ -506,6 +664,86 @@ sections come back `not_measured`. `backend/scripts/reference_benchmark.py --con
 the report for one `tests/regression_corpus/corpus.json` context; not wired into
 `agentctl`/the corpus sweep yet (out of scope for Issue #32 — see the Issue's own scope note).
 
+## Wall semantic model and C33 (Issue #45)
+
+2026-09-23. Before this Issue, a wall existed only as PER-ROOM-SIDE facts (`WallMap`, keyed
+`zone_id, side`; the contract's `RoomOut.walls`/`wall_facts`, same keying) — there was no single
+list a door, a window or a fixture could reference by id, and no class distinguishing a wet room's
+own wall or a safe room's from an ordinary partition (`geometry_core.model.WallType` has only
+`EXTERIOR`/`PARTITION`/`RC_SAFE_ROOM`/`OPEN`, a SOLVING-oriented enum, not a schedule).
+
+**`app/vertical_slice/walls.py`**: `Wall(id, wall_class, thickness_m, segment, zones, hosts,
+structural_candidate)`, derived from the realized geometry (`design_output.GeometricDesign`) by
+`derive_walls`. `WallClass` is a single-value collapse of the orthogonal facts `WallFacts` already
+keeps separate (`boundary_context`, `construction`) — `classify(on_envelope, touches_safe,
+touches_wet)` is the one function that decides it, precedence highest first:
+
+  1. **EXTERIOR** — on the building envelope (`boundary_context`), REGARDLESS of construction
+     underneath — including a safe room's own outward wall. This is not an arbitrary choice: it is
+     the same fact `WallFacts`'s own docstring exists to preserve ("a ממ"ד wall that is also on
+     the building envelope resolves to RC_SAFE_ROOM and the EXTERIOR fact is destroyed" — the
+     exact defect that made `WallFacts` orthogonal in the first place, Issue #19). Collapsing
+     PROTECTED over EXTERIOR here would silently reintroduce that defect one layer up, this time
+     for the wall schedule.
+  2. **PROTECTED** — construction is `RC_SAFE_ROOM` and NOT on the envelope — the safe room's own
+     walls facing the rest of the house.
+  3. **WET_SERVICE** — an ordinary interior partition where at least one side is a wet room
+     (`BATHROOM`/`TOILET` — the same role set `wet_core.py`'s own "wet room" nodes use, so the two
+     never disagree about what "wet" means).
+  4. **INTERIOR** — everything else.
+
+`thickness_m` comes from the same `WALL_THICKNESS_M` table the solver itself uses (the raw
+`WallType` each contributing zone-side carries), never a new constant. `hosts` carries the
+door/window ids realized on that segment (position-matched: same orientation, same coordinate, the
+opening's span inside the segment's own span) — **never fixture ids today**: no fixture-PLACEMENT
+engine exists anywhere in this codebase (`furniture.py` is a per-zone bounding-box feasibility
+SCREEN, no fixture position), so there is nothing real to host; `hosts` is accurately empty of
+them, not a stub. `structural_candidate` is always `False` — a placeholder field for a FUTURE
+structural engine (this codebase performs no structural engineering: no load paths, no bearing
+analysis) to record its own opinion on without changing this type's shape.
+
+**C33 "every door/window hosted on a wall; safe-room walls PROTECTED"** (`validation.py`, after
+C22): reuses the same `GeometricDesign` C26 already assembles for measurement (the identical
+cheap, pure, already-solved-geometry reformatting pass, called a third time), runs `derive_walls`
+on it, and fails closed on (a) a PLACEABLE door or window with real width (`width_m > 0` — the same
+"real door" convention `door_clearance.py` uses; this is what correctly excludes the multi-level
+upper level's own placeholder `entrance_door`, `building_coordinator.py`'s
+`Door("STAIR", "STAIR", ..., 0.0, ...)`, `placeable=True` but zero-width) with no hosting wall in
+`hosts`, and (b) a safe-room zone touching a wall classified neither PROTECTED nor EXTERIOR.
+
+**The contract** (`app.demo.contract`): `WallSegment` (`DemoDesign.walls`) gains `id`,
+`wall_class`, `thickness_m` — computed inline in `_wall_segments` (reusing `walls.classify` and
+`walls.WET_ROLES` so the drawing's own enrichment can never disagree with `derive_walls`/C33 about
+what "wet" or "protected" means), NOT via a second parallel wall derivation. The three fields are
+additive (`| None = None`) so a hand-built `WallSegment` fixture that predates this Issue keeps
+working unchanged. `DoorOut.wall_id`/`WindowOut.wall_id` (additive) are resolved once, in
+`to_demo_design`, against the FINAL (cosmetically `_open_corridor_to_public`-adjusted) `walls`
+list — safe because a door-bearing wall segment is never opened by that cosmetic pass (its own "no
+DOOR lies on it" precondition), so a real door always keeps a wall to reference. `RoomOut.walls`
+(the per-room side dict) is untouched, kept exactly as before for compatibility.
+
+**The frontend**: wall drawing moved out of `DemoPlan.tsx` into its own `components/plan/Walls.tsx`
+(`frontend/src/components/plan/Walls.test.tsx`), which draws colour/width from `wall_class`/
+`thickness_m` when a segment carries them, falling back to the legacy `construction`/
+`boundary_context` styling unchanged for a payload/fixture built before this Issue.
+`WALL_STYLE`/`EXTERIOR_WALL_STYLE`/`wallStyle` are re-exported from `DemoPlan.tsx` so
+`PlanLegend.tsx`'s swatches stay sourced from the same values without changes there.
+
+**Out of scope, deliberately untouched** (per the Issue's own scope note): structural engineering
+of any kind, DXF output, compliance rules keyed on wall class.
+
+## Stage 2 shared contract (Issue #133)
+
+`docs/stage2/CONTRACT.md` (implementation: `app/vertical_slice/stage2/contract.py`, pinned by
+`tests/architectural_brain/test_stage2_contract.py` and
+`tests/architectural_brain/test_stage2_no_guillotine_fallback.py`) defines the vocabulary every
+later Stage 2 child (non-guillotine realization of a retrieved donor plan) speaks: donor room
+identity, seed geometry, `RealizationIntent` content, the realizer's input/refusal contract, and how
+wet rooms/SAFE_ROOM (`wet_rooms.ResolvedWetRoom`, C17/C29/C4 — unchanged, referenced not redefined)
+reach a non-guillotine realizer. Types only — no realization behaviour, nothing wired into this
+page's own validators or pipeline yet; this section is a pointer, not a status change, until a
+child actually lands realization behaviour.
+
 ## Rectilinear realizer — non-guillotine geometry (Issue #117, flag OFF)
 
 2026-09-23. `geometry_core.engine.solve_fixture` only ever produces a GUILLOTINE partition (a
@@ -583,7 +821,14 @@ follow-ups for a future stage, not this one.
 
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
 A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
-above.
+above. A fourth, from Issue #22: **Entrance Sequence Quality** — fixing a genuine TUNNEL (a long
+walk past bedroom doors before the first public room, measured on 342/404 corpus contexts today,
+see the Entrance-to-circulation integration section above) by changing the parti itself remains a
+parti change, not a validation change, and out of scope; `entrance_sequence_prefers` is wired as a
+STRICT candidate tiebreak in `run_general`'s own loop (see that section above) — it can only
+choose between candidates already equal on area proximity and `_entrance_rank`, so it narrows
+which of several otherwise-tied candidates is shown, never fixes a tunnel the generator has no
+non-tunnel alternative for.
 
 ## Evidence/history
 
@@ -618,6 +863,16 @@ merge): the Entrance / arrival-room policy (C23) section above documents Issue #
 against this session's own implementation and test runs, including this merge's conflict
 resolution (combined check count, both new-section additions kept intact).
 
+Branch `agent/38-door-placement-swing-and-clearance-valid`, based on
+`origin/integration/holiday-yom-kippur-2026`, re-merged onto `main` after the Yom Kippur
+integration rollup (#62) squashed that branch's history: the Door usability and swing (C28)
+section above documents Issue #38, verified against this session's own implementation and test
+runs both before and after the rollup's squash-merge conflict resolution (main's version kept for
+every file this Issue never touched; this Issue's own hunks re-applied on top elsewhere; combined
+check count with C23/C26/C28/C29 all present), including a further merge of `origin/main`
+(bringing in Issue #34's C27 dimension-consistency work and Issue #35/#36's sections below) whose
+conflict resolution kept every section intact side by side.
+
 Branch `agent/34-realized-area-and-dimension-consistency`, based on `origin/main` after PR #62's
 squash-merge of the integration branch (#18/#19/#20/#21/#24/#25/#29–#33/#37/#44/#63/#69): the
 Realized dimensions: gross vs net, and C27 (Issue #34) section above documents this branch's own
@@ -646,6 +901,28 @@ as they existed pre-merge; combined check count).
 `origin/main` a second time to pick up `6d18c1f` (Issue #36, circulation metrics); resolved textual
 conflicts in this page, `contract.py` and `validation.py` by keeping both sides' additive
 sections/fields, then re-ran this Issue's own targets against the merged tree.
+
+`6d18c1f` (branch `agent/22-entrance-to-circulation-integration-the`, based on `origin/main`); the
+Entrance-to-circulation integration (C25) section above documents Issue #22, verified against this
+session's own implementation, the full 432-context corpus sweep (`docs/ENTRANCE_CIRCULATION_SWEEP.md`)
+and test runs (`test_entrance_circulation.py`, targeted AC-8 suites green). Branch merged
+`origin/integration/holiday-yom-kippur-2026` (bringing in Issue #34's dimension-consistency work
+and Issue #35's SAFE_ROOM typed-constraint work) to resolve a PR conflict: resolved textual
+conflicts in this page, `contract.py`, `test_demo_p0.py` and `docs/PROJECT_STATE.md` by keeping
+both sides' additive sections/fields, then re-ran this Issue's own targets against the merged tree.
+
+`8617a4b` (branch `agent/22-entrance-to-circulation-integration-the`); merged `origin/main` a
+second time (bringing in Issue #67's CI O3 corpus-snapshot sharding and Issue #102's
+non-rectangular-geometry investigation, both unrelated to C25) to resolve a second PR conflict:
+resolved textual conflicts in `contract.py`, `test_demo_p0.py`, `docs/PROJECT_STATE.md` and this
+page by keeping both sides' additive sections/fields, then re-ran this Issue's own targets against
+the merged tree.
+
+`aadba01` (branch `agent/45-wall-semantic-model-exterior-interior-we`, based on `origin/main`): the
+Wall semantic model and C33 section above documents Issue #45, verified against this session's own
+implementation and test runs (`test_walls.py`, `test_demo_quality.py`, the full `vertical_slice`
+suite green at 603 passed/9 xfailed, the full frontend suite green at 193 tests, a full 432-context
+corpus sweep with 0 crashes and 0 contexts refused on C33).
 
 Branch `agent/117-stage-1-2-2-the-gate-a-non-guillotine-re`, based on
 `origin/integration/rectilinear-realizer`: the Rectilinear realizer section above documents Issue
