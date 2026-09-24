@@ -961,9 +961,14 @@ Branch `agent/136-stage-0-1-rollup-repair-the-rectilinear`, based on
 Issue #22/C25, the interior layout MVP, master-suite access and the wall semantic model): the
 Rectilinear realizer section above's C25 paragraph documents Issue #136, verified against this
 session's own implementation (`rectilinear_realizer.py`'s door-placement construction fix, no
-validator touched), `test_rectilinear_realizer.py` (6/6 passing against the merged base), the full
-`tests/vertical_slice` suite (665 passed, 1 skipped, 9 xfailed) and the full fast suite green, and
-the Stage 1 gate re-run against current main
+validator touched), `test_rectilinear_realizer.py` (6/6 passing against the merged base) and the
+full `tests/vertical_slice` suite (665 passed, 1 skipped, 9 xfailed). The full fast suite is NOT
+green at this branch tip: `tests/test_demo_quality.py::test_every_door_and_window_hosts_on_a_wall`
+fails (`window LIVING:N has no wall_id`) — pre-existing at the Team Lead's merge commit `8ce87f8`
+(untouched by either that commit or #136's own diff, confirmed by `git diff` on both), an
+integration gap between #118's `LIVING_KITCHEN_MERGE_ENABLED=True` default and main's wall-class
+window `wall_id` wiring, unrelated to C25/the realizer and out of #136's own scope. 1580 passed, 1
+failed, 883 skipped, 9 xfailed otherwise. The Stage 1 gate re-run against current main
 (`docs/reports/rectilinear-realizer/stage1-gate.md`, 6/10 realized, 0 refused on C25). Stage 0's
 own 432-context A/B (`stage0-merge-ab.md`) was not re-swept in this session (out of #136's own
 Verification Plan; noted there as an open item) — #136's own diff touches no production path.
