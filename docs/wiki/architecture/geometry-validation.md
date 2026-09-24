@@ -962,13 +962,19 @@ Issue #22/C25, the interior layout MVP, master-suite access and the wall semanti
 Rectilinear realizer section above's C25 paragraph documents Issue #136, verified against this
 session's own implementation (`rectilinear_realizer.py`'s door-placement construction fix, no
 validator touched), `test_rectilinear_realizer.py` (6/6 passing against the merged base) and the
-full `tests/vertical_slice` suite (665 passed, 1 skipped, 9 xfailed). The full fast suite is NOT
-green at this branch tip: `tests/test_demo_quality.py::test_every_door_and_window_hosts_on_a_wall`
-fails (`window LIVING:N has no wall_id`) — pre-existing at the Team Lead's merge commit `8ce87f8`
-(untouched by either that commit or #136's own diff, confirmed by `git diff` on both), an
+full `tests/vertical_slice` suite (665 passed, 1 skipped, 9 xfailed). The full fast suite IS green at this
+branch tip. It was not when the paragraph above was first written: `tests/test_demo_quality.py::
+test_every_door_and_window_hosts_on_a_wall` failed (`window LIVING:N has no wall_id`), an
 integration gap between #118's `LIVING_KITCHEN_MERGE_ENABLED=True` default and main's wall-class
-window `wall_id` wiring, unrelated to C25/the realizer and out of #136's own scope. 1580 passed, 1
-failed, 883 skipped, 9 xfailed otherwise. The Stage 1 gate re-run against current main
+window `wall_id` wiring — a real interaction between two things that had never met before, not a
+pre-existing main failure. Commit `256e2a5` fixes it by remapping a window's `room_id` through the
+merge, and the test passes (re-run by the Team Lead, 2026-09-24). The Stage 1 gate re-run against current main
 (`docs/reports/rectilinear-realizer/stage1-gate.md`, 6/10 realized, 0 refused on C25). Stage 0's
-own 432-context A/B (`stage0-merge-ab.md`) was not re-swept in this session (out of #136's own
-Verification Plan; noted there as an open item) — #136's own diff touches no production path.
+own 432-context A/B (`stage0-merge-ab.md`) was NOT re-swept in this session (noted there as an open
+item). Corrected by the Team Lead (2026-09-24): saying this diff "touches no production path" was
+not accurate — `256e2a5`'s window `room_id` remap runs whenever `LIVING_KITCHEN_MERGE_ENABLED` is
+on, and #118 made that the default, so it is on the delivered payload. What holds is narrower and
+is what the evidence actually supports: the frozen 432-context regression gate is green at this
+head, so no plan's own signature moved, and a window's `room_id` is not an input to any count the
+A/B reports (candidates found/applied/rejected, LOST, quality deltas). The A/B stays un-re-swept by
+choice, with that reasoning stated, rather than by a claim that nothing production-facing changed.
