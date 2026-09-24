@@ -61,9 +61,15 @@ def is_(kind, room_type: str) -> bool:
 
 @dataclass(frozen=True)
 class QualityMetrics:
-    """M1–M6 for ONE realized plan, plus the two additive facts (`dead_space_m2`,
-    `wasted_circulation_share`) `QualityOut.metrics` carries. A value is `None` only when the
-    plan genuinely has no room of the kind that metric measures (e.g. no wet room -> M5 `None`).
+    """M1–M6 for ONE realized plan, plus `wasted_circulation_share`, an additive fact
+    `QualityOut.metrics` carries. A value is `None` only when the plan genuinely has no room of the
+    kind that metric measures (e.g. no wet room -> M5 `None`).
+
+    `dead_space_m2`/`dead_space_share` are NOT fields here — they are measured independently by
+    `app.vertical_slice.dead_space` (Issue #43) off the raw solver output, the same reason
+    `circulation_area_m2` etc. live in `circulation_metrics.CirculationMetrics` rather than here:
+    this module only ever sees the flattened `DemoDesign`, which the dead-space module's own
+    per-end/per-door geometry (door swing hinges, wall-side `Construction`) does not carry.
     """
 
     m1_habitable_aspect_median: float | None
@@ -74,9 +80,6 @@ class QualityMetrics:
     m4_hall_aspect_median: float | None
     m5_wet_adjacency_ratio: float | None
     m6_public_zone_contiguous: bool | None
-    #: Always 0 — validation C2 already gates every delivered plan on zero residual interior
-    #: area. Carried as data, not re-derived, so a future change to C2 would be visible here too.
-    dead_space_m2: float = 0.0
     #: Share of this plan's total area sitting in a hall whose long/short ratio is past
     #: `COMPACT_HALL_ASPECT_MAX` — the portion of M3's circulation share that reads as a spine
     #: rather than a lobby, and so is plausibly recoverable (not all circulation is "waste").
@@ -197,7 +200,6 @@ def measure_design(design: "DemoDesign") -> QualityMetrics:
         m4_hall_aspect_median=statistics.median(hall["hall_aspects"]) if hall["hall_aspects"] else None,
         m5_wet_adjacency_ratio=(wet_adjacent / wet_total) if wet_total else None,
         m6_public_zone_contiguous=_public_zone_contiguous(design),
-        dead_space_m2=0.0,
         wasted_circulation_share=hall["wasted_circulation_share"],
     )
 

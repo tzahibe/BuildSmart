@@ -70,7 +70,10 @@ def test_sections_with_signals_are_measured_on_the_canonical_fixture():
     assert h.value["windowed_ratio"] is not None
 
     k = report.section("K")
-    assert k.value == 0.0
+    # A spine parti's hall has one tolerated dead end by construction — Issue #43's `dead_space.py`
+    # now measures its size as data (a small, real, sub-C32 number), not a hardcoded zero.
+    assert k.value["dead_space_m2"] > 0.0
+    assert k.value["dead_space_share"] > 0.0
 
     consistency = report.section("L")
     assert consistency.value["max_relative_gap"] >= 0.0

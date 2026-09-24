@@ -36,7 +36,12 @@ those nine collide with the six this module defines its own way.
                      for why the circulation-SHARE floor itself stays a fixed constant instead)
     C  zoning      — is each of PUBLIC / PRIVATE / SERVICE a spatially contiguous group
     H  exposure    — share of daylight-required rooms that got a window (C8's own data)
-    K  dead space  — residual interior area (C2; always 0 today — a correctness floor, not a band)
+    K  dead space  — residual interior area OUTSIDE zones (C2, always 0 — a correctness floor)
+                     PLUS residual dead space INSIDE zones, measured by
+                     `app.vertical_slice.dead_space` (Issue #43: corridor stubs, room slivers,
+                     door-swing corners, oversized-hall excess) — not a band either; C32 is the one
+                     hard limit among the four kinds it measures (a corridor stub), the rest are
+                     reported quality data
     L  consistency — how far each room's declared area_m2 (net) sits from its own
                      gross_width_m x gross_depth_m (gross rect — expected to differ a little by wall
                      thickness; reported as a measured fact, not a pass/fail gate)
@@ -293,9 +298,13 @@ def _section_k(design: "DemoDesign", family: str, references: list[dict]) -> Sec
     quality = getattr(design, "quality", None)
     metrics = getattr(quality, "metrics", None)
     dead_space_m2 = metrics.dead_space_m2 if metrics is not None else 0.0
-    finding = (f"residual interior area is {dead_space_m2:.2f} m² (C2 already gates every "
-              f"delivered plan to zero — a correctness floor, not a reference band)")
-    return SectionFinding("K", "Dead Space", True, value=dead_space_m2,
+    dead_space_share = getattr(metrics, "dead_space_share", 0.0) if metrics is not None else 0.0
+    value = {"dead_space_m2": dead_space_m2, "dead_space_share": dead_space_share}
+    finding = (f"residual area outside every zone is 0 (C2, a correctness floor); measured "
+              f"residual area INSIDE zones (Issue #43: corridor stubs, room slivers, door-swing "
+              f"corners, oversized-hall excess) is {dead_space_m2:.2f} m² "
+              f"({dead_space_share:.1%} of this plan's room area)")
+    return SectionFinding("K", "Dead Space", True, value=value,
                           reference_range=(0.0, 0.0), reference_entries=[], finding=finding)
 
 
