@@ -106,11 +106,45 @@ contract) — a plan with every bedroom's wardrobe unplaceable still delivers no
   placeholder fixture footprint (`WET_FIXTURE_FOOTPRINT_M`) independently of this module's real
   bathroom/WC placements — the two were not reconciled by this Issue (see Known follow-ups).
 
+## Furnishability / usability validation (Issue #40)
+
+`app/vertical_slice/furnishability.py` reads the layout objects this module already placed —
+never re-placing anything itself — and computes a `Usability` record per room: whether every
+REQUIRED object for the role got placed at all (`REQUIRED_ITEMS`, a deliberately narrow subset —
+BED for BEDROOM/MASTER_BEDROOM, not WARDROBE; SOFA for LIVING; DINING_TABLE; the kitchen's
+REFRIGERATOR/SINK/COOKTOP; TOILET/SINK for BATHROOM/TOILET), whether the door has a clear straight
+line to each placed object without crossing another object's footprint, whether a placed object
+blocks a window, and a diagnostic "usable wall length" figure — rolled up into one tier: GOOD /
+ACCEPTABLE / POOR / UNUSABLE.
+
+**`validation.check_furnishability` (C30) exists, is fully tested, and is NOT called from
+`validate()`** — the one deliberate deviation from the Issue's own "fails closed via C30" wording,
+made after measuring rather than assuming: wiring it into the same per-candidate `validate()` C26/
+C29 already live in (at search time), or as a final-only gate mirroring C27's own precedent, was
+each tried and MEASURED to fail closed on real, otherwise-fully-valid plans this codebase already
+accepts — ordinary 2BR/3BR end-to-end briefs among them, not just synthetic edge cases (29 new
+failures across the backend test suite with either wiring, even with `REQUIRED_ITEMS` narrowed to
+BED alone). The root cause is `interior_layout.py`'s own placement algorithm: a single independent
+pass per item, per wall, with no packing two items onto the same wall and no rotation search — a
+real, already-documented gap (this page's own "Known follow-ups" below), and closing it is Issue
+9's placement scope, explicitly out of bounds here. `check_furnishability` is defined, tested
+(`test_furnishability.py`) and ready for a caller once that gap closes — the same "available, not
+wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate` already sets in this
+codebase. `usability_key`/`better_candidate` (`furnishability.py`) are the equivalent, similarly
+unwired, ranking-preference functions for POOR/UNUSABLE counts.
+
+POOR (required objects placed, but no clear access path from the door, or one blocks a window) is
+disclosure-only, additive, and safe regardless: `app.demo.contract.QualityOut.usability` (one
+`UsabilityOut` per room, on every delivered plan) and one aggregated Hebrew notice on
+`QualityOut.notices` when a plan has a POOR room — never a gate, never able to change which
+candidate is chosen.
+
 ## Out of scope (deliberately untouched)
 
-Furnishability SCORING (whether furnishability should influence ranking — Issue 10), public-zone
-composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixture size catalogue
-(every item size here is a placeholder, see above).
+Public-zone composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixture
+size catalogue (every item size here is a placeholder, see above), improving `interior_layout.py`'s
+own placement algorithm (Issue 9's scope — see the furnishability section above for why this
+matters to C30 specifically).
 
 ## Known follow-ups
 
@@ -123,7 +157,8 @@ composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixt
   leftover width — today each item picks its OWN best wall independently, which under-uses a wide,
   shallow room (a "strip" bedroom, door at one end and window at the other, can legitimately report
   a wardrobe unplaceable even though the wall has unused width beside the bed) rather than a bug;
-  see the module's own placement-policy docstring.
+  see the module's own placement-policy docstring. **This is now also the blocker for wiring C30
+  (Issue #40) into any live acceptance gate — see that section above.**
 - A real furniture/fixture size catalogue, once one exists for this codebase (today's item sizes are
   PARAMETER · UNVERIFIED, same discipline as `MIN_FURNITURE_ENVELOPE_M`).
 
@@ -131,11 +166,15 @@ composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixt
 
 Issue #39 contract and acceptance criteria; `docs/architecture_reference/quality_rubric.md` section
 N ("Fixture & Clearance Awareness") — this Issue delivers that section's first deterministic signal.
+Issue #40 (furnishability/usability, `furnishability.py`) extends the same section with the tiered
+usability signal, and documents (`validation.check_furnishability`'s own docstring) the measured
+reason C30 stays defined-but-unwired.
 
 ## Last verified against git
 
-Branch `agent/39-architectural-interior-layout-mvp-engine`, based on `origin/main` at `aadba01`:
-verified against this session's own implementation and test runs (`test_interior_layout.py`,
-`test_demo_quality.py`'s full file, the frontend's full `npm test`, `npx tsc --noEmit`, `oxlint`,
-and a 4/8-shard sample of the 432-context regression corpus — 216 contexts, 0 crashes; the full
-before/after corpus compare is CI's own gate-4 job, not re-run standalone here).
+Branch `agent/40-furnishability-usability-validation-room`, based on `origin/main` at `42f558b`:
+verified against this session's own implementation and test runs (`test_furnishability.py`,
+`test_demo_p0.py`, `test_baseline_and_decoupling.py` — 138 tests, 0 failures — and a full,
+single-process replay of the 432-context regression corpus via `furnishability_corpus_check.py`:
+LOST 0, status_changed 0, tier distribution GOOD 67.6% / ACCEPTABLE 0.0% / POOR 29.4% / UNUSABLE
+3.0% over 3822 rooms).
