@@ -914,15 +914,19 @@ def _open_corridor_to_public(design: SolvedDesign, walls: list[WallSegment],
 
 def _apply_room_merge(merge: room_merge.MergeResult, rooms_out: list[RoomOut],
                       walls: list[WallSegment], opens: list[OpenInterface],
-                      doors: list[DoorOut]) -> tuple[list[RoomOut], list[WallSegment],
-                                                     list[OpenInterface], list[DoorOut]]:
+                      doors: list[DoorOut], windows: list[WindowOut]
+                      ) -> tuple[list[RoomOut], list[WallSegment],
+                                list[OpenInterface], list[DoorOut], list[WindowOut]]:
     """Applies an ALREADY-VALIDATED `room_merge.MergeResult` (`merge.passed` is the caller's own
     responsibility) to the drawn payload: the two source `RoomOut`s collapse into one polygon
     room, the wall segment(s) strictly between them are dropped (they are now interior to one
     room, not a boundary between two — nothing is drawn there at all, unlike an OPEN interface,
     which still marks a boundary between two distinct rooms), any door between them is dropped
-    for the same reason, and every remaining wall/open-interface/door that named one of the two
-    source ids is remapped onto the merged id so the plan stays internally consistent.
+    for the same reason, and every remaining wall/open-interface/door/window that named one of
+    the two source ids is remapped onto the merged id so the plan stays internally consistent
+    (a window keeps its own EXTERIOR wall — merging never touches that side — so only its
+    `room_id` label needs to follow the room it now belongs to; `_wall_id_for_window` would
+    otherwise never find that wall, since `_wall_segments` already remapped its `room_ids`).
     """
     lid, kid, mid = merge.living_id, merge.kitchen_id, merge.merged_id
     living = next(r for r in rooms_out if r.id == lid)
@@ -965,7 +969,11 @@ def _apply_room_merge(merge: room_merge.MergeResult, rooms_out: list[RoomOut],
     }) for d in new_doors]
 
     new_rooms = [r for r in rooms_out if r.id not in (lid, kid)] + [merged_room]
-    return new_rooms, new_walls, new_opens, new_doors
+
+    new_windows = [w.model_copy(update={"room_id": mid}) if w.room_id in (lid, kid) else w
+                   for w in windows]
+
+    return new_rooms, new_walls, new_opens, new_doors, new_windows
 
 
 def _suppress_covered_cased_openings(doors: list[DoorOut],
@@ -1227,6 +1235,10 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     if not c27.passed:
         raise InconsistentGeometryError(c27.detail)
 
+    windows_out = [WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
+                             x=w.center_m[0], y=w.center_m[1])
+                   for w in design.windows if w.width_m > 0]
+
     # Architecture A spike (Issue #107): a LIVING+KITCHEN merge candidate, if the flag is on and
     # one exists in THIS plan, is decided against the design C27 already proved consistent above
     # — an unvalidated candidate is never drawn (see `MergeOut`'s own docstring).
@@ -1241,12 +1253,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
             oriented_aspect=merge_plan.geometry.min_rotated_aspect,
         )
         if merge_plan.passed:
-            rooms_out, walls, opens, doors = _apply_room_merge(merge_plan, rooms_out, walls,
-                                                               opens, doors)
-
-    windows_out = [WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
-                             x=w.center_m[0], y=w.center_m[1])
-                   for w in design.windows if w.width_m > 0]
+            rooms_out, walls, opens, doors, windows_out = _apply_room_merge(
+                merge_plan, rooms_out, walls, opens, doors, windows_out)
     # Issue #45: every door/window references the wall it hosts on. Done here, once, over the
     # FINAL (cosmetically-opened) `walls` list, rather than in `_wall_segments` itself — a door's
     # own wall is guaranteed to survive that cosmetic pass (see `_wall_id_for_door`'s docstring),

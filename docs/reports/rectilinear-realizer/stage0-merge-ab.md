@@ -6,6 +6,20 @@ turned into a measured, gated product feature: `quality_metrics.py` and
 decides the flag's default by a stated rule, and three before/after SVG pairs make the change
 judgeable by eye.
 
+**Issue #136 re-check note.** This branch later merged current main in (interior layout, C25,
+master-suite access, wall classes) before landing on top of this report. Issue #136's own diff
+touches only `app/vertical_slice/rectilinear_realizer.py` and
+`spikes/geometry_shapes/stage1_gate.py` — neither is imported by any production path
+(`RECTILINEAR_REALIZER_ENABLED` gates nothing today; no existing caller imports that module at
+all, confirmed by a repo-wide search) — so #136's own changes cannot move this A/B's numbers, and
+`room_merge.py`'s own merge-candidate gates (C6 seam-door, C1/C2/C3/C20/C27) are unrelated to C25/
+entrance sequencing. A full re-run of the 432-context sweep this report is based on
+(`spikes/failure_log_sweep/living_kitchen_merge_ab.py`, ~35-45 CPU-minutes) was NOT repeated in
+this Issue's own session — out of #136's Verification Plan (only the frozen-corpus regression
+check and the Stage 1 gate are), and a materially different cost than the rest of this Issue's
+work. If the owner wants this A/B numerically re-confirmed against the fully merged base, the
+sweep script above reproduces it unchanged.
+
 ## 0. Verdict up front
 
 1. **`quality_metrics.py`/`reference_benchmark.py` now read a merged room as ONE room** (AC-1):
