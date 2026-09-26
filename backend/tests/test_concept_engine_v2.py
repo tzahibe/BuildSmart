@@ -33,13 +33,24 @@ _MULTI_CLASS_CONTEXT = {
 }
 
 
-def _layout_signature_of_rooms(rooms) -> tuple:
-    return tuple(sorted((zid, round(x, 3), round(y, 3), round(w, 3), round(h, 3))
-                        for zid, x, y, w, h in rooms))
+def _layout_signature_of_rooms(rooms) -> dict:
+    """`zone_id -> (gross width, gross depth)`: the one description the payload and the realized
+    plan agree on. Absolute positions differ between the two frames, and `RoomOut`'s width/depth
+    are the NET (wall-inset) triple while `RealizedPlan`'s `rect_m` is gross — matching on either
+    silently found nothing once `main` separated the two, which is how the diversity sweep came to
+    record ZERO classes over 200 briefs while looking like a real result."""
+    return {zid: (round(w, 3), round(h, 3)) for zid, x, y, w, h in rooms}
 
 
 def _demo_design_rooms(design) -> tuple:
-    return tuple((r.id, r.x, r.y, r.width_m, r.depth_m) for r in design.rooms)
+    """The payload's rooms as (id, x, y, GROSS width, GROSS depth), leaving out a Stage 0
+    LIVING+KITCHEN merge's own rooms — the merged room has no counterpart on the realized plan."""
+    merge = getattr(design, "merge", None)
+    merged = set()
+    if merge is not None and getattr(merge, "applied", False):
+        merged = {merge.living_id, merge.kitchen_id, merge.merged_id}
+    return tuple((r.id, r.x, r.y, r.gross_width_m, r.gross_depth_m)
+                 for r in design.rooms if r.id not in merged)
 
 
 def _realized_plan_rooms(design) -> tuple:
@@ -63,12 +74,20 @@ class _ClassRecorder:
     def _realize(self, *args, **kwargs):
         plan = self._orig(*args, **kwargs)
         sig = _layout_signature_of_rooms(_realized_plan_rooms(plan.design))
-        self.by_signature[sig] = plan
+        self.by_signature[frozenset(sig.items())] = plan
         return plan
 
     def plan_for(self, design) -> object | None:
-        sig = _layout_signature_of_rooms(_demo_design_rooms(design))
-        return self.by_signature.get(sig)
+        want = frozenset(_layout_signature_of_rooms(_demo_design_rooms(design)).items())
+        hit = self.by_signature.get(want)
+        if hit is not None:
+            return hit
+        # a Stage 0 merge drops two rooms from the payload: the plan this design came from is the
+        # one that agrees on every room the payload still shows
+        for full, plan in self.by_signature.items():
+            if want <= full:
+                return plan
+        return None
 
 
 @pytest.fixture

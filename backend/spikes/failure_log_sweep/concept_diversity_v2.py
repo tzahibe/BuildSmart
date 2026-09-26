@@ -42,13 +42,28 @@ _REPORT_PATH = _REPO_ROOT / "docs" / "reports" / "concept-engine-v2-diversity-re
 _RESUME_PATH = _BACKEND_DIR / "spikes" / "failure_log_sweep" / "_concept_diversity_v2_resume.json"
 
 
-def _layout_signature_of_rooms(rooms) -> tuple:
-    return tuple(sorted((zid, round(x, 3), round(y, 3), round(w, 3), round(h, 3))
-                        for zid, x, y, w, h in rooms))
+def _layout_signature_of_rooms(rooms) -> dict:
+    """`zone_id -> (gross width, gross depth)` — position-free and inset-free.
+
+    Two earlier versions of this signature compared absolute positions and NET sizes, and both
+    silently matched NOTHING once `main` separated a room's GROSS rectangle from its NET (usable)
+    triple (`RoomOut`'s own docstring) and Stage 0 began collapsing LIVING+KITCHEN into one room:
+    the payload reported net sizes at payload positions, the realized plan reported gross rects at
+    solver positions, and every lookup missed. The sweep then recorded ZERO circulation classes
+    over 200 briefs while looking exactly like a real "no diversity" result. Ids plus gross sizes
+    are the one thing both sides agree on, and they still separate genuinely different layouts."""
+    return {zid: (round(w, 3), round(h, 3)) for zid, x, y, w, h in rooms}
 
 
 def _demo_design_rooms(design) -> tuple:
-    return tuple((r.id, r.x, r.y, r.width_m, r.depth_m) for r in design.rooms)
+    """The payload's rooms as (id, x, y, GROSS width, GROSS depth), with any Stage 0 merge's own
+    rooms left out — the merged room has no counterpart on the realized plan at all."""
+    merge = getattr(design, "merge", None)
+    merged = set()
+    if merge is not None and getattr(merge, "applied", False):
+        merged = {merge.living_id, merge.kitchen_id, merge.merged_id}
+    return tuple((r.id, r.x, r.y, r.gross_width_m, r.gross_depth_m)
+                 for r in design.rooms if r.id not in merged)
 
 
 def _realized_plan_rooms(design) -> tuple:
@@ -73,7 +88,7 @@ class _ClassRecorder:
             plan = rec._orig(*args, **kwargs)
             sig = _layout_signature_of_rooms(_realized_plan_rooms(plan.design))
             if plan.circulation_class is not None:
-                rec.by_signature[sig] = plan.circulation_class
+                rec.by_signature[frozenset(sig.items())] = plan.circulation_class
             return plan
 
         gp._realize = realize
@@ -84,8 +99,16 @@ class _ClassRecorder:
     def classes_of(self, demo_designs) -> list[CirculationClass]:
         out = []
         for design in demo_designs:
-            sig = _layout_signature_of_rooms(_demo_design_rooms(design))
-            cls = self.by_signature.get(sig)
+            shown = _layout_signature_of_rooms(_demo_design_rooms(design))
+            want = frozenset(shown.items())
+            cls = self.by_signature.get(want)
+            if cls is None:
+                # a Stage 0 merge removes two rooms from the payload: the plan this design came
+                # from is the one that agrees on every room the payload still shows
+                for full, candidate in self.by_signature.items():
+                    if want <= full:
+                        cls = candidate
+                        break
             if cls is not None:
                 out.append(cls)
         return out
