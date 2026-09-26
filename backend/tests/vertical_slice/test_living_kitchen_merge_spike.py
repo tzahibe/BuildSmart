@@ -161,8 +161,8 @@ def test_merged_room_passes_validation_and_renders_as_polygon(monkeypatch):
         contract.OpenInterface(orientation="vertical", coord=9.0, start=1.0, end=3.0,
                                room_ids=["KITCHEN_1", "DINING_1"]),
     ]
-    new_rooms, new_walls, new_opens, new_doors = contract._apply_room_merge(
-        result, rooms_out, walls, opens, doors)
+    new_rooms, new_walls, new_opens, new_doors, _ = contract._apply_room_merge(
+        result, rooms_out, walls, opens, doors, [])
 
     ids = {r.id for r in new_rooms}
     assert "LIVING_1" not in ids and "KITCHEN_1" not in ids
@@ -254,8 +254,8 @@ def _merged_design_with_hall_and_bedroom():
         _contract_room("HALL_1", "HALL", 4.5, 10.0, 0.0, 2.0, 2.25),
         _contract_room("BEDROOM_1", "BEDROOM", 15.0, 20.0, 0.0, 4.0, 4.0),
     ]
-    new_rooms, new_walls, new_opens, new_doors = contract._apply_room_merge(
-        merge, rooms_out, [], [], [])
+    new_rooms, new_walls, new_opens, new_doors, _ = contract._apply_room_merge(
+        merge, rooms_out, [], [], [], [])
     merged_room = next(r for r in new_rooms if r.id == merge.merged_id)
     design = SimpleNamespace(rooms=new_rooms, walls=new_walls, open_interfaces=new_opens,
                              doors=new_doors)
