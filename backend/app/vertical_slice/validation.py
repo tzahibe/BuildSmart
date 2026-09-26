@@ -230,6 +230,17 @@ def check_furnishability(design: GeometricDesign) -> Check:
     own test file, `test_furnishability.py`), and ready for whichever a maintainer decision picks,
     the same "available, not wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate`
     already sets in this codebase.
+
+    LEAD-ORDERED REPAIR (2026-09-26) CONFIRMED THIS SCOPE DECISION AND ASKED FOR ONE MORE
+    MEASUREMENT: not just how many test-suite cases break with C30 wired, but how many of the
+    frozen 432-context regression corpus's contexts would flip PLANNED -> REFUSED if C30 were a
+    hard gate (any UNUSABLE room in the primary design) — the number the maintainer needs to weigh
+    the (a)/(b) choice above once Stage 2 changes `interior_layout.py`'s own placement geometry.
+    Measured 2026-09-26 (`spikes/failure_log_sweep/furnishability_corpus_check.py`, same 432-case
+    corpus AC-3 already uses): 88/404 PLANNED contexts (21.8%) carry at least one UNUSABLE room —
+    see that script's own output and `docs/wiki/features/interior-layout.md`'s "Evidence/history"
+    for the full run. This measurement is disclosure for the maintainer, not itself a refusal path;
+    C30 stays exactly as unwired as the paragraph above states.
     """
     usability_records = furnishability.compute_usability(
         design, interior_layout.compute_layout(design))

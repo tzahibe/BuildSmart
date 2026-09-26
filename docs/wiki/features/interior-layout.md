@@ -147,6 +147,15 @@ disclosure-only, additive, and safe regardless: `app.demo.contract.QualityOut.us
 `QualityOut.notices` when a plan has a POOR room — never a gate, never able to change which
 candidate is chosen.
 
+**If C30 WERE wired live (hard refusal), how many contexts would flip PLANNED -> REFUSED?**
+Lead-ordered repair (2026-09-26) asked for this number specifically, over the frozen 432-context
+regression corpus, as the deliverable that lets the maintainer weigh the (a)/(b) choice above once
+Stage 2 changes `interior_layout.py`'s own placement geometry — not itself a refusal path.
+Measured 2026-09-26 (`spikes/failure_log_sweep/furnishability_corpus_check.py`): **88 of the 404
+PLANNED contexts (21.8%)** carry at least one UNUSABLE room in their primary design and would flip
+to REFUSED. No validator, threshold, or hard limit changed to produce this number — it is a
+read-only replay of the existing corpus through the existing (unwired) `check_furnishability`.
+
 ## Out of scope (deliberately untouched)
 
 Public-zone composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixture
@@ -187,3 +196,9 @@ verified against this session's own implementation and test runs (`test_furnisha
 single-process replay of the 432-context regression corpus via `furnishability_corpus_check.py`:
 LOST 0, status_changed 0, tier distribution GOOD 67.6% / ACCEPTABLE 0.0% / POOR 29.4% / UNUSABLE
 3.0% over 3822 rooms).
+
+**Re-verified 2026-09-26** (lead-ordered repair, parallel replay via
+`furnishability_corpus_check.py`, same frozen 432-case corpus): identical LOST 0, status_changed
+0, and tier distribution over 3822 rooms; added the context-level "would flip PLANNED -> REFUSED
+if C30 were hard" count the repair asked for — 88/404 PLANNED contexts (21.8%), see the
+furnishability section above.
