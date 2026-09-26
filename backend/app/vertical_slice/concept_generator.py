@@ -54,6 +54,7 @@ from .geometry_core.model import (
     m_to_u,
     u_to_m,
 )
+from . import room_proportion_priors as _priors
 from .safe_adapter import SolverGeometryCandidate
 from .spec import (
     ENSUITE_HOST_BEDROOM,
@@ -4601,22 +4602,31 @@ def generate_concepts(spec: ArchitecturalSpec,
     # front of any candidate a brief already had. Ranking among them is a later review's question.
     quality = [c for c in accepted if c.quality_repartitioned]
     accepted = [c for c in accepted if not c.repartitioned]
+    # ROOM-PROPORTION PRIORS (Issue #140, `room_proportion_priors.py`): appended as the LAST
+    # element of every sort key below, strictly after `c.strategy.value` (the existing final
+    # determinism tiebreak) — it can only ever reorder candidates that already tie on every
+    # existing criterion, and with `ROOM_PROPORTION_PRIORS_ENABLED` False (the default) it is a
+    # constant 0.0 for every candidate, a genuine no-op on ordering.
     if target_m2 is not None:
         # A shrunk candidate (`ConceptCandidate.shrunk`) ranks by the same proximity and loses
         # only a tie in area to a normal one.
         accepted.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                      c.over_preferred or c.shrunk, c.over_preferred,
-                                     round(c.used_area_m2, 4), c.strategy.value))
+                                     round(c.used_area_m2, 4), c.strategy.value,
+                                     _priors.priors_score(c)))
         tier2.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
-                                  round(c.used_area_m2, 4), c.strategy.value))
+                                  round(c.used_area_m2, 4), c.strategy.value,
+                                  _priors.priors_score(c)))
         quality.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                     c.over_preferred or c.shrunk, c.over_preferred,
-                                    round(c.used_area_m2, 4), c.strategy.value))
+                                    round(c.used_area_m2, 4), c.strategy.value,
+                                    _priors.priors_score(c)))
 
     else:
         # Without a target the strategy order is kept; the fallbacks (shrunk, then over
         # preferred) follow the normal candidates.
-        accepted.sort(key=lambda c: (c.over_preferred or c.shrunk, c.over_preferred))
+        accepted.sort(key=lambda c: (c.over_preferred or c.shrunk, c.over_preferred,
+                                     _priors.priors_score(c)))
     # Every forced tree first, in the order just decided; then the same trees with their cut
     # positions left to the solver, in the same order. See `_unforced` for why this ordering — and
     # not one twin behind each forced tree — is the one that leaves every existing plan untouched.
