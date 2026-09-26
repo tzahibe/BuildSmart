@@ -41,7 +41,9 @@ a plan's residual geometry looks like. Four region kinds, one per bullet of the 
     the budget itself is a legitimate transition-node size, not zero.
 
     measure(design)             -> DeadSpaceMetrics   # one plan's own regions + totals
-    classify_hard(metrics)      -> str | None          # C32's gate (validation.py)
+    classify_hard(metrics)      -> str | None          # C32's would-refuse verdict (validation.py
+                                                          # measures and reports it, never gates on
+                                                          # it — see that check's own comment)
     dead_space_prefers(a, b)    -> str | None           # the ranking term (not yet wired — see
                                                           # the module's own "Known follow-ups")
 """
@@ -315,15 +317,19 @@ def measure(design: GeometricDesign) -> DeadSpaceMetrics:
                             dead_space_share=dead_space_share)
 
 
-# --------------------------------------------------------------------------- C32: the hard gate
+# --------------------------------------------------------------------------- C32: the would-refuse verdict
 
 def classify_hard(metrics: DeadSpaceMetrics) -> str | None:
-    """`None` when C32 passes; otherwise every STUB region past `DEAD_SPACE_STUB_HARD_LIMIT_M`, so
-    a refusal names the real cause. Only STUB gates — SLIVER/CORNER/OVERSIZED_HALL are measured and
-    reported (`QualityOut.metrics`) but never fail a plan closed: a narrow room a future sizing
-    path might produce is C3's own gate to fail on, a swing notch is normal architecture everywhere
-    a door exists, and an oversized hall is a quality signal (`_HALL_AREA_BUDGET_M2`), not a
-    correctness one."""
+    """`None` when C32 would pass; otherwise every STUB region past `DEAD_SPACE_STUB_HARD_LIMIT_M`,
+    so the verdict names the real cause. `validation.py`'s C32 reports this string (MEASURED, not
+    gated — lead repair order, 2026-09-26: this limit was calibrated single-level-only and a real
+    upper-level STUB tripped it, starving `plan_buildings` of candidates) rather than failing the
+    plan closed on it; `dead_space_sweep.py` reports how many corpus contexts this would-refuse
+    verdict actually fires on. Only STUB is even measured against a hard number here —
+    SLIVER/CORNER/OVERSIZED_HALL are reported (`QualityOut.metrics`) but never produce a verdict at
+    all: a narrow room a future sizing path might produce is C3's own gate to fail on, a swing
+    notch is normal architecture everywhere a door exists, and an oversized hall is a quality
+    signal (`_HALL_AREA_BUDGET_M2`), not a correctness one."""
     reasons = [r.detail for r in metrics.regions
               if r.kind == "STUB" and r.length_m is not None
               and r.length_m > DEAD_SPACE_STUB_HARD_LIMIT_M + 1e-9]

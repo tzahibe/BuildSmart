@@ -277,12 +277,14 @@ def test_c32_appears_in_the_check_list(canonical_design):
     assert "C32" in [c.check_id for c in result.validation.checks]
 
 
-def test_c32_gate_actually_blocks_the_plan_when_the_calibrated_limit_is_tightened(monkeypatch):
-    """The calibrated threshold passes every real candidate this generator produces (see the
-    constant's own rationale, `docs/DEAD_SPACE_SWEEP.md`) — proving C32 genuinely FAILS a plan
-    therefore means tightening the limit below a REAL realized plan's own measured value, then
-    re-running the same `validate()` call the pipeline uses, on the SAME realized geometry — the
-    same discipline `test_circulation_metrics.py`'s own C26 gate test uses."""
+def test_c32_measures_and_reports_but_never_gates_even_past_the_tightened_limit(monkeypatch):
+    """C32 stays MEASURED AND REPORTED, never a hard refusal (lead repair order, 2026-09-26): a
+    real STUB on multi-level upper-level geometry tripped the old hard gate and starved
+    `plan_buildings` of every candidate (`test_building_coordinator`), and this limit was only ever
+    swept single-level (`docs/DEAD_SPACE_SWEEP.md`). Tightening the limit below a REAL realized
+    plan's own measured value (the same discipline `test_circulation_metrics.py`'s own C26 gate
+    test uses) proves the would-refuse verdict genuinely fires — and proves the check still never
+    fails the plan closed on it."""
     spec = demo_spec()
     concept = concept_stage.build_concept(spec)
     solve = solve_fixture(concept.fixture)
@@ -301,14 +303,18 @@ def test_c32_gate_actually_blocks_the_plan_when_the_calibrated_limit_is_tightene
                                        wet_rooms=resolve_wet_rooms(spec.program))
     c32_before = next(c for c in before.checks if c.check_id == "C32")
     assert c32_before.passed
+    assert "MEASURED, not gated" not in c32_before.detail
 
     monkeypatch.setattr(ds, "DEAD_SPACE_STUB_HARD_LIMIT_M", 0.1)
     after = validation_stage.validate(concept.fixture, rects, solve.walls, interior_doors,
                                       entrance_door, windows, furniture, site,
                                       wet_rooms=resolve_wet_rooms(spec.program))
     c32_after = next(c for c in after.checks if c.check_id == "C32")
-    assert not c32_after.passed
-    assert not after.ok
+    # The would-refuse verdict genuinely fires (proving this is a real tightened limit, not a
+    # no-op) — but it is only ever disclosed, never a gate: the check still passes and `ok` holds.
+    assert c32_after.passed
+    assert "MEASURED, not gated" in c32_after.detail
+    assert after.ok
 
 
 # --------------------------------------------------------------------------- QualityOut.metrics

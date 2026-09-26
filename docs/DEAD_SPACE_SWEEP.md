@@ -8,6 +8,16 @@
 - REFUSED: 38
 - CRASH: 0
 
+## Would-refuse count (C32, if it were a hard gate)
+
+C32 (`validation.py`) only MEASURES AND REPORTS this verdict — it never fails a plan closed (lead
+repair order, 2026-09-26: a real multi-level upper-level STUB tripped this single-level-calibrated
+limit and starved `plan_buildings` of every candidate). This is the count the owner needs to decide
+whether it should become a hard refusal once Stage 2 changes the geometry: **0/394 PLANNED contexts
+would refuse** if `DEAD_SPACE_STUB_HARD_LIMIT_M` (2.00 m) gated today — every one of the 392
+measured STUB regions below stays at or under the 1.50 m maximum already reported in the STUB-length
+distribution, itself under the 2.00 m limit.
+
 ## Region-kind counts among PLANNED contexts
 
 - STUB: 392

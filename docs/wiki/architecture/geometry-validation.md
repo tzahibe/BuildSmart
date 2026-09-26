@@ -697,9 +697,13 @@ a measured STUB (the ordinary one-tolerated-dead-end shape, now sized instead of
 1 with a CORNER, 0 with a SLIVER or an OVERSIZED_HALL.
 
 **C32 "no residual dead space past the hard limit"** (`validation.py`, next to C26, reusing the
-SAME minimal `GeometricDesign` C26 already assembles purely to measure this plan): fails closed
-ONLY on a STUB region past `DEAD_SPACE_STUB_HARD_LIMIT_M` — the other three kinds are quality data
-(`QualityOut.metrics`), never a gate here: a narrow room a future sizing path might produce is C3's
+SAME minimal `GeometricDesign` C26 already assembles purely to measure this plan): MEASURES AND
+REPORTS `classify_hard`'s would-refuse verdict on a STUB region past `DEAD_SPACE_STUB_HARD_LIMIT_M`
+— it never fails the plan closed (lead repair order, 2026-09-26). It shipped as a hard gate first;
+multi-level upper-level geometry (`test_building_coordinator`) produced a real STUB past the limit
+that this single-level-only sweep never calibrated against, and gating on it there starved
+`plan_buildings` of every candidate. The other three kinds were always quality data
+(`QualityOut.metrics`) only, never a gate: a narrow room a future sizing path might produce is C3's
 own gate to fail on, a swing notch is normal architecture everywhere a door exists, and an oversized
 hall is a quality signal, not a correctness one.
 
@@ -725,12 +729,14 @@ existing C1/C2 correctness floor — see that file's own K section for the full 
 `reference_benchmark.py`'s own section K (a DIFFERENT lettering scheme, see that module's docstring)
 reports the same `dead_space_m2`/`dead_space_share` pair as its `value`.
 
-**Corpus impact measured**: the frozen 432-context regression corpus sweep found 0 STUB failures
-(every PLANNED context's own worst stub, 1.50 m, sits under the 2.0 m hard limit) — C32 is additive
-by construction on this corpus, the same "no context in the corpus currently produces the failure
-shape" precedent C26/C25's own sweeps document; `test_dead_space.py`'s hand-built fixtures prove the
-gate genuinely fails a plan when tightened (mirrors `test_circulation_metrics.py`'s own C26 gate
-test).
+**Corpus impact measured**: the frozen 432-context regression corpus sweep found 0/394 PLANNED
+contexts where `classify_hard` would fire (every PLANNED context's own worst stub, 1.50 m, sits
+under the 2.0 m hard limit) — the number the owner needs to decide whether C32 should become a
+hard refusal once Stage 2 changes the geometry (single-level today; a real multi-level upper-level
+STUB is what tripped the limit and moved this check to measure-and-report, see above).
+`test_dead_space.py`'s hand-built fixtures and its tightened-limit test prove the would-refuse
+verdict genuinely fires on a real plan (mirrors `test_circulation_metrics.py`'s own C26 gate test)
+while the check itself still never fails the plan closed.
 
 ## Architectural quality rubric and anti-pattern library
 

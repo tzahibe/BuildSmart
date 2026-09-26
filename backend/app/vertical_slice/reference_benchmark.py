@@ -39,9 +39,9 @@ those nine collide with the six this module defines its own way.
     K  dead space  — residual interior area OUTSIDE zones (C2, always 0 — a correctness floor)
                      PLUS residual dead space INSIDE zones, measured by
                      `app.vertical_slice.dead_space` (Issue #43: corridor stubs, room slivers,
-                     door-swing corners, oversized-hall excess) — not a band either; C32 is the one
-                     hard limit among the four kinds it measures (a corridor stub), the rest are
-                     reported quality data
+                     door-swing corners, oversized-hall excess) — not a band either; all four kinds
+                     are reported quality data, C32 measures and reports a would-refuse verdict for
+                     one of them (a corridor stub) but never gates on it
     L  consistency — how far each room's declared area_m2 (net) sits from its own
                      gross_width_m x gross_depth_m (gross rect — expected to differ a little by wall
                      thickness; reported as a measured fact, not a pass/fail gate)

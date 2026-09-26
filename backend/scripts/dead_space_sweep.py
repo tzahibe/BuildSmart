@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from spikes.failure_log_sweep.corpus_snapshot import CORPUS, corpus_contexts  # noqa: E402
+from app.vertical_slice.dead_space import DEAD_SPACE_STUB_HARD_LIMIT_M  # noqa: E402
 
 
 def _run_one_raw(ctx: dict) -> dict:
@@ -101,11 +102,16 @@ def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
     kind_counts = Counter()
     stub_lengths = []
     dead_space_values = [r["dead_space_m2"] for r in planned]
+    would_refuse = 0
     for r in planned:
+        context_refuses = False
         for kind, area, length in r["regions"]:
             kind_counts[kind] += 1
             if kind == "STUB" and length is not None:
                 stub_lengths.append(length)
+                if length > DEAD_SPACE_STUB_HARD_LIMIT_M + 1e-9:
+                    context_refuses = True
+        would_refuse += context_refuses
 
     lines = [
         "# Dead-Space Sweep (Issue #43)",
@@ -120,6 +126,15 @@ def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
         f"- PLANNED: {len(planned)}",
         f"- REFUSED: {len(refused)}",
         f"- CRASH: {len(crashed)}",
+        "",
+        "## Would-refuse count (C32, if it were a hard gate)",
+        "",
+        f"C32 (`validation.py`) only MEASURES AND REPORTS this verdict — it never fails a plan "
+        "closed (lead repair order, 2026-09-26: a real multi-level upper-level STUB tripped this "
+        "single-level-calibrated limit and starved `plan_buildings` of every candidate). This is "
+        "the count the owner needs to decide whether it should become a hard refusal once Stage 2 "
+        f"changes the geometry: {would_refuse}/{len(planned)} PLANNED contexts would refuse if "
+        f"`DEAD_SPACE_STUB_HARD_LIMIT_M` ({DEAD_SPACE_STUB_HARD_LIMIT_M:.2f} m) gated today.",
         "",
         "## Region-kind counts among PLANNED contexts",
         "",
