@@ -744,6 +744,80 @@ reach a non-guillotine realizer. Types only — no realization behaviour, nothin
 page's own validators or pipeline yet; this section is a pointer, not a status change, until a
 child actually lands realization behaviour.
 
+## Rectilinear realizer — non-guillotine geometry (Issue #117, flag OFF)
+
+2026-09-23, re-run 2026-09-24 for Issue #136. `geometry_core.engine.solve_fixture` only ever
+produces a GUILLOTINE partition (a binary slicing tree, every cut a straight line across a
+subtree) — measured (Issue #102/#106): 1/199 real plans qualify. `app/vertical_slice.
+rectilinear_realizer.py` (`RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it —
+the production path is untouched) is a genuinely non-guillotine realizer, proven on a hand-built
+L+U fixture (real rectilinear polygons, zero residual area, `is_guillotine_separable` returns
+`False`) and on 10 real corpus layouts, through the UNCHANGED validator chain, with zero validator/
+threshold changes anywhere in the diff. Two constructions: PINWHEEL (spike #108's own 5-room
+windmill topology, generalized into a small alternating-fit solver over each arm's own target
+area) and NOTCH-CARVE (`carve_l`/`carve_u`/`carve_t` — a "big" zone's rectangle minus 1-2 smaller
+"notch" rooms cut from its boundary, decomposed as a proper grid so every internal edge is a clean
+1:1 `WallMap` boundary). A notch-carve group's own per-cell C3/C20/C21 are NOT authoritative for
+the merged room (a NEEDS-POLYGON-VARIANT finding); `_group_checks` generalizes `room_merge.py`'s
+own redesigned C1/C2/C3/C20/C27 (the LIVING+KITCHEN merge spike, Issue #107) from a 2-way merge to
+N cells. Deciding WHERE rooms go (wiring a retrieved/generated layout in) is explicitly Stage 2,
+out of this Issue's scope — the realizer's own input is a PLACED layout (adjacency/placement/
+exposure already decided).
+
+**Issue #136 — C25 (entrance-to-circulation integration, below) landed on main after this branch
+was cut, and refused both hand-built fixtures and 2 of the original 9 REALIZED real-corpus layouts
+(4.17-4.96 m of unserved corridor beyond the entrance, over `ENTRANCE_POCKET_MAX_M`).** The fix is
+entirely in the realizer's own door-placement construction, no validator touched: the row-wing's
+cross-slot door now prefers, among candidates wide enough for a real door, the one closest to the
+wing's own street edge rather than simply the longest shared cell edge; the pinwheel wing now also
+wires a door at each of the four corners where two arms physically interlock (the same corners
+that make the topology non-guillotine at all) wherever the access-rules table and door-width both
+allow it. Re-run against current main: **6/10 real corpus layouts realized** (down from the
+pre-C25 9/10 headline, for a reason UNRELATED to C25 — Issue #118 below also flipped
+`LIVING_KITCHEN_MERGE_ENABLED` to `True` by default, and this gate script's own room-pick
+heuristic did not recognise the resulting merged `LIVING_KITCHEN` room type at all until fixed;
+once fixed, 3 of the 10 real contexts are genuinely infeasible for the script's fixed proportional
+pinwheel-scaling heuristic, an honest SHORT_SIDE_INFEASIBLE/insufficient-usable-rooms refusal each
+time). Zero of the 10 refuse on C25 after the fix — see `docs/reports/rectilinear-realizer/
+stage1-gate.md`'s own "C25" section for the re-measured `pocket_length_m` per REALIZED layout.
+
+## The merged public room — LIVING+KITCHEN, ON by default (Issue #118)
+
+Stage 0 of the rectilinear-realizer programme (2026-09-23). Spike #107's LIVING+KITCHEN merge
+(`app/vertical_slice/room_merge.py` — an adjacent, CLOSED_ADJACENT LIVING leaf and KITCHEN leaf
+become one L-shaped room, or a plain rectangle when they happen to align flush; see that module's
+own docstring for the redesigned checks) is now a real, gated product feature:
+`LIVING_KITCHEN_MERGE_ENABLED = True`, the shipped default.
+
+**Quality reporting reads the merged room as ONE room** (`app/vertical_slice/quality_metrics.py`,
+`app/vertical_slice/reference_benchmark.py`): M3's circulation-share denominator, and reference
+benchmark sections B (circulation) and L (consistency), use a room's own `gross_area_m2` — never
+`gross_width_m * gross_depth_m`, which for a merged "L" room is only its bounding-box product and
+overstates a real (non-flush) L's true footprint. M6 (public-zone contiguity) and section C
+(zoning) read a plan whose public zone collapsed to a single merged room (no DINING alongside it)
+as contiguous, not "nothing to measure." M1 (habitable aspect) needed no code change: the merged
+room already replaces its two source rooms in `DemoDesign.rooms` before M1-M6 run, so its own
+bounding-box aspect is what gets measured — never either source room's own (possibly much worse)
+standalone aspect.
+
+**The flip rule** (`app.vertical_slice.room_merge.decide_default`, unit-tested directly): ON only
+when, over the full 432-context corpus, LOST=0, crashes=0, no context's PLANNED/REFUSED/CRASH
+class changes, no REFUSED context's code changes, and no M1-M6 corpus statistic regresses beyond
+its existing tolerance (the same four gated stats `test_quality_baseline.py` already checks).
+Measured 2026-09-23: 191 merge candidates, 168 (88%) applied, 23 (12%) rejected by their own
+checks (mostly C6 — a door already on the shared seam); LOST 0, crashes 0, 0 status/refusal
+changes, 168/404 primary-signature changes (all attributable to an applied merge); **M6
+public-contiguous share improved 52.7% → 94.3%**, M1's median habitable aspect improved
+1.674 → 1.593, M3/M4/M5 unchanged (none of those three ever involve a public room). Full report:
+`docs/reports/rectilinear-realizer/stage0-merge-ab.md`, with three before/after SVG pairs.
+
+**Known, disclosed gaps, inherited from spike #107, not addressed by this stage**: `quality.
+exposure`/`quality.wet_privacy`/`quality.signal`/`quality.notices` still refer to the two source
+room ids individually (computed off the raw pre-merge solver output). The frontend room label
+(`demoRoomLabel.ts`) prints a merged room's bounding-box `width_m × depth_m` beside its true
+polygon `area_m2` — the two numbers do not multiply out to match, for an L. Both are candidate
+follow-ups for a future stage, not this one.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -866,3 +940,41 @@ Wall semantic model and C33 section above documents Issue #45, verified against 
 implementation and test runs (`test_walls.py`, `test_demo_quality.py`, the full `vertical_slice`
 suite green at 603 passed/9 xfailed, the full frontend suite green at 193 tests, a full 432-context
 corpus sweep with 0 crashes and 0 contexts refused on C33).
+
+Branch `agent/117-stage-1-2-2-the-gate-a-non-guillotine-re`, based on
+`origin/integration/rectilinear-realizer`: the Rectilinear realizer section above documents Issue
+#117, verified against this session's own implementation (`app/vertical_slice/
+rectilinear_realizer.py`, `RECTILINEAR_REALIZER_ENABLED = False`, no existing caller imports it)
+and test runs (`test_rectilinear_realizer.py`, the full `tests/vertical_slice` suite green,
+`spikes/geometry_shapes/stage1_gate.py` against 10 real corpus contexts — see the linked report).
+
+Branch `agent/118-stage-0-1-2-ship-the-merged-public-room`, based on
+`origin/integration/rectilinear-realizer` (spike #107 already on this branch's base): the merged
+public room section above documents Issue #118 Stage 0, verified against this session's own
+implementation and test runs — the full 432-context A/B (`docs/reports/rectilinear-realizer/
+stage0-merge-ab.md`), the fast suite (1517 passed, 0 failed, 478 skipped, 9 xfailed) with the flag
+flipped ON, and the three new `test_living_kitchen_merge_spike.py` unit tests, including this
+merge's own conflict resolution (both stage sections kept side by side, #117 before #118).
+
+Branch `agent/136-stage-0-1-rollup-repair-the-rectilinear`, based on
+`origin/integration/rectilinear-realizer` after the Team Lead merged current main in (bringing in
+Issue #22/C25, the interior layout MVP, master-suite access and the wall semantic model): the
+Rectilinear realizer section above's C25 paragraph documents Issue #136, verified against this
+session's own implementation (`rectilinear_realizer.py`'s door-placement construction fix, no
+validator touched), `test_rectilinear_realizer.py` (6/6 passing against the merged base) and the
+full `tests/vertical_slice` suite (665 passed, 1 skipped, 9 xfailed). The full fast suite IS green at this
+branch tip. It was not when the paragraph above was first written: `tests/test_demo_quality.py::
+test_every_door_and_window_hosts_on_a_wall` failed (`window LIVING:N has no wall_id`), an
+integration gap between #118's `LIVING_KITCHEN_MERGE_ENABLED=True` default and main's wall-class
+window `wall_id` wiring — a real interaction between two things that had never met before, not a
+pre-existing main failure. Commit `256e2a5` fixes it by remapping a window's `room_id` through the
+merge, and the test passes (re-run by the Team Lead, 2026-09-24). The Stage 1 gate re-run against current main
+(`docs/reports/rectilinear-realizer/stage1-gate.md`, 6/10 realized, 0 refused on C25). Stage 0's
+own 432-context A/B (`stage0-merge-ab.md`) was NOT re-swept in this session (noted there as an open
+item). Corrected by the Team Lead (2026-09-24): saying this diff "touches no production path" was
+not accurate — `256e2a5`'s window `room_id` remap runs whenever `LIVING_KITCHEN_MERGE_ENABLED` is
+on, and #118 made that the default, so it is on the delivered payload. What holds is narrower and
+is what the evidence actually supports: the frozen 432-context regression gate is green at this
+head, so no plan's own signature moved, and a window's `room_id` is not an input to any count the
+A/B reports (candidates found/applied/rejected, LOST, quality deltas). The A/B stays un-re-swept by
+choice, with that reasoning stated, rather than by a claim that nothing production-facing changed.

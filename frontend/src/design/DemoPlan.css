@@ -6,6 +6,10 @@
 .demo-parking-label { font-size: 0.7px; fill: #5f6368; text-anchor: middle; dominant-baseline: middle; }
 .demo-footprint { fill: #ffffff; }
 .demo-room-flex { fill: #eef0f2; stroke: #b7bfc7; stroke-width: 0.05; stroke-dasharray: 0.2 0.14; }
+/* Architecture A spike (Issue #107): a merged LIVING+KITCHEN room's own polygon fill, additive —
+   a faint tint so the L reads as one continuous room; the walls themselves come from
+   `design.walls`, unchanged by this rule. */
+.demo-room-merged { fill: #fbf7ee; fill-opacity: 0.6; stroke: none; }
 .demo-room-label { text-anchor: middle; dominant-baseline: middle; }
 .demo-room-name { fill: #1f2933; }
 .demo-room-dims, .demo-room-area, .demo-room-compact { fill: #66707a; }
