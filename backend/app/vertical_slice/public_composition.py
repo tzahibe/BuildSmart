@@ -16,7 +16,9 @@ signal needs. Pure and deterministic; never mutates or re-solves anything.
 
     measure(design)                     -> PublicComposition   # one plan's own facts
     hard_violations(composition)        -> list[str]            # C31's gate (validation.py)
-    composition_prefers(current, cand)  -> str | None            # the (currently unwired) ranking term
+    composition_prefers(current, cand)  -> str | None            # the lowest-precedence ranking term
+                                                                  # (`general_pipeline.py`'s per-candidate
+                                                                  # loop, below every existing tiebreak)
 
 OPEN PLAN IS NEVER PENALIZED. `public_zone_coherent` and the two pairwise `_related` facts below can
 only ever help `composition_score` (lower is better) or leave it unchanged — never a term that
