@@ -82,13 +82,6 @@ function polygonCentroid(points: [number, number][]): { x: number; y: number } {
   return { x: cx / (6 * area), y: cy / (6 * area) }
 }
 
-/** Which way the arc turns, so it sweeps the quarter the leaf actually travels through rather than
- *  the opposite one. The cross product of (closed leaf) x (open leaf) about the hinge gives it. */
-function sweep(hx: number, hy: number, far: { x: number; y: number },
-               leaf: { x: number; y: number }): 0 | 1 {
-  const cross = (far.x - hx) * (leaf.y - hy) - (far.y - hy) * (leaf.x - hx)
-  return cross > 0 ? 1 : 0
-}
 /** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
  * construction — the backend puts the street, the parking bays and the entrance walk along `y = 0`
  * (`vertical_slice/site.py`) — which is what makes a compass truthful here and nowhere else in the
