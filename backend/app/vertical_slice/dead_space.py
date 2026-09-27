@@ -41,9 +41,11 @@ a plan's residual geometry looks like. Four region kinds, one per bullet of the 
     the budget itself is a legitimate transition-node size, not zero.
 
     measure(design)             -> DeadSpaceMetrics   # one plan's own regions + totals
-    classify_hard(metrics)      -> str | None          # C32's would-refuse verdict (validation.py
-                                                          # measures and reports it, never gates on
-                                                          # it — see that check's own comment)
+    classify_hard(metrics)      -> str | None          # the would-refuse verdict (disclosed on
+                                                          # `QualityOut.dead_space_notice`,
+                                                          # `app/demo/contract.py`; never a
+                                                          # `validation.py` gate — see that
+                                                          # function's own docstring)
     dead_space_prefers(a, b)    -> str | None           # the ranking term (not yet wired — see
                                                           # the module's own "Known follow-ups")
 """
@@ -70,18 +72,17 @@ _NOISE_FLOOR_M = 0.05
 
 # --------------------------------------------------------------------------- PARAMETER constants
 
-#: PARAMETER · calibrated on the full frozen 432-context regression corpus
-#: (`scripts/dead_space_sweep.py`, `docs/DEAD_SPACE_SWEEP.md`): every one of the 394 PLANNED
-#: contexts' own circulation dead ends measures 0.75-1.50 m past its last opening (mean 1.12 m — the
-#: ordinary "hall's own width plus jamb clearance" shape `ENTRANCE_POCKET_MAX_M`'s own docstring
-#: already documents for the POCKET measure, structurally capped at 1.50 m by this generator's own
-#: template geometry today, not a coincidence across contexts). The Issue's own illustrative default
-#: (1.5 m) sits EXACTLY at that ceiling — zero headroom, the same shape `ENTRANCE_POCKET_MAX_M`'s
-#: own docstring warns 0.6 m didn't survive contact with real data. 2.0 m gives real headroom above
-#: every measured PLANNED context while staying well below this module's own STUB test fixture (a
-#: genuinely abandoned corridor, several metres long). C32 (`validation.py`) fails closed on this
-#: alone among the four kinds this module measures — see that check's own comment for why the other
-#: three stay reported, not gated.
+#: PARAMETER · originally calibrated on a 394-PLANNED-context snapshot of the frozen 432-context
+#: regression corpus (`scripts/dead_space_sweep.py`, `docs/DEAD_SPACE_SWEEP.md`), where every
+#: measured STUB stayed at or under 1.50 m and 2.0 m gave headroom above all of them. The corpus
+#: has since grown (Stage 0/1/2, 404 PLANNED today) and the SAME re-run (2026-09-27) now measures
+#: STUB lengths up to 2.65 m — this limit is no longer headroom above every measured PLANNED
+#: context, and 27/404 would refuse if it gated today (see `docs/DEAD_SPACE_SWEEP.md`'s own
+#: "Would-be-refused count per defect kind" for the current, authoritative figure). Left
+#: UNCHANGED here — recalibrating it is a decision for the owner, not this Issue's own scope, and
+#: `classify_hard`'s verdict is disclosed, never gated, precisely so a stale limit like this one
+#: cannot silently starve `plan_buildings` of candidates (see that function's own docstring for
+#: why the other three kinds stay reported, not evaluated against any number at all).
 DEAD_SPACE_STUB_HARD_LIMIT_M = 2.0
 
 #: PARAMETER · every `ROOM_TEMPLATES` entry a SLIVER could apply to (HALL/CIRCULATION excluded, see
@@ -317,19 +318,21 @@ def measure(design: GeometricDesign) -> DeadSpaceMetrics:
                             dead_space_share=dead_space_share)
 
 
-# --------------------------------------------------------------------------- C32: the would-refuse verdict
+# --------------------------------------------------------------------------- the would-refuse verdict
 
 def classify_hard(metrics: DeadSpaceMetrics) -> str | None:
-    """`None` when C32 would pass; otherwise every STUB region past `DEAD_SPACE_STUB_HARD_LIMIT_M`,
-    so the verdict names the real cause. `validation.py`'s C32 reports this string (MEASURED, not
-    gated — lead repair order, 2026-09-26: this limit was calibrated single-level-only and a real
-    upper-level STUB tripped it, starving `plan_buildings` of candidates) rather than failing the
-    plan closed on it; `dead_space_sweep.py` reports how many corpus contexts this would-refuse
-    verdict actually fires on. Only STUB is even measured against a hard number here —
-    SLIVER/CORNER/OVERSIZED_HALL are reported (`QualityOut.metrics`) but never produce a verdict at
-    all: a narrow room a future sizing path might produce is C3's own gate to fail on, a swing
-    notch is normal architecture everywhere a door exists, and an oversized hall is a quality
-    signal (`_HALL_AREA_BUDGET_M2`), not a correctness one."""
+    """`None` when nothing would be refused; otherwise every STUB region past
+    `DEAD_SPACE_STUB_HARD_LIMIT_M`, so the verdict names the real cause. Disclosed as a product
+    notice on `QualityOut.dead_space_notice` (`app/demo/contract.py`) — MEASURED, never a
+    `validation.py` gate (2026-09-27 review finding: a check that can never fail has no place in
+    that chain; this limit was calibrated single-level-only and a real upper-level STUB tripped
+    it, starving `plan_buildings` of candidates when it used to gate there). `dead_space_sweep.py`
+    reports how many corpus contexts this would-refuse verdict actually fires on, per kind. Only
+    STUB is even measured against a hard number here — SLIVER/CORNER/OVERSIZED_HALL are reported
+    (`QualityOut.metrics`) but never produce a verdict at all: a narrow room a future sizing path
+    might produce is C3's own gate to fail on, a swing notch is normal architecture everywhere a
+    door exists, and an oversized hall is a quality signal (`_HALL_AREA_BUDGET_M2`), not a
+    correctness one."""
     reasons = [r.detail for r in metrics.regions
               if r.kind == "STUB" and r.length_m is not None
               and r.length_m > DEAD_SPACE_STUB_HARD_LIMIT_M + 1e-9]

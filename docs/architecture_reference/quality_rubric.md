@@ -300,11 +300,17 @@ transition node needs — and that is a genuine quality question, not merely a c
     door) and ownership (zone, role):
     - **STUB** — a circulation room's own end past its last opening (`DEAD_SPACE_STUB_HARD_LIMIT_M`,
       calibrated with headroom above every measured corridor end on the frozen single-level
-      regression corpus — see `docs/DEAD_SPACE_SWEEP.md`). The only kind **C32** even names a
-      would-refuse verdict for — but C32 only measures and reports that verdict, it never gates on
-      it (a real multi-level upper-level STUB tripped the single-level-calibrated limit and
-      starved `plan_buildings` of every candidate; lead repair order, 2026-09-26). 0/394 PLANNED
-      contexts in the frozen corpus would refuse if this became a hard gate today.
+      regression corpus — see `docs/DEAD_SPACE_SWEEP.md`). The only kind `classify_hard` even names
+      a would-refuse verdict for. That verdict shipped as a `validation.py` check (**C32**) first,
+      then as a `validation.py` entry that only measured and reported it without ever gating on it
+      (a real multi-level upper-level STUB tripped the single-level-calibrated limit and starved
+      `plan_buildings` of every candidate; lead repair order, 2026-09-26) — and was then removed
+      from `validation.py` entirely, since a check that can never fail has no place in that chain
+      (review finding, 2026-09-27). It is disclosed instead as a product notice,
+      `QualityOut.dead_space_notice`. **27/404 PLANNED contexts** in the current frozen-corpus
+      sweep (2026-09-27, `docs/DEAD_SPACE_SWEEP.md`) would refuse if this became a hard gate
+      today — the corpus has grown since this limit's own calibration, and today's worst measured
+      stub now sits past it, which is exactly why this stays a disclosure, not a gate.
     - **SLIVER** — a non-circulation room realized narrower, on its own short side, than any real
       furniture could use (`SLIVER_MIN_USABLE_WIDTH_M`) — reported, never gated: C3 already holds
       every realized room to its own template minimum, so this exists as defence-in-depth for a
@@ -326,9 +332,9 @@ transition node needs — and that is a genuine quality question, not merely a c
   case C1/C2 alone cannot distinguish from a genuinely separate room; and whether a reported SLIVER/
   CORNER/OVERSIZED_HALL region actually reads as wasted in the drawing, since none of the three is
   gated.
-- **How a reviewer applies it**: trust C1/C2 as already-enforced (C32 measures and reports, it does
-  not enforce); read `QualityOut.metrics.dead_space_m2`/`.dead_space_share` for the INSIDE-zone
-  quality signal (call
+- **How a reviewer applies it**: trust C1/C2 as already-enforced (the INSIDE-zone measurement is not
+  a `validation.py` check at all — `dead_space_notice` only discloses); read
+  `QualityOut.metrics.dead_space_m2`/`.dead_space_share` for the INSIDE-zone quality signal (call
   `dead_space.measure()` directly for the per-region breakdown behind that total — not itself on
   the contract), and separately eyeball whether a room's sole access reads as incidental (through
   another room's corner) rather than a real doorway.

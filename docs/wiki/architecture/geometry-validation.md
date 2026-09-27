@@ -684,38 +684,48 @@ ownership (zone, role) — the four facts the Issue's own "required behavior" na
 calibrated on `scripts/dead_space_sweep.py`'s sweep of the full 432-context frozen regression
 corpus** (`docs/DEAD_SPACE_SWEEP.md`), the same "measure real plans, then set the limit with
 headroom above them" discipline `ENTRANCE_POCKET_MAX_M`/`EXTREME_RATIO` use, not a code minimum.
-Every one of the 394 PLANNED contexts' own circulation dead ends measures 0.75-1.50 m past its last
-opening (mean 1.12 m — an ordinary hall's own width plus jamb clearance, structurally capped at
-1.50 m by this generator's own template geometry today). The Issue's own illustrative default
-(1.5 m) sits EXACTLY at that ceiling with zero headroom — the same shape `ENTRANCE_POCKET_MAX_M`'s
-own docstring documents for its own illustrative default (0.6 m) not surviving contact with real
-data. 2.0 m gives real headroom above every measured PLANNED context. `SLIVER_MIN_USABLE_WIDTH_M`
-needs no corpus headroom the same way `ENTRANCE_STRAY_POCKET_MAX_M` does not: it is proven directly
-against the `ROOM_TEMPLATES` table itself (`test_dead_space.py::test_sliver_never_fires_on_a_c3_compliant_room`),
-not backed into just above an observed maximum. The full sweep found 392/394 PLANNED contexts with
-a measured STUB (the ordinary one-tolerated-dead-end shape, now sized instead of merely counted),
-1 with a CORNER, 0 with a SLIVER or an OVERSIZED_HALL.
+When this limit was first set, every one of a 394-PLANNED-context snapshot's own circulation dead
+ends measured 0.75-1.50 m past its last opening (mean 1.12 m — an ordinary hall's own width plus
+jamb clearance) and 2.0 m gave headroom above all of them. The corpus has since grown (Stage 0/1/2,
+404 PLANNED today) and the SAME sweep re-run (2026-09-27) now measures STUB lengths up to 2.65 m —
+27/404 PLANNED contexts would refuse if this limit gated today (see
+`docs/DEAD_SPACE_SWEEP.md`'s own current numbers, and its "Would-be-refused count per defect kind"
+section). The limit is left UNCHANGED: recalibrating it is a decision for the owner, and
+`classify_hard`'s verdict is disclosed rather than gated precisely so a limit going stale like this
+cannot silently starve `plan_buildings` of candidates. `SLIVER_MIN_USABLE_WIDTH_M` needs no corpus
+headroom the same way `ENTRANCE_STRAY_POCKET_MAX_M` does not: it is proven directly against the
+`ROOM_TEMPLATES` table itself
+(`test_dead_space.py::test_sliver_never_fires_on_a_c3_compliant_room`), not backed into just above
+an observed maximum. The current sweep finds a measured STUB on every PLANNED context (the ordinary
+one-tolerated-dead-end shape, now sized instead of merely counted), 1 with a CORNER, 0 with a
+SLIVER or an OVERSIZED_HALL.
 
-**C32 "no residual dead space past the hard limit"** (`validation.py`, next to C26, reusing the
-SAME minimal `GeometricDesign` C26 already assembles purely to measure this plan): MEASURES AND
-REPORTS `classify_hard`'s would-refuse verdict on a STUB region past `DEAD_SPACE_STUB_HARD_LIMIT_M`
-— it never fails the plan closed (lead repair order, 2026-09-26). It shipped as a hard gate first;
-multi-level upper-level geometry (`test_building_coordinator`) produced a real STUB past the limit
-that this single-level-only sweep never calibrated against, and gating on it there starved
-`plan_buildings` of every candidate. The other three kinds were always quality data
-(`QualityOut.metrics`) only, never a gate: a narrow room a future sizing path might produce is C3's
-own gate to fail on, a swing notch is normal architecture everywhere a door exists, and an oversized
-hall is a quality signal, not a correctness one.
+**C32 "no residual dead space past the hard limit"** shipped as a `validation.py` check next to
+C26, reusing the SAME minimal `GeometricDesign` C26 already assembles purely to measure this plan.
+It gated as a hard refusal first; multi-level upper-level geometry (`test_building_coordinator`)
+produced a real STUB past the limit that this single-level-only sweep never calibrated against, and
+gating on it there starved `plan_buildings` of every candidate. It was then changed to MEASURE AND
+REPORT `classify_hard`'s would-refuse verdict without ever failing the plan closed (lead repair
+order, 2026-09-26) — but an entry in `validation.py`'s check chain that can never fail is itself the
+wrong shape for a check (review finding, 2026-09-27 repair order): **C32 was removed from
+`validation.py` entirely.** The would-refuse verdict is disclosed instead as a product notice,
+`QualityOut.dead_space_notice` (`app/demo/contract.py`, `_dead_space_notice`), the same shape
+`laundry_notice` already uses — `None` for every plan under the limit. The other three kinds were
+always quality data (`QualityOut.metrics`) only, never a gate: a narrow room a future sizing path
+might produce is C3's own gate to fail on, a swing notch is normal architecture everywhere a door
+exists, and an oversized hall is a quality signal, not a correctness one.
 
 **Additive to `QualityOut.metrics`**: `QualityMetricsOut` gains `dead_space_m2`/`dead_space_share`
 — replacing the old hardcoded `0.0` — computed in `contract.to_demo_design` off the same raw
-`SolvedDesign` C32 reads. `quality_metrics.QualityMetrics` (M1–M6) no longer carries `dead_space_m2`
+`SolvedDesign` `dead_space.measure` reads elsewhere (circulation/entrance-sequence's own raw
+`SolvedDesign`). `quality_metrics.QualityMetrics` (M1–M6) no longer carries `dead_space_m2`
 itself (it never had the door-swing/wall-side geometry this measurement needs); the field lives
 here instead, the same reason `circulation_area_m2` etc. live in `CirculationMetrics` rather than
 in `QualityMetrics`. A real spine plan's own frozen baseline (`pipeline.run_demo()`) measures a
 small, real, non-zero `dead_space_m2` today (its HALL_SPUR leg's own tolerated dead end, ~1.5 m2) —
 this is intentional: the whole point of this Issue is to size a fact that was previously invisible,
-not to force it to zero. C32 still passes on it (1.05 m, well under the 2.0 m hard limit).
+not to force it to zero. `classify_hard` still returns `None` on it (1.05 m, well under the 2.0 m
+hard limit), so `dead_space_notice` is `None` for this baseline too.
 
 **The ranking term** (`dead_space_prefers(current, candidate)`, `circulation_prefers`-style):
 exported and unit-tested, **NOT YET WIRED** into `general_pipeline.run_general`'s candidate loop or
@@ -729,11 +739,14 @@ existing C1/C2 correctness floor — see that file's own K section for the full 
 `reference_benchmark.py`'s own section K (a DIFFERENT lettering scheme, see that module's docstring)
 reports the same `dead_space_m2`/`dead_space_share` pair as its `value`.
 
-**Corpus impact measured**: the frozen 432-context regression corpus sweep found 0/394 PLANNED
-contexts where `classify_hard` would fire (every PLANNED context's own worst stub, 1.50 m, sits
-under the 2.0 m hard limit) — the number the owner needs to decide whether C32 should become a
-hard refusal once Stage 2 changes the geometry (single-level today; a real multi-level upper-level
-STUB is what tripped the limit and moved this check to measure-and-report, see above).
+**Corpus impact measured**: the 2026-09-27 re-run of the frozen 432-context regression corpus
+sweep found **27/404 PLANNED contexts** where `classify_hard` would fire for STUB — the corpus has
+grown since this limit's own 394-context calibration snapshot, and today's worst measured stub
+(2.65 m) now sits PAST the 2.0 m limit — and, by construction, 0/404 for SLIVER/CORNER/OVERSIZED_HALL
+(`classify_hard` never evaluates those three kinds at all). These are the counts the owner needs,
+per defect kind, to decide whether any of these should become a hard refusal once Stage 2 changes
+the geometry (single-level today; a real multi-level upper-level STUB is what tripped the old hard
+gate and led to its removal from `validation.py`, see above and `docs/DEAD_SPACE_SWEEP.md`).
 `test_dead_space.py`'s hand-built fixtures and its tightened-limit test prove the would-refuse
 verdict genuinely fires on a real plan (mirrors `test_circulation_metrics.py`'s own C26 gate test)
 while the check itself still never fails the plan closed.

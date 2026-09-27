@@ -22,17 +22,8 @@ import tempfile
 import pytest
 
 from app.vertical_slice import dead_space as ds
-from app.vertical_slice import validation as validation_stage
 from app.vertical_slice.design_output import DoorOut, GeometricDesign, RoomOut
-from app.vertical_slice.geometry_core.engine import solve_fixture
 from app.vertical_slice.pipeline import run_demo
-from app.vertical_slice.spec import demo_spec
-from app.vertical_slice import concept as concept_stage
-from app.vertical_slice import doors as doors_stage
-from app.vertical_slice import furniture as furniture_stage
-from app.vertical_slice import site as site_stage
-from app.vertical_slice import windows as windows_stage
-from app.vertical_slice.wet_rooms import resolve_wet_rooms
 
 pytestmark = pytest.mark.filterwarnings("ignore")
 
@@ -132,7 +123,7 @@ def _transition_hall_within_budget_design() -> GeometricDesign:
 def _corner_notch_design() -> GeometricDesign:
     """A door whose realized hinge sits exactly at a room's own corner — the CORNER shape, built
     deliberately (real generator doors virtually never hinge exactly at a corner; the full-corpus
-    sweep found this once in 394 PLANNED contexts — `docs/DEAD_SPACE_SWEEP.md`). A second door
+    sweep found this once in 404 PLANNED contexts — `docs/DEAD_SPACE_SWEEP.md`). A second door
     serves HALL's own W end so this fixture measures CORNER alone, not also a STUB."""
     hall = _room("HALL", ("HALL", "CIRCULATION"), (0.0, 0.0, 3.0, 3.0))
     living = _room("LIVING", ("LIVING",), (3.0, 0.0, 6.0, 5.0), area=30.0)
@@ -271,50 +262,40 @@ def test_c32_fails_stub_fixture_and_passes_canonical(canonical_design):
     assert ds.classify_hard(ds.measure(_oversized_hall_design())) is None
 
 
-def test_c32_appears_in_the_check_list(canonical_design):
+def test_c32_not_in_the_check_list(canonical_design):
+    """A check that can never fail has no place in `validation.py`'s chain (review finding,
+    2026-09-27 repair order): C32 was removed from it entirely — dead space is disclosed on the
+    quality payload instead (`QualityOut.dead_space_notice`/`.metrics`), never validated."""
     del canonical_design
     result = run_demo(tempfile.mktemp(suffix=".png"))
-    assert "C32" in [c.check_id for c in result.validation.checks]
+    assert "C32" not in [c.check_id for c in result.validation.checks]
 
 
-def test_c32_measures_and_reports_but_never_gates_even_past_the_tightened_limit(monkeypatch):
-    """C32 stays MEASURED AND REPORTED, never a hard refusal (lead repair order, 2026-09-26): a
-    real STUB on multi-level upper-level geometry tripped the old hard gate and starved
-    `plan_buildings` of every candidate (`test_building_coordinator`), and this limit was only ever
-    swept single-level (`docs/DEAD_SPACE_SWEEP.md`). Tightening the limit below a REAL realized
-    plan's own measured value (the same discipline `test_circulation_metrics.py`'s own C26 gate
-    test uses) proves the would-refuse verdict genuinely fires — and proves the check still never
-    fails the plan closed on it."""
-    spec = demo_spec()
-    concept = concept_stage.build_concept(spec)
-    solve = solve_fixture(concept.fixture)
-    entrance_local_x = (solve.rects[concept.entrance_zone_id].x
-                        + solve.rects[concept.entrance_zone_id].w // 2)
-    site = site_stage.build_site_plan(spec, concept.footprint_width_m, concept.footprint_depth_m,
-                                      entrance_local_x)
-    rects = site_stage.translate_rects(solve.rects, site.footprint_offset_u)
-    interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
-    entrance_door = doors_stage.build_entrance_door(site.entrance, site.footprint)
-    windows = windows_stage.generate_windows(concept.fixture, rects, site.footprint)
-    furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
+def test_dead_space_notice_appears_only_past_the_tightened_limit(monkeypatch):
+    """Dead space stays MEASURED AND REPORTED, never a hard refusal (lead repair order,
+    2026-09-26/27): a real STUB on multi-level upper-level geometry tripped the old hard gate and
+    starved `plan_buildings` of every candidate (`test_building_coordinator`), and this limit was
+    only ever swept single-level (`docs/DEAD_SPACE_SWEEP.md`). Tightening the limit below a REAL
+    realized plan's own measured value (the same discipline `test_circulation_metrics.py`'s own
+    C26 gate test uses) proves the would-refuse verdict genuinely fires as a disclosure notice —
+    and proves it is never a validation failure: `validate()` never even names C32."""
+    from app.demo import service as svc
+    from tests.vertical_slice.test_hub_guard import WIDE_SQUARE, _project
 
-    before = validation_stage.validate(concept.fixture, rects, solve.walls, interior_doors,
-                                       entrance_door, windows, furniture, site,
-                                       wet_rooms=resolve_wet_rooms(spec.program))
-    c32_before = next(c for c in before.checks if c.check_id == "C32")
-    assert c32_before.passed
-    assert "MEASURED, not gated" not in c32_before.detail
+    project = _project(WIDE_SQUARE)
+
+    before = svc.generate_demo_design(project)
+    assert before.design.quality.dead_space_notice is None
+    assert before.design.validation.passed
+    assert "C32" not in before.design.validation.checks
 
     monkeypatch.setattr(ds, "DEAD_SPACE_STUB_HARD_LIMIT_M", 0.1)
-    after = validation_stage.validate(concept.fixture, rects, solve.walls, interior_doors,
-                                      entrance_door, windows, furniture, site,
-                                      wet_rooms=resolve_wet_rooms(spec.program))
-    c32_after = next(c for c in after.checks if c.check_id == "C32")
+    after = svc.generate_demo_design(project)
     # The would-refuse verdict genuinely fires (proving this is a real tightened limit, not a
-    # no-op) — but it is only ever disclosed, never a gate: the check still passes and `ok` holds.
-    assert c32_after.passed
-    assert "MEASURED, not gated" in c32_after.detail
-    assert after.ok
+    # no-op) — but it is only ever disclosed, never a gate: validation still holds.
+    assert after.design.quality.dead_space_notice is not None
+    assert after.design.validation.passed
+    assert "C32" not in after.design.validation.checks
 
 
 # --------------------------------------------------------------------------- QualityOut.metrics

@@ -100,18 +100,26 @@ def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
     refused = [r for r in corpus_results if r["status"] == "REFUSED"]
     crashed = [r for r in corpus_results if r["status"] == "CRASH"]
     kind_counts = Counter()
+    #: Per-kind count of PLANNED contexts that would refuse, if that kind's own presence gated —
+    #: for the three kinds `dead_space.classify_hard` never evaluates (SLIVER/CORNER/OVERSIZED_HALL,
+    #: see that function's own docstring), this stays 0 by construction on every corpus, not merely
+    #: measured as 0 on this one; only STUB is ever populated here.
+    would_refuse_by_kind = Counter()
     stub_lengths = []
     dead_space_values = [r["dead_space_m2"] for r in planned]
     would_refuse = 0
     for r in planned:
-        context_refuses = False
+        kinds_refusing = set()
         for kind, area, length in r["regions"]:
             kind_counts[kind] += 1
             if kind == "STUB" and length is not None:
                 stub_lengths.append(length)
                 if length > DEAD_SPACE_STUB_HARD_LIMIT_M + 1e-9:
-                    context_refuses = True
-        would_refuse += context_refuses
+                    kinds_refusing.add("STUB")
+        for kind in kinds_refusing:
+            would_refuse_by_kind[kind] += 1
+        if kinds_refusing:
+            would_refuse += 1
 
     lines = [
         "# Dead-Space Sweep (Issue #43)",
@@ -127,14 +135,31 @@ def _write_report(path: Path, corpus_results: list[dict], fixtures: list[dict],
         f"- REFUSED: {len(refused)}",
         f"- CRASH: {len(crashed)}",
         "",
-        "## Would-refuse count (C32, if it were a hard gate)",
+        "## Would-refuse count (STUB, if it were a hard gate)",
         "",
-        f"C32 (`validation.py`) only MEASURES AND REPORTS this verdict — it never fails a plan "
-        "closed (lead repair order, 2026-09-26: a real multi-level upper-level STUB tripped this "
-        "single-level-calibrated limit and starved `plan_buildings` of every candidate). This is "
-        "the count the owner needs to decide whether it should become a hard refusal once Stage 2 "
-        f"changes the geometry: {would_refuse}/{len(planned)} PLANNED contexts would refuse if "
+        "`dead_space.classify_hard`'s STUB verdict is only ever MEASURED AND REPORTED — disclosed "
+        "as a product notice (`QualityOut.dead_space_notice`), never a `validation.py` gate (a "
+        "check that can never fail has no place in that chain; lead repair order, 2026-09-26/27: "
+        "a real multi-level upper-level STUB tripped the old hard gate and starved "
+        "`plan_buildings` of every candidate). This is the count the owner needs to decide whether "
+        "it should become a hard refusal once Stage 2 changes the geometry: "
+        f"{would_refuse}/{len(planned)} PLANNED contexts would refuse if "
         f"`DEAD_SPACE_STUB_HARD_LIMIT_M` ({DEAD_SPACE_STUB_HARD_LIMIT_M:.2f} m) gated today.",
+        "",
+        "## Would-be-refused count per defect kind",
+        "",
+        "`dead_space.classify_hard` only ever evaluates STUB against a hard number "
+        "(`DEAD_SPACE_STUB_HARD_LIMIT_M`) — SLIVER/CORNER/OVERSIZED_HALL are reported quality data "
+        "(`QualityOut.metrics`) only and structurally can never produce a would-refuse verdict (see "
+        "that function's own docstring), so their count is 0 by construction on every corpus, not "
+        "merely measured as 0 on this one:",
+        "",
+    ]
+    for kind in ("STUB", "SLIVER", "CORNER", "OVERSIZED_HALL"):
+        count = would_refuse_by_kind.get(kind, 0)
+        note = "" if kind == "STUB" else " — never evaluated by `classify_hard`"
+        lines.append(f"- {kind}: {count}/{len(planned)} PLANNED contexts would refuse{note}")
+    lines += [
         "",
         "## Region-kind counts among PLANNED contexts",
         "",

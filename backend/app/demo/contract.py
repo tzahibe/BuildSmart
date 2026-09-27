@@ -209,7 +209,8 @@ class QualityMetricsOut(BaseModel):
     #: Measured residual geometry INSIDE zones (Issue #43,
     #: `app.vertical_slice.dead_space.measure`) — corridor stubs, undersized room slivers, door-
     #: swing corner notches and oversized-hall excess. `0.0` only when no region was measured, not
-    #: a constant (see that module for what each kind means and the C32 hard gate).
+    #: a constant (see that module for what each kind means and `QualityOut.dead_space_notice`
+    #: for the STUB would-refuse verdict).
     dead_space_m2: float = 0.0
     dead_space_share: float = 0.0
     wasted_circulation_share: float = 0.0
@@ -319,12 +320,20 @@ class QualityOut(BaseModel):
     room realized materially BELOW its own template target, disclosed as a product notice, never
     a validation failure and never a refusal (the activation decision explicitly rules out a flat
     percentage-loss refusal threshold — see `LAUNDRY_REDISTRIBUTION_NOTICE_RATIO`).
+
+    `dead_space_notice` (Issue #43, 2026-09-27 repair order): `app.vertical_slice.dead_space`'s
+    would-refuse verdict (`classify_hard`) for a STUB past `DEAD_SPACE_STUB_HARD_LIMIT_M`,
+    disclosed here rather than gated in `validation.py` — a check that can never fail has no
+    place in that chain, and the limit was only ever calibrated single-level (see that module for
+    why). `None` for every plan under the limit. `metrics.dead_space_m2`/`dead_space_share`
+    (below) carry the raw measurement for every plan regardless of whether this verdict fires.
     """
 
     over_preferred: bool = False
     signal: list[QualitySignal] = []
     notices: list[str] = []
     laundry_notice: str | None = None
+    dead_space_notice: str | None = None
     #: M1–M6 for this plan (Issue #17). `None` only for a payload built before this field existed
     #: — every plan `to_demo_design` produces from here on attaches one.
     metrics: QualityMetricsOut | None = None
@@ -1087,6 +1096,18 @@ def _laundry_redistribution_notice(design: SolvedDesign) -> str | None:
     return f"בקשת חדר הכביסה חייבה חלוקה מחדש של השטח: {'; '.join(parts)}"
 
 
+def _dead_space_notice(dead: dead_space.DeadSpaceMetrics) -> str | None:
+    """One disclosure sentence when `dead_space.classify_hard` finds a STUB past
+    `DEAD_SPACE_STUB_HARD_LIMIT_M` — MEASURED and reported here, never a validation failure
+    (Issue #43, 2026-09-27 repair order: a check that can never fail has no place in
+    `validation.py`'s chain). Mirrors `_laundry_redistribution_notice`'s own shape: `None` for
+    every plan under the limit."""
+    verdict = dead_space.classify_hard(dead)
+    if verdict is None:
+        return None
+    return f"אותר מרחב מת מעבר לסף המכויל: {verdict}"
+
+
 def _metrics_out(m: quality_metrics.QualityMetrics, c: circulation_metrics.CirculationMetrics,
                  d: dead_space.DeadSpaceMetrics,
                  wet_core: WetCoreOut | None = None) -> QualityMetricsOut:
@@ -1343,6 +1364,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     return demo.model_copy(update={
         "quality": demo.quality.model_copy(update={
             "metrics": _metrics_out(metrics, circulation, dead, wet_core),
+            "dead_space_notice": _dead_space_notice(dead),
             "constraints": constraints_out,
             "exposure": exposure,
             "wet_privacy": wet_privacy,
