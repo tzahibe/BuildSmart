@@ -90,6 +90,16 @@ def _polygon_from_ring(ring: list) -> Polygon | None:
     poly = Polygon(pts)
     if not poly.is_valid:
         poly = poly.buffer(0)
+    if poly.geom_type != "Polygon":
+        # A self-intersecting (bowtie) ring's buffer(0) repair can split into several pieces
+        # (MultiPolygon/GeometryCollection) -- not exercised by the 19-plan fixture, first seen on
+        # the full 199-plan corpus (resplan_3728's BATHROOM_2). Keep the largest polygonal piece,
+        # the standard repair for a self-intersecting digitisation ring, so area/shape
+        # classification still runs on a single simple polygon.
+        candidates = [g for g in getattr(poly, "geoms", []) if g.geom_type == "Polygon"]
+        if not candidates:
+            return None
+        poly = max(candidates, key=lambda g: g.area)
     if poly.is_empty or poly.area < MIN_POLYGON_AREA_M2:
         return None
     return poly

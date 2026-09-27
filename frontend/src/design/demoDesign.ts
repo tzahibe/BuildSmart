@@ -39,8 +39,21 @@ export interface DemoRoom {
   gross_depth_m: number
   gross_area_m2: number
   walls: Record<string, DemoWallFacts>
+  /** Architecture A spike (Issue #107), additive. `'RECTANGLE'` (the only value before this
+   *  field existed) for every ordinary room; `'L'` only for a room the LIVING+KITCHEN merge
+   *  spike produced — its boundary is `polygon_m`, not `x`/`y`/`gross_width_m`/`gross_depth_m`
+   *  (those still carry the room's own axis-aligned bounding box, for layout/labelling only). */
+  shape?: 'RECTANGLE' | 'L'
+  /** The room's own outer boundary, metres, plot-absolute, no closing duplicate point. `null`/
+   *  absent for a `'RECTANGLE'` room. */
+  polygon_m?: [number, number][] | null
 }
 
+/** `wall_class` collapses `construction`/`boundary_context` into the single semantic class the
+ * backend's wall model (`app.vertical_slice.walls`, Issue #45) computes — EXTERIOR | INTERIOR |
+ * WET_SERVICE | PROTECTED. `id` is what `DemoDoor.wall_id`/`DemoWindow.wall_id` reference.
+ * `thickness_m` is the REAL solved wall thickness — the renderer no longer guesses it from
+ * `construction` alone. All three are `undefined` only for a payload built before this Issue. */
 export interface DemoWallSegment {
   orientation: 'horizontal' | 'vertical'
   coord: number
@@ -49,6 +62,9 @@ export interface DemoWallSegment {
   construction: string
   boundary_context: string
   room_ids: string[]
+  id?: string
+  wall_class?: 'EXTERIOR' | 'INTERIOR' | 'WET_SERVICE' | 'PROTECTED'
+  thickness_m?: number
 }
 
 /** A boundary two spaces share with NO wall. Drawn as a deliberate absence, not by omission. */
@@ -77,6 +93,9 @@ export interface DemoDoor {
   y: number
   orientation: 'horizontal' | 'vertical'
   is_entrance: boolean
+  /** `DemoWallSegment.id` this door is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
 }
 
 export interface DemoWindow {
@@ -85,6 +104,9 @@ export interface DemoWindow {
   width_m: number
   x: number
   y: number
+  /** `DemoWallSegment.id` this window is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
 }
 
 /** One engine-placed semantic layout object (Issue #39) — mirrors `app.demo.contract.
@@ -260,6 +282,16 @@ export interface DemoDesign {
   /** The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for every
    *  house the engine plans today; absent for a payload that predates the field. */
   footprints?: DemoRect[]
+  /** Architecture A spike (Issue #107), additive. Absent/`null` when the flag is off (today's
+   *  default) or this plan has no LIVING+KITCHEN CLOSED_ADJACENT pair. */
+  merge?: {
+    living_id: string
+    kitchen_id: string
+    merged_id: string
+    applied: boolean
+    checks: { check_id: string; passed: boolean; detail: string }[]
+    oriented_aspect: number
+  } | null
 }
 
 /** The rectangles a design is made of: its wings, or the one footprint when the payload has no

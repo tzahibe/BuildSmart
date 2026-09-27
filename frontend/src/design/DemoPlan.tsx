@@ -1,6 +1,7 @@
 import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
 import { DoorSymbol } from '../components/plan/DoorSymbol'
+import { Walls, WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle } from '../components/plan/Walls'
 import { InteriorLayout } from '../components/plan/InteriorLayout'
 import { roomLabelLayout } from './demoRoomLabel'
 import './DemoPlan.css'
@@ -12,9 +13,12 @@ import './DemoPlan.css'
  * is, not whether two spaces are open to each other, not where a window goes, not what is
  * reachable. If a fact is not on the object, it is not drawn.
  *
- * Wall weight follows the backend's own construction/context facts rather than a guess:
- * an exterior wall is heavy, an RC safe-room wall is heavier and coloured, a partition is light,
- * and an `OPEN` boundary is drawn as a deliberate absence. */
+ * Wall weight follows the backend's own semantic class and real thickness (Issue #45) — an
+ * exterior wall is heavy, an RC/PROTECTED safe-room wall is heavier and coloured, a partition is
+ * light, and an `OPEN` boundary is drawn as a deliberate absence. The drawing itself lives in
+ * `components/plan/Walls.tsx`; `WALL_STYLE`/`EXTERIOR_WALL_STYLE`/`wallStyle` are re-exported here
+ * so `PlanLegend`'s swatches stay sourced from the SAME values as the plan. */
+export { WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle }
 
 const PAD_M = 1.5
 
@@ -55,22 +59,35 @@ export function planViewBox(design: DemoDesign): string {
   return `${x0} ${y0} ${x1 - x0} ${y1 - y0}`
 }
 
-/** Exported so `PlanLegend` swatches are drawn from the SAME values as the plan itself — a legend
- * that keeps its own copy of the colours is a legend that eventually lies about the drawing. */
-export const WALL_STYLE: Record<string, { color: string; width: number }> = {
-  RC_SAFE_ROOM: { color: '#b03a2e', width: 0.3 },
-  STRUCTURAL: { color: '#1a1a1a', width: 0.26 },
-  STANDARD_PARTITION: { color: '#8b939c', width: 0.1 },
+/** Architecture A spike (Issue #107): a merged room's own label centres on its polygon's AREA
+ *  centroid, not its bounding-box centre — the bbox centre of an L can land in the room's own
+ *  crook, outside the room entirely. Standard shoelace-formula polygon centroid; falls back to
+ *  the plain vertex average for a degenerate (near-zero-area) polygon. */
+function polygonCentroid(points: [number, number][]): { x: number; y: number } {
+  let area = 0, cx = 0, cy = 0
+  for (let i = 0; i < points.length; i++) {
+    const [x0, y0] = points[i]
+    const [x1, y1] = points[(i + 1) % points.length]
+    const cross = x0 * y1 - x1 * y0
+    area += cross
+    cx += (x0 + x1) * cross
+    cy += (y0 + y1) * cross
+  }
+  area /= 2
+  if (Math.abs(area) < 1e-9) {
+    const n = points.length
+    return { x: points.reduce((s, p) => s + p[0], 0) / n, y: points.reduce((s, p) => s + p[1], 0) / n }
+  }
+  return { x: cx / (6 * area), y: cy / (6 * area) }
 }
 
-export const EXTERIOR_WALL_STYLE = { color: '#1a1a1a', width: 0.26 }
-
-export function wallStyle(construction: string, context: string) {
-  if (construction === 'RC_SAFE_ROOM') return WALL_STYLE.RC_SAFE_ROOM
-  if (context === 'EXTERIOR') return EXTERIOR_WALL_STYLE
-  return WALL_STYLE[construction] ?? WALL_STYLE.STANDARD_PARTITION
+/** Which way the arc turns, so it sweeps the quarter the leaf actually travels through rather than
+ *  the opposite one. The cross product of (closed leaf) x (open leaf) about the hinge gives it. */
+function sweep(hx: number, hy: number, far: { x: number; y: number },
+               leaf: { x: number; y: number }): 0 | 1 {
+  const cross = (far.x - hx) * (leaf.y - hy) - (far.y - hy) * (leaf.x - hx)
+  return cross > 0 ? 1 : 0
 }
-
 /** `streetFacingSide` is the plot edge the person said faces the street. This drawing is STREET-UP by
  * construction — the backend puts the street, the parking bays and the entrance walk along `y = 0`
  * (`vertical_slice/site.py`) — which is what makes a compass truthful here and nowhere else in the
@@ -116,12 +133,28 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
               className="demo-room-flex" />
       ))}
 
+      {/* Architecture A spike (Issue #107): a merged room's own outer boundary, drawn as a real
+          SVG polygon — additive, alongside every other room's existing rectangle (drawn instead
+          via `design.walls`' own line segments, which the merge's wall-removal already makes
+          read as one continuous room with no extra code here). Absent/`null` for every ordinary
+          room, so this block draws nothing at all with the flag off. */}
+      {design.rooms.filter((room) => room.polygon_m && room.polygon_m.length > 0).map((room) => (
+        <polygon
+          key={`merged-${room.id}`}
+          points={room.polygon_m!.map(([px, py]) => `${px},${py}`).join(' ')}
+          className="demo-room-merged"
+        />
+      ))}
+
       {/* Rooms: name, realized NET dimensions, authoritative NET area. The label centres on the
           room's GROSS box — the rectangle the walls actually draw — while the printed numbers are
-          the usable (net) triple, so what's printed always multiplies out to the printed area. */}
+          the usable (net) triple, so what's printed always multiplies out to the printed area.
+          A merged room (Issue #107) centres on its own polygon's AREA CENTROID instead — its
+          bounding-box centre can land in the room's own crook, outside the room. */}
       {design.rooms.map((room) => {
-        const cx = room.x + room.gross_width_m / 2
-        const cy = room.y + room.gross_depth_m / 2
+        const centroid = room.polygon_m && room.polygon_m.length > 0 ? polygonCentroid(room.polygon_m) : null
+        const cx = centroid ? centroid.x : room.x + room.gross_width_m / 2
+        const cy = centroid ? centroid.y : room.y + room.gross_depth_m / 2
         const layout = roomLabelLayout(room)
         return (
           <text
@@ -152,21 +185,10 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
         )
       })}
 
-      {/* Walls, weighted by the backend's construction/context facts. An OPEN interface has no
-          wall segment at all, so open-plan reads as one continuous space by construction. */}
-      {design.walls.map((wall, i) => {
-        const style = wallStyle(wall.construction, wall.boundary_context)
-        const [x1, y1, x2, y2] =
-          wall.orientation === 'vertical'
-            ? [wall.coord, wall.start, wall.coord, wall.end]
-            : [wall.start, wall.coord, wall.end, wall.coord]
-        return (
-          <line
-            key={`wall-${i}`} x1={x1} y1={y1} x2={x2} y2={y2}
-            stroke={style.color} strokeWidth={style.width} strokeLinecap="butt"
-          />
-        )
-      })}
+      {/* Walls, weighted by the backend's own semantic class and real thickness (Issue #45). An
+          OPEN interface has no wall segment at all, so open-plan reads as one continuous space by
+          construction. */}
+      <Walls walls={design.walls} />
 
       {/* Engine-placed semantic layout objects (Issue #39) — drawn under the doors/windows so a
           door's swing arc always stays legible over any furniture near it. */}

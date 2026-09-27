@@ -134,6 +134,17 @@ def test_every_room_width_depth_matches_its_area():
         result = svc.generate_demo_design(_project(fixture))
         for design in (result.design, *result.alternatives):
             for room in design.rooms:
+                # A merged "L" room (Issue #118) is the one documented exception: its
+                # width_m/depth_m/gross_width_m/gross_depth_m are the room's own AXIS-ALIGNED
+                # BOUNDING BOX (`RoomOut`'s own docstring), not a literal net/gross rectangle —
+                # area_m2/gross_area_m2 are the true polygon areas instead (C27's redesigned
+                # formula for this room, proven separately in
+                # test_living_kitchen_merge_spike.py). This product check is only meaningful for
+                # a room whose displayed rectangle IS its own shape.
+                if room.shape == "L":
+                    assert room.width_m <= room.gross_width_m + 1e-6
+                    assert room.depth_m <= room.gross_depth_m + 1e-6
+                    continue
                 assert abs(room.width_m * room.depth_m - room.area_m2) <= 0.05, \
                     (design.rooms, room.id, room.width_m, room.depth_m, room.area_m2)
                 assert abs(room.gross_width_m * room.gross_depth_m - room.gross_area_m2) <= 0.05, \
@@ -180,6 +191,29 @@ def test_a_planned_design_carries_exposure_report_with_one_entry_per_room():
         assert (entry.window_side is not None) != (entry.no_window_reason is not None)
         if entry.window_side is not None:
             assert entry.window_width_m and entry.window_width_m > 0
+
+
+# --------------------------------------------------------------------- Issue #45: wall semantics
+
+def test_every_door_and_window_hosts_on_a_wall():
+    """Every door and window on a delivered plan references a real `WallSegment.id` — C33
+    (`validation.py`) already fails closed on this at the geometry level; this proves the
+    CONTRACT's own `wall_id` wiring (`_wall_id_for_door`/`_wall_id_for_window`) agrees."""
+    for fixture in (WIDE_SQUARE, NARROW_DEEP, OVER_CAPACITY):
+        result = svc.generate_demo_design(_project(fixture))
+        for design in (result.design, *result.alternatives):
+            wall_ids = {w.id for w in design.walls}
+            assert wall_ids, "a delivered plan always has at least one wall"
+            for door in design.doors:
+                assert door.wall_id is not None, f"door {door.a}-{door.b} has no wall_id"
+                assert door.wall_id in wall_ids
+            for window in design.windows:
+                assert window.wall_id is not None, f"window {window.room_id}:{window.side} has no wall_id"
+                assert window.wall_id in wall_ids
+            # Every wall carries its own semantic class and a real thickness.
+            for wall in design.walls:
+                assert wall.wall_class in ("EXTERIOR", "INTERIOR", "WET_SERVICE", "PROTECTED")
+                assert wall.thickness_m and wall.thickness_m > 0
 
 
 # ------------------------------------------------------------------ Issue #39: interior layout
