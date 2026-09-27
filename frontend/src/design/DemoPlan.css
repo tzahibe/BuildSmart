@@ -29,3 +29,6 @@
   pointer-events: none;
 }
 .demo-layout-object--focal-wall .demo-layout-object-rect { fill: #c9d3dc; stroke: none; }
+.demo-scale-bar-line { stroke: #1a1a1a; stroke-width: 0.05; }
+.demo-scale-bar-tick { stroke: #1a1a1a; stroke-width: 0.05; }
+.demo-scale-bar-label { font-size: 0.32px; fill: #1a1a1a; text-anchor: middle; dominant-baseline: hanging; }
