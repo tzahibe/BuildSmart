@@ -668,9 +668,10 @@ public room is obstructed by another room's own furniture.
 - **`blocked_public_rooms`**: C31's own defect list (below).
 - **`composition_score`**: one aggregate, LOWER IS BETTER, for a caller comparing two otherwise-equal
   candidate plans (`composition_prefers`, mirrors `circulation_prefers`/`entrance_sequence_prefers`'s
-  shape) — **not currently wired into any candidate-ranking call site**, the same "additive, ready
-  data + a comparison helper, not yet wired" state `wet_core.py`'s own ranking preference documents;
-  a future Issue can wire it the same way. `public_zone_coherent` is NEVER read by the score — open
+  shape) — **wired into `run_general`'s own tiebreak chain at the LOWEST precedence** (Issue #41): it
+  may only reorder candidates that every other signal already ranks equal, and can never outrank
+  circulation, the quality tier or the area budget. It is a preference, never a gate: no plan is
+  refused by it. `public_zone_coherent` is NEVER read by the score — open
   plan costs nothing by construction, which is what makes AC-1 ("never penalize openness") hold
   structurally rather than by a threshold choice.
 
@@ -910,13 +911,15 @@ follow-ups for a future stage, not this one.
   explicitly OUT OF SCOPE for Issue #17; any future attempt should start from why v1–v2.1 failed,
   not repeat the same seat count.
 
-A fifth, from Issue #41: **`public_composition.composition_prefers` is not wired into any
-candidate-ranking call site.** The data (`PublicComposition`/`composition_score`) and the comparator
-are real and tested; wiring them into `run_general`'s own tiebreak chain (the same STRICT,
-already-equal-on-everything-else pattern `entrance_sequence_prefers` uses) was deliberately not
-attempted in this Issue to keep the corpus regression risk to the C31 hard gate alone — see
-`wet_core.py`'s own ranking preference for the identical precedent ("ready for whenever a hub
-candidate is reachable again"). A future Issue can wire it the same way.
+Issue #41's own `public_composition.composition_prefers` **is** wired, into `run_general`'s tiebreak
+chain at the lowest precedence, using the same STRICT already-equal-on-everything-else pattern
+`entrance_sequence_prefers` uses. An earlier draft of this page (and of the list above) said it was
+deliberately left unwired; that was true of the Issue's first attempt and became false when the
+ranking wiring landed in the same PR — the lead's own merge of `main` kept both statements side by
+side without reconciling them (review finding, 2026-09-27). The corpus effect is documented in the
+Issue's own A/B: the primary-signature shift within budget is C31-driven, and the tiebreak itself
+moves only candidates that were already equal on every other signal. `wet_core.py`'s ranking
+preference remains the unwired case.
 
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
 A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
