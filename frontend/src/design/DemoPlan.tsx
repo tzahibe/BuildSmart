@@ -1,5 +1,6 @@
 import { footprintsOf, type DemoDesign, type DemoRect } from './demoDesign'
 import { CompassRose } from './CompassRose'
+import { ScaleBar } from './ScaleBar'
 import { DoorSymbol } from '../components/plan/DoorSymbol'
 import { Walls, WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle } from '../components/plan/Walls'
 import { InteriorLayout } from '../components/plan/InteriorLayout'
@@ -248,6 +249,17 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
         cy={frameY + compassInset}
         scale={compassScale}
       />
+
+      {/* The scale bar, like the compass, belongs to the full drawing, not a thumbnail — gated on
+          the same `streetFacingSide` presence a caller already uses to mean "this is the primary
+          plan view", so a thumbnail stays uncluttered by both accessories together. */}
+      {streetFacingSide != null && (
+        <ScaleBar
+          x={frameX + compassInset * 0.5}
+          y={frameY + frameH - compassInset * 0.5}
+          frameSizeM={Math.min(frameW, frameH)}
+        />
+      )}
     </svg>
   )
 }

@@ -163,6 +163,32 @@ size catalogue (every item size here is a placeholder, see above), improving `in
 own placement algorithm (Issue 9's scope — see the furnishability section above for why this
 matters to C30 specifically).
 
+## Professional drawing representation (Issue #46)
+
+The live plan drawing (`frontend/src/design/DemoPlan.tsx`) already drew every field this module and
+Issue #45's wall model produce — layout objects, wall class/thickness, door swing arcs, windows,
+room labels/dimensions, and a north arrow gated on a known `streetFacingSide` — before Issue #46.
+What Issue #46 added is the one missing professional-drawing convention, a **scale bar**
+(`frontend/src/design/ScaleBar.tsx`): a round metric length (1-2-5 series) picked from the drawing's
+own frame size, gated on the same `streetFacingSide` presence the compass already uses so a
+thumbnail stays uncluttered — a drawing CONVENTION, never an architectural fact, so it deliberately
+reads no `DemoDesign` field at all.
+
+`backend/tests/test_renderer_audit.py` is the audit test this Issue added: it statically proves
+every drawn element category (walls, doors, windows, layout, labels/dimensions) is sourced from a
+real field on `app.demo.contract`'s Pydantic models — never a renderer-invented literal — and that
+the compass/scale bar are never drawn without the orientation/frame data they need. It deliberately
+does not audit `app.vertical_slice.renderer` (the older, disconnected debug PNG tool for the
+vertical-slice CLI, out of the live product path — same boundary `test_frontend_contract_audit.py`
+already draws around `ArchitecturalFloorPlan.tsx`/`SketchSvg.tsx`) or DXF output (out of scope).
+
+### Last verified against git
+
+`4ccf53a` (branch `agent/46-professional-architectural-drawing-repre`, based on `origin/main`):
+this section documents Issue #46's own implementation, verified against this session's own test
+runs (`test_renderer_audit.py`, the full frontend vitest suite — 206 tests — and the backend FAST
+suite, 1588 passed/0 failed).
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled:**
