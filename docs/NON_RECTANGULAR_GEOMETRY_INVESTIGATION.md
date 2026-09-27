@@ -317,6 +317,16 @@ ever sees and tiles rectangles.
   kitchen median aspect by less than the reference gap it targets (2.75 → reference L-counter shape),
   the generalisation to more room-pairs is not worth pursuing.
 
+  **Spike run (Issue #107, 2026-09-23)**:
+  `docs/reports/non-rectangular-geometry-architecture-a-spike.md`. Result: implemented and
+  flagged off (`app.vertical_slice.room_merge.LIVING_KITCHEN_MERGE_ENABLED`, default `False`) —
+  the LIVING+KITCHEN CLOSED_ADJACENT case merges into one polygon room through `contract.py` +
+  `room_merge.py` alone, with zero solver changes, zero changes to any other room's own checks,
+  and a redesigned/polygon-variant form of every check the Issue named (C1, C2, C3, C6, C7, C8,
+  C9, C14, C16, C19, C20, C26, C27) scoped to the merged room only; renders as a real SVG
+  `<polygon>` (frontend, additive). See the spike report for the 432-context corpus measurement
+  (LOST=0 required), the M1 kitchen/dining aspect before/after, and the kill-criterion answer.
+
 ### B — Non-guillotine rectangular layout
 
 **What it produces**: rooms stay simple rectangles, but the PARTITION is a general rectangular
@@ -367,6 +377,16 @@ touching room shape at all.
   silently assumes tree adjacency (not just a `Rect` type) and needs a change to accept the
   hand-encoded layout, the reuse estimate above is wrong and B's effort number needs revising upward
   before further investment.
+
+  **Spike run (Issue #108, 2026-09-23)**:
+  `docs/reports/non-rectangular-geometry-architecture-b-spike.md`. Result: the reuse claim
+  substantially holds — 24/25 `validate()` checks (including C1/C3/C9/C20/C27), doors/windows,
+  furniture feasibility, `design_output.assemble`, the demo contract, all six M1-M6 metrics and
+  both renderers accepted a hand-encoded, genuinely non-guillotine `dict[str, Rect]` with zero
+  `app/` code changes; C22 needs a solver-output change (`Wing.seam_leaf_sides`), not a validator
+  rewrite. B's downstream-integration effort is revised down (~6-10 eng-weeks from ~8-14); the
+  solver itself and the corpus-regression risk are untouched by the spike and remain the dominant,
+  unproven cost — the ROOT-level recommendation in §6 below is unchanged.
 
 ### C — Polygonal layout
 

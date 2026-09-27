@@ -18,8 +18,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import (circulation_metrics, entrance_sequence, interior_layout,
-                                quality_metrics)
+from app.vertical_slice import (circulation_metrics, entrance_sequence, furnishability,
+                                interior_layout, quality_metrics, room_merge)
 from app.vertical_slice.constraints import ConstraintSource, TypedConstraint
 from app.vertical_slice.exposure_policy import EXPOSURE_POLICY, ExposureRequirement
 from app.vertical_slice.spec import CorridorRequirement
@@ -105,6 +105,17 @@ class RoomOut(BaseModel):
     preferred_max_m2: float | None = None
     hard_max_m2: float | None = None
     over_preferred_ratio: float | None = None
+    #: Architecture A spike (Issue #107), additive. `"RECTANGLE"` (the only value before this
+    #: field existed) for every ordinary room; `"L"` only for a room the LIVING+KITCHEN merge
+    #: spike produced. Mirrors `OutlineOut.shape`'s own convention.
+    shape: Literal["RECTANGLE", "L"] = "RECTANGLE"
+    #: The room's own outer boundary, metres, plot-absolute, exterior ring with no closing
+    #: duplicate point. `None` for a `"RECTANGLE"` room — its boundary is exactly `x`, `y`,
+    #: `gross_width_m`, `gross_depth_m`. Populated only for a merged `"L"` room, where
+    #: `width_m`/`depth_m`/`gross_width_m`/`gross_depth_m` are the room's own AXIS-ALIGNED
+    #: BOUNDING BOX (informational — not literally net/gross width x depth; `area_m2`/
+    #: `gross_area_m2` are the true polygon areas, per C27's redesigned formula for this room).
+    polygon_m: list[tuple[float, float]] | None = None
 
 
 class WallSegment(BaseModel):
@@ -230,6 +241,25 @@ class WetPrivacyOut(BaseModel):
     privacy_score: float
 
 
+class UsabilityOut(BaseModel):
+    """One room's furnishability/usability standing (Issue #40) — see
+    `app.vertical_slice.furnishability.Usability` for what each field means and how it is
+    computed. Display/ranking data only. `validation.check_furnishability` (C30) is the
+    corresponding fail-closed check for the UNUSABLE tier, but — see that function's own
+    docstring for the measured reason — it is not called from any live validation path today, so
+    a delivered plan CAN show a room at UNUSABLE here (`_usability_notices` discloses it)."""
+
+    room_id: str
+    tier: str
+    required_placed: bool
+    missing_required: list[str] = []
+    clearance_satisfied: bool
+    access_path_clear: bool
+    blocked_objects: list[str] = []
+    usable_wall_length_m: float
+    window_blocked: bool
+
+
 class ExposureOut(BaseModel):
     """One room's exposure standing (Issue #19) — which sides are on the envelope, and either the
     window that was placed or the reason none was: `NO_EXTERIOR_WALL` (a planning-topology
@@ -322,6 +352,10 @@ class QualityOut(BaseModel):
     #: One `WetPrivacyOut` per wet room (Issue #37), additive. `[]` for a plan with no wet rooms,
     #: or one built before this field existed.
     wet_privacy: list[WetPrivacyOut] = []
+    #: One `UsabilityOut` per room (Issue #40), additive. `[]` only for a payload built before
+    #: this field existed — every plan `to_demo_design` produces from here on attaches one entry
+    #: per room.
+    usability: list[UsabilityOut] = []
     #: The entrance-to-circulation sequence (Issue #22), additive. `None` only for a payload built
     #: before this field existed — every plan `to_demo_design` produces from here on attaches one.
     entrance_sequence: EntranceSequenceOut | None = None
@@ -362,6 +396,51 @@ class LayoutObjectOut(BaseModel):
     clearance_y: float
     clearance_width_m: float
     clearance_depth_m: float
+
+
+def _usability_notices(design: SolvedDesign, usability: list[UsabilityOut]) -> list[str]:
+    """ONE aggregated sentence per tier worth naming (Issue #40's own "a QualityOut warning"
+    requirement for POOR) — the same "one sentence for the plan" shape `quality_of`'s own
+    over-preferred notice already uses, never a per-check entry in `validation.warnings`. UNUSABLE
+    is included too, disclosed rather than silently dropped: `validation.check_furnishability`
+    (C30) is NOT wired into any live gate (see that function's own docstring for the measured
+    reason), so nothing else in the pipeline ever tells the person a required object had nowhere
+    to go — this notice is the only place that fact reaches them today."""
+    notices: list[str] = []
+    name_of = {r.zone_id: _room_name(r) for r in design.rooms}
+
+    def names_of(records: list[UsabilityOut]) -> str:
+        return ", ".join(name_of.get(u.room_id, u.room_id) for u in records)
+
+    unusable = [u for u in usability if u.tier == furnishability.UNUSABLE]
+    if unusable:
+        count = len(unusable)
+        head = ("בחדר אחד אין מקום לפריט חובה" if count == 1
+               else f"ב-{count} חדרים אין מקום לפריט חובה")
+        notices.append(f"{head}: {names_of(unusable)}")
+
+    poor = [u for u in usability if u.tier == furnishability.POOR]
+    if poor:
+        count = len(poor)
+        head = ("לחדר אחד יש ריהוט אך אין מעבר פנוי מהדלת" if count == 1
+               else f"ל-{count} חדרים יש ריהוט אך אין מעבר פנוי מהדלת")
+        notices.append(f"{head}: {names_of(poor)}")
+
+    return notices
+
+
+def _usability_out(design: SolvedDesign) -> list[UsabilityOut]:
+    """Issue #40 — reads `interior_layout.compute_layout(design)` again, a second cheap, pure
+    pass over the same realized design `_layout_out` already reads (the same "costs microseconds,
+    not a real duplicate-computation concern" reasoning `validation.py`'s C26 comment gives)."""
+    return [UsabilityOut(room_id=u.room_id, tier=u.tier, required_placed=u.required_placed,
+                         missing_required=list(u.missing_required),
+                         clearance_satisfied=u.clearance_satisfied,
+                         access_path_clear=u.access_path_clear,
+                         blocked_objects=list(u.blocked_objects),
+                         usable_wall_length_m=u.usable_wall_length_m,
+                         window_blocked=u.window_blocked)
+           for u in furnishability.compute_usability(design)]
 
 
 def _layout_out(design: SolvedDesign) -> list[LayoutObjectOut]:
@@ -446,6 +525,37 @@ class SearchSummary(BaseModel):
     total_latency_ms: float
 
 
+class MergeCheckOut(BaseModel):
+    """One of `room_merge.validate_merged_room`'s checks, in the same `Check` shape validation.py
+    already uses — see that module for why C1/C2/C3/C6/C7/C8/C9/C14/C16/C19/C20/C26/C27 are
+    re-derived for the merged room specifically."""
+
+    check_id: str
+    passed: bool
+    detail: str
+
+
+class MergeOut(BaseModel):
+    """Architecture A spike (Issue #107): whether the ONE candidate this spike targets — an
+    adjacent LIVING+KITCHEN pair reading CLOSED_ADJACENT — was found in this plan, and whether it
+    was actually applied. `None` on `DemoDesign` when the flag is off or no such pair exists.
+
+    `applied=False` with `checks` naming the failing one(s) is a real, reportable outcome — a
+    candidate that fails its OWN merge-specific validation is never drawn as an unvalidated L
+    room; the plan is drawn exactly as it would be with the flag off.
+    """
+
+    living_id: str
+    kitchen_id: str
+    merged_id: str
+    applied: bool
+    checks: list[MergeCheckOut]
+    #: The union polygon's own axis-aligned bounding-box long/short ratio (`MergedGeometry
+    #: .min_rotated_aspect` — see that field's own docstring for why it is the AABB, not a
+    #: rotated search) — read directly by the spike report's own M1 before/after measurement.
+    oriented_aspect: float
+
+
 class DemoDesign(BaseModel):
     plot: RectOut
     #: The building's bounding box — the footprint itself for a one-wing house.
@@ -476,6 +586,9 @@ class DemoDesign(BaseModel):
     #: The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for
     #: every house the engine plans today; empty only for a payload that predates the field.
     footprints: list[RectOut] = []
+    #: Architecture A spike (Issue #107), additive. `None` when the flag is off (today's
+    #: default), or when the flag is on but this plan has no LIVING+KITCHEN CLOSED_ADJACENT pair.
+    merge: MergeOut | None = None
 
 
 # --------------------------------------------------------------------------- the building
@@ -867,6 +980,70 @@ def _open_corridor_to_public(design: SolvedDesign, walls: list[WallSegment],
     return kept, opens + opened
 
 
+def _apply_room_merge(merge: room_merge.MergeResult, rooms_out: list[RoomOut],
+                      walls: list[WallSegment], opens: list[OpenInterface],
+                      doors: list[DoorOut], windows: list[WindowOut]
+                      ) -> tuple[list[RoomOut], list[WallSegment],
+                                list[OpenInterface], list[DoorOut], list[WindowOut]]:
+    """Applies an ALREADY-VALIDATED `room_merge.MergeResult` (`merge.passed` is the caller's own
+    responsibility) to the drawn payload: the two source `RoomOut`s collapse into one polygon
+    room, the wall segment(s) strictly between them are dropped (they are now interior to one
+    room, not a boundary between two — nothing is drawn there at all, unlike an OPEN interface,
+    which still marks a boundary between two distinct rooms), any door between them is dropped
+    for the same reason, and every remaining wall/open-interface/door/window that named one of
+    the two source ids is remapped onto the merged id so the plan stays internally consistent
+    (a window keeps its own EXTERIOR wall — merging never touches that side — so only its
+    `room_id` label needs to follow the room it now belongs to; `_wall_id_for_window` would
+    otherwise never find that wall, since `_wall_segments` already remapped its `room_ids`).
+    """
+    lid, kid, mid = merge.living_id, merge.kitchen_id, merge.merged_id
+    living = next(r for r in rooms_out if r.id == lid)
+    kitchen = next(r for r in rooms_out if r.id == kid)
+    bx, by, bw, bh = merge.geometry.bbox_m
+
+    def combined_ceiling(attr: str) -> float | None:
+        a, b = getattr(living, attr), getattr(kitchen, attr)
+        return None if a is None or b is None else round(a + b, 2)
+
+    preferred_max_m2 = combined_ceiling("preferred_max_m2")
+    over_preferred_ratio = None
+    if preferred_max_m2:
+        ratio = merge.geometry.net_area_m2 / preferred_max_m2
+        over_preferred_ratio = round(ratio, 3) if ratio > 1.0 + 1e-6 else None
+
+    merged_room = RoomOut(
+        id=mid, type="LIVING_KITCHEN", name=f"{living.name} ו{kitchen.name}",
+        x=bx, y=by, width_m=bw, depth_m=bh, area_m2=merge.geometry.net_area_m2,
+        gross_width_m=bw, gross_depth_m=bh, gross_area_m2=merge.geometry.gross_area_m2,
+        walls={}, shape="L", polygon_m=[(px, py) for px, py in merge.geometry.polygon_m],
+        preferred_max_m2=preferred_max_m2, hard_max_m2=combined_ceiling("hard_max_m2"),
+        over_preferred_ratio=over_preferred_ratio,
+    )
+
+    def remap(ids: list[str]) -> list[str]:
+        return [mid if x in (lid, kid) else x for x in ids]
+
+    new_walls = [seg for seg in walls if set(seg.room_ids) != {lid, kid}]
+    new_walls = [seg.model_copy(update={"room_ids": remap(seg.room_ids)}) for seg in new_walls]
+
+    new_opens = [o for o in opens if set(o.room_ids) != {lid, kid}]
+    new_opens = [o.model_copy(update={"room_ids": remap(o.room_ids)}) for o in new_opens]
+
+    new_doors = [d for d in doors if {d.a, d.b} != {lid, kid}]
+    new_doors = [d.model_copy(update={
+        "a": mid if d.a in (lid, kid) else d.a,
+        "b": mid if d.b in (lid, kid) else d.b,
+        "swings_into": mid if d.swings_into in (lid, kid) else d.swings_into,
+    }) for d in new_doors]
+
+    new_rooms = [r for r in rooms_out if r.id not in (lid, kid)] + [merged_room]
+
+    new_windows = [w.model_copy(update={"room_id": mid}) if w.room_id in (lid, kid) else w
+                   for w in windows]
+
+    return new_rooms, new_walls, new_opens, new_doors, new_windows
+
+
 def _suppress_covered_cased_openings(doors: list[DoorOut],
                                      opens: list[OpenInterface]) -> list[DoorOut]:
     """Drop a CASED_OPENING whose whole span now lies in open interface — there is no wall left
@@ -1125,9 +1302,27 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     c27 = check_realized_dimensions(rooms_out, design.gross_area_m2)
     if not c27.passed:
         raise InconsistentGeometryError(c27.detail)
+
     windows_out = [WindowOut(room_id=w.zone_id, side=w.side, width_m=w.width_m,
                              x=w.center_m[0], y=w.center_m[1])
                    for w in design.windows if w.width_m > 0]
+
+    # Architecture A spike (Issue #107): a LIVING+KITCHEN merge candidate, if the flag is on and
+    # one exists in THIS plan, is decided against the design C27 already proved consistent above
+    # — an unvalidated candidate is never drawn (see `MergeOut`'s own docstring).
+    merge_plan = room_merge.plan_merge(design, report)
+    merge_out = None
+    if merge_plan is not None:
+        merge_out = MergeOut(
+            living_id=merge_plan.living_id, kitchen_id=merge_plan.kitchen_id,
+            merged_id=merge_plan.merged_id, applied=merge_plan.passed,
+            checks=[MergeCheckOut(check_id=c.check_id, passed=c.passed, detail=c.detail)
+                    for c in merge_plan.checks],
+            oriented_aspect=merge_plan.geometry.min_rotated_aspect,
+        )
+        if merge_plan.passed:
+            rooms_out, walls, opens, doors, windows_out = _apply_room_merge(
+                merge_plan, rooms_out, walls, opens, doors, windows_out)
     # Issue #45: every door/window references the wall it hosts on. Done here, once, over the
     # FINAL (cosmetically-opened) `walls` list, rather than in `_wall_segments` itself — a door's
     # own wall is guaranteed to survive that cosmetic pass (see `_wall_id_for_door`'s docstring),
@@ -1161,6 +1356,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
         quality=quality_of(design),
         outline=outline,
         family=family,
+        merge=merge_out,
     )
     # M1–M6 (Issue #17) need the FLATTENED walls/open-interfaces/doors this function just built
     # (adjacency, hall doors, open-plan joins) — data `quality_of(design)` above never sees, since
@@ -1201,13 +1397,16 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
     wet_privacy = [WetPrivacyOut(**dataclasses.asdict(p)) for p in design.wet_privacy]
     wet_core = (WetCoreOut(**dataclasses.asdict(design.wet_core))
                if design.wet_core is not None else None)
+    usability = _usability_out(design)
     return demo.model_copy(update={
         "quality": demo.quality.model_copy(update={
             "metrics": _metrics_out(metrics, circulation, wet_core),
             "constraints": constraints_out,
             "exposure": exposure,
             "wet_privacy": wet_privacy,
-            "entrance_sequence": entrance_seq_out})
+            "usability": usability,
+            "entrance_sequence": entrance_seq_out,
+            "notices": [*demo.quality.notices, *_usability_notices(design, usability)]})
     })
 
 

@@ -211,7 +211,7 @@ def _section_a(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 def _section_b(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
     metrics = qm.measure_design(design)
     halls = [r for r in design.rooms if qm.is_(qm.HALL, r.type)]
-    circulation_area_m2 = sum(r.gross_width_m * r.gross_depth_m for r in halls)
+    circulation_area_m2 = sum(r.gross_area_m2 for r in halls)
     corridor_length_m = max((max(r.gross_width_m, r.gross_depth_m) for r in halls), default=0.0)
     ratio = metrics.m3_circulation_share
     matching = _matching_entries(references, family)
@@ -252,6 +252,14 @@ def _section_b(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 
 def _section_c(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
     public_ok = _zone_contiguous(design, qm.PUBLIC)
+    if public_ok is None and any(qm.is_(qm.PUBLIC, r.type)
+                                 and getattr(r, "shape", "RECTANGLE") == "L"
+                                 for r in design.rooms):
+        # A validated LIVING+KITCHEN merge (Issue #118) can leave exactly ONE public room (no
+        # DINING) — `_zone_contiguous`'s own "fewer than 2 rooms, nothing to test" escape hatch
+        # otherwise never fires for PUBLIC on this codebase's room programme (LIVING/KITCHEN are
+        # always both present), so this reads as "public zone is one contiguous room," not n/a.
+        public_ok = True
     private_ok = _zone_contiguous(design, PRIVATE)
     service_ok = _zone_contiguous(design, SERVICE)
     value = {"public_contiguous": public_ok, "private_contiguous": private_ok,
@@ -303,9 +311,14 @@ def _section_k(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 
 
 def _section_l(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
+    # `gross_area_m2` (not `gross_width_m * gross_depth_m`) so a merged "L" room's own true
+    # polygon area is compared here — for that room `gross_width_m`/`gross_depth_m` are only its
+    # AXIS-ALIGNED BOUNDING BOX (informational), and the bbox product would report a gap driven by
+    # the L's own shape, not by wall thickness (Issue #118, AC-1); identical to the old product
+    # for every RECTANGLE room, since `gross_area_m2` IS `gross_width_m * gross_depth_m` there.
     gaps = []
     for r in design.rooms:
-        gross = r.gross_width_m * r.gross_depth_m
+        gross = r.gross_area_m2
         if gross <= 0:
             continue
         gaps.append(abs(gross - r.area_m2) / gross)
