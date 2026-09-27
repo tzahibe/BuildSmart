@@ -137,6 +137,26 @@ threshold (`-0.4708`):
 Every row's `winner_score` sits well below the real-corpus threshold of `-0.4708` — the best any
 candidate reaches anywhere in the corpus is `-0.6270` (see "Four-state classification" above).
 
+## One fully detailed candidate set (every candidate's own score, not just the winner's)
+
+Context `bedrooms=4, built_area_m2=132.0, footprint=11.0x12.0, safe_room=False, wet_rooms=1`: 28
+candidates in the winner's tier, 24 with a scored adjacency pattern (4 have no eligible pair with a
+supported artifact row and are excluded, never scored as a fabricated 0.0):
+
+    -0.626988, -1.099189, -1.099189, -1.606174, -1.099189, -1.099189, -1.606174, -1.099189,
+    -1.099189, -1.606174, -0.626988, -1.099189, -1.099189, -1.606174, -1.099189, -1.099189,
+    -1.099189, -1.606174, -1.099189, -1.099189, -1.606174, -1.099189, -1.099189, -1.099189
+
+`score_spread = 0.979186` (max `-0.626988` - min `-1.606174`) — real variance across the tier. The
+**winner's own score is `-1.099189`** (the modal value, 14/24 candidates), and its `tied_count` is
+`2`: only ONE other candidate shares its exact existing-key tuple (area-diff, `over_preferred`-or-
+`shrunk`, `over_preferred`, area, strategy — the criteria that decide ranking BEFORE this term is
+ever read), and that one candidate is its own free twin, which also scores `-1.099189`. The two
+candidates that scored `-0.626988` (the best in the whole tier) are NOT tied with the winner on any
+existing criterion — the adjacency term never even gets to compare against them, however much
+better they score. This is `margin: "tied"`, `could_change_winner: False` — the concrete mechanics
+behind the 0%/0% headline above, shown on one real candidate set rather than only asserted.
+
 ## Method
 
 `adjacency_priors_ab.py` replays every context through `app.demo.service.generate_demo_design`.
