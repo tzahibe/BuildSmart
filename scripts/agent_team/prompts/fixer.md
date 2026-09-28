@@ -59,6 +59,29 @@ Failure class: **{{failure_class}}**
    If a needed command is denied, do not retry it in another form: commit what you have and
    report `status: "blocked"` naming the exact command.
 
+# CHANGE IMPACT CHECK (owner rule, 2026-09-29) — mandatory before you report done
+
+Whenever your change touches a **contract, a name, a semantic, an artifact schema, a default, or
+validator behaviour**, you must walk these eight and write the answers into your report. A fix does
+not end in the file where it started.
+
+1. **PRODUCER** — who produces this datum/artifact?
+2. **CONSUMERS** — who actually reads it? (grep for every reader, not just the obvious one.)
+3. **CONTRACT** — which Issue / AC / schema describes it? Does that description still match?
+4. **TESTS** — which test proves the NEW behaviour?
+5. **REPRODUCTION** — does the documented reproduce command still work end to end? If the change
+   touches a command any report documents, **run that command** before reporting done.
+6. **DOCS / REPORTS** — do the reports and docstrings still describe the correct semantics? A
+   docstring that states a default twice, or contradicts the code, is a defect.
+7. **DEFAULTS / FALLBACKS** — does the default point at the RIGHT datum? Is there a fallback that
+   could silently return the legacy behaviour? Silent fallbacks are defects, not safety nets.
+8. **CROSS-ISSUE DEPENDENCIES** — which downstream Issues or pipelines depend on what you changed?
+
+**Hard rule.** A rename or a semantic-contract change is NOT done until a test loads the REAL
+artifact the way the downstream consumer loads it and asserts: the expected semantic key exists, the
+correct default is selected, and no silent fallback to the legacy behaviour is possible. A mock is
+not enough. A producer-side unit test is not enough.
+
 # The contract (LIVE — authoritative)
 {{contract_summary}}
 
