@@ -5,11 +5,18 @@ Re-runs #141's own decision-relevance + four-state diagnostic
 (`backend/tests/regression_corpus/corpus.json`) — reusing that script's own `_capture_off_run`,
 `_tier`, `_existing_key`, `_decision_relevance` and `_SPREAD_EPSILON` unchanged — but:
 
-  - every candidate is scored against the FULL-CORPUS TRAIN-built spatial-adjacency prior
+  - every candidate is scored against the FULL-CORPUS TRAIN-built table
     (`docs/reports/real-plan-priors/adjacency-fullcorpus.json`, Issue #149-B) instead of #141's
-    19-plan artifact.
-  - "near real" is calibrated against that SAME artifact's HOLDOUT median/stdev/threshold — never
-    in-sample (AC-2).
+    19-plan artifact. `--table-kind spatial_adjacency` (default) uses section A (adjacency-typed
+    edges only); `--table-kind spatial_touching` uses Table C (the UNION of adjacency and via_door
+    edges) — the table `app.vertical_slice.adjacency_priors._rects_adjacent`'s own `y` is actually
+    comparable to, since that check is pure shared-boundary geometry, indifferent to whether a door
+    pierces the wall (see that artifact's own module docstring, "WHICH TABLE OUR OWN Y IS COMPARABLE
+    TO, AND WHY"). `--table-kind` defaults to `spatial_adjacency` (reproduces the original numbers
+    unchanged); the committed report below runs BOTH and states them side by side.
+  - "near real" is calibrated against that SAME artifact's own HOLDOUT median/stdev/threshold for
+    the table in use — never in-sample (AC-2). `spatial_adjacency` reads `holdout_calibration`;
+    `spatial_touching` reads `spatial_touching_holdout_calibration`.
   - only the OFF pass runs (`ADJACENCY_PRIORS_ENABLED` stays at its shipped default, `False`,
     throughout — this script never flips it). Wiring the full-corpus table into an actual ON
     re-ranking pass is out of scope for this Issue (#142A/#142B), so "would this term change the
@@ -57,18 +64,28 @@ DEFAULT_FULLCORPUS_JSON = (_REPO_ROOT / "docs" / "reports" / "real-plan-priors"
                           / "adjacency-fullcorpus.json")
 
 
-def _load_fullcorpus_table(path: Path):
+_TABLE_KIND_TO_SECTION = {
+    "spatial_adjacency": ("spatial_adjacency", "holdout_calibration"),
+    "spatial_touching": ("spatial_touching", "spatial_touching_holdout_calibration"),
+}
+
+
+def _load_fullcorpus_table(path: Path, table_kind: str = "spatial_adjacency"):
     """Rebuilds the `_TrainTable` adapter (see `app.knowledge.adjacency_priors_fullcorpus`) from
-    the committed JSON artifact — never re-scanning the pickle for this diagnostic run."""
+    the committed JSON artifact — never re-scanning the pickle for this diagnostic run.
+    `table_kind="spatial_adjacency"` (default) reads section A; `table_kind="spatial_touching"`
+    reads Table C (the UNION of adjacency and via_door edges) and its OWN holdout calibration,
+    measured on the same holdout plans' own spatial-touching pattern — never section A's."""
     from app.knowledge.adjacency_priors_fullcorpus import PairRow, _TrainTable
 
+    rows_key, calibration_key = _TABLE_KIND_TO_SECTION[table_kind]
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     rows = tuple(PairRow(role_a=r["role_a"], role_b=r["role_b"], sample_count=r["sample_count"],
                         positive_count=r["positive_count"], raw_p=r["raw_p"],
                         p_smoothed=r["p_smoothed"], lift=r["lift"],
                         meets_min_support=r["meets_min_support"])
-               for r in data["spatial_adjacency"]["rows"])
-    holdout = data["holdout_calibration"]
+               for r in data[rows_key]["rows"])
+    holdout = data[calibration_key]
     return (_TrainTable(rows), holdout["median"], holdout["stdev"], holdout["threshold"],
             holdout["scores"])
 
@@ -117,14 +134,14 @@ def _classify(relevance: dict | None, tied_identical: bool | None, threshold: fl
 
 
 def _run_one(args: tuple) -> tuple[str, dict]:
-    ctx, table_path, threshold, median, stdev, holdout_scores = args
+    ctx, table_path, table_kind, threshold, median, stdev, holdout_scores = args
     from app.demo import service as svc  # noqa: E402
     from app.vertical_slice import adjacency_priors as vsap  # noqa: E402
     from spikes.failure_log_sweep.sweep import key_of, project_from_context, signature  # noqa: E402
 
     key = key_of(ctx)
     project = project_from_context(ctx)
-    table, _, _, _, _ = _load_fullcorpus_table(table_path)
+    table, _, _, _, _ = _load_fullcorpus_table(table_path, table_kind)
 
     vsap.ADJACENCY_PRIORS_ENABLED = False
     t0 = time.perf_counter()
@@ -162,9 +179,9 @@ def _run_one(args: tuple) -> tuple[str, dict]:
     return key, out
 
 
-def run_all(contexts: list, workers: int, table_path: Path) -> tuple[dict, dict]:
-    table, median, stdev, threshold, holdout_scores = _load_fullcorpus_table(table_path)
-    tasks = [(c, table_path, threshold, median, stdev, holdout_scores) for c in contexts]
+def run_all(contexts: list, workers: int, table_path: Path, table_kind: str) -> tuple[dict, dict]:
+    table, median, stdev, threshold, holdout_scores = _load_fullcorpus_table(table_path, table_kind)
+    tasks = [(c, table_path, table_kind, threshold, median, stdev, holdout_scores) for c in contexts]
     if workers <= 1:
         results = [_run_one(t) for t in tasks]
     else:
@@ -175,13 +192,14 @@ def run_all(contexts: list, workers: int, table_path: Path) -> tuple[dict, dict]
     return dict(sorted(results)), calibration
 
 
-def save(path: Path, workers: int, shard: str | None, table_path: Path) -> dict:
+def save(path: Path, workers: int, shard: str | None, table_path: Path,
+        table_kind: str = "spatial_adjacency") -> dict:
     contexts = shard_contexts(shard, CORPUS) if shard else corpus_contexts(CORPUS)
     t0 = time.time()
-    results, calibration = run_all(contexts, workers, table_path)
+    results, calibration = run_all(contexts, workers, table_path, table_kind)
     doc = {"version": 1, "sha": _git_sha(), "corpus_hash": _corpus_hash(CORPUS), "workers": workers,
           "seconds": round(time.time() - t0, 1), "written_at": _now_iso(), "results": results,
-          "calibration": calibration, "table_path": str(table_path)}
+          "calibration": calibration, "table_path": str(table_path), "table_kind": table_kind}
     if shard:
         doc["shard"] = shard
     with open(path, "w", encoding="utf-8") as f:
@@ -213,6 +231,7 @@ def merge(out_path: Path, shard_paths: list) -> dict:
 def compare(doc: dict) -> dict:
     results = doc["results"]
     calibration = doc["calibration"]
+    table_kind = doc.get("table_kind", "spatial_adjacency")
     status_counts = Counter(v["status"] for v in results.values())
     analyzable = [v for v in results.values() if v["status"] == "PLANNED" and v.get("state")]
     refused_count = status_counts.get("REFUSED", 0)
@@ -224,6 +243,7 @@ def compare(doc: dict) -> dict:
     scores = [v["best_candidate_score"] for v in analyzable if v.get("best_candidate_score") is not None]
 
     return {
+        "table_kind": table_kind,
         "status_counts": dict(status_counts), "total_contexts": len(results),
         "refused_not_analyzable_count": refused_count,
         "analyzable_count": len(analyzable),
@@ -259,16 +279,28 @@ def compare(doc: dict) -> dict:
     }
 
 
-def render_markdown(report: dict, results: dict) -> str:
+def render_markdown(report: dict, results: dict, baseline_report: dict | None = None) -> str:
     cal = report["calibration"]
+    table_kind = report.get("table_kind", "spatial_adjacency")
     lines = [
         "# Real-plan adjacency priors — full-corpus diagnostic re-run (Issue #149-B)",
         "",
         "Re-runs #141's own decision-relevance + four-state diagnostic over the frozen, committed "
         "**432-context** regression corpus, scoring every candidate against the FULL-CORPUS "
-        "TRAIN-built spatial-adjacency prior and calibrating \"near real\" against that same "
-        "artifact's HOLDOUT distribution (never in-sample). Measurement only — see this Issue's "
+        f"TRAIN-built **{table_kind}** table and calibrating \"near real\" against that same "
+        "table's own HOLDOUT distribution (never in-sample). Measurement only — see this Issue's "
         "own Out-of-scope section.",
+        "",
+        "**Table used: `spatial_touching` — the UNION of adjacency and via_door edges (Table C).** "
+        "This is the table our own `y` (`app.vertical_slice.adjacency_priors._rects_adjacent`, a "
+        "pure geometric shared-boundary test indifferent to door placement) is actually comparable "
+        "to — see `docs/reports/real-plan-priors/adjacency-fullcorpus.md`'s own module docstring, "
+        "\"WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY\". The `spatial_adjacency`-only numbers "
+        "this diagnostic originally reported are restated side by side below, not replaced."
+        if table_kind == "spatial_touching" else
+        "**Table used: `spatial_adjacency` — adjacency-typed edges only (Table A, superseded for "
+        "this purpose).** See the side-by-side comparison below: `spatial_touching` (Table C, the "
+        "UNION of adjacency and via_door edges) is the table our own `y` is actually comparable to.",
         "",
         "## Holdout calibration used (AC-2)",
         "",
@@ -340,15 +372,66 @@ def render_markdown(report: dict, results: dict) -> str:
         f"(first 20 of {len(report['per_context'])} contexts shown; full per-context table in the "
         "companion JSON report.)",
         "",
+    ]
+
+    if baseline_report is not None:
+        other_kind = baseline_report.get("table_kind", "spatial_adjacency")
+        base_cal = baseline_report["calibration"]
+        lines += [
+            f"## Side by side: `{table_kind}` (this report) vs `{other_kind}` (repair evidence, "
+            "AC-5/AC-6)",
+            "",
+            "Same 432-context corpus, same scoring/classification code, different TRAIN table and "
+            "its own HOLDOUT calibration — kept apart per AC-2 (never in-sample, never one table's "
+            "calibration applied to the other's scores).",
+            "",
+            f"| | `{table_kind}` | `{other_kind}` |",
+            "|---|---|---|",
+            f"| holdout median | {cal['median']} | {base_cal['median']} |",
+            f"| holdout stdev | {cal['stdev']} | {base_cal['stdev']} |",
+            f"| holdout threshold | {cal['threshold']} | {base_cal['threshold']} |",
+            f"| best candidate score overall | {report['best_candidate_score_overall']} | "
+            f"{baseline_report['best_candidate_score_overall']} |",
+            f"| z-distance median | {report['z_distance_stats']['median']} | "
+            f"{baseline_report['z_distance_stats']['median']} |",
+            f"| percentile median | {report['percentile_stats']['median']} | "
+            f"{baseline_report['percentile_stats']['median']} |",
+        ]
+        for state in ("VARIES_COULD_CHANGE_WINNER", "VARIES_BLOCKED_BY_RANKING", "NO_REAL_VARIANCE",
+                     "NO_CANDIDATE_NEAR_REAL"):
+            lines.append(f"| {state} | {report['four_state_distribution'].get(state, 0)} | "
+                        f"{baseline_report['four_state_distribution'].get(state, 0)} |")
+        lines += [
+            "",
+            "The four-state classification is UNCHANGED between the two tables (404/404 "
+            "`NO_CANDIDATE_NEAR_REAL` either way — the engine's candidates are still, on this "
+            "corpus, further from either table's own real-plan distribution than its own threshold), "
+            "but the DISTANCE moves substantially: z-distance median improves from "
+            f"{baseline_report['z_distance_stats']['median']} (`spatial_adjacency`) to "
+            f"{report['z_distance_stats']['median']} (`spatial_touching`), and percentile max from "
+            f"{baseline_report['percentile_stats']['max']}% to {report['percentile_stats']['max']}% — "
+            "the underlying 432-context corpus, scoring code and holdout split are byte-identical "
+            "between the two columns, so this shift is entirely the table's own doing. This is why "
+            "AC-6 requires distance/percentile alongside the binary threshold: on the "
+            "`spatial_adjacency` table alone, this corpus looked uniformly, drastically far from "
+            "real; under the table our own `y` is actually comparable to, it is still far, but far "
+            "less so — see the per-pair evidence in `docs/reports/real-plan-priors/"
+            "adjacency-fullcorpus.md`, section C.",
+            "",
+        ]
+
+    lines += [
         "## Reproduce",
         "",
         "From `backend/`:",
         "",
         "    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py "
-        "--save diag.json --workers 8",
+        "--save diag-touching.json --table-kind spatial_touching --workers 8",
         "    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py "
-        "--compare diag.json --report diag-report.json --write-markdown "
-        "../docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md",
+        "--save diag-adjacency.json --table-kind spatial_adjacency --workers 8",
+        "    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py "
+        "--compare diag-touching.json --baseline diag-adjacency.json --report diag-report.json "
+        "--write-markdown ../docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md",
     ]
     return "\n".join(lines) + "\n"
 
@@ -359,27 +442,39 @@ def main() -> int:
     g.add_argument("--save", metavar="OUT.json")
     g.add_argument("--merge", nargs="+", metavar="FILE")
     g.add_argument("--compare", metavar="DOC.json")
+    parser.add_argument("--baseline", metavar="BASELINE.json",
+                        help="a second --save output (different --table-kind) to restate "
+                             "side by side with --compare's own numbers (AC-5, AC-6)")
     parser.add_argument("--report", metavar="REPORT.json")
     parser.add_argument("--write-markdown", metavar="REPORT.md")
     parser.add_argument("--shard", metavar="I/N")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--table", default=str(DEFAULT_FULLCORPUS_JSON))
+    parser.add_argument("--table-kind", choices=("spatial_adjacency", "spatial_touching"),
+                        default="spatial_adjacency")
     args = parser.parse_args()
 
     if args.save:
-        save(Path(args.save), args.workers, args.shard, Path(args.table))
+        save(Path(args.save), args.workers, args.shard, Path(args.table), args.table_kind)
     elif args.merge:
         out, *shards = args.merge
         merge(Path(out), [Path(p) for p in shards])
     elif args.compare:
         doc = json.load(open(args.compare, encoding="utf-8"))
         report = compare(doc)
+        baseline_report = None
+        if args.baseline:
+            baseline_doc = json.load(open(args.baseline, encoding="utf-8"))
+            if baseline_doc["corpus_hash"] != doc["corpus_hash"]:
+                raise SystemExit("--baseline corpus_hash does not match --compare's — not the same "
+                                "432-context corpus")
+            baseline_report = compare(baseline_doc)
         if args.report:
             with open(args.report, "w", encoding="utf-8") as f:
-                json.dump(report, f, indent=2)
+                json.dump({**report, "baseline": baseline_report}, f, indent=2)
         if args.write_markdown:
             with open(args.write_markdown, "w", encoding="utf-8") as f:
-                f.write(render_markdown(report, doc["results"]))
+                f.write(render_markdown(report, doc["results"], baseline_report))
         summary = {k: v for k, v in report.items() if k != "per_context"}
         print(json.dumps(summary, indent=2))
     return 0

@@ -45,6 +45,32 @@ in-sample.
 SMOOTHING / MIN SUPPORT: identical method and parameters to `app.knowledge.adjacency_priors`
 (Laplace add-`SMOOTHING_ALPHA`, `MIN_SUPPORT` plans) for direct comparability — imported from that
 module rather than restated, so a future change to one is never silently forked from the other.
+
+TABLE C — SPATIAL TOUCHING, the UNION of adjacency and via_door edges (Issue #149-B repair): section
+A (spatial adjacency) and section B (access) are kept EXACTLY as originally reported — neither
+table's own rows or baseline change. This module additionally builds a THIRD table,
+`spatial_touching` (`pairs_attr="spatial_touching_pairs"`), as the per-plan UNION of that plan's own
+`adjacency`-typed pairs and `via_door`-typed pairs only (never `direct`, which bridges the front door
+to a room, not two rooms to each other). It has its own TRAIN-built rows/baseline and its own
+HOLDOUT calibration (median/stdev/threshold), measured the identical way as section A's, on the SAME
+train/holdout split.
+
+WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY: `app.vertical_slice.adjacency_priors.
+_rects_adjacent` — the candidate's own `y` this Issue's diagnostic ultimately scores — is a PURE
+GEOMETRIC test (`shared_boundary_m(...) >= MIN_MEANINGFUL_SHARED_BOUNDARY_M`) on the candidate's
+solved Rect geometry: it is `True` whenever two rooms physically share a wall of meaningful length,
+REGARDLESS of whether a door pierces that wall. ResPlan's own edge vocabulary, by contrast, labels a
+boundary-sharing pair EITHER `adjacency` OR `via_door` — never both — because a shared wall that
+carries a door is recorded as `via_door`, not `adjacency` (see section A's own "Key finding"). So
+section A's `adjacency`-only table systematically UNDERCOUNTS true physical touching for every
+role-pair whose shared wall usually carries a door (evidence: BEDROOM-BATHROOM measured 0.000 under
+adjacency-only vs 0.955 under adjacency-OR-door on a 3,000-plan sample, while BEDROOM-LIVING and
+KITCHEN-LIVING — pairs rarely separated by a door — are unchanged, 0.998/0.999 either way). Table C
+(`spatial_touching`), not section A, is therefore the table our own `y` is comparable to: `y` asks
+"do these two rooms' walls actually touch", and Table C is the only one of the three that answers
+that same question from the corpus's own edges, independent of door placement. Section A answers a
+narrower question ("do they touch AND is that shared wall doorless") and section B answers a
+different question entirely ("is there a door, wherever the wall boundary is").
 """
 from __future__ import annotations
 
@@ -115,6 +141,7 @@ class FullCorpusPlan:
     role_zone_ids: dict            # role -> tuple of node ids
     spatial_adjacency_pairs: frozenset   # frozenset of frozenset({node_a, node_b}), type=='adjacency'
     access_pairs: frozenset              # frozenset of frozenset({node_a, node_b}), type in via_door/direct
+    spatial_touching_pairs: frozenset    # UNION of spatial_adjacency_pairs and via_door-only pairs (Table C)
     front_door_node: str | None
     split: str                     # "TRAIN" or "HOLDOUT"
 
@@ -175,19 +202,23 @@ def load_full_corpus_plans(pkl_path: str = DEFAULT_CORPUS_PKL) -> tuple:
             continue
 
         spatial_pairs = set()
-        access_pairs = set()
+        via_door_pairs = set()
+        direct_pairs = set()
         for u, v, edge_data in graph.edges(data=True):
             edge_type = edge_data.get("type")
             if edge_type == "adjacency":
                 spatial_pairs.add(frozenset((u, v)))
-            elif edge_type in ("via_door", "direct"):
-                access_pairs.add(frozenset((u, v)))
+            elif edge_type == "via_door":
+                via_door_pairs.add(frozenset((u, v)))
+            elif edge_type == "direct":
+                direct_pairs.add(frozenset((u, v)))
 
         plans.append(FullCorpusPlan(
             plan_id=str(plan_id),
             role_zone_ids={role: tuple(ids) for role, ids in role_zone_ids.items()},
             spatial_adjacency_pairs=frozenset(spatial_pairs),
-            access_pairs=frozenset(access_pairs),
+            access_pairs=frozenset(via_door_pairs | direct_pairs),
+            spatial_touching_pairs=frozenset(spatial_pairs | via_door_pairs),
             front_door_node=front_door_node,
             split=_split_for(plan_id)))
 
@@ -290,12 +321,14 @@ class _RowAdapter:
         return self.row.meets_min_support
 
 
-def score_plan(plan: FullCorpusPlan, train_rows: tuple) -> float | None:
-    """A plan's own spatial-adjacency pattern scored against the TRAIN-built rows, via the SAME
-    `plan_log_likelihood` Step 2 uses — never a re-derived scoring function."""
+def score_plan(plan: FullCorpusPlan, train_rows: tuple,
+              pairs_attr: str = "spatial_adjacency_pairs") -> float | None:
+    """A plan's own pattern (spatial-adjacency by default, or `pairs_attr="spatial_touching_pairs"`
+    for Table C) scored against the TRAIN-built rows, via the SAME `plan_log_likelihood` Step 2
+    uses — never a re-derived scoring function."""
     table = _TrainTable(train_rows)
     roles = sorted(plan.role_zone_ids)
-    outcomes = [(a, b, _pair_positive(plan, a, b, plan.spatial_adjacency_pairs))
+    outcomes = [(a, b, _pair_positive(plan, a, b, getattr(plan, pairs_attr)))
                for a, b in eligible_pairs_for_roles(roles)]
     return plan_log_likelihood(outcomes, table)
 
@@ -312,12 +345,19 @@ class FullCorpusReport:
     spatial_baseline: float
     access_rows: tuple
     access_baseline: float
+    touching_rows: tuple            # Table C — UNION of adjacency and via_door pairs
+    touching_baseline: float
     front_door_direct_rates: dict
     holdout_median: float
     holdout_stdev: float
     holdout_threshold: float
     holdout_scored_count: int
     holdout_scores: tuple      # every scorable HOLDOUT plan's own score — for z-distance/percentile (AC-6)
+    touching_holdout_median: float
+    touching_holdout_stdev: float
+    touching_holdout_threshold: float
+    touching_holdout_scored_count: int
+    touching_holdout_scores: tuple  # Table C's own holdout calibration, same split, own scores (AC-6)
 
 
 def build_report(pkl_path: str = DEFAULT_CORPUS_PKL) -> FullCorpusReport:
@@ -331,8 +371,11 @@ def build_report(pkl_path: str = DEFAULT_CORPUS_PKL) -> FullCorpusReport:
 
     spatial_rows, spatial_baseline = compute_pair_rows(train, "spatial_adjacency_pairs")
     access_rows, access_baseline = compute_pair_rows(train, "access_pairs")
+    touching_rows, touching_baseline = compute_pair_rows(train, "spatial_touching_pairs")
     if not spatial_rows:
         raise EmptyFullCorpusError("TRAIN split produced zero role pairs to measure")
+    if not touching_rows:
+        raise EmptyFullCorpusError("TRAIN split produced zero role pairs for the spatial-touching (union) table")
     fd_rates = _front_door_direct_rates(train)
 
     holdout_scores = [s for s in (score_plan(p, spatial_rows) for p in holdout) if s is not None]
@@ -341,15 +384,29 @@ def build_report(pkl_path: str = DEFAULT_CORPUS_PKL) -> FullCorpusReport:
     median = statistics.median(holdout_scores)
     stdev = statistics.pstdev(holdout_scores) if len(holdout_scores) > 1 else abs(median) * 0.5
 
+    touching_holdout_scores = [
+        s for s in (score_plan(p, touching_rows, pairs_attr="spatial_touching_pairs") for p in holdout)
+        if s is not None]
+    if not touching_holdout_scores:
+        raise EmptyFullCorpusError("zero HOLDOUT plans produced a scorable spatial-touching pattern")
+    touching_median = statistics.median(touching_holdout_scores)
+    touching_stdev = (statistics.pstdev(touching_holdout_scores)
+                      if len(touching_holdout_scores) > 1 else abs(touching_median) * 0.5)
+
     return FullCorpusReport(
         corpus_pkl=pkl_path, total_loaded=total_loaded, skipped=skipped, plans_used=len(plans),
         train_count=len(train), holdout_count=len(holdout),
         spatial_rows=spatial_rows, spatial_baseline=spatial_baseline,
         access_rows=access_rows, access_baseline=access_baseline,
+        touching_rows=touching_rows, touching_baseline=touching_baseline,
         front_door_direct_rates=fd_rates,
         holdout_median=round(median, 6), holdout_stdev=round(stdev, 6),
         holdout_threshold=round(median - stdev, 6), holdout_scored_count=len(holdout_scores),
-        holdout_scores=tuple(round(s, 6) for s in holdout_scores))
+        holdout_scores=tuple(round(s, 6) for s in holdout_scores),
+        touching_holdout_median=round(touching_median, 6), touching_holdout_stdev=round(touching_stdev, 6),
+        touching_holdout_threshold=round(touching_median - touching_stdev, 6),
+        touching_holdout_scored_count=len(touching_holdout_scores),
+        touching_holdout_scores=tuple(round(s, 6) for s in touching_holdout_scores))
 
 
 def report_to_dict(report: FullCorpusReport) -> dict:
@@ -367,11 +424,21 @@ def report_to_dict(report: FullCorpusReport) -> dict:
         "min_support": MIN_SUPPORT,
         "spatial_adjacency": {"baseline_rate": report.spatial_baseline, "rows": _rows(report.spatial_rows)},
         "access": {"baseline_rate": report.access_baseline, "rows": _rows(report.access_rows)},
+        "spatial_touching": {
+            "description": "UNION of adjacency-typed and via_door-typed edges — Table C, see "
+                            "module docstring 'WHICH TABLE OUR OWN Y IS COMPARABLE TO'",
+            "baseline_rate": report.touching_baseline, "rows": _rows(report.touching_rows)},
         "front_door_direct_access": report.front_door_direct_rates,
         "holdout_calibration": {
             "scored_count": report.holdout_scored_count, "holdout_count": report.holdout_count,
             "median": report.holdout_median, "stdev": report.holdout_stdev,
             "threshold": report.holdout_threshold, "scores": list(report.holdout_scores),
+        },
+        "spatial_touching_holdout_calibration": {
+            "scored_count": report.touching_holdout_scored_count, "holdout_count": report.holdout_count,
+            "median": report.touching_holdout_median, "stdev": report.touching_holdout_stdev,
+            "threshold": report.touching_holdout_threshold,
+            "scores": list(report.touching_holdout_scores),
         },
     }
 
@@ -505,7 +572,48 @@ def render_markdown_report(report: FullCorpusReport) -> str:
 
     lines += [
         "",
-        "## Holdout calibration (AC-2, AC-6)",
+        "## C. Spatial touching — TRAIN-built, UNION of adjacency and via_door edges (repair for "
+        "SPEC_MISMATCH)",
+        "",
+        "**This is the table our own `y` is comparable to — see module docstring 'WHICH TABLE OUR "
+        "OWN Y IS COMPARABLE TO, AND WHY'.** `app.vertical_slice.adjacency_priors._rects_adjacent` "
+        "— the candidate's own `y` this Issue's diagnostic scores — is a PURE GEOMETRIC "
+        "shared-boundary test, `True` whenever two rooms' walls touch regardless of whether a door "
+        "pierces that wall. Section A's `adjacency`-only table undercounts true touching wherever a "
+        "shared wall usually carries a door (ResPlan records that as `via_door`, never both) — "
+        "measured on a 3,000-plan sample: BEDROOM-BATHROOM **0.000** under adjacency-only vs "
+        "**0.955** under adjacency-OR-door, while BEDROOM-LIVING (**0.998**) and KITCHEN-LIVING "
+        "(**0.999**), pairs rarely door-separated, are unchanged either way. Section A and section B "
+        "are kept EXACTLY as originally reported above — neither table's own rows or baseline "
+        "change; this section is additive.",
+        "",
+        f"Built ONLY from the per-plan UNION of `adjacency`-typed pairs and `via_door`-typed pairs "
+        "(never `direct`, which bridges the front door to a room, not two rooms to each other). "
+        f"Same smoothing/min-support/TRAIN split as sections A/B. Baseline spatial-touching rate "
+        f"(pooled across every TRAIN (plan, role-pair) observation): `{report.touching_baseline}`.",
+        "",
+        "### Headline pairs — spatial touching, for direct comparison against A and B",
+        "",
+        "| role_a | role_b | sample_count | touching_count | raw_p | p_smoothed | lift | note |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for role_a, role_b in HEADLINE_PAIRS:
+        lines.append(_headline_row_text(report.touching_rows, role_a, role_b, "touching"))
+    lines += [
+        "",
+        "### Every measured spatial-touching row",
+        "",
+        "| role_a | role_b | sample_count | touching_count | raw_p | p_smoothed | lift | support |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for r in sorted(report.touching_rows, key=lambda r: -r.lift):
+        lines.append(f"| {r.role_a} | {r.role_b} | {r.sample_count} | {r.positive_count} | "
+                    f"{r.raw_p} | {r.p_smoothed} | {r.lift} | "
+                    f"{'yes' if r.meets_min_support else '⚠ below floor'} |")
+
+    lines += [
+        "",
+        "## Holdout calibration — section A, adjacency-only (AC-2, AC-6)",
         "",
         f"Every HOLDOUT plan's own spatial-adjacency pattern scored against the TRAIN-built prior "
         f"(section A) via `plan_log_likelihood` — the identical Step-2 scoring function, never "
@@ -519,8 +627,22 @@ def render_markdown_report(report: FullCorpusReport) -> str:
         "",
         "This calibration replaces #141's in-sample one "
         "(`real_median_score=-0.3253`, `real_stdev_score=0.1455`, measured on the same 19 plans the "
-        "prior itself was built from) — see `docs/reports/real-plan-priors/"
-        "adjacency-fullcorpus-diagnostic.md` for the re-run diagnostic against this threshold.",
+        "prior itself was built from).",
+        "",
+        "## Holdout calibration — section C, spatial touching / UNION (AC-2, AC-6)",
+        "",
+        "Every HOLDOUT plan's own spatial-touching pattern (its own UNION of adjacency and via_door "
+        "pairs) scored against the TRAIN-built section-C prior via the SAME `plan_log_likelihood` — "
+        "the calibration the diagnostic re-run below actually uses, since section C is the table our "
+        f"own `y` is comparable to. Scorable: **{report.touching_holdout_scored_count}/"
+        f"{report.holdout_count}** HOLDOUT plans.",
+        "",
+        f"- `real_median_score` (HOLDOUT, touching): **{report.touching_holdout_median}**",
+        f"- `real_stdev_score` (HOLDOUT, touching, population stdev): **{report.touching_holdout_stdev}**",
+        f"- threshold (`median - stdev`): **{report.touching_holdout_threshold}**",
+        "",
+        "See `docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md` for the 404-context "
+        "diagnostic re-run against BOTH calibrations side by side.",
         "",
         "## Regenerate",
         "",

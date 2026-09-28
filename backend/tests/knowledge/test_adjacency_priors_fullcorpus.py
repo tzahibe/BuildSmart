@@ -194,6 +194,60 @@ def test_via_window_edges_excluded_from_both_artifacts(tmp_path, monkeypatch):
     assert access_row.positive_count == 0
 
 
+# --------------------------------------------------------------------------- Table C: spatial touching (UNION)
+
+def test_spatial_touching_is_union_of_adjacency_and_via_door_only(tmp_path, monkeypatch):
+    """Table C = adjacency pairs UNION via_door pairs, per plan — never `direct` (front-door-to-room,
+    not room-to-room), and section A/B stay untouched by this union."""
+    monkeypatch.setattr(fc, "_split_for", lambda plan_id: "TRAIN")
+    path = tmp_path / "corpus.pkl"
+    _write_pickle(path, [
+        _plan(0, {"living_0": "living", "bedroom_0": "bedroom"},
+              [("living_0", "bedroom_0", "adjacency")]),
+        _plan(1, {"living_0": "living", "bathroom_0": "bathroom"},
+              [("living_0", "bathroom_0", "via_door")]),
+        _plan(2, {"front_door_0": "front_door", "living_0": "living"},
+              [("front_door_0", "living_0", "direct")]),
+    ])
+    plans, _, _ = fc.load_full_corpus_plans(str(path))
+    spatial_rows, _ = fc.compute_pair_rows(plans, "spatial_adjacency_pairs")
+    touching_rows, _ = fc.compute_pair_rows(plans, "spatial_touching_pairs")
+
+    # BEDROOM-LIVING: adjacency edge -> touching in both A and C
+    assert fc.row_for(spatial_rows, "BEDROOM", "LIVING").positive_count == 1
+    assert fc.row_for(touching_rows, "BEDROOM", "LIVING").positive_count == 1
+
+    # BATHROOM-LIVING: via_door only -> NOT touching in A, IS touching in C (the repair)
+    assert fc.row_for(spatial_rows, "BATHROOM", "LIVING").positive_count == 0
+    assert fc.row_for(touching_rows, "BATHROOM", "LIVING").positive_count == 1
+
+    # `direct` (front door) never contributes to spatial_touching_pairs — no role-pair to test
+    # directly, but plan 2's front_door<->living edge must not create any role-pair row at all
+    # since front_door isn't a role; nothing to assert beyond the two rows above existing cleanly.
+
+
+def test_spatial_touching_holdout_calibration_uses_its_own_pattern(tmp_path, monkeypatch):
+    """The touching-table holdout calibration is measured on each HOLDOUT plan's own
+    `spatial_touching_pairs` pattern against TRAIN's touching rows — not the adjacency-only one."""
+    monkeypatch.setattr(fc, "_split_for", lambda plan_id: "TRAIN" if plan_id % 2 == 0 else "HOLDOUT")
+    path = tmp_path / "corpus.pkl"
+    plans = []
+    for i in range(20):
+        plans.append(_plan(i, {"living_0": "living", "bathroom_0": "bathroom"},
+                           [("living_0", "bathroom_0", "via_door")]))
+    _write_pickle(path, plans)
+    report = fc.build_report(str(path))
+    # via_door-only pattern: BATHROOM-LIVING never counts as adjacent in Table A -> no supported
+    # eligible pair -> no HOLDOUT plan scorable under section A would be the naive expectation, but
+    # section A still has a row (positive_count=0, meets_min_support True) so it IS scorable; the
+    # touching table instead sees it as always-positive.
+    assert report.touching_holdout_scored_count > 0
+    touching_row = fc.row_for(report.touching_rows, "BATHROOM", "LIVING")
+    assert touching_row.positive_count == touching_row.sample_count  # always touching under Table C
+    spatial_row = fc.row_for(report.spatial_rows, "BATHROOM", "LIVING")
+    assert spatial_row.positive_count == 0  # never adjacency-typed under Table A
+
+
 def test_headline_pairs_missing_from_corpus_vocabulary_are_unmeasurable():
     """MASTER/ENSUITE/DINING/CIRCULATION are not ResPlan node types — the report must mark them
     UNMEASURABLE rather than silently omitting or fabricating a value."""

@@ -101,7 +101,43 @@ P(role has a `direct` edge to the front door | role present), TRAIN only.
 | KITCHEN | 13576 | 0 | 0.0 |
 | LIVING | 13645 | 13530 | 0.991572 |
 
-## Holdout calibration (AC-2, AC-6)
+## C. Spatial touching — TRAIN-built, UNION of adjacency and via_door edges (repair for SPEC_MISMATCH)
+
+**This is the table our own `y` is comparable to — see module docstring 'WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY'.** `app.vertical_slice.adjacency_priors._rects_adjacent` — the candidate's own `y` this Issue's diagnostic scores — is a PURE GEOMETRIC shared-boundary test, `True` whenever two rooms' walls touch regardless of whether a door pierces that wall. Section A's `adjacency`-only table undercounts true touching wherever a shared wall usually carries a door (ResPlan records that as `via_door`, never both) — measured on a 3,000-plan sample: BEDROOM-BATHROOM **0.000** under adjacency-only vs **0.955** under adjacency-OR-door, while BEDROOM-LIVING (**0.998**) and KITCHEN-LIVING (**0.999**), pairs rarely door-separated, are unchanged either way. Section A and section B are kept EXACTLY as originally reported above — neither table's own rows or baseline change; this section is additive.
+
+Built ONLY from the per-plan UNION of `adjacency`-typed pairs and `via_door`-typed pairs (never `direct`, which bridges the front door to a room, not two rooms to each other). Same smoothing/min-support/TRAIN split as sections A/B. Baseline spatial-touching rate (pooled across every TRAIN (plan, role-pair) observation): `0.52835`.
+
+### Headline pairs — spatial touching, for direct comparison against A and B
+
+| role_a | role_b | sample_count | touching_count | raw_p | p_smoothed | lift | note |
+|---|---|---|---|---|---|---|---|
+| BEDROOM | LIVING | 13648 | 13601 | 0.996556 | 0.996484 | 1.886029 | meets min support |
+| BEDROOM | CIRCULATION | — | — | — | — | — | **UNMEASURABLE** — CIRCULATION is not a distinct role in ResPlan's own node vocabulary |
+| MASTER | ENSUITE | — | — | — | — | — | **UNMEASURABLE** — MASTER/ENSUITE is not a distinct role in ResPlan's own node vocabulary |
+| MASTER | BATHROOM | — | — | — | — | — | **UNMEASURABLE** — MASTER is not a distinct role in ResPlan's own node vocabulary |
+| KITCHEN | LIVING | 13576 | 13544 | 0.997643 | 0.99757 | 1.888085 | meets min support |
+| KITCHEN | DINING | — | — | — | — | — | **UNMEASURABLE** — DINING is not a distinct role in ResPlan's own node vocabulary |
+| BATHROOM | BEDROOM | 13648 | 12435 | 0.911123 | 0.911062 | 1.724354 | meets min support |
+| BATHROOM | KITCHEN | 13576 | 0 | 0.0 | 7.4e-05 | 0.000139 | meets min support |
+| BATHROOM | LIVING | 13648 | 11817 | 0.865841 | 0.865788 | 1.638663 | meets min support |
+| BALCONY | BATHROOM | 10021 | 0 | 0.0 | 0.0001 | 0.000189 | meets min support |
+
+### Every measured spatial-touching row
+
+| role_a | role_b | sample_count | touching_count | raw_p | p_smoothed | lift | support |
+|---|---|---|---|---|---|---|---|
+| KITCHEN | LIVING | 13576 | 13544 | 0.997643 | 0.99757 | 1.888085 | yes |
+| BEDROOM | LIVING | 13648 | 13601 | 0.996556 | 0.996484 | 1.886029 | yes |
+| BATHROOM | BEDROOM | 13648 | 12435 | 0.911123 | 0.911062 | 1.724354 | yes |
+| BATHROOM | LIVING | 13648 | 11817 | 0.865841 | 0.865788 | 1.638663 | yes |
+| BALCONY | BEDROOM | 10021 | 7554 | 0.753817 | 0.753766 | 1.426642 | yes |
+| BALCONY | LIVING | 10021 | 5346 | 0.53348 | 0.533473 | 1.009696 | yes |
+| BALCONY | KITCHEN | 9959 | 0 | 0.0 | 0.0001 | 0.00019 | yes |
+| BALCONY | BATHROOM | 10021 | 0 | 0.0 | 0.0001 | 0.000189 | yes |
+| BATHROOM | KITCHEN | 13576 | 0 | 0.0 | 7.4e-05 | 0.000139 | yes |
+| BEDROOM | KITCHEN | 13576 | 0 | 0.0 | 7.4e-05 | 0.000139 | yes |
+
+## Holdout calibration — section A, adjacency-only (AC-2, AC-6)
 
 Every HOLDOUT plan's own spatial-adjacency pattern scored against the TRAIN-built prior (section A) via `plan_log_likelihood` — the identical Step-2 scoring function, never re-derived. Scorable: **3459/3459** HOLDOUT plans (the rest have zero eligible pair with a supported TRAIN row).
 
@@ -109,7 +145,17 @@ Every HOLDOUT plan's own spatial-adjacency pattern scored against the TRAIN-buil
 - `real_stdev_score` (HOLDOUT, population stdev): **0.058796**
 - threshold (`median - stdev`): **-0.059461**
 
-This calibration replaces #141's in-sample one (`real_median_score=-0.3253`, `real_stdev_score=0.1455`, measured on the same 19 plans the prior itself was built from) — see `docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md` for the re-run diagnostic against this threshold.
+This calibration replaces #141's in-sample one (`real_median_score=-0.3253`, `real_stdev_score=0.1455`, measured on the same 19 plans the prior itself was built from).
+
+## Holdout calibration — section C, spatial touching / UNION (AC-2, AC-6)
+
+Every HOLDOUT plan's own spatial-touching pattern (its own UNION of adjacency and via_door pairs) scored against the TRAIN-built section-C prior via the SAME `plan_log_likelihood` — the calibration the diagnostic re-run below actually uses, since section C is the table our own `y` is comparable to. Scorable: **3459/3459** HOLDOUT plans.
+
+- `real_median_score` (HOLDOUT, touching): **-0.128868**
+- `real_stdev_score` (HOLDOUT, touching, population stdev): **0.137503**
+- threshold (`median - stdev`): **-0.26637**
+
+See `docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md` for the 404-context diagnostic re-run against BOTH calibrations side by side.
 
 ## Regenerate
 
