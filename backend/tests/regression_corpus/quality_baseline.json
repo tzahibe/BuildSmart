@@ -1,10 +1,10 @@
 {
   "n": 404,
-  "m3_circulation_share_median": 0.10526315789473685,
-  "m4_hall_aspect_median": 9.321428571428573,
-  "m5_wet_adjacency_share": 0.4251968503937008,
+  "m3_circulation_share_median": 0.10852713178294573,
+  "m4_hall_aspect_median": 9.55357142857143,
+  "m5_wet_adjacency_share": 0.4356955380577428,
   "m6_public_contiguous_share": 0.5272277227722773,
-  "source": "tests/regression_corpus/corpus.json PLANNED cases, replayed through generate_demo_design (freeze_quality_baseline.py)",
+  "source": "tests/regression_corpus/corpus.json PLANNED cases, replayed through generate_demo_design (freeze_quality_baseline.py); re-frozen for Issue #41 (public-zone composition, C31) — m4_hall_aspect_median moved 9.32->9.55, a candidate-selection shift within the Issue's approved primary_signature_changes budget, not an unrelated regression",
   "tolerance": {
     "m3_circulation_share_median": 0.02,
     "m4_hall_aspect_median": 0.2,

@@ -135,6 +135,13 @@ drawing.
   A C26 failure names which of ratio/longest-segment/dead-ends it is — check that reason against
   the drawing, not just the number.
 
+**Issue #41's own circulation-path fact belongs here too, not just under section G**: a walking
+route from the entrance to a public room can be geometrically clear (C26/M3/M4 all pass) yet still
+be blocked by another room's own placed furniture on the way — `public_composition.py`'s hard rule
+(C31, section G below) is that specific case. This does not change D's own signals; it is the one
+place a circulation path's OBSTRUCTION by furniture, as opposed to its length/compactness, is
+measured.
+
 ## E. Circulation Topology & Access Sequence
 
 Beyond raw compactness, circulation should form a sensible topology: a small number of junctions
@@ -189,7 +196,25 @@ merely satisfy an area target.
 
 - **Deterministic signal**: M6 (whether the public zone is one contiguous group,
   `quality_metrics.py`); no shape-quality check on individual public rooms yet beyond M1's generic
-  aspect measurement.
+  aspect measurement. **Issue #41** (`app.vertical_slice.public_composition`) adds, from realized
+  geometry and the Issue #39 layout objects (`interior_layout.py`): whether KITCHEN and DINING are
+  actually linked by a door or open-plan join (`kitchen_dining_related`), the same fact for
+  DINING<->LIVING (`dining_living_related`), whether the public zone reads as one connected
+  open-plan group independent of M6's own `DemoDesign`-level computation
+  (`public_zone_coherent`), whether ANY public room is reachable from the entrance at all
+  (`entrance_reaches_public`), and LIVING's own exterior/window relationship
+  (`living_exterior_exposed`/`living_has_window`) — carried on `QualityOut.public_composition`,
+  joined into a single non-blocking `composition_score` (lower is better) that never penalizes
+  `public_zone_coherent` being true (open plan costs nothing by construction — no scoring term
+  reads it at all). **C31 "public rooms reachable without crossing a furniture-blocked path"**
+  (`validation.py`) is the one hard rule this module backs: it fails closed only when a
+  LIVING/DINING/KITCHEN room that the plain access graph says IS reachable has NO route from the
+  entrance that avoids every intermediate room's own placed-furniture clearance zone — computed as
+  a real free-space connectivity test (`shapely`, room net rect minus furniture clearance
+  rectangles), walking every alternative route the graph offers (a room with several doors/open
+  joins can be blocked on one pass-through and still open on another), never merely the first path
+  tried. An ordinary room with furniture pushed to one side is untouched; only a genuinely
+  blocked-with-no-alternative case fails.
 - **Reference comparison**: professional kitchens realize as an L-counter inside one open volume,
   not a room with its own rectangular shape; measured gap: KITCHEN median aspect 2.75, DINING 2.35
   on the current corpus (`docs/wiki/architecture/geometry-validation.md`) — both read as strips.
@@ -197,10 +222,16 @@ merely satisfy an area target.
   designed or measured yet.
 - **Semantic review**: whether an open-plan group that passes M6 (topologically contiguous) also
   *feels* like one room in the drawing — a contiguous but visually segmented L-shaped party wall
-  can pass M6 while still reading as three rooms.
+  can pass M6 while still reading as three rooms. Whether a `kitchen_dining_related`/
+  `dining_living_related` link that is merely a door (not an open join) still reads as a coherent
+  composition, versus a legally-adjacent pair that happens to share a wall neither of them opens
+  onto.
 - **How a reviewer applies it**: confirm M6 first (public zone is one group); then eyeball whether
   KITCHEN/DINING individually read as strips (aspect noticeably above ~2.0) even when the group as
-  a whole is contiguous.
+  a whole is contiguous. Check `QualityOut.public_composition` for the relationship facts and
+  `composition_score` before judging the drawing by eye; a C31 failure names the specific room
+  whose only route is furniture-blocked — check that room's furniture layout against the drawing,
+  not just the refusal.
 
 ## H. Entrance & Arrival Sequence
 
