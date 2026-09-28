@@ -37,7 +37,7 @@ that needs one of these roles is reported as UNMEASURABLE, explicitly, rather th
 
 TRAIN/HOLDOUT (AC-2): deterministic 80/20 split by `sha256(str(plan_id)).hexdigest()` taken mod 100
 against a fixed cut (`< HOLDOUT_SPLIT_PERCENT` -> HOLDOUT, else TRAIN) — independent of list/pickle
-order, reproducible from the plan's own id alone. The prior (`spatial_adjacency` rows AND `access`
+order, reproducible from the plan's own id alone. The prior (`touching_without_door` rows AND `access`
 rows) is built from TRAIN only. The "near real" calibration (median/stdev/threshold) is measured by
 scoring every HOLDOUT plan's own spatial-adjacency pattern against the TRAIN-built prior — never
 in-sample.
@@ -139,9 +139,9 @@ class EmptyFullCorpusError(FullCorpusAdjacencyError):
 class FullCorpusPlan:
     plan_id: str
     role_zone_ids: dict            # role -> tuple of node ids
-    spatial_adjacency_pairs: frozenset   # frozenset of frozenset({node_a, node_b}), type=='adjacency'
+    touching_without_door_pairs: frozenset   # frozenset of frozenset({node_a, node_b}), type=='adjacency'
     access_pairs: frozenset              # frozenset of frozenset({node_a, node_b}), type in via_door/direct
-    spatial_touching_pairs: frozenset    # UNION of spatial_adjacency_pairs and via_door-only pairs (Table C)
+    spatial_touching_pairs: frozenset    # UNION of touching_without_door_pairs and via_door-only pairs (Table C)
     front_door_node: str | None
     split: str                     # "TRAIN" or "HOLDOUT"
 
@@ -216,7 +216,7 @@ def load_full_corpus_plans(pkl_path: str = DEFAULT_CORPUS_PKL) -> tuple:
         plans.append(FullCorpusPlan(
             plan_id=str(plan_id),
             role_zone_ids={role: tuple(ids) for role, ids in role_zone_ids.items()},
-            spatial_adjacency_pairs=frozenset(spatial_pairs),
+            touching_without_door_pairs=frozenset(spatial_pairs),
             access_pairs=frozenset(via_door_pairs | direct_pairs),
             spatial_touching_pairs=frozenset(spatial_pairs | via_door_pairs),
             front_door_node=front_door_node,
@@ -237,7 +237,7 @@ def _pair_positive(plan: FullCorpusPlan, role_a: str, role_b: str, pairs: frozen
 
 def compute_pair_rows(plans: list, pairs_attr: str) -> tuple:
     """One `PairRow` per unordered pair of distinct roles co-occurring in >=1 plan, for either
-    `pairs_attr="spatial_adjacency_pairs"` or `pairs_attr="access_pairs"`. Returns `(rows, baseline)`."""
+    `pairs_attr="touching_without_door_pairs"` or `pairs_attr="access_pairs"`. Returns `(rows, baseline)`."""
     pair_stats: dict = {}
     total_present = 0
     total_positive = 0
@@ -322,7 +322,7 @@ class _RowAdapter:
 
 
 def score_plan(plan: FullCorpusPlan, train_rows: tuple,
-              pairs_attr: str = "spatial_adjacency_pairs") -> float | None:
+              pairs_attr: str = "touching_without_door_pairs") -> float | None:
     """A plan's own pattern (spatial-adjacency by default, or `pairs_attr="spatial_touching_pairs"`
     for Table C) scored against the TRAIN-built rows, via the SAME `plan_log_likelihood` Step 2
     uses — never a re-derived scoring function."""
@@ -369,7 +369,7 @@ def build_report(pkl_path: str = DEFAULT_CORPUS_PKL) -> FullCorpusReport:
     if not holdout:
         raise EmptyFullCorpusError("HOLDOUT split is empty — cannot calibrate")
 
-    spatial_rows, spatial_baseline = compute_pair_rows(train, "spatial_adjacency_pairs")
+    spatial_rows, spatial_baseline = compute_pair_rows(train, "touching_without_door_pairs")
     access_rows, access_baseline = compute_pair_rows(train, "access_pairs")
     touching_rows, touching_baseline = compute_pair_rows(train, "spatial_touching_pairs")
     if not spatial_rows:
@@ -422,7 +422,7 @@ def report_to_dict(report: FullCorpusReport) -> dict:
         "split_method": "sha256(plan_id)[:8] as int mod 100 < 20 -> HOLDOUT, else TRAIN",
         "smoothing_method": SMOOTHING_METHOD, "smoothing_alpha": SMOOTHING_ALPHA,
         "min_support": MIN_SUPPORT,
-        "spatial_adjacency": {"baseline_rate": report.spatial_baseline, "rows": _rows(report.spatial_rows)},
+        "touching_without_door": {"baseline_rate": report.spatial_baseline, "rows": _rows(report.spatial_rows)},
         "access": {"baseline_rate": report.access_baseline, "rows": _rows(report.access_rows)},
         "spatial_touching": {
             "description": "UNION of adjacency-typed and via_door-typed edges — Table C, see "

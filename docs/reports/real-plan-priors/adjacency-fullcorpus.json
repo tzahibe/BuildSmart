@@ -9,7 +9,7 @@
   "smoothing_method": "laplace",
   "smoothing_alpha": 1.0,
   "min_support": 3,
-  "spatial_adjacency": {
+  "touching_without_door": {
     "baseline_rate": 0.223059,
     "rows": [
       {

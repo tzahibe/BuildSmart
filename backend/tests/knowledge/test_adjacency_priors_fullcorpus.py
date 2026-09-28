@@ -145,7 +145,7 @@ def test_prior_is_built_from_train_only(tmp_path, monkeypatch):
     ])
     plans, _, _ = fc.load_full_corpus_plans(str(path))
     train = [p for p in plans if p.split == "TRAIN"]
-    spatial_rows, _ = fc.compute_pair_rows(train, "spatial_adjacency_pairs")
+    spatial_rows, _ = fc.compute_pair_rows(train, "touching_without_door_pairs")
     row = fc.row_for(spatial_rows, "BEDROOM", "LIVING")
     assert row is not None
     assert row.sample_count == 1  # only the TRAIN plan
@@ -164,7 +164,7 @@ def test_spatial_and_access_are_measured_from_disjoint_edge_types(tmp_path, monk
               [("living_0", "bathroom_0", "via_door")]),
     ])
     plans, _, _ = fc.load_full_corpus_plans(str(path))
-    spatial_rows, _ = fc.compute_pair_rows(plans, "spatial_adjacency_pairs")
+    spatial_rows, _ = fc.compute_pair_rows(plans, "touching_without_door_pairs")
     access_rows, _ = fc.compute_pair_rows(plans, "access_pairs")
 
     bedroom_living_spatial = fc.row_for(spatial_rows, "BEDROOM", "LIVING")
@@ -186,7 +186,7 @@ def test_via_window_edges_excluded_from_both_artifacts(tmp_path, monkeypatch):
               [("bedroom_0", "balcony_0", "via_window")]),
     ])
     plans, _, _ = fc.load_full_corpus_plans(str(path))
-    spatial_rows, _ = fc.compute_pair_rows(plans, "spatial_adjacency_pairs")
+    spatial_rows, _ = fc.compute_pair_rows(plans, "touching_without_door_pairs")
     access_rows, _ = fc.compute_pair_rows(plans, "access_pairs")
     spatial_row = fc.row_for(spatial_rows, "BALCONY", "BEDROOM")
     access_row = fc.row_for(access_rows, "BALCONY", "BEDROOM")
@@ -210,7 +210,7 @@ def test_spatial_touching_is_union_of_adjacency_and_via_door_only(tmp_path, monk
               [("front_door_0", "living_0", "direct")]),
     ])
     plans, _, _ = fc.load_full_corpus_plans(str(path))
-    spatial_rows, _ = fc.compute_pair_rows(plans, "spatial_adjacency_pairs")
+    spatial_rows, _ = fc.compute_pair_rows(plans, "touching_without_door_pairs")
     touching_rows, _ = fc.compute_pair_rows(plans, "spatial_touching_pairs")
 
     # BEDROOM-LIVING: adjacency edge -> touching in both A and C

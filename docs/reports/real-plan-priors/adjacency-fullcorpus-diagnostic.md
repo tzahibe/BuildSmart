@@ -2,7 +2,7 @@
 
 Re-runs #141's own decision-relevance + four-state diagnostic over the frozen, committed **432-context** regression corpus, scoring every candidate against the FULL-CORPUS TRAIN-built **spatial_touching** table and calibrating "near real" against that same table's own HOLDOUT distribution (never in-sample). Measurement only — see this Issue's own Out-of-scope section.
 
-**Table used: `spatial_touching` — the UNION of adjacency and via_door edges (Table C).** This is the table our own `y` (`app.vertical_slice.adjacency_priors._rects_adjacent`, a pure geometric shared-boundary test indifferent to door placement) is actually comparable to — see `docs/reports/real-plan-priors/adjacency-fullcorpus.md`'s own module docstring, "WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY". The `spatial_adjacency`-only numbers this diagnostic originally reported are restated side by side below, not replaced.
+**Table used: `spatial_touching` — the UNION of adjacency and via_door edges (Table C).** This is the table our own `y` (`app.vertical_slice.adjacency_priors._rects_adjacent`, a pure geometric shared-boundary test indifferent to door placement) is actually comparable to — see `docs/reports/real-plan-priors/adjacency-fullcorpus.md`'s own module docstring, "WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY". The `touching_without_door`-only numbers this diagnostic originally reported are restated side by side below, not replaced.
 
 ## Holdout calibration used (AC-2)
 
@@ -61,11 +61,11 @@ percentile stats (best candidate's position within the HOLDOUT distribution): mi
 
 (first 20 of 432 contexts shown; full per-context table in the companion JSON report.)
 
-## Side by side: `spatial_touching` (this report) vs `spatial_adjacency` (repair evidence, AC-5/AC-6)
+## Side by side: `spatial_touching` (this report) vs `touching_without_door` (repair evidence, AC-5/AC-6)
 
 Same 432-context corpus, same scoring/classification code, different TRAIN table and its own HOLDOUT calibration — kept apart per AC-2 (never in-sample, never one table's calibration applied to the other's scores).
 
-| | `spatial_touching` | `spatial_adjacency` |
+| | `spatial_touching` | `touching_without_door` |
 |---|---|---|
 | holdout median | -0.128868 | -0.000665 |
 | holdout stdev | 0.137503 | 0.058796 |
@@ -78,12 +78,12 @@ Same 432-context corpus, same scoring/classification code, different TRAIN table
 | NO_REAL_VARIANCE | 0 | 0 |
 | NO_CANDIDATE_NEAR_REAL | 404 | 404 |
 
-The four-state classification is UNCHANGED between the two tables (404/404 `NO_CANDIDATE_NEAR_REAL` either way — the engine's candidates are still, on this corpus, further from either table's own real-plan distribution than its own threshold), but the DISTANCE moves substantially: z-distance median improves from -43.0135 (`spatial_adjacency`) to -15.7557 (`spatial_touching`), and percentile max from 0.26% to 13.88% — the underlying 432-context corpus, scoring code and holdout split are byte-identical between the two columns, so this shift is entirely the table's own doing. This is why AC-6 requires distance/percentile alongside the binary threshold: on the `spatial_adjacency` table alone, this corpus looked uniformly, drastically far from real; under the table our own `y` is actually comparable to, it is still far, but far less so — see the per-pair evidence in `docs/reports/real-plan-priors/adjacency-fullcorpus.md`, section C.
+The four-state classification is UNCHANGED between the two tables (404/404 `NO_CANDIDATE_NEAR_REAL` either way — the engine's candidates are still, on this corpus, further from either table's own real-plan distribution than its own threshold), but the DISTANCE moves substantially: z-distance median improves from -43.0135 (`touching_without_door`) to -15.7557 (`spatial_touching`), and percentile max from 0.26% to 13.88% — the underlying 432-context corpus, scoring code and holdout split are byte-identical between the two columns, so this shift is entirely the table's own doing. This is why AC-6 requires distance/percentile alongside the binary threshold: on the `touching_without_door` table alone, this corpus looked uniformly, drastically far from real; under the table our own `y` is actually comparable to, it is still far, but far less so — see the per-pair evidence in `docs/reports/real-plan-priors/adjacency-fullcorpus.md`, section C.
 
 ## Reproduce
 
 From `backend/`:
 
     uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py --save diag-touching.json --table-kind spatial_touching --workers 8
-    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py --save diag-adjacency.json --table-kind spatial_adjacency --workers 8
+    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py --save diag-adjacency.json --table-kind touching_without_door --workers 8
     uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py --compare diag-touching.json --baseline diag-adjacency.json --report diag-report.json --write-markdown ../docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md
