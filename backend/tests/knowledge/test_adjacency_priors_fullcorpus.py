@@ -275,3 +275,27 @@ def test_cli_writes_json_and_report_on_a_real_minimal_corpus(tmp_path, monkeypat
     assert json_out.exists()
     assert report_out.exists()
     assert "holdout" in report_out.read_text().lower()
+
+
+# --------------------------------------------------------------------------- reproducibility
+# The review found (2026-09-28) that renaming the artifact's adjacency-only section to
+# `touching_without_door` left the diagnostic spike mapping the old key, so its own documented
+# invocation raised KeyError against the committed artifact — a reproducibility break in the one
+# Issue whose entire purpose is a reproducible measurement, and untested because no test covered the
+# spike. This pins both table kinds to the committed artifact so a future rename cannot repeat it.
+
+def test_every_diagnostic_table_kind_loads_from_the_committed_artifact():
+    import sys
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[3]
+    sys.path.insert(0, str(repo_root / "backend"))
+    from spikes.failure_log_sweep.adjacency_priors_fullcorpus_diagnostic import (
+        _TABLE_KIND_TO_SECTION, _load_fullcorpus_table)
+
+    artifact = repo_root / "docs/reports/real-plan-priors/adjacency-fullcorpus.json"
+    assert artifact.exists(), "the committed full-corpus artifact is the diagnostic's only input"
+    assert set(_TABLE_KIND_TO_SECTION) == {"touching_without_door", "spatial_touching"}
+    for kind in _TABLE_KIND_TO_SECTION:
+        table = _load_fullcorpus_table(artifact, kind)
+        assert table is not None, f"--table-kind {kind} must load from the committed artifact"

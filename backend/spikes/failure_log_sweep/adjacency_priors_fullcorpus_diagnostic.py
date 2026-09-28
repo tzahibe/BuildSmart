@@ -7,15 +7,20 @@ Re-runs #141's own decision-relevance + four-state diagnostic
 
   - every candidate is scored against the FULL-CORPUS TRAIN-built table
     (`docs/reports/real-plan-priors/adjacency-fullcorpus.json`, Issue #149-B) instead of #141's
-    19-plan artifact. `--table-kind spatial_adjacency` (default) uses section A (adjacency-typed
-    edges only); `--table-kind spatial_touching` uses Table C (the UNION of adjacency and via_door
-    edges) — the table `app.vertical_slice.adjacency_priors._rects_adjacent`'s own `y` is actually
-    comparable to, since that check is pure shared-boundary geometry, indifferent to whether a door
-    pierces the wall (see that artifact's own module docstring, "WHICH TABLE OUR OWN Y IS COMPARABLE
-    TO, AND WHY"). `--table-kind` defaults to `spatial_adjacency` (reproduces the original numbers
-    unchanged); the committed report below runs BOTH and states them side by side.
+    19-plan artifact. Two tables can be selected:
+
+      * `--table-kind spatial_touching` (THE DEFAULT) — the UNION of `adjacency` and `via_door`
+        edges. This is the table `app.vertical_slice.adjacency_priors._rects_adjacent`'s own `y` is
+        actually comparable to, because that check is pure shared-boundary geometry and is
+        indifferent to whether a door pierces the wall.
+      * `--table-kind touching_without_door` — the `adjacency`-only section. Diagnostic ONLY: the
+        corpus types a boundary-sharing pair EITHER `adjacency` OR `via_door`, never both, so this
+        table means "touching with no door between them" and is NOT comparable to our own `y`.
+
+    See the artifact's own module docstring ("WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY").
+    The committed report below runs BOTH and states them side by side.
   - "near real" is calibrated against that SAME artifact's own HOLDOUT median/stdev/threshold for
-    the table in use — never in-sample (AC-2). `spatial_adjacency` reads `holdout_calibration`;
+    the table in use — never in-sample (AC-2). `touching_without_door` reads `holdout_calibration`;
     `spatial_touching` reads `spatial_touching_holdout_calibration`.
   - only the OFF pass runs (`ADJACENCY_PRIORS_ENABLED` stays at its shipped default, `False`,
     throughout — this script never flips it). Wiring the full-corpus table into an actual ON
@@ -64,16 +69,20 @@ DEFAULT_FULLCORPUS_JSON = (_REPO_ROOT / "docs" / "reports" / "real-plan-priors"
                           / "adjacency-fullcorpus.json")
 
 
+# The artifact's own section names (Issue #149's three contracted semantics). `touching_without_door`
+# is the adjacency-only table — diagnostic only, never comparable to the engine's own `y`, which is
+# "these two rooms share a wall" regardless of doors; `spatial_touching` (adjacency UNION via_door) is
+# the one that IS comparable, and is therefore the default here.
 _TABLE_KIND_TO_SECTION = {
-    "spatial_adjacency": ("spatial_adjacency", "holdout_calibration"),
+    "touching_without_door": ("touching_without_door", "holdout_calibration"),
     "spatial_touching": ("spatial_touching", "spatial_touching_holdout_calibration"),
 }
 
 
-def _load_fullcorpus_table(path: Path, table_kind: str = "spatial_adjacency"):
+def _load_fullcorpus_table(path: Path, table_kind: str = "spatial_touching"):
     """Rebuilds the `_TrainTable` adapter (see `app.knowledge.adjacency_priors_fullcorpus`) from
     the committed JSON artifact — never re-scanning the pickle for this diagnostic run.
-    `table_kind="spatial_adjacency"` (default) reads section A; `table_kind="spatial_touching"`
+    `table_kind="touching_without_door"` reads section A; `table_kind="spatial_touching"`
     reads Table C (the UNION of adjacency and via_door edges) and its OWN holdout calibration,
     measured on the same holdout plans' own spatial-touching pattern — never section A's."""
     from app.knowledge.adjacency_priors_fullcorpus import PairRow, _TrainTable
@@ -193,7 +202,7 @@ def run_all(contexts: list, workers: int, table_path: Path, table_kind: str) -> 
 
 
 def save(path: Path, workers: int, shard: str | None, table_path: Path,
-        table_kind: str = "spatial_adjacency") -> dict:
+        table_kind: str = "touching_without_door") -> dict:
     contexts = shard_contexts(shard, CORPUS) if shard else corpus_contexts(CORPUS)
     t0 = time.time()
     results, calibration = run_all(contexts, workers, table_path, table_kind)
@@ -231,7 +240,7 @@ def merge(out_path: Path, shard_paths: list) -> dict:
 def compare(doc: dict) -> dict:
     results = doc["results"]
     calibration = doc["calibration"]
-    table_kind = doc.get("table_kind", "spatial_adjacency")
+    table_kind = doc.get("table_kind", "touching_without_door")
     status_counts = Counter(v["status"] for v in results.values())
     analyzable = [v for v in results.values() if v["status"] == "PLANNED" and v.get("state")]
     refused_count = status_counts.get("REFUSED", 0)
@@ -281,7 +290,7 @@ def compare(doc: dict) -> dict:
 
 def render_markdown(report: dict, results: dict, baseline_report: dict | None = None) -> str:
     cal = report["calibration"]
-    table_kind = report.get("table_kind", "spatial_adjacency")
+    table_kind = report.get("table_kind", "touching_without_door")
     lines = [
         "# Real-plan adjacency priors — full-corpus diagnostic re-run (Issue #149-B)",
         "",
@@ -295,10 +304,10 @@ def render_markdown(report: dict, results: dict, baseline_report: dict | None = 
         "This is the table our own `y` (`app.vertical_slice.adjacency_priors._rects_adjacent`, a "
         "pure geometric shared-boundary test indifferent to door placement) is actually comparable "
         "to — see `docs/reports/real-plan-priors/adjacency-fullcorpus.md`'s own module docstring, "
-        "\"WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY\". The `spatial_adjacency`-only numbers "
+        "\"WHICH TABLE OUR OWN Y IS COMPARABLE TO, AND WHY\". The `touching_without_door`-only numbers "
         "this diagnostic originally reported are restated side by side below, not replaced."
         if table_kind == "spatial_touching" else
-        "**Table used: `spatial_adjacency` — adjacency-typed edges only (Table A, superseded for "
+        "**Table used: `touching_without_door` — adjacency-typed edges only (Table A, superseded for "
         "this purpose).** See the side-by-side comparison below: `spatial_touching` (Table C, the "
         "UNION of adjacency and via_door edges) is the table our own `y` is actually comparable to.",
         "",
@@ -375,7 +384,7 @@ def render_markdown(report: dict, results: dict, baseline_report: dict | None = 
     ]
 
     if baseline_report is not None:
-        other_kind = baseline_report.get("table_kind", "spatial_adjacency")
+        other_kind = baseline_report.get("table_kind", "touching_without_door")
         base_cal = baseline_report["calibration"]
         lines += [
             f"## Side by side: `{table_kind}` (this report) vs `{other_kind}` (repair evidence, "
@@ -407,13 +416,13 @@ def render_markdown(report: dict, results: dict, baseline_report: dict | None = 
             "`NO_CANDIDATE_NEAR_REAL` either way — the engine's candidates are still, on this "
             "corpus, further from either table's own real-plan distribution than its own threshold), "
             "but the DISTANCE moves substantially: z-distance median improves from "
-            f"{baseline_report['z_distance_stats']['median']} (`spatial_adjacency`) to "
+            f"{baseline_report['z_distance_stats']['median']} (`touching_without_door`) to "
             f"{report['z_distance_stats']['median']} (`spatial_touching`), and percentile max from "
             f"{baseline_report['percentile_stats']['max']}% to {report['percentile_stats']['max']}% — "
             "the underlying 432-context corpus, scoring code and holdout split are byte-identical "
             "between the two columns, so this shift is entirely the table's own doing. This is why "
             "AC-6 requires distance/percentile alongside the binary threshold: on the "
-            "`spatial_adjacency` table alone, this corpus looked uniformly, drastically far from "
+            "`touching_without_door` table alone, this corpus looked uniformly, drastically far from "
             "real; under the table our own `y` is actually comparable to, it is still far, but far "
             "less so — see the per-pair evidence in `docs/reports/real-plan-priors/"
             "adjacency-fullcorpus.md`, section C.",
@@ -428,7 +437,7 @@ def render_markdown(report: dict, results: dict, baseline_report: dict | None = 
         "    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py "
         "--save diag-touching.json --table-kind spatial_touching --workers 8",
         "    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py "
-        "--save diag-adjacency.json --table-kind spatial_adjacency --workers 8",
+        "--save diag-adjacency.json --table-kind spatial_touching --workers 8",
         "    uv run python spikes/failure_log_sweep/adjacency_priors_fullcorpus_diagnostic.py "
         "--compare diag-touching.json --baseline diag-adjacency.json --report diag-report.json "
         "--write-markdown ../docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md",
@@ -450,8 +459,8 @@ def main() -> int:
     parser.add_argument("--shard", metavar="I/N")
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--table", default=str(DEFAULT_FULLCORPUS_JSON))
-    parser.add_argument("--table-kind", choices=("spatial_adjacency", "spatial_touching"),
-                        default="spatial_adjacency")
+    parser.add_argument("--table-kind", choices=("touching_without_door", "spatial_touching"),
+                        default="spatial_touching")
     args = parser.parse_args()
 
     if args.save:
