@@ -105,6 +105,39 @@ does). Reproduction: `uv run python -m spikes.failure_log_sweep.concept_engine_v
 the 4-way-parallel variant, `concept_engine_v2_flagon_sweep_parallel.py`, also committed) from
 `backend/`; both write `docs/reports/concept-engine-v2/rollup-repair-2-flagon-sweep.json`.
 
+### The sweep completed — run by the Team Lead, 2026-09-29
+
+The worker's session window ran out before this finished; the Team Lead ran the committed parallel
+variant to completion against this same merged tree and this is its verbatim result
+(`docs/reports/concept-engine-v2/rollup-repair-2-flagon-sweep.json`, committed):
+
+```json
+{
+  "total_contexts": 432,
+  "planned_on_flag_on": 404,
+  "planned_with_alternatives_flag_on": 228,
+  "status_changes": 0,
+  "refusal_code_changes": 0,
+  "crashes": 0,
+  "crash_reasons": {},
+  "mismatches": []
+}
+```
+
+**Every one of the 432 contexts was run twice, flag off and flag on, and diffed per context. Nothing
+moved:** 404/432 PLANNED with the flag ON — the same 404 as flag OFF — **0 status changes, 0
+refusal-code changes, 0 crashes, 0 per-context mismatches.**
+
+So the AC-4 question this Issue exists to answer — *does the flag-ON concept path still pass against
+TODAY's validator chain, C30 furnishability and C31 public composition included?* — is answered
+directly and affirmatively, by measurement rather than by the structural argument above. **There is
+no failure to classify**: the "real architectural violation vs representation mismatch" step this
+Issue requires before any code change has nothing to act on, because no context changed status,
+changed refusal code, or crashed. 228 of the 404 planned contexts carry alternatives under the flag,
+which is the flag's only observable effect, exactly as the code-path analysis predicted.
+
+This result does NOT change any default: `CONCEPT_ENGINE_V2_ENABLED` remains `False`.
+
 **What was verified instead, exhaustively, against the REAL realization pipeline (never mocked) and
 TODAY's exact validator chain** — every one of these tests calls `general_pipeline._realize` (or
 `generate_demo_design`, which calls it) for real, with `CONCEPT_ENGINE_V2_ENABLED=True`, against the
