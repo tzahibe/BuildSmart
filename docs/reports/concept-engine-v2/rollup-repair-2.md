@@ -111,7 +111,7 @@ TODAY's exact validator chain** — every one of these tests calls `general_pipe
 merged tree's C30/C31/#146/#141/#149 code:
 
 ```
-uv run pytest -q tests/test_concept_engine_v2.py tests/test_concept_engine_v2_budget.py tests/vertical_slice/test_concept_compilers.py tests/vertical_slice/test_concept_patterns.py tests/vertical_slice/test_concept_score.py tests/vertical_slice/test_concept_topology.py
+uv run pytest -q tests/vertical_slice/test_concept_engine_v2.py tests/test_concept_engine_v2_budget.py tests/vertical_slice/test_concept_compilers.py tests/vertical_slice/test_concept_patterns.py tests/vertical_slice/test_concept_score.py tests/vertical_slice/test_concept_topology.py
 266 passed
 ```
 
@@ -150,16 +150,28 @@ All five concept modules and the three `ConceptLabel` files are on the branch:
 `frontend/src/design/ConceptLabel.{tsx,css,test.tsx}`.
 
 ```
-uv run pytest -q tests/test_concept_engine_v2.py
+uv run pytest -q tests/vertical_slice/test_concept_engine_v2.py
 46 passed
 ```
 Import check: `uv run python -c "from app.vertical_slice import concept_spec, concept_patterns, concept_score, concept_engine_v2, concept_compilers"` — clean, no errors, in the same `uv run` environment the fresh-checkout worktree uses (this branch's own tree). See the section below for the one failure found and fixed en route to this pass.
 
-**Note on the verification-plan path**: the plan names `backend/tests/vertical_slice/test_concept_engine_v2.py`; the actual file (unchanged location since Issue #78) is `backend/tests/test_concept_engine_v2.py` (top-level `tests/`, not `tests/vertical_slice/`). Ran the real file at its real path; flagging the path text as stale rather than silently treating a different file as a match.
+**Note on the verification-plan path**: attempt 1 of this repair left `test_concept_engine_v2.py` at
+its Issue-#78-era location, top-level `backend/tests/`, and only flagged the mismatch against the
+plan's `backend/tests/vertical_slice/test_concept_engine_v2.py` in this report — which meant
+gate-3-verification's literal `TEST:pytest:backend/tests/vertical_slice/test_concept_engine_v2.py`
+target had no file to run and failed CI. Fixed this attempt by moving the file to
+`backend/tests/vertical_slice/test_concept_engine_v2.py`, matching both the plan's own path and its
+`test_concept_compilers.py`/`test_concept_patterns.py`/`test_concept_score.py`/`test_concept_topology.py`
+siblings, which already live there. Pure file relocation — no import changes needed (no relative-path
+or `__file__`-based logic in the file, no `tests/vertical_slice/conftest.py` to diverge from
+`tests/conftest.py`, which applies to both locations); same 46 tests, same assertions, same 46/46
+pass. `docs/wiki/features/concept-engine-v2.md`'s test-location reference updated to match; its
+historical Issue #130 changelog entry (describing the file's location as it was in 2026-09-23) left
+as-is.
 
 ## A pre-existing test bug found and fixed mid-repair
 
-Running the flag-ON concept-engine test suite against the merged tree (`tests/test_concept_engine_v2.py`)
+Running the flag-ON concept-engine test suite against the merged tree (`tests/vertical_slice/test_concept_engine_v2.py`)
 surfaced 3 failures. Root-caused before any fix (per the owner's classify-before-fixing rule, C25/#136):
 **a representation mismatch in the test's own instrumentation, not a production defect and not a
 validator interaction.**
@@ -186,7 +198,7 @@ say it should be. Fixed `_realized_plan_rooms` to read the GROSS `rect_m` triple
 (same equality checks, same acceptance bar; only the field pairing feeding them changed).
 
 ```
-uv run pytest -q tests/test_concept_engine_v2.py
+uv run pytest -q tests/vertical_slice/test_concept_engine_v2.py
 46 passed
 uv run pytest -q tests/test_concept_engine_v2_budget.py tests/vertical_slice/test_concept_compilers.py tests/vertical_slice/test_concept_patterns.py tests/vertical_slice/test_concept_score.py tests/vertical_slice/test_concept_topology.py
 220 passed in 102.18s
@@ -199,14 +211,17 @@ uv run pytest -q tests/test_concept_engine_v2_budget.py tests/vertical_slice/tes
    object; no new producer introduced.
 2. **CONSUMERS** — only `_ClassRecorder.plan_for`, inside `test_concept_engine_v2.py` itself; not a
    production code path, not read by any other test file (`grep` confirms no other file references
-   `_demo_design_rooms`/`_realized_plan_rooms`).
+   `_demo_design_rooms`/`_realized_plan_rooms`). The file's relocation to `tests/vertical_slice/`
+   (below) has the same single-consumer scope: `grep` confirms no other file imports from or
+   references `tests/test_concept_engine_v2.py` by path (only the two docs updated below did).
 3. **CONTRACT** — no schema/contract change; `RoomOut.gross_width_m`/`gross_depth_m` and
    `GeometricDesign.rooms[i].rect_m` are unchanged, pre-existing, already-documented fields.
 4. **TESTS** — the same 3 previously-failing tests now pass with the fix; re-ran the full file (46
    tests) plus the 4 sibling concept-engine test files (220 tests) green.
-5. **REPRODUCTION** — `uv run pytest -q tests/test_concept_engine_v2.py` (documented above) run end
-   to end against the merged tree.
-6. **DOCS/REPORTS** — no wiki page describes this test helper; no doc needed updating besides this
-   report.
+5. **REPRODUCTION** — `uv run pytest -q tests/vertical_slice/test_concept_engine_v2.py` (documented
+   above) run end to end against the merged tree, at its new (and CI-manifest-matching) path.
+6. **DOCS/REPORTS** — no wiki page describes the `_ClassRecorder` test helper itself; the file's own
+   relocation is reflected in `docs/wiki/features/concept-engine-v2.md`'s test-location bullet and a
+   new changelog line, and in this report.
 7. **DEFAULTS/FALLBACKS** — none; no silent fallback introduced.
 8. **CROSS-ISSUE DEPENDENCIES** — none; this helper is local to Issue #78's own test file.

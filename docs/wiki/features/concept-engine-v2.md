@@ -88,8 +88,10 @@ renders it beside the plan title when present.
 - Built on Issues #75 (`concept_spec.py`: `ConceptSpec`, `realized_circulation_class`,
   `topologically_distinct`), #77 (`concept_patterns.py`: `patterns_for`), #76 (`concept_score.py`:
   `concept_score`, `adapt`).
-- Tests: `backend/tests/test_concept_engine_v2.py` (AC-3, AC-6, label-vocabulary completeness,
-  AC-5 cross-outline search), `backend/tests/test_concept_engine_v2_budget.py` (AC-4/AC-6,
+- Tests: `backend/tests/vertical_slice/test_concept_engine_v2.py` (AC-3, AC-6, label-vocabulary
+  completeness, AC-5 cross-outline search; moved here by Issue #153 from top-level `tests/`, to
+  match its own verification-plan path and its `test_concept_compilers.py`/`test_concept_patterns.py`
+  siblings), `backend/tests/test_concept_engine_v2_budget.py` (AC-4/AC-6,
   `tests/wallclock.py` pattern), `backend/tests/vertical_slice/test_concept_compilers.py` (Issue
   #79 AC-1/AC-2), `frontend/src/design/ConceptLabel.test.tsx` (AC-5 of Issue #78).
 
@@ -189,4 +191,8 @@ attempt 2's commit `58ed851` and `origin/integration/concept-engine-v2` at `8420
 `agent/130-concept-engine-v2-rollup-repair-the-flag`, after `main` merged into
 `integration/concept-engine-v2` at `145f582`: `compile_branched` gated off unconditionally
 (C26/Issue #36), a test-helper gross/net signature mismatch fixed in
-`tests/test_concept_engine_v2.py`, flag OFF untouched.
+`tests/test_concept_engine_v2.py`, flag OFF untouched. Re-verified again by Issue #153 attempt 2
+(2026-09-29, rollup repair (2/2)) after merging `origin/main` forward: the flag-OFF 432-context
+corpus, FAST suite and flag-ON concept-engine tests all still pass; `tests/test_concept_engine_v2.py`
+moved to `tests/vertical_slice/test_concept_engine_v2.py` to match the Issue's own verification-plan
+path (a location, not a behavior, change — same 46 tests, same assertions).
