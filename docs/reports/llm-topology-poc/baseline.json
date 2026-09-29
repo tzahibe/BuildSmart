@@ -1,0 +1,23 @@
+{
+  "_comment": "Frozen control for #151's PRIMARY experiment (owner safeguard 2026-09-29). The current-generator candidates the blind critic compares the LLM against MUST be produced by this commit's generator, not by a later main. Do not update this file when #153 or any later work lands: a post-#153 run is a SECONDARY comparison with its own baseline, reported in its own section, and never rewrites the primary.",
+  "primary_baseline_commit": "6a4aae74e6ab75fa12074e3d43fb9724575376e9",
+  "primary_baseline_title": "#149 B — Full-corpus adjacency validation before the Topology Proposer",
+  "issue_151_branch_head_at_generation": "ef837074dd52369c48ba409c51e4973b40e0e9eb",
+  "verified_unmodified": {
+    "method": "git diff <a> <b> -- backend/app/demo backend/app/vertical_slice backend/app/knowledge",
+    "issue_151_branch_vs_baseline": "empty — #151's branch changes no generator, validator or knowledge code",
+    "main_at_155_vs_baseline": "empty — #155's merge (713e3f2) did not move the generator either",
+    "first_commit_that_would_move_it": "#153 (Concept Engine v2 rollup), not landed at the time of this record"
+  },
+  "frozen_with_it": {
+    "briefs": "the 20 deterministic briefs B01-B20, unchanged",
+    "n_proposals_per_brief": 8,
+    "prompts": "built by the Issue's own prompt.build_prompt, imported not retyped",
+    "critic": "unchanged, blind to source"
+  },
+  "capability_snapshot_155": {
+    "commit": "713e3f2",
+    "proves": "the existing rectilinear realizer CAN express genuine non-rectangular geometry — brief-01's TWO_WING envelope, two wings at different depths with a real step, realized and passed through the unchanged validator chain",
+    "does_not_prove": "that the 5/8 refusal rate is pure realizer failure — placement came from the fixed Stage 1 gate-script heuristic, not a placement engine, and the 8 briefs were drawn from the corpus's own PLANNED pool, a pool defined by the shipping path already succeeding on them"
+  }
+}
