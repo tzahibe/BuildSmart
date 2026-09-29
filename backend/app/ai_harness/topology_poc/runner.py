@@ -36,7 +36,7 @@ _BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(o
 DEFAULT_CHECKPOINT_PATH = os.path.join(
     _BACKEND_DIR, "..", "docs", "reports", "llm-topology-poc", "raw_run.json")
 
-N_PROPOSALS_PER_BRIEF = 6
+N_PROPOSALS_PER_BRIEF = 8
 
 
 @dataclass(frozen=True)
