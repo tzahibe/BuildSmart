@@ -2,6 +2,22 @@
 
 **The LLM produces no geometry.** Every proposal below (current-generator and LLM alike) passed through the identical, deterministic, geometry-free critic (`critic.py`) — the critic is blind to which is which (AC-10). Realizability is metadata only and never entered any score (AC-9). See `docs/reports/llm-topology-poc/schema.md` for the schema and `briefs.md` for the 20 committed briefs.
 
+> ## ⚠️ This run does NOT support a GO/STOP decision on #142A/#142B
+>
+> The Issue's Goal asks whether *"a strong LLM's proposals score materially better than the current
+> generator"* — this run cannot answer that question. `llama3.2:latest` (a local 3B-parameter model)
+> was used because this sandbox has no external network egress or API key, **not** as a deliberate
+> stand-in for "a strong LLM" — the model choice was forced by the environment, not chosen to be a
+> fair comparison. Its JSON-schema compliance was poor: **11 of the 20 briefs produced zero
+> schema-valid LLM proposals at all**, and only **2 of 20** reached the 5-10 target AC-4 asks for, so
+> only **2 worked examples** are given in AC-7 below instead of the required 5-10. The **22.2% (2/9)**
+> headline figure and the average/median improvement below are computed correctly from the real run,
+> but they mostly measure whether a small local model can emit valid JSON at all (it usually could
+> not) — not a genuine architecture-quality comparison between a strong LLM and the current generator.
+> **Do not use this run's numbers, alone, to make the #142A/#142B GO/STOP call.** Re-running with a
+> strong external-API model is the recommended next step before that decision is made; see "Known
+> limitations" below for the full breakdown.
+
 ## Provenance of the ground truth (AC-13)
 
 - Adjacency/access artifact: `docs/reports/real-plan-priors/adjacency-fullcorpus.json`
@@ -16,8 +32,9 @@
 **22.2%** of briefs (2/9) have at least one LLM proposal whose critic score beats the current generator's own topology for that same brief.
 - Average improvement (best LLM score minus generator score, comparable briefs only): **-10.4198**
 - Median improvement: **-11.6917**
+- Denominator note: only 9 of the 20 briefs produced at least one schema-valid LLM proposal at all (see "Per-brief results" below), so this percentage is over 9 comparable briefs, not 20.
 
-LLM model used: `llama3.2:latest` — a local model reachable from this sandbox (no external network egress or API key is available here); see Known limitations below for what this implies about ceiling quality.
+LLM model used: `llama3.2:latest` — a local model reachable from this sandbox (no external network egress or API key is available here), **not** a deliberate stand-in for "a strong LLM". **These numbers cannot support a GO/STOP decision on #142A/#142B** — see the callout at the top of this report and "Known limitations" below for what this implies about ceiling quality.
 
 ## Realizability distribution (AC-6)
 
@@ -110,6 +127,8 @@ Per brief: the current generator's own adjacency similarity / access similarity 
 
 ## Known limitations
 
-- The LLM used is a small (3B parameter) local model reachable from this sandbox — no external network egress or API key is available here. This measures whether the POC METHOD surfaces genuine quality differences at all; it is not a measurement of what a frontier model would do, which the owner's GO/STOP decision should weigh accordingly.
-- A brief with zero schema-valid LLM proposals (after one retry) contributes no `best_llm`/`median_llm` value and is excluded from the headline percentage's denominator, not counted as a loss or a win.
+- **Model choice was forced, not chosen.** The LLM used is `llama3.2:latest`, a small (3B parameter) local model — the only one reachable from this sandbox, because no external network egress or API key is available here. It is not a fair stand-in for "a strong LLM" as the Issue's Goal calls for; the owner's GO/STOP decision on #142A/#142B should not be made from this run's numbers alone (see the callout at the top of this report). Re-running with a strong external-API model is the recommended next step before that decision.
+- **AC-4 shortfall:** the 5-10 materially-distinct-proposals-per-brief target was reached by only 2 of 20 briefs (B01, B09); 11 of 20 briefs got zero schema-valid LLM proposals at all (after one retry), and the remaining 7 landed short of 5. This measures whether the POC METHOD surfaces genuine quality differences at all, not what a frontier model would do.
+- **AC-7 shortfall:** because only 2 briefs (B02, B08) had a comparable best-LLM proposal that beat the generator, only 2 worked examples are given below, not the required 5-10 — there is no third "beats generator" case in this run to draw one from.
+- A brief with zero schema-valid LLM proposals (after one retry) contributes no `best_llm`/`median_llm` value and is excluded from the headline percentage's denominator (9 comparable briefs, not 20), not counted as a loss or a win.
 - `entrance_relation_score` is `None` whenever the entrance opens into a room whose role (e.g. HALL) the corrected #149 corpus cannot measure `front_door_direct_access` for — genuine unmeasurability, not a zero.
