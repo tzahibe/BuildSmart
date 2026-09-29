@@ -135,6 +135,13 @@ drawing.
   A C26 failure names which of ratio/longest-segment/dead-ends it is — check that reason against
   the drawing, not just the number.
 
+**Issue #41's own circulation-path fact belongs here too, not just under section G**: a walking
+route from the entrance to a public room can be geometrically clear (C26/M3/M4 all pass) yet still
+be blocked by another room's own placed furniture on the way — `public_composition.py`'s hard rule
+(C31, section G below) is that specific case. This does not change D's own signals; it is the one
+place a circulation path's OBSTRUCTION by furniture, as opposed to its length/compactness, is
+measured.
+
 ## E. Circulation Topology & Access Sequence
 
 Beyond raw compactness, circulation should form a sensible topology: a small number of junctions
@@ -189,7 +196,25 @@ merely satisfy an area target.
 
 - **Deterministic signal**: M6 (whether the public zone is one contiguous group,
   `quality_metrics.py`); no shape-quality check on individual public rooms yet beyond M1's generic
-  aspect measurement.
+  aspect measurement. **Issue #41** (`app.vertical_slice.public_composition`) adds, from realized
+  geometry and the Issue #39 layout objects (`interior_layout.py`): whether KITCHEN and DINING are
+  actually linked by a door or open-plan join (`kitchen_dining_related`), the same fact for
+  DINING<->LIVING (`dining_living_related`), whether the public zone reads as one connected
+  open-plan group independent of M6's own `DemoDesign`-level computation
+  (`public_zone_coherent`), whether ANY public room is reachable from the entrance at all
+  (`entrance_reaches_public`), and LIVING's own exterior/window relationship
+  (`living_exterior_exposed`/`living_has_window`) — carried on `QualityOut.public_composition`,
+  joined into a single non-blocking `composition_score` (lower is better) that never penalizes
+  `public_zone_coherent` being true (open plan costs nothing by construction — no scoring term
+  reads it at all). **C31 "public rooms reachable without crossing a furniture-blocked path"**
+  (`validation.py`) is the one hard rule this module backs: it fails closed only when a
+  LIVING/DINING/KITCHEN room that the plain access graph says IS reachable has NO route from the
+  entrance that avoids every intermediate room's own placed-furniture clearance zone — computed as
+  a real free-space connectivity test (`shapely`, room net rect minus furniture clearance
+  rectangles), walking every alternative route the graph offers (a room with several doors/open
+  joins can be blocked on one pass-through and still open on another), never merely the first path
+  tried. An ordinary room with furniture pushed to one side is untouched; only a genuinely
+  blocked-with-no-alternative case fails.
 - **Reference comparison**: professional kitchens realize as an L-counter inside one open volume,
   not a room with its own rectangular shape; measured gap: KITCHEN median aspect 2.75, DINING 2.35
   on the current corpus (`docs/wiki/architecture/geometry-validation.md`) — both read as strips.
@@ -197,10 +222,16 @@ merely satisfy an area target.
   designed or measured yet.
 - **Semantic review**: whether an open-plan group that passes M6 (topologically contiguous) also
   *feels* like one room in the drawing — a contiguous but visually segmented L-shaped party wall
-  can pass M6 while still reading as three rooms.
+  can pass M6 while still reading as three rooms. Whether a `kitchen_dining_related`/
+  `dining_living_related` link that is merely a door (not an open join) still reads as a coherent
+  composition, versus a legally-adjacent pair that happens to share a wall neither of them opens
+  onto.
 - **How a reviewer applies it**: confirm M6 first (public zone is one group); then eyeball whether
   KITCHEN/DINING individually read as strips (aspect noticeably above ~2.0) even when the group as
-  a whole is contiguous.
+  a whole is contiguous. Check `QualityOut.public_composition` for the relationship facts and
+  `composition_score` before judging the drawing by eye; a C31 failure names the specific room
+  whose only route is furniture-blocked — check that room's furniture layout against the drawing,
+  not just the refusal.
 
 ## H. Entrance & Arrival Sequence
 
@@ -346,18 +377,28 @@ Rooms with fixtures (bathrooms, toilets, kitchens, laundry) need real clearance 
 — a door should not swing into a toilet or sink, a room should not be sized to its template band
 while ignoring what has to physically fit inside it.
 
-- **Deterministic signal (partial — Issue #39, 2026-09-23)**: `app/vertical_slice/interior_layout.py`
-  places typed `LayoutObject`s per room role (bed/wardrobe, sofa/coffee table/focal wall, dining
-  table, kitchen counter run, bathroom/WC fixtures) off the realized geometry, deterministically,
-  with each object's own required clearance rectangle — and reports an item `unplaceable` (never
-  forcing it) when the room's geometry, a door's swing envelope, or another object leaves no room
-  for it. `app.demo.contract.QualityOut`'s `DemoDesign.layout` exposes every PLACED object; the
-  frontend (`InteriorLayout.tsx`) draws them as-is. Furnishability SCORING (whether a plan's overall
-  furnishability should influence ranking) remains Issue 10's, out of scope here — this Issue is
-  placement and disclosure only, additive, never a validation gate. Door-vs-wet-fixture swing
-  avoidance (C28, `door_clearance.py`) still uses its own conservative placeholder fixture footprint
-  independently, not this module's real placements — reconciling the two is a future follow-up, not
-  attempted here.
+- **Deterministic signal (partial — Issue #39, 2026-09-23; Issue #40, 2026-09-23)**:
+  `app/vertical_slice/interior_layout.py` places typed `LayoutObject`s per room role (bed/wardrobe,
+  sofa/coffee table/focal wall, dining table, kitchen counter run, bathroom/WC fixtures) off the
+  realized geometry, deterministically, with each object's own required clearance rectangle — and
+  reports an item `unplaceable` (never forcing it) when the room's geometry, a door's swing
+  envelope, or another object leaves no room for it. `app.demo.contract.QualityOut`'s
+  `DemoDesign.layout` exposes every PLACED object; the frontend (`InteriorLayout.tsx`) draws them
+  as-is. Issue #40 (`app/vertical_slice/furnishability.py`) reads those placed objects and rolls
+  them into a per-room `Usability` tier (GOOD/ACCEPTABLE/POOR/UNUSABLE) — required object placed,
+  a clear straight access path from the door, a blocked window, a usable-wall-length figure — on
+  `QualityOut.usability`, additive and disclosure-only. `validation.check_furnishability` (C30) is
+  the fail-closed check for the UNUSABLE tier the Issue asked for, fully defined and tested, but
+  **NOT called from `validate()`**: MEASURED (not assumed) to fail closed on real, otherwise-valid
+  plans this codebase already accepts — the root cause is `interior_layout.py`'s own placement gap
+  this same section's "one item, one wall, independently" limitation already names — so it stays
+  available for a caller (the same "defined, not wired" precedent `wet_core.
+  candidate_wet_core_key`/`better_candidate` already sets here) rather than shipped as a live gate
+  that would change which candidate wins. Furnishability SCORING for RANKING (`usability_key`/
+  `better_candidate`, mirroring `wet_core`'s own pair) is similarly defined, similarly unwired.
+  Door-vs-wet-fixture swing avoidance (C28, `door_clearance.py`) still uses its own conservative
+  placeholder fixture footprint independently, not this module's real placements — reconciling the
+  two is a future follow-up, not attempted here.
 - **Reference comparison**: the guest-WC spec's size band (1.5–3.0 m² net, short side 0.9–1.2 m,
   aspect ≤ 2.2, `specs/009-guest-wc-placement/spec.md` decision D) is the first place this repo
   ties a room's dimensions to what a fixture actually needs, even without simulating the fixture
@@ -370,7 +411,9 @@ while ignoring what has to physically fit inside it.
   drawing — an object's rect should read as sitting flush against its own wall, clear of the door's
   swing arc; a room with no `layout` entries for a role this Issue covers (bedroom/master/living/
   dining/kitchen/bathroom/WC) is either an out-of-scope role or every item reported unplaceable —
-  check the room's own proportions before assuming a bug.
+  check the room's own proportions before assuming a bug. `QualityOut.usability`'s tier per room is
+  the rolled-up signal; a POOR tier is worth a second look at the door-to-object sightline even when
+  every hard check (including C30, if a future caller wires it) passes.
 
 ## O. Site & Orientation Fit
 

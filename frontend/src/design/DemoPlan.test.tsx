@@ -206,6 +206,22 @@ describe('DemoPlan compass', () => {
   })
 })
 
+describe('DemoPlan scale bar', () => {
+  it('draws a scale bar with a round metre length, alongside the compass', () => {
+    const { container } = render(<DemoPlan design={design()} streetFacingSide="NORTH" />)
+    const bar = container.querySelector('[data-testid="scale-bar"]')
+    expect(bar).not.toBeNull()
+    const lengthM = Number(bar!.getAttribute('data-length-m'))
+    expect([1, 2, 5, 10, 20, 50].includes(lengthM)).toBe(true)
+    expect(bar!.textContent).toContain('מ׳')
+  })
+
+  it('draws no scale bar without a street side, matching the compass on thumbnails', () => {
+    const { container } = render(<DemoPlan design={design()} />)
+    expect(container.querySelector('[data-testid="scale-bar"]')).toBeNull()
+  })
+})
+
 describe('DemoWorkspace', () => {
   it('states only validation claims the backend actually made', () => {
     const { getByText, queryByText } = render(

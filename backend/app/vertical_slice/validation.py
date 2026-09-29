@@ -23,9 +23,12 @@ from . import circulation_metrics
 from . import door_clearance
 from . import entrance_sequence
 from . import footprint as footprint_module
+from . import furnishability
+from . import interior_layout
+from . import public_composition
 from .concept_generator import ROOM_TEMPLATES
 from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, TypedConstraint
-from .design_output import assemble as assemble_design
+from .design_output import GeometricDesign, assemble as assemble_design
 from .doors import ALLOWED_ENTRANCE_ROLES, Door
 from .exposure_policy import REQUIRED_EXTERIOR_ROLES
 from .furniture import FurnitureCheck
@@ -193,6 +196,61 @@ def check_realized_dimensions(rooms: Iterable[_DisplayedRoom], gross_area_m2: fl
                 "; ".join(bad) or "every room's width x depth matches its own area (net and "
                                   "gross), no net rect exceeds its own gross rect, and the "
                                   "building total matches the sum of realized rooms")
+
+
+def check_furnishability(design: GeometricDesign) -> Check:
+    """C30 — furnishability / usability (Issue #40), a standalone, directly-testable function the
+    same shape `check_realized_dimensions` (C27) already is — takes a realized `GeometricDesign`,
+    returns one `Check`, no `Fixture`/`rects`/`walls` machinery needed to exercise it. Fails closed
+    ONLY on the UNUSABLE tier — a room whose role has a REQUIRED item (`furnishability.
+    REQUIRED_ITEMS`) that `interior_layout.py` could not place ANYWHERE in the room. POOR (objects
+    placed, but no clear access path from the door, or one blocks a window) is never a gate here —
+    disclosure/ranking data only, on `QualityOut.usability` (`app.demo.contract`), the same
+    two-tier discipline C29 holds for wet-room privacy.
+
+    OPEN SCOPE DECISION — NOT WIRED INTO `validate()`, NOT THE FIXER'S CALL TO CLOSE: Issue #40's
+    Required Behavior asks C30 to "fail closed" on UNUSABLE; Issue #40's own AC-3 regression
+    budget requires LOST 0 / status_changes 0 on the corpus. Wiring this call into `validate()`
+    satisfies the first and breaks the second — MEASURED twice now, not assumed: the original
+    implementation measured 0 -> 29 new failures with `REQUIRED_ITEMS` narrowed to BED alone; a
+    fresh, independent re-measurement on 2026-09-23 (`uv run pytest -q tests/vertical_slice/` with
+    C30 temporarily wired into `validate()`, current `REQUIRED_ITEMS`) reproduced the same class
+    of failure at 23 failed / 604 passed — `test_strip_rooms.py`, `test_l_parti.py`,
+    `test_concept_generator.py`, `test_general_pipeline.py`, `test_primary_selection.py`,
+    `test_quality_repartition.py`, `test_laundry_room.py`, `test_baseline_and_decoupling.py` — the
+    same root cause both times: `interior_layout.py`'s placement is a single independent pass per
+    item per wall (no packing two items onto the same wall, no trying every rotation), a
+    documented, real gap (`interior_layout.py`'s own "Known follow-ups") that Issue #40's own
+    "Placement itself (Issue 9)" out-of-scope line forbids this Issue from closing.
+
+    THIS IS A PRODUCT/SCOPE CONFLICT BETWEEN TWO PARTS OF THE SAME CONTRACT, not a bug a diff can
+    close: either (a) wire C30 live and accept a LOST/status_changes count far outside the AC-3
+    budget stated above (a maintainer call, since only the maintainer can widen a regression
+    budget), or (b) keep C30 disclosure-only for Issue #40 and open a follow-up Issue against
+    `interior_layout.py`'s placement pass (same-wall packing/rotation) that C30 can safely gate on
+    once landed. This module does not pick (a) or (b) — it is defined, fully tested (this module's
+    own test file, `test_furnishability.py`), and ready for whichever a maintainer decision picks,
+    the same "available, not wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate`
+    already sets in this codebase.
+
+    LEAD-ORDERED REPAIR (2026-09-26) CONFIRMED THIS SCOPE DECISION AND ASKED FOR ONE MORE
+    MEASUREMENT: not just how many test-suite cases break with C30 wired, but how many of the
+    frozen 432-context regression corpus's contexts would flip PLANNED -> REFUSED if C30 were a
+    hard gate (any UNUSABLE room in the primary design) — the number the maintainer needs to weigh
+    the (a)/(b) choice above once Stage 2 changes `interior_layout.py`'s own placement geometry.
+    Measured 2026-09-26 (`spikes/failure_log_sweep/furnishability_corpus_check.py`, same 432-case
+    corpus AC-3 already uses): 88/404 PLANNED contexts (21.8%) carry at least one UNUSABLE room —
+    see that script's own output and `docs/wiki/features/interior-layout.md`'s "Evidence/history"
+    for the full run. This measurement is disclosure for the maintainer, not itself a refusal path;
+    C30 stays exactly as unwired as the paragraph above states.
+    """
+    usability_records = furnishability.compute_usability(
+        design, interior_layout.compute_layout(design))
+    unusable_rooms = [u for u in usability_records if u.tier == furnishability.UNUSABLE]
+    return Check(
+        "C30", "rooms are furnishable (every required object fits somewhere)", not unusable_rooms,
+        "; ".join(f"{u.room_id}: {', '.join(u.missing_required)}" for u in unusable_rooms) or
+        f"all {len(usability_records)} rooms furnishable")
 
 
 def _side_between(a: Rect, b: Rect) -> Side | None:
@@ -566,6 +624,21 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
         rep.add("C25", "no dead-space pocket at the entrance", pocket_defect is None,
                 pocket_defect or f"arrival zone {entrance_seq.arrival_zone} opens onward with no "
                                   f"unserved pocket")
+
+        # C31 — public-zone composition: no public room reachable solely through a furniture zone
+        # with no path (`public_composition.py`, Issue #41). Fails closed ONLY on the hard rule
+        # (a LIVING/DINING/KITCHEN room whose only realized path from the entrance is blocked by
+        # another room's own furniture clearance, with no way around it) — everything else that
+        # module measures (kitchen-dining/dining-living relationships, public-zone coherence,
+        # living exposure) is quality/ranking data only, never a gate, and open plan is never
+        # penalized as such. Reuses the SAME minimal `circulation_design` C25/C26 above already
+        # assembled, like C25 does.
+        composition = public_composition.measure(circulation_design)
+        composition_bad = public_composition.hard_violations(composition)
+        rep.add("C31", "public rooms reachable without crossing a furniture-blocked path",
+                not composition_bad,
+                "; ".join(composition_bad) or
+                f"every public room's realized path is clear of a furniture-blocked pass-through")
 
     # C13 — every DECLARED access edge is physically realized.
     #

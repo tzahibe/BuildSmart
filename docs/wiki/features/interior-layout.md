@@ -106,11 +106,88 @@ contract) — a plan with every bedroom's wardrobe unplaceable still delivers no
   placeholder fixture footprint (`WET_FIXTURE_FOOTPRINT_M`) independently of this module's real
   bathroom/WC placements — the two were not reconciled by this Issue (see Known follow-ups).
 
+## Furnishability / usability validation (Issue #40)
+
+`app/vertical_slice/furnishability.py` reads the layout objects this module already placed —
+never re-placing anything itself — and computes a `Usability` record per room: whether every
+REQUIRED object for the role got placed at all (`REQUIRED_ITEMS`, a deliberately narrow subset —
+BED for BEDROOM/MASTER_BEDROOM, not WARDROBE; SOFA for LIVING; DINING_TABLE; the kitchen's
+REFRIGERATOR/SINK/COOKTOP; TOILET/SINK for BATHROOM/TOILET), whether the door has a clear straight
+line to each placed object without crossing another object's footprint, whether a placed object
+blocks a window, and a diagnostic "usable wall length" figure — rolled up into one tier: GOOD /
+ACCEPTABLE / POOR / UNUSABLE.
+
+**`validation.check_furnishability` (C30) exists, is fully tested, and is NOT called from
+`validate()` — OPEN SCOPE DECISION, not a closed one.** Issue #40 asks C30 to "fail closed" on
+UNUSABLE; Issue #40's own AC-3 regression budget requires LOST 0 / status_changes 0. Wiring C30
+into `validate()` satisfies the first and breaks the second, MEASURED twice: the original
+implementation measured 0 -> 29 new failures (`REQUIRED_ITEMS` narrowed to BED alone); an
+independent re-measurement on 2026-09-23 (C30 temporarily wired, current `REQUIRED_ITEMS`,
+`uv run pytest -q tests/vertical_slice/`) reproduced the same failure class at 23 failed / 604
+passed, spanning `test_strip_rooms.py`, `test_l_parti.py`, `test_concept_generator.py`,
+`test_general_pipeline.py`, `test_primary_selection.py`, `test_quality_repartition.py`,
+`test_laundry_room.py`, `test_baseline_and_decoupling.py` — ordinary 2BR/3BR/4BR end-to-end
+briefs, not just synthetic edge cases. The root cause both times is `interior_layout.py`'s own
+placement algorithm: a single independent pass per item, per wall, with no packing two items onto
+the same wall and no rotation search — a real, already-documented gap (this page's own "Known
+follow-ups" below), and closing it is Issue 9's placement scope, explicitly out of bounds here.
+This is a genuine conflict between two parts of the same Issue's contract, not something this PR
+resolves unilaterally: either (a) wire C30 live and accept a regression far outside the AC-3
+budget (a maintainer call — only a maintainer can widen that budget), or (b) keep C30
+disclosure-only for Issue #40 and open a follow-up Issue against `interior_layout.py`'s placement
+pass that C30 can safely gate on once it lands. `check_furnishability` is defined, tested
+(`test_furnishability.py`) and ready for whichever a maintainer decision picks — the same
+"available, not wired" precedent `wet_core.candidate_wet_core_key`/`better_candidate` already sets
+in this codebase. `usability_key`/`better_candidate` (`furnishability.py`) are the equivalent,
+similarly unwired, ranking-preference functions for POOR/UNUSABLE counts.
+
+POOR (required objects placed, but no clear access path from the door, or one blocks a window) is
+disclosure-only, additive, and safe regardless: `app.demo.contract.QualityOut.usability` (one
+`UsabilityOut` per room, on every delivered plan) and one aggregated Hebrew notice on
+`QualityOut.notices` when a plan has a POOR room — never a gate, never able to change which
+candidate is chosen.
+
+**If C30 WERE wired live (hard refusal), how many contexts would flip PLANNED -> REFUSED?**
+Lead-ordered repair (2026-09-26) asked for this number specifically, over the frozen 432-context
+regression corpus, as the deliverable that lets the maintainer weigh the (a)/(b) choice above once
+Stage 2 changes `interior_layout.py`'s own placement geometry — not itself a refusal path.
+Measured 2026-09-26 (`spikes/failure_log_sweep/furnishability_corpus_check.py`): **88 of the 404
+PLANNED contexts (21.8%)** carry at least one UNUSABLE room in their primary design and would flip
+to REFUSED. No validator, threshold, or hard limit changed to produce this number — it is a
+read-only replay of the existing corpus through the existing (unwired) `check_furnishability`.
+
 ## Out of scope (deliberately untouched)
 
-Furnishability SCORING (whether furnishability should influence ranking — Issue 10), public-zone
-composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixture size catalogue
-(every item size here is a placeholder, see above).
+Public-zone composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixture
+size catalogue (every item size here is a placeholder, see above), improving `interior_layout.py`'s
+own placement algorithm (Issue 9's scope — see the furnishability section above for why this
+matters to C30 specifically).
+
+## Professional drawing representation (Issue #46)
+
+The live plan drawing (`frontend/src/design/DemoPlan.tsx`) already drew every field this module and
+Issue #45's wall model produce — layout objects, wall class/thickness, door swing arcs, windows,
+room labels/dimensions, and a north arrow gated on a known `streetFacingSide` — before Issue #46.
+What Issue #46 added is the one missing professional-drawing convention, a **scale bar**
+(`frontend/src/design/ScaleBar.tsx`): a round metric length (1-2-5 series) picked from the drawing's
+own frame size, gated on the same `streetFacingSide` presence the compass already uses so a
+thumbnail stays uncluttered — a drawing CONVENTION, never an architectural fact, so it deliberately
+reads no `DemoDesign` field at all.
+
+`backend/tests/test_renderer_audit.py` is the audit test this Issue added: it statically proves
+every drawn element category (walls, doors, windows, layout, labels/dimensions) is sourced from a
+real field on `app.demo.contract`'s Pydantic models — never a renderer-invented literal — and that
+the compass/scale bar are never drawn without the orientation/frame data they need. It deliberately
+does not audit `app.vertical_slice.renderer` (the older, disconnected debug PNG tool for the
+vertical-slice CLI, out of the live product path — same boundary `test_frontend_contract_audit.py`
+already draws around `ArchitecturalFloorPlan.tsx`/`SketchSvg.tsx`) or DXF output (out of scope).
+
+### Last verified against git
+
+`4ccf53a` (branch `agent/46-professional-architectural-drawing-repre`, based on `origin/main`):
+this section documents Issue #46's own implementation, verified against this session's own test
+runs (`test_renderer_audit.py`, the full frontend vitest suite — 206 tests — and the backend FAST
+suite, 1588 passed/0 failed).
 
 ## Known follow-ups
 
@@ -123,7 +200,8 @@ composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixt
   leftover width — today each item picks its OWN best wall independently, which under-uses a wide,
   shallow room (a "strip" bedroom, door at one end and window at the other, can legitimately report
   a wardrobe unplaceable even though the wall has unused width beside the bed) rather than a bug;
-  see the module's own placement-policy docstring.
+  see the module's own placement-policy docstring. **This is now also the blocker for wiring C30
+  (Issue #40) into any live acceptance gate — see that section above.**
 - A real furniture/fixture size catalogue, once one exists for this codebase (today's item sizes are
   PARAMETER · UNVERIFIED, same discipline as `MIN_FURNITURE_ENVELOPE_M`).
 
@@ -131,11 +209,22 @@ composition (Issue 11), decorative furniture, DXF symbols, a real furniture/fixt
 
 Issue #39 contract and acceptance criteria; `docs/architecture_reference/quality_rubric.md` section
 N ("Fixture & Clearance Awareness") — this Issue delivers that section's first deterministic signal.
+Issue #40 (furnishability/usability, `furnishability.py`) extends the same section with the tiered
+usability signal, and flags (`validation.check_furnishability`'s own docstring) the measured
+conflict between "C30 fails closed" and the AC-3 regression budget as an open scope decision for
+the maintainer — not resolved by this PR — see that docstring's "OPEN SCOPE DECISION" section.
 
 ## Last verified against git
 
-Branch `agent/39-architectural-interior-layout-mvp-engine`, based on `origin/main` at `aadba01`:
-verified against this session's own implementation and test runs (`test_interior_layout.py`,
-`test_demo_quality.py`'s full file, the frontend's full `npm test`, `npx tsc --noEmit`, `oxlint`,
-and a 4/8-shard sample of the 432-context regression corpus — 216 contexts, 0 crashes; the full
-before/after corpus compare is CI's own gate-4 job, not re-run standalone here).
+Branch `agent/40-furnishability-usability-validation-room`, based on `origin/main` at `42f558b`:
+verified against this session's own implementation and test runs (`test_furnishability.py`,
+`test_demo_p0.py`, `test_baseline_and_decoupling.py` — 138 tests, 0 failures — and a full,
+single-process replay of the 432-context regression corpus via `furnishability_corpus_check.py`:
+LOST 0, status_changed 0, tier distribution GOOD 67.6% / ACCEPTABLE 0.0% / POOR 29.4% / UNUSABLE
+3.0% over 3822 rooms).
+
+**Re-verified 2026-09-26** (lead-ordered repair, parallel replay via
+`furnishability_corpus_check.py`, same frozen 432-case corpus): identical LOST 0, status_changed
+0, and tier distribution over 3822 rooms; added the context-level "would flip PLANNED -> REFUSED
+if C30 were hard" count the repair asked for — 88/404 PLANNED contexts (21.8%), see the
+furnishability section above.
