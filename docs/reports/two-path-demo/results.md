@@ -21,7 +21,30 @@
 | 6 | brief-06 | L | REALIZED (validated) | REFUSED — SHORT_SIDE_INFEASIBLE |
 | 7 | brief-07 | PINWHEEL | REALIZED (validated) | REALIZED (validated) |
 
-A brief's own numeric context (bedrooms, SAFE_ROOM, built area, plot dimensions) is in `selected_briefs.json`; its full `DemoDesign` JSON for whichever path(s) realized is in `contracts/<short>-A.json`/`contracts/<short>-B.json`. **Composite generation could not be run or verified in this session** — `frontend/node_modules` is not installed in this worktree and `npm install` requires an approval this headless session has no surface for (see "Reproducing this report"); the composite step (`frontend/src/design/twoPathDemoComposites.test.tsx`, real `DemoPlan` renders through React Testing Library, one `composites/<short>.html` per brief) is written and reproducible in a normal frontend environment/CI, but no `composites/*.html` file is committed by this change — do not treat their absence as evidence the realizer draws nothing; the `contracts/*.json` files above are the real, unrendered contract for both paths.
+A brief's own numeric context (bedrooms, SAFE_ROOM, built area, plot dimensions) is in `selected_briefs.json`; its full `DemoDesign` JSON for whichever path(s) realized is in `contracts/<short>-A.json`/`contracts/<short>-B.json`. **Visual composite generation could not be run or verified in this session** — `frontend/node_modules` is not installed anywhere in this repo checkout and `npm install` requires an approval this headless session has no surface for (see "Reproducing this report"); the composite step (`frontend/src/design/twoPathDemoComposites.test.tsx`, real `DemoPlan` renders through React Testing Library, one `composites/<short>.html` per brief) is written and reproducible in a normal frontend environment/CI, but no `composites/*.html` file is committed by this change — do not treat their absence as evidence the realizer draws nothing; the `contracts/*.json` files above are the real, unrendered contract for both paths, and the section below is the same per-brief content in textual form.
+
+## Per-brief composite (AC-4)
+
+A TEXTUAL side-by-side composite, one per brief — each side (path A / path B) labelled with its path, its validator verdict, and its M1-M6 (read off the SAME `demo_design.quality.metrics` object `to_demo_design` produced for that side; "—" means that side never realized, so there is no plan to measure). This is the same content the visual composite above would show, without the rendered image.
+
+| brief | side | path | verdict | M1 habitable aspect (median) | M2 habitable-on-envelope ratio | M3 circulation share | M4 hall door count | M4 hall aspect (median) | M5 wet adjacency ratio | M6 public zone contiguous |
+|---|---|---|---|---|---|---|---|---|---|---|
+| brief-00 | A | app.demo.service (path A) | REALIZED (validated) | 1.857 | 1.000 | 0.101 | 5 | 10.321 | 0.000 | yes |
+| brief-00 | B | rectilinear_realizer, PINWHEEL (path B) | REALIZED (validated) | 1.676 | 1.000 | 0.227 | 6 | 3.001 | — | no |
+| brief-01 | A | app.demo.service (path A) | REALIZED (validated) | 1.600 | 1.000 | 0.143 | 3 | 10.000 | 0.000 | yes |
+| brief-01 | B | rectilinear_realizer, TWO_WING (path B) | REALIZED (validated) | 1.589 | 1.000 | 0.169 | 7 | 2.678 | — | no |
+| brief-02 | A | app.demo.service (path A) | REALIZED (validated) | 1.136 | 1.000 | 0.113 | 9 | 9.179 | 0.667 | yes |
+| brief-02 | B | rectilinear_realizer, L (path B) | REFUSED — SHORT_SIDE_INFEASIBLE | — | — | — | — | — | — | — |
+| brief-03 | A | app.demo.service (path A) | REALIZED (validated) | 1.348 | 1.000 | 0.114 | 9 | 11.286 | 0.000 | yes |
+| brief-03 | B | rectilinear_realizer, TWO_WING (path B) | REFUSED — NO_USABLE_ROOMS | — | — | — | — | — | — | — |
+| brief-04 | A | app.demo.service (path A) | REALIZED (validated) | 1.201 | 1.000 | 0.109 | 7 | 9.571 | 0.000 | yes |
+| brief-04 | B | rectilinear_realizer, L (path B) | REFUSED — VALIDATION_FAILED | — | — | — | — | — | — | — |
+| brief-05 | A | app.demo.service (path A) | REALIZED (validated) | 1.709 | 1.000 | 0.113 | 6 | 10.714 | 0.667 | yes |
+| brief-05 | B | rectilinear_realizer, PINWHEEL (path B) | REFUSED — SHORT_SIDE_INFEASIBLE | — | — | — | — | — | — | — |
+| brief-06 | A | app.demo.service (path A) | REALIZED (validated) | 2.143 | 1.000 | 0.073 | 6 | 7.536 | 0.000 | yes |
+| brief-06 | B | rectilinear_realizer, L (path B) | REFUSED — SHORT_SIDE_INFEASIBLE | — | — | — | — | — | — | — |
+| brief-07 | A | app.demo.service (path A) | REALIZED (validated) | 1.764 | 1.000 | 0.113 | 6 | 9.286 | 0.000 | yes |
+| brief-07 | B | rectilinear_realizer, PINWHEEL (path B) | REALIZED (validated) | 1.534 | 1.000 | 0.213 | 6 | 2.678 | — | no |
 
 ## Refusal detail (AC-3)
 
@@ -80,6 +103,8 @@ Two patterns in this table are disclosed limitations of THIS SCRIPT's own placem
 - PINWHEEL (its own family, 3 of the 8 path-B attempts) contributes ZERO to either count on purpose: every pinwheel arm is an ordinary rectangle tiling a rectangular envelope — its non-guillotine fact is about internal wall TOPOLOGY (it cannot be built by straight full-width/full-height cuts), not about room or envelope SHAPE, which is what this Issue's AC-5 asks for.
 
 ## Reproducing this report
+
+The first command below (backend) was run to produce this exact file and IS verified end to end in this session. The second command (frontend) was NOT run or verified in this session — this worktree has no `frontend/node_modules` installed and `npm install` is outside this headless session's approved command surface; it needs a normal frontend environment/CI to confirm.
 
 ```
 cd backend

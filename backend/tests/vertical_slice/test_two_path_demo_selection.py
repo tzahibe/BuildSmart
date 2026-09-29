@@ -10,12 +10,19 @@ it reproduces the SAME ids every time and that it matches the ids committed in
 AC-2: both path A (`app.demo.service.generate_demo_design`) and path B
 (`app.vertical_slice.rectilinear_realizer.realize_layout`, forced on in this process only) hand
 their solved geometry to the exact SAME contract-building entry point,
-`app.demo.contract.to_demo_design` — the one function that produces the `DemoDesign` JSON Issue
-#146's shipping drawing layer draws. Proven two ways: (1) a static identity check — the name each
-call site (`app.demo.service`, `spikes.two_path_demo.run_demo`) imported is the literal same
-function object as `app.demo.contract.to_demo_design`; (2) a dynamic call-count check — patching
-each call site's own bound name with a spy that wraps the original function, running one brief
-through both paths, and asserting both spies actually fired.
+`app.demo.contract.to_demo_design` — the one function that produces the `DemoDesign` JSON that
+Issue #146's shipping drawing layer (`DemoPlan.tsx`) draws. Proven two ways: (1) a static identity
+check — the name each call site (`app.demo.service`, `spikes.two_path_demo.run_demo`) imported is
+the literal same function object as `app.demo.contract.to_demo_design`; (2) a dynamic call-count
+check — patching each call site's own bound name with a spy that wraps the original function,
+running one brief through both paths, and asserting both spies actually fired.
+
+What this backend-only proof does NOT cover: that `DemoPlan.tsx` itself was executed against
+either path's output. That is a separate, frontend-only step
+(`frontend/src/design/twoPathDemoComposites.test.tsx`) this repo's headless test session cannot
+run (no `frontend/node_modules` install, `npm install` outside the approved command surface — see
+`docs/reports/two-path-demo/results.md`'s "Reproducing this report"). These tests prove identity
+and invocation of the shared CONTRACT-BUILDING entry point only, not that the React renderer ran.
 """
 from __future__ import annotations
 

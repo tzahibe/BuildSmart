@@ -1,12 +1,26 @@
 """Issue #155 — builds `docs/reports/two-path-demo/results.md` from `run_demo.run_all()`'s own
-output. Measurement text only; no plotting, no image generation (composites are produced
-separately, `frontend/src/design/twoPathDemoComposites.test.tsx`, through Issue #146's own
-`DemoPlan` component)."""
+output. Measurement text only; no plotting, no image generation. A visual composite per brief is
+produced separately, `frontend/src/design/twoPathDemoComposites.test.tsx`, through Issue #146's own
+`DemoPlan` component — that step needs a `frontend/node_modules` install this headless worktree
+does not have (see "Reproducing this report"), so this module also builds a TEXTUAL per-brief
+composite (AC-4's own "path, validator verdict, and M1-M6" content, without the rendered image) so
+AC-4 is satisfiable from data this script can actually produce and verify in this session."""
 from __future__ import annotations
 
 import statistics
 
 from spikes.two_path_demo.run_demo import PathResult, _short_id, contract_non_rectangular
+
+#: Shared with the per-brief composite (AC-4) and the aggregate table (AC-5) so both read the
+#: SAME field names off the SAME `quality.metrics` object.
+_METRIC_FIELDS = [
+    ("m1_habitable_aspect_median", "M1 habitable aspect (median)"),
+    ("m2_habitable_on_envelope_ratio", "M2 habitable-on-envelope ratio"),
+    ("m3_circulation_share", "M3 circulation share"),
+    ("m4_hall_door_count", "M4 hall door count"),
+    ("m4_hall_aspect_median", "M4 hall aspect (median)"),
+    ("m5_wet_adjacency_ratio", "M5 wet adjacency ratio"),
+]
 
 
 def _fmt(x) -> str:
@@ -26,6 +40,17 @@ def _verdict_cell(r: PathResult) -> str:
     if r.outcome == "REALIZED":
         return "REALIZED (validated)"
     return f"REFUSED — {r.refusal_code}"
+
+
+def _metric_cells(r: PathResult) -> list[str]:
+    """One formatted value per `_METRIC_FIELDS` entry, plus M6, for a SINGLE result — "—" for a
+    refused path (no `demo_design`, nothing to measure) rather than a fabricated number."""
+    if r.demo_design is None:
+        return ["—"] * (len(_METRIC_FIELDS) + 1)
+    m = r.demo_design.quality.metrics
+    cells = [_fmt(getattr(m, attr)) for attr, _ in _METRIC_FIELDS]
+    cells.append("yes" if m.m6_public_zone_contiguous else "no")
+    return cells
 
 
 def write_report(pairs: list[tuple[PathResult, PathResult]]) -> str:
@@ -96,17 +121,41 @@ def write_report(pairs: list[tuple[PathResult, PathResult]]) -> str:
     lines.append(
         "A brief's own numeric context (bedrooms, SAFE_ROOM, built area, plot dimensions) is in "
         "`selected_briefs.json`; its full `DemoDesign` JSON for whichever path(s) realized is in "
-        "`contracts/<short>-A.json`/`contracts/<short>-B.json`. **Composite generation could not "
-        "be run or verified in this session** — `frontend/node_modules` is not installed in this "
-        "worktree and `npm install` requires an approval this headless session has no surface "
-        "for (see \"Reproducing this report\"); the composite step "
-        "(`frontend/src/design/twoPathDemoComposites.test.tsx`, real `DemoPlan` renders through "
-        "React Testing Library, one `composites/<short>.html` per brief) is written and "
+        "`contracts/<short>-A.json`/`contracts/<short>-B.json`. **Visual composite generation "
+        "could not be run or verified in this session** — `frontend/node_modules` is not "
+        "installed anywhere in this repo checkout and `npm install` requires an approval this "
+        "headless session has no surface for (see \"Reproducing this report\"); the composite "
+        "step (`frontend/src/design/twoPathDemoComposites.test.tsx`, real `DemoPlan` renders "
+        "through React Testing Library, one `composites/<short>.html` per brief) is written and "
         "reproducible in a normal frontend environment/CI, but no `composites/*.html` file is "
         "committed by this change — do not treat their absence as evidence the realizer draws "
         "nothing; the `contracts/*.json` files above are the real, unrendered contract for both "
-        "paths."
+        "paths, and the section below is the same per-brief content in textual form."
     )
+    lines.append("")
+
+    # ---------------------------------------------------------------- per-brief composite (AC-4)
+    lines.append("## Per-brief composite (AC-4)")
+    lines.append("")
+    lines.append(
+        "A TEXTUAL side-by-side composite, one per brief — each side (path A / path B) labelled "
+        "with its path, its validator verdict, and its M1-M6 (read off the SAME "
+        "`demo_design.quality.metrics` object `to_demo_design` produced for that side; \"—\" "
+        "means that side never realized, so there is no plan to measure). This is the same "
+        "content the visual composite above would show, without the rendered image."
+    )
+    lines.append("")
+    header_cols = ["brief", "side", "path", "verdict"] + [label for _, label in _METRIC_FIELDS] + \
+        ["M6 public zone contiguous"]
+    lines.append("| " + " | ".join(header_cols) + " |")
+    lines.append("|" + "|".join(["---"] * len(header_cols)) + "|")
+    for i, (a, b) in enumerate(pairs):
+        short = _short_id(a.brief_id, i)
+        a_label = "app.demo.service (path A)"
+        b_label = f"rectilinear_realizer, {b.family} (path B)"
+        for side, label, r in (("A", a_label, a), ("B", b_label, b)):
+            row = [short, side, label, _verdict_cell(r)] + _metric_cells(r)
+            lines.append("| " + " | ".join(row) + " |")
     lines.append("")
 
     # -------------------------------------------------------------------------- refusal detail
@@ -172,15 +221,6 @@ def write_report(pairs: list[tuple[PathResult, PathResult]]) -> str:
     lines.append("")
     lines.append("| metric | path A (n={}) | path B (n={}) |".format(len(a_realized), len(b_realized)))
     lines.append("|---|---|---|")
-    metric_names = [
-        ("m1_habitable_aspect_median", "M1 habitable aspect (median)"),
-        ("m2_habitable_on_envelope_ratio", "M2 habitable-on-envelope ratio"),
-        ("m3_circulation_share", "M3 circulation share"),
-        ("m4_hall_door_count", "M4 hall door count"),
-        ("m4_hall_aspect_median", "M4 hall aspect (median)"),
-        ("m5_wet_adjacency_ratio", "M5 wet adjacency ratio"),
-    ]
-
     def _values(results: list[PathResult], attr: str) -> list[float]:
         out = []
         for r in results:
@@ -191,7 +231,7 @@ def write_report(pairs: list[tuple[PathResult, PathResult]]) -> str:
                 out.append(v)
         return out
 
-    for attr, label in metric_names:
+    for attr, label in _METRIC_FIELDS:
         va = _median(_values(a_realized, attr))
         vb = _median(_values(b_realized, attr))
         lines.append(f"| {label} | {_fmt(va)} | {_fmt(vb)} |")
@@ -273,6 +313,14 @@ def write_report(pairs: list[tuple[PathResult, PathResult]]) -> str:
     lines.append("")
 
     lines.append("## Reproducing this report")
+    lines.append("")
+    lines.append(
+        "The first command below (backend) was run to produce this exact file and IS verified "
+        "end to end in this session. The second command (frontend) was NOT run or verified in "
+        "this session — this worktree has no `frontend/node_modules` installed and `npm "
+        "install` is outside this headless session's approved command surface; it needs a "
+        "normal frontend environment/CI to confirm."
+    )
     lines.append("")
     lines.append("```")
     lines.append("cd backend")
