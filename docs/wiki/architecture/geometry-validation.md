@@ -642,7 +642,6 @@ branch is never reached; the wiring is real and tested (fixture-level and a mock
 `contract.to_demo_design` off the same raw `SolvedDesign` M1–M6 and C26 already read, independently
 of M3 (`quality_metrics.py` itself is untouched).
 
-<<<<<<< HEAD
 ## Residual dead space inside zones and C32 (Issue #43)
 
 Issue #43 (2026-09-23). C2 already guarantees zero residual area OUTSIDE rooms — every cell in the
@@ -751,7 +750,6 @@ gate and led to its removal from `validation.py`, see above and `docs/DEAD_SPACE
 `test_dead_space.py`'s hand-built fixtures and its tightened-limit test prove the would-refuse
 verdict genuinely fires on a real plan (mirrors `test_circulation_metrics.py`'s own C26 gate test)
 while the check itself still never fails the plan closed.
-=======
 ## Public-zone composition and C31 (Issue #41)
 
 Issue #41 (2026-09-23). M6 already reports whether the public zone is one contiguous open-plan
@@ -826,7 +824,6 @@ field-set assertion (`test_demo_p0.py`'s `quality` key-set, now including `publi
 `contract.to_demo_design` off the same raw `SolvedDesign` circulation/entrance-sequence already
 read, so a check, a ranking decision and this report can never disagree about what a plan's
 kitchen/dining/living composition looks like.
->>>>>>> origin/main
 
 ## Architectural quality rubric and anti-pattern library
 
