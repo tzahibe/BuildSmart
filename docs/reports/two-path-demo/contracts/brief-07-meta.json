@@ -1,0 +1,39 @@
+{
+  "brief_id": "{\"bedrooms\": 4, \"built_area_m2\": 312.0, \"footprint_depth_m\": 13.0, \"footprint_width_m\": 24.0, \"open_plan\": true, \"plot_depth_m\": 23.5, \"plot_width_m\": 31.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+  "street_facing_side": "NORTH",
+  "family_b": "PINWHEEL",
+  "a": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.7642195767195767,
+      "m1_habitable_aspect_max": 2.3653846153846154,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.11290322580645161,
+      "m4_hall_door_count": 6,
+      "m4_hall_aspect_median": 9.285714285714286,
+      "m5_wet_adjacency_ratio": 0.0,
+      "m6_public_zone_contiguous": true,
+      "validation_passed": true
+    }
+  },
+  "b": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.5342465753424657,
+      "m1_habitable_aspect_max": 2.072463768115942,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.21301057068949,
+      "m4_hall_door_count": 6,
+      "m4_hall_aspect_median": 2.677536231884058,
+      "m5_wet_adjacency_ratio": null,
+      "m6_public_zone_contiguous": false,
+      "validation_passed": true
+    },
+    "c30_passed": false,
+    "c30_detail": "S_DINING: DINING_TABLE"
+  }
+}

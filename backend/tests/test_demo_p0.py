@@ -212,9 +212,11 @@ def test_generated_plan_passes_every_hard_check(client, case):
     # `usability` (Issue #40) is additive too — one entry per room.
     # `entrance_sequence` (Issue #22) is additive too — always present on a delivered plan.
     # `public_composition` (Issue #41) is additive too — always present on a delivered plan.
+    # `dead_space_notice` (Issue #43) is additive too — a disclosure string or None, never a refusal.
     assert "quality" in body and set(body["quality"]) == {
         "over_preferred", "signal", "notices", "laundry_notice", "metrics", "constraints",
-        "exposure", "wet_privacy", "usability", "entrance_sequence", "public_composition"}
+        "exposure", "wet_privacy", "usability", "entrance_sequence", "public_composition",
+        "dead_space_notice"}
     assert body["quality"]["laundry_notice"] is None
     assert body["quality"]["metrics"] is not None
 
