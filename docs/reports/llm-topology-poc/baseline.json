@@ -7,7 +7,8 @@
     "method": "git diff <a> <b> -- backend/app/demo backend/app/vertical_slice backend/app/knowledge",
     "issue_151_branch_vs_baseline": "empty — #151's branch changes no generator, validator or knowledge code",
     "main_at_155_vs_baseline": "empty — #155's merge (713e3f2) did not move the generator either",
-    "first_commit_that_would_move_it": "#153 (Concept Engine v2 rollup), not landed at the time of this record"
+    "first_commit_that_would_move_it": "CORRECTED 2026-09-30: #43 moved it first, not #153. `4484886` (Dead space / residual pocket detection, PR #128) merged to main after this record was written and changed backend/app/vertical_slice — adding dead_space.py (359 lines) and touching quality_metrics.py and reference_benchmark.py. Its validation.py change is a COMMENT BLOCK ONLY, with no behavioural change and C32 still absent from the live validate() chain. This does not weaken the freeze: #151's baseline is pinned at 6a4aae7 and its branch never merges main, so the control the critic compares against is unaffected. It only means main has now moved past the baseline, which is expected and is exactly why the baseline was pinned.",
+    "main_head_when_corrected": "4484886"
   },
   "frozen_with_it": {
     "briefs": "the 20 deterministic briefs B01-B20, unchanged",
