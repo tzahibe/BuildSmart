@@ -258,3 +258,50 @@ uv run pytest -q tests/test_concept_engine_v2_budget.py tests/vertical_slice/tes
    new changelog line, and in this report.
 7. **DEFAULTS/FALLBACKS** — none; no silent fallback introduced.
 8. **CROSS-ISSUE DEPENDENCIES** — none; this helper is local to Issue #78's own test file.
+
+## The 3 primary-signature changes — classified by direct measurement (Team Lead, 2026-09-30)
+
+`gate-4-regression` reported **3 primary_signature_changes against a budget of 0**, with everything
+else clean: 404/28/0 both sides, LOST 0, GAINED 0, 0 status changes, 0 refusal-code changes, 0
+crashes. Per this Issue's own rule, the 3 were classified BEFORE any code change — and the
+classification is a measurement, not an argument.
+
+### The three contexts
+
+| context | requested area | stale PR base | main AND this branch |
+|---|---|---|---|
+| 15.0 x 11.73, 2 bd, 3 wet, safe, open-plan | 176.0 | 174.33 | **174.795** |
+| 20.0 x 10.0, 2 bd, 2 wet, safe, open-plan | 200.0 | 154.0 | **193.63** |
+| 20.0 x 10.0, 2 bd, 3 wet, safe, open-plan | 200.0 | 154.0 | **193.63** |
+
+All three are `open_plan=true, safe_room=true`. The change is an **improvement on every axis that
+moved**: two contexts go from building 154 m2 of a requested 200 m2 (77%) to 193.63 m2 (97%), their
+worst habitable aspect ratio drops (2.41 -> 1.97 and 2.44 -> 1.97), and the third's wet-adjacency
+ratio M5 rises from 0.667 to 1.0. This satisfies the standing rule that a planner gain is checked
+against the REQUESTED area rather than counted as "more plans planned".
+
+### Why they are not this Issue's changes
+
+The gate compares the PR head against the **PR base**, which is `integration/concept-engine-v2` — a
+branch cut before C30 (#132), C31 (#124), the drawing layer (#146), #141/#149's priors and #43's dead
+space. So every improvement main has accepted since appears here as a "change".
+
+Measured directly rather than argued: the same three contexts were replayed through
+`corpus_snapshot._run_one` — the identical entry point the gate uses — on `origin/main` and on this
+branch.
+
+- Before merging current main, this branch and `origin/main` differed in exactly ONE field on all
+  three contexts: `metrics.dead_space_m2` (`0.0` here vs `None` on main) — #43's own field, added to
+  main AFTER this branch merged main at `6a4aae7`. **`sig`, `area` and every M1-M6 metric were already
+  identical.**
+- Current main (`4484886`) has now been merged in (clean, no conflicts), and the replay is
+  **byte-identical to `origin/main` on all three contexts**.
+
+**Conclusion: this Issue introduces zero geometric change beyond main.** The 3 signature changes are
+main's own already-accepted behavior arriving on a stale integration base. They are therefore
+REPRESENTATION of the base's staleness, not a REAL_ARCHITECTURAL_VIOLATION and not a regression —
+and the correct action is to record them against the budget with this evidence, never to "fix" a
+branch into disagreeing with main.
+
+Reproduction: `uv run python -c "from spikes.failure_log_sweep.corpus_snapshot import _run_one"` over
+the three contexts listed above, on `origin/main` and on this branch, comparing the full result dicts.
