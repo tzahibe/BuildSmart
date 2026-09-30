@@ -538,6 +538,15 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
                       f"{circulation.longest_segment_m or 0:.2f} m, {circulation.dead_end_count} "
                       f"dead end(s) — within the calibrated limits")
 
+    # Residual dead space INSIDE a zone (`dead_space.py`, Issue #43) is measured and reported on
+    # the quality payload (`QualityOut.dead_space_notice`, `app/demo/contract.py`), never here: a
+    # check that can never fail has no place in this chain (review finding, 2026-09-27 repair
+    # order) — a STUB past `dead_space.DEAD_SPACE_STUB_HARD_LIMIT_M` is real on multi-level
+    # upper-level geometry that `docs/DEAD_SPACE_SWEEP.md`'s frozen single-level-only 432-context
+    # sweep never calibrated against, and gating on it here starved `plan_buildings` of every
+    # candidate (`test_building_coordinator`). C2 above already guarantees zero residual area
+    # OUTSIDE rooms; nothing here gates the INSIDE-zone twin.
+
     if not skip_site_checks:
         # C10 — parking connected to street (bay's own frontage lies on the plot's street edge)
         bad = [f"parking bay at x={p.x} does not front the street (y={p.y}, plot street at y={site.plot.y})"
