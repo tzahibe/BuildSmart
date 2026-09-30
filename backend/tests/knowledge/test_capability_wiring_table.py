@@ -35,6 +35,7 @@ _CANDIDATE_CALLER_PATHS = [
     "backend/app/demo/site_geometry.py",
     "backend/app/vertical_slice/__init__.py",
     "backend/app/vertical_slice/access_rules.py",
+    "backend/app/vertical_slice/adjacency_priors.py",
     "backend/app/vertical_slice/building.py",
     "backend/app/vertical_slice/building_coordinator.py",
     "backend/app/vertical_slice/building_validation.py",
@@ -77,6 +78,7 @@ _CANDIDATE_CALLER_PATHS = [
     "backend/app/vertical_slice/relationships.py",
     "backend/app/vertical_slice/renderer.py",
     "backend/app/vertical_slice/room_merge.py",
+    "backend/app/vertical_slice/room_proportion_priors.py",
     "backend/app/vertical_slice/safe_adapter.py",
     "backend/app/vertical_slice/site.py",
     "backend/app/vertical_slice/spec.py",
@@ -231,6 +233,20 @@ _FLAG_ROWS = [
         "STAGE2_CONTRACT_ENABLED",
         ["app.vertical_slice.stage2"],
         {"backend/app/vertical_slice/stage2/contract.py", "backend/app/vertical_slice/stage2/__init__.py"},
+    ),
+    (
+        "Real-plan room-proportion priors",
+        "backend/app/vertical_slice/room_proportion_priors.py",
+        "ROOM_PROPORTION_PRIORS_ENABLED",
+        ["app.vertical_slice.room_proportion_priors"],
+        {"backend/app/vertical_slice/room_proportion_priors.py"},
+    ),
+    (
+        "Real-plan adjacency priors",
+        "backend/app/vertical_slice/adjacency_priors.py",
+        "ADJACENCY_PRIORS_ENABLED",
+        ["app.vertical_slice.adjacency_priors"],
+        {"backend/app/vertical_slice/adjacency_priors.py"},
     ),
 ]
 
