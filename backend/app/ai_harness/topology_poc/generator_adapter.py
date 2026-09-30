@@ -31,6 +31,22 @@ CLUSTERS["wet_core"] reads `DemoDesign.quality.metrics.wet_core.clusters` (Issue
 wet-room clustering) when present; falls back to "every wet room, ungrouped" (a single flat list)
 only when that field is absent (a payload predating Issue #44) — documented, never silently
 treated as "no wet rooms".
+
+MERGED LIVING_KITCHEN ROOMS (found during independent review of the results, 2026-10-01): when
+`app.vertical_slice.room_merge` (`LIVING_KITCHEN_MERGE_ENABLED`) collapses a brief's LIVING and
+KITCHEN into one open-plan polygon, `app.demo.contract._apply_room_merge` emits it as a single
+`RoomOut` with `type="LIVING_KITCHEN"` — a real production room type, but NOT a `ProgramRole`
+(`app.vertical_slice.geometry_core.model.ProgramRole` has no such member) and NOT one of
+`priors.MEASURABLE_ROLES`. Passed through unchanged, that role never matches any #149 corpus row,
+so every adjacency/access pair for that brief silently reads as "no evidence" (`None`) — not a
+genuine absence of signal, but an artifact of this adapter's own representation choice; measured
+across the 20 frozen briefs, this is 11/20, not a one-off (`generation-dataset.json`'s briefs
+B01/B03/B04/B06/B07/B09/B10/B12/B14/B15/B17). `_expand_merged_rooms` below splits it back into two
+role-tagged room refs, `{id}::LIVING` and `{id}::KITCHEN`, sharing the merged room's own geometry
+(so any neighbour's adjacency check sees both) and always mutually touching/accessible (the two
+roles share one undivided polygon, by construction — there is no wall between them to run
+`shared_boundary_m` against). This never reaches `app.demo`/`app.vertical_slice` — the split exists
+only in this adapter's own `TopologyProposal` construction.
 """
 from __future__ import annotations
 
@@ -52,40 +68,79 @@ _ZONE_FOR_ROLE = {
 
 _WET_ROLES = frozenset({"BATHROOM", "TOILET"})
 
+#: `app.demo.contract._apply_room_merge`'s own room type for a collapsed LIVING+KITCHEN polygon —
+#: see the module docstring's "MERGED LIVING_KITCHEN ROOMS" section.
+_MERGED_LIVING_KITCHEN_ROLE = "LIVING_KITCHEN"
+
 
 def _rect_of(room) -> Rect:
     return Rect(x=m_to_u(room.x), y=m_to_u(room.y),
                w=m_to_u(room.gross_width_m), h=m_to_u(room.gross_depth_m))
 
 
+def _expand_merged_rooms(rooms_out) -> tuple:
+    """Splits every `LIVING_KITCHEN` `RoomOut` into two role-tagged `(new_id, role, source_room)`
+    entries sharing the merged room's own geometry; every other room passes through with its
+    original id. Returns `(expanded, id_remap)` where `id_remap[old_id]` is the tuple of new id(s)
+    standing in for `old_id` in `design.doors`/`design.open_interfaces` (one id for an unmerged
+    room, two for a merged one)."""
+    expanded = []
+    id_remap: dict = {}
+    for room in rooms_out:
+        if room.type == _MERGED_LIVING_KITCHEN_ROLE:
+            living_id, kitchen_id = f"{room.id}::LIVING", f"{room.id}::KITCHEN"
+            expanded.append((living_id, "LIVING", room))
+            expanded.append((kitchen_id, "KITCHEN", room))
+            id_remap[room.id] = (living_id, kitchen_id)
+        else:
+            expanded.append((room.id, room.type, room))
+            id_remap[room.id] = (room.id,)
+    return tuple(expanded), id_remap
+
+
 def topology_from_demo_design(design: DemoDesign) -> TopologyProposal:
-    rooms = tuple(RoomRef(id=r.id, role=r.type) for r in design.rooms)
+    expanded, id_remap = _expand_merged_rooms(design.rooms)
+    rooms = tuple(RoomRef(id=new_id, role=role) for new_id, role, _ in expanded)
     room_ids = frozenset(r.id for r in rooms)
-    rects = {r.id: _rect_of(r) for r in design.rooms}
+    rects = {new_id: _rect_of(source) for new_id, _, source in expanded}
+    #: which original room id each new id came from — used below to skip running
+    #: `shared_boundary_m` on the two halves of the same merged polygon (identical geometry, no
+    #: wall between them to measure) in favour of an explicit "always touching/accessible" edge.
+    source_of = {new_id: source.id for new_id, _, source in expanded}
+    merged_pairs = [ids for ids in id_remap.values() if len(ids) == 2]
 
     spatial_adjacency = set()
     room_id_list = list(room_ids)
     for i in range(len(room_id_list)):
         for j in range(i + 1, len(room_id_list)):
             a, b = room_id_list[i], room_id_list[j]
+            if source_of[a] == source_of[b]:
+                continue
             if shared_boundary_m(rects[a], rects[b]) >= MIN_MEANINGFUL_SHARED_BOUNDARY_M - 1e-9:
                 spatial_adjacency.add(frozenset((a, b)))
+    for living_id, kitchen_id in merged_pairs:
+        spatial_adjacency.add(frozenset((living_id, kitchen_id)))
 
     access_graph = set()
     for door in design.doors:
         if door.is_entrance:
-            if door.b in room_ids:
-                access_graph.add((ENTRANCE_ID, door.b))
+            for target in id_remap.get(door.b, ()):
+                access_graph.add((ENTRANCE_ID, target))
             continue
-        if door.a in room_ids and door.b in room_ids:
-            access_graph.add((door.a, door.b))
-            access_graph.add((door.b, door.a))
+        if door.a in id_remap and door.b in id_remap:
+            for a2 in id_remap[door.a]:
+                for b2 in id_remap[door.b]:
+                    access_graph.add((a2, b2))
+                    access_graph.add((b2, a2))
     for interface in design.open_interfaces:
-        ids = [rid for rid in interface.room_ids if rid in room_ids]
+        ids = [new_id for rid in interface.room_ids for new_id in id_remap.get(rid, ())]
         for i in range(len(ids)):
             for j in range(len(ids)):
                 if i != j:
                     access_graph.add((ids[i], ids[j]))
+    for living_id, kitchen_id in merged_pairs:
+        access_graph.add((living_id, kitchen_id))
+        access_graph.add((kitchen_id, living_id))
 
     zones: dict = {}
     for room in rooms:

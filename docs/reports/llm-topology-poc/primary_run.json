@@ -13,14 +13,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": null,
-        "access_similarity": null,
+        "adjacency_similarity": -0.6702805332146903,
+        "access_similarity": -3.8399513690541576,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -0.386294
+        "total_score": -3.510232
       },
-      "canonical_hash": "4ad4fe416a155030ee0be7db55cc1a505daec7d2b3a96138b8e86d4e73f2ead9"
+      "canonical_hash": "bedcb6a71a70134dff411f726f92be6e822cf6d4ef4e8e10625c458f9818c8d4"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -289,14 +289,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.2924152047498745,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -2.615718
       },
-      "canonical_hash": "0deb4ec5c9be1273917bcd7795c925c1b9172f5820ec78797ba723085e1d895d"
+      "canonical_hash": "0ea75ba3aba2d4fd2139241bc12badeaee87bbf456775a09357952061c6c7904"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -434,14 +434,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.2924152047498745,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -2.615718
       },
-      "canonical_hash": "abbdad4137a15c6aeb734db1015a99633eb9f30ea96a15f49d70518a02b06bb8"
+      "canonical_hash": "ab475e979f64c5f7fc80a1766d4174affd5cdecd82a4f16c383c8c08108639e5"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -724,14 +724,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.2924152047498745,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -2.615718
       },
-      "canonical_hash": "9b6ff8a88fff3ab16021aa76dd5155e1776016a403a4688ecc3c7ab49b33a56b"
+      "canonical_hash": "28b763a1e81480e7d3a0929ab94feb1a101d77d0f495b5c17e74350c7d1fea61"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -869,14 +869,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -2.41981578122236,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.6801937804606306,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -3.839632
+        "total_score": -3.003497
       },
-      "canonical_hash": "00cb8f91ddd458909c3699689d313f888fd475f58d59c0c4589ebb772ac9fe4e"
+      "canonical_hash": "ba48e7c0a4e594da0be357f3b5d4c34f79dcd6125ec948990de8c0dc7d925e43"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -1131,14 +1131,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.2924152047498745,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -2.615718
       },
-      "canonical_hash": "ba6283a866379290cfd976645bf781b9a5f2705ede00d324513ec5e7e3acb2c4"
+      "canonical_hash": "a3b934acdabc4ed445e3a85bf2fe52287ac52c70181d05f1145f1ae79d13af27"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -1276,14 +1276,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.2924152047498745,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -2.615718
       },
-      "canonical_hash": "6b8d4b067b1f9d3a73c16bc8d1bebc01c68583d704accfc613c1c01d099338ea"
+      "canonical_hash": "84985cc3f3acd91cf0f69e10792ab3079920eca0117d50772b37f77396734671"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -1594,14 +1594,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -2.41981578122236,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.6801937804606306,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -3.839632
+        "total_score": -3.003497
       },
-      "canonical_hash": "f1b9520b7ea8dd3dd177cda2f9f8a5e40bbfaf29d6ac971df58e240c884860aa"
+      "canonical_hash": "3c3a7f0e40c413e1a83e0232a4919da9f0ce2fef012f93bb8f874383f41ab27a"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -1884,14 +1884,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.9364922645028129,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -3.259795
       },
-      "canonical_hash": "59f887e7ebe6e172a365e0a4abc57ba27ca9eaf8354e18c33b4d409058c1cdb2"
+      "canonical_hash": "617a2f016e1ef363ad3870a460445733d24fe2f9ae3fe002937cd10f4ae74d13"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -2029,14 +2029,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.9364922645028129,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -3.259795
       },
-      "canonical_hash": "81580bbd20ed4161439348475b556c6d0499b8ab9ec9b84406d893216984334e"
+      "canonical_hash": "982b761e640bdb4dd6249cdeae088345f989415d5de35e355f59172b2b1fa222"
     },
     "generator_error": null,
     "llm_proposals": [
@@ -2323,14 +2323,14 @@
       "raw_index": 0,
       "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
       "score": {
-        "adjacency_similarity": -0.09314432695782497,
-        "access_similarity": -2.41981578122236,
+        "adjacency_similarity": -1.9364922645028129,
+        "access_similarity": -2.323302815631266,
         "wet_core_similarity": 1.0,
         "entrance_relation_score": null,
         "hard_violations": [],
-        "total_score": -1.51296
+        "total_score": -3.259795
       },
-      "canonical_hash": "6387ecdd64e0277d42b5e24b576f3d976228075cf2f116c74f2d6ae0085003ba"
+      "canonical_hash": "19692251ec8bc4b785a2da5598c367209b934736621101b6f55a87f6cc760324"
     },
     "generator_error": null,
     "llm_proposals": [

@@ -5,18 +5,30 @@ AC-27) from `frozen_runner.run_all_briefs_from_dataset`'s output plus the frozen
 `baseline.json`; this module invents nothing.
 
 WIN DEFINITION (`baseline.json`'s own `primary_go_stop_gate.win_definition`): best-VALID-LLM (zero
-hard-constraint violations) vs best-current-generator, same blind critic. This is the number the
-GO/STOP verdict and the headline (AC-7) both use. It is stricter than "best LLM score" (AC-5's
-per-brief column, which reports the true best among every kept LLM proposal regardless of
-violations, for direct comparison against the generator's own score) — the two are reported
-side by side, never conflated.
+hard-constraint violations) vs best-current-generator, same blind critic (`total_score`, `_win`
+below). This is the number the GO/STOP verdict's wins-fraction and the headline (AC-7) both use. It
+is stricter than "best LLM score" (AC-5's per-brief column, which reports the true best among every
+kept LLM proposal regardless of violations, for direct comparison against the generator's own
+score) — the two are reported side by side, never conflated.
+
+IMPROVEMENT MAGNITUDE vs WIN (independent review fix, 2026-10-01): the gate's median/average
+IMPROVEMENT number (compared against the 0.137503 threshold, AC-18/AC-26) is measured on
+`adjacency_similarity` ALONE (`_adjacency_improvement` below) for the SAME winning proposal
+`_win` selects — never on `total_score`. `total_score` sums four differently-scaled components (a
+-10-per-violation penalty among them) and is not in the units the threshold is a holdout standard
+deviation OF (`baseline.json`'s own `median_improvement_unit`: "one holdout standard deviation of
+the spatial_touching score distribution") — comparing it to 0.137503 would compare incommensurate
+quantities and make the bar trivially easy to clear regardless of the LLM's actual adjacency
+signal. "Which proposal wins" (the full critic, `total_score`) and "how big is the effect on the
+one axis we have a calibrated noise floor for" (`adjacency_similarity` alone) are deliberately two
+different questions, answered by two different fields of the SAME `GoStopGate`.
 """
 from __future__ import annotations
 
 import statistics
 from dataclasses import dataclass
 
-from app.ai_harness.topology_poc.result_types import BriefResult
+from app.ai_harness.topology_poc.result_types import BriefResult, ScoredProposal
 
 #: Below this fraction of wins, a result reads as clearly negative (short even of the weaker
 #: SECONDARY 60% sensitivity threshold) -> STOP rather than INCONCLUSIVE. Baseline.json names
@@ -48,26 +60,46 @@ class GoStopGate:
     verdict: str  # "GO" | "STOP" | "INCONCLUSIVE"
 
 
-def _win_and_improvement(result: BriefResult):
-    """`None` when the brief has no comparable (generator, zero-violation LLM) pair."""
+def _win(result: BriefResult):
+    """The best ZERO-VIOLATION LLM proposal, ranked by `total_score` (`baseline.json`'s own
+    `win_definition`: "best-valid-LLM vs best-current-generator under the same blind critic").
+    `None` when the brief has no comparable (generator, zero-violation LLM) pair."""
     if result.generator is None:
         return None
-    valid_llm_scores = [p.score["total_score"] for p in result.llm_proposals
-                        if not p.score["hard_violations"]]
-    if not valid_llm_scores:
+    valid = [p for p in result.llm_proposals if not p.score["hard_violations"]]
+    if not valid:
         return None
+    best = max(valid, key=lambda p: p.score["total_score"])
     gen_score = result.generator.score["total_score"]
-    best_valid_llm = max(valid_llm_scores)
-    return best_valid_llm > gen_score, best_valid_llm - gen_score
+    return best.score["total_score"] > gen_score, best
+
+
+def _adjacency_improvement(result: BriefResult, best_llm: ScoredProposal) -> "float | None":
+    """The gate's own improvement MAGNITUDE (AC-18, AC-26) — `adjacency_similarity` alone, built
+    ONLY from `spatial_touching` (`critic._adjacency_similarity`, AC-12), the SAME metric the
+    0.137503 threshold is itself a holdout standard deviation of (`baseline.json`'s own
+    `median_improvement_unit`). `total_score` sums four differently-scaled components (plus a
+    -10-per-violation term) and is NOT in the units that threshold was calibrated against —
+    comparing it to 0.137503 would make the bar trivially easy regardless of whether the LLM's
+    actual adjacency signal exceeds the corpus's own measured noise floor (independent review
+    finding, 2026-10-01). `None` when either side has zero eligible measurable-role pairs for this
+    brief — a genuine "no evidence" (AC-12's own "contributes to neither the sum nor the count"),
+    never a fabricated 0.0."""
+    gen_adjacency = result.generator.score["adjacency_similarity"]
+    llm_adjacency = best_llm.score["adjacency_similarity"]
+    if gen_adjacency is None or llm_adjacency is None:
+        return None
+    return llm_adjacency - gen_adjacency
 
 
 def compute_go_stop_gate(results: dict, gate_spec: dict) -> GoStopGate:
     go = gate_spec["go_requires_all_three"]
     ordered = list(results.values())
-    pairs = [_win_and_improvement(r) for r in ordered]
-    comparable = [p for p in pairs if p is not None]
+    win_pairs = [_win(r) for r in ordered]
+    comparable = [w for w in win_pairs if w is not None]
     wins = sum(1 for beats, _ in comparable if beats)
-    improvements = [imp for _, imp in comparable]
+    improvements = [imp for r, w in zip(ordered, win_pairs) if w is not None
+                    for imp in [_adjacency_improvement(r, w[1])] if imp is not None]
     total = len(ordered)
     wins_fraction = (wins / total) if total else 0.0
     median_improvement = statistics.median(improvements) if improvements else float("-inf")
@@ -122,8 +154,12 @@ def _brief_summary_row(result: BriefResult) -> dict:
     median_llm = statistics.median(llm_scores) if llm_scores else None
     n_kept = len(result.llm_proposals) + result.llm_exact_duplicates + result.llm_schema_rejected
     duplicate_rate = (result.llm_exact_duplicates / n_kept) if n_kept else 0.0
-    win = _win_and_improvement(result)
-    beats, improvement = win if win is not None else (False, None)
+    win = _win(result)
+    if win is None:
+        beats, improvement = False, None
+    else:
+        beats, best_proposal = win
+        improvement = _adjacency_improvement(result, best_proposal)
     return {
         "brief_id": result.brief_id, "gen_score": gen_score, "best_llm": best_llm,
         "median_llm": median_llm, "n_llm": len(result.llm_proposals),
@@ -181,6 +217,14 @@ def render_results_md(results: dict, *, provenance, dataset_meta: dict, gate_spe
         "A win counts only for an LLM proposal with ZERO hard-constraint violations, compared "
         "against the current generator's own best topology for the same brief, under the identical "
         "blind critic (AC-9, AC-10).",
+        "",
+        "**Units (independent review fix, 2026-10-01)**: \"wins\" is decided on `total_score` (the "
+        "full critic — adjacency + access + wet-core + entrance, less violations), but \"median "
+        "improvement\" is measured on `adjacency_similarity` ALONE, for that SAME winning proposal "
+        "— the one metric actually built from `spatial_touching` (AC-12) and therefore the one "
+        "metric this threshold's holdout stdev is comparable to. `total_score`'s improvement is NOT "
+        "used here: it mixes four differently-scaled components and is not in the threshold's "
+        "units, so comparing it to 0.137503 would not test what this gate exists to test.",
         "",
         f"**Measured**: wins {gate.wins}/{gate.total_briefs} "
         f"(**{round(gate.wins_fraction * 100, 1)}%**, {'beats the current generator' if gate.wins else 'no brief beats the current generator'}), "
@@ -320,11 +364,14 @@ def render_results_md(results: dict, *, provenance, dataset_meta: dict, gate_spe
         "",
         "`best LLM` is the highest score among every kept LLM proposal for that brief, regardless "
         "of hard-constraint violations — direct comparison against the generator's own score. "
-        "`beats generator`/`improvement` instead use the GO/STOP gate's own WIN definition (best "
-        "*zero-violation* LLM proposal vs generator) — see \"GO/STOP verdict\" above.",
+        "`beats generator` uses the GO/STOP gate's own WIN definition (best *zero-violation* LLM "
+        "proposal vs generator, by `total_score`) — see \"GO/STOP verdict\" above. `improvement` is "
+        "that SAME winning proposal's `adjacency_similarity` delta (not `total_score`'s) — the "
+        "metric the 0.137503 gate threshold is actually calibrated against; `—` when either side "
+        "has no eligible measurable-role pair for this brief.",
         "",
         "| brief | generator score | best LLM | median LLM | LLM kept/raw | materially distinct | "
-        "duplicate rate | beats generator (win def.) | improvement (win def.) |",
+        "duplicate rate | beats generator (win def.) | improvement (adjacency_similarity delta) |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     for s in summaries:
@@ -363,7 +410,11 @@ def render_results_md(results: dict, *, provenance, dataset_meta: dict, gate_spe
 
     lines += ["", "## Worked examples (AC-7)", ""]
     worked = [s for s in summaries if s["beats"]]
-    worked_examples = sorted(worked, key=lambda s: -s["improvement"])[:10] or summaries[:5]
+    # `improvement` (adjacency_similarity delta, AC-26) is `None` for a brief with no eligible
+    # measurable-role pair on either side — sorts last, never crashes the comparison.
+    worked_examples = sorted(
+        worked, key=lambda s: s["improvement"] if s["improvement"] is not None else float("-inf"),
+        reverse=True)[:10] or summaries[:5]
     for s in worked_examples:
         result = results[s["brief_id"]]
         valid_llm = [p for p in result.llm_proposals if not p.score["hard_violations"]]
@@ -401,6 +452,14 @@ def render_results_md(results: dict, *, provenance, dataset_meta: dict, gate_spe
         "examples) differ deliberately: the first is a raw ceiling regardless of hard-constraint "
         "violations, the second requires zero violations, matching `baseline.json`'s own "
         "`win_definition`.",
+        "- `improvement` (per-brief table, worked examples, and the gate's own median/average) is "
+        "the winning proposal's `adjacency_similarity` delta, not its `total_score` delta — see "
+        "\"GO/STOP verdict\" above for why. It is `—`/absent whenever either side has zero eligible "
+        "measurable-role pairs for that brief, most often because the current generator's own "
+        "open-plan merge (`LIVING_KITCHEN_MERGE_ENABLED`) collapses LIVING and KITCHEN into one "
+        "polygon — the adapter (`generator_adapter._expand_merged_rooms`) splits that back into "
+        "measurable LIVING/KITCHEN room refs, but a brief can still lack any OTHER eligible "
+        "measurable pair.",
         "- This run's dataset carries `retry_count = 0` for every brief: the model produced at "
         "least one schema-valid proposal on its first attempt for all 20 briefs (unlike the "
         "control run below, where a small local model frequently produced none at all).",
