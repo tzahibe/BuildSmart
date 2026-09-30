@@ -54,11 +54,13 @@ def _demo_design_rooms(design) -> tuple:
 
 
 def _realized_plan_rooms(design) -> tuple:
-    # `r.rect_m` is the GROSS (centerline) rect; `DemoDesign.rooms` pairs that same GROSS corner
-    # with the NET width/depth (`app.demo.contract.RoomOut`'s own documented convention) — using
-    # `net_w_m`/`net_h_m` here, not `rect_m`'s own width/height, is what makes the two signatures
-    # comparable at all once a room's walls have real thickness.
-    return tuple((r.zone_id, r.rect_m[0], r.rect_m[1], r.net_w_m, r.net_h_m) for r in design.rooms)
+    # `r.rect_m` is the GROSS (centerline) rect — the same GROSS triple `_demo_design_rooms` reads
+    # off `RoomOut.gross_width_m`/`gross_depth_m` (both copy `rect_m` verbatim, per `to_demo_design`).
+    # Pairing this against `net_w_m`/`net_h_m` (the NET, wall-inset triple) compares two different
+    # numbers for the same room and never matches once a room's walls have real thickness — this is
+    # what `_layout_signature_of_rooms`'s own docstring above already documents as the fix.
+    return tuple((r.zone_id, r.rect_m[0], r.rect_m[1], r.rect_m[2], r.rect_m[3])
+                 for r in design.rooms)
 
 
 class _ClassRecorder:

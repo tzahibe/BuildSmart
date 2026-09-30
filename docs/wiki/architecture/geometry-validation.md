@@ -642,6 +642,189 @@ branch is never reached; the wiring is real and tested (fixture-level and a mock
 `contract.to_demo_design` off the same raw `SolvedDesign` M1–M6 and C26 already read, independently
 of M3 (`quality_metrics.py` itself is untouched).
 
+## Residual dead space inside zones and C32 (Issue #43)
+
+Issue #43 (2026-09-23). C2 already guarantees zero residual area OUTSIDE rooms — every cell in the
+footprint belongs to some zone, by construction (`QualityOut.metrics.dead_space_m2` was a hardcoded
+`0.0` for exactly this reason). Nothing before this Issue measured dead space INSIDE a zone that a
+person actually sees: a corridor that keeps going past the last door it serves, a room realized
+narrower than any furniture could use, a corner a door's own swing makes impractical to reach, or a
+hall grown well past what a transition node needs. Issue #22's C25/`entrance_sequence.py` already
+owns ONE specific shape of this — the ARRIVAL zone's own pocket, measured from the entrance door
+outward — and is untouched here; every region kind this module measures is either scoped away from
+that reach (STUB only counts a circulation room's end C25's own reachability walk never serves) or
+is not a circulation concept at all (SLIVER, CORNER, OVERSIZED_HALL).
+
+**Measurement**: `app/vertical_slice/dead_space.py`, `measure(design) -> DeadSpaceMetrics` — pure
+and deterministic, reading a realized `GeometricDesign` alone (the same type `circulation_metrics.py`/
+`entrance_sequence.py` already read), never a fixture, a zone_id or a coordinate literal. Four
+region kinds, each with its own area, shape (aspect), accessibility (reachable from a door) and
+ownership (zone, role) — the four facts the Issue's own "required behavior" names:
+
+- **STUB** — a HALL/CIRCULATION room's own end with neither a placeable door nor an open-plan join
+  (mirrors `circulation_metrics._end_is_served`), measured as the AXIAL length from that end to the
+  nearest opening's own position along the room's long axis — never merely "is there a dead end",
+  which `circulation_metrics.dead_end_count` already reports as a boolean count with no size.
+- **SLIVER** — a non-circulation room realized narrower, on its own short side, than any real
+  furniture could use (`SLIVER_MIN_USABLE_WIDTH_M`, 0.9 m — below every `ROOM_TEMPLATES` entry's
+  own `min_short_side_m`, so this never fires on a C3-compliant room in production; defence-in-depth
+  for a future sizing path, the same discipline C20/C21 already apply to aspect/area).
+- **CORNER** — the small notch a door's own swing arc cuts from the room corner nearest its hinge
+  (a quarter-circle inscribed in a square leaves `side²(1 - π/4)` of the square unreachable while
+  the leaf can still open), off the door's own realized `hinge_m`/`swing_deg`/`width_m` — a
+  conservative, fixed-shape approximation, the same disclosure discipline `door_clearance.py`'s
+  wet-fixture footprint and `windows.py`'s glazing fractions use, not a full room-reachability solve.
+- **OVERSIZED_HALL** — a HALL/CIRCULATION room's own net area past
+  `concept_generator.ROOM_TEMPLATES[HALL].hard_max` (30 m2) — C20/C21 deliberately exclude HALL from
+  the aspect/area ceilings every other room is held to ("its width is what C14 measures"), so
+  nothing before this module reported a hall that simply grew past what any transition node needs.
+  Only the EXCESS beyond the budget counts, not the whole room.
+
+**`DEAD_SPACE_STUB_HARD_LIMIT_M` (2.0 m) and `SLIVER_MIN_USABLE_WIDTH_M` (0.9 m) are PARAMETER ·
+calibrated on `scripts/dead_space_sweep.py`'s sweep of the full 432-context frozen regression
+corpus** (`docs/DEAD_SPACE_SWEEP.md`), the same "measure real plans, then set the limit with
+headroom above them" discipline `ENTRANCE_POCKET_MAX_M`/`EXTREME_RATIO` use, not a code minimum.
+When this limit was first set, every one of a 394-PLANNED-context snapshot's own circulation dead
+ends measured 0.75-1.50 m past its last opening (mean 1.12 m — an ordinary hall's own width plus
+jamb clearance) and 2.0 m gave headroom above all of them. The corpus has since grown (Stage 0/1/2,
+404 PLANNED today) and the SAME sweep re-run (2026-09-27) now measures STUB lengths up to 2.65 m —
+27/404 PLANNED contexts would refuse if this limit gated today (see
+`docs/DEAD_SPACE_SWEEP.md`'s own current numbers, and its "Would-be-refused count per defect kind"
+section). The limit is left UNCHANGED: recalibrating it is a decision for the owner, and
+`classify_hard`'s verdict is disclosed rather than gated precisely so a limit going stale like this
+cannot silently starve `plan_buildings` of candidates. `SLIVER_MIN_USABLE_WIDTH_M` needs no corpus
+headroom the same way `ENTRANCE_STRAY_POCKET_MAX_M` does not: it is proven directly against the
+`ROOM_TEMPLATES` table itself
+(`test_dead_space.py::test_sliver_never_fires_on_a_c3_compliant_room`), not backed into just above
+an observed maximum. The current sweep finds a measured STUB on every PLANNED context (the ordinary
+one-tolerated-dead-end shape, now sized instead of merely counted), 1 with a CORNER, 0 with a
+SLIVER or an OVERSIZED_HALL.
+
+**C32 "no residual dead space past the hard limit"** shipped as a `validation.py` check next to
+C26, reusing the SAME minimal `GeometricDesign` C26 already assembles purely to measure this plan.
+It gated as a hard refusal first; multi-level upper-level geometry (`test_building_coordinator`)
+produced a real STUB past the limit that this single-level-only sweep never calibrated against, and
+gating on it there starved `plan_buildings` of every candidate. It was then changed to MEASURE AND
+REPORT `classify_hard`'s would-refuse verdict without ever failing the plan closed (lead repair
+order, 2026-09-26) — but an entry in `validation.py`'s check chain that can never fail is itself the
+wrong shape for a check (review finding, 2026-09-27 repair order): **C32 was removed from
+`validation.py` entirely.** The would-refuse verdict is disclosed instead as a product notice,
+`QualityOut.dead_space_notice` (`app/demo/contract.py`, `_dead_space_notice`), the same shape
+`laundry_notice` already uses — `None` for every plan under the limit. The other three kinds were
+always quality data (`QualityOut.metrics`) only, never a gate: a narrow room a future sizing path
+might produce is C3's own gate to fail on, a swing notch is normal architecture everywhere a door
+exists, and an oversized hall is a quality signal, not a correctness one.
+
+**Additive to `QualityOut.metrics`**: `QualityMetricsOut` gains `dead_space_m2`/`dead_space_share`
+— replacing the old hardcoded `0.0` — computed in `contract.to_demo_design` off the same raw
+`SolvedDesign` `dead_space.measure` reads elsewhere (circulation/entrance-sequence's own raw
+`SolvedDesign`). `quality_metrics.QualityMetrics` (M1–M6) no longer carries `dead_space_m2`
+itself (it never had the door-swing/wall-side geometry this measurement needs); the field lives
+here instead, the same reason `circulation_area_m2` etc. live in `CirculationMetrics` rather than
+in `QualityMetrics`. A real spine plan's own frozen baseline (`pipeline.run_demo()`) measures a
+small, real, non-zero `dead_space_m2` today (its HALL_SPUR leg's own tolerated dead end, ~1.5 m2) —
+this is intentional: the whole point of this Issue is to size a fact that was previously invisible,
+not to force it to zero. `classify_hard` still returns `None` on it (1.05 m, well under the 2.0 m
+hard limit), so `dead_space_notice` is `None` for this baseline too.
+
+**The ranking term** (`dead_space_prefers(current, candidate)`, `circulation_prefers`-style):
+exported and unit-tested, **NOT YET WIRED** into `general_pipeline.run_general`'s candidate loop or
+`_guard_demoted_hub` — wiring a new active-path ranking term safely needs its own corpus sweep to
+bound the primary-signature delta, the same discipline `entrance_sequence_prefers`/
+`circulation_prefers` were calibrated under before they were wired; that sweep is future work, not
+part of this Issue's verified scope.
+
+**Rubric section K** (`docs/architecture_reference/quality_rubric.md`) documents this alongside the
+existing C1/C2 correctness floor — see that file's own K section for the full write-up;
+`reference_benchmark.py`'s own section K (a DIFFERENT lettering scheme, see that module's docstring)
+reports the same `dead_space_m2`/`dead_space_share` pair as its `value`.
+
+**Corpus impact measured**: the 2026-09-27 re-run of the frozen 432-context regression corpus
+sweep found **27/404 PLANNED contexts** where `classify_hard` would fire for STUB — the corpus has
+grown since this limit's own 394-context calibration snapshot, and today's worst measured stub
+(2.65 m) now sits PAST the 2.0 m limit — and, by construction, 0/404 for SLIVER/CORNER/OVERSIZED_HALL
+(`classify_hard` never evaluates those three kinds at all). These are the counts the owner needs,
+per defect kind, to decide whether any of these should become a hard refusal once Stage 2 changes
+the geometry (single-level today; a real multi-level upper-level STUB is what tripped the old hard
+gate and led to its removal from `validation.py`, see above and `docs/DEAD_SPACE_SWEEP.md`).
+`test_dead_space.py`'s hand-built fixtures and its tightened-limit test prove the would-refuse
+verdict genuinely fires on a real plan (mirrors `test_circulation_metrics.py`'s own C26 gate test)
+while the check itself still never fails the plan closed.
+## Public-zone composition and C31 (Issue #41)
+
+Issue #41 (2026-09-23). M6 already reports whether the public zone is one contiguous open-plan
+group; the hub parti and the strip-room quality tier already shape public rooms; the corridor
+opening (`app.demo.contract._open_corridor_to_public`) already opens the hall<->LDK wall visually.
+Nothing before this Issue evaluated the kitchen-dining-living RELATIONSHIPS themselves, the
+entrance's relation to the public zone, or whether a person's walking path from the entrance to a
+public room is obstructed by another room's own furniture.
+
+**Measurement**: `app/vertical_slice/public_composition.py`, `measure(design) -> PublicComposition`
+— pure and deterministic, reading a realized `GeometricDesign` (`design_output.py`, the SAME type
+`circulation_metrics.py`/`entrance_sequence.py` read) plus the Issue #39 layout objects
+(`interior_layout.compute_layout`) for the furniture-clearance signal. Per plan:
+
+- **`kitchen_dining_related`/`dining_living_related`**: is KITCHEN linked to DINING (respectively
+  DINING to LIVING) by a door or an open-plan join, over the realized access graph — `None` only
+  when the plan has no room of one of the two roles.
+- **`public_zone_coherent`**: mirrors `quality_metrics._public_zone_contiguous` (M6) exactly — every
+  LIVING/DINING/KITCHEN room one connected OPEN-PLAN group — computed independently here since M6
+  reads `DemoDesign`, a different type. `None` when fewer than two LDK rooms exist.
+- **`entrance_reaches_public`**: is any LDK room reachable at all from the entrance's arrival zone.
+- **`living_exterior_exposed`/`living_has_window`**: LIVING's own exterior-wall/window facts (reuses
+  `wall_facts.is_on_envelope`/`design.windows`, the same data C19/C8 read) — `None` with no LIVING.
+- **`blocked_public_rooms`**: C31's own defect list (below).
+- **`composition_score`**: one aggregate, LOWER IS BETTER, for a caller comparing two otherwise-equal
+  candidate plans (`composition_prefers`, mirrors `circulation_prefers`/`entrance_sequence_prefers`'s
+  shape) — **wired into `run_general`'s own tiebreak chain at the LOWEST precedence** (Issue #41): it
+  may only reorder candidates that every other signal already ranks equal, and can never outrank
+  circulation, the quality tier or the area budget. It is a preference, never a gate: no plan is
+  refused by it. `public_zone_coherent` is NEVER read by the score — open
+  plan costs nothing by construction, which is what makes AC-1 ("never penalize openness") hold
+  structurally rather than by a threshold choice.
+
+**THE HARD RULE — C31 "public rooms reachable without crossing a furniture-blocked path"**
+(`validation.py`, next to C29, under the same `skip_site_checks` gate C25 uses — a multi-level upper
+storey has no street entrance concept to measure a path from): fails closed ONLY when a
+LIVING/DINING/KITCHEN room the PLAIN access graph says IS reachable (so C31 never misdiagnoses a
+C5 unreachability as its own defect) has NO route from the entrance that avoids every intermediate
+room's own placed-furniture clearance zone. Reuses the SAME minimal `circulation_design` C25/C26
+already assemble for this plan, like C25 does.
+
+**Why this needs a real multi-path search, not "is the shortest path blocked"**: the first
+implementation checked only the single BFS-shortest room-to-room path and broke a genuine L-massing
+candidate in the frozen test suite (`test_demo_p0.py`'s L-orientation preference test) — an
+open-plan LIVING/DINING/KITCHEN group has more than one route between any two of its rooms (the
+open joins form a small graph, not a chain), and a furniture-blocked pass-through on the
+shortest-found route does not mean the room is unreachable when another route is open. The fix
+(`_furniture_reachable_rooms`) walks a graph of `(room, entered-from-opening)` nodes: crossing a
+doorway between two rooms always succeeds (physical connectivity is already established, the same
+fact C5's `realized_connections` proves); CONTINUING further, from one opening of a room to
+ANOTHER of its own openings, requires that specific pass-through's own free-space connectivity —
+computed as `shapely`, the room's net rectangle minus the union of every placed item's
+`clearance_rect_m` (`interior_layout.LayoutObject`), testing whether the entry and exit opening
+points sit in the SAME connected piece. A room with three doors can be blocked between one pair and
+open between another; an alternate route through a DIFFERENT room is explored like any other graph
+edge. `blocked_public_rooms` is the set difference: graph-reachable LDK rooms minus
+furniture-reachable ones — genuinely "no path", never merely "the first path tried is blocked".
+
+**Corpus impact**: additive by construction on every plan with no furniture obstruction (the
+overwhelming majority — `interior_layout.py`'s own placement already keeps a freestanding item's
+clearance inside the room and refuses to place it at all, `unplaceable`, when it cannot; a room too
+small to fit the item leaves NO furniture in the way, never a false block). The 432-context frozen
+regression corpus was not independently re-measured before/after this Issue in this session (see the
+PR's own regression evidence for the authoritative before/after comparison); the fast vertical_slice
+suite (630 tests), the broader backend fast suite, and the `wet_room_corpus` suite (75 tests) all
+pass unchanged except for two additive check-count baselines
+(`test_baseline_and_decoupling.BASELINE_CHECK_COUNT`, `test_general_pipeline.
+test_all_slice_checks_still_pass`, both 25 -> 26 for the new C31 entry) and one additive contract
+field-set assertion (`test_demo_p0.py`'s `quality` key-set, now including `public_composition`).
+
+**`QualityOut.public_composition`** (additive): every field above, computed in
+`contract.to_demo_design` off the same raw `SolvedDesign` circulation/entrance-sequence already
+read, so a check, a ranking decision and this report can never disagree about what a plan's
+kitchen/dining/living composition looks like.
+
 ## Architectural quality rubric and anti-pattern library
 
 The measured gaps above (circulation topology, wet-room adjacency, public-room strips) are three
@@ -852,6 +1035,16 @@ classes — the "before" baseline for the Concept Engine v2 ROOT, committed at
   explicitly OUT OF SCOPE for Issue #17; any future attempt should start from why v1–v2.1 failed,
   not repeat the same seat count.
 
+Issue #41's own `public_composition.composition_prefers` **is** wired, into `run_general`'s tiebreak
+chain at the lowest precedence, using the same STRICT already-equal-on-everything-else pattern
+`entrance_sequence_prefers` uses. An earlier draft of this page (and of the list above) said it was
+deliberately left unwired; that was true of the Issue's first attempt and became false when the
+ranking wiring landed in the same PR — the lead's own merge of `main` kept both statements side by
+side without reconciling them (review finding, 2026-09-27). The corpus effect is documented in the
+Issue's own A/B: the primary-signature shift within budget is C31-driven, and the tiebreak itself
+moves only candidates that were already equal on every other signal. `wet_core.py`'s ranking
+preference remains the unwired case.
+
 Beyond these two: none currently tracked at the Wiki level from the pre-#17 state of this page.
 A third, from Issue #20: **foyer synthesis** — see the Entrance / arrival-room policy section
 above. A fourth, from Issue #22: **Entrance Sequence Quality** — fixing a genuine TUNNEL (a long
@@ -944,6 +1137,12 @@ and Issue #35's SAFE_ROOM typed-constraint work) to resolve a PR conflict: resol
 conflicts in this page, `contract.py`, `test_demo_p0.py` and `docs/PROJECT_STATE.md` by keeping
 both sides' additive sections/fields, then re-ran this Issue's own targets against the merged tree.
 
+`7995695` (branch `agent/43-dead-space-residual-pocket-detection-ent`, based on `origin/main`): the
+Residual dead space inside zones and C32 section above documents Issue #43, verified against this
+session's own implementation, the full 432-context corpus sweep (`docs/DEAD_SPACE_SWEEP.md`) and
+test runs (`test_dead_space.py`, targeted AC-1/AC-2 suites, `test_demo_quality.py`,
+`test_reference_benchmark.py`, `test_demo_p0.py` green).
+
 `8617a4b` (branch `agent/22-entrance-to-circulation-integration-the`); merged `origin/main` a
 second time (bringing in Issue #67's CI O3 corpus-snapshot sharding and Issue #102's
 non-rectangular-geometry investigation, both unrelated to C25) to resolve a second PR conflict:
@@ -999,3 +1198,23 @@ choice, with that reasoning stated, rather than by a claim that nothing producti
 the Concept topology contract (ConceptSpec) section above documents Issue #75, verified against
 this session's own implementation and test runs (887 realized candidates across every builder,
 0 `verify_class` mismatches; frozen-corpus regression unaffected).
+
+`7995695` (branch `agent/41-public-zone-composition-kitchen-dining-a`, based on `origin/main`): the
+Public-zone composition and C31 (Issue #41) section above documents this branch's own work,
+verified against this session's own implementation and test runs (`test_public_composition.py`, the
+full `vertical_slice` suite — 630 tests — and the broader backend fast suite, all green; a real
+regression this session found and fixed mid-implementation — the first algorithm checked only the
+single BFS-shortest path and broke a real L-massing candidate in `test_demo_p0.py`, fixed by the
+multi-path free-space search documented above). This merge's own conflict resolution resolved
+textual conflicts in `test_baseline_and_decoupling.py`, `test_general_pipeline.py` and this page by
+keeping both sides' additive checks/entries (combined check count 27: C31 and C33 both additive on
+top of the pre-existing 25). The 432-context frozen regression corpus was not independently
+re-measured in this session — see the PR's own regression evidence.
+
+Branch `agent/153-concept-engine-v2-rollup-repair-2-2-make`, based on `origin/integration/concept-engine-v2`
+after the Team Lead merged current `origin/main` in (bringing in C30 furnishability (#132), C31 public
+composition (#124), the professional drawing representation (#146), and #141/#149's adjacency/room-proportion
+priors): this Issue's own repair documents the second rollup-repair pass, verified against this session's
+own implementation and test runs — see the Concept Engine v2 rollup repair 2 report
+(`docs/reports/concept-engine-v2/rollup-repair-2.md`) for the flag-OFF corpus proof and the flag-ON
+measurement against today's validators.

@@ -37,6 +37,7 @@ from . import entrance_sequence
 from . import footprint as footprint_module
 from . import hub_guard
 from . import l_massing_guard
+from . import public_composition
 from . import doors as doors_stage
 from . import door_clearance
 from . import relationships as relationships_stage
@@ -509,6 +510,15 @@ def run_general(buildable: BuildableRegion, *,
     # area-proximity or a better entrance rank for a shorter tunnel; it only breaks a genuine tie.
     best_used_area_m2: float | None = None
     best_entrance_seq: entrance_sequence.EntranceSequence | None = None
+    # PUBLIC-ZONE COMPOSITION TIEBREAK (Issue #41, hub_guard-style): the LOWEST-precedence term of
+    # all — `composition_prefers` only decides between candidates already equal under EVERY
+    # existing ranking term above: entrance rank, area proximity, AND entrance sequence in BOTH
+    # directions (neither prefers the other — a real tie, not merely "not preferred" the one
+    # direction already checked). A candidate is never promoted past a better entrance rank, area
+    # proximity or entrance sequence for a better composition score; it only breaks a genuine tie
+    # of all three, so it never overrides circulation (`hub_guard`) or quality-tier
+    # (`_prefer_quality_twin`) either — both still run on whatever this loop picks, afterward.
+    best_composition: public_composition.PublicComposition | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         # Tier 2 (`concept_generator.Repartition`) is strictly second: its candidates sit after
@@ -536,19 +546,26 @@ def run_general(buildable: BuildableRegion, *,
                 continue
             rank = _entrance_rank(candidate_plan)
             candidate_seq = entrance_sequence.measure(candidate_plan.design)
+            candidate_composition = public_composition.measure(candidate_plan.design)
             take = best_entrance_rank is None or rank < best_entrance_rank
             if (not take and rank == best_entrance_rank
                     and best_used_area_m2 is not None
                     and abs(concept_candidate.used_area_m2 - best_used_area_m2) < 1e-9
-                    and best_entrance_seq is not None
-                    and entrance_sequence.entrance_sequence_prefers(
-                        best_entrance_seq, candidate_seq) is None):
-                take = True
+                    and best_entrance_seq is not None):
+                if entrance_sequence.entrance_sequence_prefers(best_entrance_seq, candidate_seq) is None:
+                    take = True
+                elif (entrance_sequence.entrance_sequence_prefers(
+                            candidate_seq, best_entrance_seq) is not None
+                        and best_composition is not None
+                        and public_composition.composition_prefers(
+                            best_composition, candidate_composition) is None):
+                    take = True
             if take:
                 chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
                 best_entrance_rank = rank
                 best_used_area_m2 = concept_candidate.used_area_m2
                 best_entrance_seq = candidate_seq
+                best_composition = candidate_composition
             if fast_path and best_entrance_rank == 0:
                 break
             continue
