@@ -20,5 +20,37 @@
     "commit": "713e3f2",
     "proves": "the existing rectilinear realizer CAN express genuine non-rectangular geometry — brief-01's TWO_WING envelope, two wings at different depths with a real step, realized and passed through the unchanged validator chain",
     "does_not_prove": "that the 5/8 refusal rate is pure realizer failure — placement came from the fixed Stage 1 gate-script heuristic, not a placement engine, and the 8 briefs were drawn from the corpus's own PLANNED pool, a pool defined by the shipping path already succeeding on them"
+  },
+  "primary_go_stop_gate": {
+    "_comment": "The ONE primary decision rule (owner, approved 2026-09-28, restored 2026-09-30 after the lead had replaced it with a weaker invented gate). Read these numbers from here; do not retype them. Anything short of GO is never rounded up to GO.",
+    "go_requires_all_three": {
+      "wins_fraction_min": 0.7,
+      "wins_count_min_of_20": 14,
+      "median_improvement_min": 0.137503,
+      "diversity_min_fraction_of_briefs_with_3plus_distinct": 0.5
+    },
+    "median_improvement_unit": "one holdout standard deviation of the spatial_touching score distribution",
+    "holdout_stdev_source": {
+      "path": "docs/reports/real-plan-priors/adjacency-fullcorpus-diagnostic.md",
+      "table": "spatial_touching",
+      "holdout_median": -0.128868,
+      "holdout_stdev": 0.137503,
+      "holdout_plans": 3459,
+      "forbidden_substitute": {
+        "table": "touching_without_door",
+        "stdev": 0.058796,
+        "why": "diagnostic only per the contract; substituting it would make the bar about 2.3x easier"
+      }
+    },
+    "win_definition": "best-valid-LLM vs best-current-generator under the same blind critic; a win counts only for a proposal with zero hard-constraint violations",
+    "not_go": {
+      "STOP": "clearly negative — median per-brief improvement <= 0, or wins far short of the bar",
+      "INCONCLUSIVE": "short of the bar but not clearly negative (e.g. wins between 30% and 70%, or a positive median improvement under one holdout stdev). Authorises nothing; goes to the owner."
+    },
+    "secondary_diagnostic_only": {
+      "rule": "60% wins / median > 0",
+      "status": "SENSITIVITY ANALYSIS ONLY — never the primary verdict, never a headline, no recommendation may rest on it"
+    },
+    "if_weak": "A STOP or INCONCLUSIVE rejects ONLY 'an LLM as the PRIMARY Concept Architect / Topology Proposer'. It does NOT reject the architectural-planning direction. #155 (713e3f2) already proved non-rectangular expressiveness exists; the named gaps are placement, semantic room assignment, wet-room and SAFE_ROOM support, polygon contract representation, and wiring. The indicated next evaluation is a DETERMINISTIC topology/placement search over the EXISTING realizer, with no LLM in the loop."
   }
 }
