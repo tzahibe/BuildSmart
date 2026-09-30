@@ -6,7 +6,7 @@ from __future__ import annotations
 import statistics
 from dataclasses import dataclass
 
-from app.ai_harness.topology_poc.runner import BriefResult
+from app.ai_harness.topology_poc.result_types import BriefResult
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,29 @@ def _brief_summary_row(result: BriefResult) -> dict:
         "duplicate_rate": duplicate_rate, "materially_distinct": result.materially_distinct_count,
         "beats": beats, "improvement": improvement,
     }
+
+
+#: AC-17's exact required title for the forced local-model control run — retitled and separated
+#: from the PRIMARY run (`primary_report.render_results_md`, `results.md`) in both filename and
+#: report text; never fed into the primary run's own statistics or verdict.
+CONTROL_RUN_TITLE = (
+    "FORCED LOCAL-MODEL CONTROL RUN — NOT VALID FOR THE #142 GO/STOP DECISION")
+
+
+def render_control_results_md(results: dict, provenance: Provenance) -> str:
+    """Renders the FORCED LOCAL-MODEL CONTROL RUN report (Issue #151, AC-17) — the ORIGINAL
+    `llama3.2:latest` run, retitled and clearly separated (own filename,
+    `results-control-llama.md`, own heading) from the PRIMARY run's `results.md`. No number from
+    this report is read by, or enters, the primary run's statistics or its GO/STOP verdict."""
+    body = render_results_md(results, provenance)
+    _, _, rest = body.partition("\n")
+    return (
+        f"# {CONTROL_RUN_TITLE}\n\n"
+        "This is a SEPARATE run from the PRIMARY experiment (see `results.md`) — it uses "
+        "`llama3.2:latest`, a small local model, forced by this sandbox's lack of external network "
+        "egress or API key, NOT chosen as a stand-in for \"a strong LLM\". No number below enters "
+        "the primary run's statistics or its GO/STOP verdict.\n"
+        f"{rest}")
 
 
 def render_results_md(results: dict, provenance: Provenance) -> str:

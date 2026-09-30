@@ -11,11 +11,9 @@ See `critic.py`'s own docstring for the test that proves the critic itself canno
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import time
-from dataclasses import asdict, dataclass
 
 from app.ai_harness.topology_poc import (
     briefs as briefs_mod,
@@ -30,6 +28,13 @@ from app.ai_harness.topology_poc import (
     realizability as realizability_mod,
     schema,
 )
+from app.ai_harness.topology_poc.result_types import (
+    BriefResult,
+    ScoredProposal,
+    load_checkpoint,
+    save_checkpoint,
+    score_to_dict as _score_dict,
+)
 from app.demo.service import DemoGenerationError
 
 _BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -37,45 +42,6 @@ DEFAULT_CHECKPOINT_PATH = os.path.join(
     _BACKEND_DIR, "..", "docs", "reports", "llm-topology-poc", "raw_run.json")
 
 N_PROPOSALS_PER_BRIEF = 8
-
-
-@dataclass(frozen=True)
-class ScoredProposal:
-    source: str  # "CURRENT_GENERATOR" | "LLM"
-    raw_index: int
-    realizability: str
-    score: dict  # critic.ScoreBreakdown, as a dict
-    canonical_hash: str
-
-
-@dataclass(frozen=True)
-class BriefResult:
-    brief_id: str
-    source_key: str
-    bedrooms: int
-    wet_rooms: int
-    safe_room: bool
-    open_plan: bool
-    size_tier: str
-    aspect_tier: str
-    generator: "ScoredProposal | None"
-    generator_error: "str | None"
-    llm_proposals: tuple  # tuple[ScoredProposal, ...]
-    llm_raw_generated: int
-    llm_schema_rejected: int
-    llm_exact_duplicates: int
-    materially_distinct_count: int
-    llm_call_latency_s: "float | None"
-    llm_model: "str | None"
-
-
-def _score_dict(sb: critic.ScoreBreakdown) -> dict:
-    return {
-        "adjacency_similarity": sb.adjacency_similarity, "access_similarity": sb.access_similarity,
-        "wet_core_similarity": sb.wet_core_similarity,
-        "entrance_relation_score": sb.entrance_relation_score,
-        "hard_violations": list(sb.hard_violations), "total_score": sb.total_score,
-    }
 
 
 def run_one_brief(brief: briefs_mod.Brief, priors: priors_mod.Priors,
@@ -137,32 +103,6 @@ def run_one_brief(brief: briefs_mod.Brief, priors: priors_mod.Priors,
         llm_schema_rejected=schema_rejected, llm_exact_duplicates=exact_duplicates,
         materially_distinct_count=materially_distinct, llm_call_latency_s=call.latency_s,
         llm_model=call.model)
-
-
-def _brief_result_to_dict(result: BriefResult) -> dict:
-    d = asdict(result)
-    return d
-
-
-def _brief_result_from_dict(d: dict) -> BriefResult:
-    generator = ScoredProposal(**d["generator"]) if d["generator"] is not None else None
-    llm_proposals = tuple(ScoredProposal(**p) for p in d["llm_proposals"])
-    d2 = {**d, "generator": generator, "llm_proposals": llm_proposals}
-    return BriefResult(**d2)
-
-
-def load_checkpoint(path: str) -> dict:
-    if not os.path.exists(path):
-        return {}
-    with open(path, encoding="utf-8") as f:
-        raw = json.load(f)
-    return {brief_id: _brief_result_from_dict(d) for brief_id, d in raw.items()}
-
-
-def save_checkpoint(path: str, results: dict) -> None:
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({bid: _brief_result_to_dict(r) for bid, r in results.items()}, f, indent=2)
 
 
 def run_briefs(*, start: int = 0, limit: "int | None" = None, resume: bool = True,

@@ -1,5 +1,7 @@
-"""CLI: renders `docs/reports/llm-topology-poc/results.md` from the runner's checkpoint (Issue
-#151, AC-5, AC-6, AC-7, AC-13).
+"""CLI: renders the FORCED LOCAL-MODEL CONTROL RUN report,
+`docs/reports/llm-topology-poc/results-control-llama.md`, from `runner.py`'s (live-Ollama)
+checkpoint (Issue #151, AC-5, AC-6, AC-7, AC-13, AC-17). The PRIMARY run's `results.md` is built by
+`build_primary_report.py` instead, from the frozen dataset — never from this module.
 
 `--commit-sha`/`--generated-at` are supplied by the caller (obtained via a plain `git log` command)
 rather than this module shelling out to git itself — see AC-13's provenance requirement.
@@ -17,7 +19,7 @@ from app.ai_harness.topology_poc.runner import DEFAULT_CHECKPOINT_PATH, load_che
 
 _BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DEFAULT_RESULTS_MD = os.path.join(
-    os.path.dirname(_BACKEND_DIR), "docs", "reports", "llm-topology-poc", "results.md")
+    os.path.dirname(_BACKEND_DIR), "docs", "reports", "llm-topology-poc", "results-control-llama.md")
 
 
 def _sha256_of(path: str) -> str:
@@ -47,7 +49,7 @@ def main(argv=None) -> int:
         train_count=p.train_count, holdout_count=p.holdout_count,
         artifact_sha256=_sha256_of(p.fullcorpus_json_path))
 
-    text = report_mod.render_results_md(results, provenance)
+    text = report_mod.render_control_results_md(results, provenance)
     os.makedirs(os.path.dirname(args.write_report), exist_ok=True)
     with open(args.write_report, "w", encoding="utf-8") as f:
         f.write(text)

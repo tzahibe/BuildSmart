@@ -1,0 +1,2920 @@
+{
+  "B01": {
+    "brief_id": "B01",
+    "source_key": "{\"bedrooms\": 1, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": false, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": null,
+        "access_similarity": null,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -0.386294
+      },
+      "canonical_hash": "4ad4fe416a155030ee0be7db55cc1a505daec7d2b3a96138b8e86d4e73f2ead9"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -0.6694942150468344,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.339775
+        },
+        "canonical_hash": "484b0674c41f64161fcf9fe07bd5e45dfeabfdaeeffed542fa11ee4d17fff17f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -0.6694942150468344,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.651797
+        },
+        "canonical_hash": "aef5244fe1a4192830228c0c01cd6af17c5ef4acb57b6ac96069a25a2d148519"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04887405468800194,
+          "access_similarity": -3.2185448905274687,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.267419
+        },
+        "canonical_hash": "f823389e4ae1e1cba6019fa50c646ad2c34f47345f51967f80dc25d498ba2fb1"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.510232
+        },
+        "canonical_hash": "4ad51bf0499e9f67a7696fabc97978ac70a23de01d7d479cb83bb0e57bec418c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -0.6694942150468344,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.339775
+        },
+        "canonical_hash": "8400c3ceaab9d858eef1605f9bda7e8e115402d23ca02aac29f078a6a11b81c6"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.510232
+        },
+        "canonical_hash": "3d5b289276632c2c98864c8ff5b9836139b3113c58befc2f4aa1df3e9a366d93"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.51866
+        },
+        "canonical_hash": "3012bc4c3557a32b3e409fb4af64a1566375af1075499a41931388f0b5dc6068"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 1,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 7,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B02": {
+    "brief_id": "B02",
+    "source_key": "{\"bedrooms\": 1, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.676090888010677,
+        "access_similarity": -0.6694942150468344,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.345585
+      },
+      "canonical_hash": "6b686f52353bb7d3777d508b84235b16fed76b5ea670e61d4f45fa079c0b7ee5"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04887405468800194,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.897253
+        },
+        "canonical_hash": "3c2baf718d64d5a2411f2fe5aa981bb0c87960682e0faeb85c5cfed7c60896d0"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.510232
+        },
+        "canonical_hash": "32a6c40326453c50c0e4ab5a35c1e5432833152830e6b02ab4a3646eaa05eb55"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04887405468800194,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.897253
+        },
+        "canonical_hash": "a258a1f5c5b56400e58e662c69b711239d0b3cd8dc6d48173f1faa61a1fc1aba"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -0.6694942150468344,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.651797
+        },
+        "canonical_hash": "ef594ee102eb2d19fc3ee099654fb50018590d3403aaa8e875acca0187ed1535"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.510232
+        },
+        "canonical_hash": "02a32979879f6a85ed3ca42eef6891ec7b9e3ff24f52b0f0e43c7dc894730483"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04887405468800194,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.897253
+        },
+        "canonical_hash": "40e39770330df1ed1ac71dabd0727ccb507e9be9bbd0d46055c82a45b3843ce1"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.51866
+        },
+        "canonical_hash": "4885335e9e8ad409f7991fbf8ccf8b5896dc13b5c7b93363c6978618965083e1"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.51866
+        },
+        "canonical_hash": "5602957c5618e39ccb45363a2d09a110d2152d962a57b16c3d3f6a0a9fb5cc97"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 1,
+    "materially_distinct_count": 7,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B03": {
+    "brief_id": "B03",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 250.0, \"footprint_depth_m\": 13.12, \"footprint_width_m\": 19.05, \"open_plan\": false, \"plot_depth_m\": 15.0, \"plot_width_m\": 20.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "wide",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "0deb4ec5c9be1273917bcd7795c925c1b9172f5820ec78797ba723085e1d895d"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.719786
+        },
+        "canonical_hash": "8d2612753213b77c17c985aea9c4cf0457e2b59c1226a820377148688905f600"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.313443
+        },
+        "canonical_hash": "307799fd917b15695afcbf96642195450b15089f614c935b8e602ddcd739d4f5"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.271786
+        },
+        "canonical_hash": "fd99a75bddf7daaf358e821c565683c1c16ace017141c61861ab7b51ffef580c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.692793
+        },
+        "canonical_hash": "bf5f5311bee109d721576d574c34fdc64d2a9aff0b25230ce925bf6e6d64729c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.719786
+        },
+        "canonical_hash": "b7ce6858dd06add7325c6546ab3122b3ddde50d9d1efb3d9f44b9c341329f038"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.038917
+        },
+        "canonical_hash": "c6fb102d8e8637d0f1d287380e450b4d8ee464ceedb84e0650fe8b3d33e39eb7"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.642711
+        },
+        "canonical_hash": "98f1732022eef22bc9587cbcf2b5af45c913ff5f77ec3fa9baee41e2cd223efc"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.658269
+        },
+        "canonical_hash": "b85da058f3231a14278f06199097f2d67e24f4a2873930dba529c71edf5a273a"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 7,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B04": {
+    "brief_id": "B04",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": false, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 2,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "abbdad4137a15c6aeb734db1015a99633eb9f30ea96a15f49d70518a02b06bb8"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.166413
+        },
+        "canonical_hash": "40499fbf943fd50affccda7130901ad1b967799e080adee1a327d97e246bf54a"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.070773
+        },
+        "canonical_hash": "720af65c9735fd63a595decc0c905d8f57eba3ebbf377d9e114a25596bc99964"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.751642
+        },
+        "canonical_hash": "47085cc3e066b6ed398c8c3eaacb7965e7135fd10a6da033ac0f23980b469893"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.295216
+        },
+        "canonical_hash": "5665b51528baa8f9cfdb610fe5f166450a7de6590d5d88976f86a73669032409"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.107565
+        },
+        "canonical_hash": "fb2fdfa62dcf47f13c8e9d38f4bf6fe5ceba2fb39ca2f0f48ddf29cd7a01be11"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.070773
+        },
+        "canonical_hash": "21c6ec4c33c68294fdb4c9ef801e764c4b3fee67ad3ee9dee012ec4f07b14922"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.286788
+        },
+        "canonical_hash": "743fd399dbce21f168841927df3ca0a671f4c56e4eb693353b5701cee3065fab"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.692793
+        },
+        "canonical_hash": "c2b19530b169efd2c02fd75f10c949ba2849a010ab0054168a4c90090a713211"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B05": {
+    "brief_id": "B05",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 288.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 16.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 23.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.295320382147868,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.033395
+      },
+      "canonical_hash": "105b195ba23521a22a207f467a31c2f9a963abb9b69b85c6488c359590d015e6"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.372291
+        },
+        "canonical_hash": "1d4a6173e44792f7b10b5b26021aedd5886c6e5bb20de6bff3bebe5705c1da09"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.674567
+        },
+        "canonical_hash": "0a7c4783e9eed26e1dd0bf402e8caa05169dfceb93007b9a3b56c47eabdc7b9c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.270491
+        },
+        "canonical_hash": "5e73de94729b1a6aeabaf58b79cbceb421639802889819cbd6331af27e318d8d"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.658269
+        },
+        "canonical_hash": "ae2f521c09e2a3aada13ba8d98c4e17f00ebe0696cf953abb739283bd0485e26"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.038917
+        },
+        "canonical_hash": "97ff5eb22523737669b738736131db48a77e68449e404fbd7321eab31aca6dcf"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.640656
+        },
+        "canonical_hash": "7d40f9a2b4ca2019cc93b0b4e59288ef138c3bdc8d30bdb1180fe53219859c35"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.624146
+        },
+        "canonical_hash": "5e7f9137bd221a9c09f0166917c6501dcaadda0970d25a291562ceae8338e14c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.038917
+        },
+        "canonical_hash": "0ec780139c2f3a13e8132f83765c0c2b27285f214c0a2577a6c2ffc135bb3a2d"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B06": {
+    "brief_id": "B06",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 312.0, \"footprint_depth_m\": 24.0, \"footprint_width_m\": 13.0, \"open_plan\": false, \"plot_depth_m\": 34.5, \"plot_width_m\": 20.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "9b6ff8a88fff3ab16021aa76dd5155e1776016a403a4688ecc3c7ab49b33a56b"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.719786
+        },
+        "canonical_hash": "6c3f72e57313260f85a7f006faa758f981eba2a26c71c074db7e0d1563c56e8c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.449367
+        },
+        "canonical_hash": "96c121110048cab8a9e28a639b328a5c52e966a9bb111d3c52a06d9df6354b8a"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.674567
+        },
+        "canonical_hash": "8b2f537fb5ccf746756557fba18d44113f44376282026271551921d98eb395fc"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.7419474406079007,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.480022
+        },
+        "canonical_hash": "500030d9309d1051955039b87835375b79143193c5ddfa0d9ce902127d8522f9"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -3.5230205922790527,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.874284
+        },
+        "canonical_hash": "88935222e98e40a87bd9ba1979bd38729caef960ce3ea785182ff479b4bd832f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.062345
+        },
+        "canonical_hash": "2354cd45076f941440be072a146d8d3076c26ee600e0083f0dc98be40545b344"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.070773
+        },
+        "canonical_hash": "fde7aa13023dc84813283d52ad36effbe78e260f5f762e54d437dc83d662fb52"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.440939
+        },
+        "canonical_hash": "0a5e65e32af5da5a9705a184fbd146fe7bace01647a0aa8eeef5f0977201612c"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B07": {
+    "brief_id": "B07",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 360.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 30.5, \"plot_width_m\": 25.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.41981578122236,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -3.839632
+      },
+      "canonical_hash": "00cb8f91ddd458909c3699689d313f888fd475f58d59c0c4589ebb772ac9fe4e"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.642711
+        },
+        "canonical_hash": "ef198bb78f17a1f26d9c0df2f56ccbcf73d463192ca5d48df0145261bb388a7f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.624146
+        },
+        "canonical_hash": "e0dbf408e06f776dc7bd51854a5f8ed141dc76091ee3cc082b6e3e8f820534a1"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -0.4273709993642605,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.796862
+        },
+        "canonical_hash": "1329d2a52b7bcf71d62a077be5e0918bacf8139360feacb282817d366b7a19e1"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.236367
+        },
+        "canonical_hash": "f6601682ab51c2c5694dac1fa4e22b2cf8ab9fd70899c37d1bb493712333a327"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.642711
+        },
+        "canonical_hash": "0b894bc20547da43fccee4f6570a0ddea30a0995ced7a90ec467b6a79aa34372"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.642711
+        },
+        "canonical_hash": "93794f9d62e64659a44112779c2ac833eeacde998d18b699aca572c90013d776"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -0.4273709993642605,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.778635
+        },
+        "canonical_hash": "fa825aa0a0a626c4437f5c16d6569920116a9facb06b160549990ceadb9c7a4a"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.011925
+        },
+        "canonical_hash": "cc9f08e941f88be992bd646ce4518ef02e208ebd82e6a49455aa02954bbfcd87"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B08": {
+    "brief_id": "B08",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 3,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "small",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.295320382147868,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.033395
+      },
+      "canonical_hash": "7d6b7b3340759f88114aac28f46af452bf8b775548b27d76a6389daeff1d38f4"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.2123173530157083,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.252878
+        },
+        "canonical_hash": "077348832ab88494e6bab5156c8e75653eefe02b2d7ba2756e231751f00596aa"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.070773
+        },
+        "canonical_hash": "2f78980b3eab563c20974b492a59723d8eecab7afcaffa0145ca42dca234a379"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -3.5230205922790527,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.882712
+        },
+        "canonical_hash": "10f6eb1d383359f6b26c2a50789d130bf927c853993a5501c6c6eefd44476ea2"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.514455
+        },
+        "canonical_hash": "ac89397c024fe7a8f2e7c374cadf9b0fea4948c195fb589bb892ce2dd40f4d9f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.418268
+        },
+        "canonical_hash": "1d25d8d1e67dc1f8ef3d1cf180a92b4559799604b126f5f9c31e2908270f8786"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.649841
+        },
+        "canonical_hash": "28b42b8256b36728bb60d3038017b0bd452ba53eeaf8281bda40fa3bc98d8de3"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 2,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 6,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B09": {
+    "brief_id": "B09",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": false, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 3,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "ba6283a866379290cfd976645bf781b9a5f2705ede00d324513ec5e7e3acb2c4"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": 0.298441
+        },
+        "canonical_hash": "47f77874bb5500d47d980fd8f6dce55d1476724d472ec0a6db34764b400da2f4"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.394921
+        },
+        "canonical_hash": "26750823b9521b17afbef5f99405327a48bb121cbea25f54f108375a3417258f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.719786
+        },
+        "canonical_hash": "cf4af6d987a36c5e8810246b0d4fccbec3188b93884faaef5152d22cfa81de70"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.394921
+        },
+        "canonical_hash": "59fb74f29850ac0981bb0833bf8361e355123855b574bcd008965c782b4afd74"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.976085
+        },
+        "canonical_hash": "12836c5bd04a16fa0f3c7c7975213e4142118b6347f80eea07b0b9fce7283869"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.295216
+        },
+        "canonical_hash": "282976ae71d9d1f0245150851baac6a38643f35f6fae4876d59654dd2a261f14"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.81045
+        },
+        "canonical_hash": "b645812419bc02485a5e4d4ecf5a2b3ecafb9e392d6f2ad9c9e1722820753359"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.937792015275391,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.289056
+        },
+        "canonical_hash": "a2a090f9ab1c51789f6930a4ecbabbd855a063b0829a5fa7c0ccc3206a34e028"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B10": {
+    "brief_id": "B10",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 288.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 16.0, \"open_plan\": false, \"plot_depth_m\": 28.5, \"plot_width_m\": 23.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "6b8d4b067b1f9d3a73c16bc8d1bebc01c68583d704accfc613c1c01d099338ea"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": 0.609144
+        },
+        "canonical_hash": "2b764c256abab5aa50cc317286ea19864f8b42aa8951b55cd2524f35d25dd5ea"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -2.3255705909861466,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.685262
+        },
+        "canonical_hash": "ac4a2d26dc8fb5ac2262fc4cdd5e4d7fe299e580ff1f24cde5e249a96bf5a28a"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.917236
+        },
+        "canonical_hash": "a4d6f977ec43a583d5a2f1187b7d3f44942b3885b286c4d6fe515c90e27c89d2"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -2.3255705909861466,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.676834
+        },
+        "canonical_hash": "2868583d52f663be229288180f49b122aa02554c78b0cf90a78514316019703f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.640656
+        },
+        "canonical_hash": "7a5b13339bba5e1c014ac7f0e45ddda9af948eb6bf660debc2fded1e9630c1f7"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.642711
+        },
+        "canonical_hash": "c1c474944e5adb2bfb0e9b4bbcca3772efbec127d82071bc49910b165ce4ddce"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.642711
+        },
+        "canonical_hash": "31bf097517e06436af25f329c72d2d1d6e62145e7a6886abdcec7d06e05f593d"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -3.9085313926349277,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -4.259795
+        },
+        "canonical_hash": "b6468ff7fc9dba91ce4a4ef850259f525e3a3e9bc6933f32994a07f5b7471d05"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 8,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.994312
+        },
+        "canonical_hash": "32a9abf406e4a71c95a6fac03ad85ac68069105df9cf04b5fb33736a434f88be"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B11": {
+    "brief_id": "B11",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -4.2683275348622844,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -4.006402
+      },
+      "canonical_hash": "41127658eeaee1d63bc46ed35d3d615aea57ca79a1dd05ee7d9842ea17b7d119"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.00274
+        },
+        "canonical_hash": "d4bbf63b05927ffa7a82fef6b0b7fe0e76e7cce225da8ce7dd5db01c2fe591f6"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -4.003497
+        },
+        "canonical_hash": "7f4351cffcd1a587e91800f752429e9b49fc1cc8e9fb8ca58839f49bf33acee4"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.624146
+        },
+        "canonical_hash": "319ce30c4cef5cdede895c6f827bd34e1a34f752ca81fddb460a0574a8798717"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.295320382147868,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.041823
+        },
+        "canonical_hash": "003a0f354cf5bc5fb3a304be6546588258d8e1c64c37e84cee7e7266cd40e218"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.624146
+        },
+        "canonical_hash": "9af4e1c36d70d64650f6adc5e93a36fd600a1442497f08a4c66d384cb6ba13cc"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.295320382147868,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.033395
+        },
+        "canonical_hash": "a63ea579bfea50d549eeaa82ef0fab1c166915c6ef513990d01879260e0bd9c0"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.692793
+        },
+        "canonical_hash": "57c666b193a216515e63aa5e72a77eb85aa6ac1d230eacf5cccb3a4a338b6700"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.38209
+        },
+        "canonical_hash": "17b14d9f0c069bb6b022647262d8651c23d3a875e5141071ff158837136016b5"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 8,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.390518
+        },
+        "canonical_hash": "b5a2131b6800c56ac9d240779dadbabd9972f75a89cc5b9aa8cfb3768182434e"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 9,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B12": {
+    "brief_id": "B12",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 360.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 30.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 4,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.41981578122236,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -3.839632
+      },
+      "canonical_hash": "f1b9520b7ea8dd3dd177cda2f9f8a5e40bbfaf29d6ac971df58e240c884860aa"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.111968
+        },
+        "canonical_hash": "a873fa483c1c561c288669c1a6b3cdea92fb577dea4f6ce5450e66e5d9d037df"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.00274
+        },
+        "canonical_hash": "30e1d16c74884a3bbc8da893b1351208f87f1effe629b974d6720f990618703f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -0.4273709993642605,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": 0.198735
+        },
+        "canonical_hash": "e2b6658149d8ffd82450403db42f3f332949a56d4515e7660948bb45dee333f9"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.97399
+        },
+        "canonical_hash": "28936d0a92d8590712b4623efddb4682561239b73d7ceb225043b05da5baf5bb"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.9364922645028129,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.593128
+        },
+        "canonical_hash": "220b7dd5fdc9385e9334b2f69d3ea04380139ec7e8dd1ce02ecb41005afa0ad5"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.646776
+        },
+        "canonical_hash": "e05a58bfc9d56ad878f085078a1589b68299645282d93faec8843ad88f3969bb"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.05312
+        },
+        "canonical_hash": "02621b4acbc923f6c66dcafc24eac872dfa04b9ed5e5708b7af11e6004acbda4"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.97399
+        },
+        "canonical_hash": "f3f122240795056ba3faabebfb53dcb3b33f9fed272bf526c6019264f97b5f2c"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B13": {
+    "brief_id": "B13",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "small",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -3.880548959151529,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -3.618623
+      },
+      "canonical_hash": "9add38b0fdb74a7f5798956184b55282b5f1cc9b20f3a82ccc9f06b4928b7697"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.372291
+        },
+        "canonical_hash": "949cb7aca242e8d38eef42a6cd1155f9e1c32a3a704568ea220c63f7179b5081"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.347566
+        },
+        "canonical_hash": "9a0a4735085641f390180197018f0ba131140b2578577d48980a7c99d8b04774"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.825159
+        },
+        "canonical_hash": "dd35e8a911bcb82d8a45d349f3393a0b7d9297104e9fc22fc4f805d47d0a20f2"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.390518
+        },
+        "canonical_hash": "9f0227ab54c222c259b7ac8e7cd6a1ab45dc12391e482a48117c6829d182fe40"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.313443
+        },
+        "canonical_hash": "2ae752f110453a09f5c550a26fb41361cc701309a602e39c9c373309191edfd8"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.701221
+        },
+        "canonical_hash": "24ca7c35c0d18070d00e34e20ab95fa7c0ec9bc6ef77de041635c50346434e81"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.313443
+        },
+        "canonical_hash": "fc0e43fc086b3338e36dc2315108c2582f2708035f752c411a0b879aa4807a77"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.649084
+        },
+        "canonical_hash": "04b23c3e9fc8471746c3115a5d3c9ce5fa6eb9a5419e9f8a7a54ac9707b81c98"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B14": {
+    "brief_id": "B14",
+    "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": false, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "59f887e7ebe6e172a365e0a4abc57ba27ca9eaf8354e18c33b4d409058c1cdb2"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.111968
+        },
+        "canonical_hash": "5c9363d8d6974f6383396fd39e93a882d2eb609344b1d6544c957336c6c5f57c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.372291
+        },
+        "canonical_hash": "4f9e64c1c815da2dadb1eb04c67625b56c9c326f4a84eceb22608e2e3ff356d0"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3541688648971448,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.092243
+        },
+        "canonical_hash": "3e83f95410bcaed8b861a367e0da5aa1f3e9496338966d73141c33020d5f15cf"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.5669405424901917,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -4.223577
+        },
+        "canonical_hash": "e6b74afdd7f04b00a4eff1c1b7dffedf1b6a8a45e08c9fca6d7f6b4d768cf5b0"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.959788
+        },
+        "canonical_hash": "936bc8aea59674846fda8074faaf1d10407df389220e5c032edeae66c39d0b6e"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.05312
+        },
+        "canonical_hash": "eba83bd85f6ad674d1f4de669e6e908d15110532ffb9c788c9a754753c5f6b43"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.286788
+        },
+        "canonical_hash": "be4a554f14b5944f9a11892a5471dc9d36db2b5909cd7618f291b72cd015d9c7"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.05312
+        },
+        "canonical_hash": "689d5e2bcc7803bccc1818ea3cf6e8790701f4f09e0ab041a0712c4618d95584"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B15": {
+    "brief_id": "B15",
+    "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 181.25, \"footprint_depth_m\": 14.5, \"footprint_width_m\": 12.5, \"open_plan\": false, \"plot_depth_m\": 25.0, \"plot_width_m\": 19.5, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 5,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "81580bbd20ed4161439348475b556c6d0499b8ab9ec9b84406d893216984334e"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.363863
+        },
+        "canonical_hash": "0c69b8923342ef6ac03bfffd95c4b93a75f33fdd796e17723fd0ad50cef856c8"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.902234
+        },
+        "canonical_hash": "1579d3ebc54998b84afd42f9c3ef2bfe7758a78cfd494000d848c25829dde3ea"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3541688648971448,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.092243
+        },
+        "canonical_hash": "7cfd5bfb3ddd6297249e9c646ed71282e26fe0fba170899a08686fd63be3814f"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.9355242399205104,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.286788
+        },
+        "canonical_hash": "7a6f7f8bc3ae7e6c7d8f5c1f69d7cb9174e412fafe872599c161b76c760a8b34"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.76007
+        },
+        "canonical_hash": "e13088bcf497d44ce97a831cff38649389b4d4e7546eb5f80c5eb94c98eecfa2"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.418268
+        },
+        "canonical_hash": "5773c4f95960f323bacc7cc6e26c31100c4c1ac1993b6cf1cda78923c6fb9339"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -1.937792015275391,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.289056
+        },
+        "canonical_hash": "924d778fd2d1674188a8ba12c8aa1b13850dc10db67ddcb7920f7db620afba89"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.295320382147868,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.033395
+        },
+        "canonical_hash": "197f28ea89456d6d87708c752da2c3345bb2e0abf76899c564825dd8a1ad654b"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B16": {
+    "brief_id": "B16",
+    "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "wide",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.295320382147868,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.033395
+      },
+      "canonical_hash": "7ed55f54a8676b62baf1b8d204d19ec31e650d82364fb799f416fd2327c5d537"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -0.4273709993642605,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 1.190307
+        },
+        "canonical_hash": "32f8c3c595120e2c99aea914f9d2f4c902dbfdea61d77c9d245149245ce02715"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.615718
+        },
+        "canonical_hash": "8c9998d32f88e838ecf2d2bf439ad8c5d887f5e0d2e5ffcb72c243aeb19feaca"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.957479
+        },
+        "canonical_hash": "9cce6e2b1d240b10bb485328219739e5b1c4a3c00970d3d7f8450592c571fd94"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.682995
+        },
+        "canonical_hash": "136eb71753130e6ee2cb1ad2b6ee437aeb7b2d8a566e3d785cf4331b49ab10e8"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.9364922645028129,
+          "access_similarity": -3.908531392634927,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -4.186785
+        },
+        "canonical_hash": "73f4cf7b83b7b16ad79a4f766d17f372692d52aa006ab54aedd047f44f08c010"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "DISCONNECTED_ROOM:BEDROOM_4"
+          ],
+          "total_score": -13.33683
+        },
+        "canonical_hash": "748cece08965fa66e372c5b0d7adec550cfef3dc52c9f515d10174a4e188b84c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:SAFE_ROOM"
+          ],
+          "total_score": -12.011925
+        },
+        "canonical_hash": "661c8c2c391f48fb0d789039c5cca1ea0f9a57f145b768b7de0baa0b7f8b2cd9"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.011925
+        },
+        "canonical_hash": "cf6cbccdbe0701c1d3197c56a6aba2654384667c3fbae573fe1aa935474ef5b8"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 1,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B17": {
+    "brief_id": "B17",
+    "source_key": "{\"bedrooms\": 6, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "wide",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "6387ecdd64e0277d42b5e24b576f3d976228075cf2f116c74f2d6ae0085003ba"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.697197
+        },
+        "canonical_hash": "8eaba52f15e6cdb6333e5cd5ba4f8fb155653bcca9c7708355e49a775c14e24e"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.649084
+        },
+        "canonical_hash": "8596230f59530c32e6ba7691a279032847af019c6564874a52bd2e1a25aedafd"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.97399
+        },
+        "canonical_hash": "866362016b3c6a1a0fff0b89e0cd44a384ea5d1e3ae8cc8c4e0425c88cf2e0fd"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.3723957185952798,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.11047
+        },
+        "canonical_hash": "f129b05eaf4436acf3a638b163e6dea4b6946ae01d111bb3cc236052cdd5f3a4"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.723851
+        },
+        "canonical_hash": "60277074135f58a186744743a6aeda3bd569e8036b9f689c5d4bfac650c6beee"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.8776437817535356,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -4.200947
+        },
+        "canonical_hash": "93d298a8d43e5a105859e1ef47b4bd45de292aaf17568011cac63aed4fa13191"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -3.026127
+        },
+        "canonical_hash": "0ae57e62ff5db54c59f81a1d9aafd3dc647f3adb0215395ddd462da488406ae0"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.370196
+        },
+        "canonical_hash": "7ca27b3a6ed03147a44db50d1f388002a533e07de44745b1e47ac2a1644d2ae4"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 8,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.723851
+        },
+        "canonical_hash": "24da49c1040f4c6a55666ebee7c20e8562d19ae8f863e4fe0cf0226ae31dba76"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 9,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B18": {
+    "brief_id": "B18",
+    "source_key": "{\"bedrooms\": 6, \"built_area_m2\": 181.25, \"footprint_depth_m\": 14.5, \"footprint_width_m\": 12.5, \"open_plan\": false, \"plot_depth_m\": 25.0, \"plot_width_m\": 19.5, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -1.9364922645028129,
+        "access_similarity": -2.323302815631266,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": 0.991572,
+        "hard_violations": [],
+        "total_score": -2.268223
+      },
+      "canonical_hash": "450629838d32498f4348875973c439b554c48da88accaa6db72adb30b70e22f0"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.372251
+        },
+        "canonical_hash": "7be215448539929332cc2d418b9fd7b688b6160ecac2a4e946f0d434aae694d3"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.336073
+        },
+        "canonical_hash": "5e175ec2dcab4139d588f610706da4dc27501e08a81967269f289d32e7526d04"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.363823
+        },
+        "canonical_hash": "b7e583a32efa41eb2d1aec533511325aa90f8e1283df3f026bdb808cb297e757"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.957479
+        },
+        "canonical_hash": "dea11bdfd6b17ee13aa7393044378344a03673bd55f9a627deefe5121eac00e2"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.336073
+        },
+        "canonical_hash": "89c41fa6f7e1ca1b7d641343c3812028126066ab201fb3acb1ea27881d4be82c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.313443
+        },
+        "canonical_hash": "6798b128d19022da43cf4a0e63b28b122e193cd27e5535e2dab76272d0f3a3da"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.0148673517228026,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.388761
+        },
+        "canonical_hash": "7e3acce08aff378fd3355e41e97b6ec614caff23e951834b3605b00c4f9141a7"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.034893
+        },
+        "canonical_hash": "2f3f33e9ce48be762b6440e6ffce06d084d6726871cd8c7a7a0cdb9dad393ee6"
+      }
+    ],
+    "llm_raw_generated": 11,
+    "llm_schema_rejected": 3,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B19": {
+    "brief_id": "B19",
+    "source_key": "{\"bedrooms\": 6, \"built_area_m2\": 181.25, \"footprint_depth_m\": 14.5, \"footprint_width_m\": 12.5, \"open_plan\": true, \"plot_depth_m\": 25.0, \"plot_width_m\": 19.5, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 6,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.9393974419008058,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": 0.991572,
+        "hard_violations": [],
+        "total_score": -1.6859
+      },
+      "canonical_hash": "67b63250d44fb20a99b2f27b1342fdaf1bcb13799f6ede9e12d2b669da56e299"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.372291
+        },
+        "canonical_hash": "f0a37d354bb405cedf1f67d062cec682f25d65ee03bc4e922d5e3b9e5c4f3144"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.305015
+        },
+        "canonical_hash": "59d02f2b225f45f28d23f635a09dc31e82e55065cc5f766e19878992d6039bff"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -2.649084
+        },
+        "canonical_hash": "e8d419b206a0d45775c129beb8a519c1d31cc76df71af07e028c6a3e57660f0e"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.363863
+        },
+        "canonical_hash": "e2cc653116670ed9fa4a332601cee64d84a96af77eaaf6a80835ec4ad48807d9"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.3694905411972862,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.107565
+        },
+        "canonical_hash": "26655d3b1a4ceda467c7da6030b8a56dfbebcb07671aa982dd0016dde2ce9272"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -3.910799167989808,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -3.658269
+        },
+        "canonical_hash": "9d7ea2b2a5c24d05358dda6a947c461fd8b21600ee8c749cad4a2676c596e0f9"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.7390422632099073,
+          "access_similarity": -2.3255705909861466,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.064613
+        },
+        "canonical_hash": "29954304faf565d62675f5390b2c96040a3f753090a69e909c8ffa2751653232"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.728214
+        },
+        "canonical_hash": "b0e398e6afeb8671b1a07ae12f6f2c8562d5a6cfd31cd47761e733a428ec8953"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 1,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 8,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  },
+  "B20": {
+    "brief_id": "B20",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 2,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "size_tier": "small",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -4.2683275348622844,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -4.006402
+      },
+      "canonical_hash": "4e79f3681c3a530286f060cd7d086ed018faecfc0aaf03eebd021290747624a6"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.646776
+        },
+        "canonical_hash": "1b93de03e5be7f2bf6af3b7e039280aea87f7e6ce16041bef1032e3ab08989aa"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -2.323302815631266,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.615718
+        },
+        "canonical_hash": "cb4fd8fbab455e14557c48c9dfca89e7210365452550981505d9f59a9d3a625d"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.982418
+        },
+        "canonical_hash": "a2758d26487139cb79f51350c2313da5413f95c4ed4509468a66042906c899ae"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.2924152047498745,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": 0.348861
+        },
+        "canonical_hash": "f4c526cb5738ac9392456e9f88af985c7623d5ddf7acc6586e4b490e0d9c0901"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.35126368749915154,
+          "access_similarity": -0.7380742386276046,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.422671
+        },
+        "canonical_hash": "dcd12210fd6016aef483c3636329d4b54035a5e031e7a3cfaa0ea97579256283"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 5,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.04056044823580734,
+          "access_similarity": -3.6000959287264642,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.982418
+        },
+        "canonical_hash": "c52dcae4ce584ee1b37762a557f0a3f361e27e07689190989b953a7bec408db0"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 6,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.8776437817535356,
+          "access_similarity": -3.908531392634927,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -5.127937
+        },
+        "canonical_hash": "e80039b32acc075f9511da0657e1f23595389bb9c2341cf8fc217b1ac9e7966e"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 7,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.9817119654865304,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -1.336073
+        },
+        "canonical_hash": "bec4bc23956a02883e3fbacfc60e345a32f2c20d597a0ad688fe19bb9deb248c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 8,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.4283390239465632,
+          "access_similarity": -2.012599576367922,
+          "wet_core_similarity": 0.6666666666666666,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -0.7827
+        },
+        "canonical_hash": "9eb8e0a2166f28b2f5f805d2f6fd67c68979684bb7a2402442aff088deb7b657"
+      }
+    ],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 9,
+    "llm_call_latency_s": null,
+    "llm_model": "gpt-5"
+  }
+}
