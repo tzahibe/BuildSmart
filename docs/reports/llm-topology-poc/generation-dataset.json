@@ -1,4 +1,11 @@
 {
+  "experiment": "llm-topology-proposer-poc (#151) — primary run",
+  "generated_by": "controlled environment (owner decision 2026-09-29, option A)",
+  "model": "gpt-5",
+  "n_briefs": 20,
+  "n_proposals_requested_per_brief": 8,
+  "total_cost_usd": 2.8833,
+  "generated_at": "2026-09-30T17:42:33+0300",
   "records": [
     {
       "brief_id": "B01",
@@ -34519,7 +34526,2066 @@
           "timestamp": "2026-09-29T18:27:43+0300"
         }
       ]
+    },
+    {
+      "brief_id": "B20",
+      "brief": {
+        "brief_id": "B20",
+        "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+        "project_id": "b739ef02-1fe1-4876-ac97-17f834e6cae9",
+        "bedrooms": 2,
+        "wet_rooms": 3,
+        "safe_room": true,
+        "open_plan": true,
+        "built_area_m2": 132.0,
+        "footprint_width_m": 11.0,
+        "footprint_depth_m": 12.0,
+        "size_tier": "small",
+        "aspect_tier": "square",
+        "context": {
+          "project_id": "b739ef02-1fe1-4876-ac97-17f834e6cae9",
+          "description": "__CONFIG__ bed=2 safe=True wet=3 open=True",
+          "plot_width_m": 18.0,
+          "plot_depth_m": 22.5,
+          "street_facing_side": "NORTH",
+          "built_area_m2": 132.0,
+          "footprint_width_m": 11.0,
+          "footprint_depth_m": 12.0,
+          "bedrooms": 2,
+          "wet_rooms": 3,
+          "safe_room": true,
+          "open_plan": true,
+          "diagnostics": {
+            "engine": {
+              "outcome": "INSUFFICIENT_RECTANGULAR_CAPACITY",
+              "concept_candidates_generated": 0,
+              "candidates_rejected_pre_solver": 6,
+              "solver_attempts": 0,
+              "first_valid_candidate_index": null,
+              "latency_ms": 64.9,
+              "room_count": 10,
+              "residual_area_m2": 0,
+              "rejection_reasons": [
+                "FRONT_PUBLIC_BAND/ROOM_BELOW_MINIMUM_DIMENSION: DINING would be 1.65 m wide in the front band, below its 2.6 m minimum",
+                "SPINE_PUBLIC_PRIVATE/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 3 rows at their minimum dimensions",
+                "SPINE_DOUBLE_LOADED/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 4 rows at their minimum dimensions",
+                "SPINE_SERVICE_CLUSTER/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 4 rows at their minimum dimensions",
+                "SPINE_DOUBLE_LOADED/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 5 rows at their minimum dimensions",
+                "BRANCHED_TWO_STACK/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 5 rows at their minimum dimensions"
+              ]
+            },
+            "notes": [
+              "FRONT_PUBLIC_BAND/ROOM_BELOW_MINIMUM_DIMENSION: DINING would be 1.65 m wide in the front band, below its 2.6 m minimum",
+              "SPINE_PUBLIC_PRIVATE/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 3 rows at their minimum dimensions",
+              "SPINE_DOUBLE_LOADED/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 4 rows at their minimum dimensions",
+              "SPINE_SERVICE_CLUSTER/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 4 rows at their minimum dimensions",
+              "SPINE_DOUBLE_LOADED/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 5 rows at their minimum dimensions",
+              "BRANCHED_TWO_STACK/ROOM_BELOW_MINIMUM_DIMENSION: west column needs more than 12.00 m of depth for its 5 rows at their minimum dimensions"
+            ],
+            "programme": {
+              "bedrooms": 2,
+              "wet_rooms": 3,
+              "safe_room": true,
+              "open_plan_living": true,
+              "parking_spaces": 2,
+              "target_built_area_m2": 132.0,
+              "corridor_m": null
+            }
+          }
+        }
+      },
+      "system_prompt": "You are a residential architecture CONCEPT layer. You propose spatial ideas only: which rooms sit next to which (adjacency), which rooms are reached from which through a door or opening (access), how rooms group into public/private/service/circulation zones, how wet rooms cluster, and how the entrance relates to the rest of the plan. You NEVER produce geometry: no coordinates, no widths, no depths, no areas, no polygons, no walls, no drawing of any kind. Any such field in your output is a hard failure. ADJACENCY IS NOT ACCESS: two rooms can share a wall with no door (adjacent but not accessed), or be joined by a door across a corridor (accessed but not touching). Keep them separate. Every room you use MUST be exactly one of the room ids given to you — never invent, rename, merge, or drop a room id. Every proposal MUST include ALL of the given room ids, every time — never omit one. A role (e.g. BEDROOM) may apply to several distinct room ids (e.g. BEDROOM_1, BEDROOM_2) — treat every id as its own node; do not collapse two rooms of the same role into one. \"ENTRANCE\" is NEVER a room: never put it in \"rooms\", never put it in \"spatial_adjacency\", never put it in \"zones\" or \"clusters\". It may ONLY appear as the first element of a pair in \"access_graph\" (e.g. [\"ENTRANCE\", \"HALL\"]), or as the first element of \"entrance_relation.sequence\".",
+      "user_prompt": "GROUND TRUTH FROM REAL FLOOR PLANS (ResPlan corpus, corrected #149 measurement):\n- Measured on 13648 training plans, calibrated on 3459 held-out plans never used to build the numbers below.\n\nADJACENCY IS NOT ACCESS. Two rooms sharing a wall (adjacency) is a DIFFERENT fact from a door connecting them (access). Both are reported below, kept strictly separate.\n\nRoles this corpus CAN measure: LIVING, KITCHEN, BEDROOM, BATHROOM, BALCONY.\nRoles this corpus CANNOT measure at all (never claim a statistic for these — treat them as unmeasured, not as 'rarely adjacent'): ENTRANCE, HALL, DINING, FAMILY_ROOM, MASTER_BEDROOM, STUDY, DRESSING_ROOM, SAFE_ROOM, TOILET, LAUNDRY, STORAGE, CIRCULATION, STAIRWELL, FLEX.\n\nSPATIAL ADJACENCY facts (rooms whose walls actually touch in real plans; rate = P(touching | both roles present), lift = rate / baseline):\n  - KITCHEN <-> LIVING: rate=0.99757, lift=1.888085\n  - BEDROOM <-> LIVING: rate=0.996484, lift=1.886029\n  - BATHROOM <-> BEDROOM: rate=0.911062, lift=1.724354\n  - BATHROOM <-> LIVING: rate=0.865788, lift=1.638663\n  - BALCONY <-> BEDROOM: rate=0.753766, lift=1.426642\n\nACCESS facts (rooms bridged by a door, or opening directly off the front door — a SEPARATE fact from adjacency above):\n  - BATHROOM <-> BEDROOM: rate=0.911062, lift=2.984252\n  - BATHROOM <-> LIVING: rate=0.865788, lift=2.835951\n  - BALCONY <-> BEDROOM: rate=0.753766, lift=2.469017\n  - BALCONY <-> LIVING: rate=0.533473, lift=1.74743\n\nP(role opens directly off the front door | role present):\n  - BALCONY: rate=0.0\n  - BATHROOM: rate=0.0\n  - BEDROOM: rate=0.0\n  - KITCHEN: rate=0.0\n  - LIVING: rate=0.991572\n\nReal-plan room proportions (Issue #140, small in-sample fixture):\n  - BATHROOM in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 6.059 m2, ~3.1% of the plan's area (n=14)\n  - BATHROOM in a MEDIUM(142-167m2) house with LOW(<=3bd) bedrooms: median area 5.433 m2, ~3.6% of the plan's area (n=15)\n  - BATHROOM in a SMALL(<=142m2) house with LOW(<=3bd) bedrooms: median area 5.122 m2, ~4.1% of the plan's area (n=15)\n  - BEDROOM in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 22.831 m2, ~13.3% of the plan's area (n=12)\n  - BEDROOM in a MEDIUM(142-167m2) house with HIGH(>3bd) bedrooms: median area 16.278 m2, ~10.9% of the plan's area (n=4)\n  - BEDROOM in a MEDIUM(142-167m2) house with LOW(<=3bd) bedrooms: median area 21.581 m2, ~14.2% of the plan's area (n=15)\n  - BEDROOM in a SMALL(<=142m2) house with LOW(<=3bd) bedrooms: median area 17.812 m2, ~13.8% of the plan's area (n=21)\n  - CIRCULATION in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 28.446 m2, ~14.1% of the plan's area (n=3)\n  - CIRCULATION in a MEDIUM(142-167m2) house with HIGH(>3bd) bedrooms: median area 9.863 m2, ~6.6% of the plan's area (n=1)\n  - CIRCULATION in a MEDIUM(142-167m2) house with LOW(<=3bd) bedrooms: median area 48.807 m2, ~32.6% of the plan's area (n=1)\n  - KITCHEN in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 13.751 m2, ~7.4% of the plan's area (n=6)\n  - KITCHEN in a MEDIUM(142-167m2) house with HIGH(>3bd) bedrooms: median area 9.241 m2, ~6.2% of the plan's area (n=1)\n  - KITCHEN in a MEDIUM(142-167m2) house with LOW(<=3bd) bedrooms: median area 12.075 m2, ~7.6% of the plan's area (n=5)\n  - KITCHEN in a SMALL(<=142m2) house with LOW(<=3bd) bedrooms: median area 11.853 m2, ~9.8% of the plan's area (n=5)\n  - LIVING in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 70.849 m2, ~35.2% of the plan's area (n=6)\n  - LIVING in a MEDIUM(142-167m2) house with HIGH(>3bd) bedrooms: median area 48.108 m2, ~32.4% of the plan's area (n=1)\n  - LIVING in a MEDIUM(142-167m2) house with LOW(<=3bd) bedrooms: median area 52.947 m2, ~33.9% of the plan's area (n=4)\n  - LIVING in a SMALL(<=142m2) house with LOW(<=3bd) bedrooms: median area 42.24 m2, ~35.0% of the plan's area (n=7)\n  - STORAGE in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 4.128 m2, ~2.2% of the plan's area (n=2)\n  - TOILET in a LARGE(>167m2) house with LOW(<=3bd) bedrooms: median area 3.02 m2, ~1.3% of the plan's area (n=4)\n  - TOILET in a MEDIUM(142-167m2) house with LOW(<=3bd) bedrooms: median area 2.626 m2, ~1.7% of the plan's area (n=2)\n  - TOILET in a SMALL(<=142m2) house with LOW(<=3bd) bedrooms: median area 3.663 m2, ~3.2% of the plan's area (n=4)\n\nBRIEF (id=B20): 2 bedroom(s), 3 wet room(s), safe_room=True, open_plan=True, footprint aspect=square, house size=small (132.0 m2 built area).\n\nROOM PROGRAMME — use EXACTLY these room ids, every one, in every proposal: LIVING(LIVING), DINING(DINING), KITCHEN(KITCHEN), HALL(HALL), MASTER(MASTER_BEDROOM), BEDROOM_1(BEDROOM), SAFE_ROOM(SAFE_ROOM), BATHROOM_1(BATHROOM), BATHROOM_2(BATHROOM), BATHROOM_3(BATHROOM)\n\nGenerate exactly 8 MATERIALLY DIFFERENT structured spatial topology proposals as a JSON array. Each element is one proposal object with EXACTLY these keys:\n  \"rooms\": [{\"id\": ROOM_ID, \"role\": ROLE}, ...]  — copy the room programme above verbatim\n  \"spatial_adjacency\": [[id_a, id_b], ...]  — unordered pairs of room ids that share a wall\n  \"access_graph\": [[from_id, to_id], ...]  — DIRECTED pairs; \"ENTRANCE\" is a valid from_id (never a to_id); every room must be reachable from ENTRANCE\n  \"zones\": {\"public\": [...], \"private\": [...], \"service\": [...], \"circulation\": [...]} — every room id in exactly one zone\n  \"clusters\": {\"wet_core\": [...]}  — the wet room ids that are grouped together (omit if none)\n  \"relative_position\": [{\"room_id\": ..., \"relation\": \"NORTH_OF\"|\"SOUTH_OF\"|\"EAST_OF\"|\"WEST_OF\", \"reference_room_id\": ...}, ...]  — qualitative only, never a number\n  \"entrance_relation\": {\"opens_into\": ROOM_ID, \"sequence\": [ROOM_ID, ...]}\n  \"design_tradeoff\": \"one sentence — your own reasoning, NOT evidence, ignored by scoring\"\n\nMake each of the 8 proposals differ in at least one of: the adjacency graph, the access graph, the public/private organisation, the wet-core placement, the entrance sequence, corridor usage, or spatial hierarchy — a renamed variable is not a difference. Return ONLY the JSON array. No prose, no markdown code fences, no explanation outside the JSON.\n\nEXACT SHAPE EXAMPLE — copy this structure precisely (\"rooms\" is a list of OBJECTS, never a list of bare strings):\n{\"rooms\": [{\"id\": \"LIVING\", \"role\": \"LIVING\"}, {\"id\": \"HALL\", \"role\": \"HALL\"}], \"spatial_adjacency\": [[\"LIVING\", \"HALL\"]], \"access_graph\": [[\"ENTRANCE\", \"HALL\"], [\"HALL\", \"LIVING\"]], \"zones\": {\"public\": [\"LIVING\"], \"private\": [], \"service\": [], \"circulation\": [\"HALL\"]}, \"clusters\": {}, \"relative_position\": [{\"room_id\": \"LIVING\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"}], \"entrance_relation\": {\"opens_into\": \"HALL\", \"sequence\": [\"HALL\", \"LIVING\"]}, \"design_tradeoff\": \"example only, not a real proposal\"}",
+      "n_proposals_requested": 8,
+      "retry_count": 0,
+      "attempts": [
+        {
+          "attempt": 0,
+          "model": "gpt-5",
+          "parameters": {
+            "temperature": 1.0,
+            "response_format": "json_object"
+          },
+          "raw_response": "{\n  \"proposals\": [\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"HALL\"],\n        [\"LIVING\", \"BATHROOM_3\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"MASTER_BEDROOM\", \"SAFE_ROOM\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"MASTER_BEDROOM\", \"SAFE_ROOM\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"HALL\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"BEDROOM_1\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"HALL\", \"MASTER_BEDROOM\"]},\n      \"design_tradeoff\": \"Open plan maximizes social space while keeping an ensuite and safe room deeper in the private wing for privacy.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"HALL\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"],\n        [\"HALL\", \"SAFE_ROOM\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"HALL\"],\n        [\"HALL\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"HALL\", \"SAFE_ROOM\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"LIVING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"DINING\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"KITCHEN\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"BATHROOM_2\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"HALL\", \"sequence\": [\"HALL\", \"LIVING\", \"KITCHEN\"]},\n      \"design_tradeoff\": \"A front hall anchors circulation and consolidates the wet core to shorten plumbing runs.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"BEDROOM_1\"],\n        [\"LIVING\", \"HALL\"],\n        [\"LIVING\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_3\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"],\n        [\"BEDROOM_1\", \"SAFE_ROOM\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"BEDROOM_1\"],\n        [\"BEDROOM_1\", \"SAFE_ROOM\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"LIVING\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_3\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"HALL\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"BEDROOM_1\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"KITCHEN\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"BEDROOM_1\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"BEDROOM_1\", \"SAFE_ROOM\"]},\n      \"design_tradeoff\": \"Bedrooms open directly off the living area to minimize corridors, with one discreet safe-room tucked off the secondary bedroom.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"],\n        [\"HALL\", \"SAFE_ROOM\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"HALL\", \"SAFE_ROOM\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"HALL\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"DINING\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"BEDROOM_1\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"HALL\", \"BEDROOM_1\"]},\n      \"design_tradeoff\": \"A spine hall serves a tight wet core while the open-plan front remains uninterrupted.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"HALL\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"MASTER_BEDROOM\", \"SAFE_ROOM\"],\n        [\"LIVING\", \"BEDROOM_1\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"HALL\"],\n        [\"HALL\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"MASTER_BEDROOM\", \"SAFE_ROOM\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_1\", \"BATHROOM_2\"]},\n      \"relative_position\": [\n        {\"room_id\": \"HALL\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"DINING\"},\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"BEDROOM_1\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"HALL\", \"sequence\": [\"HALL\", \"LIVING\", \"DINING\"]},\n      \"design_tradeoff\": \"A formal entry with a split wet core provides a guest bath near the front and quieter suites deeper inside.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"BEDROOM_1\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"HALL\", \"SAFE_ROOM\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"BEDROOM_1\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"LIVING\", \"BATHROOM_2\"],\n        [\"HALL\", \"BATHROOM_3\"],\n        [\"HALL\", \"SAFE_ROOM\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"HALL\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"BEDROOM_1\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"HALL\", \"MASTER_BEDROOM\"]},\n      \"design_tradeoff\": \"Minimized corridor length keeps the small-footprint plan efficient while preserving a private master suite.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"DINING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"KITCHEN\", \"BATHROOM_3\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"SAFE_ROOM\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"HALL\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"HALL\", \"SAFE_ROOM\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"KITCHEN\", \"BATHROOM_3\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_1\", \"BATHROOM_2\"]},\n      \"relative_position\": [\n        {\"room_id\": \"DINING\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"DINING\"},\n        {\"room_id\": \"HALL\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"DINING\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"KITCHEN\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"HALL\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"DINING\", \"HALL\"]},\n      \"design_tradeoff\": \"Routing private areas off dining reduces living-room doors, enhancing the main social volume.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"HALL\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"DINING\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_3\"],\n        [\"BEDROOM_1\", \"SAFE_ROOM\"],\n        [\"BEDROOM_1\", \"BATHROOM_2\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"BEDROOM_1\", \"SAFE_ROOM\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_3\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"HALL\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"BEDROOM_1\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"HALL\", \"BEDROOM_1\"]},\n      \"design_tradeoff\": \"A compact loop maintains short, legible paths while keeping the guest bath convenient to living.\"\n    },\n    {\n      \"rooms\": [\n        {\"id\": \"LIVING\", \"role\": \"LIVING\"},\n        {\"id\": \"DINING\", \"role\": \"DINING\"},\n        {\"id\": \"KITCHEN\", \"role\": \"KITCHEN\"},\n        {\"id\": \"HALL\", \"role\": \"HALL\"},\n        {\"id\": \"MASTER_BEDROOM\", \"role\": \"MASTER_BEDROOM\"},\n        {\"id\": \"BEDROOM_1\", \"role\": \"BEDROOM\"},\n        {\"id\": \"SAFE_ROOM\", \"role\": \"SAFE_ROOM\"},\n        {\"id\": \"BATHROOM_1\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_2\", \"role\": \"BATHROOM\"},\n        {\"id\": \"BATHROOM_3\", \"role\": \"BATHROOM\"}\n      ],\n      \"spatial_adjacency\": [\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"DINING\", \"KITCHEN\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_3\"],\n        [\"BEDROOM_1\", \"SAFE_ROOM\"],\n        [\"LIVING\", \"BEDROOM_1\"]\n      ],\n      \"access_graph\": [\n        [\"ENTRANCE\", \"LIVING\"],\n        [\"LIVING\", \"KITCHEN\"],\n        [\"LIVING\", \"DINING\"],\n        [\"LIVING\", \"HALL\"],\n        [\"HALL\", \"BEDROOM_1\"],\n        [\"BEDROOM_1\", \"SAFE_ROOM\"],\n        [\"HALL\", \"MASTER_BEDROOM\"],\n        [\"MASTER_BEDROOM\", \"BATHROOM_1\"],\n        [\"HALL\", \"BATHROOM_2\"],\n        [\"LIVING\", \"BATHROOM_3\"]\n      ],\n      \"zones\": {\n        \"public\": [\"LIVING\", \"DINING\", \"KITCHEN\"],\n        \"private\": [\"MASTER_BEDROOM\", \"BEDROOM_1\", \"SAFE_ROOM\"],\n        \"service\": [\"BATHROOM_1\", \"BATHROOM_2\", \"BATHROOM_3\"],\n        \"circulation\": [\"HALL\"]\n      },\n      \"clusters\": {\"wet_core\": [\"BATHROOM_2\", \"BATHROOM_3\"]},\n      \"relative_position\": [\n        {\"room_id\": \"HALL\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"KITCHEN\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"DINING\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"BEDROOM_1\", \"relation\": \"EAST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"MASTER_BEDROOM\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_1\", \"relation\": \"WEST_OF\", \"reference_room_id\": \"MASTER_BEDROOM\"},\n        {\"room_id\": \"BATHROOM_2\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"HALL\"},\n        {\"room_id\": \"BATHROOM_3\", \"relation\": \"SOUTH_OF\", \"reference_room_id\": \"LIVING\"},\n        {\"room_id\": \"SAFE_ROOM\", \"relation\": \"NORTH_OF\", \"reference_room_id\": \"BEDROOM_1\"}\n      ],\n      \"entrance_relation\": {\"opens_into\": \"LIVING\", \"sequence\": [\"LIVING\", \"KITCHEN\", \"DINING\"]},\n      \"design_tradeoff\": \"This variant brings Bedroom 1 closer to living for flexibility, with controlled access to the safe room.\"\n    }\n  ]\n}",
+          "raw_sha256": "657ef852b6992311e05caecc63b126576580bc6b10d7fc9140af0871425a47cf",
+          "parsed_json": {
+            "proposals": [
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "HALL",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ]
+                },
+                "design_tradeoff": "Open plan maximizes social space while keeping an ensuite and safe room deeper in the private wing for privacy."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "HALL",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "LIVING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "DINING",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "KITCHEN"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "BATHROOM_2"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "HALL",
+                  "sequence": [
+                    "HALL",
+                    "LIVING",
+                    "KITCHEN"
+                  ]
+                },
+                "design_tradeoff": "A front hall anchors circulation and consolidates the wet core to shorten plumbing runs."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "HALL",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "KITCHEN"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ]
+                },
+                "design_tradeoff": "Bedrooms open directly off the living area to minimize corridors, with one discreet safe-room tucked off the secondary bedroom."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "HALL",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "DINING"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "HALL",
+                    "BEDROOM_1"
+                  ]
+                },
+                "design_tradeoff": "A spine hall serves a tight wet core while the open-plan front remains uninterrupted."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "HALL",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "LIVING",
+                    "BEDROOM_1"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_1",
+                    "BATHROOM_2"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "HALL",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "DINING"
+                  },
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "HALL",
+                  "sequence": [
+                    "HALL",
+                    "LIVING",
+                    "DINING"
+                  ]
+                },
+                "design_tradeoff": "A formal entry with a split wet core provides a guest bath near the front and quieter suites deeper inside."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "HALL",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ]
+                },
+                "design_tradeoff": "Minimized corridor length keeps the small-footprint plan efficient while preserving a private master suite."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "DINING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "KITCHEN",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "HALL",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "KITCHEN",
+                    "BATHROOM_3"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_1",
+                    "BATHROOM_2"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "DINING",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "DINING"
+                  },
+                  {
+                    "room_id": "HALL",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "DINING"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "KITCHEN"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "HALL"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "DINING",
+                    "HALL"
+                  ]
+                },
+                "design_tradeoff": "Routing private areas off dining reduces living-room doors, enhancing the main social volume."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "BATHROOM_2"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "HALL",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "HALL",
+                    "BEDROOM_1"
+                  ]
+                },
+                "design_tradeoff": "A compact loop maintains short, legible paths while keeping the guest bath convenient to living."
+              },
+              {
+                "rooms": [
+                  {
+                    "id": "LIVING",
+                    "role": "LIVING"
+                  },
+                  {
+                    "id": "DINING",
+                    "role": "DINING"
+                  },
+                  {
+                    "id": "KITCHEN",
+                    "role": "KITCHEN"
+                  },
+                  {
+                    "id": "HALL",
+                    "role": "HALL"
+                  },
+                  {
+                    "id": "MASTER_BEDROOM",
+                    "role": "MASTER_BEDROOM"
+                  },
+                  {
+                    "id": "BEDROOM_1",
+                    "role": "BEDROOM"
+                  },
+                  {
+                    "id": "SAFE_ROOM",
+                    "role": "SAFE_ROOM"
+                  },
+                  {
+                    "id": "BATHROOM_1",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_2",
+                    "role": "BATHROOM"
+                  },
+                  {
+                    "id": "BATHROOM_3",
+                    "role": "BATHROOM"
+                  }
+                ],
+                "spatial_adjacency": [
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "LIVING",
+                    "BEDROOM_1"
+                  ]
+                ],
+                "access_graph": [
+                  [
+                    "ENTRANCE",
+                    "LIVING"
+                  ],
+                  [
+                    "LIVING",
+                    "KITCHEN"
+                  ],
+                  [
+                    "LIVING",
+                    "DINING"
+                  ],
+                  [
+                    "LIVING",
+                    "HALL"
+                  ],
+                  [
+                    "HALL",
+                    "BEDROOM_1"
+                  ],
+                  [
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  [
+                    "HALL",
+                    "MASTER_BEDROOM"
+                  ],
+                  [
+                    "MASTER_BEDROOM",
+                    "BATHROOM_1"
+                  ],
+                  [
+                    "HALL",
+                    "BATHROOM_2"
+                  ],
+                  [
+                    "LIVING",
+                    "BATHROOM_3"
+                  ]
+                ],
+                "zones": {
+                  "public": [
+                    "LIVING",
+                    "DINING",
+                    "KITCHEN"
+                  ],
+                  "private": [
+                    "MASTER_BEDROOM",
+                    "BEDROOM_1",
+                    "SAFE_ROOM"
+                  ],
+                  "service": [
+                    "BATHROOM_1",
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ],
+                  "circulation": [
+                    "HALL"
+                  ]
+                },
+                "clusters": {
+                  "wet_core": [
+                    "BATHROOM_2",
+                    "BATHROOM_3"
+                  ]
+                },
+                "relative_position": [
+                  {
+                    "room_id": "HALL",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "KITCHEN",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "DINING",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "BEDROOM_1",
+                    "relation": "EAST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "MASTER_BEDROOM",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_1",
+                    "relation": "WEST_OF",
+                    "reference_room_id": "MASTER_BEDROOM"
+                  },
+                  {
+                    "room_id": "BATHROOM_2",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "HALL"
+                  },
+                  {
+                    "room_id": "BATHROOM_3",
+                    "relation": "SOUTH_OF",
+                    "reference_room_id": "LIVING"
+                  },
+                  {
+                    "room_id": "SAFE_ROOM",
+                    "relation": "NORTH_OF",
+                    "reference_room_id": "BEDROOM_1"
+                  }
+                ],
+                "entrance_relation": {
+                  "opens_into": "LIVING",
+                  "sequence": [
+                    "LIVING",
+                    "KITCHEN",
+                    "DINING"
+                  ]
+                },
+                "design_tradeoff": "This variant brings Bedroom 1 closer to living for flexibility, with controlled access to the safe room."
+              }
+            ]
+          },
+          "usage": {
+            "prompt_tokens": 2644,
+            "completion_tokens": 15344,
+            "total_tokens": 17988,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 7616,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "cost_usd": 0.156745,
+          "seconds": 133.3,
+          "response_id": "chatcmpl-ETpllpm8PmoOZRimeFzP4dkjCXjt6",
+          "timestamp": "2026-09-30T17:42:33+0300"
+        }
+      ]
     }
   ],
-  "total_cost_usd": 2.7266
+  "dataset_sha256": "03c52be5357ff41f30ee104cfd1ff0d2760bba0cf7f0576b64565767cb321598"
 }
