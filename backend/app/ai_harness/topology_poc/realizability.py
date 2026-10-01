@@ -41,10 +41,18 @@ def classify_realizability(proposal: TopologyProposal) -> Realizability:
     if entrance_targets and entrance_targets & private_ids:
         return Realizability.NOT_REALIZABLE
 
-    if wet_ids:
-        wet_core = frozenset(proposal.clusters.get("wet_core", ()))
-        if wet_ids - wet_core:
-            return Realizability.NOT_REALIZABLE
+    # WET-ROOM CLUSTERING IS NOT A REALIZATION BLOCKER (owner correction 2026-10-01, measured).
+    # This module previously returned NOT_REALIZABLE when a proposal's wet rooms were not all in one
+    # `wet_core` cluster. That was this heuristic being stricter than the engine, not a fact about
+    # the engine: `app.vertical_slice.wet_core` ALREADY computes multiple clusters as a normal
+    # outcome — its own docstring calls `cluster_count` "informational" and frames fewer, larger
+    # clusters as "LOWER IS BETTER", a preference — and neither `cluster_count` nor
+    # `plumbing_complexity_index` is referenced anywhere in `app/vertical_slice/validation.py`.
+    # Nothing fails closed on it. C17 governs wet-room ACCESS and C29 wet-room PRIVACY; neither is
+    # about clustering. The old rule was the single largest contributor to the NOT_REALIZABLE
+    # count (74 of 101 labels over the frozen 20 briefs), so it materially distorted the scoping
+    # measurement it fed. Production wet-core behaviour is unchanged by this correction — only this
+    # heuristic label.
 
     if circulation_ids:
         hub = circulation_ids[0]

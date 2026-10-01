@@ -67,6 +67,35 @@ Across every proposal scored (current-generator + LLM, 181 total):
 | NOT_REALIZABLE_BY_CURRENT_ENGINE | 101 | 55.8% |
 | UNKNOWN | 0 | 0.0% |
 
+**CORRECTION (2026-10-01, after this run's verdict, by measurement).** The table above was produced by
+`realizability.classify_realizability` as it stood at scoring time, which returned NOT_REALIZABLE
+whenever a proposal's wet rooms were not all in a single `wet_core` cluster. **That rule was wrong** —
+the heuristic was stricter than the engine, not describing it. `app.vertical_slice.wet_core` already
+computes multiple clusters as a normal outcome (its own docstring calls `cluster_count`
+"informational" and frames fewer, larger clusters as "LOWER IS BETTER", a preference), and neither
+`cluster_count` nor `plumbing_complexity_index` appears anywhere in
+`app/vertical_slice/validation.py`. Nothing fails closed on wet-room clustering; C17 governs wet-room
+ACCESS and C29 wet-room PRIVACY, neither of which is about clustering. That one rule produced 74 of
+the 101 NOT_REALIZABLE labels.
+
+With it removed, the corrected distribution over the same 161 deduplicated proposals is:
+
+| label | count | share |
+|---|---|---|
+| REALIZABLE_BY_CURRENT_ENGINE | 108 | **67.1%** |
+| NOT_REALIZABLE_BY_CURRENT_ENGINE | 53 | **32.9%** |
+| UNKNOWN | 0 | 0.0% |
+
+**The GO verdict is unaffected and unchanged.** Realizability is metadata only and never reaches the
+score — AC-9's test proves the `ScoreBreakdown` is bit-identical whatever label a proposal carries —
+so no win, median, threshold or diversity figure in this report moves. What changes is only how this
+run should be read when scoping follow-on work: the headline "55.8% NOT_REALIZABLE" overstated the
+gap by roughly a factor of two, and the remaining 32.9% traces to a single access-policy rule
+(`access_rules.ALLOWED_ENTERED_FROM`, which admits a PRIVATE room only from circulation), not to any
+geometric limitation of the realizer. Measured on the winning proposals rather than on all of them:
+17/20 winners and 20/20 briefs' top-3 contain a proposal that satisfies current access policy
+unchanged.
+
 Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposal's quality score; see `tests/ai_harness/test_topology_critic.py::test_score_is_independent_of_realizability_label`.
 
 ## Per-brief results (AC-5)
