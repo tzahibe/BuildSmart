@@ -1,0 +1,29 @@
+{
+  "brief_id": "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+  "street_facing_side": "NORTH",
+  "family_b": "TWO_WING",
+  "a": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.3484848484848486,
+      "m1_habitable_aspect_max": 2.015625,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.11382113821138212,
+      "m4_hall_door_count": 9,
+      "m4_hall_aspect_median": 11.285714285714286,
+      "m5_wet_adjacency_ratio": 0.0,
+      "m6_public_zone_contiguous": true,
+      "validation_passed": true
+    }
+  },
+  "b": {
+    "outcome": "REFUSED",
+    "refusal_code": "NO_USABLE_ROOMS",
+    "refusal_detail": "not enough usable real rooms in this context to build a TWO_WING layout at any of this script's retry scales",
+    "metrics": null,
+    "c30_passed": null,
+    "c30_detail": null
+  }
+}

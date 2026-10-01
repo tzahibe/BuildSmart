@@ -88,7 +88,7 @@ _M_FIELDS = (
 )
 
 
-def test_a_planned_design_carries_all_six_metrics_and_no_dead_space():
+def test_a_planned_design_carries_all_six_metrics_and_a_measured_dead_space():
     result = svc.generate_demo_design(_project(WIDE_SQUARE))
     metrics = result.design.quality.metrics
     assert metrics is not None
@@ -100,7 +100,12 @@ def test_a_planned_design_carries_all_six_metrics_and_no_dead_space():
     assert metrics.m2_habitable_on_envelope_ratio is not None
     assert metrics.m5_wet_adjacency_ratio is not None
     assert metrics.m6_public_zone_contiguous is not None
-    assert metrics.dead_space_m2 == 0.0                      # C2 already gates this to zero
+    # A spine parti's own hall has exactly one tolerated dead end by construction
+    # (`circulation_metrics.dead_end_count`'s own docstring) — Issue #43's `dead_space.py` now
+    # measures that end's actual size as data (well under C32's own hard limit, see
+    # `test_dead_space.py::test_c32_fails_stub_fixture_and_passes_canonical`), not zero.
+    assert 0.0 < metrics.dead_space_m2 < 3.0
+    assert 0.0 < metrics.dead_space_share < 0.02
     assert 0.0 <= metrics.wasted_circulation_share <= metrics.m3_circulation_share + 1e-9
 
 
