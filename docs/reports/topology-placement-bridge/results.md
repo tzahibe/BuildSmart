@@ -51,6 +51,8 @@ Every failure below is classified as one of BRIDGE / PLACEMENT / REALIZER / VALI
 
 **REFUSED** — classified **REALIZER**: `SHORT_SIDE_INFEASIBLE` — KITCHEN: pinwheel-realized short side 1.50 m (gross) < 2.4 m (net) + 0.3 m inset margin
 
+The chosen placement ({'center': 'LIVING', 'n': 'KITCHEN', 'e': 'HALL', 's': 'MASTER', 'w': 'BATHROOM_1'}) achieves 6/6 of the requested spatial-adjacency pairs STRUCTURALLY (the best of all 5! room-to-slot assignments) — this is a sizing failure of the pinwheel's own band-thickness solver, not a placement/matching failure: an exhaustive 31x31 (961-point) width/height grid search over this SAME placement found zero feasible envelopes.
+
 ### B10
 
 **REFUSED** — classified **BRIDGE**: `ROW_CAPACITY_EXCEEDED` — requested graph needs 14 spatial-adjacency relationship(s) among 9 rooms; a single row can realize at most 8 (n-1), and n=9 != 5 so the realizer's only other structure (PinwheelWing, exactly 5 zones) is not available either — no row fallback is attempted

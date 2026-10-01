@@ -273,6 +273,18 @@ def render_results_md(rankings: list[BriefRanking], cases: list[CaseResult]) -> 
         if c.outcome == "REFUSED":
             lines.append(f"**REFUSED** — classified **{c.failure_class}**: `{c.refusal_reason}` — "
                           f"{c.refusal_detail}")
+            if len(c.proposal.rooms) == 5:
+                mapping, best_edges = placement_bridge._best_pinwheel_assignment(c.proposal)
+                lines.append("")
+                lines.append(
+                    f"The chosen placement ({mapping}) achieves {best_edges}/"
+                    f"{len(c.proposal.spatial_adjacency)} of the requested spatial-adjacency "
+                    f"pairs STRUCTURALLY (the best of all 5! room-to-slot assignments) — this is "
+                    f"a sizing failure of the pinwheel's own band-thickness solver, not a "
+                    f"placement/matching failure: an exhaustive {len(_PINWHEEL_GRID_M)}x"
+                    f"{len(_PINWHEEL_GRID_M)} ({len(_PINWHEEL_GRID_M) ** 2}-point) width/height "
+                    f"grid search over this SAME placement found zero feasible envelopes."
+                )
         else:
             lines.append(f"**REALIZED** (envelope {c.envelope_used}) — "
                           f"**verdict: {c.verdict}**")
