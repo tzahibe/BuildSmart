@@ -215,6 +215,26 @@ Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposa
 
 ## Known limitations
 
+- **The two sides of this comparison are not the same KIND of object, and that is by design.** The
+  LLM's `spatial_adjacency` is a **declaration** — a list of room-id pairs it asserts, constrained by
+  nothing but the schema. The current generator's graph is a **measurement** — derived by
+  `generator_adapter` from a plan it actually realized and that actually passed the validators, using
+  the same `shared_boundary_m(...) >= MIN_MEANINGFUL_SHARED_BOUNDARY_M` test the ranking path uses.
+  So the LLM is scored on an intention and the generator on an achievement. This is deliberate: the
+  Issue's own Goal states "The LLM produces no geometry... It produces a STRUCTURED SPATIAL IDEA
+  only", and the whole point is to ask whether better ideas are conceivable at all. But it means the
+  verdict must be read precisely: **GO says a strong LLM can propose topologies our own critic scores
+  far better than anything our generator currently realizes. It does NOT say those topologies are
+  buildable.** The realizability distribution is where that gap is visible and is reported above —
+  **55.8% of proposals are NOT_REALIZABLE_BY_CURRENT_ENGINE** — and per AC-9 that label never touched
+  a score. This is precisely why the verdict is an INPUT to the #151 x #155 decision matrix rather
+  than an authorization: #155 measures the hand, this measures the idea.
+- **The median LLM proposal is not the story; the best one is.** Per-brief median LLM scores sit
+  between -0.60 and -2.39, in the same band as the generator's -1.69 to -4.01 — several briefs' median
+  proposal is only marginally better than the generator's single topology, and B19's is slightly
+  worse. The gate is a best-of-8 comparison by design (see AC-20), so the headline reflects the
+  model's ceiling, not its typical output.
+
 - `entrance_relation_score` is `None` whenever the entrance opens into a room whose role (e.g. HALL) the corrected #149 corpus cannot measure `front_door_direct_access` for — genuine unmeasurability, not a zero.
 - `best LLM` (per-brief table) and the WIN definition (GO/STOP gate, headline, worked examples) differ deliberately: the first is a raw ceiling regardless of hard-constraint violations, the second requires zero violations, matching `baseline.json`'s own `win_definition`.
 - `improvement` (per-brief table, worked examples, and the gate's own median/average) is the winning proposal's `adjacency_similarity` delta, not its `total_score` delta — see "GO/STOP verdict" above for why. It is `—`/absent whenever either side has zero eligible measurable-role pairs for that brief, most often because the current generator's own open-plan merge (`LIVING_KITCHEN_MERGE_ENABLED`) collapses LIVING and KITCHEN into one polygon — the adapter (`generator_adapter._expand_merged_rooms`) splits that back into measurable LIVING/KITCHEN room refs, but a brief can still lack any OTHER eligible measurable pair.
