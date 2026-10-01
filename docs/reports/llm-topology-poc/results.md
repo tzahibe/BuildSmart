@@ -48,7 +48,7 @@ This primary experiment is BEST-OF-8: 8 proposals were requested per brief — t
 - Commit SHA this run's ground truth came from: `6a4aae74e6ab75fa12074e3d43fb9724575376e9`
 - Artifact SHA-256: `23ee2b752f0fd33b018d2b76075d049353dbd3d6ad18d5826fc39b3e4b7819c5`
 - Train count: **13648**, holdout count: **3459**
-- Generated at (UTC): `2026-09-30T23:00:04Z`
+- Generated at (UTC): `2026-10-01T12:32:36Z`
 - Generation dataset: `docs/reports/llm-topology-poc/generation-dataset.json` (`dataset_sha256` `03c52be5357ff41f30ee104cfd1ff0d2760bba0cf7f0576b64565767cb321598`)
 
 **Frozen current-generator baseline (AC-22)**: commit `6a4aae7` (`6a4aae74e6ab75fa12074e3d43fb9724575376e9`, "#149 B — Full-corpus adjacency validation before the Topology Proposer"). The generator/validator/knowledge code that produced every current-generator topology in this report was BYTE-IDENTICAL to this commit at generation time — verified by two empty diffs (`git diff 6a4aae7 ef83707 -- backend/app/demo backend/app/vertical_slice backend/app/knowledge` and `git diff 6a4aae7 713e3f2 -- backend/app/demo backend/app/vertical_slice`), both recorded in `docs/reports/llm-topology-poc/baseline.json`.
@@ -63,40 +63,38 @@ Across every proposal scored (current-generator + LLM, 181 total):
 
 | label | count | share |
 |---|---|---|
-| REALIZABLE_BY_CURRENT_ENGINE | 80 | 44.2% |
-| NOT_REALIZABLE_BY_CURRENT_ENGINE | 101 | 55.8% |
+| REALIZABLE_BY_CURRENT_ENGINE | 128 | 70.7% |
+| NOT_REALIZABLE_BY_CURRENT_ENGINE | 53 | 29.3% |
 | UNKNOWN | 0 | 0.0% |
-
-**CORRECTION (2026-10-01, after this run's verdict, by measurement).** The table above was produced by
-`realizability.classify_realizability` as it stood at scoring time, which returned NOT_REALIZABLE
-whenever a proposal's wet rooms were not all in a single `wet_core` cluster. **That rule was wrong** —
-the heuristic was stricter than the engine, not describing it. `app.vertical_slice.wet_core` already
-computes multiple clusters as a normal outcome (its own docstring calls `cluster_count`
-"informational" and frames fewer, larger clusters as "LOWER IS BETTER", a preference), and neither
-`cluster_count` nor `plumbing_complexity_index` appears anywhere in
-`app/vertical_slice/validation.py`. Nothing fails closed on wet-room clustering; C17 governs wet-room
-ACCESS and C29 wet-room PRIVACY, neither of which is about clustering. That one rule produced 74 of
-the 101 NOT_REALIZABLE labels.
-
-With it removed, the corrected distribution over the same 161 deduplicated proposals is:
-
-| label | count | share |
-|---|---|---|
-| REALIZABLE_BY_CURRENT_ENGINE | 108 | **67.1%** |
-| NOT_REALIZABLE_BY_CURRENT_ENGINE | 53 | **32.9%** |
-| UNKNOWN | 0 | 0.0% |
-
-**The GO verdict is unaffected and unchanged.** Realizability is metadata only and never reaches the
-score — AC-9's test proves the `ScoreBreakdown` is bit-identical whatever label a proposal carries —
-so no win, median, threshold or diversity figure in this report moves. What changes is only how this
-run should be read when scoping follow-on work: the headline "55.8% NOT_REALIZABLE" overstated the
-gap by roughly a factor of two, and the remaining 32.9% traces to a single access-policy rule
-(`access_rules.ALLOWED_ENTERED_FROM`, which admits a PRIVATE room only from circulation), not to any
-geometric limitation of the realizer. Measured on the winning proposals rather than on all of them:
-17/20 winners and 20/20 briefs' top-3 contain a proposal that satisfies current access policy
-unchanged.
 
 Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposal's quality score; see `tests/ai_harness/test_topology_critic.py::test_score_is_independent_of_realizability_label`.
+
+## Briefs stratification (AC-19)
+
+The 20 frozen briefs this run scored, restated in full here (the complete selection method and rationale live in `docs/reports/llm-topology-poc/briefs.md`):
+
+| brief | bedrooms | wet_rooms | safe_room | open_plan | size_tier | aspect_tier |
+|---|---|---|---|---|---|---|
+| B01 | 1 | 1 | False | False | large | square |
+| B02 | 1 | 1 | False | True | medium | narrow |
+| B03 | 2 | 1 | False | False | medium | wide |
+| B04 | 2 | 2 | True | False | large | square |
+| B05 | 2 | 1 | False | True | large | square |
+| B06 | 3 | 2 | False | False | large | narrow |
+| B07 | 3 | 2 | True | False | large | square |
+| B08 | 3 | 1 | False | True | small | square |
+| B09 | 3 | 3 | False | False | large | square |
+| B10 | 4 | 2 | False | False | large | square |
+| B11 | 4 | 2 | True | True | medium | narrow |
+| B12 | 4 | 3 | False | False | large | square |
+| B13 | 4 | 2 | False | True | small | square |
+| B14 | 5 | 3 | False | False | medium | narrow |
+| B15 | 5 | 2 | True | False | medium | square |
+| B16 | 5 | 3 | True | True | medium | wide |
+| B17 | 6 | 3 | False | False | medium | wide |
+| B18 | 6 | 3 | True | False | medium | square |
+| B19 | 6 | 2 | False | True | medium | square |
+| B20 | 2 | 3 | True | True | small | square |
 
 ## Per-brief results (AC-5)
 
@@ -203,7 +201,7 @@ Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposa
 ### B16 (5 bed, 3 wet room(s), safe_room=True, open_plan=True, medium/wide)
 
 - Current generator score: **-2.033395** (0 hard violations)
-- Best zero-violation LLM proposal score: **1.190307** (realizability=NOT_REALIZABLE_BY_CURRENT_ENGINE)
+- Best zero-violation LLM proposal score: **1.190307** (realizability=REALIZABLE_BY_CURRENT_ENGINE)
 - Improvement: **2.2547599339120605**
 - Why the critic preferred the LLM proposal: its adjacency/access graph sits closer to the corrected #149 corpus's own measured pattern (higher, less-negative log-likelihood) than the current generator's topology for this brief, with zero hard constraint violations — see the score component table above for the exact numbers.
 
@@ -217,7 +215,7 @@ Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposa
 ### B14 (5 bed, 3 wet room(s), safe_room=False, open_plan=False, medium/narrow)
 
 - Current generator score: **-3.259795** (0 hard violations)
-- Best zero-violation LLM proposal score: **-0.111968** (realizability=NOT_REALIZABLE_BY_CURRENT_ENGINE)
+- Best zero-violation LLM proposal score: **-0.111968** (realizability=REALIZABLE_BY_CURRENT_ENGINE)
 - Improvement: **1.8959318162670056**
 - Why the critic preferred the LLM proposal: its adjacency/access graph sits closer to the corrected #149 corpus's own measured pattern (higher, less-negative log-likelihood) than the current generator's topology for this brief, with zero hard constraint violations — see the score component table above for the exact numbers.
 
@@ -231,7 +229,7 @@ Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposa
 ### B12 (4 bed, 3 wet room(s), safe_room=False, open_plan=False, large/square)
 
 - Current generator score: **-3.003497** (0 hard violations)
-- Best zero-violation LLM proposal score: **0.198735** (realizability=NOT_REALIZABLE_BY_CURRENT_ENGINE)
+- Best zero-violation LLM proposal score: **0.198735** (realizability=REALIZABLE_BY_CURRENT_ENGINE)
 - Improvement: **1.6396333322248233**
 - Why the critic preferred the LLM proposal: its adjacency/access graph sits closer to the corrected #149 corpus's own measured pattern (higher, less-negative log-likelihood) than the current generator's topology for this brief, with zero hard constraint violations — see the score component table above for the exact numbers.
 
@@ -244,25 +242,9 @@ Realizability is METADATA ONLY (AC-9) — these counts never reduced any proposa
 
 ## Known limitations
 
-- **The two sides of this comparison are not the same KIND of object, and that is by design.** The
-  LLM's `spatial_adjacency` is a **declaration** — a list of room-id pairs it asserts, constrained by
-  nothing but the schema. The current generator's graph is a **measurement** — derived by
-  `generator_adapter` from a plan it actually realized and that actually passed the validators, using
-  the same `shared_boundary_m(...) >= MIN_MEANINGFUL_SHARED_BOUNDARY_M` test the ranking path uses.
-  So the LLM is scored on an intention and the generator on an achievement. This is deliberate: the
-  Issue's own Goal states "The LLM produces no geometry... It produces a STRUCTURED SPATIAL IDEA
-  only", and the whole point is to ask whether better ideas are conceivable at all. But it means the
-  verdict must be read precisely: **GO says a strong LLM can propose topologies our own critic scores
-  far better than anything our generator currently realizes. It does NOT say those topologies are
-  buildable.** The realizability distribution is where that gap is visible and is reported above —
-  **55.8% of proposals are NOT_REALIZABLE_BY_CURRENT_ENGINE** — and per AC-9 that label never touched
-  a score. This is precisely why the verdict is an INPUT to the #151 x #155 decision matrix rather
-  than an authorization: #155 measures the hand, this measures the idea.
-- **The median LLM proposal is not the story; the best one is.** Per-brief median LLM scores sit
-  between -0.60 and -2.39, in the same band as the generator's -1.69 to -4.01 — several briefs' median
-  proposal is only marginally better than the generator's single topology, and B19's is slightly
-  worse. The gate is a best-of-8 comparison by design (see AC-20), so the headline reflects the
-  model's ceiling, not its typical output.
+- **The two sides of this comparison are not the same KIND of object, and that is by design.** The LLM's `spatial_adjacency` is a **declaration** — a list of room-id pairs it asserts, constrained by nothing but the schema. The current generator's graph is a **measurement** — derived by `generator_adapter` from a plan it actually realized and that actually passed the validators, using the same `shared_boundary_m(...) >= MIN_MEANINGFUL_SHARED_BOUNDARY_M` test the ranking path uses. So the LLM is scored on an intention and the generator on an achievement. This is deliberate: the Issue's own Goal states "The LLM produces no geometry... It produces a STRUCTURED SPATIAL IDEA only", and the whole point is to ask whether better ideas are conceivable at all. But it means the verdict must be read precisely: **GO says a strong LLM can propose topologies our own critic scores far better than anything our generator currently realizes. It does NOT say those topologies are buildable.** The realizability distribution is where that gap is visible and is reported above — **29.3% of proposals are NOT_REALIZABLE_BY_CURRENT_ENGINE** — and per AC-9 that label never touched a score. This is precisely why the verdict is an INPUT to the #151 x #155 decision matrix rather than an authorization: #155 measures the hand, this measures the idea.
+
+- **The median LLM proposal is not the story; the best one is.** Per-brief median LLM scores sit between -2.39 and -0.6, in the same band as the generator's between -4.01 and -1.69 — several briefs' median proposal is only marginally better than the generator's single topology, and B16, B19's median is slightly worse. The gate is a best-of-8 comparison by design (see AC-20), so the headline reflects the model's ceiling, not its typical output.
 
 - `entrance_relation_score` is `None` whenever the entrance opens into a room whose role (e.g. HALL) the corrected #149 corpus cannot measure `front_door_direct_access` for — genuine unmeasurability, not a zero.
 - `best LLM` (per-brief table) and the WIN definition (GO/STOP gate, headline, worked examples) differ deliberately: the first is a raw ceiling regardless of hard-constraint violations, the second requires zero violations, matching `baseline.json`'s own `win_definition`.

@@ -448,7 +448,7 @@
       {
         "source": "LLM",
         "raw_index": 0,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.4283390239465632,
           "access_similarity": -0.7380742386276046,
@@ -490,7 +490,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -1.9355242399205104,
@@ -532,7 +532,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -1.9355242399205104,
@@ -752,7 +752,7 @@
       {
         "source": "LLM",
         "raw_index": 1,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.4283390239465632,
           "access_similarity": -2.012599576367922,
@@ -766,7 +766,7 @@
       {
         "source": "LLM",
         "raw_index": 2,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -2.323302815631266,
@@ -808,7 +808,7 @@
       {
         "source": "LLM",
         "raw_index": 5,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.7390422632099073,
           "access_similarity": -2.323302815631266,
@@ -822,7 +822,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.7390422632099073,
           "access_similarity": -2.323302815631266,
@@ -836,7 +836,7 @@
       {
         "source": "LLM",
         "raw_index": 7,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.4283390239465632,
           "access_similarity": -2.012599576367922,
@@ -897,7 +897,7 @@
       {
         "source": "LLM",
         "raw_index": 1,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.2924152047498745,
           "access_similarity": -2.323302815631266,
@@ -911,7 +911,7 @@
       {
         "source": "LLM",
         "raw_index": 2,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3694905411972862,
           "access_similarity": -0.4273709993642605,
@@ -967,7 +967,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -0.4273709993642605,
@@ -1159,7 +1159,7 @@
       {
         "source": "LLM",
         "raw_index": 1,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -2.012599576367922,
@@ -1173,7 +1173,7 @@
       {
         "source": "LLM",
         "raw_index": 2,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -0.7380742386276046,
@@ -1187,7 +1187,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -2.012599576367922,
@@ -1201,7 +1201,7 @@
       {
         "source": "LLM",
         "raw_index": 4,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -1.9355242399205104,
@@ -1229,7 +1229,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.7390422632099073,
           "access_similarity": -0.7380742386276046,
@@ -1318,7 +1318,7 @@
       {
         "source": "LLM",
         "raw_index": 2,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -1.9355242399205104,
@@ -1402,7 +1402,7 @@
       {
         "source": "LLM",
         "raw_index": 8,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -2.012599576367922,
@@ -1463,7 +1463,7 @@
       {
         "source": "LLM",
         "raw_index": 1,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.6801937804606306,
           "access_similarity": -2.323302815631266,
@@ -1519,7 +1519,7 @@
       {
         "source": "LLM",
         "raw_index": 5,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -2.295320382147868,
           "access_similarity": -0.7380742386276046,
@@ -1561,7 +1561,7 @@
       {
         "source": "LLM",
         "raw_index": 8,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3694905411972862,
           "access_similarity": -2.012599576367922,
@@ -1608,7 +1608,7 @@
       {
         "source": "LLM",
         "raw_index": 0,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -0.7380742386276046,
@@ -1636,7 +1636,7 @@
       {
         "source": "LLM",
         "raw_index": 2,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -0.4273709993642605,
@@ -1664,7 +1664,7 @@
       {
         "source": "LLM",
         "raw_index": 4,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.9364922645028129,
           "access_similarity": -2.323302815631266,
@@ -1678,7 +1678,7 @@
       {
         "source": "LLM",
         "raw_index": 5,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -2.323302815631266,
@@ -1692,7 +1692,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -0.7380742386276046,
@@ -1795,7 +1795,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3694905411972862,
           "access_similarity": -2.012599576367922,
@@ -1898,7 +1898,7 @@
       {
         "source": "LLM",
         "raw_index": 0,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -0.7380742386276046,
@@ -1926,7 +1926,7 @@
       {
         "source": "LLM",
         "raw_index": 2,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3541688648971448,
           "access_similarity": -0.7380742386276046,
@@ -1940,7 +1940,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -2.5669405424901917,
           "access_similarity": -2.323302815631266,
@@ -1968,7 +1968,7 @@
       {
         "source": "LLM",
         "raw_index": 5,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -0.7380742386276046,
@@ -1982,7 +1982,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -1.9355242399205104,
@@ -1996,7 +1996,7 @@
       {
         "source": "LLM",
         "raw_index": 7,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -0.7380742386276046,
@@ -2085,7 +2085,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -1.9355242399205104,
@@ -2141,7 +2141,7 @@
       {
         "source": "LLM",
         "raw_index": 7,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -2.295320382147868,
           "access_similarity": -0.7380742386276046,
@@ -2188,7 +2188,7 @@
       {
         "source": "LLM",
         "raw_index": 0,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -0.4273709993642605,
@@ -2230,7 +2230,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -2.323302815631266,
@@ -2244,7 +2244,7 @@
       {
         "source": "LLM",
         "raw_index": 4,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.9364922645028129,
           "access_similarity": -3.908531392634927,
@@ -2337,7 +2337,7 @@
       {
         "source": "LLM",
         "raw_index": 0,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.04056044823580734,
           "access_similarity": -2.323302815631266,
@@ -2379,7 +2379,7 @@
       {
         "source": "LLM",
         "raw_index": 3,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -2.3723957185952798,
           "access_similarity": -0.7380742386276046,
@@ -2393,7 +2393,7 @@
       {
         "source": "LLM",
         "raw_index": 4,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3694905411972862,
           "access_similarity": -2.012599576367922,
@@ -2421,7 +2421,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3694905411972862,
           "access_similarity": -2.323302815631266,
@@ -2449,7 +2449,7 @@
       {
         "source": "LLM",
         "raw_index": 8,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -1.3694905411972862,
           "access_similarity": -2.012599576367922,
@@ -2510,7 +2510,7 @@
       {
         "source": "LLM",
         "raw_index": 1,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -2.012599576367922,
@@ -2552,7 +2552,7 @@
       {
         "source": "LLM",
         "raw_index": 4,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -2.012599576367922,
@@ -2594,7 +2594,7 @@
       {
         "source": "LLM",
         "raw_index": 7,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.35126368749915154,
           "access_similarity": -0.3502956629168488,
@@ -2739,7 +2739,7 @@
       {
         "source": "LLM",
         "raw_index": 7,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -0.9817119654865304,
           "access_similarity": -0.7380742386276046,
@@ -2870,7 +2870,7 @@
       {
         "source": "LLM",
         "raw_index": 6,
-        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
         "score": {
           "adjacency_similarity": -2.8776437817535356,
           "access_similarity": -3.908531392634927,
