@@ -89,7 +89,9 @@ from .geometry_core.model import (
 )
 from .geometry_core.model import Wing as GcWing
 from .site import EntranceWalk, SitePlan, build_entrance
+from .spec import WetRoomKind
 from .validation import Check, ValidationReport, check_realized_dimensions, validate
+from .wet_rooms import ResolvedWetRoom
 from .windows import Window, generate_windows
 
 #: Off by default (Issue #117's own scope: prove feasibility behind a flag; the production path
@@ -181,7 +183,51 @@ class RowWing:
     groups: dict[str, ShapeGroupIntent] = field(default_factory=dict)
 
 
-Wing = PinwheelWing | RowWing
+@dataclass(frozen=True)
+class GridCell:
+    """One slot in a `GridWing` row: a room id spanning `col_span` virtual columns (>= 1). A row's
+    own `col_span`s always sum to the wing's `n_cols` exactly, so every row tiles the FULL width —
+    see `GridWing`'s own docstring for why this is what keeps vertical touching exact rather than
+    coincidental."""
+
+    zone_id: str
+    col_span: int = 1
+
+
+@dataclass(frozen=True)
+class GridWing:
+    """A genuine 2D room grid (Issue #162/#142A) — the structural carrier beyond RowWing's 1D
+    chain (which realizes at most n-1 touching pairs among n rooms, by construction: each slot
+    touches only its immediate left/right neighbour) and beyond PinwheelWing's fixed 5 zones.
+    `rows` is TOP-TO-BOTTOM row bands (the building's own depth direction — "multiple depths");
+    each row is a LEFT-TO-RIGHT tuple of `GridCell`s whose `col_span`s sum to `n_cols` — different
+    rows may hold a different number of cells ("branching / multi-arm": a corridor row of 2-3 wide
+    cells above or below a densely subdivided row of many narrow ones).
+
+    The KEY property this buys: because every row's `col_span`s are expressed in the SAME `n_cols`
+    virtual columns, every row shares the identical set of column boundaries — a cell in one row
+    and a cell in the row above/below it are geometrically touching (by real, checked
+    `Rect.shared_edge_len_u`, never merely "logically adjacent by construction") whenever their
+    column ranges overlap. `realize_layout`'s own generic touching-pair wall-assignment loop (not
+    a per-wing special case) is what discovers every such pair, together with every row's own
+    internal left-right chain — for an R-row, C-column grid this gives up to
+    `R * (C - 1) + C * (R - 1)` touching pairs among `R * C` cells, well past the `n - 1` a single
+    `RowWing` can ever hold for `n = R * C > 4`.
+
+    `_solve_grid` sizes every row's height and every column's width together (generalizing
+    `_solve_pinwheel`'s alternating fixed-point solver from 4 bands to R rows x C columns);
+    `_build_grid_wing` REFUSES (never silently shrinks a room) when no combination honours every
+    cell's own minimum short side and target area within the envelope."""
+
+    wing_id: str
+    width_m: float
+    height_m: float
+    n_cols: int
+    rows: tuple[tuple[GridCell, ...], ...]
+    zones: dict[str, ZoneIntent] = field(default_factory=dict)
+
+
+Wing = PinwheelWing | RowWing | GridWing
 
 
 @dataclass(frozen=True)
@@ -201,6 +247,13 @@ class RealizationIntent:
     entrance_hint_zone_id: str | None = None
     declared_adjacency: tuple[tuple[str, str], ...] = ()
     declared_exposure: tuple[str, ...] = ()
+    #: Every BATHROOM/TOILET zone's own access kind (Issue #162/#142A) — C17 ("bathroom access
+    #: matches the requirements", `validation.py`) FAILS CLOSED on any wet zone not covered here
+    #: (by design: "a wet zone the requirements do not cover... is a failure, never a pass by
+    #: absence" — that module's own docstring), so a caller whose layout includes a wet room MUST
+    #: resolve its kind here; an empty default is correct only for a layout with no wet rooms at
+    #: all, never a silent exemption for one that has them.
+    wet_rooms: tuple[ResolvedWetRoom, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -292,6 +345,83 @@ def _pinwheel_rects(ox: int, oy: int, w_u: int, h_u: int, tn: int, te: int, ts: 
         "w": Rect(ox, oy + tn, tw, h_u - tn),
         "center": Rect(ox + tw, oy + tn, w_u - tw - te, h_u - tn - ts),
     }
+
+
+# --------------------------------------------------------------------------- grid solver (#142A)
+
+def _distribute_slack(sizes: list[int], slack: int) -> list[int]:
+    """`sizes` plus `slack` extra grid units, apportioned by largest-remainder (deterministic),
+    so the returned list sums to EXACTLY `sum(sizes) + slack` — keeps a `GridWing` tiling its own
+    envelope with zero residual area, the same invariant every other construction in this module
+    keeps, rather than leaving a gap no row/column claims."""
+    if slack <= 0:
+        return list(sizes)
+    total = sum(sizes)
+    if total <= 0:
+        return list(sizes)
+    shares = [slack * s / total for s in sizes]
+    floors = [int(s) for s in shares]
+    out = [sizes[i] + floors[i] for i in range(len(sizes))]
+    remainder = slack - sum(floors)
+    order = sorted(range(len(sizes)), key=lambda i: (-(shares[i] - floors[i]), i))
+    for i in range(remainder):
+        out[order[i % len(order)]] += 1
+    return out
+
+
+def _proportional_sizes(totals: list[float], budget_u: int, min_u: int) -> list[int] | None:
+    """`len(totals)` grid-unit sizes summing to EXACTLY `budget_u`, each >= `min_u` — a water-
+    filling allocation: every entry gets the floor `min_u` first, then the REMAINING budget is
+    split proportionally to `totals` (never clamped below the floor, since the floor is reserved
+    before any proportional share is computed). `None` when even the floor alone cannot fit."""
+    n = len(totals)
+    if n <= 0 or n * min_u > budget_u:
+        return None
+    remaining = budget_u - n * min_u
+    weights = [max(t, 0.0) for t in totals]
+    total_w = sum(weights)
+    if total_w <= 0:
+        extra = [remaining // n] * n
+    else:
+        extra = [int(remaining * wt / total_w) for wt in weights]
+    sizes = [min_u + e for e in extra]
+    return _distribute_slack(sizes, budget_u - sum(sizes))
+
+
+def _solve_grid(w_u: int, h_u: int, rows: tuple[tuple[GridCell, ...], ...], n_cols: int,
+                 zones: dict[str, ZoneIntent], min_short_u: int) -> tuple[list[int], list[int]] | None:
+    """Row heights (one per row) and column widths (one per `n_cols`), grid units — a rank-1
+    (biproportional) area fit: each row's height is proportional to that row's OWN total target
+    area, each column's width is proportional to that column's OWN total target area (a cell
+    spanning multiple columns contributes its target area split evenly across them, for this
+    MARGINAL-SUM purpose only) — generalizing `_build_row_wing`'s existing per-slot proportional-
+    width-by-target-area split (one axis) to BOTH axes at once. A true per-cell area match is
+    generally impossible for a heterogeneous grid (R + C degrees of freedom cannot hit R*C
+    independent targets) — this is the best rank-1 compromise, the same spirit as
+    `_solve_pinwheel`'s own band-thickness fixed point; every cell's ACTUAL realized area is still
+    checked against its own bounds afterward by the caller, which REFUSES (never silently accepts)
+    a combination this compromise cannot honour."""
+    n_rows = len(rows)
+    if n_rows <= 0 or n_cols <= 0 or w_u <= 0 or h_u <= 0:
+        return None
+
+    row_total = [0.0] * n_rows
+    col_total = [0.0] * n_cols
+    for r_idx, row in enumerate(rows):
+        col = 0
+        for cell in row:
+            zi = zones[cell.zone_id]
+            row_total[r_idx] += zi.target_area_m2
+            share = zi.target_area_m2 / cell.col_span
+            for c in range(col, col + cell.col_span):
+                col_total[c] += share
+            col += cell.col_span
+
+    row_h = _proportional_sizes(row_total, h_u, min_short_u)
+    col_w = _proportional_sizes(col_total, w_u, min_short_u)
+    if row_h is None or col_w is None:
+        return None
+    return row_h, col_w
 
 
 # --------------------------------------------------------------------------- notch-carve solver
@@ -520,6 +650,96 @@ def _build_pinwheel_wing(w: PinwheelWing, origin: tuple[int, int]) -> _WingBuild
         access_edges.append((zone_a, zone_b))
     return _WingBuild(w.wing_id, origin, (w_u, h_u), rects, roles, specs, [], zone_of_cell, {},
                        access_edges, seam_left_ids=(w.w.zone_id,), seam_right_ids=(w.e.zone_id,))
+
+
+def _build_grid_wing(w: GridWing, origin: tuple[int, int]) -> "_WingBuild | Refusal":
+    """Realizes a `GridWing`'s own rects from `_solve_grid`'s row heights/column widths, then
+    checks every cell's actual area/short-side against its own `ZoneIntent` bounds — the same
+    build-then-check discipline `_build_pinwheel_wing`/`_build_row_wing` already use, never a
+    silently shrunk room. Access edges are every ACTUAL touching cell pair this wing's own rows
+    produce (within-row neighbours and cross-row cells with overlapping column ranges) that the
+    real `access_rules` policy allows and that can host a real door (C7) — mirroring
+    `_build_pinwheel_wing`'s own corner-interlock discovery, generalized from 4 fixed corners to
+    every touching pair a grid of any shape can produce."""
+    w_u, h_u = m_to_u(w.width_m), m_to_u(w.height_m)
+    all_cells = [cell for row in w.rows for cell in row]
+    if not all_cells:
+        return Refusal("EMPTY_GRID", f"wing '{w.wing_id}' has no rows")
+    for row in w.rows:
+        span_sum = sum(c.col_span for c in row)
+        if span_sum != w.n_cols:
+            return Refusal("GRID_ROW_SPAN_MISMATCH",
+                            f"wing '{w.wing_id}': a row's col_spans sum to {span_sum}, not "
+                            f"n_cols={w.n_cols}")
+
+    min_short_u = m_to_u(min(w.zones[c.zone_id].min_short_side_m for c in all_cells) +
+                          _INSET_MARGIN_M)
+    solved = _solve_grid(w_u, h_u, w.rows, w.n_cols, w.zones, min_short_u)
+    if solved is None:
+        return Refusal("GRID_INFEASIBLE",
+                        f"wing '{w.wing_id}' {w.width_m}x{w.height_m} m, {len(w.rows)} row(s) x "
+                        f"{w.n_cols} column(s), has no row-height/column-width solution honouring "
+                        f"every cell's own minimum short side ({min_short_u * UNIT_M} m)")
+    row_h, col_w = solved
+    col_x = [0] * (w.n_cols + 1)
+    for i in range(w.n_cols):
+        col_x[i + 1] = col_x[i] + col_w[i]
+    row_y = [0] * (len(w.rows) + 1)
+    for i in range(len(w.rows)):
+        row_y[i + 1] = row_y[i] + row_h[i]
+
+    ox, oy = origin
+    rects: dict[str, Rect] = {}
+    roles: dict[str, tuple[ProgramRole, ...]] = {}
+    specs: dict[str, ZoneSpec] = {}
+    zone_of_cell: dict[str, str] = {}
+    row_of_cell: dict[str, int] = {}
+    for r_idx, row in enumerate(w.rows):
+        col = 0
+        for cell in row:
+            zi = w.zones[cell.zone_id]
+            r = Rect(ox + col_x[col], oy + row_y[r_idx], col_x[col + cell.col_span] - col_x[col],
+                      row_y[r_idx + 1] - row_y[r_idx])
+            area = r.area_m2()
+            if not (zi.min_area_m2 - 0.02 <= area <= zi.max_area_m2 + 0.02):
+                return Refusal("AREA_INFEASIBLE",
+                                f"{zi.zone_id}: grid-realized area {area:.2f} m2 outside "
+                                f"[{zi.min_area_m2},{zi.max_area_m2}]")
+            short = min(u_to_m(r.w), u_to_m(r.h))
+            if short < zi.min_short_side_m + _INSET_MARGIN_M - 1e-6:
+                return Refusal("SHORT_SIDE_INFEASIBLE",
+                                f"{zi.zone_id}: grid-realized short side {short:.2f} m (gross) < "
+                                f"{zi.min_short_side_m} m (net) + {_INSET_MARGIN_M} m inset margin")
+            rects[zi.zone_id] = r
+            roles[zi.zone_id] = (zi.role,)
+            specs[zi.zone_id] = _zone_spec(zi)
+            zone_of_cell[zi.zone_id] = zi.zone_id
+            row_of_cell[zi.zone_id] = r_idx
+            col += cell.col_span
+
+    # Every ACTUAL touching pair (within-row neighbours and cross-row overlaps), gated by the
+    # same two facts a real door always needs (mirrors `_build_pinwheel_wing`'s corner logic).
+    access_edges: list[tuple[str, str]] = []
+    ids = list(rects.keys())
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            a, b = ids[i], ids[j]
+            shared_u = rects[a].shared_edge_len_u(rects[b])
+            if shared_u <= 0:
+                continue
+            roles_a, roles_b = roles[a], roles[b]
+            if not access_rules.edge_role_pair_allowed(roles_a, roles_b):
+                continue
+            kind = access_rules.door_kind_for_zones(roles_a, roles_b)
+            needed_u = m_to_u(access_rules.DOOR_WIDTH_M[kind]) + 2 * m_to_u(DOOR_MARGIN_M)
+            if shared_u < needed_u:
+                continue
+            access_edges.append((a, b))
+
+    seam_left_ids = tuple(row[0].zone_id for row in w.rows)
+    seam_right_ids = tuple(row[-1].zone_id for row in w.rows)
+    return _WingBuild(w.wing_id, origin, (w_u, h_u), rects, roles, specs, [], zone_of_cell, {},
+                       access_edges, seam_left_ids=seam_left_ids, seam_right_ids=seam_right_ids)
 
 
 def _carve_group(group: ShapeGroupIntent, container: Rect) -> tuple[list[Rect], list[Rect],
@@ -852,6 +1072,38 @@ def _group_c27(group_geometry: dict[str, MergedGeometry]) -> Check:
                        f"group's own MergedGeometry, never a bounding-box width x depth product")
 
 
+#: Every wing builder discovers an access edge from physical touching + `access_rules` policy
+#: alone (module-wide: `_build_pinwheel_wing`'s corner interlocks, `_build_grid_wing`'s touching-
+#: pair scan) — that policy table permits ANY bedroom to neighbour a bathroom (a bedroom is always
+#: a POTENTIAL ensuite host, structurally), which is coarser than C17's own requirement once a
+#: caller has RESOLVED a specific wet room's kind (Issue #162/#142A): a declared SHARED_BATHROOM/
+#: GUEST_WC may be entered ONLY from circulation, and a declared ENSUITE ONLY from its own host —
+#: never from an incidentally-touching neighbour access_rules alone would have allowed. Applied
+#: once, centrally, after every wing's own edges (and every cross-wing seam edge) are collected,
+#: so a layout with no `wet_rooms` declared (every existing caller/test) is unaffected.
+def _wet_room_edge_allowed(wet: ResolvedWetRoom, other_id: str,
+                            roles: dict[str, tuple[ProgramRole, ...]]) -> bool:
+    if wet.kind is WetRoomKind.ENSUITE:
+        return other_id == wet.host_zone
+    other_roles = roles.get(other_id, ())
+    return bool({ProgramRole.HALL, ProgramRole.CIRCULATION} & set(other_roles))
+
+
+def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
+                             roles: dict[str, tuple[ProgramRole, ...]],
+                             wet_rooms: tuple[ResolvedWetRoom, ...]) -> list[tuple[str, str]]:
+    if not wet_rooms:
+        return access_pairs
+    wet_by_id = {w.zone_id: w for w in wet_rooms}
+    out = []
+    for a, b in access_pairs:
+        wa, wb = wet_by_id.get(a), wet_by_id.get(b)
+        if (wa is None or _wet_room_edge_allowed(wa, b, roles)) and \
+                (wb is None or _wet_room_edge_allowed(wb, a, roles)):
+            out.append((a, b))
+    return out
+
+
 def _build_site(wings: list[_WingBuild]) -> SitePlan:
     wing_rects = tuple(Rect(*wb.origin, *wb.size) for wb in wings)
     footprint = footprint_module.bounding_box(wing_rects)
@@ -882,8 +1134,12 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     wing_builds: list[_WingBuild] = []
     cursor_x = origin[0]
     for w in layout.wings:
-        wb = _build_pinwheel_wing(w, (cursor_x, origin[1])) if isinstance(w, PinwheelWing) \
-            else _build_row_wing(w, (cursor_x, origin[1]))
+        if isinstance(w, PinwheelWing):
+            wb = _build_pinwheel_wing(w, (cursor_x, origin[1]))
+        elif isinstance(w, GridWing):
+            wb = _build_grid_wing(w, (cursor_x, origin[1]))
+        else:
+            wb = _build_row_wing(w, (cursor_x, origin[1]))
         if isinstance(wb, Refusal):
             return wb
         wing_builds.append(wb)
@@ -972,6 +1228,7 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     zones = tuple(ZoneSpec(zid, roles[zid], specs[zid].net_area_min_m2, specs[zid].net_area_target_m2,
                             specs[zid].net_area_max_m2, specs[zid].min_short_side_m,
                             specs[zid].max_aspect_ratio) for zid in rects)
+    access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms)
     edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in access_pairs)
     open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
     fixture = Fixture(layout.name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)
@@ -988,7 +1245,8 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     windows = generate_windows(fixture, rects, site.footprint, site.wings)
     furniture = check_furniture_feasibility(fixture, rects, walls)
 
-    report = validate(fixture, rects, walls, interior_doors, entrance_door, windows, furniture, site)
+    report = validate(fixture, rects, walls, interior_doors, entrance_door, windows, furniture, site,
+                       wet_rooms=layout.wet_rooms)
 
     group_geometry: dict[str, MergedGeometry] = {}
     group_check_list: list[Check] = []
