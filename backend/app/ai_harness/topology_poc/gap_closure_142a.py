@@ -152,9 +152,15 @@ def best_policy_valid_proposal(record: dict, pri: "priors_mod.Priors") -> "schem
 
 
 def classify_refusal(constraint: str) -> str:
-    """Maps a `Refusal.constraint` from `realize_layout` onto exactly one of the 6 AC-6 buckets —
-    `TOPOLOGY_EMBEDDING`/`PLACEMENT` are decided by the EMBEDDING step, before `realize_layout`
-    ever runs, so they never reach this function."""
+    """Maps a `Refusal.constraint` from `realize_layout` onto exactly one of the 6 AC-6 buckets.
+    `TOPOLOGY_EMBEDDING` is decided by the EMBEDDING step, before `realize_layout` ever runs, so it
+    never reaches this function. `PLACEMENT` is a DEFINED bucket in the AC-6 taxonomy that no code
+    path in this implementation currently produces: `graph_embedding.embed_adjacency_graph`
+    searches "is there a structure AND an assignment of it that carries the full graph" as one
+    combined step and reports every shortfall as `TOPOLOGY_EMBEDDING` (the best structure/
+    assignment pair found), never distinguishing "no structure could ever fit" from "a structure
+    was selected but its own assignment search fell short" — so `PLACEMENT` is honestly disclosed
+    here as currently unreachable, not demonstrated by a constructed example."""
     if constraint == "VALIDATION_FAILED":
         return "VALIDATOR"
     if constraint == "ENVELOPE_TOO_LARGE":
@@ -456,14 +462,19 @@ def render_results_md(cases: list[CaseReport], dataset: dict) -> str:
     lines.append(
         "Every refusal above is exactly one of **TOPOLOGY_EMBEDDING** (Gate A itself could not "
         "embed the requested graph in any available structure), **PLACEMENT** (a structure was "
-        "selected but no room-to-slot assignment of it could satisfy the request — not observed "
-        "in this run's 5 cases; see `test_rectilinear_realizer_2d.py` for a constructed "
-        "example), **DIMENSION_SOLVER** (structure embedded, but no envelope this run's retry "
+        "selected but no room-to-slot assignment of it could satisfy the request), "
+        "**DIMENSION_SOLVER** (structure embedded, but no envelope this run's retry "
         "ladder tried could size every room within its own hard minimum), "
         "**FOOTPRINT_INFEASIBLE** (the realized footprint exceeds the brief's own stated "
         "footprint), **REALIZER_INTERNAL** (a construction defect unrelated to sizing or "
         "topology), or **VALIDATOR** (`validation.validate` rejected the realized geometry) — "
-        "never a generic \"cannot realize\"."
+        "never a generic \"cannot realize\". **Disclosed gap**: `PLACEMENT` is not produced by "
+        "any code path in this implementation — `graph_embedding.embed_adjacency_graph` decides "
+        "\"which structure\" and \"which assignment of it\" together in one search and reports "
+        "every shortfall as `TOPOLOGY_EMBEDDING` (the best structure/assignment pair found), "
+        "never distinguishing \"no structure could ever fit\" from \"a structure was selected "
+        "but its own assignment search fell short\". This is honestly reported as an unreached "
+        "bucket, not demonstrated by a constructed example."
     )
     lines.append("")
 

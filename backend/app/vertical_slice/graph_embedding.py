@@ -28,6 +28,14 @@ This is a HEURISTIC search, not a completeness proof: when every shape tried fal
 full requested graph, the refusal reports the BEST achieved, honestly, never a claim that no
 larger search could do better — exactly the same "measured, not guessed" discipline
 `rectilinear_realizer._solve_pinwheel`/`_solve_grid` already apply to sizing.
+
+Disclosed gap: "which structure to try" and "which assignment of it to use" are decided together,
+in one search, per shape — there is no separate step that commits to a structure and then asks
+whether an assignment of it succeeds. Every shortfall is therefore reported as the single
+`TOPOLOGY_EMBEDDING` constraint (`gap_closure_142a.classify_refusal`'s own docstring), never the
+AC-6 taxonomy's distinct `PLACEMENT` bucket ("a structure was selected but no assignment of it
+could satisfy the request") — `PLACEMENT` is a defined bucket this implementation does not yet
+produce.
 """
 from __future__ import annotations
 
