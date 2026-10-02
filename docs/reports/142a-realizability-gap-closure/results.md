@@ -39,7 +39,7 @@ All 5 cases, B01 included (never assumed feasible). No room minimum is weakened 
 
 | brief | topology (rooms/edges) | placement | adjacency preserved | access preserved | dimension result | validator result | final status | reason |
 |---|---|---|---|---|---|---|---|---|
-| B01 | 5/6 | PINWHEEL | — | — | DIMENSION_SOLVER | NOT REACHED | REFUSED | SHORT_SIDE_INFEASIBLE: KITCHEN: pinwheel-realized short side 2.05 m (gross) < 2.4 m (net) + 0.3 m inset margin |
+| B01 | 5/6 | PINWHEEL | — | — | DIMENSION_SOLVER | NOT REACHED | REFUSED | SHORT_SIDE_INFEASIBLE: KITCHEN: pinwheel-realized short side 1.50 m (gross) < 2.4 m (net) + 0.3 m inset margin (exhaustive 31x31 width/height grid search over this SAME placement found zero feasible envelopes) |
 | B10 | 9/14 | GRID 3x3 | — | — | TOPOLOGY_EMBEDDING | NOT REACHED | REFUSED | TOPOLOGY_EMBEDDING: no available 2D structure (row/pinwheel/grid; grid shapes with 1-6 rows tried) can embed the requested graph among 9 rooms: best found is GRID 3x3, achieving 9/14 requested spatial-adjacency pairs |
 | B13 | 10/12 | GRID 3x4 | — | — | TOPOLOGY_EMBEDDING | NOT REACHED | REFUSED | TOPOLOGY_EMBEDDING: no available 2D structure (row/pinwheel/grid; grid shapes with 1-6 rows tried) can embed the requested graph among 10 rooms: best found is GRID 3x4, achieving 9/12 requested spatial-adjacency pairs |
 | B15 | 11/15 | GRID 4x3 | — | — | TOPOLOGY_EMBEDDING | NOT REACHED | REFUSED | TOPOLOGY_EMBEDDING: no available 2D structure (row/pinwheel/grid; grid shapes with 1-6 rows tried) can embed the requested graph among 11 rooms: best found is GRID 4x3, achieving 9/15 requested spatial-adjacency pairs |
@@ -57,7 +57,7 @@ Every refusal above is exactly one of **TOPOLOGY_EMBEDDING** (Gate A itself coul
 
 ## Remaining measured capability gaps
 
-- **B01**: DIMENSION_SOLVER — SHORT_SIDE_INFEASIBLE: KITCHEN: pinwheel-realized short side 2.05 m (gross) < 2.4 m (net) + 0.3 m inset margin
+- **B01**: DIMENSION_SOLVER — SHORT_SIDE_INFEASIBLE: KITCHEN: pinwheel-realized short side 1.50 m (gross) < 2.4 m (net) + 0.3 m inset margin (exhaustive 31x31 width/height grid search over this SAME placement found zero feasible envelopes)
 - **B10**: TOPOLOGY_EMBEDDING — TOPOLOGY_EMBEDDING: no available 2D structure (row/pinwheel/grid; grid shapes with 1-6 rows tried) can embed the requested graph among 9 rooms: best found is GRID 3x3, achieving 9/14 requested spatial-adjacency pairs
 - **B13**: TOPOLOGY_EMBEDDING — TOPOLOGY_EMBEDDING: no available 2D structure (row/pinwheel/grid; grid shapes with 1-6 rows tried) can embed the requested graph among 10 rooms: best found is GRID 3x4, achieving 9/12 requested spatial-adjacency pairs
 - **B15**: TOPOLOGY_EMBEDDING — TOPOLOGY_EMBEDDING: no available 2D structure (row/pinwheel/grid; grid shapes with 1-6 rows tried) can embed the requested graph among 11 rooms: best found is GRID 4x3, achieving 9/15 requested spatial-adjacency pairs

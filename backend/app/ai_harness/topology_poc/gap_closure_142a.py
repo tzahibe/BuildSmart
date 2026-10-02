@@ -238,6 +238,32 @@ def run_gate_b(brief_id: str, proposal: "schema.TopologyProposal",
                             embedded.detail, "TOPOLOGY_EMBEDDING"), None
 
     last_refusal: "Refusal | None" = None
+    #: A `PinwheelWing` has 2 INDEPENDENT degrees of freedom (width_m, height_m) that a single
+    #: uniform scale factor cannot explore — an exhaustive 2D grid over both, same chosen
+    #: placement throughout, matching #160's own `_PINWHEEL_GRID_M` discipline (and
+    #: `spikes/geometry_shapes/stage1_gate.py`'s own retry policy before it): the realizer itself
+    #: never approximates, only this loop tries a different, still fully-specified envelope next.
+    if isinstance(embedded, PinwheelWing):
+        grid_m = tuple(round(5.0 + 0.3 * i, 2) for i in range(31))  # 5.0 .. 14.0 m, step 0.3
+        for width_m in grid_m:
+            for height_m in grid_m:
+                scaled = embed_adjacency_graph(zones, required_edges, wing_id=brief_id,
+                                                envelope_override=(width_m, height_m))
+                assert not isinstance(scaled, EmbeddingRefusal)
+                wet_rooms_local = wet_rooms
+                intent = RealizationIntent(name=brief_id, wings=(scaled,), wet_rooms=wet_rooms_local)
+                result = realize_layout(intent, buildable=buildable)
+                if isinstance(result, RealizedLayout):
+                    return GateBResult(brief_id, True, f"{width_m}x{height_m} m",
+                                        brief_footprint_m, None, None, None), result
+                last_refusal = result
+        assert last_refusal is not None
+        return GateBResult(
+            brief_id, False, None, brief_footprint_m, last_refusal.constraint,
+            f"{last_refusal.detail} (exhaustive {len(grid_m)}x{len(grid_m)} width/height grid "
+            f"search over this SAME placement found zero feasible envelopes)",
+            classify_refusal(last_refusal.constraint)), None
+
     for scale in _ENVELOPE_RETRY_SCALES:
         scaled = embed_adjacency_graph(zones, required_edges, wing_id=brief_id,
                                         envelope_scale=scale)
