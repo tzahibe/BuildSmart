@@ -147,6 +147,57 @@ def _realizability_counts(results: dict) -> dict:
     return counts
 
 
+def _declaration_vs_measurement_caveat(realizability_counts: dict, total_labels: int) -> str:
+    """The GO verdict's own limitation (owner correction, 2026-10-01): the LLM's graph is a
+    DECLARATION, the current generator's is a MEASUREMENT of a plan it actually realized — GO says
+    better topologies are CONCEIVABLE, never that they are BUILDABLE. The NOT_REALIZABLE share is
+    computed here from the SAME `realizability_counts` the distribution table above renders from,
+    so this sentence can never drift out of sync with that table the way a hand-typed figure did."""
+    not_realizable = realizability_counts["NOT_REALIZABLE_BY_CURRENT_ENGINE"]
+    share = round(100 * not_realizable / total_labels, 1) if total_labels else 0.0
+    return (
+        "- **The two sides of this comparison are not the same KIND of object, and that is by "
+        "design.** The LLM's `spatial_adjacency` is a **declaration** — a list of room-id pairs it "
+        "asserts, constrained by nothing but the schema. The current generator's graph is a "
+        "**measurement** — derived by `generator_adapter` from a plan it actually realized and "
+        "that actually passed the validators, using the same "
+        "`shared_boundary_m(...) >= MIN_MEANINGFUL_SHARED_BOUNDARY_M` test the ranking path uses. "
+        "So the LLM is scored on an intention and the generator on an achievement. This is "
+        "deliberate: the Issue's own Goal states \"The LLM produces no geometry... It produces a "
+        "STRUCTURED SPATIAL IDEA only\", and the whole point is to ask whether better ideas are "
+        "conceivable at all. But it means the verdict must be read precisely: **GO says a strong "
+        "LLM can propose topologies our own critic scores far better than anything our generator "
+        "currently realizes. It does NOT say those topologies are buildable.** The realizability "
+        f"distribution is where that gap is visible and is reported above — **{share}% of "
+        "proposals are NOT_REALIZABLE_BY_CURRENT_ENGINE** — and per AC-9 that label never touched "
+        "a score. This is precisely why the verdict is an INPUT to the #151 x #155 decision matrix "
+        "rather than an authorization: #155 measures the hand, this measures the idea.")
+
+
+def _median_is_not_the_story_caveat(summaries: list) -> str:
+    """The gate's own win definition is best-of-8 (AC-20); this caveat states the OTHER number —
+    where the model's typical (median) output actually falls — computed here from the SAME
+    per-brief rows the table above renders from, never a hand-typed snapshot."""
+    median_llms = [s["median_llm"] for s in summaries if s["median_llm"] is not None]
+    gen_scores = [s["gen_score"] for s in summaries if s["gen_score"] is not None]
+    worse_briefs = [
+        s["brief_id"] for s in summaries
+        if s["median_llm"] is not None and s["gen_score"] is not None
+        and s["median_llm"] < s["gen_score"]]
+    median_band = f"{round(min(median_llms), 2)} and {round(max(median_llms), 2)}" if median_llms else "n/a"
+    gen_band = f"{round(min(gen_scores), 2)} and {round(max(gen_scores), 2)}" if gen_scores else "n/a"
+    if worse_briefs:
+        worse_note = f", and {', '.join(worse_briefs)}'s median is slightly worse"
+    else:
+        worse_note = ""
+    return (
+        "- **The median LLM proposal is not the story; the best one is.** Per-brief median LLM "
+        f"scores sit between {median_band}, in the same band as the generator's between {gen_band} — "
+        "several briefs' median proposal is only marginally better than the generator's single "
+        f"topology{worse_note}. The gate is a best-of-8 comparison by design (see AC-20), so the "
+        "headline reflects the model's ceiling, not its typical output.")
+
+
 def _brief_summary_row(result: BriefResult) -> dict:
     llm_scores = [p.score["total_score"] for p in result.llm_proposals]
     gen_score = result.generator.score["total_score"] if result.generator is not None else None
@@ -360,6 +411,20 @@ def render_results_md(results: dict, *, provenance, dataset_meta: dict, gate_spe
         "score; see "
         "`tests/ai_harness/test_topology_critic.py::test_score_is_independent_of_realizability_label`.",
         "",
+        "## Briefs stratification (AC-19)",
+        "",
+        "The 20 frozen briefs this run scored, restated in full here (the complete selection "
+        "method and rationale live in `docs/reports/llm-topology-poc/briefs.md`):",
+        "",
+        "| brief | bedrooms | wet_rooms | safe_room | open_plan | size_tier | aspect_tier |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for r in ordered:
+        lines.append(
+            f"| {r.brief_id} | {r.bedrooms} | {r.wet_rooms} | {r.safe_room} | {r.open_plan} | "
+            f"{r.size_tier} | {r.aspect_tier} |")
+    lines += [
+        "",
         "## Per-brief results (AC-5)",
         "",
         "`best LLM` is the highest score among every kept LLM proposal for that brief, regardless "
@@ -444,6 +509,10 @@ def render_results_md(results: dict, *, provenance, dataset_meta: dict, gate_spe
 
     lines += [
         "## Known limitations",
+        "",
+        _declaration_vs_measurement_caveat(realizability_counts, total_labels),
+        "",
+        _median_is_not_the_story_caveat(summaries),
         "",
         "- `entrance_relation_score` is `None` whenever the entrance opens into a room whose role "
         "(e.g. HALL) the corrected #149 corpus cannot measure `front_door_direct_access` for — "
