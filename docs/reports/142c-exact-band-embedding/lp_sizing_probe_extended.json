@@ -1,0 +1,104 @@
+{
+ "B06": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B07": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B09": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B12": {
+  "tally": {
+   "lp_feasible": 13,
+   "sizing_stub_pass": 9,
+   "realization_pass": 4,
+   "validators_pass": 0,
+   "refusals": {
+    "NO_ENTRANCE": 5,
+    "AREA_INFEASIBLE": 3,
+    "SHORT_SIDE_INFEASIBLE": 1,
+    "VALIDATION_FAILED": 4
+   },
+   "validator_fail_samples": [
+    "C5: BATHROOM_2; BATHROOM_3; BEDROOM_2; C24: BATHROOM_3: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BATHROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; C19: BEDROOM_1",
+    "C5: BATHROOM_2; BATHROOM_3; BEDROOM_2; C24: BATHROOM_3: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BATHROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; C19: BEDROOM_1",
+    "C3: MASTER_BEDROOM net 10.8875 m2 outside [11.0,20.0]; C5: BATHROOM_2; BATHROOM_3; BEDROOM_2; C24: BATHROOM_3: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BATHROOM_2: no DOOR/CASED_OPENING edge a"
+   ]
+  },
+  "first_success": null
+ },
+ "B17": {
+  "tally": {
+   "lp_feasible": 24,
+   "sizing_stub_pass": 17,
+   "realization_pass": 4,
+   "validators_pass": 0,
+   "refusals": {
+    "NO_ENTRANCE": 13,
+    "AREA_INFEASIBLE": 7,
+    "VALIDATION_FAILED": 4
+   },
+   "validator_fail_samples": [
+    "C3: LIVING net 15.05 m2 outside [16.0,46.0]; BEDROOM_1 net 8.96 m2 outside [9.0,14.0]; BEDROOM_2 net 8.96 m2 outside [9.0,14.0]; BEDROOM_4 net 8.96 m2 outside [9.0,14.0]; C5: BEDROOM_1; BEDROOM_2; BEDROOM_3; BEDROOM_5; C24: BEDROOM_3: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way ",
+    "C3: LIVING net 15.05 m2 outside [16.0,46.0]; BEDROOM_1 net 8.96 m2 outside [9.0,14.0]; BEDROOM_3 net 8.96 m2 outside [9.0,14.0]; BEDROOM_4 net 8.96 m2 outside [9.0,14.0]; C5: BEDROOM_1; BEDROOM_2; BEDROOM_3; BEDROOM_5; C24: BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way ",
+    "C3: LIVING net 15.4 m2 outside [16.0,46.0]; BEDROOM_1 net 8.64 m2 outside [9.0,14.0]; BEDROOM_3 net 8.96 m2 outside [9.0,14.0]; BEDROOM_4 net 8.96 m2 outside [9.0,14.0]; C5: BEDROOM_1; BEDROOM_2; BEDROOM_3; BEDROOM_5; C24: BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way i"
+   ]
+  },
+  "first_success": null
+ },
+ "B18": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B20": {
+  "tally": {
+   "lp_feasible": 65,
+   "sizing_stub_pass": 60,
+   "realization_pass": 4,
+   "validators_pass": 0,
+   "refusals": {
+    "NO_ENTRANCE": 56,
+    "AREA_INFEASIBLE": 5,
+    "VALIDATION_FAILED": 4
+   },
+   "validator_fail_samples": [
+    "C3: DINING net 9.1 m2 outside [10.0,30.0]; BEDROOM_1 net 8.1125 m2 outside [9.0,14.0]; SAFE_ROOM net 8.3475 m2 outside [9.0,14.0]; C4: SAFE_ROOM not RC on all sides: N=PARTITION,S=EXTERIOR,E=PARTITION,W=PARTITION; SAFE_ROOM net 8.3475 below regulated minimum 9.0; C5: BATHROOM_3; MASTER_BEDROOM; C24:",
+    "C3: DINING net 9.1 m2 outside [10.0,30.0]; BEDROOM_1 net 8.1125 m2 outside [9.0,14.0]; SAFE_ROOM net 8.3475 m2 outside [9.0,14.0]; C4: SAFE_ROOM not RC on all sides: N=PARTITION,S=EXTERIOR,E=PARTITION,W=PARTITION; SAFE_ROOM net 8.3475 below regulated minimum 9.0; C5: BATHROOM_1; MASTER_BEDROOM; C24:",
+    "C3: MASTER_BEDROOM net 10.24 m2 outside [11.0,20.0]; LIVING net 15.17 m2 outside [16.0,46.0]; DINING aspect 3.46 > 3.0; KITCHEN net 8.96 m2 outside [9.0,26.0]; C20: DINING realized 9.70 x 2.80 m (aspect 3.46) past its DINING template's 3.0; C4: SAFE_ROOM not RC on all sides: N=PARTITION,S=PARTITION,"
+   ]
+  },
+  "first_success": null
+ }
+}

@@ -1,0 +1,353 @@
+{
+ "B06": {
+  "witnesses_checked": 156,
+  "feasible_sizing_found": 0,
+  "feasible_with_validator_aspect": 0,
+  "witnesses_with_single_cell_band": 124,
+  "single_cell_band_width_caps_m": [
+   [
+    "BATHROOM_1",
+    6.32
+   ],
+   [
+    "BATHROOM_2",
+    6.32
+   ],
+   [
+    "BEDROOM_2",
+    4.83
+   ],
+   [
+    "MASTER",
+    6.06
+   ]
+  ],
+  "seconds": 18.3,
+  "enumeration": {
+   "grids_tried": 8,
+   "per_grid_unique": {
+    "5x4": 60,
+    "4x5": 0,
+    "6x3": 96,
+    "3x6": 0,
+    "7x2": 0,
+    "2x7": 0,
+    "8x1": 0,
+    "1x8": 0
+   },
+   "models": 296,
+   "unique": 156,
+   "seconds": 1.1,
+   "capped": false
+  },
+  "family_enumerated_completely": true,
+  "best_slack_max": -0.635
+ },
+ "B07": {
+  "witnesses_checked": 1241,
+  "feasible_sizing_found": 0,
+  "feasible_with_validator_aspect": 0,
+  "witnesses_with_single_cell_band": 1024,
+  "single_cell_band_width_caps_m": [
+   [
+    "BATHROOM_1",
+    6.32
+   ],
+   [
+    "BATHROOM_2",
+    6.32
+   ],
+   [
+    "BEDROOM_1",
+    4.83
+   ],
+   [
+    "HALL",
+    20.0
+   ],
+   [
+    "KITCHEN",
+    9.63
+   ],
+   [
+    "MASTER",
+    6.06
+   ]
+  ],
+  "seconds": 142.9,
+  "enumeration": {
+   "grids_tried": 9,
+   "per_grid_unique": {
+    "5x5": 333,
+    "6x4": 333,
+    "4x6": 242,
+    "7x3": 333,
+    "3x7": 0,
+    "8x2": 0,
+    "2x8": 0,
+    "9x1": 0,
+    "1x9": 0
+   },
+   "models": 4433,
+   "unique": 1241,
+   "seconds": 5.4,
+   "capped": false
+  },
+  "family_enumerated_completely": false,
+  "best_slack_max": -0.336
+ },
+ "B09": {
+  "witnesses_checked": 180,
+  "feasible_sizing_found": 0,
+  "feasible_with_validator_aspect": 0,
+  "witnesses_with_single_cell_band": 140,
+  "single_cell_band_width_caps_m": [
+   [
+    "BATHROOM_2",
+    6.32
+   ],
+   [
+    "BATHROOM_3",
+    6.32
+   ],
+   [
+    "BEDROOM_1",
+    4.83
+   ],
+   [
+    "MASTER_BEDROOM",
+    6.06
+   ]
+  ],
+  "seconds": 20.9,
+  "enumeration": {
+   "grids_tried": 9,
+   "per_grid_unique": {
+    "5x5": 48,
+    "6x4": 80,
+    "4x6": 0,
+    "7x3": 52,
+    "3x7": 0,
+    "8x2": 0,
+    "2x8": 0,
+    "9x1": 0,
+    "1x9": 0
+   },
+   "models": 800,
+   "unique": 180,
+   "seconds": 4.3,
+   "capped": false
+  },
+  "family_enumerated_completely": true,
+  "best_slack_max": -0.336
+ },
+ "B12": {
+  "witnesses_checked": 1355,
+  "feasible_sizing_found": 13,
+  "feasible_with_validator_aspect": 11,
+  "witnesses_with_single_cell_band": 502,
+  "single_cell_band_width_caps_m": [
+   [
+    "BATHROOM_1",
+    6.32
+   ],
+   [
+    "BATHROOM_2",
+    6.32
+   ],
+   [
+    "BATHROOM_3",
+    6.32
+   ],
+   [
+    "BEDROOM_2",
+    4.83
+   ],
+   [
+    "BEDROOM_3",
+    4.83
+   ],
+   [
+    "HALL",
+    20.0
+   ]
+  ],
+  "seconds": 149.3,
+  "enumeration": {
+   "grids_tried": 10,
+   "per_grid_unique": {
+    "6x5": 300,
+    "5x6": 300,
+    "7x4": 300,
+    "4x7": 155,
+    "8x3": 300,
+    "3x8": 0,
+    "9x2": 0,
+    "2x9": 0,
+    "10x1": 0,
+    "1x10": 0
+   },
+   "models": 6493,
+   "unique": 1355,
+   "seconds": 7.8,
+   "capped": false
+  },
+  "family_enumerated_completely": false,
+  "best_slack_max": 0.642
+ },
+ "B17": {
+  "witnesses_checked": 2000,
+  "feasible_sizing_found": 24,
+  "feasible_with_validator_aspect": 24,
+  "witnesses_with_single_cell_band": 765,
+  "single_cell_band_width_caps_m": [
+   [
+    "BATHROOM_1",
+    6.32
+   ],
+   [
+    "BATHROOM_2",
+    6.32
+   ],
+   [
+    "BEDROOM_1",
+    4.83
+   ],
+   [
+    "BEDROOM_2",
+    4.83
+   ],
+   [
+    "BEDROOM_3",
+    4.83
+   ],
+   [
+    "BEDROOM_5",
+    4.83
+   ]
+  ],
+  "seconds": 230.4,
+  "enumeration": {
+   "grids_tried": 12,
+   "per_grid_unique": {
+    "7x6": 250,
+    "6x7": 250,
+    "8x5": 250,
+    "5x8": 250,
+    "9x4": 250,
+    "4x9": 250,
+    "10x3": 250,
+    "3x10": 0,
+    "11x2": 250,
+    "2x11": 0,
+    "12x1": 0,
+    "1x12": 0
+   },
+   "models": 3366,
+   "unique": 2000,
+   "seconds": 4.5,
+   "capped": false
+  },
+  "family_enumerated_completely": false,
+  "best_slack_max": 0.462
+ },
+ "B18": {
+  "witnesses_checked": 1840,
+  "feasible_sizing_found": 0,
+  "feasible_with_validator_aspect": 0,
+  "witnesses_with_single_cell_band": 826,
+  "single_cell_band_width_caps_m": [
+   [
+    "BATHROOM_1",
+    6.32
+   ],
+   [
+    "HALL",
+    20.0
+   ],
+   [
+    "KITCHEN",
+    9.63
+   ],
+   [
+    "LIVING",
+    13.94
+   ],
+   [
+    "SAFE_ROOM",
+    5.19
+   ]
+  ],
+  "seconds": 218.2,
+  "enumeration": {
+   "grids_tried": 13,
+   "per_grid_unique": {
+    "7x7": 230,
+    "8x6": 230,
+    "6x8": 230,
+    "9x5": 230,
+    "5x9": 230,
+    "10x4": 230,
+    "4x10": 0,
+    "11x3": 230,
+    "3x11": 0,
+    "12x2": 230,
+    "2x12": 0,
+    "13x1": 0,
+    "1x13": 0
+   },
+   "models": 2591,
+   "unique": 1840,
+   "seconds": 23.4,
+   "capped": false
+  },
+  "family_enumerated_completely": false,
+  "best_slack_max": -0.039
+ },
+ "B20": {
+  "witnesses_checked": 1800,
+  "feasible_sizing_found": 65,
+  "feasible_with_validator_aspect": 48,
+  "witnesses_with_single_cell_band": 904,
+  "single_cell_band_width_caps_m": [
+   [
+    "DINING",
+    10.34
+   ],
+   [
+    "HALL",
+    20.0
+   ],
+   [
+    "KITCHEN",
+    9.63
+   ],
+   [
+    "LIVING",
+    13.94
+   ]
+  ],
+  "seconds": 205.3,
+  "enumeration": {
+   "grids_tried": 10,
+   "per_grid_unique": {
+    "6x5": 300,
+    "5x6": 300,
+    "7x4": 300,
+    "4x7": 300,
+    "8x3": 300,
+    "3x8": 0,
+    "9x2": 300,
+    "2x9": 0,
+    "10x1": 0,
+    "1x10": 0
+   },
+   "models": 3126,
+   "unique": 1800,
+   "seconds": 2.5,
+   "capped": false
+  },
+  "family_enumerated_completely": false,
+  "best_slack_max": 1.076
+ }
+}

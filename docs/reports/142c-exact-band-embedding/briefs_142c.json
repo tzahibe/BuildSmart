@@ -1,0 +1,4541 @@
+{
+ "dataset_sha256": "03c52be5357ff41f30ee104cfd1ff0d2760bba0cf7f0576b64565767cb321598",
+ "briefs": {
+  "B01": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "LIVING",
+     "MASTER"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "MASTER",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    20.0,
+    22.0
+   ],
+   "brief": {
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 440.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B02": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "LIVING",
+     "MASTER_BEDROOM"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "LIVING",
+     "KITCHEN"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    12.0,
+    18.0
+   ],
+   "brief": {
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "built_area_m2": 216.0,
+    "size_tier": "medium",
+    "aspect_tier": "narrow"
+   }
+  },
+  "B03": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    19.05,
+    13.12
+   ],
+   "brief": {
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 250.0,
+    "size_tier": "medium",
+    "aspect_tier": "wide"
+   }
+  },
+  "B04": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "LIVING",
+     "KITCHEN"
+    ],
+    [
+     "MASTER",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    20.0,
+    22.0
+   ],
+   "brief": {
+    "bedrooms": 2,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "built_area_m2": 440.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B05": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "HALL"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    16.0,
+    18.0
+   ],
+   "brief": {
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "built_area_m2": 288.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B06": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "MASTER",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    13.0,
+    24.0
+   ],
+   "brief": {
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 312.0,
+    "size_tier": "large",
+    "aspect_tier": "narrow"
+   }
+  },
+  "B07": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "KITCHEN",
+     "SAFE_ROOM"
+    ]
+   ],
+   "access_graph": [
+    [
+     "BEDROOM_1",
+     "BATHROOM_1"
+    ],
+    [
+     "BEDROOM_2",
+     "BATHROOM_2"
+    ],
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "MASTER",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    18.0,
+    20.0
+   ],
+   "brief": {
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "built_area_m2": 360.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B08": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    11.0,
+    12.0
+   ],
+   "brief": {
+    "bedrooms": 3,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "built_area_m2": 132.0,
+    "size_tier": "small",
+    "aspect_tier": "square"
+   }
+  },
+  "B09": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "BATHROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "BEDROOM_1",
+     "BATHROOM_1"
+    ],
+    [
+     "BEDROOM_2",
+     "BATHROOM_2"
+    ],
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BATHROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_3"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    20.0,
+    22.0
+   ],
+   "brief": {
+    "bedrooms": 3,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 440.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B10": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "BEDROOM_1",
+     "BATHROOM_1"
+    ],
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_2"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    16.0,
+    18.0
+   ],
+   "brief": {
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 288.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B11": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "LIVING",
+     "KITCHEN"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    12.0,
+    18.0
+   ],
+   "brief": {
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": true,
+    "built_area_m2": 216.0,
+    "size_tier": "medium",
+    "aspect_tier": "narrow"
+   }
+  },
+  "B12": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BATHROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "BATHROOM_3"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    18.0,
+    20.0
+   ],
+   "brief": {
+    "bedrooms": 4,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 360.0,
+    "size_tier": "large",
+    "aspect_tier": "square"
+   }
+  },
+  "B13": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    11.0,
+    12.0
+   ],
+   "brief": {
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "built_area_m2": 132.0,
+    "size_tier": "small",
+    "aspect_tier": "square"
+   }
+  },
+  "B14": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_4",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BATHROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_4"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_4": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    12.0,
+    18.0
+   ],
+   "brief": {
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 216.0,
+    "size_tier": "medium",
+    "aspect_tier": "narrow"
+   }
+  },
+  "B15": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_4",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_4"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_4": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    12.5,
+    14.5
+   ],
+   "brief": {
+    "bedrooms": 5,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "built_area_m2": 181.25,
+    "size_tier": "medium",
+    "aspect_tier": "square"
+   }
+  },
+  "B16": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_4",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "LIVING"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "KITCHEN",
+     "SAFE_ROOM"
+    ]
+   ],
+   "access_graph": [
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_4"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "BATHROOM_3"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "MASTER",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_4": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    18.0,
+    12.0
+   ],
+   "brief": {
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "built_area_m2": 216.0,
+    "size_tier": "medium",
+    "aspect_tier": "wide"
+   }
+  },
+  "B17": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_4",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_5",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "BEDROOM_5",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BATHROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_4"
+    ],
+    [
+     "HALL",
+     "BEDROOM_5"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "KITCHEN"
+    ],
+    [
+     "MASTER_BEDROOM",
+     "BATHROOM_1"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_4": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_5": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    18.0,
+    12.0
+   ],
+   "brief": {
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "built_area_m2": 216.0,
+    "size_tier": "medium",
+    "aspect_tier": "wide"
+   }
+  },
+  "B18": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_4",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_5",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "BEDROOM_5",
+     "HALL"
+    ],
+    [
+     "BEDROOM_5",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "BEDROOM_3",
+     "BATHROOM_1"
+    ],
+    [
+     "ENTRANCE",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BATHROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_4"
+    ],
+    [
+     "HALL",
+     "BEDROOM_5"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_4": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_5": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    12.5,
+    14.5
+   ],
+   "brief": {
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": false,
+    "built_area_m2": 181.25,
+    "size_tier": "medium",
+    "aspect_tier": "square"
+   }
+  },
+  "B19": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_2",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_3",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_4",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BEDROOM_5",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_3",
+     "BEDROOM_4"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "BEDROOM_5"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "BEDROOM_5",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "LIVING",
+     "MASTER_BEDROOM"
+    ]
+   ],
+   "access_graph": [
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "BEDROOM_2"
+    ],
+    [
+     "HALL",
+     "BEDROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_4"
+    ],
+    [
+     "HALL",
+     "BEDROOM_5"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "LIVING",
+     "KITCHEN"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_2": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_3": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_4": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_5": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    12.5,
+    14.5
+   ],
+   "brief": {
+    "bedrooms": 6,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "built_area_m2": 181.25,
+    "size_tier": "medium",
+    "aspect_tier": "square"
+   }
+  },
+  "B20": {
+   "rooms": [
+    {
+     "id": "LIVING",
+     "role": "LIVING"
+    },
+    {
+     "id": "DINING",
+     "role": "DINING"
+    },
+    {
+     "id": "KITCHEN",
+     "role": "KITCHEN"
+    },
+    {
+     "id": "HALL",
+     "role": "HALL"
+    },
+    {
+     "id": "MASTER_BEDROOM",
+     "role": "MASTER_BEDROOM"
+    },
+    {
+     "id": "BEDROOM_1",
+     "role": "BEDROOM"
+    },
+    {
+     "id": "SAFE_ROOM",
+     "role": "SAFE_ROOM"
+    },
+    {
+     "id": "BATHROOM_1",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_2",
+     "role": "BATHROOM"
+    },
+    {
+     "id": "BATHROOM_3",
+     "role": "BATHROOM"
+    }
+   ],
+   "spatial_adjacency": [
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "access_graph": [
+    [
+     "BEDROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "ENTRANCE",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "BATHROOM_1"
+    ],
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "HALL",
+     "BATHROOM_3"
+    ],
+    [
+     "HALL",
+     "BEDROOM_1"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "LIVING",
+     "DINING"
+    ],
+    [
+     "LIVING",
+     "HALL"
+    ]
+   ],
+   "zones": {
+    "LIVING": {
+     "role": "LIVING",
+     "min": 16.0,
+     "target": 22.0,
+     "max": 46.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "DINING": {
+     "role": "DINING",
+     "min": 10.0,
+     "target": 14.0,
+     "max": 30.0,
+     "min_short": 2.6,
+     "max_aspect": 3.0
+    },
+    "KITCHEN": {
+     "role": "KITCHEN",
+     "min": 9.0,
+     "target": 13.0,
+     "max": 26.0,
+     "min_short": 2.4,
+     "max_aspect": 3.0
+    },
+    "HALL": {
+     "role": "HALL",
+     "min": 5.0,
+     "target": 11.0,
+     "max": 30.0,
+     "min_short": 1.2,
+     "max_aspect": 8.0
+    },
+    "MASTER_BEDROOM": {
+     "role": "MASTER_BEDROOM",
+     "min": 11.0,
+     "target": 14.0,
+     "max": 20.0,
+     "min_short": 3.0,
+     "max_aspect": 2.5
+    },
+    "BEDROOM_1": {
+     "role": "BEDROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.6,
+     "max_aspect": 2.5
+    },
+    "SAFE_ROOM": {
+     "role": "SAFE_ROOM",
+     "min": 9.0,
+     "target": 10.5,
+     "max": 14.0,
+     "min_short": 2.4,
+     "max_aspect": 2.5
+    },
+    "BATHROOM_1": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_2": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    },
+    "BATHROOM_3": {
+     "role": "BATHROOM",
+     "min": 4.5,
+     "target": 6.5,
+     "max": 12.0,
+     "min_short": 1.6,
+     "max_aspect": 3.0
+    }
+   },
+   "footprint_m": [
+    11.0,
+    12.0
+   ],
+   "brief": {
+    "bedrooms": 2,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "built_area_m2": 132.0,
+    "size_tier": "small",
+    "aspect_tier": "square"
+   }
+  }
+ }
+}
