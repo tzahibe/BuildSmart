@@ -81,13 +81,13 @@ def plausibility(rows, n_cols, zones) -> float:
     return round(score, 4)
 
 
-def enumerate_band_witnesses(nodes, edges, K: int, seconds: float):
+def enumerate_band_witnesses(nodes, edges, K: int, seconds: float, per_grid_cap: int | None = None):
     """Distinct compressed band layouts carrying every edge, over every grid W+H = n+1 — round-robin
     across grids (per-grid cap = max(10, K // #grids)) so no single grid shape (hence no single band
     count) dominates the witness set; total capped at K unique layouts / `seconds`."""
     seen = set(); out = []; t0 = time.time(); models = 0; per_grid = {}
     shapes = grid_shapes(len(nodes), symmetric=False)
-    cap_per_grid = max(10, K // len(shapes))
+    cap_per_grid = per_grid_cap or max(10, K // len(shapes))
     for W, H in shapes:
         tm = TilingModel([Piece(v, v) for v in nodes], W, H)
         for u, v in edges:
@@ -120,14 +120,16 @@ def enumerate_band_witnesses(nodes, edges, K: int, seconds: float):
             break
     return out, {"grids_tried": len(per_grid), "per_grid_unique": per_grid, "models": models,
                  "unique": len(out), "seconds": round(time.time() - t0, 1),
-                 "capped": len(out) >= K or time.time() - t0 > seconds}
+                 "capped": len(out) >= K or time.time() - t0 > seconds,
+                 "complete": (len(out) < K and time.time() - t0 <= seconds and all(v < cap_per_grid for v in per_grid.values()))}
 
 
 def main(argv):
     briefs = json.load(open(argv[1]))
     K = int(argv[3]) if len(argv) > 3 else 150
     seconds = float(argv[4]) if len(argv) > 4 else 120.0
-    only = set(argv[5].split(",")) if len(argv) > 5 else None
+    only = set(argv[5].split(",")) if len(argv) > 5 and argv[5] != "-" else None
+    per_grid_cap = int(argv[6]) if len(argv) > 6 else None
     out = {"dataset_sha256": briefs["dataset_sha256"], "K": K, "seconds_cap": seconds, "briefs": {}}
     for bid, b in briefs["briefs"].items():
         if only and bid not in only:
@@ -145,7 +147,7 @@ def main(argv):
                             (("; " if d["k4"] and d["lens3"] else "") +
                              ("; ".join(f"edge {a}-{b} with common neighbours {'/'.join(c)}" for (a, b), c in d["lens3"]) if d["lens3"] else ""))
         else:
-            wits, stats = enumerate_band_witnesses(nodes, edges, K, seconds)
+            wits, stats = enumerate_band_witnesses(nodes, edges, K, seconds, per_grid_cap)
             rec["enumeration"] = stats
             if not wits:
                 rec["classification"] = "BAND_UNSAT"
