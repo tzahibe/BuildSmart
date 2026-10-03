@@ -32,6 +32,16 @@ tiers for testing semantic behavior cheaply, plus an optional local-model failur
 for a pytest run's own failures. Neither ever redefines expected behavior — a local model's
 opinion is advisory only.
 
+A second, unrelated parallel system, the **structured concept pattern prior**
+(`app.vertical_slice.concept_patterns.py`, Issue #77), is product data, not this knowledge layer
+either: a small, hand-curated, deterministic table of concept patterns derived from
+`docs/architecture_reference/references/` and the 21-plan census, with one pure lookup
+(`patterns_for`). It answers "which concepts are worth trying" for the concept-generation
+pipeline (a future Concept Engine v2 stage) — it is never retrieved by, indexed into, or ranked
+against this Wiki-first/RAG-hybrid knowledge system, and this system never reads it either; the
+two exist for different consumers (agents reading docs vs. the generator choosing a concept) and
+happen to share the same repository.
+
 ## Authoritative implementation
 
 - `backend/app/knowledge/{config,chunking,doc_status,indexer,retrieval,tokens,context_pack,tool,
