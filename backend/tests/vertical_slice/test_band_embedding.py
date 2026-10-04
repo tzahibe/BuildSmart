@@ -127,3 +127,30 @@ def test_search_bound_yields_exhausted_not_impossible(n):
     r = embed_band(z, edges, node_limit=1)
     assert isinstance(r, BandEmbeddingRefusal)
     assert r.code == "EMBEDDING_SEARCH_EXHAUSTED" and not r.proof_complete
+
+
+def test_embedding_is_deterministic_across_processes():
+    """The sampling seed must not depend on Python's per-process string hashing (regression for a
+    defect found by running the #142F experiment in two processes at once)."""
+    import json
+    import os
+    import subprocess
+    import sys
+
+    code = (
+        "import json,sys\n"
+        "from app.vertical_slice.band_embedding import embed_band, BandEmbedding\n"
+        "from app.vertical_slice.geometry_core.model import ProgramRole\n"
+        "from app.vertical_slice.rectilinear_realizer import ZoneIntent\n"
+        "ids=['H']+[f'R{i}' for i in range(11)]\n"
+        "z={i: ZoneIntent(i, ProgramRole.BEDROOM, 12.0, 9.0, 16.0, 2.6, 2.5) for i in ids}\n"
+        "z['H']=ZoneIntent('H', ProgramRole.HALL, 12.0, 5.0, 30.0, 1.2, 2.5)\n"
+        "edges=[('H',r) for r in ids[1:]]+[(ids[i],ids[i+1]) for i in range(1,11,2)]\n"
+        "r=embed_band(z, edges)\n"
+        "print(json.dumps([c.rows for c in r.candidates]))\n")
+    outs = []
+    for seed in ("1", "2"):
+        env = dict(os.environ, PYTHONHASHSEED=seed, PYTHONPATH=os.getcwd())
+        outs.append(subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, check=True).stdout)
+    assert outs[0] == outs[1]
+    assert json.loads(outs[0])
