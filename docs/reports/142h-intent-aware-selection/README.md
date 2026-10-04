@@ -108,7 +108,7 @@ room's wall types, net area and window, and the (empty) failed-check list.
 
 ## 6. Regression
 
-Full backend suite: see the PR body (filled from the run on this branch). Focused: 14 selection +
+Full backend suite (shared dev venv): 1920 passed, 883 skipped, 9 xfailed, 0 failures. Focused: 15 selection +
 regression suite green.
 
 ## 7. Out of scope, intentionally
