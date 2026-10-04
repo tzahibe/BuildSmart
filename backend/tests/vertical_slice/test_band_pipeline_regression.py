@@ -103,8 +103,17 @@ def test_sizing_materially_exceeds_the_rank1_baseline(results):
 
 def test_at_least_the_proven_briefs_pass(results):
     passed = sorted(b for b in BAND if isinstance(results[b][0], PipelineSuccess))
-    assert {"B01", "B13"} <= set(passed), passed
-    assert len(passed) >= 3
+    # B04 joined in Issue #142G (SAFE_ROOM RC walls): it had been C4-only in #142E
+    assert {"B01", "B04", "B13"} <= set(passed), passed
+    assert len(passed) >= 4
+
+
+def test_b04_safe_room_passes_with_rc_walls(results):
+    from app.vertical_slice.geometry_core.model import Side, WallType
+    res, _ = results["B04"]
+    assert isinstance(res, PipelineSuccess), res
+    assert all(res.realized.walls[("SAFE_ROOM", s)] is WallType.RC_SAFE_ROOM for s in Side)
+    assert next(c for c in res.realized.report.checks if c.check_id == "C4").passed
 
 
 def test_every_failure_has_a_typed_diagnosis(results):
