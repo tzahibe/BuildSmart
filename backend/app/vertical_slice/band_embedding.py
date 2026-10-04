@@ -39,6 +39,7 @@ candidates in order reaches a sizable one early; the score never filters.
 """
 from __future__ import annotations
 
+import hashlib
 import random
 import time
 from dataclasses import dataclass, field
@@ -606,7 +607,10 @@ def embed_band(zones: dict[str, ZoneIntent], edges, *, max_candidates: int = DEF
 
     def sampled_labelings(attempts: int):
         """Seeded random labelings (same rules as `labelings`), de-duplicated under mirroring."""
-        rng = random.Random(sum(hash(r) for r in room_ids) & 0xFFFFFFFF)
+        # a STABLE seed: Python's str hash is randomized per process (PYTHONHASHSEED), which would make
+        # the sampled labelings — and therefore the candidates — differ between runs
+        digest = hashlib.sha256("\x1f".join(room_ids).encode("utf-8")).digest()
+        rng = random.Random(int.from_bytes(digest[:8], "big"))
         emitted: set = set()
         for _ in range(attempts):
             f: dict[str, int] = {}
