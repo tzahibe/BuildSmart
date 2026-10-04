@@ -243,6 +243,12 @@ class GridWing:
     #: and the exact per-cell sizing chooses the realized wing size within them; when False (the
     #: original contract) the wing tiles exactly `width_m` x `height_m`.
     envelope_is_bound: bool = False
+    #: Issue #142H — direct-access pairs this layout must carry as doors. The exact sizing keeps each
+    #: pair's shared boundary long enough for its door (width + corner margins, the same rule the
+    #: door-ability check below applies to the realized rects); the CONTACT itself still comes from
+    #: `rows` — a pair that does not touch in the grid is not created here. Realization never
+    #: patches a door on afterwards: an access pair whose door cannot fit refuses at sizing.
+    access_pairs: tuple[tuple[str, str], ...] = ()
 
 
 Wing = PinwheelWing | RowWing | GridWing
@@ -453,6 +459,7 @@ def _solve_grid(w: "GridWing") -> "tuple[list[int], list[int]] | Refusal":
     from . import band_sizing  # local import: band_sizing imports nothing from this module
 
     w_u, h_u = m_to_u(w.width_m), m_to_u(w.height_m)
+    contacts = band_sizing.contact_requirements(w.zones, (), w.access_pairs) if w.access_pairs else None
     if GRID_SIZING_RANK1_FALLBACK:
         all_cells = [cell for row in w.rows for cell in row]
         min_short_u = m_to_u(min(w.zones[c.zone_id].min_short_side_m for c in all_cells) +
@@ -466,19 +473,20 @@ def _solve_grid(w: "GridWing") -> "tuple[list[int], list[int]] | Refusal":
         return solved
     if w.envelope_is_bound:
         res = band_sizing.solve_band_sizing(w.rows, w.n_cols, w.zones, w_max_m=w.width_m,
-                                            h_max_m=w.height_m)
+                                            h_max_m=w.height_m, min_contact_u=contacts)
     else:
         res = band_sizing.solve_band_sizing(w.rows, w.n_cols, w.zones, w_max_m=w.width_m,
                                             h_max_m=w.height_m, w_exact_m=w.width_m,
-                                            h_exact_m=w.height_m)
+                                            h_exact_m=w.height_m, min_contact_u=contacts)
     if res.status == "FEASIBLE":
         return list(res.row_h_u), list(res.col_w_u)
     code = "GRID_INFEASIBLE" if res.status == "INFEASIBLE" else "GRID_SIZING_UNKNOWN"
     bound = "within" if w.envelope_is_bound else "tiling exactly"
+    doors = f" and hosts the {len(w.access_pairs)} declared access door(s)" if w.access_pairs else ""
     return Refusal(code, f"wing '{w.wing_id}' ({len(w.rows)} band(s) x {w.n_cols} column(s), "
                          f"{bound} {w.width_m}x{w.height_m} m): no band-height/column-width "
                          f"assignment keeps every cell inside its own NET area, short-side and "
-                         f"aspect bounds — {res.detail} ({res.nodes} search nodes)")
+                         f"aspect bounds{doors} — {res.detail} ({res.nodes} search nodes)")
 
 
 def _net_dims_m(rect: Rect, exterior: set[Side], rc: set[Side] = frozenset()) -> tuple[float, float]:
