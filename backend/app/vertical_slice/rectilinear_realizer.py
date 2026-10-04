@@ -1170,23 +1170,39 @@ def _group_c27(group_geometry: dict[str, MergedGeometry]) -> Check:
 #: so a layout with no `wet_rooms` declared (every existing caller/test) is unaffected.
 def _wet_room_edge_allowed(wet: ResolvedWetRoom, other_id: str,
                             roles: dict[str, tuple[ProgramRole, ...]]) -> bool:
-    if wet.kind is WetRoomKind.ENSUITE:
-        return other_id == wet.host_zone
-    other_roles = roles.get(other_id, ())
-    return bool({ProgramRole.HALL, ProgramRole.CIRCULATION} & set(other_roles))
+    """Derived from the canonical `wet_room_policy` (Issue #142I) — the same rule C17 holds the
+    realized doors to, so a door this filter admits is never a door C17 refuses, and vice versa."""
+    from . import wet_room_policy
+    return wet_room_policy.wet_room_entry_allowed(wet, other_id, roles.get(other_id, ()))
 
 
 def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
                              roles: dict[str, tuple[ProgramRole, ...]],
                              wet_rooms: tuple[ResolvedWetRoom, ...]) -> list[tuple[str, str]]:
+    """Door candidates into a wet room: only entrants the canonical `wet_room_policy` allows, and —
+    because a wet room has exactly ONE door (007 FR-9, C17) — only the best-ranked class among them
+    (circulation before the specs/009 LIVING fallback; Issue #142I). A shared bathroom touching both
+    the hall and the living room gets its hall door, not two doors."""
     if not wet_rooms:
         return access_pairs
+    from . import wet_room_policy
     wet_by_id = {w.zone_id: w for w in wet_rooms}
+    best: dict[str, int] = {}
+    for a, b in access_pairs:
+        for x, y in ((a, b), (b, a)):
+            if x in wet_by_id:
+                r = wet_room_policy.entry_rank(wet_by_id[x], y, roles.get(y, ()))
+                if r < 99:
+                    best[x] = min(best.get(x, 99), r)
     out = []
     for a, b in access_pairs:
-        wa, wb = wet_by_id.get(a), wet_by_id.get(b)
-        if (wa is None or _wet_room_edge_allowed(wa, b, roles)) and \
-                (wb is None or _wet_room_edge_allowed(wb, a, roles)):
+        ok = True
+        for x, y in ((a, b), (b, a)):
+            if x in wet_by_id:
+                r = wet_room_policy.entry_rank(wet_by_id[x], y, roles.get(y, ()))
+                if r >= 99 or r != best.get(x, 99):
+                    ok = False
+        if ok:
             out.append((a, b))
     return out
 

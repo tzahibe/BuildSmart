@@ -8,8 +8,8 @@ Controls (never weakened):
        #142H selection (door-width sizing + orientation + HARD filter) to pass in production
   every direct-access edge of a passing brief is a real, placeable door (#142H)
   representation-limit briefs refuse explicitly (never partial topology); B19 is NON_PLANAR
-  input problems are typed: B07/B09/B17 ACCESS_SPATIAL_CONTRADICTION, B12/B20 ACCESS_POLICY_CONFLICT,
-       B06 EXPOSURE_INFEASIBLE (complete family) — none of them is a realizer failure
+  input problems are typed: B07/B09/B17 ACCESS_SPATIAL_CONTRADICTION, B20 ACCESS_POLICY_CONFLICT,
+       B06/B12 EXPOSURE_INFEASIBLE (complete family) — none of them is a realizer failure (#142I)
   sizing coverage materially exceeds the rank-1 baseline (#142C: 4/13 band briefs sized)
   runtime is bounded (interactive application)
 """
@@ -163,11 +163,17 @@ def test_input_problems_are_typed(results):
         res, _ = results[bid]
         assert isinstance(res, PipelineDiagnosis) and res.code == "ACCESS_SPATIAL_CONTRADICTION", (bid, res)
         assert res.stage == "EMBEDDING" and res.candidates_tried == 0
-    for bid in ("B12", "B20"):
-        res, _ = results[bid]
-        assert isinstance(res, PipelineDiagnosis) and res.code == "ACCESS_POLICY_CONFLICT", (bid, res)
-        assert res.stage == "SELECTION" and res.candidates_tried > 0
-        assert all(r.stage_reached == "EMBEDDING" for r in res.records)        # nothing sized or realized
+    # #142I: with the canonical wet-room policy (LIVING = specs/009 public fallback) B12's LIVING door is
+    # legal and the proposal's real defect shows: the hall door it asks for into BATHROOM_2 has no wall,
+    # and once that contact is required every band layout buries a REQUIRED room. B20 still asks for a
+    # two-door bathroom (BEDROOM_1 + HALL), a policy conflict decided from the proposal alone.
+    res, _ = results["B12"]
+    assert isinstance(res, PipelineDiagnosis) and res.code == "EXPOSURE_INFEASIBLE", res
+    assert res.stage == "SELECTION" and "complete family" in res.detail
+    res, _ = results["B20"]
+    assert isinstance(res, PipelineDiagnosis) and res.code == "ACCESS_POLICY_CONFLICT", res
+    assert res.stage == "SELECTION" and res.candidates_tried > 0
+    assert all(r.stage_reached == "EMBEDDING" for r in res.records)        # nothing sized or realized
     res, _ = results["B06"]
     assert isinstance(res, PipelineDiagnosis) and res.code == "EXPOSURE_INFEASIBLE", res
     assert res.stage == "SELECTION" and "complete family" in res.detail
