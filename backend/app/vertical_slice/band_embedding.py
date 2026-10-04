@@ -90,10 +90,19 @@ class BandPlacement:
     flags: dict = field(default_factory=dict, hash=False, compare=False)
 
     def to_grid_wing(self, wing_id: str, width_m: float, height_m: float,
-                     zones: dict[str, ZoneIntent], envelope_is_bound: bool = True) -> GridWing:
+                     zones: dict[str, ZoneIntent], envelope_is_bound: bool = True,
+                     access_pairs: tuple[tuple[str, str], ...] = ()) -> GridWing:
         return GridWing(wing_id=wing_id, width_m=width_m, height_m=height_m, n_cols=self.n_cols,
                         rows=tuple(tuple(GridCell(z, s) for z, s in row) for row in self.rows),
-                        zones=zones, envelope_is_bound=envelope_is_bound)
+                        zones=zones, envelope_is_bound=envelope_is_bound, access_pairs=access_pairs)
+
+    def flipped(self) -> "BandPlacement":
+        """The same layout with the band order reversed (top <-> bottom). A band layout carries
+        exactly the same contacts either way up; which band fronts the street (row 0) is an
+        ORIENTATION decision the caller takes before realization (Issue #142H), never a door
+        patched on afterwards."""
+        return BandPlacement(tuple(reversed(self.rows)), self.n_cols, self.score,
+                             tuple(reversed(self.bands)), dict(self.flags))
 
 
 @dataclass(frozen=True)

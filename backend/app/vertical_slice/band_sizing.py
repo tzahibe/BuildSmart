@@ -30,6 +30,8 @@ import math
 import time
 from dataclasses import dataclass
 
+from . import access_rules
+from .doors import DOOR_MARGIN_M
 from .geometry_core.model import UNIT_M, ProgramRole, WallType, inset_u, m_to_u
 
 #: Node budget — a cost bound, not a structural one (no wall-clock cut-off: deterministic); `UNKNOWN` reports it honestly.
@@ -57,6 +59,28 @@ class SizingResult:
     col_w_u: tuple[int, ...] = ()
     nodes: int = 0
     detail: str = ""
+
+
+def door_contact_u(role_a: ProgramRole, role_b: ProgramRole) -> int:
+    """Minimum shared boundary (units) that can host the door this role pair gets: the realizer's
+    own placeability rule (`_build_grid_wing` / `generate_interior_doors`): door width + a corner
+    margin on each side (Issue #142H — the sizing knows this BEFORE a candidate is realized)."""
+    kind = access_rules.door_kind_for_zones((role_a,), (role_b,))
+    return m_to_u(access_rules.DOOR_WIDTH_M[kind]) + 2 * m_to_u(DOOR_MARGIN_M)
+
+
+def contact_requirements(zones, spatial, access) -> dict[frozenset, int]:
+    """Per unordered pair, the minimum shared-boundary length (units) the sizing must keep:
+    >= 1 unit for a required spatial contact, >= `door_contact_u` for a direct-access pair (both
+    when a pair is both). `zones`: zone_id -> ZoneIntent-like with `.role`."""
+    out: dict[frozenset, int] = {}
+    for a, b in spatial:
+        out[frozenset((a, b))] = max(out.get(frozenset((a, b)), 1), 1)
+    for a, b in access:
+        if a in zones and b in zones:
+            need = door_contact_u(zones[a].role, zones[b].role)
+            out[frozenset((a, b))] = max(out.get(frozenset((a, b)), 1), need)
+    return out
 
 
 def cell_insets_u(r: int, c0: int, c1: int, n_rows: int, n_cols: int,
@@ -172,9 +196,11 @@ def _bellman_ford(C: int, cons: list[tuple[int, int, int]]) -> list[int] | None:
 
 
 def _width_system(cells: list[CellSpec], h: list[int], hU: list[int] | None, C: int,
-                  w_exact: int | None, w_max: int, tol_m2: float) -> list[tuple[int, int, int]] | None:
-    """Difference constraints on column prefix sums P[0..C] for heights in [h, hU] (hU=None: exact)."""
-    cons: list[tuple[int, int, int]] = []
+                  w_exact: int | None, w_max: int, tol_m2: float,
+                  extra: tuple[tuple[int, int, int], ...] = ()) -> list[tuple[int, int, int]] | None:
+    """Difference constraints on column prefix sums P[0..C] for heights in [h, hU] (hU=None: exact).
+    `extra`: height-independent constraints (cross-row door overlaps, Issue #142H)."""
+    cons: list[tuple[int, int, int]] = list(extra)
     for c in range(C):
         cons.append((c + 1, c, -1))                       # P[c+1] - P[c] >= 1 unit
     for cell in cells:
@@ -190,8 +216,8 @@ def _width_system(cells: list[CellSpec], h: list[int], hU: list[int] | None, C: 
     return cons
 
 
-def _feasible_box(cells, hL, hU, C, w_exact, w_max, tol_m2) -> bool:
-    cons = _width_system(cells, hL, hU, C, w_exact, w_max, tol_m2)
+def _feasible_box(cells, hL, hU, C, w_exact, w_max, tol_m2, extra=()) -> bool:
+    cons = _width_system(cells, hL, hU, C, w_exact, w_max, tol_m2, extra)
     return cons is not None and _bellman_ford(C, cons) is not None
 
 
@@ -207,11 +233,11 @@ def _prefix_interval(C: int, cons, c: int) -> tuple[int, int] | None:
     return -d_from_c[0], d_from_0[c]
 
 
-def _choose_widths(cells, h, C, w_exact, w_max, tol_m2, target_w: list[float]) -> list[int] | None:
+def _choose_widths(cells, h, C, w_exact, w_max, tol_m2, target_w: list[float], extra=()) -> list[int] | None:
     """For FIXED heights: fix P[1..C] one at a time to the value nearest the proportional target
     that keeps the difference-constraint system feasible (interval from both-direction shortest
     paths), then read the column widths and verify every cell directly."""
-    cons = _width_system(cells, h, None, C, w_exact, w_max, tol_m2)
+    cons = _width_system(cells, h, None, C, w_exact, w_max, tol_m2, extra)
     if cons is None or _bellman_ford_from(C, cons, 0) is None:
         return None
     fixed: list[tuple[int, int, int]] = []
@@ -240,6 +266,9 @@ def _choose_widths(cells, h, C, w_exact, w_max, tol_m2, target_w: list[float]) -
         return None
     if sum(widths) > w_max:
         return None
+    for u, v, k in extra:                      # door overlaps on the chosen prefix sums
+        if P[v] - P[u] > k:
+            return None
     return widths
 
 
@@ -260,27 +289,58 @@ def _bellman_ford_from(C: int, cons, src: int) -> list[int] | None:
 
 # ----------------------------------------------------------------------------- the solver
 
+def _grid_contact_constraints(cells: list[CellSpec], min_contact_u: dict | None,
+                              R: int) -> tuple[list[int], tuple[tuple[int, int, int], ...]]:
+    """Issue #142H — per-pair minimum shared boundary inside a FIXED column grid: a same-row
+    consecutive pair shares the band depth (lower bound on that band's height); a pair in adjacent
+    rows shares `P[min(c1)] - P[max(c0)]` (a difference constraint). Pairs that do not touch in
+    this grid are left to the realizer's door-ability check (no sizing can create the contact)."""
+    hmin = [0] * R
+    extra: list[tuple[int, int, int]] = []
+    if not min_contact_u:
+        return hmin, ()
+    by_zone = {c.zone_id: c for c in cells}
+    for pair, need in min_contact_u.items():
+        if need <= 1:
+            continue
+        a, b = tuple(pair)
+        if a not in by_zone or b not in by_zone:
+            continue
+        ca, cb = by_zone[a], by_zone[b]
+        if ca.r == cb.r:
+            if ca.c1 == cb.c0 or cb.c1 == ca.c0:
+                hmin[ca.r] = max(hmin[ca.r], need)
+        elif abs(ca.r - cb.r) == 1 and ca.c0 < cb.c1 and cb.c0 < ca.c1:
+            lo, hi = max(ca.c0, cb.c0), min(ca.c1, cb.c1)
+            extra.append((hi, lo, -need))             # P[lo] - P[hi] <= -need  (overlap >= need)
+    return hmin, tuple(extra)
+
+
 def solve_band_sizing(rows, n_cols: int, zones, *, w_max_m: float, h_max_m: float,
                       w_exact_m: float | None = None, h_exact_m: float | None = None,
-                      tol_m2: float = 0.01, node_limit: int = DEFAULT_NODE_LIMIT) -> SizingResult:
+                      tol_m2: float = 0.01, node_limit: int = DEFAULT_NODE_LIMIT,
+                      min_contact_u: dict | None = None) -> SizingResult:
     """Exact per-cell sizing (see module docstring). `rows`: top-to-bottom tuples of
     (zone_id, col_span) or `GridCell`s; `zones`: zone_id -> ZoneIntent-like. `tol_m2` mirrors
-    validator C3's own area tolerance (TOL_M2 = 0.01)."""
+    validator C3's own area tolerance (TOL_M2 = 0.01). `min_contact_u` (Issue #142H): per
+    unordered pair (frozenset of zone ids) the minimum shared boundary in units — see
+    `contact_requirements`; a direct-access pair's door must fit on the boundary the sizing gives it."""
     cells = cells_from_rows(rows, n_cols, zones)
     R = len(rows); C = n_cols
+    hmin, extra = _grid_contact_constraints(cells, min_contact_u, R)
     w_max = m_to_u(w_exact_m) if w_exact_m is not None else m_to_u(w_max_m)
     h_cap = m_to_u(h_exact_m) if h_exact_m is not None else m_to_u(h_max_m)
     w_exact = m_to_u(w_exact_m) if w_exact_m is not None else None
     h_exact = m_to_u(h_exact_m) if h_exact_m is not None else None
 
-    hL0 = [0] * R; hU0 = [h_cap] * R
+    hL0 = list(hmin); hU0 = [h_cap] * R
     for cell in cells:
         lo, hi = _height_bounds(cell, tol_m2, h_cap)
         hL0[cell.r] = max(hL0[cell.r], lo)
         hU0[cell.r] = min(hU0[cell.r], hi)
     if any(hL0[r] > hU0[r] for r in range(R)):
         return SizingResult("INFEASIBLE", nodes=0,
-                            detail="a band's cells have no common feasible depth (min short side / max area)")
+                            detail="a band's cells have no common feasible depth (min short side / max area / door on a same-band pair)")
     # proportional (rank-1) estimates only ORDER the search
     total = sum(z.target_area_m2 for z in zones.values()) or 1.0
     row_tot = [sum(zones[(c.zone_id if hasattr(c, "zone_id") else c[0])].target_area_m2 for c in row) for row in rows]
@@ -326,12 +386,12 @@ def solve_band_sizing(rows, n_cols: int, zones, *, w_max_m: float, h_max_m: floa
             return SizingResult("UNKNOWN", nodes=nodes, detail=f"node budget exhausted ({node_limit} nodes)")
         if not sum_ok(hL, hU):
             continue
-        if not _feasible_box(cells, hL, hU, C, w_exact, w_max, tol_m2):
+        if not _feasible_box(cells, hL, hU, C, w_exact, w_max, tol_m2, extra):
             continue
         # try the most plausible point of this box before splitting it further
         h = point_in_box(hL, hU)
         if h is not None:
-            widths = _choose_widths(cells, h, C, w_exact, w_max, tol_m2, target_w)
+            widths = _choose_widths(cells, h, C, w_exact, w_max, tol_m2, target_w, extra)
             if widths is not None:
                 return SizingResult("FEASIBLE", tuple(h), tuple(widths), nodes)
         if hL == hU:
@@ -349,7 +409,8 @@ def solve_band_sizing(rows, n_cols: int, zones, *, w_max_m: float, h_max_m: floa
                         detail="every height box was pruned by its width-system relaxation (proof)")
 
 
-__all__ = ["CellSpec", "SizingResult", "cell_insets_u", "cells_from_rows", "solve_band_sizing"]
+__all__ = ["CellSpec", "SizingResult", "cell_insets_u", "cells_from_rows", "solve_band_sizing",
+           "door_contact_u", "contact_requirements"]
 
 
 # ----------------------------------------------------------------------------- free-staircase sizing
@@ -399,10 +460,12 @@ def _layout_cells(bands, zones, rc_sides: dict | None = None) -> tuple[list[Cell
     return cells, [W_node]
 
 
-def _layout_system(cells, bands, band_nodes_count, required, h, hU, w_exact, w_max, tol_m2):
+def _layout_system(cells, bands, band_nodes_count, required, h, hU, w_exact, w_max, tol_m2,
+                   min_contact_u: dict | None = None):
     """Difference constraints over per-band boundary nodes for heights in [h, hU]:
     cell widths from `_width_interval`; consecutive boundaries >= 1 unit; required cross pairs
-    overlap by >= 1 unit; all bands end at the shared W node (<= w_max or == w_exact)."""
+    overlap by >= 1 unit — or by the pair's `min_contact_u` (a door's width + margins, Issue #142H);
+    all bands end at the shared W node (<= w_max or == w_exact)."""
     N = band_nodes_count
     cons: list[tuple[int, int, int]] = []
     for cell in cells:
@@ -418,9 +481,10 @@ def _layout_system(cells, bands, band_nodes_count, required, h, hU, w_exact, w_m
             continue                       # consecutive in the same band: touching by construction
         if abs(ca.r - cb.r) != 1:
             return None
-        # overlap > 0: x0_a < x1_b  and  x0_b < x1_a   (strict, in units)
-        cons.append((cb.c1, ca.c0, -1))    # ca.c0 - cb.c1 <= -1
-        cons.append((ca.c1, cb.c0, -1))    # cb.c0 - ca.c1 <= -1
+        need = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
+        # overlap >= need: x1_b - x0_a >= need  and  x1_a - x0_b >= need (need = 1: strictly positive)
+        cons.append((cb.c1, ca.c0, -need))    # ca.c0 - cb.c1 <= -need
+        cons.append((ca.c1, cb.c0, -need))    # cb.c0 - ca.c1 <= -need
     if w_exact is not None:
         cons.append((0, N - 1, w_exact)); cons.append((N - 1, 0, -w_exact))
     else:
@@ -430,7 +494,8 @@ def _layout_system(cells, bands, band_nodes_count, required, h, hU, w_exact, w_m
 
 def solve_band_layout(bands, zones, required, *, w_max_m: float, h_max_m: float,
                       w_exact_m: float | None = None, h_exact_m: float | None = None,
-                      tol_m2: float = 0.01, node_limit: int = DEFAULT_NODE_LIMIT) -> LayoutSizing:
+                      tol_m2: float = 0.01, node_limit: int = DEFAULT_NODE_LIMIT,
+                      min_contact_u: dict | None = None) -> LayoutSizing:
     """Size an ORDERED band layout (`bands`: top-to-bottom tuples of zone ids) choosing the column
     interleaving between consecutive bands itself: every `required` pair must share a boundary of
     positive length, every cell meets its NET bounds (see module docstring), bands tile the same
@@ -440,12 +505,18 @@ def solve_band_layout(bands, zones, required, *, w_max_m: float, h_max_m: float,
     SAFE_ROOM (Issue #142G): a safe room's own sides are RC (inset 0.15 m); which NEIGHBOUR sides
     touch it depends on the interleaving the solver chooses, so the solve is repeated with the RC
     sides read off its own result until they stop changing (bounded; the fixed-column re-solve in
-    `_build_grid_wing` is exact for the final rows)."""
+    `_build_grid_wing` is exact for the final rows).
+
+    Doors (Issue #142H): `min_contact_u` (see `contact_requirements`) gives a pair the minimum
+    shared boundary its door needs — a cross-band pair's overlap, or the band depth for a
+    same-band consecutive pair — so a candidate is never realized only to find its required door
+    cannot fit when another sizing would have hosted it."""
     rc_sides = None
     for _round in range(4):
         res = _solve_band_layout_once(bands, zones, required, w_max_m=w_max_m, h_max_m=h_max_m,
                                       w_exact_m=w_exact_m, h_exact_m=h_exact_m, tol_m2=tol_m2,
-                                      node_limit=node_limit, rc_sides=rc_sides)
+                                      node_limit=node_limit, rc_sides=rc_sides,
+                                      min_contact_u=min_contact_u)
         if res.status != "FEASIBLE":
             return res
         found = rc_sides_from_rows(res.rows, res.n_cols, zones)
@@ -457,22 +528,29 @@ def solve_band_layout(bands, zones, required, *, w_max_m: float, h_max_m: float,
 
 
 def _solve_band_layout_once(bands, zones, required, *, w_max_m, h_max_m, w_exact_m, h_exact_m,
-                            tol_m2, node_limit, rc_sides) -> LayoutSizing:
+                            tol_m2, node_limit, rc_sides, min_contact_u=None) -> LayoutSizing:
     cells, (W_node,) = _layout_cells(bands, zones, rc_sides)
     N = W_node + 1
     R = len(bands)
     req = [tuple(e) for e in required]
+    by_zone = {c.zone_id: c for c in cells}
+    # a same-band consecutive pair shares the band depth: its door bounds that band's height
+    hmin = [0] * R
+    for pair, need in (min_contact_u or {}).items():
+        a, b = tuple(pair)
+        if need > 1 and a in by_zone and b in by_zone and by_zone[a].r == by_zone[b].r:
+            hmin[by_zone[a].r] = max(hmin[by_zone[a].r], need)
     w_max = m_to_u(w_exact_m) if w_exact_m is not None else m_to_u(w_max_m)
     h_cap = m_to_u(h_exact_m) if h_exact_m is not None else m_to_u(h_max_m)
     w_exact = m_to_u(w_exact_m) if w_exact_m is not None else None
     h_exact = m_to_u(h_exact_m) if h_exact_m is not None else None
 
-    hL0 = [0] * R; hU0 = [h_cap] * R
+    hL0 = list(hmin); hU0 = [h_cap] * R
     for cell in cells:
         lo, hi = _height_bounds(cell, tol_m2, h_cap)
         hL0[cell.r] = max(hL0[cell.r], lo); hU0[cell.r] = min(hU0[cell.r], hi)
     if any(hL0[r] > hU0[r] for r in range(R)):
-        return LayoutSizing("INFEASIBLE", nodes=0, detail="a band's cells have no common feasible depth")
+        return LayoutSizing("INFEASIBLE", nodes=0, detail="a band's cells have no common feasible depth (bounds, or a door on a same-band pair)")
     total = sum(z.target_area_m2 for z in zones.values()) or 1.0
     row_tot = [sum(zones[z].target_area_m2 for z in band) for band in bands]
     H_est = h_exact if h_exact is not None else min(h_cap, m_to_u(math.sqrt(total)))
@@ -480,11 +558,11 @@ def _solve_band_layout_once(bands, zones, required, *, w_max_m, h_max_m, w_exact
     h_est = [H_est * rt / total for rt in row_tot]
 
     def feasible_box(hL, hU):
-        cons = _layout_system(cells, bands, N, req, hL, hU, w_exact, w_max, tol_m2)
+        cons = _layout_system(cells, bands, N, req, hL, hU, w_exact, w_max, tol_m2, min_contact_u)
         return cons is not None and _bellman_ford_from(N - 1, cons, 0) is not None
 
     def choose(h):
-        cons = _layout_system(cells, bands, N, req, h, None, w_exact, w_max, tol_m2)
+        cons = _layout_system(cells, bands, N, req, h, None, w_exact, w_max, tol_m2, min_contact_u)
         if cons is None or _bellman_ford_from(N - 1, cons, 0) is None:
             return None
         # fix the shared width first (closest to the estimate), then each band's boundaries left to
