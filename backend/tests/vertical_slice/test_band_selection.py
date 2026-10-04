@@ -242,9 +242,9 @@ def test_illegal_access_pair_is_a_policy_conflict_not_a_realizer_failure():
 
 
 def test_shared_bathroom_off_the_living_room_is_the_specs_009_fallback_and_gets_one_door():
-    """#142I: the canonical `wet_room_policy` admits LIVING as the last public-access entry of a shared
-    wet room (specs/009 decision C) — in the selection legality, the realizer's door filter AND C17
-    alike — and the room still gets exactly one door."""
+    """#142I/#142J: the canonical `wet_room_policy` admits LIVING as the last public-access entry of a
+    shared wet room (specs/009 decision C) — in the selection legality, the realizer's door filter AND
+    C17 alike — the room gets exactly one door, and a DECLARED legal door is the one that is built."""
     zones = _zones(LIVING, HALL, BED1, BATH)
     wet = (ResolvedWetRoom("BATHROOM", WetRoomKind.SHARED_BATHROOM, None, WetRoomStrength.REQUIRED, True),)
     spatial = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("LIVING", "BATHROOM"), ("HALL", "BATHROOM"))
@@ -252,8 +252,11 @@ def test_shared_bathroom_off_the_living_room_is_the_specs_009_fallback_and_gets_
     res = run_band_pipeline(PipelineInput("living-bath", zones, spatial, (12.0, 10.0), wet, access))
     assert isinstance(res, PipelineSuccess), res
     doors = [d for d in res.realized.interior_doors if d.placeable and "BATHROOM" in (d.a, d.b)]
-    assert len(doors) == 1 and {doors[0].a, doors[0].b} == {"HALL", "BATHROOM"}   # the hall door outranks the living door
+    # #142J: the proposal DECLARED the living-room door and LIVING is a legal entrant, so the declared door is
+    # the one door (the hall it also touches does not take it away); exactly one door either way
+    assert len(doors) == 1 and {doors[0].a, doors[0].b} == {"LIVING", "BATHROOM"}
     assert next(c for c in res.realized.report.checks if c.check_id == "C17").passed
+    assert res.access_preserved == "3/3"
 
 
 # --------------------------------------------------------------------------- 4. exposure

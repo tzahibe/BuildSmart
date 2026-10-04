@@ -74,7 +74,7 @@ def render_context_text(context: PromptContext) -> str:
         f"- Measured on {context.train_count} training plans, calibrated on {context.holdout_count} "
         "held-out plans never used to build the numbers below.",
         "",
-        "ADJACENCY IS NOT ACCESS. Two rooms sharing a wall (adjacency) is a DIFFERENT fact from a "
+        "ADJACENCY IS NOT ACCESS (but a door needs a wall). Two rooms sharing a wall (adjacency) is a DIFFERENT fact from a "
         "door connecting them (access). Both are reported below, kept strictly separate.",
         "",
         "Roles this corpus CAN measure: " + ", ".join(context.measurable_roles) + ".",

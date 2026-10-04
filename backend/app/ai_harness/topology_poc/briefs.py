@@ -45,6 +45,26 @@ class Brief:
     context: dict  # the exact context dict — reused verbatim by generator_adapter.py
 
 
+def brief_wet_room_kinds(brief: "Brief") -> tuple:
+    """The brief's wet-room KINDS, the source of truth the proposer and the critic are held to (Issue
+    #142J). Stated kinds, when the context carries them (`wet_room_kinds`, parser output), are
+    EXPLICIT; otherwise the programme's own count-derived defaults (`wet_rooms.default_wet_room_kinds`:
+    master ensuite + shared; the first of two or more shared rooms a guest WC) with origin
+    COUNT_DERIVED — a default the person never stated, which the critic treats as a class hint, not a law."""
+    from app.vertical_slice.spec import WetRoomKind, WetRoomOrigin, WetRoomRequirement
+    from app.vertical_slice.wet_rooms import default_wet_room_kinds
+    stated = brief.context.get("wet_room_kinds") if isinstance(brief.context, dict) else None
+    if stated:
+        out = []
+        for item in stated:
+            kind = WetRoomKind(item["kind"]) if isinstance(item, dict) else WetRoomKind(item)
+            host = item.get("host") if isinstance(item, dict) else None
+            out.append(WetRoomRequirement(kind, host, origin=WetRoomOrigin.EXPLICIT))
+        return tuple(out)
+    return tuple(WetRoomRequirement(r.kind, r.host, r.strength, r.source_text, WetRoomOrigin.COUNT_DERIVED)
+                 for r in default_wet_room_kinds(brief.wet_rooms, brief.bedrooms >= 1))
+
+
 #: (bedrooms, wet_rooms, safe_room, open_plan, aspect_tier, size_tier) — `None` means "no
 #: preference for this field, pick on the remaining criteria". 20 rows, deliberately covering every
 #: named value at least once across the set (see module docstring).
