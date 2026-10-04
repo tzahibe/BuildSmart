@@ -481,11 +481,14 @@ def _solve_grid(w: "GridWing") -> "tuple[list[int], list[int]] | Refusal":
                          f"aspect bounds — {res.detail} ({res.nodes} search nodes)")
 
 
-def _net_dims_m(rect: Rect, exterior: set[Side]) -> tuple[float, float]:
-    """NET width/depth (m) of a centerline `rect` whose sides in `exterior` will carry an EXTERIOR
-    wall (half-thickness inset 0.15 m) and whose other sides a PARTITION (0.05 m) — the same
-    per-side rule `engine.net_rect_m` applies after walls exist (Issue #142E canonical semantics)."""
+def _net_dims_m(rect: Rect, exterior: set[Side], rc: set[Side] = frozenset()) -> tuple[float, float]:
+    """NET width/depth (m) of a centerline `rect` whose sides in `rc` will carry an RC_SAFE_ROOM wall
+    (0.15 m inset), in `exterior` an EXTERIOR wall (0.15 m) and otherwise a PARTITION (0.05 m) —
+    the same per-side rule `engine.net_rect_m` applies after walls exist (Issue #142E canonical
+    semantics; RC added in Issue #142G)."""
     def ins(side: Side) -> int:
+        if side in rc:
+            return inset_u(WallType.RC_SAFE_ROOM)
         return inset_u(WallType.EXTERIOR if side in exterior else WallType.PARTITION)
     nw = rect.w - ins(Side.W) - ins(Side.E)
     nh = rect.h - ins(Side.N) - ins(Side.S)
@@ -744,6 +747,8 @@ def _build_grid_wing(w: GridWing, origin: tuple[int, int]) -> "_WingBuild | Refu
     if isinstance(solved, Refusal):
         return solved
     row_h, col_w = solved
+    from .band_sizing import rc_sides_from_rows
+    rc_by_zone = rc_sides_from_rows(w.rows, w.n_cols, w.zones)   # Issue #142G: the gate measures net the way the walls will be
     # the realized wing is whatever the sizing tiles (== the declared envelope unless it is a bound)
     w_u, h_u = sum(col_w), sum(row_h)
     col_x = [0] * (w.n_cols + 1)
@@ -772,7 +777,8 @@ def _build_grid_wing(w: GridWing, origin: tuple[int, int]) -> "_WingBuild | Refu
             if col + cell.col_span == w.n_cols: exterior.add(Side.E)
             if r_idx == 0: exterior.add(Side.N)
             if r_idx == len(w.rows) - 1: exterior.add(Side.S)
-            nw, nh = _net_dims_m(r, exterior)
+            rc = {Side(sname) for sname in rc_by_zone.get(zi.zone_id, frozenset())}
+            nw, nh = _net_dims_m(r, exterior, rc)
             net_area = round(nw * nh, 4)
             if not (zi.min_area_m2 - _NET_AREA_TOL_M2 <= net_area <= zi.max_area_m2 + _NET_AREA_TOL_M2):
                 return Refusal("AREA_INFEASIBLE",
@@ -1247,19 +1253,28 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     for wb in wing_builds:
         for a, b in wb.same_zone_edges:
             open_pairs.add(frozenset((a, b)))
+    # SAFE_ROOM (Issue #142G): the same precedence `geometry_core.engine` applies —
+    #   OPEN  >  RC_SAFE_ROOM  >  EXTERIOR  >  PARTITION
+    # — a safe room's own four sides are RC (its exterior side is still a safe-room wall: C4 reads
+    # every side), and every side of a neighbour that shares a positive-length boundary with a safe
+    # room is RC too (`engine._discovered_walls` / `_neighbour_sides`). Derived from the realized
+    # rects, deterministic, never patched after validation.
+    safe_ids = {zid for zid, rs in roles.items() if ProgramRole.SAFE_ROOM in rs}
     for zone_id, rect in rects.items():
-        touching: dict[Side, str] = {}
+        touching: dict[Side, list[str]] = {}
         for other_id, other in rects.items():
             if other_id == zone_id or rect.shared_edge_len_u(other) <= 0:
                 continue
             side = _side_between(rect, other)
             if side is not None:
-                touching[side] = other_id
+                touching.setdefault(side, []).append(other_id)
         for side in Side:
-            other_id = touching.get(side)
-            if other_id is not None and frozenset((zone_id, other_id)) in open_pairs:
+            others = touching.get(side, [])
+            if others and any(frozenset((zone_id, o)) in open_pairs for o in others):
                 walls[(zone_id, side)] = WallType.OPEN
-            elif other_id is not None:
+            elif zone_id in safe_ids or any(o in safe_ids for o in others):
+                walls[(zone_id, side)] = WallType.RC_SAFE_ROOM
+            elif others:
                 walls[(zone_id, side)] = WallType.PARTITION
             else:
                 walls[(zone_id, side)] = WallType.EXTERIOR

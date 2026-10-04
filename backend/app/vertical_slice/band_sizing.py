@@ -30,7 +30,7 @@ import math
 import time
 from dataclasses import dataclass
 
-from .geometry_core.model import UNIT_M, WallType, inset_u, m_to_u
+from .geometry_core.model import UNIT_M, ProgramRole, WallType, inset_u, m_to_u
 
 #: Node budget — a cost bound, not a structural one (no wall-clock cut-off: deterministic); `UNKNOWN` reports it honestly.
 DEFAULT_NODE_LIMIT = 4_000
@@ -59,15 +59,55 @@ class SizingResult:
     detail: str = ""
 
 
-def cell_insets_u(r: int, c0: int, c1: int, n_rows: int, n_cols: int) -> tuple[int, int]:
+def cell_insets_u(r: int, c0: int, c1: int, n_rows: int, n_cols: int,
+                  rc_sides: frozenset = frozenset()) -> tuple[int, int]:
     """Net insets a cell will receive from `realize_layout`'s wall typing: EXTERIOR on a side that
     lies on the wing boundary, PARTITION on a side another cell touches (no OPEN walls inside a
-    GridWing). Conservative for multi-wing seams (a seam side is really PARTITION): the heavier
-    EXTERIOR inset is assumed, so a net bound is never over-estimated."""
-    ext, part = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION)
-    iw = (ext if c0 == 0 else part) + (ext if c1 == n_cols else part)
-    ih = (ext if r == 0 else part) + (ext if r == n_rows - 1 else part)
+    GridWing), RC_SAFE_ROOM on every side named in `rc_sides` (a SAFE_ROOM's own sides, and a
+    neighbour's side that touches one — Issue #142G; precedence OPEN > RC > EXTERIOR > PARTITION,
+    as `geometry_core.engine`). Conservative for multi-wing seams (a seam side is really PARTITION):
+    the heavier EXTERIOR inset is assumed, so a net bound is never over-estimated."""
+    ext, part, rc = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION), inset_u(WallType.RC_SAFE_ROOM)
+
+    def side(name: str, exterior: bool) -> int:
+        if name in rc_sides:
+            return rc
+        return ext if exterior else part
+    iw = side("W", c0 == 0) + side("E", c1 == n_cols)
+    ih = side("N", r == 0) + side("S", r == n_rows - 1)
     return iw, ih
+
+
+def rc_sides_from_rows(rows, n_cols: int, zones) -> dict[str, frozenset]:
+    """Per zone, the sides that `realize_layout` will type RC_SAFE_ROOM given these rows: every
+    side of a SAFE_ROOM cell, and every side of another cell that shares a positive-length boundary
+    with a SAFE_ROOM cell (same-row neighbour on W/E, overlapping cell in the adjacent row on N/S).
+    Decided from the cell grid alone, so the sizing and the gate agree with the realized walls."""
+    cells = []
+    for r, row in enumerate(rows):
+        c0 = 0
+        for cell in row:
+            zid, span = (cell.zone_id, cell.col_span) if hasattr(cell, "zone_id") else cell
+            cells.append((zid, r, c0, c0 + int(span))); c0 += int(span)
+    safe = {z for z, _, _, _ in cells if getattr(zones[z], "role", None) is ProgramRole.SAFE_ROOM}
+    out: dict[str, set] = {z: set() for z, _, _, _ in cells}
+    for z in safe:
+        out[z] = {"N", "S", "E", "W"}
+    for z, r, c0, c1 in cells:
+        if z in safe:
+            continue
+        for sz, sr, sc0, sc1 in cells:
+            if sz not in safe:
+                continue
+            if sr == r and sc1 == c0:
+                out[z].add("W")
+            elif sr == r and sc0 == c1:
+                out[z].add("E")
+            elif sr == r - 1 and sc0 < c1 and c0 < sc1:
+                out[z].add("N")
+            elif sr == r + 1 and sc0 < c1 and c0 < sc1:
+                out[z].add("S")
+    return {z: frozenset(v) for z, v in out.items()}
 
 
 def cells_from_rows(rows, n_cols: int, zones) -> list[CellSpec]:
@@ -75,12 +115,13 @@ def cells_from_rows(rows, n_cols: int, zones) -> list[CellSpec]:
     zone_id -> object with min_area_m2/max_area_m2/min_short_side_m/max_aspect_ratio."""
     cells = []
     R = len(rows)
+    rc = rc_sides_from_rows(rows, n_cols, zones)
     for r, row in enumerate(rows):
         c0 = 0
         for cell in row:
             zid, span = (cell.zone_id, cell.col_span) if hasattr(cell, "zone_id") else cell
             z = zones[zid]
-            iw, ih = cell_insets_u(r, c0, c0 + span, R, n_cols)
+            iw, ih = cell_insets_u(r, c0, c0 + span, R, n_cols, rc.get(zid, frozenset()))
             cells.append(CellSpec(zid, r, c0, c0 + span, z.min_area_m2, z.max_area_m2,
                                   z.min_short_side_m, z.max_aspect_ratio, iw, ih))
             c0 += span
@@ -328,7 +369,7 @@ class LayoutSizing:
     detail: str = ""
 
 
-def _layout_cells(bands, zones) -> tuple[list[CellSpec], list[int]]:
+def _layout_cells(bands, zones, rc_sides: dict | None = None) -> tuple[list[CellSpec], list[int]]:
     """Cells over PER-BAND boundary nodes. Node ids: 0 is the shared left edge, then each band's
     interior boundaries in order, then node W (shared right edge). Returns cells (c0/c1 = node ids)
     and the list of node ids per band (len k+1)."""
@@ -347,9 +388,12 @@ def _layout_cells(bands, zones) -> tuple[list[CellSpec], list[int]]:
     for r, band in enumerate(bands):
         for i, zid in enumerate(band):
             z = zones[zid]
-            ext, part = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION)
-            iw = (ext if i == 0 else part) + (ext if i == len(band) - 1 else part)
-            ih = (ext if r == 0 else part) + (ext if r == R - 1 else part)
+            rc = (rc_sides or {}).get(zid, frozenset())
+            if getattr(z, "role", None) is ProgramRole.SAFE_ROOM:
+                rc = frozenset({"N", "S", "E", "W"})       # a SAFE_ROOM's own envelope is always RC
+            ext, part, rcu = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION), inset_u(WallType.RC_SAFE_ROOM)
+            iw = (rcu if "W" in rc else (ext if i == 0 else part)) + (rcu if "E" in rc else (ext if i == len(band) - 1 else part))
+            ih = (rcu if "N" in rc else (ext if r == 0 else part)) + (rcu if "S" in rc else (ext if r == R - 1 else part))
             cells.append(CellSpec(zid, r, band_nodes[r][i], band_nodes[r][i + 1], z.min_area_m2,
                                   z.max_area_m2, z.min_short_side_m, z.max_aspect_ratio, iw, ih))
     return cells, [W_node]
@@ -391,8 +435,30 @@ def solve_band_layout(bands, zones, required, *, w_max_m: float, h_max_m: float,
     interleaving between consecutive bands itself: every `required` pair must share a boundary of
     positive length, every cell meets its NET bounds (see module docstring), bands tile the same
     width. Same height branch-and-bound as `solve_band_sizing`; the width system is over per-band
-    boundary nodes instead of a fixed global grid."""
-    cells, (W_node,) = _layout_cells(bands, zones)
+    boundary nodes instead of a fixed global grid.
+
+    SAFE_ROOM (Issue #142G): a safe room's own sides are RC (inset 0.15 m); which NEIGHBOUR sides
+    touch it depends on the interleaving the solver chooses, so the solve is repeated with the RC
+    sides read off its own result until they stop changing (bounded; the fixed-column re-solve in
+    `_build_grid_wing` is exact for the final rows)."""
+    rc_sides = None
+    for _round in range(4):
+        res = _solve_band_layout_once(bands, zones, required, w_max_m=w_max_m, h_max_m=h_max_m,
+                                      w_exact_m=w_exact_m, h_exact_m=h_exact_m, tol_m2=tol_m2,
+                                      node_limit=node_limit, rc_sides=rc_sides)
+        if res.status != "FEASIBLE":
+            return res
+        found = rc_sides_from_rows(res.rows, res.n_cols, zones)
+        found = {z: v for z, v in found.items() if v}
+        if found == (rc_sides or {}):
+            return res
+        rc_sides = found
+    return res
+
+
+def _solve_band_layout_once(bands, zones, required, *, w_max_m, h_max_m, w_exact_m, h_exact_m,
+                            tol_m2, node_limit, rc_sides) -> LayoutSizing:
+    cells, (W_node,) = _layout_cells(bands, zones, rc_sides)
     N = W_node + 1
     R = len(bands)
     req = [tuple(e) for e in required]
@@ -499,4 +565,4 @@ def solve_band_layout(bands, zones, required, *, w_max_m: float, h_max_m: float,
     return LayoutSizing("INFEASIBLE", nodes=nodes, detail="every height box was pruned by its width-system relaxation (proof)")
 
 
-__all__ += ["LayoutSizing", "solve_band_layout"]
+__all__ += ["LayoutSizing", "solve_band_layout", "rc_sides_from_rows"]
