@@ -1178,29 +1178,39 @@ def _wet_room_edge_allowed(wet: ResolvedWetRoom, other_id: str,
 
 def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
                              roles: dict[str, tuple[ProgramRole, ...]],
-                             wet_rooms: tuple[ResolvedWetRoom, ...]) -> list[tuple[str, str]]:
+                             wet_rooms: tuple[ResolvedWetRoom, ...],
+                             declared: frozenset = frozenset()) -> list[tuple[str, str]]:
     """Door candidates into a wet room: only entrants the canonical `wet_room_policy` allows, and —
-    because a wet room has exactly ONE door (007 FR-9, C17) — only the best-ranked class among them
-    (circulation before the specs/009 LIVING fallback; Issue #142I). A shared bathroom touching both
-    the hall and the living room gets its hall door, not two doors."""
+    because a wet room has exactly ONE door (007 FR-9, C17) — one class of entrant per wet room:
+    the DECLARED door when the layout declared one (`GridWing.access_pairs`, Issue #142J: the proposal
+    said "LIVING -> BATHROOM" and LIVING is a legal fallback, so the hall it also touches does not take
+    the door away), else the best-ranked class (circulation before the specs/009 LIVING fallback,
+    Issue #142I). A shared bathroom touching both the hall and the living room gets one door, not two."""
     if not wet_rooms:
         return access_pairs
     from . import wet_room_policy
     wet_by_id = {w.zone_id: w for w in wet_rooms}
     best: dict[str, int] = {}
+    has_declared: set[str] = set()
     for a, b in access_pairs:
         for x, y in ((a, b), (b, a)):
             if x in wet_by_id:
                 r = wet_room_policy.entry_rank(wet_by_id[x], y, roles.get(y, ()))
                 if r < 99:
                     best[x] = min(best.get(x, 99), r)
+                    if frozenset((a, b)) in declared:
+                        has_declared.add(x)
     out = []
     for a, b in access_pairs:
         ok = True
         for x, y in ((a, b), (b, a)):
             if x in wet_by_id:
                 r = wet_room_policy.entry_rank(wet_by_id[x], y, roles.get(y, ()))
-                if r >= 99 or r != best.get(x, 99):
+                if r >= 99:
+                    ok = False
+                elif x in has_declared:
+                    ok = ok and frozenset((a, b)) in declared
+                elif r != best.get(x, 99):
                     ok = False
         if ok:
             out.append((a, b))
@@ -1340,7 +1350,8 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     zones = tuple(ZoneSpec(zid, roles[zid], specs[zid].net_area_min_m2, specs[zid].net_area_target_m2,
                             specs[zid].net_area_max_m2, specs[zid].min_short_side_m,
                             specs[zid].max_aspect_ratio) for zid in rects)
-    access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms)
+    declared = frozenset(frozenset(p) for w in layout.wings if isinstance(w, GridWing) for p in w.access_pairs)
+    access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms, declared)
     edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in access_pairs)
     open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
     fixture = Fixture(layout.name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)

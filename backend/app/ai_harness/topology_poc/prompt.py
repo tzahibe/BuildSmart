@@ -8,7 +8,7 @@ on room IDs, never on roles").
 """
 from __future__ import annotations
 
-from app.ai_harness.topology_poc.briefs import Brief
+from app.ai_harness.topology_poc.briefs import Brief, brief_wet_room_kinds
 from app.ai_harness.topology_poc.context import PromptContext, render_context_text
 
 SYSTEM_PROMPT = (
@@ -18,8 +18,19 @@ SYSTEM_PROMPT = (
     "and how the entrance relates to the rest of the plan. "
     "You NEVER produce geometry: no coordinates, no widths, no depths, no areas, no polygons, no "
     "walls, no drawing of any kind. Any such field in your output is a hard failure. "
-    "ADJACENCY IS NOT ACCESS: two rooms can share a wall with no door (adjacent but not accessed), "
-    "or be joined by a door across a corridor (accessed but not touching). Keep them separate. "
+    "ADJACENCY AND ACCESS ARE DIFFERENT FACTS, BUT A DOOR NEEDS A WALL: two rooms can share a wall "
+    "with no door (adjacent but not accessed), but a DIRECT door between A and B REQUIRES that A and B "
+    "share a wall — every access pair must also appear in spatial_adjacency. A corridor between A and B "
+    "is A->corridor and corridor->B, never A->B. "
+    "WET ROOMS: every bathroom or WC has EXACTLY ONE door. An ENSUITE is entered only from its one host "
+    "bedroom (named in the programme). A SHARED_BATHROOM or GUEST_WC is entered from the public side of "
+    "the house — the hall or circulation, or the living room as the fallback — never from a bedroom, "
+    "never from the kitchen or dining room. Use the wet-room kinds and hosts given in the programme; "
+    "do not invent different ones. "
+    "REQUIRED versus PREFERRED: spatial_adjacency is a HARD requirement — every pair you list must be "
+    "an actual geometric wall contact in the built plan, and the plan is refused if it cannot be. "
+    "Preferences such as 'near', 'clustered' or 'wet core' are NOT wall contacts: express them in "
+    "clusters and relative_position, not in spatial_adjacency, unless you truly require the shared wall. "
     "Every room you use MUST be exactly one of the room ids given to you — never invent, rename, "
     "merge, or drop a room id. Every proposal MUST include ALL of the given room ids, every time — "
     "never omit one. A role (e.g. BEDROOM) may apply to several distinct room ids "
@@ -47,10 +58,32 @@ def build_brief_program_text(brief: Brief) -> tuple:
         rooms.append((f"BEDROOM_{i}", "BEDROOM"))
     if brief.safe_room:
         rooms.append(("SAFE_ROOM", "SAFE_ROOM"))
-    for i in range(1, brief.wet_rooms + 1):
-        rooms.append((f"BATHROOM_{i}", "BATHROOM"))
-    program_text = ", ".join(f"{rid}({role})" for rid, role in rooms)
+    # wet rooms carry their KIND and host from the brief (Issue #142J): never a flat list of BATHROOMs
+    wet = brief_wet_room_rooms(brief)
+    rooms += [(rid, role) for rid, role, _desc in wet]
+    desc = {rid: d for rid, _role, d in wet}
+    program_text = ", ".join(f"{rid}({role}{', ' + desc[rid] if rid in desc else ''})" for rid, role in rooms)
     return tuple(rooms), program_text
+
+
+def brief_wet_room_rooms(brief: Brief) -> tuple:
+    """(room id, role, description) per wet room the brief declares — `briefs.brief_wet_room_kinds`
+    (the person's stated kinds, or the programme's count-derived defaults). BATHROOM_n for full
+    bathrooms (ensuite or shared), TOILET_n for a guest WC."""
+    from app.vertical_slice.spec import ENSUITE_HOST_BEDROOM, WetRoomKind
+    out = []; baths = toilets = 0
+    for req in brief_wet_room_kinds(brief):
+        if req.kind is WetRoomKind.GUEST_WC:
+            toilets += 1
+            out.append((f"TOILET_{toilets}", "TOILET", "GUEST_WC: exactly one door, from HALL/circulation or LIVING"))
+        elif req.kind is WetRoomKind.ENSUITE:
+            baths += 1
+            host = "a secondary BEDROOM" if req.host == ENSUITE_HOST_BEDROOM else "MASTER"
+            out.append((f"BATHROOM_{baths}", "BATHROOM", f"ENSUITE of {host}: exactly one door, from {host} only"))
+        else:
+            baths += 1
+            out.append((f"BATHROOM_{baths}", "BATHROOM", "SHARED_BATHROOM: exactly one door, from HALL/circulation or LIVING"))
+    return tuple(out)
 
 
 def build_prompt(context: PromptContext, brief: Brief, *, n_proposals: int = 6) -> tuple:
@@ -63,13 +96,17 @@ def build_prompt(context: PromptContext, brief: Brief, *, n_proposals: int = 6) 
         f"safe_room={brief.safe_room}, open_plan={brief.open_plan}, "
         f"footprint aspect={brief.aspect_tier}, house size={brief.size_tier} "
         f"({brief.built_area_m2} m2 built area).\n\n"
-        f"ROOM PROGRAMME — use EXACTLY these room ids, every one, in every proposal: {program_text}\n\n"
+        f"ROOM PROGRAMME — use EXACTLY these room ids, every one, in every proposal: {program_text}\n"
+        "Wet-room kinds and hosts above are the brief's requirements: keep them; give each wet room exactly "
+        "one door from the entrant its kind allows.\n\n"
         f"Generate exactly {n_proposals} MATERIALLY DIFFERENT structured spatial topology proposals "
         "as a JSON array. Each element is one proposal object with EXACTLY these keys:\n"
         '  "rooms": [{"id": ROOM_ID, "role": ROLE}, ...]  — copy the room programme above verbatim\n'
-        '  "spatial_adjacency": [[id_a, id_b], ...]  — unordered pairs of room ids that share a wall\n'
-        '  "access_graph": [[from_id, to_id], ...]  — DIRECTED pairs; "ENTRANCE" is a valid from_id '
-        "(never a to_id); every room must be reachable from ENTRANCE\n"
+        '  "spatial_adjacency": [[id_a, id_b], ...]  — unordered pairs of room ids that MUST share a wall '
+        "(a hard requirement; include every access pair here too)\n"
+        '  "access_graph": [[from_id, to_id], ...]  — DIRECTED door pairs; a door requires the shared wall '
+        'above; "ENTRANCE" is a valid from_id (never a to_id); every room must be reachable from ENTRANCE '
+        "through legal doors; every wet room has exactly one door\n"
         '  "zones": {"public": [...], "private": [...], "service": [...], "circulation": [...]} — '
         "every room id in exactly one zone\n"
         '  "clusters": {"wet_core": [...]}  — the wet room ids that are grouped together (omit if none)\n'
