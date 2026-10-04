@@ -83,6 +83,7 @@ from .geometry_core.model import (
     Rect,
     Side,
     WallType,
+    inset_u,
     ZoneSpec,
     m_to_u,
     u_to_m,
@@ -97,6 +98,12 @@ from .windows import Window, generate_windows
 #: Off by default (Issue #117's own scope: prove feasibility behind a flag; the production path
 #: is untouched — no existing caller imports this module at all).
 RECTILINEAR_REALIZER_ENABLED = False
+
+#: Issue #142E rollout switch: when True, `_build_grid_wing` sizes with the ORIGINAL rank-1
+#: proportional `_solve_grid` (kept verbatim as `_solve_grid_rank1`) instead of the exact per-cell
+#: solver (`band_sizing.solve_band_sizing`). The exact solver is the default: #142C/#142D proved the
+#: rank-1 fit rejects valid layouts (0/207 sizable witnesses sized). Regression safety only.
+GRID_SIZING_RANK1_FALLBACK = False
 
 UNIT_M = 0.05
 _MIN_SHORT_SIDE_FLOOR_M = 1.0
@@ -116,6 +123,9 @@ _PERMISSIVE_MIN_M2 = 0.01
 _PERMISSIVE_MAX_M2 = 100_000.0
 _PERMISSIVE_MIN_SHORT_SIDE_M = 0.01
 _PERMISSIVE_MAX_ASPECT = 1_000.0
+#: Issue #142E — the grid builder's NET-area gate tolerance, identical to validator C3's `TOL_M2`
+#: so that the gate and C3 can never disagree on a room by more than rounding.
+_NET_AREA_TOL_M2 = 0.01
 
 
 # --------------------------------------------------------------------------- mirrored intent shape
@@ -124,7 +134,11 @@ _PERMISSIVE_MAX_ASPECT = 1_000.0
 class ZoneIntent:
     """One room's own requirement — mirrors `geometry_core.model.ZoneSpec`'s fields (net area
     min/target/max, min short side, max aspect) plus the single `ProgramRole` this realizer
-    assigns it. Not `ZoneSpec` itself: a notch-carve "big" zone's ZoneIntent describes the WHOLE
+    assigns it. CANONICAL SEMANTICS (Issue #142E): every area and dimension here is NET — clear
+    internal, after wall insets — exactly as `ZoneSpec` declares and as validator C3 measures;
+    `ROOM_TEMPLATES` are written against net areas. A builder that gates a CENTERLINE rect against
+    these bounds must first remove the insets the realizer will assign (`_net_dims_m`), never compare
+    gross against net (the #142D-measured defect: ~90 % false acceptance, ~97 % false rejection). Not `ZoneSpec` itself: a notch-carve "big" zone's ZoneIntent describes the WHOLE
     merged room's own bounds, which is not what any one cell's `ZoneSpec` may declare (see module
     docstring) — mirroring, not reuse, is the point."""
 
@@ -225,6 +239,10 @@ class GridWing:
     n_cols: int
     rows: tuple[tuple[GridCell, ...], ...]
     zones: dict[str, ZoneIntent] = field(default_factory=dict)
+    #: Issue #142E — when True, `width_m`/`height_m` are UPPER BOUNDS (e.g. the buildable envelope)
+    #: and the exact per-cell sizing chooses the realized wing size within them; when False (the
+    #: original contract) the wing tiles exactly `width_m` x `height_m`.
+    envelope_is_bound: bool = False
 
 
 Wing = PinwheelWing | RowWing | GridWing
@@ -388,9 +406,12 @@ def _proportional_sizes(totals: list[float], budget_u: int, min_u: int) -> list[
     return _distribute_slack(sizes, budget_u - sum(sizes))
 
 
-def _solve_grid(w_u: int, h_u: int, rows: tuple[tuple[GridCell, ...], ...], n_cols: int,
-                 zones: dict[str, ZoneIntent], min_short_u: int) -> tuple[list[int], list[int]] | None:
-    """Row heights (one per row) and column widths (one per `n_cols`), grid units — a rank-1
+def _solve_grid_rank1(w_u: int, h_u: int, rows: tuple[tuple[GridCell, ...], ...], n_cols: int,
+                       zones: dict[str, ZoneIntent], min_short_u: int) -> tuple[list[int], list[int]] | None:
+    """ORIGINAL (#142A) sizing, kept only behind `GRID_SIZING_RANK1_FALLBACK` — superseded by the
+    exact per-cell solver (`band_sizing`), see Issue #142E.
+
+    Row heights (one per row) and column widths (one per `n_cols`), grid units — a rank-1
     (biproportional) area fit: each row's height is proportional to that row's OWN total target
     area, each column's width is proportional to that column's OWN total target area (a cell
     spanning multiple columns contributes its target area split evenly across them, for this
@@ -422,6 +443,53 @@ def _solve_grid(w_u: int, h_u: int, rows: tuple[tuple[GridCell, ...], ...], n_co
     if row_h is None or col_w is None:
         return None
     return row_h, col_w
+
+
+def _solve_grid(w: "GridWing") -> "tuple[list[int], list[int]] | Refusal":
+    """Issue #142E: exact per-cell sizing of a `GridWing` (band heights x column widths on the 5 cm
+    grid, every cell held to its own NET bounds — `band_sizing` docstring), or the rank-1 fallback
+    when `GRID_SIZING_RANK1_FALLBACK` is set. Returns `(row_h_u, col_w_u)` or a typed `Refusal`
+    (`GRID_INFEASIBLE` with a proof note, or `GRID_SIZING_UNKNOWN` when the node budget ran out)."""
+    from . import band_sizing  # local import: band_sizing imports nothing from this module
+
+    w_u, h_u = m_to_u(w.width_m), m_to_u(w.height_m)
+    if GRID_SIZING_RANK1_FALLBACK:
+        all_cells = [cell for row in w.rows for cell in row]
+        min_short_u = m_to_u(min(w.zones[c.zone_id].min_short_side_m for c in all_cells) +
+                              _INSET_MARGIN_M)
+        solved = _solve_grid_rank1(w_u, h_u, w.rows, w.n_cols, w.zones, min_short_u)
+        if solved is None:
+            return Refusal("GRID_INFEASIBLE",
+                            f"wing '{w.wing_id}' {w.width_m}x{w.height_m} m, {len(w.rows)} row(s) x "
+                            f"{w.n_cols} column(s), has no rank-1 row-height/column-width solution "
+                            f"honouring every cell's own minimum short side ({min_short_u * UNIT_M} m)")
+        return solved
+    if w.envelope_is_bound:
+        res = band_sizing.solve_band_sizing(w.rows, w.n_cols, w.zones, w_max_m=w.width_m,
+                                            h_max_m=w.height_m)
+    else:
+        res = band_sizing.solve_band_sizing(w.rows, w.n_cols, w.zones, w_max_m=w.width_m,
+                                            h_max_m=w.height_m, w_exact_m=w.width_m,
+                                            h_exact_m=w.height_m)
+    if res.status == "FEASIBLE":
+        return list(res.row_h_u), list(res.col_w_u)
+    code = "GRID_INFEASIBLE" if res.status == "INFEASIBLE" else "GRID_SIZING_UNKNOWN"
+    bound = "within" if w.envelope_is_bound else "tiling exactly"
+    return Refusal(code, f"wing '{w.wing_id}' ({len(w.rows)} band(s) x {w.n_cols} column(s), "
+                         f"{bound} {w.width_m}x{w.height_m} m): no band-height/column-width "
+                         f"assignment keeps every cell inside its own NET area, short-side and "
+                         f"aspect bounds — {res.detail} ({res.nodes} search nodes)")
+
+
+def _net_dims_m(rect: Rect, exterior: set[Side]) -> tuple[float, float]:
+    """NET width/depth (m) of a centerline `rect` whose sides in `exterior` will carry an EXTERIOR
+    wall (half-thickness inset 0.15 m) and whose other sides a PARTITION (0.05 m) — the same
+    per-side rule `engine.net_rect_m` applies after walls exist (Issue #142E canonical semantics)."""
+    def ins(side: Side) -> int:
+        return inset_u(WallType.EXTERIOR if side in exterior else WallType.PARTITION)
+    nw = rect.w - ins(Side.W) - ins(Side.E)
+    nh = rect.h - ins(Side.N) - ins(Side.S)
+    return u_to_m(nw), u_to_m(nh)
 
 
 # --------------------------------------------------------------------------- notch-carve solver
@@ -672,15 +740,12 @@ def _build_grid_wing(w: GridWing, origin: tuple[int, int]) -> "_WingBuild | Refu
                             f"wing '{w.wing_id}': a row's col_spans sum to {span_sum}, not "
                             f"n_cols={w.n_cols}")
 
-    min_short_u = m_to_u(min(w.zones[c.zone_id].min_short_side_m for c in all_cells) +
-                          _INSET_MARGIN_M)
-    solved = _solve_grid(w_u, h_u, w.rows, w.n_cols, w.zones, min_short_u)
-    if solved is None:
-        return Refusal("GRID_INFEASIBLE",
-                        f"wing '{w.wing_id}' {w.width_m}x{w.height_m} m, {len(w.rows)} row(s) x "
-                        f"{w.n_cols} column(s), has no row-height/column-width solution honouring "
-                        f"every cell's own minimum short side ({min_short_u * UNIT_M} m)")
+    solved = _solve_grid(w)
+    if isinstance(solved, Refusal):
+        return solved
     row_h, col_w = solved
+    # the realized wing is whatever the sizing tiles (== the declared envelope unless it is a bound)
+    w_u, h_u = sum(col_w), sum(row_h)
     col_x = [0] * (w.n_cols + 1)
     for i in range(w.n_cols):
         col_x[i + 1] = col_x[i] + col_w[i]
@@ -700,16 +765,24 @@ def _build_grid_wing(w: GridWing, origin: tuple[int, int]) -> "_WingBuild | Refu
             zi = w.zones[cell.zone_id]
             r = Rect(ox + col_x[col], oy + row_y[r_idx], col_x[col + cell.col_span] - col_x[col],
                       row_y[r_idx + 1] - row_y[r_idx])
-            area = r.area_m2()
-            if not (zi.min_area_m2 - 0.02 <= area <= zi.max_area_m2 + 0.02):
+            # NET gate (Issue #142E): the bounds are net, so measure the room the way C3 will — after
+            # the insets its own walls will carry (EXTERIOR on the wing boundary, PARTITION inside).
+            exterior = set()
+            if col == 0: exterior.add(Side.W)
+            if col + cell.col_span == w.n_cols: exterior.add(Side.E)
+            if r_idx == 0: exterior.add(Side.N)
+            if r_idx == len(w.rows) - 1: exterior.add(Side.S)
+            nw, nh = _net_dims_m(r, exterior)
+            net_area = round(nw * nh, 4)
+            if not (zi.min_area_m2 - _NET_AREA_TOL_M2 <= net_area <= zi.max_area_m2 + _NET_AREA_TOL_M2):
                 return Refusal("AREA_INFEASIBLE",
-                                f"{zi.zone_id}: grid-realized area {area:.2f} m2 outside "
+                                f"{zi.zone_id}: grid-realized NET area {net_area:.2f} m2 "
+                                f"({u_to_m(r.w)}x{u_to_m(r.h)} m gross) outside "
                                 f"[{zi.min_area_m2},{zi.max_area_m2}]")
-            short = min(u_to_m(r.w), u_to_m(r.h))
-            if short < zi.min_short_side_m + _INSET_MARGIN_M - 1e-6:
+            if min(nw, nh) < zi.min_short_side_m - 1e-6:
                 return Refusal("SHORT_SIDE_INFEASIBLE",
-                                f"{zi.zone_id}: grid-realized short side {short:.2f} m (gross) < "
-                                f"{zi.min_short_side_m} m (net) + {_INSET_MARGIN_M} m inset margin")
+                                f"{zi.zone_id}: grid-realized NET short side {min(nw, nh):.2f} m < "
+                                f"{zi.min_short_side_m} m")
             rects[zi.zone_id] = r
             roles[zi.zone_id] = (zi.role,)
             specs[zi.zone_id] = _zone_spec(zi)

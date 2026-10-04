@@ -1,4 +1,4 @@
-"""Graph -> wing embedding DECISION (Issue #162/#142A).
+"""Graph -> wing embedding DECISION (Issue #162/#142A; ROW/GRID made EXACT in Issue #142E).
 
 `rectilinear_realizer.py` gained a genuine 2D structural carrier (`GridWing`, alongside the
 existing `PinwheelWing`/`RowWing`) in this same Issue, but a `Wing` already requires placement
@@ -42,6 +42,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import permutations
 
+from .band_embedding import BandEmbedding, embed_band
 from .rectilinear_realizer import GridCell, GridWing, PinwheelWing, RowWing, Wing, ZoneIntent
 
 #: The 8 slot-pairs a `PinwheelWing` can ever realize as a physically-touching pair (module
@@ -237,6 +238,25 @@ def embed_adjacency_graph(zones: dict[str, ZoneIntent], edges, wing_id: str = "M
                 center=zones[mapping["center"]])
         best_score, best_form = score, "PINWHEEL (5 zones)"
 
+    # Issue #142E: ROW/GRID are decided EXACTLY by `band_embedding.embed_band` (a single-band
+    # layout is a RowWing, anything else a GridWing). The #142A greedy slot heuristic below is kept
+    # only to report, in a refusal, how much of the graph the old search would have carried.
+    exact = embed_band(zones, edge_set)
+    if isinstance(exact, BandEmbedding):
+        # keep #142A's structure order: a single-band (ROW) layout is preferred when one exists
+        best = next((c for c in exact.candidates if len(c.rows) == 1), exact.candidates[0])
+        n_rows = len(best.rows)
+        aspect = best.n_cols / n_rows
+        width_m, height_m = envelope_override or _default_envelope(zones, aspect)
+        if envelope_override is None and envelope_scale != 1.0:
+            width_m = round(width_m * envelope_scale ** 0.5, 2)
+            height_m = round(height_m * envelope_scale ** 0.5, 2)
+        if n_rows == 1:
+            return RowWing(wing_id=wing_id, width_m=width_m, height_m=height_m,
+                            slots=tuple(z for z, _ in best.rows[0]), zones=zones)
+        return best.to_grid_wing(wing_id, width_m, height_m, zones, envelope_is_bound=False)
+    exact_detail = f"{exact.code}: {exact.detail}"
+
     max_rows = min(n, _MAX_GRID_ROWS) if n > 0 else 0
     for n_rows in range(1, max_rows + 1):
         row_lengths = _row_lengths_for(n, n_rows)
@@ -247,24 +267,12 @@ def embed_adjacency_graph(zones: dict[str, ZoneIntent], edges, wing_id: str = "M
         form = "ROW" if n_rows == 1 else f"GRID {n_rows}x{n_cols}"
         if score > best_score:
             best_score, best_form = score, form
-        if score >= required:
-            aspect = n_cols / len(row_lengths)
-            width_m, height_m = envelope_override or _default_envelope(zones, aspect)
-            if envelope_override is None and envelope_scale != 1.0:
-                width_m = round(width_m * envelope_scale ** 0.5, 2)
-                height_m = round(height_m * envelope_scale ** 0.5, 2)
-            if n_rows == 1:
-                ordered = tuple(assignment[i] for i in range(len(assignment)))
-                return RowWing(wing_id=wing_id, width_m=width_m, height_m=height_m,
-                                slots=ordered, zones=zones)
-            return _grid_wing_from_assignment(wing_id, assignment, slots, row_lengths, n_cols,
-                                               zones, width_m, height_m)
 
     return EmbeddingRefusal(
         "TOPOLOGY_EMBEDDING",
-        f"no available 2D structure (row/pinwheel/grid; grid shapes with 1-{max_rows} rows "
-        f"tried) can embed the requested graph among {n} rooms: best found is {best_form}, "
-        f"achieving {best_score}/{required} requested spatial-adjacency pairs",
+        f"no available 2D structure (pinwheel / exact band layout) can embed the requested graph "
+        f"among {n} rooms — {exact_detail}; the #142A heuristic's best partial placement was "
+        f"{best_form}, achieving {best_score}/{required} requested spatial-adjacency pairs",
         best_score, required, best_form)
 
 
