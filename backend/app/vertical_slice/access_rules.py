@@ -31,6 +31,7 @@ from __future__ import annotations
 from enum import Enum
 
 from .geometry_core.model import ConnectionKind, Fixture, ProgramRole
+from .wet_room_policy import SHARED_WET_ROOM_ENTRY_ROLES
 
 # --------------------------------------------------------------------------- door kinds/widths
 
@@ -91,7 +92,9 @@ ALLOWED_ENTERED_FROM: dict[ProgramRole, frozenset[ProgramRole]] = {
     ProgramRole.CIRCULATION: PUBLIC_OR_CIRCULATION,
     ProgramRole.STAIRWELL: PUBLIC_OR_CIRCULATION,
     **{role: CIRCULATION_ROLES for role in PRIVATE_ROLES},
-    **{role: CIRCULATION_ROLES | BEDROOM_HOST_ROLES | {ProgramRole.LIVING} for role in WET_ROLES},
+    # wet rooms: the host bedroom (an ensuite) or the canonical shared-entry set (`wet_room_policy`,
+    # Issue #142I: HALL/CIRCULATION, LIVING as the specs/009 decision-C fallback) — one source of truth
+    **{role: BEDROOM_HOST_ROLES | SHARED_WET_ROOM_ENTRY_ROLES for role in WET_ROLES},
     **{role: CIRCULATION_ROLES | {ProgramRole.KITCHEN} for role in SERVICE_ROLES},
 }
 

@@ -48,6 +48,7 @@ from .geometry_core.model import (
 from .site import SitePlan
 from .spec import CorridorRequirement, WetRoomKind
 from . import wet_privacy as wet_privacy_module
+from . import wet_room_policy
 from .wet_rooms import ResolvedWetRoom
 from .walls import WallClass, derive_walls, door_id as _wall_door_id, window_id as _wall_window_id
 from .windows import DAYLIGHT_ROLES, Window, seam_sides_of
@@ -732,8 +733,7 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
     # is a failure, never a pass by absence. Whatever candidate won and however ranking may change,
     # a drawing cannot contradict what the person was told about their bathrooms.
     bad = []
-    circulation = {z.zone_id for z in fixture.zones
-                   if {ProgramRole.HALL, ProgramRole.CIRCULATION} & set(z.roles)}
+    roles_of = {z.zone_id: tuple(z.roles) for z in fixture.zones}
     wet_zones = {z.zone_id for z in fixture.zones
                  if {ProgramRole.BATHROOM, ProgramRole.TOILET} & set(z.roles)}
     covered = {w.zone_id for w in wet_rooms}
@@ -745,12 +745,15 @@ def validate(fixture: Fixture, rects: dict[str, Rect], walls: WallMap,
             continue
         entered_from = sorted({d.a if d.b == w.zone_id else d.b for d in interior_doors
                                if w.zone_id in (d.a, d.b)})
+        # exactly ONE door, from where the canonical wet-room policy allows (`wet_room_policy`,
+        # Issue #142I: the host for an ensuite; HALL/CIRCULATION or the specs/009 decision-C LIVING
+        # fallback for a shared wet room) — the same rule the realizer's door filter applies
         if w.kind is WetRoomKind.ENSUITE:
             expected = f"only from {w.host_zone}"
-            ok = entered_from == [w.host_zone]
         else:
-            expected = "only from circulation"
-            ok = len(entered_from) == 1 and entered_from[0] in circulation
+            expected = "only from circulation (or LIVING, specs/009 decision C)"
+        ok = len(entered_from) == 1 and wet_room_policy.wet_room_entry_allowed(
+            w, entered_from[0], roles_of.get(entered_from[0], ()))
         if not ok:
             bad.append(f"{w.zone_id} ({w.kind.value}): entered from "
                        f"{', '.join(entered_from) or 'nothing'}, required {expected}")

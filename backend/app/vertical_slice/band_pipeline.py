@@ -63,7 +63,7 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 
-from . import access_rules
+from . import access_rules, wet_room_policy
 from .band_embedding import BandEmbedding, BandEmbeddingRefusal, BandPlacement, embed_band
 from .band_sizing import contact_requirements, solve_band_layout
 from .doors import ALLOWED_ENTRANCE_ROLES
@@ -86,7 +86,6 @@ HARD_FLAGS = ("entrance_feasible", "access_contact_ok", "exposure_ok", "reachabl
               "safe_room_on_envelope")
 _SIZING_REFUSALS = frozenset({"GRID_INFEASIBLE", "GRID_SIZING_UNKNOWN", "AREA_INFEASIBLE",
                               "SHORT_SIDE_INFEASIBLE", "GRID_ROW_SPAN_MISMATCH", "EMPTY_GRID"})
-_CIRCULATION = (ProgramRole.HALL, ProgramRole.CIRCULATION)
 
 
 @dataclass(frozen=True)
@@ -159,9 +158,9 @@ def required_contacts(inp: PipelineInput) -> tuple[tuple[tuple[str, str], ...], 
 
 def access_policy_conflicts(inp: PipelineInput) -> list[tuple[str, str, str]]:
     """Direct-access pairs NO layout can carry as a door: illegal under `edge_role_pair_allowed`,
-    or forbidden by the realizer's own wet-room filter (`_filter_wet_room_access`: an ENSUITE only
-    from its host, a shared bathroom / guest WC only from HALL/CIRCULATION). Decided from the
-    proposal alone — the proposal, not the geometry, has to change."""
+    or forbidden by the canonical wet-room entry policy (`wet_room_policy`, Issue #142I — the one
+    rule C17 and the realizer's door filter also derive from). Decided from the proposal alone — the
+    proposal, not the geometry, has to change."""
     roles = {z: zi.role for z, zi in inp.zones.items()}
     wet = {w.zone_id: w for w in inp.wet_rooms}
     out = []
@@ -172,14 +171,9 @@ def access_policy_conflicts(inp: PipelineInput) -> list[tuple[str, str, str]]:
             out.append((a, b, "edge_role_pair_allowed forbids this role pair"))
             continue
         for x, y in ((a, b), (b, a)):
-            if x in wet:
-                w = wet[x]
-                if w.host_zone is not None and y != w.host_zone:
-                    out.append((a, b, f"{x} is an ENSUITE of {w.host_zone}; the wet-room filter admits no other door"))
-                    break
-                if w.host_zone is None and roles[y] not in _CIRCULATION:
-                    out.append((a, b, f"{x} is a shared wet room; the wet-room filter admits a door only from HALL/CIRCULATION"))
-                    break
+            if x in wet and not wet_room_policy.wet_room_entry_allowed(wet[x], y, (roles[y],)):
+                out.append((a, b, f"{x}: {wet_room_policy.describe_rule(wet[x])}"))
+                break
     return out
 
 
@@ -213,17 +207,13 @@ def _touch(cells, a, b) -> bool:
 
 
 def _legal(roles, wet, a, b) -> bool:
-    """A door may exist between a and b: the access-rules role table and the realizer's own
-    wet-room filter (mirrors `_filter_wet_room_access` / `_wet_room_edge_allowed`)."""
+    """A door may exist between a and b: the access-rules role table and the canonical wet-room
+    entry policy (`wet_room_policy`, the rule C17 and the realizer's door filter derive from)."""
     if not access_rules.edge_role_pair_allowed((roles[a],), (roles[b],)):
         return False
     for x, y in ((a, b), (b, a)):
-        if x in wet:
-            w = wet[x]
-            if w.host_zone is not None and y != w.host_zone:
-                return False
-            if w.host_zone is None and roles[y] not in _CIRCULATION:
-                return False
+        if x in wet and not wet_room_policy.wet_room_entry_allowed(wet[x], y, (roles[y],)):
+            return False
     return True
 
 
@@ -313,7 +303,7 @@ _SELECTION_CODE = (          # priority among HARD kills when none survives (tie
     ("reachable_from_entrance", "ACCESS_SPATIAL_MISMATCH"))
 
 
-def _selection_code(kills: Counter, n: int, complete: bool, conflicts) -> tuple[str, str, str]:
+def _selection_code(kills: Counter, n: int, complete: bool, conflicts, family: int | None = None) -> tuple[str, str, str]:
     if conflicts:
         return ("ACCESS_POLICY_CONFLICT", "SELECTION",
                 "no band layout can carry every direct-access pair as a legal door: "
@@ -321,7 +311,7 @@ def _selection_code(kills: Counter, n: int, complete: bool, conflicts) -> tuple[
     prio = {k: i for i, (k, _) in enumerate(_SELECTION_CODE)}
     flag = max(kills, key=lambda k: (kills[k], -prio.get(k, 99)))
     code = dict(_SELECTION_CODE)[flag]
-    family = f"complete family of {n}" if complete else f"{n} found within the search bound"
+    family = f"complete family of {family or n}" if complete else f"{n} found within the search bound"
     if code == "EXPOSURE_INFEASIBLE":
         detail = (f"no band layout ({family}) keeps every REQUIRED-exposure room on the envelope "
                   f"({kills[flag]} of {n} rejected by {flag})")
@@ -462,7 +452,7 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
     selected = [r for r in records if order[r.stage_reached] >= order["SELECTION"]]
     sized_recs = [r for r in records if order[r.stage_reached] >= order["SIZING"]]
     if not selected:
-        code, stage, detail = _selection_code(hist["SELECTION"], len(records), emb.search_complete, conflicts)
+        code, stage, detail = _selection_code(hist["SELECTION"], len(records), emb.search_complete, conflicts, emb.layouts_found)
     elif not sized_recs:
         proven = emb.search_complete and all(r.refusal == "GRID_INFEASIBLE" for r in selected)
         code = "BAND_GEOMETRY_LIMIT" if proven else "SIZING_INFEASIBLE"

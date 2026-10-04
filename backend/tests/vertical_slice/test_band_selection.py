@@ -230,15 +230,30 @@ def test_access_that_contradicts_the_adjacency_is_a_typed_diagnosis():
 
 
 def test_illegal_access_pair_is_a_policy_conflict_not_a_realizer_failure():
-    zones = _zones(LIVING, HALL, BED1, BATH)
+    zones = _zones(LIVING, HALL, KITCHEN, BED1, BATH)
     wet = (ResolvedWetRoom("BATHROOM", WetRoomKind.SHARED_BATHROOM, None, WetRoomStrength.REQUIRED, True),)
-    spatial = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("HALL", "BATHROOM"), ("LIVING", "BATHROOM"))
-    access = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("LIVING", "BATHROOM"))     # a shared bathroom off the living room
+    spatial = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("HALL", "BATHROOM"), ("KITCHEN", "BATHROOM"), ("LIVING", "KITCHEN"))
+    access = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("LIVING", "KITCHEN"), ("KITCHEN", "BATHROOM"))   # a bathroom off the kitchen
     res = run_band_pipeline(PipelineInput("policy", zones, spatial, (12.0, 10.0), wet, access))
     assert isinstance(res, PipelineDiagnosis), res
     assert res.code == "ACCESS_POLICY_CONFLICT" and res.stage == "SELECTION"
-    assert "LIVING->BATHROOM" in res.detail
+    assert "KITCHEN->BATHROOM" in res.detail
     assert res.candidates_tried > 0 and all(r.stage_reached == "EMBEDDING" for r in res.records)
+
+
+def test_shared_bathroom_off_the_living_room_is_the_specs_009_fallback_and_gets_one_door():
+    """#142I: the canonical `wet_room_policy` admits LIVING as the last public-access entry of a shared
+    wet room (specs/009 decision C) — in the selection legality, the realizer's door filter AND C17
+    alike — and the room still gets exactly one door."""
+    zones = _zones(LIVING, HALL, BED1, BATH)
+    wet = (ResolvedWetRoom("BATHROOM", WetRoomKind.SHARED_BATHROOM, None, WetRoomStrength.REQUIRED, True),)
+    spatial = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("LIVING", "BATHROOM"), ("HALL", "BATHROOM"))
+    access = (("LIVING", "HALL"), ("HALL", "BEDROOM_1"), ("LIVING", "BATHROOM"))
+    res = run_band_pipeline(PipelineInput("living-bath", zones, spatial, (12.0, 10.0), wet, access))
+    assert isinstance(res, PipelineSuccess), res
+    doors = [d for d in res.realized.interior_doors if d.placeable and "BATHROOM" in (d.a, d.b)]
+    assert len(doors) == 1 and {doors[0].a, doors[0].b} == {"HALL", "BATHROOM"}   # the hall door outranks the living door
+    assert next(c for c in res.realized.report.checks if c.check_id == "C17").passed
 
 
 # --------------------------------------------------------------------------- 4. exposure
