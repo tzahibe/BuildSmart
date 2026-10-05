@@ -1,0 +1,4000 @@
+{
+ "B10": {
+  "max_band_y": {
+   "k": 13,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     4,
+     5,
+     1,
+     2
+    ],
+    "KITCHEN": [
+     3,
+     5,
+     2,
+     3
+    ],
+    "HALL": [
+     0,
+     4,
+     1,
+     2
+    ],
+    "MASTER_BEDROOM": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "BEDROOM_1": [
+     2,
+     3,
+     0,
+     1
+    ],
+    "BEDROOM_2": [
+     2,
+     3,
+     2,
+     3
+    ],
+    "BEDROOM_3": [
+     0,
+     2,
+     0,
+     1
+    ],
+    "BATHROOM_1": [
+     3,
+     5,
+     0,
+     1
+    ],
+    "BATHROOM_2": [
+     1,
+     2,
+     2,
+     3
+    ]
+   }
+  },
+  "max_slicing": {
+   "k": 13,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     0,
+     1,
+     1,
+     4
+    ],
+    "KITCHEN": [
+     0,
+     1,
+     0,
+     1
+    ],
+    "HALL": [
+     1,
+     4,
+     0,
+     2
+    ],
+    "MASTER_BEDROOM": [
+     4,
+     5,
+     0,
+     1
+    ],
+    "BEDROOM_1": [
+     1,
+     2,
+     2,
+     3
+    ],
+    "BEDROOM_2": [
+     3,
+     4,
+     2,
+     4
+    ],
+    "BEDROOM_3": [
+     2,
+     3,
+     2,
+     4
+    ],
+    "BATHROOM_1": [
+     1,
+     2,
+     3,
+     4
+    ],
+    "BATHROOM_2": [
+     4,
+     5,
+     1,
+     4
+    ]
+   }
+  },
+  "max_rect": {
+   "k": 13,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     2,
+     4,
+     2,
+     4
+    ],
+    "KITCHEN": [
+     2,
+     4,
+     4,
+     5
+    ],
+    "HALL": [
+     1,
+     2,
+     0,
+     5
+    ],
+    "MASTER_BEDROOM": [
+     0,
+     1,
+     0,
+     1
+    ],
+    "BEDROOM_1": [
+     3,
+     4,
+     0,
+     2
+    ],
+    "BEDROOM_2": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "BEDROOM_3": [
+     0,
+     1,
+     3,
+     5
+    ],
+    "BATHROOM_1": [
+     2,
+     3,
+     0,
+     2
+    ],
+    "BATHROOM_2": [
+     0,
+     1,
+     1,
+     2
+    ]
+   }
+  },
+  "band_plus_L": {
+   "BATHROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      1,
+      2,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      1,
+      2
+     ],
+     "HALL": [
+      0,
+      4,
+      2,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      2,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BATHROOM_1": [
+      3,
+      5,
+      1,
+      2
+     ],
+     "BATHROOM_2": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "BATHROOM_1#2": [
+      0,
+      5,
+      0,
+      1
+     ]
+    }
+   },
+   "BEDROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      3,
+      4,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      4,
+      5,
+      1,
+      2
+     ],
+     "HALL": [
+      1,
+      6,
+      2,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      3,
+      6,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      5,
+      6,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "BATHROOM_1": [
+      0,
+      3,
+      1,
+      2
+     ],
+     "BATHROOM_2": [
+      2,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_1#2": [
+      0,
+      6,
+      0,
+      1
+     ]
+    }
+   },
+   "HALL": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      3,
+      4,
+      2,
+      3
+     ],
+     "KITCHEN": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "HALL": [
+      0,
+      5,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      5,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      1,
+      3,
+      2,
+      3
+     ],
+     "BEDROOM_2": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      0,
+      5,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      2,
+      4,
+      0,
+      1
+     ],
+     "HALL#2": [
+      0,
+      1,
+      2,
+      3
+     ]
+    }
+   },
+   "KITCHEN": {
+    "ok": false,
+    "rects": null
+   },
+   "LIVING": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      5,
+      0,
+      1
+     ],
+     "KITCHEN": [
+      3,
+      5,
+      1,
+      2
+     ],
+     "HALL": [
+      0,
+      5,
+      2,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      1,
+      2,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      2,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "BATHROOM_1": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BATHROOM_2": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "LIVING#2": [
+      0,
+      1,
+      1,
+      2
+     ]
+    }
+   }
+  },
+  "slicing_plus_L": {
+   "BATHROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      1,
+      3,
+      6
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "HALL": [
+      1,
+      3,
+      1,
+      4
+     ],
+     "MASTER_BEDROOM": [
+      0,
+      1,
+      0,
+      2
+     ],
+     "BEDROOM_1": [
+      1,
+      2,
+      4,
+      5
+     ],
+     "BEDROOM_2": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      3,
+      4,
+      0,
+      6
+     ],
+     "BATHROOM_1": [
+      2,
+      3,
+      4,
+      6
+     ],
+     "BATHROOM_2": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BATHROOM_1#2": [
+      1,
+      2,
+      5,
+      6
+     ]
+    }
+   },
+   "BEDROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      2,
+      3,
+      3,
+      6
+     ],
+     "KITCHEN": [
+      1,
+      2,
+      5,
+      6
+     ],
+     "HALL": [
+      1,
+      2,
+      0,
+      5
+     ],
+     "MASTER_BEDROOM": [
+      0,
+      1,
+      4,
+      6
+     ],
+     "BEDROOM_1": [
+      2,
+      4,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      0,
+      1,
+      0,
+      3
+     ],
+     "BEDROOM_3": [
+      2,
+      4,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      2,
+      3,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "BEDROOM_1#2": [
+      3,
+      4,
+      2,
+      6
+     ]
+    }
+   },
+   "HALL": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      2,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      0,
+      4,
+      0,
+      1
+     ],
+     "HALL": [
+      0,
+      2,
+      4,
+      5
+     ],
+     "MASTER_BEDROOM": [
+      0,
+      2,
+      5,
+      6
+     ],
+     "BEDROOM_1": [
+      0,
+      1,
+      2,
+      4
+     ],
+     "BEDROOM_2": [
+      3,
+      4,
+      5,
+      6
+     ],
+     "BEDROOM_3": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "BATHROOM_1": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      2,
+      3,
+      5,
+      6
+     ],
+     "HALL#2": [
+      2,
+      4,
+      1,
+      5
+     ]
+    }
+   },
+   "KITCHEN": {
+    "ok": false,
+    "rects": null
+   },
+   "LIVING": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      5,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      0,
+      2,
+      2,
+      3
+     ],
+     "HALL": [
+      0,
+      4,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      3,
+      4,
+      2,
+      3
+     ],
+     "BEDROOM_2": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      3,
+      5,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      2,
+      3,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "LIVING#2": [
+      4,
+      5,
+      1,
+      3
+     ]
+    }
+   }
+  },
+  "edge_deletion": {
+   "BATHROOM_1--BEDROOM_1": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_1--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_1--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_2--BEDROOM_2": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_2--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_2--MASTER_BEDROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BEDROOM_1--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_1--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_2--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BEDROOM_3--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--KITCHEN": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "HALL--MASTER_BEDROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "KITCHEN--LIVING": {
+    "rect_without_it": false,
+    "band_without_it": null
+   }
+  }
+ },
+ "B15": {
+  "max_band_y": {
+   "k": 14,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     0,
+     3,
+     2,
+     3
+    ],
+    "KITCHEN": [
+     3,
+     4,
+     2,
+     3
+    ],
+    "HALL": [
+     2,
+     6,
+     1,
+     2
+    ],
+    "MASTER_BEDROOM": [
+     5,
+     6,
+     0,
+     1
+    ],
+    "BEDROOM_1": [
+     0,
+     1,
+     1,
+     2
+    ],
+    "BEDROOM_2": [
+     0,
+     1,
+     0,
+     1
+    ],
+    "BEDROOM_3": [
+     1,
+     2,
+     1,
+     2
+    ],
+    "BEDROOM_4": [
+     5,
+     6,
+     2,
+     3
+    ],
+    "SAFE_ROOM": [
+     4,
+     5,
+     2,
+     3
+    ],
+    "BATHROOM_1": [
+     4,
+     5,
+     0,
+     1
+    ],
+    "BATHROOM_2": [
+     1,
+     4,
+     0,
+     1
+    ]
+   }
+  },
+  "max_slicing": {
+   "k": 14,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     3,
+     5,
+     0,
+     2
+    ],
+    "KITCHEN": [
+     3,
+     4,
+     2,
+     3
+    ],
+    "HALL": [
+     2,
+     3,
+     0,
+     6
+    ],
+    "MASTER_BEDROOM": [
+     0,
+     2,
+     5,
+     6
+    ],
+    "BEDROOM_1": [
+     4,
+     5,
+     2,
+     3
+    ],
+    "BEDROOM_2": [
+     1,
+     2,
+     4,
+     5
+    ],
+    "BEDROOM_3": [
+     0,
+     2,
+     0,
+     1
+    ],
+    "BEDROOM_4": [
+     3,
+     5,
+     3,
+     5
+    ],
+    "SAFE_ROOM": [
+     3,
+     5,
+     5,
+     6
+    ],
+    "BATHROOM_1": [
+     0,
+     1,
+     1,
+     5
+    ],
+    "BATHROOM_2": [
+     1,
+     2,
+     1,
+     4
+    ]
+   }
+  },
+  "max_rect": {
+   "k": 14,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "HALL",
+     "KITCHEN"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     3,
+     4,
+     1,
+     3
+    ],
+    "KITCHEN": [
+     2,
+     3,
+     2,
+     3
+    ],
+    "HALL": [
+     1,
+     4,
+     3,
+     4
+    ],
+    "MASTER_BEDROOM": [
+     4,
+     5,
+     0,
+     4
+    ],
+    "BEDROOM_1": [
+     2,
+     3,
+     1,
+     2
+    ],
+    "BEDROOM_2": [
+     0,
+     2,
+     4,
+     5
+    ],
+    "BEDROOM_3": [
+     1,
+     2,
+     1,
+     3
+    ],
+    "BEDROOM_4": [
+     3,
+     5,
+     4,
+     5
+    ],
+    "SAFE_ROOM": [
+     2,
+     3,
+     4,
+     5
+    ],
+    "BATHROOM_1": [
+     0,
+     4,
+     0,
+     1
+    ],
+    "BATHROOM_2": [
+     0,
+     1,
+     1,
+     4
+    ]
+   }
+  },
+  "band_plus_L": {
+   "BATHROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      3,
+      4,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      4,
+      6,
+      1,
+      2
+     ],
+     "HALL": [
+      1,
+      5,
+      2,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BEDROOM_1": [
+      0,
+      6,
+      0,
+      1
+     ],
+     "BEDROOM_2": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "BEDROOM_3": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "BEDROOM_4": [
+      0,
+      2,
+      1,
+      2
+     ],
+     "SAFE_ROOM": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      4,
+      6,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      0,
+      3,
+      3,
+      4
+     ],
+     "BATHROOM_1#2": [
+      0,
+      6,
+      4,
+      5
+     ]
+    }
+   },
+   "BATHROOM_2": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      6,
+      7,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      5,
+      7,
+      0,
+      1
+     ],
+     "HALL": [
+      2,
+      6,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BEDROOM_1": [
+      6,
+      7,
+      2,
+      3
+     ],
+     "BEDROOM_2": [
+      1,
+      2,
+      1,
+      2
+     ],
+     "BEDROOM_3": [
+      0,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      4,
+      5,
+      0,
+      1
+     ],
+     "SAFE_ROOM": [
+      3,
+      4,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      0,
+      4,
+      2,
+      3
+     ],
+     "BATHROOM_2#2": [
+      0,
+      1,
+      1,
+      2
+     ]
+    }
+   },
+   "BEDROOM_2": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "HALL": [
+      1,
+      5,
+      2,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      6,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      0,
+      6,
+      4,
+      5
+     ],
+     "BEDROOM_2": [
+      0,
+      6,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      3,
+      4,
+      1,
+      2
+     ],
+     "BEDROOM_4": [
+      2,
+      4,
+      3,
+      4
+     ],
+     "SAFE_ROOM": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      4,
+      6,
+      1,
+      2
+     ],
+     "BEDROOM_2#2": [
+      0,
+      2,
+      1,
+      2
+     ]
+    }
+   },
+   "BEDROOM_3": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "HALL": [
+      1,
+      5,
+      2,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      6,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      0,
+      6,
+      4,
+      5
+     ],
+     "BEDROOM_2": [
+      3,
+      4,
+      1,
+      2
+     ],
+     "BEDROOM_3": [
+      0,
+      6,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      2,
+      4,
+      3,
+      4
+     ],
+     "SAFE_ROOM": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      4,
+      6,
+      1,
+      2
+     ],
+     "BEDROOM_3#2": [
+      0,
+      2,
+      1,
+      2
+     ]
+    }
+   },
+   "HALL": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      3,
+      7,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      2,
+      3,
+      3,
+      4
+     ],
+     "HALL": [
+      0,
+      4,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      5,
+      1,
+      2
+     ],
+     "BEDROOM_1": [
+      0,
+      7,
+      4,
+      5
+     ],
+     "BEDROOM_2": [
+      0,
+      2,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      6,
+      7,
+      1,
+      2
+     ],
+     "BEDROOM_4": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "SAFE_ROOM": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "BATHROOM_1": [
+      5,
+      6,
+      1,
+      2
+     ],
+     "BATHROOM_2": [
+      2,
+      7,
+      0,
+      1
+     ],
+     "HALL#2": [
+      0,
+      7,
+      2,
+      3
+     ]
+    }
+   }
+  },
+  "slicing_plus_L": {
+   "BATHROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      2,
+      3,
+      6,
+      7
+     ],
+     "KITCHEN": [
+      1,
+      2,
+      6,
+      7
+     ],
+     "HALL": [
+      0,
+      3,
+      1,
+      6
+     ],
+     "MASTER_BEDROOM": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      3,
+      5,
+      6,
+      7
+     ],
+     "BEDROOM_2": [
+      3,
+      4,
+      2,
+      3
+     ],
+     "BEDROOM_3": [
+      0,
+      5,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      0,
+      1,
+      6,
+      7
+     ],
+     "SAFE_ROOM": [
+      3,
+      4,
+      4,
+      5
+     ],
+     "BATHROOM_1": [
+      4,
+      5,
+      1,
+      6
+     ],
+     "BATHROOM_2": [
+      3,
+      4,
+      1,
+      2
+     ],
+     "BATHROOM_1#2": [
+      3,
+      4,
+      5,
+      6
+     ]
+    }
+   },
+   "BATHROOM_2": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      1,
+      1,
+      3
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "HALL": [
+      1,
+      2,
+      0,
+      5
+     ],
+     "MASTER_BEDROOM": [
+      2,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "BEDROOM_2": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BEDROOM_3": [
+      2,
+      3,
+      4,
+      6
+     ],
+     "BEDROOM_4": [
+      0,
+      1,
+      4,
+      6
+     ],
+     "SAFE_ROOM": [
+      1,
+      2,
+      5,
+      6
+     ],
+     "BATHROOM_1": [
+      2,
+      3,
+      2,
+      3
+     ],
+     "BATHROOM_2": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BATHROOM_2#2": [
+      3,
+      4,
+      0,
+      6
+     ]
+    }
+   },
+   "BEDROOM_2": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      2,
+      3,
+      2,
+      3
+     ],
+     "KITCHEN": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "HALL": [
+      0,
+      4,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      1,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_2": [
+      0,
+      1,
+      2,
+      5
+     ],
+     "BEDROOM_3": [
+      3,
+      4,
+      2,
+      4
+     ],
+     "BEDROOM_4": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "SAFE_ROOM": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      3,
+      5,
+      0,
+      1
+     ],
+     "BATHROOM_2": [
+      4,
+      5,
+      1,
+      5
+     ],
+     "BEDROOM_2#2": [
+      1,
+      4,
+      4,
+      5
+     ]
+    }
+   },
+   "BEDROOM_3": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      1,
+      5,
+      6
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      4,
+      5
+     ],
+     "HALL": [
+      1,
+      6,
+      2,
+      7
+     ],
+     "MASTER_BEDROOM": [
+      5,
+      6,
+      0,
+      2
+     ],
+     "BEDROOM_1": [
+      0,
+      1,
+      6,
+      7
+     ],
+     "BEDROOM_2": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BEDROOM_3": [
+      1,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "SAFE_ROOM": [
+      1,
+      2,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      4,
+      5,
+      0,
+      2
+     ],
+     "BATHROOM_2": [
+      3,
+      4,
+      0,
+      2
+     ],
+     "BEDROOM_3#2": [
+      0,
+      1,
+      0,
+      3
+     ]
+    }
+   },
+   "HALL": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      3,
+      4,
+      2,
+      3
+     ],
+     "KITCHEN": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "HALL": [
+      2,
+      3,
+      1,
+      3
+     ],
+     "MASTER_BEDROOM": [
+      3,
+      5,
+      0,
+      2
+     ],
+     "BEDROOM_1": [
+      4,
+      5,
+      2,
+      4
+     ],
+     "BEDROOM_2": [
+      0,
+      2,
+      4,
+      5
+     ],
+     "BEDROOM_3": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "BEDROOM_4": [
+      2,
+      5,
+      4,
+      5
+     ],
+     "SAFE_ROOM": [
+      1,
+      2,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      0,
+      3,
+      0,
+      1
+     ],
+     "BATHROOM_2": [
+      0,
+      1,
+      1,
+      4
+     ],
+     "HALL#2": [
+      1,
+      3,
+      3,
+      4
+     ]
+    }
+   }
+  },
+  "edge_deletion": {
+   "BATHROOM_1--BATHROOM_2": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_1--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_1--MASTER_BEDROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_2--BEDROOM_2": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_2--BEDROOM_3": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_2--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_1--LIVING": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BEDROOM_2--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_3--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_4--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--KITCHEN": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--LIVING": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--MASTER_BEDROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--SAFE_ROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "KITCHEN--LIVING": {
+    "rect_without_it": false,
+    "band_without_it": null
+   }
+  }
+ },
+ "B16": {
+  "max_band_y": {
+   "k": 18,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "LIVING"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "KITCHEN",
+     "SAFE_ROOM"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     0,
+     4,
+     2,
+     3
+    ],
+    "DINING": [
+     0,
+     1,
+     3,
+     4
+    ],
+    "KITCHEN": [
+     1,
+     7,
+     3,
+     4
+    ],
+    "HALL": [
+     2,
+     7,
+     1,
+     2
+    ],
+    "MASTER": [
+     0,
+     3,
+     0,
+     1
+    ],
+    "BEDROOM_1": [
+     5,
+     6,
+     2,
+     3
+    ],
+    "BEDROOM_2": [
+     5,
+     6,
+     0,
+     1
+    ],
+    "BEDROOM_3": [
+     4,
+     5,
+     0,
+     1
+    ],
+    "BEDROOM_4": [
+     4,
+     5,
+     2,
+     3
+    ],
+    "SAFE_ROOM": [
+     6,
+     7,
+     2,
+     3
+    ],
+    "BATHROOM_1": [
+     3,
+     4,
+     0,
+     1
+    ],
+    "BATHROOM_2": [
+     6,
+     7,
+     0,
+     1
+    ],
+    "BATHROOM_3": [
+     0,
+     2,
+     1,
+     2
+    ]
+   }
+  },
+  "max_slicing": {
+   "k": 18,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "KITCHEN",
+     "SAFE_ROOM"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     2,
+     4,
+     2,
+     3
+    ],
+    "DINING": [
+     1,
+     3,
+     3,
+     4
+    ],
+    "KITCHEN": [
+     3,
+     7,
+     3,
+     4
+    ],
+    "HALL": [
+     0,
+     7,
+     1,
+     2
+    ],
+    "MASTER": [
+     2,
+     5,
+     0,
+     1
+    ],
+    "BEDROOM_1": [
+     4,
+     6,
+     2,
+     3
+    ],
+    "BEDROOM_2": [
+     6,
+     7,
+     0,
+     1
+    ],
+    "BEDROOM_3": [
+     0,
+     1,
+     2,
+     4
+    ],
+    "BEDROOM_4": [
+     0,
+     1,
+     0,
+     1
+    ],
+    "SAFE_ROOM": [
+     6,
+     7,
+     2,
+     3
+    ],
+    "BATHROOM_1": [
+     1,
+     2,
+     0,
+     1
+    ],
+    "BATHROOM_2": [
+     5,
+     6,
+     0,
+     1
+    ],
+    "BATHROOM_3": [
+     1,
+     2,
+     2,
+     3
+    ]
+   }
+  },
+  "max_rect": {
+   "k": 18,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BEDROOM_4",
+     "LIVING"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "KITCHEN",
+     "SAFE_ROOM"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     0,
+     1,
+     0,
+     5
+    ],
+    "DINING": [
+     1,
+     2,
+     4,
+     5
+    ],
+    "KITCHEN": [
+     0,
+     7,
+     5,
+     6
+    ],
+    "HALL": [
+     1,
+     6,
+     2,
+     3
+    ],
+    "MASTER": [
+     2,
+     3,
+     1,
+     2
+    ],
+    "BEDROOM_1": [
+     1,
+     2,
+     1,
+     2
+    ],
+    "BEDROOM_2": [
+     4,
+     5,
+     1,
+     2
+    ],
+    "BEDROOM_3": [
+     6,
+     7,
+     2,
+     3
+    ],
+    "BEDROOM_4": [
+     1,
+     7,
+     0,
+     1
+    ],
+    "SAFE_ROOM": [
+     2,
+     7,
+     3,
+     5
+    ],
+    "BATHROOM_1": [
+     3,
+     4,
+     1,
+     2
+    ],
+    "BATHROOM_2": [
+     5,
+     7,
+     1,
+     2
+    ],
+    "BATHROOM_3": [
+     1,
+     2,
+     3,
+     4
+    ]
+   }
+  },
+  "band_plus_L": {
+   "BATHROOM_3": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      5,
+      1,
+      2
+     ],
+     "DINING": [
+      0,
+      4,
+      0,
+      1
+     ],
+     "KITCHEN": [
+      4,
+      8,
+      0,
+      1
+     ],
+     "HALL": [
+      2,
+      7,
+      2,
+      3
+     ],
+     "MASTER": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      5,
+      6,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      5,
+      6,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      7,
+      8,
+      2,
+      3
+     ],
+     "BEDROOM_4": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "SAFE_ROOM": [
+      6,
+      8,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      6,
+      8,
+      3,
+      4
+     ],
+     "BATHROOM_3": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "BATHROOM_3#2": [
+      0,
+      3,
+      3,
+      4
+     ]
+    }
+   },
+   "BEDROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      5,
+      8,
+      2,
+      3
+     ],
+     "DINING": [
+      7,
+      8,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      0,
+      7,
+      3,
+      4
+     ],
+     "HALL": [
+      0,
+      6,
+      1,
+      2
+     ],
+     "MASTER": [
+      3,
+      4,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      7,
+      8,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      4,
+      5,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      1,
+      5,
+      2,
+      3
+     ],
+     "SAFE_ROOM": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "BATHROOM_1": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BATHROOM_2": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BATHROOM_3": [
+      6,
+      7,
+      1,
+      2
+     ],
+     "BEDROOM_1#2": [
+      5,
+      8,
+      0,
+      1
+     ]
+    }
+   },
+   "BEDROOM_4": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      3,
+      6,
+      2,
+      3
+     ],
+     "DINING": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      0,
+      4,
+      3,
+      4
+     ],
+     "HALL": [
+      0,
+      8,
+      1,
+      2
+     ],
+     "MASTER": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      6,
+      7,
+      2,
+      3
+     ],
+     "BEDROOM_2": [
+      2,
+      6,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "BEDROOM_4": [
+      5,
+      8,
+      3,
+      4
+     ],
+     "SAFE_ROOM": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "BATHROOM_1": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BATHROOM_2": [
+      6,
+      8,
+      0,
+      1
+     ],
+     "BATHROOM_3": [
+      2,
+      3,
+      2,
+      3
+     ],
+     "BEDROOM_4#2": [
+      7,
+      8,
+      2,
+      3
+     ]
+    }
+   },
+   "HALL": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      1,
+      8,
+      0,
+      1
+     ],
+     "DINING": [
+      6,
+      7,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      7,
+      8,
+      1,
+      2
+     ],
+     "HALL": [
+      0,
+      4,
+      1,
+      2
+     ],
+     "MASTER": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      5,
+      6,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      1,
+      2,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      0,
+      1,
+      3,
+      4
+     ],
+     "BEDROOM_4": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "SAFE_ROOM": [
+      6,
+      8,
+      2,
+      3
+     ],
+     "BATHROOM_1": [
+      4,
+      8,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      2,
+      3,
+      3,
+      4
+     ],
+     "BATHROOM_3": [
+      4,
+      5,
+      1,
+      2
+     ],
+     "HALL#2": [
+      0,
+      6,
+      2,
+      3
+     ]
+    }
+   },
+   "LIVING": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      3,
+      1,
+      2
+     ],
+     "DINING": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "KITCHEN": [
+      1,
+      8,
+      0,
+      1
+     ],
+     "HALL": [
+      2,
+      8,
+      2,
+      3
+     ],
+     "MASTER": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      0,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_2": [
+      7,
+      8,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      5,
+      6,
+      3,
+      4
+     ],
+     "BEDROOM_4": [
+      3,
+      4,
+      1,
+      2
+     ],
+     "SAFE_ROOM": [
+      4,
+      8,
+      1,
+      2
+     ],
+     "BATHROOM_1": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      6,
+      7,
+      3,
+      4
+     ],
+     "BATHROOM_3": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "LIVING#2": [
+      0,
+      1,
+      2,
+      3
+     ]
+    }
+   }
+  },
+  "slicing_plus_L": {
+   "BATHROOM_3": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      5,
+      0,
+      1
+     ],
+     "DINING": [
+      1,
+      2,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      1,
+      2
+     ],
+     "HALL": [
+      3,
+      4,
+      1,
+      6
+     ],
+     "MASTER": [
+      0,
+      6,
+      6,
+      7
+     ],
+     "BEDROOM_1": [
+      4,
+      5,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_3": [
+      4,
+      5,
+      4,
+      5
+     ],
+     "BEDROOM_4": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "SAFE_ROOM": [
+      0,
+      3,
+      2,
+      4
+     ],
+     "BATHROOM_1": [
+      0,
+      3,
+      4,
+      6
+     ],
+     "BATHROOM_2": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BATHROOM_3": [
+      5,
+      6,
+      0,
+      6
+     ],
+     "BATHROOM_3#2": [
+      4,
+      5,
+      5,
+      6
+     ]
+    }
+   },
+   "BEDROOM_1": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      4,
+      6,
+      2,
+      3
+     ],
+     "DINING": [
+      5,
+      7,
+      3,
+      4
+     ],
+     "KITCHEN": [
+      1,
+      5,
+      3,
+      4
+     ],
+     "HALL": [
+      1,
+      5,
+      1,
+      2
+     ],
+     "MASTER": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      6,
+      7,
+      1,
+      3
+     ],
+     "BEDROOM_2": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BEDROOM_3": [
+      2,
+      3,
+      2,
+      3
+     ],
+     "BEDROOM_4": [
+      3,
+      4,
+      2,
+      3
+     ],
+     "SAFE_ROOM": [
+      1,
+      2,
+      2,
+      3
+     ],
+     "BATHROOM_1": [
+      3,
+      4,
+      0,
+      1
+     ],
+     "BATHROOM_2": [
+      0,
+      1,
+      0,
+      4
+     ],
+     "BATHROOM_3": [
+      5,
+      6,
+      1,
+      2
+     ],
+     "BEDROOM_1#2": [
+      4,
+      7,
+      0,
+      1
+     ]
+    }
+   },
+   "BEDROOM_4": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      4,
+      6,
+      1,
+      3
+     ],
+     "DINING": [
+      6,
+      7,
+      0,
+      2
+     ],
+     "KITCHEN": [
+      6,
+      7,
+      2,
+      8
+     ],
+     "HALL": [
+      0,
+      4,
+      1,
+      8
+     ],
+     "MASTER": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "BEDROOM_1": [
+      3,
+      6,
+      0,
+      1
+     ],
+     "BEDROOM_2": [
+      4,
+      6,
+      6,
+      7
+     ],
+     "BEDROOM_3": [
+      2,
+      3,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      4,
+      6,
+      4,
+      5
+     ],
+     "SAFE_ROOM": [
+      4,
+      6,
+      7,
+      8
+     ],
+     "BATHROOM_1": [
+      1,
+      2,
+      0,
+      1
+     ],
+     "BATHROOM_2": [
+      4,
+      6,
+      5,
+      6
+     ],
+     "BATHROOM_3": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_4#2": [
+      5,
+      6,
+      3,
+      4
+     ]
+    }
+   },
+   "HALL": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      4,
+      0,
+      3
+     ],
+     "DINING": [
+      4,
+      5,
+      1,
+      2
+     ],
+     "KITCHEN": [
+      4,
+      5,
+      0,
+      1
+     ],
+     "HALL": [
+      0,
+      5,
+      4,
+      7
+     ],
+     "MASTER": [
+      5,
+      6,
+      6,
+      8
+     ],
+     "BEDROOM_1": [
+      2,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_2": [
+      0,
+      1,
+      7,
+      8
+     ],
+     "BEDROOM_3": [
+      2,
+      5,
+      7,
+      8
+     ],
+     "BEDROOM_4": [
+      0,
+      2,
+      3,
+      4
+     ],
+     "SAFE_ROOM": [
+      5,
+      6,
+      0,
+      5
+     ],
+     "BATHROOM_1": [
+      5,
+      6,
+      5,
+      6
+     ],
+     "BATHROOM_2": [
+      1,
+      2,
+      7,
+      8
+     ],
+     "BATHROOM_3": [
+      3,
+      4,
+      3,
+      4
+     ],
+     "HALL#2": [
+      4,
+      5,
+      2,
+      4
+     ]
+    }
+   },
+   "LIVING": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      3,
+      5,
+      6
+     ],
+     "DINING": [
+      0,
+      2,
+      6,
+      7
+     ],
+     "KITCHEN": [
+      2,
+      3,
+      6,
+      7
+     ],
+     "HALL": [
+      3,
+      4,
+      0,
+      6
+     ],
+     "MASTER": [
+      4,
+      5,
+      3,
+      4
+     ],
+     "BEDROOM_1": [
+      1,
+      3,
+      3,
+      4
+     ],
+     "BEDROOM_2": [
+      4,
+      5,
+      1,
+      2
+     ],
+     "BEDROOM_3": [
+      4,
+      5,
+      0,
+      1
+     ],
+     "BEDROOM_4": [
+      1,
+      3,
+      4,
+      5
+     ],
+     "SAFE_ROOM": [
+      3,
+      4,
+      6,
+      7
+     ],
+     "BATHROOM_1": [
+      4,
+      5,
+      4,
+      7
+     ],
+     "BATHROOM_2": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BATHROOM_3": [
+      0,
+      3,
+      0,
+      3
+     ],
+     "LIVING#2": [
+      0,
+      1,
+      3,
+      5
+     ]
+    }
+   }
+  },
+  "edge_deletion": {
+   "BATHROOM_1--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_1--MASTER": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_2--BEDROOM_2": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_2--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BATHROOM_3--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_3--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_1--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_1--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_2--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BEDROOM_3--HALL": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "BEDROOM_4--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_4--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "DINING--KITCHEN": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "DINING--LIVING": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "HALL--MASTER": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "HALL--SAFE_ROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "KITCHEN--LIVING": {
+    "rect_without_it": false,
+    "band_without_it": null
+   },
+   "KITCHEN--SAFE_ROOM": {
+    "rect_without_it": false,
+    "band_without_it": null
+   }
+  }
+ },
+ "B13": {
+  "max_band_y": {
+   "k": 12,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     0,
+     3,
+     0,
+     1
+    ],
+    "DINING": [
+     2,
+     5,
+     1,
+     2
+    ],
+    "KITCHEN": [
+     3,
+     5,
+     0,
+     1
+    ],
+    "HALL": [
+     0,
+     3,
+     2,
+     3
+    ],
+    "MASTER_BEDROOM": [
+     3,
+     4,
+     2,
+     3
+    ],
+    "BEDROOM_1": [
+     1,
+     2,
+     1,
+     2
+    ],
+    "BEDROOM_2": [
+     1,
+     5,
+     3,
+     4
+    ],
+    "BEDROOM_3": [
+     0,
+     1,
+     3,
+     4
+    ],
+    "BATHROOM_1": [
+     4,
+     5,
+     2,
+     3
+    ],
+    "BATHROOM_2": [
+     0,
+     1,
+     1,
+     2
+    ]
+   }
+  },
+  "max_slicing": {
+   "k": 12,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     3,
+     5,
+     1,
+     6
+    ],
+    "DINING": [
+     0,
+     4,
+     0,
+     1
+    ],
+    "KITCHEN": [
+     4,
+     5,
+     0,
+     1
+    ],
+    "HALL": [
+     0,
+     1,
+     1,
+     6
+    ],
+    "MASTER_BEDROOM": [
+     1,
+     2,
+     1,
+     2
+    ],
+    "BEDROOM_1": [
+     1,
+     3,
+     2,
+     3
+    ],
+    "BEDROOM_2": [
+     1,
+     3,
+     5,
+     6
+    ],
+    "BEDROOM_3": [
+     1,
+     3,
+     4,
+     5
+    ],
+    "BATHROOM_1": [
+     2,
+     3,
+     1,
+     2
+    ],
+    "BATHROOM_2": [
+     1,
+     3,
+     3,
+     4
+    ]
+   }
+  },
+  "max_rect": {
+   "k": 12,
+   "kept": [
+    [
+     "BATHROOM_1",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "HALL"
+    ],
+    [
+     "DINING",
+     "KITCHEN"
+    ],
+    [
+     "DINING",
+     "LIVING"
+    ],
+    [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "rects": {
+    "LIVING": [
+     1,
+     5,
+     3,
+     4
+    ],
+    "DINING": [
+     0,
+     1,
+     1,
+     4
+    ],
+    "KITCHEN": [
+     0,
+     5,
+     4,
+     5
+    ],
+    "HALL": [
+     1,
+     3,
+     0,
+     2
+    ],
+    "MASTER_BEDROOM": [
+     3,
+     4,
+     0,
+     1
+    ],
+    "BEDROOM_1": [
+     3,
+     5,
+     1,
+     3
+    ],
+    "BEDROOM_2": [
+     1,
+     2,
+     2,
+     3
+    ],
+    "BEDROOM_3": [
+     0,
+     1,
+     0,
+     1
+    ],
+    "BATHROOM_1": [
+     4,
+     5,
+     0,
+     1
+    ],
+    "BATHROOM_2": [
+     2,
+     3,
+     2,
+     3
+    ]
+   }
+  },
+  "edge_deletion": {
+   "BATHROOM_1--MASTER_BEDROOM": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_2--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BATHROOM_2--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_1--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_1--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_2--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "BEDROOM_3--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "DINING--HALL": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "DINING--KITCHEN": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "DINING--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "HALL--MASTER_BEDROOM": {
+    "rect_without_it": true,
+    "band_without_it": true
+   },
+   "KITCHEN--LIVING": {
+    "rect_without_it": true,
+    "band_without_it": true
+   }
+  }
+ }
+}

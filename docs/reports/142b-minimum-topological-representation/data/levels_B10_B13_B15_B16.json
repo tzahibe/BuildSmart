@@ -1,0 +1,2334 @@
+{
+ "B10": {
+  "diag": {
+   "n": 9,
+   "m": 14,
+   "density": 0.389,
+   "degree": {
+    "LIVING": 4,
+    "KITCHEN": 2,
+    "HALL": 8,
+    "MASTER_BEDROOM": 2,
+    "BEDROOM_1": 3,
+    "BEDROOM_2": 2,
+    "BEDROOM_3": 1,
+    "BATHROOM_1": 3,
+    "BATHROOM_2": 3
+   },
+   "max_degree": 8,
+   "degree_hist": {
+    "1": 1,
+    "2": 3,
+    "3": 3,
+    "4": 1,
+    "8": 1
+   },
+   "planar": true,
+   "triangles": [
+    [
+     "HALL",
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_1",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_2",
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_1",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2",
+     "HALL"
+    ]
+   ],
+   "k4": [
+    [
+     "BATHROOM_1",
+     "BEDROOM_1",
+     "HALL",
+     "LIVING"
+    ]
+   ],
+   "lens3": [
+    [
+     [
+      "LIVING",
+      "HALL"
+     ],
+     [
+      "BATHROOM_1",
+      "BEDROOM_1",
+      "KITCHEN"
+     ]
+    ]
+   ],
+   "cycle_rank": 6,
+   "connected": true,
+   "rect_dual_edge_bound_3n_minus_7": 20,
+   "exceeds_3n7": false,
+   "articulation_points": [
+    "HALL"
+   ]
+  },
+  "l0": {
+   "1": {
+    "row_lengths": [
+     9
+    ],
+    "n_cols": 9,
+    "embeddable": false,
+    "assignment": null
+   },
+   "2": {
+    "row_lengths": [
+     5,
+     4
+    ],
+    "n_cols": 5,
+    "embeddable": false,
+    "assignment": null
+   },
+   "3": {
+    "row_lengths": [
+     3,
+     3,
+     3
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "4": {
+    "row_lengths": [
+     3,
+     2,
+     2,
+     2
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "5": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "6": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "7": {
+    "row_lengths": [
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "8": {
+    "row_lengths": [
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "9": {
+    "row_lengths": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 1,
+    "embeddable": false,
+    "assignment": null
+   }
+  },
+  "levels": {
+   "band_y": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "K4"
+   },
+   "slicing": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "K4"
+   },
+   "rect": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "K4"
+   },
+   "L1": {
+    "LIVING": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       3,
+       4,
+       5
+      ],
+      "KITCHEN": [
+       4,
+       5,
+       1,
+       5
+      ],
+      "HALL": [
+       1,
+       4,
+       0,
+       3
+      ],
+      "MASTER_BEDROOM": [
+       0,
+       1,
+       0,
+       1
+      ],
+      "BEDROOM_1": [
+       2,
+       3,
+       3,
+       4
+      ],
+      "BEDROOM_2": [
+       0,
+       1,
+       2,
+       3
+      ],
+      "BEDROOM_3": [
+       4,
+       5,
+       0,
+       1
+      ],
+      "BATHROOM_1": [
+       0,
+       2,
+       3,
+       4
+      ],
+      "BATHROOM_2": [
+       0,
+       1,
+       1,
+       2
+      ],
+      "LIVING#2": [
+       3,
+       4,
+       3,
+       5
+      ]
+     },
+     "seconds": 0.0
+    },
+    "KITCHEN": {
+     "ok": false,
+     "rects": null,
+     "seconds": 3.67
+    },
+    "HALL": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       1,
+       3,
+       0,
+       1
+      ],
+      "KITCHEN": [
+       0,
+       1,
+       0,
+       3
+      ],
+      "HALL": [
+       3,
+       4,
+       0,
+       4
+      ],
+      "MASTER_BEDROOM": [
+       3,
+       4,
+       4,
+       5
+      ],
+      "BEDROOM_1": [
+       2,
+       3,
+       1,
+       2
+      ],
+      "BEDROOM_2": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "BEDROOM_3": [
+       0,
+       1,
+       3,
+       5
+      ],
+      "BATHROOM_1": [
+       1,
+       2,
+       1,
+       2
+      ],
+      "BATHROOM_2": [
+       2,
+       3,
+       4,
+       5
+      ],
+      "HALL#2": [
+       1,
+       3,
+       2,
+       4
+      ]
+     },
+     "seconds": 0.0
+    },
+    "MASTER_BEDROOM": {
+     "ok": false,
+     "rects": null,
+     "seconds": 3.2
+    },
+    "BEDROOM_1": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       4,
+       0,
+       1
+      ],
+      "KITCHEN": [
+       3,
+       4,
+       1,
+       5
+      ],
+      "HALL": [
+       2,
+       3,
+       1,
+       6
+      ],
+      "MASTER_BEDROOM": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "BEDROOM_1": [
+       0,
+       2,
+       5,
+       6
+      ],
+      "BEDROOM_2": [
+       1,
+       2,
+       2,
+       3
+      ],
+      "BEDROOM_3": [
+       3,
+       4,
+       5,
+       6
+      ],
+      "BATHROOM_1": [
+       1,
+       2,
+       1,
+       2
+      ],
+      "BATHROOM_2": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "BEDROOM_1#2": [
+       0,
+       1,
+       1,
+       5
+      ]
+     },
+     "seconds": 0.14
+    },
+    "BEDROOM_2": {
+     "ok": false,
+     "rects": null,
+     "seconds": 3.54
+    },
+    "BEDROOM_3": {
+     "ok": false,
+     "rects": null,
+     "seconds": 3.41
+    },
+    "BATHROOM_1": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       1,
+       1,
+       6
+      ],
+      "KITCHEN": [
+       1,
+       2,
+       5,
+       6
+      ],
+      "HALL": [
+       1,
+       3,
+       2,
+       5
+      ],
+      "MASTER_BEDROOM": [
+       2,
+       4,
+       5,
+       6
+      ],
+      "BEDROOM_1": [
+       1,
+       2,
+       1,
+       2
+      ],
+      "BEDROOM_2": [
+       3,
+       4,
+       3,
+       4
+      ],
+      "BEDROOM_3": [
+       3,
+       4,
+       2,
+       3
+      ],
+      "BATHROOM_1": [
+       2,
+       4,
+       0,
+       2
+      ],
+      "BATHROOM_2": [
+       3,
+       4,
+       4,
+       5
+      ],
+      "BATHROOM_1#2": [
+       0,
+       2,
+       0,
+       1
+      ]
+     },
+     "seconds": 0.07
+    },
+    "BATHROOM_2": {
+     "ok": false,
+     "rects": null,
+     "seconds": 4.11
+    }
+   }
+  }
+ },
+ "B13": {
+  "diag": {
+   "n": 10,
+   "m": 12,
+   "density": 0.267,
+   "degree": {
+    "LIVING": 4,
+    "DINING": 3,
+    "KITCHEN": 2,
+    "HALL": 6,
+    "MASTER_BEDROOM": 2,
+    "BEDROOM_1": 2,
+    "BEDROOM_2": 1,
+    "BEDROOM_3": 1,
+    "BATHROOM_1": 1,
+    "BATHROOM_2": 2
+   },
+   "max_degree": 6,
+   "degree_hist": {
+    "1": 3,
+    "2": 4,
+    "3": 1,
+    "4": 1,
+    "6": 1
+   },
+   "planar": true,
+   "triangles": [
+    [
+     "DINING",
+     "KITCHEN",
+     "LIVING"
+    ]
+   ],
+   "k4": [],
+   "lens3": [],
+   "cycle_rank": 3,
+   "connected": true,
+   "rect_dual_edge_bound_3n_minus_7": 23,
+   "exceeds_3n7": false,
+   "articulation_points": [
+    "HALL",
+    "MASTER_BEDROOM"
+   ]
+  },
+  "l0": {
+   "1": {
+    "row_lengths": [
+     10
+    ],
+    "n_cols": 10,
+    "embeddable": false,
+    "assignment": null
+   },
+   "2": {
+    "row_lengths": [
+     5,
+     5
+    ],
+    "n_cols": 5,
+    "embeddable": false,
+    "assignment": null
+   },
+   "3": {
+    "row_lengths": [
+     4,
+     3,
+     3
+    ],
+    "n_cols": 4,
+    "embeddable": false,
+    "assignment": null
+   },
+   "4": {
+    "row_lengths": [
+     3,
+     3,
+     2,
+     2
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "5": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     2
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "6": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "7": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "8": {
+    "row_lengths": [
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "9": {
+    "row_lengths": [
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "10": {
+    "row_lengths": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 1,
+    "embeddable": false,
+    "assignment": null
+   }
+  },
+  "levels": {
+   "band_y": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      2,
+      1,
+      2
+     ],
+     "DINING": [
+      1,
+      5,
+      0,
+      1
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "HALL": [
+      3,
+      6,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BEDROOM_1": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BEDROOM_3": [
+      5,
+      6,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      0,
+      6,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      0,
+      4,
+      2,
+      3
+     ]
+    },
+    "seconds": 0.07
+   },
+   "slicing": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      2,
+      1,
+      2
+     ],
+     "DINING": [
+      1,
+      5,
+      0,
+      1
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "HALL": [
+      3,
+      6,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BEDROOM_1": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BEDROOM_3": [
+      5,
+      6,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      0,
+      6,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      0,
+      4,
+      2,
+      3
+     ]
+    },
+    "seconds": 0.0,
+    "implied": true
+   },
+   "rect": {
+    "ok": true,
+    "rects": {
+     "LIVING": [
+      0,
+      2,
+      1,
+      2
+     ],
+     "DINING": [
+      1,
+      5,
+      0,
+      1
+     ],
+     "KITCHEN": [
+      0,
+      1,
+      0,
+      1
+     ],
+     "HALL": [
+      3,
+      6,
+      1,
+      2
+     ],
+     "MASTER_BEDROOM": [
+      4,
+      5,
+      2,
+      3
+     ],
+     "BEDROOM_1": [
+      2,
+      3,
+      1,
+      2
+     ],
+     "BEDROOM_2": [
+      5,
+      6,
+      2,
+      3
+     ],
+     "BEDROOM_3": [
+      5,
+      6,
+      0,
+      1
+     ],
+     "BATHROOM_1": [
+      0,
+      6,
+      3,
+      4
+     ],
+     "BATHROOM_2": [
+      0,
+      4,
+      2,
+      3
+     ]
+    },
+    "seconds": 0.0,
+    "implied": true
+   }
+  }
+ },
+ "B15": {
+  "diag": {
+   "n": 11,
+   "m": 15,
+   "density": 0.273,
+   "degree": {
+    "LIVING": 3,
+    "KITCHEN": 2,
+    "HALL": 9,
+    "MASTER_BEDROOM": 2,
+    "BEDROOM_1": 1,
+    "BEDROOM_2": 2,
+    "BEDROOM_3": 2,
+    "BEDROOM_4": 1,
+    "SAFE_ROOM": 1,
+    "BATHROOM_1": 3,
+    "BATHROOM_2": 4
+   },
+   "max_degree": 9,
+   "degree_hist": {
+    "1": 3,
+    "2": 4,
+    "3": 2,
+    "4": 1,
+    "9": 1
+   },
+   "planar": true,
+   "triangles": [
+    [
+     "HALL",
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2",
+     "HALL"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_3",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "BATHROOM_2",
+     "HALL"
+    ]
+   ],
+   "k4": [],
+   "lens3": [
+    [
+     [
+      "HALL",
+      "BATHROOM_2"
+     ],
+     [
+      "BATHROOM_1",
+      "BEDROOM_2",
+      "BEDROOM_3"
+     ]
+    ]
+   ],
+   "cycle_rank": 5,
+   "connected": true,
+   "rect_dual_edge_bound_3n_minus_7": 26,
+   "exceeds_3n7": false,
+   "articulation_points": [
+    "HALL",
+    "LIVING"
+   ]
+  },
+  "l0": {
+   "1": {
+    "row_lengths": [
+     11
+    ],
+    "n_cols": 11,
+    "embeddable": false,
+    "assignment": null
+   },
+   "2": {
+    "row_lengths": [
+     6,
+     5
+    ],
+    "n_cols": 6,
+    "embeddable": false,
+    "assignment": null
+   },
+   "3": {
+    "row_lengths": [
+     4,
+     4,
+     3
+    ],
+    "n_cols": 4,
+    "embeddable": false,
+    "assignment": null
+   },
+   "4": {
+    "row_lengths": [
+     3,
+     3,
+     3,
+     2
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "5": {
+    "row_lengths": [
+     3,
+     2,
+     2,
+     2,
+     2
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "6": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     2,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "7": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "8": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "9": {
+    "row_lengths": [
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "10": {
+    "row_lengths": [
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "11": {
+    "row_lengths": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 1,
+    "embeddable": false,
+    "assignment": null
+   }
+  },
+  "levels": {
+   "band_y": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "edge with >=3 common neighbours"
+   },
+   "slicing": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "edge with >=3 common neighbours"
+   },
+   "rect": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "edge with >=3 common neighbours"
+   },
+   "L1": {
+    "LIVING": {
+     "ok": false,
+     "rects": null,
+     "seconds": 32.77
+    },
+    "KITCHEN": {
+     "ok": false,
+     "rects": null,
+     "seconds": 34.38
+    },
+    "HALL": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       6,
+       5,
+       6
+      ],
+      "KITCHEN": [
+       4,
+       5,
+       4,
+       5
+      ],
+      "HALL": [
+       0,
+       4,
+       2,
+       5
+      ],
+      "MASTER_BEDROOM": [
+       2,
+       3,
+       0,
+       1
+      ],
+      "BEDROOM_1": [
+       5,
+       6,
+       4,
+       5
+      ],
+      "BEDROOM_2": [
+       4,
+       6,
+       3,
+       4
+      ],
+      "BEDROOM_3": [
+       4,
+       5,
+       2,
+       3
+      ],
+      "BEDROOM_4": [
+       0,
+       1,
+       0,
+       1
+      ],
+      "SAFE_ROOM": [
+       1,
+       2,
+       0,
+       1
+      ],
+      "BATHROOM_1": [
+       3,
+       5,
+       0,
+       1
+      ],
+      "BATHROOM_2": [
+       5,
+       6,
+       0,
+       3
+      ],
+      "HALL#2": [
+       0,
+       5,
+       1,
+       2
+      ]
+     },
+     "seconds": 0.1
+    },
+    "MASTER_BEDROOM": {
+     "ok": false,
+     "rects": null,
+     "seconds": 31.21
+    },
+    "BEDROOM_1": {
+     "ok": false,
+     "rects": null,
+     "seconds": 33.03
+    },
+    "BEDROOM_2": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       4,
+       5,
+       0,
+       2
+      ],
+      "KITCHEN": [
+       3,
+       4,
+       0,
+       1
+      ],
+      "HALL": [
+       1,
+       4,
+       1,
+       4
+      ],
+      "MASTER_BEDROOM": [
+       1,
+       2,
+       0,
+       1
+      ],
+      "BEDROOM_1": [
+       4,
+       5,
+       2,
+       6
+      ],
+      "BEDROOM_2": [
+       3,
+       4,
+       4,
+       5
+      ],
+      "BEDROOM_3": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "BEDROOM_4": [
+       2,
+       3,
+       4,
+       5
+      ],
+      "SAFE_ROOM": [
+       2,
+       3,
+       0,
+       1
+      ],
+      "BATHROOM_1": [
+       0,
+       1,
+       0,
+       3
+      ],
+      "BATHROOM_2": [
+       0,
+       1,
+       3,
+       6
+      ],
+      "BEDROOM_2#2": [
+       1,
+       4,
+       5,
+       6
+      ]
+     },
+     "seconds": 0.13
+    },
+    "BEDROOM_3": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       1,
+       3,
+       0,
+       2
+      ],
+      "KITCHEN": [
+       0,
+       1,
+       1,
+       2
+      ],
+      "HALL": [
+       0,
+       5,
+       2,
+       3
+      ],
+      "MASTER_BEDROOM": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "BEDROOM_1": [
+       0,
+       1,
+       0,
+       1
+      ],
+      "BEDROOM_2": [
+       4,
+       5,
+       3,
+       5
+      ],
+      "BEDROOM_3": [
+       1,
+       3,
+       4,
+       5
+      ],
+      "BEDROOM_4": [
+       3,
+       4,
+       0,
+       2
+      ],
+      "SAFE_ROOM": [
+       4,
+       5,
+       0,
+       2
+      ],
+      "BATHROOM_1": [
+       2,
+       3,
+       3,
+       4
+      ],
+      "BATHROOM_2": [
+       3,
+       4,
+       3,
+       5
+      ],
+      "BEDROOM_3#2": [
+       0,
+       1,
+       3,
+       5
+      ]
+     },
+     "seconds": 0.19
+    },
+    "BEDROOM_4": {
+     "ok": false,
+     "rects": null,
+     "seconds": 34.69
+    },
+    "SAFE_ROOM": {
+     "ok": false,
+     "rects": null,
+     "seconds": 38.78
+    },
+    "BATHROOM_1": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       4,
+       5,
+       1,
+       2
+      ],
+      "KITCHEN": [
+       4,
+       5,
+       2,
+       3
+      ],
+      "HALL": [
+       1,
+       4,
+       1,
+       3
+      ],
+      "MASTER_BEDROOM": [
+       3,
+       6,
+       3,
+       5
+      ],
+      "BEDROOM_1": [
+       5,
+       6,
+       0,
+       3
+      ],
+      "BEDROOM_2": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "BEDROOM_3": [
+       1,
+       2,
+       0,
+       1
+      ],
+      "BEDROOM_4": [
+       3,
+       5,
+       0,
+       1
+      ],
+      "SAFE_ROOM": [
+       2,
+       3,
+       0,
+       1
+      ],
+      "BATHROOM_1": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "BATHROOM_2": [
+       0,
+       1,
+       0,
+       5
+      ],
+      "BATHROOM_1#2": [
+       2,
+       3,
+       3,
+       5
+      ]
+     },
+     "seconds": 0.02
+    },
+    "BATHROOM_2": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       4,
+       5,
+       6,
+       7
+      ],
+      "KITCHEN": [
+       5,
+       6,
+       6,
+       7
+      ],
+      "HALL": [
+       2,
+       6,
+       1,
+       6
+      ],
+      "MASTER_BEDROOM": [
+       1,
+       2,
+       1,
+       2
+      ],
+      "BEDROOM_1": [
+       3,
+       4,
+       6,
+       7
+      ],
+      "BEDROOM_2": [
+       0,
+       2,
+       5,
+       6
+      ],
+      "BEDROOM_3": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "BEDROOM_4": [
+       0,
+       3,
+       6,
+       7
+      ],
+      "SAFE_ROOM": [
+       1,
+       2,
+       2,
+       3
+      ],
+      "BATHROOM_1": [
+       0,
+       6,
+       0,
+       1
+      ],
+      "BATHROOM_2": [
+       0,
+       1,
+       1,
+       5
+      ],
+      "BATHROOM_2#2": [
+       1,
+       2,
+       4,
+       5
+      ]
+     },
+     "seconds": 0.04
+    }
+   }
+  }
+ },
+ "B16": {
+  "diag": {
+   "n": 13,
+   "m": 19,
+   "density": 0.244,
+   "degree": {
+    "LIVING": 6,
+    "DINING": 2,
+    "KITCHEN": 3,
+    "HALL": 10,
+    "MASTER": 2,
+    "BEDROOM_1": 2,
+    "BEDROOM_2": 2,
+    "BEDROOM_3": 1,
+    "BEDROOM_4": 2,
+    "SAFE_ROOM": 2,
+    "BATHROOM_1": 2,
+    "BATHROOM_2": 2,
+    "BATHROOM_3": 2
+   },
+   "max_degree": 10,
+   "degree_hist": {
+    "1": 1,
+    "2": 9,
+    "3": 1,
+    "6": 1,
+    "10": 1
+   },
+   "planar": true,
+   "triangles": [
+    [
+     "DINING",
+     "KITCHEN",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_1",
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "BEDROOM_4",
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_3",
+     "HALL",
+     "LIVING"
+    ],
+    [
+     "BATHROOM_1",
+     "HALL",
+     "MASTER"
+    ],
+    [
+     "BATHROOM_2",
+     "BEDROOM_2",
+     "HALL"
+    ]
+   ],
+   "k4": [],
+   "lens3": [
+    [
+     [
+      "LIVING",
+      "HALL"
+     ],
+     [
+      "BATHROOM_3",
+      "BEDROOM_1",
+      "BEDROOM_4"
+     ]
+    ]
+   ],
+   "cycle_rank": 7,
+   "connected": true,
+   "rect_dual_edge_bound_3n_minus_7": 32,
+   "exceeds_3n7": false,
+   "articulation_points": [
+    "HALL"
+   ]
+  },
+  "l0": {
+   "1": {
+    "row_lengths": [
+     13
+    ],
+    "n_cols": 13,
+    "embeddable": false,
+    "assignment": null
+   },
+   "2": {
+    "row_lengths": [
+     7,
+     6
+    ],
+    "n_cols": 7,
+    "embeddable": false,
+    "assignment": null
+   },
+   "3": {
+    "row_lengths": [
+     5,
+     4,
+     4
+    ],
+    "n_cols": 5,
+    "embeddable": false,
+    "assignment": null
+   },
+   "4": {
+    "row_lengths": [
+     4,
+     3,
+     3,
+     3
+    ],
+    "n_cols": 4,
+    "embeddable": false,
+    "assignment": null
+   },
+   "5": {
+    "row_lengths": [
+     3,
+     3,
+     3,
+     2,
+     2
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "6": {
+    "row_lengths": [
+     3,
+     2,
+     2,
+     2,
+     2,
+     2
+    ],
+    "n_cols": 3,
+    "embeddable": false,
+    "assignment": null
+   },
+   "7": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "8": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     2,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "9": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "10": {
+    "row_lengths": [
+     2,
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "11": {
+    "row_lengths": [
+     2,
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "12": {
+    "row_lengths": [
+     2,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 2,
+    "embeddable": false,
+    "assignment": null
+   },
+   "13": {
+    "row_lengths": [
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1,
+     1
+    ],
+    "n_cols": 1,
+    "embeddable": false,
+    "assignment": null
+   }
+  },
+  "levels": {
+   "band_y": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "edge with >=3 common neighbours"
+   },
+   "slicing": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "edge with >=3 common neighbours"
+   },
+   "rect": {
+    "ok": false,
+    "rects": null,
+    "seconds": 0.0,
+    "by_theory": "edge with >=3 common neighbours"
+   },
+   "L1": {
+    "LIVING": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       2,
+       5,
+       6
+      ],
+      "DINING": [
+       3,
+       7,
+       4,
+       6
+      ],
+      "KITCHEN": [
+       3,
+       7,
+       3,
+       4
+      ],
+      "HALL": [
+       0,
+       6,
+       1,
+       2
+      ],
+      "MASTER": [
+       6,
+       7,
+       0,
+       3
+      ],
+      "BEDROOM_1": [
+       1,
+       2,
+       2,
+       5
+      ],
+      "BEDROOM_2": [
+       1,
+       2,
+       0,
+       1
+      ],
+      "BEDROOM_3": [
+       5,
+       6,
+       2,
+       3
+      ],
+      "BEDROOM_4": [
+       3,
+       4,
+       2,
+       3
+      ],
+      "SAFE_ROOM": [
+       4,
+       5,
+       2,
+       3
+      ],
+      "BATHROOM_1": [
+       2,
+       6,
+       0,
+       1
+      ],
+      "BATHROOM_2": [
+       0,
+       1,
+       0,
+       1
+      ],
+      "BATHROOM_3": [
+       0,
+       1,
+       2,
+       5
+      ],
+      "LIVING#2": [
+       2,
+       3,
+       2,
+       6
+      ]
+     },
+     "seconds": 0.24
+    },
+    "DINING": {
+     "ok": false,
+     "rects": null,
+     "seconds": 153.7
+    },
+    "KITCHEN": {
+     "ok": false,
+     "rects": null,
+     "seconds": 161.07
+    },
+    "HALL": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       4,
+       1,
+       6
+      ],
+      "DINING": [
+       0,
+       1,
+       6,
+       7
+      ],
+      "KITCHEN": [
+       1,
+       2,
+       6,
+       7
+      ],
+      "HALL": [
+       3,
+       6,
+       6,
+       7
+      ],
+      "MASTER": [
+       4,
+       5,
+       4,
+       6
+      ],
+      "BEDROOM_1": [
+       0,
+       7,
+       0,
+       1
+      ],
+      "BEDROOM_2": [
+       6,
+       7,
+       5,
+       6
+      ],
+      "BEDROOM_3": [
+       6,
+       7,
+       1,
+       5
+      ],
+      "BEDROOM_4": [
+       4,
+       5,
+       2,
+       3
+      ],
+      "SAFE_ROOM": [
+       2,
+       3,
+       6,
+       7
+      ],
+      "BATHROOM_1": [
+       4,
+       5,
+       3,
+       4
+      ],
+      "BATHROOM_2": [
+       6,
+       7,
+       6,
+       7
+      ],
+      "BATHROOM_3": [
+       4,
+       5,
+       1,
+       2
+      ],
+      "HALL#2": [
+       5,
+       6,
+       1,
+       6
+      ]
+     },
+     "seconds": 0.01
+    },
+    "MASTER": {
+     "ok": false,
+     "rects": null,
+     "seconds": 160.74
+    },
+    "BEDROOM_1": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       1,
+       3,
+       7
+      ],
+      "DINING": [
+       1,
+       2,
+       5,
+       6
+      ],
+      "KITCHEN": [
+       1,
+       2,
+       6,
+       7
+      ],
+      "HALL": [
+       1,
+       4,
+       0,
+       4
+      ],
+      "MASTER": [
+       0,
+       1,
+       1,
+       2
+      ],
+      "BEDROOM_1": [
+       0,
+       3,
+       7,
+       8
+      ],
+      "BEDROOM_2": [
+       4,
+       5,
+       2,
+       8
+      ],
+      "BEDROOM_3": [
+       4,
+       5,
+       0,
+       1
+      ],
+      "BEDROOM_4": [
+       0,
+       1,
+       2,
+       3
+      ],
+      "SAFE_ROOM": [
+       2,
+       3,
+       4,
+       7
+      ],
+      "BATHROOM_1": [
+       0,
+       1,
+       0,
+       1
+      ],
+      "BATHROOM_2": [
+       4,
+       5,
+       1,
+       2
+      ],
+      "BATHROOM_3": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "BEDROOM_1#2": [
+       3,
+       4,
+       4,
+       8
+      ]
+     },
+     "seconds": 0.03
+    },
+    "BEDROOM_2": {
+     "ok": false,
+     "rects": null,
+     "seconds": 168.63
+    },
+    "BEDROOM_3": {
+     "ok": false,
+     "rects": null,
+     "seconds": 160.47
+    },
+    "BEDROOM_4": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       0,
+       1,
+       1,
+       5
+      ],
+      "DINING": [
+       0,
+       7,
+       5,
+       6
+      ],
+      "KITCHEN": [
+       1,
+       6,
+       4,
+       5
+      ],
+      "HALL": [
+       1,
+       7,
+       1,
+       2
+      ],
+      "MASTER": [
+       3,
+       4,
+       0,
+       1
+      ],
+      "BEDROOM_1": [
+       1,
+       2,
+       2,
+       3
+      ],
+      "BEDROOM_2": [
+       5,
+       6,
+       0,
+       1
+      ],
+      "BEDROOM_3": [
+       3,
+       6,
+       2,
+       4
+      ],
+      "BEDROOM_4": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "SAFE_ROOM": [
+       6,
+       7,
+       2,
+       5
+      ],
+      "BATHROOM_1": [
+       4,
+       5,
+       0,
+       1
+      ],
+      "BATHROOM_2": [
+       6,
+       7,
+       0,
+       1
+      ],
+      "BATHROOM_3": [
+       0,
+       3,
+       0,
+       1
+      ],
+      "BEDROOM_4#2": [
+       2,
+       3,
+       2,
+       4
+      ]
+     },
+     "seconds": 0.29
+    },
+    "SAFE_ROOM": {
+     "ok": false,
+     "rects": null,
+     "seconds": 164.92
+    },
+    "BATHROOM_1": {
+     "ok": false,
+     "rects": null,
+     "seconds": 151.76
+    },
+    "BATHROOM_2": {
+     "ok": false,
+     "rects": null,
+     "seconds": 172.61
+    },
+    "BATHROOM_3": {
+     "ok": true,
+     "rects": {
+      "LIVING": [
+       1,
+       4,
+       0,
+       2
+      ],
+      "DINING": [
+       4,
+       5,
+       0,
+       1
+      ],
+      "KITCHEN": [
+       4,
+       5,
+       1,
+       3
+      ],
+      "HALL": [
+       2,
+       3,
+       2,
+       8
+      ],
+      "MASTER": [
+       0,
+       2,
+       6,
+       7
+      ],
+      "BEDROOM_1": [
+       1,
+       2,
+       2,
+       3
+      ],
+      "BEDROOM_2": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "BEDROOM_3": [
+       3,
+       5,
+       4,
+       8
+      ],
+      "BEDROOM_4": [
+       3,
+       4,
+       2,
+       3
+      ],
+      "SAFE_ROOM": [
+       3,
+       5,
+       3,
+       4
+      ],
+      "BATHROOM_1": [
+       0,
+       2,
+       7,
+       8
+      ],
+      "BATHROOM_2": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "BATHROOM_3": [
+       0,
+       1,
+       0,
+       5
+      ],
+      "BATHROOM_3#2": [
+       0,
+       2,
+       5,
+       6
+      ]
+     },
+     "seconds": 0.17
+    }
+   }
+  }
+ }
+}
