@@ -243,6 +243,12 @@ class GridWing:
     #: and the exact per-cell sizing chooses the realized wing size within them; when False (the
     #: original contract) the wing tiles exactly `width_m` x `height_m`.
     envelope_is_bound: bool = False
+    #: Issue #142H — direct-access pairs this layout must carry as doors. The exact sizing keeps each
+    #: pair's shared boundary long enough for its door (width + corner margins, the same rule the
+    #: door-ability check below applies to the realized rects); the CONTACT itself still comes from
+    #: `rows` — a pair that does not touch in the grid is not created here. Realization never
+    #: patches a door on afterwards: an access pair whose door cannot fit refuses at sizing.
+    access_pairs: tuple[tuple[str, str], ...] = ()
 
 
 Wing = PinwheelWing | RowWing | GridWing
@@ -453,6 +459,7 @@ def _solve_grid(w: "GridWing") -> "tuple[list[int], list[int]] | Refusal":
     from . import band_sizing  # local import: band_sizing imports nothing from this module
 
     w_u, h_u = m_to_u(w.width_m), m_to_u(w.height_m)
+    contacts = band_sizing.contact_requirements(w.zones, (), w.access_pairs) if w.access_pairs else None
     if GRID_SIZING_RANK1_FALLBACK:
         all_cells = [cell for row in w.rows for cell in row]
         min_short_u = m_to_u(min(w.zones[c.zone_id].min_short_side_m for c in all_cells) +
@@ -466,19 +473,20 @@ def _solve_grid(w: "GridWing") -> "tuple[list[int], list[int]] | Refusal":
         return solved
     if w.envelope_is_bound:
         res = band_sizing.solve_band_sizing(w.rows, w.n_cols, w.zones, w_max_m=w.width_m,
-                                            h_max_m=w.height_m)
+                                            h_max_m=w.height_m, min_contact_u=contacts)
     else:
         res = band_sizing.solve_band_sizing(w.rows, w.n_cols, w.zones, w_max_m=w.width_m,
                                             h_max_m=w.height_m, w_exact_m=w.width_m,
-                                            h_exact_m=w.height_m)
+                                            h_exact_m=w.height_m, min_contact_u=contacts)
     if res.status == "FEASIBLE":
         return list(res.row_h_u), list(res.col_w_u)
     code = "GRID_INFEASIBLE" if res.status == "INFEASIBLE" else "GRID_SIZING_UNKNOWN"
     bound = "within" if w.envelope_is_bound else "tiling exactly"
+    doors = f" and hosts the {len(w.access_pairs)} declared access door(s)" if w.access_pairs else ""
     return Refusal(code, f"wing '{w.wing_id}' ({len(w.rows)} band(s) x {w.n_cols} column(s), "
                          f"{bound} {w.width_m}x{w.height_m} m): no band-height/column-width "
                          f"assignment keeps every cell inside its own NET area, short-side and "
-                         f"aspect bounds — {res.detail} ({res.nodes} search nodes)")
+                         f"aspect bounds{doors} — {res.detail} ({res.nodes} search nodes)")
 
 
 def _net_dims_m(rect: Rect, exterior: set[Side], rc: set[Side] = frozenset()) -> tuple[float, float]:
@@ -1162,23 +1170,49 @@ def _group_c27(group_geometry: dict[str, MergedGeometry]) -> Check:
 #: so a layout with no `wet_rooms` declared (every existing caller/test) is unaffected.
 def _wet_room_edge_allowed(wet: ResolvedWetRoom, other_id: str,
                             roles: dict[str, tuple[ProgramRole, ...]]) -> bool:
-    if wet.kind is WetRoomKind.ENSUITE:
-        return other_id == wet.host_zone
-    other_roles = roles.get(other_id, ())
-    return bool({ProgramRole.HALL, ProgramRole.CIRCULATION} & set(other_roles))
+    """Derived from the canonical `wet_room_policy` (Issue #142I) — the same rule C17 holds the
+    realized doors to, so a door this filter admits is never a door C17 refuses, and vice versa."""
+    from . import wet_room_policy
+    return wet_room_policy.wet_room_entry_allowed(wet, other_id, roles.get(other_id, ()))
 
 
 def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
                              roles: dict[str, tuple[ProgramRole, ...]],
-                             wet_rooms: tuple[ResolvedWetRoom, ...]) -> list[tuple[str, str]]:
+                             wet_rooms: tuple[ResolvedWetRoom, ...],
+                             declared: frozenset = frozenset()) -> list[tuple[str, str]]:
+    """Door candidates into a wet room: only entrants the canonical `wet_room_policy` allows, and —
+    because a wet room has exactly ONE door (007 FR-9, C17) — one class of entrant per wet room:
+    the DECLARED door when the layout declared one (`GridWing.access_pairs`, Issue #142J: the proposal
+    said "LIVING -> BATHROOM" and LIVING is a legal fallback, so the hall it also touches does not take
+    the door away), else the best-ranked class (circulation before the specs/009 LIVING fallback,
+    Issue #142I). A shared bathroom touching both the hall and the living room gets one door, not two."""
     if not wet_rooms:
         return access_pairs
+    from . import wet_room_policy
     wet_by_id = {w.zone_id: w for w in wet_rooms}
+    best: dict[str, int] = {}
+    has_declared: set[str] = set()
+    for a, b in access_pairs:
+        for x, y in ((a, b), (b, a)):
+            if x in wet_by_id:
+                r = wet_room_policy.entry_rank(wet_by_id[x], y, roles.get(y, ()))
+                if r < 99:
+                    best[x] = min(best.get(x, 99), r)
+                    if frozenset((a, b)) in declared:
+                        has_declared.add(x)
     out = []
     for a, b in access_pairs:
-        wa, wb = wet_by_id.get(a), wet_by_id.get(b)
-        if (wa is None or _wet_room_edge_allowed(wa, b, roles)) and \
-                (wb is None or _wet_room_edge_allowed(wb, a, roles)):
+        ok = True
+        for x, y in ((a, b), (b, a)):
+            if x in wet_by_id:
+                r = wet_room_policy.entry_rank(wet_by_id[x], y, roles.get(y, ()))
+                if r >= 99:
+                    ok = False
+                elif x in has_declared:
+                    ok = ok and frozenset((a, b)) in declared
+                elif r != best.get(x, 99):
+                    ok = False
+        if ok:
             out.append((a, b))
     return out
 
@@ -1316,7 +1350,8 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     zones = tuple(ZoneSpec(zid, roles[zid], specs[zid].net_area_min_m2, specs[zid].net_area_target_m2,
                             specs[zid].net_area_max_m2, specs[zid].min_short_side_m,
                             specs[zid].max_aspect_ratio) for zid in rects)
-    access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms)
+    declared = frozenset(frozenset(p) for w in layout.wings if isinstance(w, GridWing) for p in w.access_pairs)
+    access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms, declared)
     edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in access_pairs)
     open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
     fixture = Fixture(layout.name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)

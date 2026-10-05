@@ -1,0 +1,31 @@
+### definition typed: plans analysed 17107
+ n rooms q10/25/50/75/90: [5, 6, 6, 9, 9]  mean 7.29
+ m edges q: [4, 5, 5, 7, 8]  mean 6.09
+ density q: [0.2, 0.222, 0.333, 0.333, 0.4]
+ max degree q: [3, 4, 4, 5, 6]
+ hub role: [('living', 17008), ('bedroom', 99)]
+ planar share: 1.0  connected: 0.8909
+ has K4: 0.0  has lens3: 0.0003  K4 or lens3 (provably NOT rectangular-realizable): 0.0003
+ cycle rank q: [0, 0, 0, 0, 0]  tree-like (cycle rank 0): 0.9324
+ degree distribution (share of rooms): [(0, 0.035), (1, 0.639), (2, 0.153), (3, 0.045), (4, 0.077), (5, 0.036), (6, 0.011), (7, 0.003)]
+### definition geo: plans analysed 17107
+ n rooms q10/25/50/75/90: [6, 6, 6, 9, 10]  mean 7.4
+ m edges q: [4, 5, 7, 9, 13]  mean 7.89
+ density q: [0.192, 0.267, 0.333, 0.4, 0.476]
+ max degree q: [2, 3, 4, 5, 6]
+ hub role: [('living', 15858), ('bedroom', 1000), ('bathroom', 158), ('kitchen', 86), ('storage', 5)]
+ planar share: 0.9635  connected: 0.671
+ has K4: 0.0972  has lens3: 0.059  K4 or lens3 (provably NOT rectangular-realizable): 0.098
+ cycle rank q: [0, 0, 1, 3, 4]  tree-like (cycle rank 0): 0.2619
+ degree distribution (share of rooms): [(0, 0.07), (1, 0.257), (2, 0.367), (3, 0.178), (4, 0.074), (5, 0.033), (6, 0.012), (7, 0.005), (8, 0.002)]
+typed 0 {'band (GridWing full)': 1} 0.0 s
+typed 100 {'band (GridWing full)': 101} 0.8 s
+typed 200 {'band (GridWing full)': 201} 1.3 s
+typed 300 {'band (GridWing full)': 301} 1.9 s
+typed 400 {'band (GridWing full)': 401} 2.7 s
+typed 500 {'band (GridWing full)': 501} 3.0 s
+typed 600 {'band (GridWing full)': 601} 3.3 s
+typed 700 {'band (GridWing full)': 701} 3.7 s
+### SAMPLE typed N=800 levels: {'band (GridWing full)': 800}
+geo 0 {'band (GridWing full)': 1} 0.0 s
+geo 100 {'band (GridWing full)': 95, 'slicing + 1 L-room': 1, 'non-planar (spurious edges)': 2, 'band + 1 L-room': 3} 6.2 s

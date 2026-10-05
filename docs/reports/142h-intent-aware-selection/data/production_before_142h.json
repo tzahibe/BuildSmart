@@ -1,0 +1,266 @@
+[
+ {
+  "brief": "B01",
+  "result": "PASS",
+  "seconds": 0.042,
+  "candidate": 0,
+  "spatial": "6/6",
+  "access": "4/4"
+ },
+ {
+  "brief": "B02",
+  "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_REPRESENTATION_LIMIT": 1
+   }
+  }
+ },
+ {
+  "brief": "B03",
+  "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_REPRESENTATION_LIMIT": 1
+   }
+  }
+ },
+ {
+  "brief": "B04",
+  "result": "PASS",
+  "seconds": 0.252,
+  "candidate": 0,
+  "spatial": "9/9",
+  "access": "7/7"
+ },
+ {
+  "brief": "B05",
+  "result": "PASS",
+  "seconds": 0.151,
+  "candidate": 18,
+  "spatial": "9/9",
+  "access": "6/6"
+ },
+ {
+  "brief": "B06",
+  "result": "BAND_GEOMETRY_LIMIT",
+  "stage": "SIZING",
+  "seconds": 0.111,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 58
+   }
+  }
+ },
+ {
+  "brief": "B07",
+  "result": "ACCESS_SPATIAL_MISMATCH",
+  "stage": "VALIDATORS",
+  "seconds": 0.6,
+  "sized": 4,
+  "realized": 2,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 116
+   },
+   "REALIZATION": {
+    "NO_ENTRANCE": 2
+   },
+   "VALIDATORS": {
+    "C19+C24+C5+C8": 2
+   }
+  }
+ },
+ {
+  "brief": "B08",
+  "result": "PASS",
+  "seconds": 0.298,
+  "candidate": 2,
+  "spatial": "10/10",
+  "access": "7/7"
+ },
+ {
+  "brief": "B09",
+  "result": "NO_ENTRANCE",
+  "stage": "REALIZATION",
+  "seconds": 0.102,
+  "sized": 4,
+  "realized": 0,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 26
+   },
+   "REALIZATION": {
+    "NO_ENTRANCE": 4
+   }
+  }
+ },
+ {
+  "brief": "B10",
+  "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_REPRESENTATION_LIMIT": 1
+   }
+  }
+ },
+ {
+  "brief": "B11",
+  "result": "ACCESS_SPATIAL_MISMATCH",
+  "stage": "VALIDATORS",
+  "seconds": 0.456,
+  "sized": 33,
+  "realized": 8,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 87
+   },
+   "REALIZATION": {
+    "NO_ENTRANCE": 25
+   },
+   "VALIDATORS": {
+    "C24+C5": 1,
+    "C17+C24+C5": 6,
+    "C17+C19+C24+C5+C8": 1
+   }
+  }
+ },
+ {
+  "brief": "B12",
+  "result": "ACCESS_SPATIAL_MISMATCH",
+  "stage": "VALIDATORS",
+  "seconds": 0.887,
+  "sized": 38,
+  "realized": 18,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 82
+   },
+   "REALIZATION": {
+    "NO_ENTRANCE": 20
+   },
+   "VALIDATORS": {
+    "C17+C19+C24+C5+C8": 18
+   }
+  }
+ },
+ {
+  "brief": "B13",
+  "result": "PASS",
+  "seconds": 0.411,
+  "candidate": 20,
+  "spatial": "12/12",
+  "access": "9/9"
+ },
+ {
+  "brief": "B14",
+  "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_REPRESENTATION_LIMIT": 1
+   }
+  }
+ },
+ {
+  "brief": "B15",
+  "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_REPRESENTATION_LIMIT": 1
+   }
+  }
+ },
+ {
+  "brief": "B16",
+  "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_REPRESENTATION_LIMIT": 1
+   }
+  }
+ },
+ {
+  "brief": "B17",
+  "result": "NO_ENTRANCE",
+  "stage": "REALIZATION",
+  "seconds": 1.362,
+  "sized": 6,
+  "realized": 0,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 114
+   },
+   "REALIZATION": {
+    "NO_ENTRANCE": 6
+   }
+  }
+ },
+ {
+  "brief": "B18",
+  "result": "SIZING_INFEASIBLE",
+  "stage": "SIZING",
+  "seconds": 1.43,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 120
+   }
+  }
+ },
+ {
+  "brief": "B19",
+  "result": "TOPOLOGY_NON_PLANAR",
+  "stage": "EMBEDDING",
+  "seconds": 0.0,
+  "sized": 0,
+  "realized": 0,
+  "hist": {
+   "EMBEDDING": {
+    "TOPOLOGY_NON_PLANAR": 1
+   }
+  }
+ },
+ {
+  "brief": "B20",
+  "result": "NO_ENTRANCE",
+  "stage": "REALIZATION",
+  "seconds": 0.27,
+  "sized": 91,
+  "realized": 0,
+  "hist": {
+   "SIZING": {
+    "GRID_INFEASIBLE": 29
+   },
+   "REALIZATION": {
+    "NO_ENTRANCE": 91
+   }
+  }
+ }
+]
