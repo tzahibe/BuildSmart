@@ -117,6 +117,10 @@ jobs:
       OPENAI_API_KEY: not-a-real-key-ci-only
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch base ref (needed by tests that verify against origin/<base_ref>)
+        run: git fetch --no-tags origin "${{ github.base_ref }}"
       - uses: astral-sh/setup-uv@v6
       - uses: actions/download-artifact@v4
         with:

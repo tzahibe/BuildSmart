@@ -1001,6 +1001,22 @@ room ids individually (computed off the raw pre-merge solver output). The fronte
 polygon `area_m2` — the two numbers do not multiply out to match, for an L. Both are candidate
 follow-ups for a future stage, not this one.
 
+## Concept topology contract (ConceptSpec, Issue #75)
+
+2026-09-20. `app/vertical_slice/concept_spec.py` — metadata only, no behaviour change (see the
+Issue). `CirculationClass` (SPINE, FRONT_BAND, HUB_LOBBY, BRANCHED, RING, TWO_WING) is set
+explicitly by whichever builder produces a `ConceptCandidate` (`concept_generator.py`'s spine
+allocations, `_front_band_candidate`, `_hub_candidate`; `l_parti.py`'s `_candidate_from`).
+`realized_circulation_class` recomputes the same fact from the SOLVED geometry (hall aspect, door
+count and hall-room adjacency via `validation.realized_connections`, wing count) and is attached to
+every `general_pipeline.RealizedPlan` as `.circulation_class`; `verify_class(candidate, plan)`
+reports any mismatch. `topologically_distinct(a, b)` is a pure comparison of two candidates'
+`ConceptSpec`s (class, zoning split, wet-core grouping by host) — BRANCHED and RING are not
+produced by any builder today. `spikes/failure_log_sweep/concept_diversity.py` measures, on the
+frozen regression corpus, the share of PLANNED briefs whose shown plan set already spans 2+
+classes — the "before" baseline for the Concept Engine v2 ROOT, committed at
+`docs/reports/concept-engine-v2-diversity-baseline.md`.
+
 ## Known follow-ups
 
 **PROPOSED, not scheduled — Issue #17 explicitly keeps these as write-ups, not new Issues:**
@@ -1178,6 +1194,11 @@ head, so no plan's own signature moved, and a window's `room_id` is not an input
 A/B reports (candidates found/applied/rejected, LOST, quality deltas). The A/B stays un-re-swept by
 choice, with that reasoning stated, rather than by a claim that nothing production-facing changed.
 
+`648292f` (branch `agent/75-concept-engine-v2-1-5-conceptspec-contra`, based on `origin/main`);
+the Concept topology contract (ConceptSpec) section above documents Issue #75, verified against
+this session's own implementation and test runs (887 realized candidates across every builder,
+0 `verify_class` mismatches; frozen-corpus regression unaffected).
+
 `7995695` (branch `agent/41-public-zone-composition-kitchen-dining-a`, based on `origin/main`): the
 Public-zone composition and C31 (Issue #41) section above documents this branch's own work,
 verified against this session's own implementation and test runs (`test_public_composition.py`, the
@@ -1189,3 +1210,11 @@ textual conflicts in `test_baseline_and_decoupling.py`, `test_general_pipeline.p
 keeping both sides' additive checks/entries (combined check count 27: C31 and C33 both additive on
 top of the pre-existing 25). The 432-context frozen regression corpus was not independently
 re-measured in this session — see the PR's own regression evidence.
+
+Branch `agent/153-concept-engine-v2-rollup-repair-2-2-make`, based on `origin/integration/concept-engine-v2`
+after the Team Lead merged current `origin/main` in (bringing in C30 furnishability (#132), C31 public
+composition (#124), the professional drawing representation (#146), and #141/#149's adjacency/room-proportion
+priors): this Issue's own repair documents the second rollup-repair pass, verified against this session's
+own implementation and test runs — see the Concept Engine v2 rollup repair 2 report
+(`docs/reports/concept-engine-v2/rollup-repair-2.md`) for the flag-OFF corpus proof and the flag-ON
+measurement against today's validators.

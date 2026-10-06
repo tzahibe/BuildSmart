@@ -1,0 +1,9 @@
+.concept-label {
+  display: inline-block;
+  font-size: 11px;
+  color: #3a6b8a;
+  background: #eaf2f7;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-inline-start: 6px;
+}
