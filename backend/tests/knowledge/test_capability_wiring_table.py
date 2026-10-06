@@ -207,6 +207,13 @@ def _cell_yes_no(cell: str) -> bool:
 # that are the capability's own implementation and therefore excluded from the caller search)
 _FLAG_ROWS = [
     (
+        "Concept Engine v2 (circulation-class alternatives)",
+        "backend/app/vertical_slice/general_pipeline.py",
+        "CONCEPT_ENGINE_V2_ENABLED",
+        ["app.vertical_slice.concept_engine_v2"],
+        {"backend/app/vertical_slice/concept_engine_v2.py"},
+    ),
+    (
         "Rectilinear (non-guillotine) realizer",
         "backend/app/vertical_slice/rectilinear_realizer.py",
         "RECTILINEAR_REALIZER_ENABLED",
@@ -342,26 +349,25 @@ def test_drawing_representation_row_matches_main():
     )
 
 
-def test_concept_engine_v2_absence_from_main_is_still_true():
-    """The one row whose defect is not gating but absence: ROOT #74's modules were integrated and
-    gate-passed on `integration/concept-engine-v2` but never rolled up to `main`. This is a dated
-    historical claim (as of 2026-09-29) — this test re-checks it is still true every run, so if
-    Issue #153's rollup lands without this row being rewritten, it fails loudly instead of the
-    table silently going stale the way it did before this Issue."""
-    row = _row_cells("circulation-class alternatives")
-    assert "integration branch" in " ".join(row)
-    assert "#153" in " ".join(row)
-
-    module_on_main = _read_from_main("backend/app/vertical_slice/concept_engine_v2.py")
-    assert module_on_main is None, (
-        "app/vertical_slice/concept_engine_v2.py now exists on origin/main — ROOT #74's rollup "
-        "(#153) has landed; rewrite the Concept Engine v2 row (module/flag/caller/verdict) instead "
-        "of leaving it describing an integration-branch-only module that has since shipped"
+def test_concept_engine_v2_rollup_landed_and_the_row_was_rewritten():
+    """ROOT #74's rollup reached `main` on 2026-10-06 (PR #174). This test replaces the pre-rollup
+    tripwire `test_concept_engine_v2_absence_from_main_is_still_true`, which asserted the module was
+    absent from `main` and fired — exactly as designed — the moment the rollup landed without this
+    row being rewritten. It now pins the post-rollup truth instead: the module and the flag are on
+    `main`, the committed default is still `False`, and the row no longer describes an
+    integration-branch-only capability."""
+    row = " ".join(_row_cells("circulation-class alternatives"))
+    assert "integration branch" not in row, (
+        "the Concept Engine v2 row still describes an integration-branch-only module, but the "
+        "rollup has landed on main"
     )
-    assert not _flag_present_on_main("backend/app/vertical_slice/general_pipeline.py",
-                                      "CONCEPT_ENGINE_V2_ENABLED"), (
-        "CONCEPT_ENGINE_V2_ENABLED now exists on origin/main's general_pipeline.py — update the "
-        "wiring table, this flag is no longer integration-branch-only"
+    assert _read_from_main("backend/app/vertical_slice/concept_engine_v2.py") is not None
+    assert _flag_present_on_main("backend/app/vertical_slice/general_pipeline.py",
+                                 "CONCEPT_ENGINE_V2_ENABLED")
+    assert _flag_default_on_main("backend/app/vertical_slice/general_pipeline.py",
+                                 "CONCEPT_ENGINE_V2_ENABLED") is False, (
+        "CONCEPT_ENGINE_V2_ENABLED is no longer False by default on main — Concept Engine v2 would "
+        "now be live product behaviour; the wiring table and the capability status must say so"
     )
 
 
