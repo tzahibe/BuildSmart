@@ -23,6 +23,19 @@ def test_system_prompt_requires_a_wall_for_every_door_and_one_door_per_wet_room(
     assert "spatial_adjacency is a HARD requirement" in s
 
 
+def test_private_rooms_are_entered_only_from_circulation_142l():
+    """#142L: the one sentence that removed the last remaining validity failure mode. It states an
+    EXISTING rule — `access_rules.ALLOWED_ENTERED_FROM` already maps every PRIVATE_ROLES role to
+    CIRCULATION_ROLES only, and C24 fails closed on it — so the prompt and the policy cannot drift."""
+    from app.vertical_slice.access_rules import ALLOWED_ENTERED_FROM, CIRCULATION_ROLES, PRIVATE_ROLES
+    s = prompt.SYSTEM_PROMPT
+    assert "PRIVATE ROOMS" in s
+    assert "entered ONLY from a hall or circulation space" in s
+    assert "never from the living room, the kitchen, the dining room, or another bedroom" in s
+    for role in PRIVATE_ROLES:                       # the prompt may not promise more than the policy
+        assert ALLOWED_ENTERED_FROM[role] == CIRCULATION_ROLES, role
+
+
 def test_programme_text_carries_wet_room_kinds_and_hosts_from_the_brief():
     rooms, text = prompt.build_brief_program_text(_brief(3, 3))
     ids = [r for r, _ in rooms]
