@@ -1,0 +1,10597 @@
+{
+ "terms": [
+  {
+   "term": "entrance_rank",
+   "source": "general_pipeline._entrance_rank",
+   "direction": "lower"
+  },
+  {
+   "term": "area_delta_m2",
+   "source": "demo.service._nearest_primary (|delivered - requested| area)",
+   "direction": "lower"
+  },
+  {
+   "term": "distance_to_public_m",
+   "source": "entrance_sequence.entrance_sequence_prefers",
+   "direction": "lower"
+  },
+  {
+   "term": "composition_score",
+   "source": "public_composition.composition_prefers",
+   "direction": "lower"
+  },
+  {
+   "term": "circulation",
+   "source": "circulation_metrics.circulation_prefers (NOT a scalar \u2014 pairwise only)",
+   "direction": "pairwise"
+  },
+  {
+   "term": "wet_privacy_key",
+   "source": "wet_privacy.candidate_privacy_key",
+   "direction": "lower"
+  },
+  {
+   "term": "dead_space_m2",
+   "source": "dead_space.dead_space_prefers",
+   "direction": "lower"
+  },
+  {
+   "term": "wet_core_key",
+   "source": "wet_core.candidate_wet_core_key",
+   "direction": "lower"
+  },
+  {
+   "term": "suite_key",
+   "source": "master_suite.candidate_suite_key",
+   "direction": "lower"
+  },
+  {
+   "term": "heuristic_score",
+   "source": "ai_harness.topology_poc.critic.score_topology (FINAL tiebreak only)",
+   "direction": "higher"
+  },
+  {
+   "term": "candidate_index",
+   "source": "determinism",
+   "direction": "lower"
+  }
+ ],
+ "key_terms": [
+  "entrance_rank",
+  "area_delta_m2",
+  "distance_to_public_m",
+  "composition_score",
+  "wet_privacy_key",
+  "dead_space_m2",
+  "wet_core_key",
+  "suite_key",
+  "neg_heuristic_score",
+  "candidate_index"
+ ],
+ "budget": {
+  "max_realizations_per_brief": 12
+ },
+ "datasets": {
+  "historical": {
+   "dataset": "historical",
+   "path": "docs/reports/llm-topology-poc/generation-dataset.json",
+   "briefs": 20,
+   "totals": {
+    "candidates": 162,
+    "clean": 59,
+    "realizations_attempted": 59,
+    "pass_plans": 51,
+    "briefs_with_a_pass": 19,
+    "briefs_with_multiple_pass": 13,
+    "winner_changed": 10,
+    "deciding_terms": {
+     "area_delta_m2": 7,
+     "distance_to_public_m": 1,
+     "entrance_rank": 2
+    },
+    "circulation_cycles_found": 84,
+    "alternatives": {
+     "DIFFERENT_CONCEPT": 20,
+     "VARIANT": 4,
+     "MINOR_PERMUTATION": 8
+    }
+   },
+   "runtime": {
+    "per_realization_s": {
+     "n": 59,
+     "p50": 0.243,
+     "p95": 1.361,
+     "worst": 1.538,
+     "total": 21.0
+    },
+    "per_brief_s": {
+     "p50": 2.231,
+     "p95": 6.93,
+     "worst": 12.568,
+     "total": 65.8
+    }
+   },
+   "rows": [
+    {
+     "brief": "B01",
+     "candidates": 7,
+     "clean": 3,
+     "realizations_attempted": 3,
+     "pass_plans": 3,
+     "pass_candidates": [
+      0,
+      1,
+      5
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "5": "PASS"
+     },
+     "seconds_total": 0.293,
+     "seconds_per_realization": [
+      0.054,
+      0.053,
+      0.074
+     ],
+     "old_winner": 1,
+     "new_winner": 1,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      1,
+      0,
+      5
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.27,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 0.339775,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.27,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": -0.651797,
+       "candidate_index": 1
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.27,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 3.510232,
+       "candidate_index": 5
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 0,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 5,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B02",
+     "candidates": 9,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 6,
+     "pass_candidates": [
+      1,
+      4,
+      5,
+      6,
+      7,
+      8
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "4": "PASS",
+      "5": "PASS",
+      "6": "PASS",
+      "7": "PASS",
+      "8": "PASS"
+     },
+     "seconds_total": 0.46,
+     "seconds_per_realization": [
+      0.066,
+      0.037,
+      0.037,
+      0.072,
+      0.033,
+      0.032
+     ],
+     "old_winner": 5,
+     "new_winner": 7,
+     "winner_changed": true,
+     "deciding_term": "distance_to_public_m",
+     "deciding_values": {
+      "new": 3.0254,
+      "old": 4.225
+     },
+     "production_reason": "candidate's distance to the first public opening (4.22 m) is not better than the current plan's (3.03 m)",
+     "new_order": [
+      7,
+      8,
+      4,
+      6,
+      1,
+      5
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 5.5988,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.510232,
+       "candidate_index": 1
+      },
+      "4": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.6363,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.510232,
+       "candidate_index": 4
+      },
+      "5": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 4.225,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.8,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.897253,
+       "candidate_index": 5
+      },
+      "6": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 5.5988,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.51866,
+       "candidate_index": 6
+      },
+      "7": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.6363,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.51866,
+       "candidate_index": 7
+      },
+      "8": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.6363,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.51866,
+       "candidate_index": 8
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_turns": [
+       0,
+       1
+      ],
+      "dead_space_share": [
+       0.0388,
+       0.0642
+      ],
+      "public_private_wall_m": [
+       7.2,
+       7.9
+      ],
+      "public_private_wall_share": [
+       0.2682,
+       0.2942
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "entrance_pocket_m": [
+       2.239,
+       2.215
+      ],
+      "entrance_distance_to_public_m": [
+       4.225,
+       3.025
+      ],
+      "public_narrowest_neck_m": [
+       1.55,
+       1.6
+      ],
+      "public_compactness": [
+       0.7276,
+       0.684
+      ],
+      "public_worst_aspect": [
+       1.625,
+       1.893
+      ],
+      "master_aspect": [
+       1.25,
+       1.026
+      ],
+      "bedroom_min_net_area_m2": [
+       11.7,
+       14.43
+      ],
+      "bedroom_min_short_side_m": [
+       3.0,
+       3.7
+      ],
+      "bedroom_public_wall_m": [
+       7.2,
+       7.9
+      ],
+      "max_single_room_facade_share": [
+       0.2263,
+       0.2374
+      ],
+      "mean_net_aspect": [
+       1.777,
+       1.706
+      ],
+      "soft_adjacency_lift": [
+       1.7634,
+       1.8881
+      ],
+      "measurable_adjacency_coverage": [
+       0.2222,
+       0.1111
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 8,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "candidate_index"
+      },
+      {
+       "candidate": 4,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 6,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "dead_space_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "dead_space_m2"
+      },
+      {
+       "candidate": 5,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.2,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "distance_to_public_m"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B03",
+     "candidates": 8,
+     "clean": 2,
+     "realizations_attempted": 2,
+     "pass_plans": 2,
+     "pass_candidates": [
+      1,
+      4
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "4": "PASS"
+     },
+     "seconds_total": 0.237,
+     "seconds_per_realization": [
+      0.046,
+      0.026
+     ],
+     "old_winner": 4,
+     "new_winner": 4,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      4,
+      1
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.313443,
+       "candidate_index": 1
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 0.719786,
+       "candidate_index": 4
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 1,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B04",
+     "candidates": 8,
+     "clean": 3,
+     "realizations_attempted": 3,
+     "pass_plans": 3,
+     "pass_candidates": [
+      1,
+      3,
+      6
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "3": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 1.825,
+     "seconds_per_realization": [
+      0.186,
+      0.144,
+      0.218
+     ],
+     "old_winner": 1,
+     "new_winner": 6,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 339.12,
+      "old": 343.485
+     },
+     "production_reason": null,
+     "new_order": [
+      6,
+      3,
+      1
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 343.485,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -2.7
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.070773,
+       "candidate_index": 1
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 342.515,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.0913,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.295216,
+       "candidate_index": 3
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 339.12,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.286788,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1098,
+       0.1405
+      ],
+      "circulation_longest_segment_m": [
+       3.55,
+       4.35
+      ],
+      "circulation_rooms_served": [
+       5,
+       6
+      ],
+      "mean_walk_from_entrance_m": [
+       8.829,
+       8.471
+      ],
+      "public_private_wall_m": [
+       6.95,
+       1.65
+      ],
+      "public_private_wall_share": [
+       0.1941,
+       0.0446
+      ],
+      "private_components": [
+       2,
+       1
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "public_narrowest_neck_m": [
+       3.5,
+       4.1
+      ],
+      "public_compactness": [
+       0.904,
+       0.9151
+      ],
+      "public_worst_aspect": [
+       1.985,
+       1.345
+      ],
+      "bedroom_worst_aspect": [
+       1.042,
+       1.113
+      ],
+      "master_aspect": [
+       1.119,
+       1.594
+      ],
+      "bedroom_min_net_area_m2": [
+       11.498,
+       9.75
+      ],
+      "bedroom_min_short_side_m": [
+       3.15,
+       3.0
+      ],
+      "master_is_largest_bedroom": [
+       0,
+       1
+      ],
+      "bedroom_public_wall_m": [
+       6.95,
+       1.65
+      ],
+      "wet_shared_wall_m": [
+       2.7,
+       0.0
+      ],
+      "wet_cluster_count": [
+       1,
+       2
+      ],
+      "wet_adjacency_share": [
+       1.0,
+       0.5
+      ],
+      "max_single_room_facade_share": [
+       0.2608,
+       0.2065
+      ],
+      "public_facade_share": [
+       0.4249,
+       0.2985
+      ],
+      "bedroom_facade_share": [
+       0.1908,
+       0.2836
+      ],
+      "street_facade_public_share": [
+       1.0,
+       0.8144
+      ],
+      "mean_net_aspect": [
+       1.384,
+       1.558
+      ],
+      "max_net_aspect": [
+       1.985,
+       2.438
+      ],
+      "worst_wet_aspect": [
+       1.389,
+       2.438
+      ],
+      "min_net_short_side_m": [
+       1.8,
+       1.6
+      ],
+      "soft_adjacency_lift": [
+       1.2581,
+       1.4275
+      ],
+      "measurable_adjacency_coverage": [
+       0.2143,
+       0.3571
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4444,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.7273,
+       "rooms_changing_band_share": 0.375,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       3,
+       6
+      ],
+      [
+       3,
+       6,
+       1
+      ],
+      [
+       6,
+       1,
+       3
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      1
+     ]
+    },
+    {
+     "brief": "B05",
+     "candidates": 8,
+     "clean": 3,
+     "realizations_attempted": 3,
+     "pass_plans": 3,
+     "pass_candidates": [
+      1,
+      4,
+      7
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "4": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 0.721,
+     "seconds_per_realization": [
+      0.047,
+      0.134,
+      0.087
+     ],
+     "old_winner": 4,
+     "new_winner": 7,
+     "winner_changed": true,
+     "deciding_term": "entrance_rank",
+     "deciding_values": {
+      "new": 0,
+      "old": 1
+     },
+     "production_reason": null,
+     "new_order": [
+      7,
+      1,
+      4
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 0,
+       "area_delta_m2": 196.7975,
+       "distance_to_public_m": 4.2101,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.674567,
+       "candidate_index": 1
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 193.455,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.0138,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.038917,
+       "candidate_index": 4
+      },
+      "7": {
+       "entrance_rank": 0,
+       "area_delta_m2": 182.72,
+       "distance_to_public_m": 2.7,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.038917,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1611,
+       0.1339
+      ],
+      "circulation_longest_segment_m": [
+       5.75,
+       6.1
+      ],
+      "circulation_dead_ends": [
+       1,
+       0
+      ],
+      "circulation_rooms_served": [
+       5,
+       4
+      ],
+      "mean_steps_from_entrance": [
+       1.667,
+       1.333
+      ],
+      "mean_walk_from_entrance_m": [
+       8.504,
+       8.8
+      ],
+      "dead_space_share": [
+       0.0469,
+       0.0054
+      ],
+      "public_private_wall_m": [
+       3.95,
+       5.2
+      ],
+      "public_private_wall_share": [
+       0.1212,
+       0.1433
+      ],
+      "zone_band_overlap": [
+       0.0,
+       1.0
+      ],
+      "bedroom_doors_off_arrival": [
+       0,
+       2
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       1
+      ],
+      "arrival_is_circulation": [
+       0,
+       1
+      ],
+      "entrance_pocket_m": [
+       0.0,
+       3.337
+      ],
+      "entrance_distance_to_public_m": [
+       0,
+       2.7
+      ],
+      "entrance_private_doors_passed": [
+       0,
+       2
+      ],
+      "arrival_fanout": [
+       2,
+       4
+      ],
+      "steps_entrance_to_living": [
+       0,
+       1
+      ],
+      "public_narrowest_neck_m": [
+       0.95,
+       1.1
+      ],
+      "public_compactness": [
+       0.6926,
+       0.8015
+      ],
+      "public_worst_aspect": [
+       1.861,
+       2.542
+      ],
+      "master_aspect": [
+       1.554,
+       1.969
+      ],
+      "bedroom_min_net_area_m2": [
+       8.998,
+       8.99
+      ],
+      "bedroom_min_short_side_m": [
+       2.95,
+       2.9
+      ],
+      "bedroom_public_wall_m": [
+       3.95,
+       5.2
+      ],
+      "two_sided_exposure_share": [
+       0.8,
+       0.6
+      ],
+      "max_single_room_facade_share": [
+       0.2751,
+       0.2306
+      ],
+      "public_facade_share": [
+       0.5141,
+       0.4587
+      ],
+      "bedroom_facade_share": [
+       0.3779,
+       0.3083
+      ],
+      "street_facade_public_share": [
+       1.0,
+       0.5179
+      ],
+      "mean_net_aspect": [
+       1.662,
+       1.877
+      ],
+      "max_net_aspect": [
+       2.396,
+       2.905
+      ],
+      "worst_wet_aspect": [
+       1.906,
+       1.414
+      ],
+      "min_net_short_side_m": [
+       1.6,
+       2.1
+      ],
+      "soft_adjacency_lift": [
+       1.8062,
+       1.8328
+      ],
+      "measurable_adjacency_coverage": [
+       0.1818,
+       0.2727
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.1667,
+       "rooms_changing_band_share": 0.5714,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.3077,
+       "rooms_changing_band_share": 0.8571,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       4,
+       7
+      ],
+      [
+       1,
+       7,
+       4
+      ],
+      [
+       4,
+       1,
+       7
+      ],
+      [
+       4,
+       7,
+       1
+      ],
+      [
+       7,
+       1,
+       4
+      ],
+      [
+       7,
+       4,
+       1
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      1,
+      4
+     ]
+    },
+    {
+     "brief": "B06",
+     "candidates": 8,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 5,
+     "pass_candidates": [
+      2,
+      3,
+      5,
+      6,
+      7
+     ],
+     "outcomes": {
+      "2": "PASS",
+      "3": "PASS",
+      "5": "PASS",
+      "6": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 1.767,
+     "seconds_per_realization": [
+      0.146,
+      0.143,
+      0.195,
+      0.115,
+      0.14
+     ],
+     "old_winner": 3,
+     "new_winner": 6,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 211.605,
+      "old": 214.515
+     },
+     "production_reason": null,
+     "new_order": [
+      6,
+      7,
+      3,
+      5,
+      2
+     ],
+     "facts": {
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 217.91,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 2.674567,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 214.515,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -2.8
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.480022,
+       "candidate_index": 3
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 216.455,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 3.062345,
+       "candidate_index": 5
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 211.605,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.070773,
+       "candidate_index": 6
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 213.06,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.29,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 2.440939,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1406,
+       0.1233
+      ],
+      "circulation_longest_segment_m": [
+       3.7,
+       3.45
+      ],
+      "circulation_turns": [
+       2,
+       1
+      ],
+      "mean_steps_from_entrance": [
+       2,
+       1.714
+      ],
+      "max_steps_from_entrance": [
+       3,
+       2
+      ],
+      "mean_walk_from_entrance_m": [
+       8.979,
+       8.557
+      ],
+      "dead_space_share": [
+       0.002,
+       0.0038
+      ],
+      "public_private_wall_m": [
+       12.35,
+       6.45
+      ],
+      "public_private_wall_share": [
+       0.3426,
+       0.175
+      ],
+      "public_components": [
+       2,
+       1
+      ],
+      "private_components": [
+       3,
+       2
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "arrival_fanout": [
+       1,
+       2
+      ],
+      "public_largest_cluster_share": [
+       0.6734,
+       1.0
+      ],
+      "public_narrowest_neck_m": [
+       3.25,
+       2.85
+      ],
+      "public_compactness": [
+       0.9104,
+       0.6496
+      ],
+      "public_worst_aspect": [
+       1.769,
+       1.941
+      ],
+      "bedroom_worst_aspect": [
+       1.732,
+       1.266
+      ],
+      "master_aspect": [
+       1.056,
+       1.766
+      ],
+      "bedroom_min_net_area_m2": [
+       11.537,
+       9.18
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.7
+      ],
+      "bedroom_area_cv": [
+       0.0234,
+       0.1143
+      ],
+      "bedroom_public_wall_m": [
+       12.35,
+       6.45
+      ],
+      "wet_shared_wall_m": [
+       2.8,
+       0.0
+      ],
+      "wet_cluster_count": [
+       1,
+       2
+      ],
+      "wet_adjacency_share": [
+       1.0,
+       0.5
+      ],
+      "wet_rooms_with_window": [
+       1.0,
+       0.5
+      ],
+      "preferred_exposure_satisfied": [
+       1.0,
+       0.5
+      ],
+      "two_sided_exposure_share": [
+       0.6,
+       0.8
+      ],
+      "windowless_rooms": [
+       0,
+       1
+      ],
+      "max_single_room_facade_share": [
+       0.238,
+       0.2594
+      ],
+      "public_facade_share": [
+       0.3342,
+       0.3479
+      ],
+      "bedroom_facade_share": [
+       0.4722,
+       0.5636
+      ],
+      "street_facade_public_share": [
+       0.6134,
+       0.701
+      ],
+      "mean_net_aspect": [
+       1.364,
+       1.622
+      ],
+      "max_net_aspect": [
+       1.788,
+       2.156
+      ],
+      "worst_wet_aspect": [
+       1.486,
+       2.156
+      ],
+      "min_net_short_side_m": [
+       1.75,
+       1.6
+      ],
+      "soft_adjacency_lift": [
+       0.9027,
+       1.4769
+      ],
+      "measurable_adjacency_coverage": [
+       0.2857,
+       0.4
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5263,
+       "rooms_changing_band_share": 0.625,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.7391,
+       "rooms_changing_band_share": 0.625,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 5,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.55,
+       "rooms_changing_band_share": 0.375,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 2,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.3889,
+       "rooms_changing_band_share": 0.375,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       2,
+       3,
+       7
+      ],
+      [
+       2,
+       5,
+       7
+      ],
+      [
+       2,
+       7,
+       5
+      ],
+      [
+       3,
+       7,
+       2
+      ],
+      [
+       3,
+       7,
+       5
+      ],
+      [
+       5,
+       2,
+       7
+      ],
+      [
+       5,
+       3,
+       7
+      ],
+      [
+       5,
+       7,
+       2
+      ],
+      [
+       7,
+       2,
+       3
+      ],
+      [
+       7,
+       2,
+       5
+      ],
+      [
+       7,
+       5,
+       2
+      ],
+      [
+       7,
+       5,
+       3
+      ]
+     ],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B07",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 4,
+     "pass_candidates": [
+      1,
+      4,
+      5,
+      7
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "4": "PASS",
+      "5": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 2.435,
+     "seconds_per_realization": [
+      0.168,
+      0.315,
+      0.208,
+      0.351
+     ],
+     "old_winner": 4,
+     "new_winner": 1,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 236.58,
+      "old": 252.9
+     },
+     "production_reason": null,
+     "new_order": [
+      1,
+      7,
+      5,
+      4
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 236.58,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.624146,
+       "candidate_index": 1
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 252.9,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -3.3
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.642711,
+       "candidate_index": 4
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 246.78,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -3.65
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.642711,
+       "candidate_index": 5
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 241.245,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -3.4
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1579,
+       0.1862
+      ],
+      "circulation_longest_segment_m": [
+       4.3,
+       6.85
+      ],
+      "circulation_rooms_served": [
+       6,
+       8
+      ],
+      "mean_steps_from_entrance": [
+       2,
+       1.75
+      ],
+      "max_steps_from_entrance": [
+       3,
+       2
+      ],
+      "mean_walk_from_entrance_m": [
+       9.878,
+       10.0
+      ],
+      "dead_space_share": [
+       0.0018,
+       0.0016
+      ],
+      "public_private_wall_share": [
+       0.0771,
+       0.0708
+      ],
+      "private_components": [
+       1,
+       3
+      ],
+      "public_narrowest_neck_m": [
+       2.8,
+       3.2
+      ],
+      "public_compactness": [
+       0.6528,
+       0.6414
+      ],
+      "public_worst_aspect": [
+       1.817,
+       2.467
+      ],
+      "bedroom_worst_aspect": [
+       1.516,
+       1.406
+      ],
+      "master_aspect": [
+       1.121,
+       1.152
+      ],
+      "bedroom_min_net_area_m2": [
+       8.99,
+       9.36
+      ],
+      "bedroom_min_short_side_m": [
+       2.9,
+       2.6
+      ],
+      "bedroom_area_cv": [
+       0.2162,
+       0.159
+      ],
+      "plumbing_complexity_index": [
+       2,
+       3
+      ],
+      "wet_shared_wall_m": [
+       3.3,
+       0.0
+      ],
+      "wet_cluster_count": [
+       1,
+       2
+      ],
+      "wet_adjacency_share": [
+       1.0,
+       0.0
+      ],
+      "two_sided_exposure_share": [
+       0.5,
+       0.6667
+      ],
+      "max_single_room_facade_share": [
+       0.2138,
+       0.2422
+      ],
+      "public_facade_share": [
+       0.3031,
+       0.3139
+      ],
+      "bedroom_facade_share": [
+       0.3587,
+       0.3946
+      ],
+      "street_facade_public_share": [
+       0.5381,
+       0.6281
+      ],
+      "mean_net_aspect": [
+       1.472,
+       1.655
+      ],
+      "max_net_aspect": [
+       1.938,
+       2.467
+      ],
+      "worst_wet_aspect": [
+       1.938,
+       2.25
+      ],
+      "soft_adjacency_lift": [
+       1.8328,
+       1.8057
+      ],
+      "measurable_adjacency_coverage": [
+       0.1875,
+       0.25
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 7,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 5,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4762,
+       "rooms_changing_band_share": 0.3333,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       4,
+       5
+      ],
+      [
+       1,
+       4,
+       7
+      ],
+      [
+       1,
+       5,
+       4
+      ],
+      [
+       1,
+       5,
+       7
+      ],
+      [
+       1,
+       7,
+       4
+      ],
+      [
+       1,
+       7,
+       5
+      ],
+      [
+       4,
+       1,
+       5
+      ],
+      [
+       4,
+       1,
+       7
+      ],
+      [
+       4,
+       5,
+       1
+      ],
+      [
+       4,
+       5,
+       7
+      ],
+      [
+       4,
+       7,
+       1
+      ],
+      [
+       4,
+       7,
+       5
+      ],
+      [
+       5,
+       1,
+       4
+      ],
+      [
+       5,
+       1,
+       7
+      ],
+      [
+       5,
+       4,
+       1
+      ],
+      [
+       5,
+       4,
+       7
+      ],
+      [
+       5,
+       7,
+       1
+      ],
+      [
+       5,
+       7,
+       4
+      ],
+      [
+       7,
+       1,
+       4
+      ],
+      [
+       7,
+       1,
+       5
+      ],
+      [
+       7,
+       4,
+       1
+      ],
+      [
+       7,
+       4,
+       5
+      ],
+      [
+       7,
+       5,
+       1
+      ],
+      [
+       7,
+       5,
+       4
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      7,
+      5,
+      4
+     ]
+    },
+    {
+     "brief": "B08",
+     "candidates": 6,
+     "clean": 2,
+     "realizations_attempted": 2,
+     "pass_plans": 2,
+     "pass_candidates": [
+      1,
+      3
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "3": "PASS"
+     },
+     "seconds_total": 1.066,
+     "seconds_per_realization": [
+      0.103,
+      0.256
+     ],
+     "old_winner": 3,
+     "new_winner": 1,
+     "winner_changed": true,
+     "deciding_term": "entrance_rank",
+     "deciding_values": {
+      "new": 0,
+      "old": 1
+     },
+     "production_reason": null,
+     "new_order": [
+      1,
+      3
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 0,
+       "area_delta_m2": 18.32,
+       "distance_to_public_m": 4.744,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        1,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.070773,
+       "candidate_index": 1
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 29.9925,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": -0.514455,
+       "candidate_index": 3
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.0858,
+       0.1362
+      ],
+      "circulation_longest_segment_m": [
+       3.45,
+       4.7
+      ],
+      "circulation_turns": [
+       1,
+       0
+      ],
+      "mean_steps_from_entrance": [
+       1.714,
+       1.286
+      ],
+      "max_steps_from_entrance": [
+       3,
+       2
+      ],
+      "mean_walk_from_entrance_m": [
+       9.039,
+       8.146
+      ],
+      "dead_space_share": [
+       0.0019,
+       0.0034
+      ],
+      "public_private_wall_m": [
+       5.85,
+       7.5
+      ],
+      "public_private_wall_share": [
+       0.1581,
+       0.188
+      ],
+      "private_components": [
+       1,
+       2
+      ],
+      "zone_band_overlap": [
+       0.5259,
+       0.5971
+      ],
+      "bedroom_doors_off_arrival": [
+       0,
+       3
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       1
+      ],
+      "arrival_is_circulation": [
+       0,
+       1
+      ],
+      "entrance_pocket_m": [
+       0.0,
+       2.884
+      ],
+      "entrance_distance_to_public_m": [
+       0,
+       4.744
+      ],
+      "entrance_private_doors_passed": [
+       0,
+       3
+      ],
+      "arrival_fanout": [
+       3,
+       5
+      ],
+      "steps_entrance_to_living": [
+       0,
+       1
+      ],
+      "public_narrowest_neck_m": [
+       1.5,
+       1.1
+      ],
+      "public_compactness": [
+       0.6693,
+       0.6209
+      ],
+      "public_worst_aspect": [
+       2.047,
+       2.654
+      ],
+      "bedroom_worst_aspect": [
+       1.246,
+       1.0
+      ],
+      "master_aspect": [
+       1.344,
+       1.036
+      ],
+      "bedroom_min_net_area_m2": [
+       9.143,
+       9.0
+      ],
+      "bedroom_min_short_side_m": [
+       2.65,
+       3.0
+      ],
+      "bedroom_area_cv": [
+       0.1033,
+       0.0
+      ],
+      "bedroom_public_wall_m": [
+       5.85,
+       7.5
+      ],
+      "plumbing_complexity_index": [
+       2,
+       1
+      ],
+      "wet_adjacency_share": [
+       0.0,
+       1.0
+      ],
+      "wet_rooms_with_window": [
+       1.0,
+       0.0
+      ],
+      "preferred_exposure_satisfied": [
+       1.0,
+       0.0
+      ],
+      "two_sided_exposure_share": [
+       0.5,
+       0.6667
+      ],
+      "windowless_rooms": [
+       0,
+       1
+      ],
+      "max_single_room_facade_share": [
+       0.2512,
+       0.2319
+      ],
+      "public_facade_share": [
+       0.505,
+       0.4906
+      ],
+      "bedroom_facade_share": [
+       0.3713,
+       0.397
+      ],
+      "street_facade_public_share": [
+       1.0,
+       0.0
+      ],
+      "mean_net_aspect": [
+       1.467,
+       1.562
+      ],
+      "max_net_aspect": [
+       2.047,
+       2.654
+      ],
+      "worst_wet_aspect": [
+       1.875,
+       2.531
+      ],
+      "soft_adjacency_lift": [
+       1.8871,
+       1.3532
+      ],
+      "measurable_adjacency_coverage": [
+       0.1429,
+       0.2857
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4444,
+       "rooms_changing_band_share": 1.0,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      3
+     ]
+    },
+    {
+     "brief": "B09",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 4,
+     "pass_candidates": [
+      1,
+      2,
+      4,
+      6
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "2": "PASS",
+      "4": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 3.148,
+     "seconds_per_realization": [
+      0.462,
+      0.154,
+      0.333,
+      0.213
+     ],
+     "old_winner": 1,
+     "new_winner": 6,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 328.445,
+      "old": 338.5
+     },
+     "production_reason": null,
+     "new_order": [
+      6,
+      4,
+      2,
+      1
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 338.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 1.9738,
+       "wet_core_key": [
+        2,
+        -1.8
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 0.394921,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 338.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.719786,
+       "candidate_index": 2
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 332.0,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.0938,
+       "wet_core_key": [
+        2,
+        -3.3
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.976085,
+       "candidate_index": 4
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 328.445,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -3.35
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 0.81045,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.0847,
+       0.1307
+      ],
+      "circulation_longest_segment_m": [
+       3.45,
+       3.95
+      ],
+      "circulation_dead_ends": [
+       1,
+       0
+      ],
+      "circulation_rooms_served": [
+       5,
+       7
+      ],
+      "mean_steps_from_entrance": [
+       1.75,
+       1.875
+      ],
+      "mean_walk_from_entrance_m": [
+       8.812,
+       9.456
+      ],
+      "dead_space_share": [
+       0.0215,
+       0.0052
+      ],
+      "public_private_wall_m": [
+       4.6,
+       5.6
+      ],
+      "public_private_wall_share": [
+       0.1141,
+       0.1321
+      ],
+      "arrival_fanout": [
+       3,
+       2
+      ],
+      "public_narrowest_neck_m": [
+       4.6,
+       4.15
+      ],
+      "public_compactness": [
+       0.9137,
+       0.7206
+      ],
+      "public_worst_aspect": [
+       1.66,
+       2.262
+      ],
+      "bedroom_worst_aspect": [
+       1.394,
+       1.231
+      ],
+      "master_aspect": [
+       1.25,
+       1.075
+      ],
+      "bedroom_min_net_area_m2": [
+       11.7,
+       9.045
+      ],
+      "bedroom_min_short_side_m": [
+       3.0,
+       2.7
+      ],
+      "bedroom_area_cv": [
+       0.064,
+       0.1233
+      ],
+      "bedroom_public_wall_m": [
+       4.6,
+       5.6
+      ],
+      "wet_shared_wall_m": [
+       1.8,
+       3.35
+      ],
+      "wet_adjacency_share": [
+       0.6667,
+       1.0
+      ],
+      "two_sided_exposure_share": [
+       0.6,
+       0.4
+      ],
+      "max_single_room_facade_share": [
+       0.196,
+       0.2447
+      ],
+      "public_facade_share": [
+       0.2804,
+       0.3262
+      ],
+      "bedroom_facade_share": [
+       0.4789,
+       0.3381
+      ],
+      "street_facade_public_share": [
+       0.67,
+       0.6396
+      ],
+      "mean_net_aspect": [
+       1.469,
+       1.485
+      ],
+      "max_net_aspect": [
+       1.875,
+       2.262
+      ],
+      "worst_wet_aspect": [
+       1.875,
+       1.969
+      ],
+      "soft_adjacency_lift": [
+       1.4769,
+       1.3747
+      ],
+      "measurable_adjacency_coverage": [
+       0.375,
+       0.25
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5,
+       "rooms_changing_band_share": 0.5556,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5455,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6087,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       2,
+       4
+      ],
+      [
+       1,
+       2,
+       6
+      ],
+      [
+       1,
+       4,
+       2
+      ],
+      [
+       1,
+       4,
+       6
+      ],
+      [
+       2,
+       1,
+       4
+      ],
+      [
+       2,
+       4,
+       1
+      ],
+      [
+       2,
+       6,
+       1
+      ],
+      [
+       4,
+       1,
+       2
+      ],
+      [
+       4,
+       2,
+       1
+      ],
+      [
+       4,
+       6,
+       1
+      ],
+      [
+       6,
+       1,
+       2
+      ],
+      [
+       6,
+       1,
+       4
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      1
+     ]
+    },
+    {
+     "brief": "B10",
+     "candidates": 9,
+     "clean": 1,
+     "realizations_attempted": 1,
+     "pass_plans": 1,
+     "pass_candidates": [
+      8
+     ],
+     "outcomes": {
+      "8": "PASS"
+     },
+     "seconds_total": 1.397,
+     "seconds_per_realization": [
+      0.243
+     ],
+     "old_winner": 8,
+     "new_winner": 8,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      8
+     ],
+     "facts": {
+      "8": {
+       "entrance_rank": 1,
+       "area_delta_m2": 170.0,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 3.1064,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.994312,
+       "candidate_index": 8
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B11",
+     "candidates": 9,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 4,
+     "pass_candidates": [
+      1,
+      2,
+      5,
+      6
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "2": "PASS",
+      "5": "PASS",
+      "6": "PASS",
+      "8": "SAFE_ROOM_RC_MISSING"
+     },
+     "seconds_total": 4.73,
+     "seconds_per_realization": [
+      0.315,
+      0.313,
+      0.356,
+      0.33,
+      0.337
+     ],
+     "old_winner": 2,
+     "new_winner": 5,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 59.09,
+      "old": 63.1
+     },
+     "production_reason": null,
+     "new_order": [
+      5,
+      2,
+      1,
+      6
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 66.66,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.6952,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 4.003497,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 63.1,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.624146,
+       "candidate_index": 2
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 59.09,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.033395,
+       "candidate_index": 5
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 67.3775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 2.692793,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1628,
+       0.1631
+      ],
+      "circulation_longest_segment_m": [
+       8.15,
+       6.6
+      ],
+      "circulation_turns": [
+       1,
+       0
+      ],
+      "circulation_rooms_served": [
+       9,
+       8
+      ],
+      "mean_steps_from_entrance": [
+       1.7,
+       1.8
+      ],
+      "mean_walk_from_entrance_m": [
+       10.7,
+       10.643
+      ],
+      "public_private_wall_m": [
+       4.8,
+       7.35
+      ],
+      "public_private_wall_share": [
+       0.083,
+       0.1239
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "arrival_fanout": [
+       3,
+       2
+      ],
+      "public_narrowest_neck_m": [
+       1.25,
+       3.0
+      ],
+      "public_compactness": [
+       0.7377,
+       0.5175
+      ],
+      "public_worst_aspect": [
+       1.917,
+       2.5
+      ],
+      "bedroom_worst_aspect": [
+       1.574,
+       1.537
+      ],
+      "master_aspect": [
+       1.262,
+       2.031
+      ],
+      "bedroom_min_net_area_m2": [
+       8.998,
+       9.1
+      ],
+      "bedroom_min_short_side_m": [
+       2.85,
+       2.6
+      ],
+      "bedroom_area_cv": [
+       0.1771,
+       0.0558
+      ],
+      "master_is_largest_bedroom": [
+       0,
+       1
+      ],
+      "bedroom_public_wall_m": [
+       4.8,
+       7.35
+      ],
+      "plumbing_complexity_index": [
+       3,
+       2
+      ],
+      "wet_rooms_with_window": [
+       1.0,
+       0.5
+      ],
+      "preferred_exposure_satisfied": [
+       1.0,
+       0.5
+      ],
+      "windowless_rooms": [
+       0,
+       1
+      ],
+      "max_single_room_facade_share": [
+       0.1647,
+       0.2158
+      ],
+      "public_facade_share": [
+       0.3112,
+       0.4327
+      ],
+      "bedroom_facade_share": [
+       0.4307,
+       0.3743
+      ],
+      "street_facade_public_share": [
+       0.5576,
+       0.5423
+      ],
+      "mean_net_aspect": [
+       1.639,
+       1.755
+      ],
+      "max_net_aspect": [
+       2.964,
+       2.5
+      ],
+      "worst_wet_aspect": [
+       1.906,
+       2.469
+      ],
+      "soft_adjacency_lift": [
+       1.8057,
+       1.1353
+      ],
+      "measurable_adjacency_coverage": [
+       0.2,
+       0.2857
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5357,
+       "rooms_changing_band_share": 0.3636,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6774,
+       "rooms_changing_band_share": 0.5455,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 6,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5517,
+       "rooms_changing_band_share": 0.5455,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       2,
+       5
+      ],
+      [
+       1,
+       2,
+       6
+      ],
+      [
+       1,
+       5,
+       6
+      ],
+      [
+       1,
+       6,
+       2
+      ],
+      [
+       1,
+       6,
+       5
+      ],
+      [
+       2,
+       1,
+       6
+      ],
+      [
+       2,
+       5,
+       1
+      ],
+      [
+       2,
+       5,
+       6
+      ],
+      [
+       2,
+       6,
+       1
+      ],
+      [
+       5,
+       1,
+       2
+      ],
+      [
+       5,
+       1,
+       6
+      ],
+      [
+       5,
+       6,
+       1
+      ],
+      [
+       5,
+       6,
+       2
+      ],
+      [
+       6,
+       1,
+       2
+      ],
+      [
+       6,
+       1,
+       5
+      ],
+      [
+       6,
+       2,
+       1
+      ],
+      [
+       6,
+       2,
+       5
+      ],
+      [
+       6,
+       5,
+       1
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      1,
+      6
+     ]
+    },
+    {
+     "brief": "B12",
+     "candidates": 8,
+     "clean": 0,
+     "realizations_attempted": 0,
+     "pass_plans": 0,
+     "pass_candidates": [],
+     "outcomes": {},
+     "seconds_total": 3.454,
+     "seconds_per_realization": [],
+     "old_winner": null,
+     "new_winner": null,
+     "winner_changed": null,
+     "deciding_term": null,
+     "alternatives": []
+    },
+    {
+     "brief": "B13",
+     "candidates": 8,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 3,
+     "pass_candidates": [
+      2,
+      3,
+      4
+     ],
+     "outcomes": {
+      "0": "SIZING_INFEASIBLE",
+      "2": "PASS",
+      "3": "PASS",
+      "4": "PASS",
+      "6": "SIZING_INFEASIBLE"
+     },
+     "seconds_total": 4.028,
+     "seconds_per_realization": [
+      0.31,
+      0.391,
+      0.259,
+      0.322,
+      0.34
+     ],
+     "old_winner": 2,
+     "new_winner": 2,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      2,
+      3,
+      4
+     ],
+     "facts": {
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 1.745,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.55,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": -0.825159,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 2.29,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.3076,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.390518,
+       "candidate_index": 3
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 21.27,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.1638,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.313443,
+       "candidate_index": 4
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.56,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.7,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      3,
+      4
+     ]
+    },
+    {
+     "brief": "B14",
+     "candidates": 8,
+     "clean": 3,
+     "realizations_attempted": 3,
+     "pass_plans": 3,
+     "pass_candidates": [
+      1,
+      2,
+      7
+     ],
+     "outcomes": {
+      "1": "PASS",
+      "2": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 3.507,
+     "seconds_per_realization": [
+      0.693,
+      0.188,
+      0.474
+     ],
+     "old_winner": 1,
+     "new_winner": 7,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 71.03,
+      "old": 83.16
+     },
+     "production_reason": null,
+     "new_order": [
+      7,
+      2,
+      1
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 83.16,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 1.5851,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.372291,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 77.625,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.092243,
+       "candidate_index": 2
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 71.03,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.05312,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1314,
+       0.172
+      ],
+      "circulation_longest_segment_m": [
+       7.05,
+       6.8
+      ],
+      "circulation_dead_ends": [
+       1,
+       0
+      ],
+      "circulation_rooms_served": [
+       8,
+       9
+      ],
+      "mean_walk_from_entrance_m": [
+       9.717,
+       10.74
+      ],
+      "dead_space_share": [
+       0.0131,
+       0.0026
+      ],
+      "public_private_wall_m": [
+       4.7,
+       2.9
+      ],
+      "public_private_wall_share": [
+       0.086,
+       0.0519
+      ],
+      "master_hall_sight_line_to_bed": [
+       0,
+       1
+      ],
+      "master_suite_score": [
+       0.0,
+       0.3
+      ],
+      "public_narrowest_neck_m": [
+       4.7,
+       2.9
+      ],
+      "public_compactness": [
+       0.9119,
+       0.7005
+      ],
+      "public_worst_aspect": [
+       1.875,
+       1.474
+      ],
+      "bedroom_worst_aspect": [
+       1.741,
+       1.373
+      ],
+      "master_aspect": [
+       1.027,
+       1.014
+      ],
+      "bedroom_min_net_area_m2": [
+       9.23,
+       9.135
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.9
+      ],
+      "bedroom_area_cv": [
+       0.1556,
+       0.149
+      ],
+      "bedroom_public_wall_m": [
+       4.7,
+       2.9
+      ],
+      "plumbing_complexity_index": [
+       3,
+       4
+      ],
+      "wet_adjacency_share": [
+       0.3333,
+       0.0
+      ],
+      "two_sided_exposure_share": [
+       0.5714,
+       0.4286
+      ],
+      "max_single_room_facade_share": [
+       0.1732,
+       0.2076
+      ],
+      "public_facade_share": [
+       0.2381,
+       0.2789
+      ],
+      "bedroom_facade_share": [
+       0.6234,
+       0.5207
+      ],
+      "street_facade_public_share": [
+       0.5122,
+       0.4474
+      ],
+      "mean_net_aspect": [
+       1.59,
+       1.541
+      ],
+      "max_net_aspect": [
+       3.133,
+       2.364
+      ],
+      "worst_wet_aspect": [
+       2.219,
+       2.364
+      ],
+      "soft_adjacency_lift": [
+       1.5123,
+       1.4892
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5185,
+       "rooms_changing_band_share": 0.6364,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5185,
+       "rooms_changing_band_share": 0.6364,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       2,
+       7
+      ],
+      [
+       1,
+       7,
+       2
+      ],
+      [
+       2,
+       1,
+       7
+      ],
+      [
+       2,
+       7,
+       1
+      ],
+      [
+       7,
+       1,
+       2
+      ],
+      [
+       7,
+       2,
+       1
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      2,
+      1
+     ]
+    },
+    {
+     "brief": "B15",
+     "candidates": 8,
+     "clean": 1,
+     "realizations_attempted": 1,
+     "pass_plans": 1,
+     "pass_candidates": [
+      7
+     ],
+     "outcomes": {
+      "7": "PASS"
+     },
+     "seconds_total": 2.027,
+     "seconds_per_realization": [
+      0.445
+     ],
+     "old_winner": 7,
+     "new_winner": 7,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      7
+     ],
+     "facts": {
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 21.09,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.033395,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B16",
+     "candidates": 8,
+     "clean": 2,
+     "realizations_attempted": 2,
+     "pass_plans": 1,
+     "pass_candidates": [
+      3
+     ],
+     "outcomes": {
+      "3": "PASS",
+      "6": "SIZING_INFEASIBLE"
+     },
+     "seconds_total": 6.791,
+     "seconds_per_realization": [
+      1.034,
+      1.207
+     ],
+     "old_winner": 3,
+     "new_winner": 3,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      3
+     ],
+     "facts": {
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 22.45,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 3.6738,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 1.682995,
+       "candidate_index": 3
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B17",
+     "candidates": 9,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 3,
+     "pass_candidates": [
+      3,
+      4,
+      6
+     ],
+     "outcomes": {
+      "3": "PASS",
+      "4": "PASS",
+      "6": "PASS",
+      "8": "EXPOSURE_INFEASIBLE"
+     },
+     "seconds_total": 6.93,
+     "seconds_per_realization": [
+      0.431,
+      0.377,
+      1.503,
+      0.34
+     ],
+     "old_winner": 4,
+     "new_winner": 3,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 36.2,
+      "old": 60.075
+     },
+     "production_reason": null,
+     "new_order": [
+      3,
+      6,
+      4
+     ],
+     "facts": {
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 36.2,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.11047,
+       "candidate_index": 3
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 60.075,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -3.3
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.723851,
+       "candidate_index": 4
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 40.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 1.7226,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.026127,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1406,
+       0.171
+      ],
+      "circulation_longest_segment_m": [
+       6.25,
+       9.4
+      ],
+      "circulation_turns": [
+       3,
+       1
+      ],
+      "circulation_rooms_served": [
+       8,
+       10
+      ],
+      "mean_steps_from_entrance": [
+       2.636,
+       2
+      ],
+      "max_steps_from_entrance": [
+       4,
+       3
+      ],
+      "mean_walk_from_entrance_m": [
+       11.37,
+       12.191
+      ],
+      "dead_space_share": [
+       0.0024,
+       0.0021
+      ],
+      "public_private_wall_m": [
+       5.45,
+       6.85
+      ],
+      "public_private_wall_share": [
+       0.0848,
+       0.0967
+      ],
+      "bedrooms_reached_through_public": [
+       6,
+       0
+      ],
+      "public_components": [
+       1,
+       2
+      ],
+      "private_components": [
+       1,
+       2
+      ],
+      "entrance_to_bedroom_steps": [
+       3,
+       2
+      ],
+      "arrival_fanout": [
+       2,
+       1
+      ],
+      "public_largest_cluster_share": [
+       1.0,
+       0.5048
+      ],
+      "public_narrowest_neck_m": [
+       5.45,
+       2.75
+      ],
+      "public_compactness": [
+       0.9155,
+       0.9019
+      ],
+      "public_worst_aspect": [
+       2.188,
+       2.164
+      ],
+      "bedroom_worst_aspect": [
+       2.019,
+       2.056
+      ],
+      "master_aspect": [
+       1.106,
+       1.258
+      ],
+      "bedroom_min_net_area_m2": [
+       9.1,
+       11.1
+      ],
+      "bedroom_area_cv": [
+       0.1421,
+       0.0686
+      ],
+      "bedroom_public_wall_m": [
+       5.45,
+       6.85
+      ],
+      "plumbing_complexity_index": [
+       3,
+       4
+      ],
+      "wet_shared_wall_m": [
+       3.3,
+       0.0
+      ],
+      "wet_cluster_count": [
+       2,
+       3
+      ],
+      "wet_adjacency_share": [
+       0.6667,
+       0.0
+      ],
+      "wet_rooms_with_window": [
+       0.6667,
+       1.0
+      ],
+      "preferred_exposure_satisfied": [
+       0.6667,
+       1.0
+      ],
+      "windowless_rooms": [
+       1,
+       0
+      ],
+      "max_single_room_facade_share": [
+       0.1796,
+       0.1679
+      ],
+      "public_facade_share": [
+       0.2295,
+       0.3293
+      ],
+      "bedroom_facade_share": [
+       0.5559,
+       0.4336
+      ],
+      "street_facade_public_share": [
+       0.4481,
+       0.2065
+      ],
+      "mean_net_aspect": [
+       1.892,
+       2.073
+      ],
+      "max_net_aspect": [
+       2.917,
+       3.133
+      ],
+      "worst_wet_aspect": [
+       2.917,
+       2.972
+      ],
+      "min_net_short_side_m": [
+       1.6,
+       1.8
+      ],
+      "soft_adjacency_lift": [
+       1.4769,
+       1.4084
+      ],
+      "measurable_adjacency_coverage": [
+       0.3043,
+       0.2727
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 6,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4828,
+       "rooms_changing_band_share": 0.75,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5484,
+       "rooms_changing_band_share": 0.4167,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       3,
+       4,
+       6
+      ],
+      [
+       4,
+       6,
+       3
+      ],
+      [
+       6,
+       3,
+       4
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      4
+     ]
+    },
+    {
+     "brief": "B18",
+     "candidates": 8,
+     "clean": 3,
+     "realizations_attempted": 3,
+     "pass_plans": 1,
+     "pass_candidates": [
+      7
+     ],
+     "outcomes": {
+      "1": "SIZING_INFEASIBLE",
+      "4": "SIZING_INFEASIBLE",
+      "7": "PASS"
+     },
+     "seconds_total": 12.568,
+     "seconds_per_realization": [
+      1.021,
+      0.679,
+      1.538
+     ],
+     "old_winner": 7,
+     "new_winner": 7,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      7
+     ],
+     "facts": {
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 0.4375,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -3.35
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.034893,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B19",
+     "candidates": 8,
+     "clean": 2,
+     "realizations_attempted": 2,
+     "pass_plans": 1,
+     "pass_candidates": [
+      7
+     ],
+     "outcomes": {
+      "4": "SIZING_INFEASIBLE",
+      "7": "PASS"
+     },
+     "seconds_total": 6.512,
+     "seconds_per_realization": [
+      1.361,
+      1.362
+     ],
+     "old_winner": 7,
+     "new_winner": 7,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      7
+     ],
+     "facts": {
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 2.75,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.728214,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B20",
+     "candidates": 9,
+     "clean": 1,
+     "realizations_attempted": 1,
+     "pass_plans": 1,
+     "pass_candidates": [
+      1
+     ],
+     "outcomes": {
+      "1": "PASS"
+     },
+     "seconds_total": 1.911,
+     "seconds_per_realization": [
+      0.201
+     ],
+     "old_winner": 1,
+     "new_winner": 1,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      1
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 5.0625,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -3.2
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.615718,
+       "candidate_index": 1
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    }
+   ]
+  },
+  "corrected": {
+   "dataset": "corrected",
+   "path": "docs/reports/142k-corrected-proposer/data/generation-dataset-142k.json",
+   "briefs": 20,
+   "totals": {
+    "candidates": 162,
+    "clean": 100,
+    "realizations_attempted": 100,
+    "pass_plans": 81,
+    "briefs_with_a_pass": 20,
+    "briefs_with_multiple_pass": 20,
+    "winner_changed": 14,
+    "deciding_terms": {
+     "area_delta_m2": 10,
+     "entrance_rank": 4
+    },
+    "circulation_cycles_found": 267,
+    "alternatives": {
+     "DIFFERENT_CONCEPT": 39,
+     "VARIANT": 14,
+     "MINOR_PERMUTATION": 8
+    }
+   },
+   "runtime": {
+    "per_realization_s": {
+     "n": 100,
+     "p50": 0.198,
+     "p95": 1.439,
+     "worst": 1.683,
+     "total": 33.5
+    },
+    "per_brief_s": {
+     "p50": 2.671,
+     "p95": 9.979,
+     "worst": 10.7,
+     "total": 79.6
+    }
+   },
+   "rows": [
+    {
+     "brief": "B01",
+     "candidates": 8,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 6,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "3": "PASS",
+      "5": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 0.575,
+     "seconds_per_realization": [
+      0.053,
+      0.073,
+      0.087,
+      0.075,
+      0.078,
+      0.057
+     ],
+     "old_winner": 0,
+     "new_winner": 2,
+     "winner_changed": true,
+     "deciding_term": "entrance_rank",
+     "deciding_values": {
+      "new": 0,
+      "old": 1
+     },
+     "production_reason": null,
+     "new_order": [
+      2,
+      5,
+      3,
+      0,
+      1,
+      7
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.27,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 0.339775,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.27,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.51866,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 0,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 3.175,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.2146,
+       "wet_core_key": [
+        1,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.267419,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.1588,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.354013,
+       "candidate_index": 3
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.1588,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.102772,
+       "candidate_index": 5
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 373.5775,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 6.27,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.51866,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1962,
+       0.156
+      ],
+      "circulation_longest_segment_m": [
+       3.55,
+       4.65
+      ],
+      "circulation_dead_ends": [
+       1,
+       0
+      ],
+      "circulation_turns": [
+       1,
+       0
+      ],
+      "circulation_rooms_served": [
+       4,
+       2
+      ],
+      "mean_walk_from_entrance_m": [
+       8.025,
+       7.863
+      ],
+      "dead_space_share": [
+       0.105,
+       0.0036
+      ],
+      "public_private_wall_m": [
+       4.4,
+       5.5
+      ],
+      "public_private_wall_share": [
+       0.2195,
+       0.26
+      ],
+      "bedroom_doors_off_arrival": [
+       0,
+       1
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       1
+      ],
+      "arrival_is_circulation": [
+       0,
+       1
+      ],
+      "entrance_pocket_m": [
+       0.0,
+       2.474
+      ],
+      "entrance_distance_to_public_m": [
+       0,
+       3.175
+      ],
+      "entrance_private_doors_passed": [
+       0,
+       1
+      ],
+      "steps_entrance_to_living": [
+       0,
+       1
+      ],
+      "public_narrowest_neck_m": [
+       2.95,
+       1.95
+      ],
+      "public_compactness": [
+       0.7365,
+       0.6153
+      ],
+      "public_worst_aspect": [
+       1.291,
+       1.148
+      ],
+      "master_aspect": [
+       1.375,
+       1.333
+      ],
+      "bedroom_min_net_area_m2": [
+       12.6,
+       13.02
+      ],
+      "bedroom_min_short_side_m": [
+       3.0,
+       3.1
+      ],
+      "bedroom_public_wall_m": [
+       4.4,
+       5.5
+      ],
+      "plumbing_complexity_index": [
+       2,
+       1
+      ],
+      "wet_adjacency_share": [
+       0.0,
+       1.0
+      ],
+      "two_sided_exposure_share": [
+       1.0,
+       0.6667
+      ],
+      "max_single_room_facade_share": [
+       0.2868,
+       0.2362
+      ],
+      "public_facade_share": [
+       0.4923,
+       0.3436
+      ],
+      "bedroom_facade_share": [
+       0.2331,
+       0.2362
+      ],
+      "street_facade_public_share": [
+       0.6074,
+       0.5092
+      ],
+      "mean_net_aspect": [
+       1.423,
+       1.776
+      ],
+      "max_net_aspect": [
+       2.219,
+       2.906
+      ],
+      "worst_wet_aspect": [
+       2.219,
+       2.906
+      ],
+      "soft_adjacency_lift": [
+       1.8881,
+       1.1756
+      ],
+      "measurable_adjacency_coverage": [
+       0.1429,
+       0.4286
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 5,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4444,
+       "rooms_changing_band_share": 0.6,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4444,
+       "rooms_changing_band_share": 0.6,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.6,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.6,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.6,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      5,
+      3,
+      0,
+      1,
+      7
+     ]
+    },
+    {
+     "brief": "B02",
+     "candidates": 8,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 5,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      3,
+      6
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "3": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 0.828,
+     "seconds_per_realization": [
+      0.081,
+      0.093,
+      0.089,
+      0.063,
+      0.065
+     ],
+     "old_winner": 2,
+     "new_winner": 3,
+     "winner_changed": true,
+     "deciding_term": "entrance_rank",
+     "deciding_values": {
+      "new": 0,
+      "old": 1
+     },
+     "production_reason": null,
+     "new_order": [
+      3,
+      0,
+      1,
+      6,
+      2
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.6363,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.510232,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 4.225,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 5.3375,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.275847,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 135.0025,
+       "distance_to_public_m": 0.0,
+       "composition_score": 2.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.34,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.339775,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 0,
+       "area_delta_m2": 135.8975,
+       "distance_to_public_m": 3.0254,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 4.6363,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.51866,
+       "candidate_index": 3
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 133.66,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7388,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.345585,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.149,
+       0.1441
+      ],
+      "circulation_longest_segment_m": [
+       6.05,
+       5.95
+      ],
+      "circulation_rooms_served": [
+       5,
+       3
+      ],
+      "mean_steps_from_entrance": [
+       1.6,
+       1.4
+      ],
+      "mean_walk_from_entrance_m": [
+       7.92,
+       7.335
+      ],
+      "dead_space_share": [
+       0.032,
+       0.0642
+      ],
+      "public_private_wall_m": [
+       3.2,
+       7.9
+      ],
+      "public_private_wall_share": [
+       0.1187,
+       0.2942
+      ],
+      "public_components": [
+       2,
+       1
+      ],
+      "bedroom_doors_off_arrival": [
+       0,
+       1
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       1
+      ],
+      "arrival_is_circulation": [
+       0,
+       1
+      ],
+      "entrance_pocket_m": [
+       0.0,
+       2.215
+      ],
+      "entrance_distance_to_public_m": [
+       0,
+       3.025
+      ],
+      "entrance_private_doors_passed": [
+       0,
+       1
+      ],
+      "arrival_fanout": [
+       2,
+       3
+      ],
+      "steps_entrance_to_living": [
+       0,
+       1
+      ],
+      "kitchen_dining_related": [
+       0,
+       1
+      ],
+      "public_largest_cluster_share": [
+       0.706,
+       1.0
+      ],
+      "public_narrowest_neck_m": [
+       3.95,
+       1.6
+      ],
+      "public_compactness": [
+       0.907,
+       0.684
+      ],
+      "public_worst_aspect": [
+       1.627,
+       1.893
+      ],
+      "master_aspect": [
+       1.344,
+       1.026
+      ],
+      "bedroom_min_net_area_m2": [
+       12.3,
+       14.43
+      ],
+      "bedroom_min_short_side_m": [
+       3.0,
+       3.7
+      ],
+      "bedroom_public_wall_m": [
+       3.2,
+       7.9
+      ],
+      "two_sided_exposure_share": [
+       1.0,
+       0.5
+      ],
+      "max_single_room_facade_share": [
+       0.2847,
+       0.2374
+      ],
+      "public_facade_share": [
+       0.6861,
+       0.5293
+      ],
+      "bedroom_facade_share": [
+       0.2083,
+       0.1117
+      ],
+      "street_facade_public_share": [
+       1.0,
+       0.0
+      ],
+      "mean_net_aspect": [
+       1.793,
+       1.706
+      ],
+      "max_net_aspect": [
+       3.361,
+       3.4
+      ],
+      "worst_wet_aspect": [
+       1.389,
+       1.486
+      ],
+      "min_net_short_side_m": [
+       1.8,
+       1.75
+      ],
+      "soft_adjacency_lift": [
+       1.7634,
+       1.8881
+      ],
+      "measurable_adjacency_coverage": [
+       0.2222,
+       0.1111
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 0,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 1,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.2,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "distance_to_public_m"
+      },
+      {
+       "candidate": 6,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6154,
+       "rooms_changing_band_share": 0.6667,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5,
+       "rooms_changing_band_share": 0.8333,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       2,
+       1
+      ],
+      [
+       0,
+       2,
+       6
+      ],
+      [
+       0,
+       6,
+       1
+      ],
+      [
+       0,
+       6,
+       2
+      ],
+      [
+       1,
+       0,
+       2
+      ],
+      [
+       1,
+       0,
+       6
+      ],
+      [
+       1,
+       2,
+       6
+      ],
+      [
+       1,
+       3,
+       2
+      ],
+      [
+       1,
+       3,
+       6
+      ],
+      [
+       1,
+       6,
+       2
+      ],
+      [
+       2,
+       0,
+       6
+      ],
+      [
+       2,
+       1,
+       0
+      ],
+      [
+       2,
+       1,
+       3
+      ],
+      [
+       2,
+       1,
+       6
+      ],
+      [
+       2,
+       3,
+       6
+      ],
+      [
+       2,
+       6,
+       0
+      ],
+      [
+       2,
+       6,
+       1
+      ],
+      [
+       2,
+       6,
+       3
+      ],
+      [
+       3,
+       2,
+       1
+      ],
+      [
+       3,
+       2,
+       6
+      ],
+      [
+       3,
+       6,
+       1
+      ],
+      [
+       3,
+       6,
+       2
+      ],
+      [
+       6,
+       0,
+       2
+      ],
+      [
+       6,
+       1,
+       0
+      ],
+      [
+       6,
+       1,
+       2
+      ],
+      [
+       6,
+       1,
+       3
+      ],
+      [
+       6,
+       2,
+       0
+      ],
+      [
+       6,
+       2,
+       1
+      ],
+      [
+       6,
+       2,
+       3
+      ],
+      [
+       6,
+       3,
+       2
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      6,
+      2
+     ]
+    },
+    {
+     "brief": "B03",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 4,
+     "pass_candidates": [
+      0,
+      1,
+      3,
+      5
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "3": "PASS",
+      "5": "PASS"
+     },
+     "seconds_total": 0.895,
+     "seconds_per_realization": [
+      0.082,
+      0.12,
+      0.08,
+      0.081
+     ],
+     "old_winner": 5,
+     "new_winner": 5,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      5,
+      1,
+      0,
+      3
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 1
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 3
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.7,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.418268,
+       "candidate_index": 5
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 1,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 0,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 3,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B04",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 4,
+     "pass_candidates": [
+      0,
+      1,
+      5,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "5": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 1.398,
+     "seconds_per_realization": [
+      0.166,
+      0.164,
+      0.121,
+      0.182
+     ],
+     "old_winner": 7,
+     "new_winner": 7,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      7,
+      5,
+      0,
+      1
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 345.91,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.418268,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 345.91,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 1
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 343.485,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.799767,
+       "candidate_index": 5
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 341.545,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.390518,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 5,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.3529,
+       "rooms_changing_band_share": 0.25,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.25,
+       "rooms_changing_band_share": 0.25,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.25,
+       "rooms_changing_band_share": 0.25,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      5
+     ]
+    },
+    {
+     "brief": "B05",
+     "candidates": 8,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 5,
+     "pass_candidates": [
+      1,
+      2,
+      4,
+      6,
+      7
+     ],
+     "outcomes": {
+      "0": "BAND_GEOMETRY_LIMIT",
+      "1": "PASS",
+      "2": "PASS",
+      "4": "PASS",
+      "6": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 1.175,
+     "seconds_per_realization": [
+      0.037,
+      0.118,
+      0.104,
+      0.112,
+      0.096,
+      0.1
+     ],
+     "old_winner": 1,
+     "new_winner": 4,
+     "winner_changed": true,
+     "deciding_term": "entrance_rank",
+     "deciding_values": {
+      "new": 0,
+      "old": 1
+     },
+     "production_reason": null,
+     "new_order": [
+      4,
+      6,
+      1,
+      2,
+      7
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 193.455,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.041823,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 193.455,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.421173,
+       "candidate_index": 2
+      },
+      "4": {
+       "entrance_rank": 0,
+       "area_delta_m2": 196.32,
+       "distance_to_public_m": 4.23,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 4
+      },
+      "6": {
+       "entrance_rank": 0,
+       "area_delta_m2": 196.32,
+       "distance_to_public_m": 4.23,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 6
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 195.365,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 1.418268,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1477,
+       0.1359
+      ],
+      "circulation_longest_segment_m": [
+       4.15,
+       4.1
+      ],
+      "circulation_rooms_served": [
+       6,
+       4
+      ],
+      "mean_steps_from_entrance": [
+       1.667,
+       1.333
+      ],
+      "mean_walk_from_entrance_m": [
+       8.604,
+       7.571
+      ],
+      "public_private_wall_m": [
+       6.75,
+       10.75
+      ],
+      "public_private_wall_share": [
+       0.21,
+       0.3397
+      ],
+      "zone_band_overlap": [
+       1.0,
+       0.5714
+      ],
+      "bedroom_doors_off_arrival": [
+       0,
+       2
+      ],
+      "master_hall_sight_line_to_bed": [
+       0,
+       1
+      ],
+      "master_suite_score": [
+       0.0,
+       0.3
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       1
+      ],
+      "arrival_is_circulation": [
+       0,
+       1
+      ],
+      "entrance_pocket_m": [
+       0.0,
+       2.552
+      ],
+      "entrance_distance_to_public_m": [
+       0,
+       4.23
+      ],
+      "entrance_private_doors_passed": [
+       0,
+       2
+      ],
+      "arrival_fanout": [
+       2,
+       4
+      ],
+      "steps_entrance_to_living": [
+       0,
+       1
+      ],
+      "public_narrowest_neck_m": [
+       3.5,
+       1.6
+      ],
+      "public_compactness": [
+       0.7021,
+       0.7255
+      ],
+      "public_worst_aspect": [
+       1.851,
+       1.83
+      ],
+      "bedroom_worst_aspect": [
+       1.127,
+       1.186
+      ],
+      "master_aspect": [
+       1.5,
+       1.101
+      ],
+      "bedroom_min_net_area_m2": [
+       9.883,
+       9.075
+      ],
+      "bedroom_min_short_side_m": [
+       2.95,
+       2.75
+      ],
+      "bedroom_public_wall_m": [
+       6.75,
+       10.75
+      ],
+      "two_sided_exposure_share": [
+       0.8,
+       0.6
+      ],
+      "max_single_room_facade_share": [
+       0.2558,
+       0.2063
+      ],
+      "public_facade_share": [
+       0.5411,
+       0.4974
+      ],
+      "bedroom_facade_share": [
+       0.3779,
+       0.2676
+      ],
+      "street_facade_public_share": [
+       0.6702,
+       0.0
+      ],
+      "mean_net_aspect": [
+       1.484,
+       1.506
+      ],
+      "max_net_aspect": [
+       1.906,
+       1.83
+      ],
+      "worst_wet_aspect": [
+       1.906,
+       1.667
+      ],
+      "min_net_short_side_m": [
+       1.6,
+       1.65
+      ],
+      "soft_adjacency_lift": [
+       1.8052,
+       1.8871
+      ],
+      "measurable_adjacency_coverage": [
+       0.1667,
+       0.1818
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 6,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.3571,
+       "rooms_changing_band_share": 0.7143,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.3571,
+       "rooms_changing_band_share": 0.7143,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4286,
+       "rooms_changing_band_share": 0.8571,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       1,
+       4,
+       7
+      ],
+      [
+       1,
+       6,
+       7
+      ],
+      [
+       2,
+       4,
+       7
+      ],
+      [
+       2,
+       6,
+       7
+      ],
+      [
+       4,
+       7,
+       1
+      ],
+      [
+       4,
+       7,
+       2
+      ],
+      [
+       6,
+       7,
+       1
+      ],
+      [
+       6,
+       7,
+       2
+      ],
+      [
+       7,
+       1,
+       4
+      ],
+      [
+       7,
+       1,
+       6
+      ],
+      [
+       7,
+       2,
+       4
+      ],
+      [
+       7,
+       2,
+       6
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      1,
+      2,
+      7
+     ]
+    },
+    {
+     "brief": "B06",
+     "candidates": 8,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 6,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "4": "PASS",
+      "5": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 1.589,
+     "seconds_per_realization": [
+      0.176,
+      0.119,
+      0.13,
+      0.12,
+      0.117,
+      0.135
+     ],
+     "old_winner": 1,
+     "new_winner": 4,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 211.12,
+      "old": 215.485
+     },
+     "production_reason": null,
+     "new_order": [
+      4,
+      7,
+      2,
+      1,
+      0,
+      5
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 217.91,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.615718,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 215.485,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.80529,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 214.515,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -2.8
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.062345,
+       "candidate_index": 2
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 211.12,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.4,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.38209,
+       "candidate_index": 4
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 217.91,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.011925,
+       "candidate_index": 5
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 211.12,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.4,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.390518,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1225,
+       0.1494
+      ],
+      "circulation_longest_segment_m": [
+       3.75,
+       4.55
+      ],
+      "circulation_dead_ends": [
+       0,
+       1
+      ],
+      "circulation_turns": [
+       2,
+       0
+      ],
+      "mean_walk_from_entrance_m": [
+       8.732,
+       8.475
+      ],
+      "dead_space_share": [
+       0.002,
+       0.0263
+      ],
+      "public_private_wall_m": [
+       6.75,
+       1.45
+      ],
+      "public_private_wall_share": [
+       0.187,
+       0.0392
+      ],
+      "zone_band_overlap": [
+       0.5704,
+       0.0
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "public_narrowest_neck_m": [
+       1.2,
+       4.1
+      ],
+      "public_compactness": [
+       0.4935,
+       0.9151
+      ],
+      "public_worst_aspect": [
+       2.5,
+       1.238
+      ],
+      "bedroom_worst_aspect": [
+       1.5,
+       1.484
+      ],
+      "master_aspect": [
+       1.085,
+       1.547
+      ],
+      "bedroom_min_net_area_m2": [
+       9.045,
+       9.15
+      ],
+      "bedroom_min_short_side_m": [
+       2.7,
+       3.0
+      ],
+      "bedroom_area_cv": [
+       0.1067,
+       0.1974
+      ],
+      "bedroom_public_wall_m": [
+       6.75,
+       1.45
+      ],
+      "two_sided_exposure_share": [
+       0.4,
+       0.6
+      ],
+      "max_single_room_facade_share": [
+       0.2774,
+       0.2027
+      ],
+      "public_facade_share": [
+       0.3753,
+       0.2985
+      ],
+      "bedroom_facade_share": [
+       0.3702,
+       0.4776
+      ],
+      "street_facade_public_share": [
+       0.7938,
+       0.8144
+      ],
+      "mean_net_aspect": [
+       1.527,
+       1.541
+      ],
+      "max_net_aspect": [
+       2.5,
+       2.438
+      ],
+      "worst_wet_aspect": [
+       1.667,
+       2.438
+      ],
+      "min_net_short_side_m": [
+       1.7,
+       1.6
+      ],
+      "soft_adjacency_lift": [
+       1.0503,
+       1.4275
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 7,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.625,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5263,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 5,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       1,
+       4
+      ],
+      [
+       0,
+       1,
+       7
+      ],
+      [
+       0,
+       2,
+       4
+      ],
+      [
+       0,
+       2,
+       7
+      ],
+      [
+       1,
+       2,
+       4
+      ],
+      [
+       1,
+       2,
+       7
+      ],
+      [
+       1,
+       4,
+       0
+      ],
+      [
+       1,
+       4,
+       5
+      ],
+      [
+       1,
+       7,
+       0
+      ],
+      [
+       1,
+       7,
+       5
+      ],
+      [
+       2,
+       4,
+       0
+      ],
+      [
+       2,
+       4,
+       1
+      ],
+      [
+       2,
+       4,
+       5
+      ],
+      [
+       2,
+       7,
+       0
+      ],
+      [
+       2,
+       7,
+       1
+      ],
+      [
+       2,
+       7,
+       5
+      ],
+      [
+       4,
+       0,
+       1
+      ],
+      [
+       4,
+       0,
+       2
+      ],
+      [
+       4,
+       1,
+       2
+      ],
+      [
+       4,
+       5,
+       1
+      ],
+      [
+       4,
+       5,
+       2
+      ],
+      [
+       5,
+       1,
+       4
+      ],
+      [
+       5,
+       1,
+       7
+      ],
+      [
+       5,
+       2,
+       4
+      ],
+      [
+       5,
+       2,
+       7
+      ],
+      [
+       7,
+       0,
+       1
+      ],
+      [
+       7,
+       0,
+       2
+      ],
+      [
+       7,
+       1,
+       2
+      ],
+      [
+       7,
+       5,
+       1
+      ],
+      [
+       7,
+       5,
+       2
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      2,
+      1,
+      0,
+      5
+     ]
+    },
+    {
+     "brief": "B07",
+     "candidates": 8,
+     "clean": 2,
+     "realizations_attempted": 2,
+     "pass_plans": 2,
+     "pass_candidates": [
+      0,
+      1
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS"
+     },
+     "seconds_total": 1.241,
+     "seconds_per_realization": [
+      0.125,
+      0.161
+     ],
+     "old_winner": 0,
+     "new_winner": 0,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      0,
+      1
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 240.23,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -3.4
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 246.27,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 11.808195,
+       "candidate_index": 1
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6667,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      1
+     ]
+    },
+    {
+     "brief": "B08",
+     "candidates": 8,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 6,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      6
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "3": "PASS",
+      "4": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 1.441,
+     "seconds_per_realization": [
+      0.099,
+      0.096,
+      0.138,
+      0.097,
+      0.137,
+      0.114
+     ],
+     "old_winner": 6,
+     "new_winner": 1,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 14.825,
+      "old": 26.475
+     },
+     "production_reason": null,
+     "new_order": [
+      1,
+      3,
+      0,
+      6,
+      2,
+      4
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 23.46,
+       "distance_to_public_m": 0.0,
+       "composition_score": 1.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 14.825,
+       "distance_to_public_m": 0.0,
+       "composition_score": 1.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.390518,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 31.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        1,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.421173,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 23.46,
+       "distance_to_public_m": 0.0,
+       "composition_score": 1.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 3
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 31.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        1,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.421173,
+       "candidate_index": 4
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 26.475,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 1.799767,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.152,
+       0.183
+      ],
+      "circulation_longest_segment_m": [
+       4.1,
+       5.15
+      ],
+      "mean_steps_from_entrance": [
+       1.571,
+       1.429
+      ],
+      "mean_walk_from_entrance_m": [
+       8.932,
+       9.536
+      ],
+      "dead_space_share": [
+       0.0018,
+       0.0049
+      ],
+      "public_private_wall_m": [
+       2.8,
+       5.5
+      ],
+      "public_private_wall_share": [
+       0.0731,
+       0.1389
+      ],
+      "zone_band_overlap": [
+       1.0,
+       0.0
+      ],
+      "arrival_fanout": [
+       3,
+       4
+      ],
+      "kitchen_dining_related": [
+       1,
+       0
+      ],
+      "public_narrowest_neck_m": [
+       3.05,
+       1.1
+      ],
+      "public_compactness": [
+       0.6814,
+       0.6121
+      ],
+      "public_worst_aspect": [
+       2.115,
+       2.5
+      ],
+      "bedroom_worst_aspect": [
+       1.554,
+       1.212
+      ],
+      "master_aspect": [
+       1.038,
+       1.136
+      ],
+      "bedroom_min_net_area_m2": [
+       9.23,
+       8.99
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.9
+      ],
+      "bedroom_area_cv": [
+       0.0779,
+       0.1343
+      ],
+      "master_is_largest_bedroom": [
+       1,
+       0
+      ],
+      "bedroom_public_wall_m": [
+       2.8,
+       5.5
+      ],
+      "two_sided_exposure_share": [
+       0.6667,
+       0.5
+      ],
+      "max_single_room_facade_share": [
+       0.2068,
+       0.2921
+      ],
+      "public_facade_share": [
+       0.5024,
+       0.4723
+      ],
+      "bedroom_facade_share": [
+       0.4562,
+       0.4007
+      ],
+      "street_facade_public_share": [
+       0.4428,
+       0.8326
+      ],
+      "mean_net_aspect": [
+       1.504,
+       1.559
+      ],
+      "max_net_aspect": [
+       2.406,
+       2.5
+      ],
+      "worst_wet_aspect": [
+       2.406,
+       2.188
+      ],
+      "soft_adjacency_lift": [
+       0.8194,
+       1.7634
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5263,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5263,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 6,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4444,
+       "rooms_changing_band_share": 0.375,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5263,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5263,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       1,
+       2
+      ],
+      [
+       0,
+       1,
+       4
+      ],
+      [
+       0,
+       1,
+       6
+      ],
+      [
+       0,
+       2,
+       1
+      ],
+      [
+       0,
+       2,
+       6
+      ],
+      [
+       0,
+       4,
+       1
+      ],
+      [
+       0,
+       4,
+       2
+      ],
+      [
+       0,
+       4,
+       6
+      ],
+      [
+       0,
+       6,
+       1
+      ],
+      [
+       0,
+       6,
+       2
+      ],
+      [
+       0,
+       6,
+       4
+      ],
+      [
+       1,
+       0,
+       2
+      ],
+      [
+       1,
+       0,
+       4
+      ],
+      [
+       1,
+       0,
+       6
+      ],
+      [
+       1,
+       2,
+       0
+      ],
+      [
+       1,
+       2,
+       3
+      ],
+      [
+       1,
+       2,
+       6
+      ],
+      [
+       1,
+       3,
+       2
+      ],
+      [
+       1,
+       3,
+       4
+      ],
+      [
+       1,
+       3,
+       6
+      ],
+      [
+       1,
+       4,
+       0
+      ],
+      [
+       1,
+       4,
+       2
+      ],
+      [
+       1,
+       4,
+       3
+      ],
+      [
+       1,
+       4,
+       6
+      ],
+      [
+       1,
+       6,
+       0
+      ],
+      [
+       1,
+       6,
+       2
+      ],
+      [
+       1,
+       6,
+       3
+      ],
+      [
+       1,
+       6,
+       4
+      ],
+      [
+       2,
+       0,
+       1
+      ],
+      [
+       2,
+       0,
+       4
+      ],
+      [
+       2,
+       0,
+       6
+      ],
+      [
+       2,
+       1,
+       0
+      ],
+      [
+       2,
+       1,
+       3
+      ],
+      [
+       2,
+       1,
+       4
+      ],
+      [
+       2,
+       1,
+       6
+      ],
+      [
+       2,
+       3,
+       1
+      ],
+      [
+       2,
+       3,
+       4
+      ],
+      [
+       2,
+       3,
+       6
+      ],
+      [
+       2,
+       6,
+       0
+      ],
+      [
+       2,
+       6,
+       1
+      ],
+      [
+       2,
+       6,
+       3
+      ],
+      [
+       2,
+       6,
+       4
+      ],
+      [
+       3,
+       1,
+       2
+      ],
+      [
+       3,
+       1,
+       4
+      ],
+      [
+       3,
+       1,
+       6
+      ],
+      [
+       3,
+       2,
+       1
+      ],
+      [
+       3,
+       2,
+       6
+      ],
+      [
+       3,
+       4,
+       1
+      ],
+      [
+       3,
+       4,
+       2
+      ],
+      [
+       3,
+       4,
+       6
+      ],
+      [
+       3,
+       6,
+       1
+      ],
+      [
+       3,
+       6,
+       2
+      ],
+      [
+       3,
+       6,
+       4
+      ],
+      [
+       4,
+       0,
+       1
+      ],
+      [
+       4,
+       0,
+       6
+      ],
+      [
+       4,
+       1,
+       0
+      ],
+      [
+       4,
+       1,
+       3
+      ],
+      [
+       4,
+       1,
+       6
+      ],
+      [
+       4,
+       2,
+       0
+      ],
+      [
+       4,
+       2,
+       1
+      ],
+      [
+       4,
+       2,
+       3
+      ],
+      [
+       4,
+       2,
+       6
+      ],
+      [
+       4,
+       3,
+       1
+      ],
+      [
+       4,
+       3,
+       6
+      ],
+      [
+       4,
+       6,
+       0
+      ],
+      [
+       4,
+       6,
+       1
+      ],
+      [
+       4,
+       6,
+       3
+      ],
+      [
+       6,
+       0,
+       1
+      ],
+      [
+       6,
+       0,
+       2
+      ],
+      [
+       6,
+       0,
+       4
+      ],
+      [
+       6,
+       1,
+       0
+      ],
+      [
+       6,
+       1,
+       2
+      ],
+      [
+       6,
+       1,
+       3
+      ],
+      [
+       6,
+       1,
+       4
+      ],
+      [
+       6,
+       2,
+       0
+      ],
+      [
+       6,
+       2,
+       1
+      ],
+      [
+       6,
+       2,
+       3
+      ],
+      [
+       6,
+       3,
+       1
+      ],
+      [
+       6,
+       3,
+       2
+      ],
+      [
+       6,
+       3,
+       4
+      ],
+      [
+       6,
+       4,
+       0
+      ],
+      [
+       6,
+       4,
+       1
+      ],
+      [
+       6,
+       4,
+       2
+      ],
+      [
+       6,
+       4,
+       3
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      3,
+      0,
+      6,
+      2,
+      4
+     ]
+    },
+    {
+     "brief": "B09",
+     "candidates": 8,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 6,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "3": "PASS",
+      "4": "PASS",
+      "5": "PASS"
+     },
+     "seconds_total": 1.785,
+     "seconds_per_realization": [
+      0.148,
+      0.124,
+      0.136,
+      0.129,
+      0.137,
+      0.134
+     ],
+     "old_winner": 3,
+     "new_winner": 5,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 334.0,
+      "old": 339.02
+     },
+     "production_reason": null,
+     "new_order": [
+      5,
+      0,
+      3,
+      1,
+      4,
+      2
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 334.0325,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        3,
+        -2.8
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.751601,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 339.02,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -3.45
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.345258,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 341.495,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -5.6
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 339.02,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -3.45
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.760029,
+       "candidate_index": 3
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 339.02,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 3.2276,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.796862,
+       "candidate_index": 4
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 334.0,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -4.2
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.33683,
+       "candidate_index": 5
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1689,
+       0.1224
+      ],
+      "circulation_longest_segment_m": [
+       4.0,
+       3.5
+      ],
+      "circulation_rooms_served": [
+       7,
+       6
+      ],
+      "mean_steps_from_entrance": [
+       1.875,
+       1.75
+      ],
+      "mean_walk_from_entrance_m": [
+       8.872,
+       8.45
+      ],
+      "dead_space_share": [
+       0.0038,
+       0.0018
+      ],
+      "public_private_wall_m": [
+       2.6,
+       3.2
+      ],
+      "public_private_wall_share": [
+       0.0647,
+       0.0751
+      ],
+      "private_components": [
+       2,
+       1
+      ],
+      "zone_band_overlap": [
+       0.5852,
+       0.5625
+      ],
+      "arrival_fanout": [
+       2,
+       3
+      ],
+      "public_narrowest_neck_m": [
+       2.6,
+       1.75
+      ],
+      "public_compactness": [
+       0.6465,
+       0.6122
+      ],
+      "public_worst_aspect": [
+       1.662,
+       1.167
+      ],
+      "bedroom_worst_aspect": [
+       1.536,
+       1.893
+      ],
+      "master_aspect": [
+       1.234,
+       1.075
+      ],
+      "bedroom_min_net_area_m2": [
+       10.53,
+       11.025
+      ],
+      "bedroom_area_cv": [
+       0.0061,
+       0.0625
+      ],
+      "master_is_largest_bedroom": [
+       1,
+       0
+      ],
+      "bedroom_public_wall_m": [
+       2.6,
+       3.2
+      ],
+      "plumbing_complexity_index": [
+       3,
+       2
+      ],
+      "wet_shared_wall_m": [
+       3.45,
+       4.2
+      ],
+      "wet_adjacency_share": [
+       0.6667,
+       1.0
+      ],
+      "two_sided_exposure_share": [
+       0.6,
+       0.4
+      ],
+      "max_single_room_facade_share": [
+       0.2251,
+       0.1966
+      ],
+      "public_facade_share": [
+       0.3234,
+       0.1869
+      ],
+      "bedroom_facade_share": [
+       0.4502,
+       0.466
+      ],
+      "street_facade_public_share": [
+       0.5657,
+       0.41
+      ],
+      "mean_net_aspect": [
+       1.576,
+       1.698
+      ],
+      "max_net_aspect": [
+       2.08,
+       3.2
+      ],
+      "worst_wet_aspect": [
+       2.08,
+       3.2
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5455,
+       "rooms_changing_band_share": 0.5556,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 3,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4762,
+       "rooms_changing_band_share": 0.1111,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4762,
+       "rooms_changing_band_share": 0.1111,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6087,
+       "rooms_changing_band_share": 0.3333,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 2,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.4762,
+       "rooms_changing_band_share": 0.5556,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       2,
+       1
+      ],
+      [
+       0,
+       2,
+       3
+      ],
+      [
+       0,
+       2,
+       4
+      ],
+      [
+       1,
+       0,
+       2
+      ],
+      [
+       1,
+       2,
+       4
+      ],
+      [
+       1,
+       4,
+       2
+      ],
+      [
+       2,
+       1,
+       0
+      ],
+      [
+       2,
+       1,
+       4
+      ],
+      [
+       2,
+       3,
+       0
+      ],
+      [
+       2,
+       3,
+       4
+      ],
+      [
+       2,
+       4,
+       0
+      ],
+      [
+       2,
+       4,
+       1
+      ],
+      [
+       2,
+       4,
+       3
+      ],
+      [
+       3,
+       0,
+       2
+      ],
+      [
+       3,
+       2,
+       4
+      ],
+      [
+       3,
+       4,
+       2
+      ],
+      [
+       4,
+       0,
+       2
+      ],
+      [
+       4,
+       1,
+       2
+      ],
+      [
+       4,
+       2,
+       1
+      ],
+      [
+       4,
+       2,
+       3
+      ],
+      [
+       4,
+       3,
+       2
+      ]
+     ],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B10",
+     "candidates": 8,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 5,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      3,
+      5
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "3": "PASS",
+      "5": "PASS"
+     },
+     "seconds_total": 1.934,
+     "seconds_per_realization": [
+      0.147,
+      0.147,
+      0.232,
+      0.134,
+      0.209
+     ],
+     "old_winner": 3,
+     "new_winner": 2,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 169.68,
+      "old": 176.31
+     },
+     "production_reason": null,
+     "new_order": [
+      2,
+      3,
+      1,
+      0,
+      5
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 181.425,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.030489,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 180.36,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.011925,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 169.68,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.421173,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 176.31,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.80529,
+       "candidate_index": 3
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 182.58,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 4.003497,
+       "candidate_index": 5
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.106,
+       0.1705
+      ],
+      "circulation_longest_segment_m": [
+       3.3,
+       5.1
+      ],
+      "circulation_rooms_served": [
+       6,
+       7
+      ],
+      "mean_steps_from_entrance": [
+       1.75,
+       2
+      ],
+      "mean_walk_from_entrance_m": [
+       8.812,
+       9.838
+      ],
+      "dead_space_share": [
+       0.0017,
+       0.0032
+      ],
+      "public_private_wall_m": [
+       8.05,
+       9.6
+      ],
+      "public_private_wall_share": [
+       0.1819,
+       0.2197
+      ],
+      "public_components": [
+       1,
+       2
+      ],
+      "private_components": [
+       1,
+       2
+      ],
+      "arrival_fanout": [
+       3,
+       1
+      ],
+      "public_largest_cluster_share": [
+       1.0,
+       0.697
+      ],
+      "public_narrowest_neck_m": [
+       1.5,
+       3.0
+      ],
+      "public_compactness": [
+       0.5933,
+       0.9111
+      ],
+      "public_worst_aspect": [
+       1.247,
+       2.3
+      ],
+      "bedroom_worst_aspect": [
+       1.964,
+       1.406
+      ],
+      "master_aspect": [
+       1.044,
+       1.0
+      ],
+      "bedroom_min_net_area_m2": [
+       11.055,
+       8.99
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.9
+      ],
+      "bedroom_area_cv": [
+       0.0676,
+       0.1791
+      ],
+      "bedroom_public_wall_m": [
+       8.05,
+       9.6
+      ],
+      "max_single_room_facade_share": [
+       0.1962,
+       0.2362
+      ],
+      "public_facade_share": [
+       0.169,
+       0.3211
+      ],
+      "bedroom_facade_share": [
+       0.5213,
+       0.3991
+      ],
+      "street_facade_public_share": [
+       0.3676,
+       0.6121
+      ],
+      "mean_net_aspect": [
+       1.717,
+       1.428
+      ],
+      "max_net_aspect": [
+       2.844,
+       2.3
+      ],
+      "worst_wet_aspect": [
+       2.844,
+       1.938
+      ],
+      "soft_adjacency_lift": [
+       1.1896,
+       1.067
+      ],
+      "measurable_adjacency_coverage": [
+       0.375,
+       0.3125
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 3,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5455,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 1,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4,
+       "rooms_changing_band_share": 0.4444,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4762,
+       "rooms_changing_band_share": 0.3333,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 5,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.2222,
+       "rooms_changing_band_share": 0.6667,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       1,
+       2
+      ],
+      [
+       0,
+       1,
+       5
+      ],
+      [
+       0,
+       2,
+       1
+      ],
+      [
+       0,
+       2,
+       5
+      ],
+      [
+       0,
+       3,
+       2
+      ],
+      [
+       0,
+       3,
+       5
+      ],
+      [
+       0,
+       5,
+       1
+      ],
+      [
+       0,
+       5,
+       2
+      ],
+      [
+       1,
+       0,
+       2
+      ],
+      [
+       1,
+       0,
+       5
+      ],
+      [
+       1,
+       2,
+       0
+      ],
+      [
+       1,
+       2,
+       5
+      ],
+      [
+       1,
+       3,
+       2
+      ],
+      [
+       1,
+       3,
+       5
+      ],
+      [
+       1,
+       5,
+       0
+      ],
+      [
+       1,
+       5,
+       2
+      ],
+      [
+       2,
+       0,
+       1
+      ],
+      [
+       2,
+       0,
+       3
+      ],
+      [
+       2,
+       0,
+       5
+      ],
+      [
+       2,
+       1,
+       0
+      ],
+      [
+       2,
+       1,
+       3
+      ],
+      [
+       2,
+       1,
+       5
+      ],
+      [
+       2,
+       3,
+       5
+      ],
+      [
+       2,
+       5,
+       0
+      ],
+      [
+       2,
+       5,
+       1
+      ],
+      [
+       2,
+       5,
+       3
+      ],
+      [
+       3,
+       2,
+       0
+      ],
+      [
+       3,
+       2,
+       1
+      ],
+      [
+       3,
+       2,
+       5
+      ],
+      [
+       3,
+       5,
+       0
+      ],
+      [
+       3,
+       5,
+       1
+      ],
+      [
+       3,
+       5,
+       2
+      ],
+      [
+       5,
+       0,
+       1
+      ],
+      [
+       5,
+       0,
+       2
+      ],
+      [
+       5,
+       0,
+       3
+      ],
+      [
+       5,
+       1,
+       0
+      ],
+      [
+       5,
+       1,
+       2
+      ],
+      [
+       5,
+       1,
+       3
+      ],
+      [
+       5,
+       2,
+       0
+      ],
+      [
+       5,
+       2,
+       1
+      ],
+      [
+       5,
+       2,
+       3
+      ],
+      [
+       5,
+       3,
+       2
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      3,
+      1,
+      0,
+      5
+     ]
+    },
+    {
+     "brief": "B11",
+     "candidates": 8,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 5,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      4,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "4": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 4.301,
+     "seconds_per_realization": [
+      0.315,
+      0.319,
+      0.314,
+      0.604,
+      0.303
+     ],
+     "old_winner": 4,
+     "new_winner": 1,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 42.69,
+      "old": 62.475
+     },
+     "production_reason": null,
+     "new_order": [
+      1,
+      7,
+      4,
+      2,
+      0
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 66.66,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.6952,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 42.69,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        2,
+        -4.2
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.390518,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 66.66,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.6952,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 2
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 62.475,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -5.4
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.429601,
+       "candidate_index": 4
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 58.8,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        1,
+        -2.8
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.429601,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.131,
+       0.1727
+      ],
+      "circulation_longest_segment_m": [
+       5.85,
+       8.35
+      ],
+      "circulation_rooms_served": [
+       8,
+       7
+      ],
+      "mean_steps_from_entrance": [
+       1.9,
+       1.7
+      ],
+      "mean_walk_from_entrance_m": [
+       9.758,
+       10.755
+      ],
+      "dead_space_share": [
+       0.0038,
+       0.0022
+      ],
+      "public_private_wall_m": [
+       3.65,
+       0
+      ],
+      "public_private_wall_share": [
+       0.0603,
+       0.0
+      ],
+      "private_components": [
+       2,
+       1
+      ],
+      "zone_band_overlap": [
+       0.0,
+       0.5149
+      ],
+      "arrival_fanout": [
+       2,
+       4
+      ],
+      "public_narrowest_neck_m": [
+       5.4,
+       1.1
+      ],
+      "public_compactness": [
+       0.9176,
+       0.6475
+      ],
+      "public_worst_aspect": [
+       2.167,
+       2.112
+      ],
+      "bedroom_worst_aspect": [
+       1.696,
+       1.446
+      ],
+      "master_aspect": [
+       1.136,
+       1.029
+      ],
+      "bedroom_min_net_area_m2": [
+       9.23,
+       8.998
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.95
+      ],
+      "bedroom_area_cv": [
+       0.1017,
+       0.2107
+      ],
+      "bedroom_public_wall_m": [
+       3.65,
+       0
+      ],
+      "wet_shared_wall_m": [
+       5.4,
+       4.2
+      ],
+      "max_single_room_facade_share": [
+       0.161,
+       0.1595
+      ],
+      "public_facade_share": [
+       0.2797,
+       0.3545
+      ],
+      "bedroom_facade_share": [
+       0.3602,
+       0.3284
+      ],
+      "street_facade_public_share": [
+       0.6367,
+       0.7138
+      ],
+      "mean_net_aspect": [
+       1.769,
+       1.577
+      ],
+      "max_net_aspect": [
+       2.311,
+       2.569
+      ],
+      "worst_wet_aspect": [
+       2.311,
+       2.222
+      ],
+      "min_net_short_side_m": [
+       2.25,
+       1.8
+      ],
+      "soft_adjacency_lift": [
+       0.8194,
+       1.7634
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.36,
+       "rooms_changing_band_share": 0.8182,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4,
+       "rooms_changing_band_share": 0.1818,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 2,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4615,
+       "rooms_changing_band_share": 0.2727,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.4615,
+       "rooms_changing_band_share": 0.2727,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       1,
+       4
+      ],
+      [
+       0,
+       4,
+       1
+      ],
+      [
+       0,
+       7,
+       1
+      ],
+      [
+       1,
+       0,
+       4
+      ],
+      [
+       1,
+       0,
+       7
+      ],
+      [
+       1,
+       2,
+       4
+      ],
+      [
+       1,
+       2,
+       7
+      ],
+      [
+       1,
+       4,
+       0
+      ],
+      [
+       1,
+       4,
+       2
+      ],
+      [
+       1,
+       4,
+       7
+      ],
+      [
+       2,
+       1,
+       4
+      ],
+      [
+       2,
+       4,
+       1
+      ],
+      [
+       2,
+       7,
+       1
+      ],
+      [
+       4,
+       0,
+       1
+      ],
+      [
+       4,
+       1,
+       0
+      ],
+      [
+       4,
+       1,
+       2
+      ],
+      [
+       4,
+       2,
+       1
+      ],
+      [
+       4,
+       7,
+       1
+      ],
+      [
+       7,
+       1,
+       0
+      ],
+      [
+       7,
+       1,
+       2
+      ],
+      [
+       7,
+       1,
+       4
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      7,
+      4,
+      2,
+      0
+     ]
+    },
+    {
+     "brief": "B12",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 3,
+     "pass_candidates": [
+      0,
+      4,
+      6
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "SIZING_INFEASIBLE",
+      "4": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 3.978,
+     "seconds_per_realization": [
+      0.403,
+      0.733,
+      0.187,
+      0.331
+     ],
+     "old_winner": 6,
+     "new_winner": 6,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      6,
+      4,
+      0
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 251.32,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.363823,
+       "candidate_index": 0
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 244.04,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.682995,
+       "candidate_index": 4
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 226.88,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.152211,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6296,
+       "rooms_changing_band_share": 0.4,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5,
+       "rooms_changing_band_share": 0.3,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      4
+     ]
+    },
+    {
+     "brief": "B13",
+     "candidates": 8,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 5,
+     "pass_candidates": [
+      0,
+      1,
+      2,
+      3,
+      5
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "PASS",
+      "2": "PASS",
+      "3": "PASS",
+      "5": "PASS",
+      "6": "NO_ENTRANCE"
+     },
+     "seconds_total": 3.409,
+     "seconds_per_realization": [
+      0.253,
+      0.258,
+      0.266,
+      0.274,
+      0.243,
+      0.158
+     ],
+     "old_winner": 3,
+     "new_winner": 2,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 0.98,
+      "old": 2.865
+     },
+     "production_reason": null,
+     "new_order": [
+      2,
+      1,
+      3,
+      5,
+      0
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 11.92,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 0
+      },
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 2.29,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 2.3076,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.3,
+        0.3
+       ],
+       "neg_heuristic_score": 3.38209,
+       "candidate_index": 1
+      },
+      "2": {
+       "entrance_rank": 1,
+       "area_delta_m2": 0.98,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.1738,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 2
+      },
+      "3": {
+       "entrance_rank": 1,
+       "area_delta_m2": 2.865,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        1,
+        -2.7
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.426696,
+       "candidate_index": 3
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 9.7,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.6952,
+       "wet_core_key": [
+        2,
+        -4.5
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 4.003497,
+       "candidate_index": 5
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.0951,
+       0.1089
+      ],
+      "circulation_longest_segment_m": [
+       3.9,
+       4.4
+      ],
+      "mean_walk_from_entrance_m": [
+       10.392,
+       9.472
+      ],
+      "dead_space_share": [
+       0.0028,
+       0.0014
+      ],
+      "public_private_wall_m": [
+       3.2,
+       7.5
+      ],
+      "public_private_wall_share": [
+       0.0624,
+       0.1479
+      ],
+      "zone_band_overlap": [
+       0.0,
+       0.4576
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "public_narrowest_neck_m": [
+       1.1,
+       1.55
+      ],
+      "public_compactness": [
+       0.7378,
+       0.6738
+      ],
+      "public_worst_aspect": [
+       2.269,
+       2.5
+      ],
+      "bedroom_worst_aspect": [
+       1.982,
+       1.593
+      ],
+      "master_aspect": [
+       1.258,
+       2.141
+      ],
+      "bedroom_area_cv": [
+       0.1886,
+       0.0819
+      ],
+      "master_is_largest_bedroom": [
+       0,
+       1
+      ],
+      "bedroom_public_wall_m": [
+       3.2,
+       7.5
+      ],
+      "plumbing_complexity_index": [
+       1,
+       3
+      ],
+      "wet_shared_wall_m": [
+       2.7,
+       0.0
+      ],
+      "wet_cluster_count": [
+       1,
+       2
+      ],
+      "wet_adjacency_share": [
+       1.0,
+       0.0
+      ],
+      "two_sided_exposure_share": [
+       0.5714,
+       0.4286
+      ],
+      "max_single_room_facade_share": [
+       0.2075,
+       0.2359
+      ],
+      "public_facade_share": [
+       0.4495,
+       0.4329
+      ],
+      "bedroom_facade_share": [
+       0.4925,
+       0.4102
+      ],
+      "mean_net_aspect": [
+       1.573,
+       1.528
+      ],
+      "max_net_aspect": [
+       2.269,
+       2.5
+      ],
+      "soft_adjacency_lift": [
+       0.6295,
+       1.7723
+      ],
+      "measurable_adjacency_coverage": [
+       0.1579,
+       0.2632
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.3913,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 3,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.48,
+       "rooms_changing_band_share": 0.4,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 5,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5769,
+       "rooms_changing_band_share": 0.7,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.52,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       2,
+       3
+      ],
+      [
+       0,
+       2,
+       5
+      ],
+      [
+       0,
+       3,
+       5
+      ],
+      [
+       0,
+       5,
+       2
+      ],
+      [
+       0,
+       5,
+       3
+      ],
+      [
+       2,
+       0,
+       5
+      ],
+      [
+       2,
+       3,
+       0
+      ],
+      [
+       2,
+       3,
+       5
+      ],
+      [
+       2,
+       5,
+       0
+      ],
+      [
+       3,
+       0,
+       2
+      ],
+      [
+       3,
+       0,
+       5
+      ],
+      [
+       3,
+       5,
+       0
+      ],
+      [
+       3,
+       5,
+       2
+      ],
+      [
+       5,
+       0,
+       2
+      ],
+      [
+       5,
+       0,
+       3
+      ],
+      [
+       5,
+       2,
+       0
+      ],
+      [
+       5,
+       2,
+       3
+      ],
+      [
+       5,
+       3,
+       0
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      3,
+      5,
+      0
+     ]
+    },
+    {
+     "brief": "B14",
+     "candidates": 9,
+     "clean": 6,
+     "realizations_attempted": 6,
+     "pass_plans": 3,
+     "pass_candidates": [
+      0,
+      4,
+      6
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "NO_ENTRANCE",
+      "2": "NO_ENTRANCE",
+      "4": "PASS",
+      "5": "EXPOSURE_INFEASIBLE",
+      "6": "PASS"
+     },
+     "seconds_total": 5.059,
+     "seconds_per_realization": [
+      0.419,
+      0.289,
+      0.287,
+      0.439,
+      0.345,
+      0.306
+     ],
+     "old_winner": 4,
+     "new_winner": 4,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      4,
+      0,
+      6
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 85.1475,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -4.55
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.751601,
+       "candidate_index": 0
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 85.1475,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -4.55
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 0.426696,
+       "candidate_index": 4
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 85.1475,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.723851,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 0,
+       "concept": "MINOR_PERMUTATION",
+       "contact_jaccard_distance": 0.0,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "neg_heuristic_score"
+      },
+      {
+       "candidate": 6,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.2609,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "wet_core_key"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B15",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 3,
+     "pass_candidates": [
+      0,
+      5,
+      6
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "NO_ENTRANCE",
+      "5": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 4.043,
+     "seconds_per_realization": [
+      0.416,
+      0.29,
+      0.443,
+      0.346
+     ],
+     "old_winner": 6,
+     "new_winner": 5,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 22.345,
+      "old": 30.5525
+     },
+     "production_reason": null,
+     "new_order": [
+      5,
+      6,
+      0
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 32.29,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 0
+      },
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 22.345,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 5
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 30.5525,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.429601,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1805,
+       0.1526
+      ],
+      "circulation_longest_segment_m": [
+       7.5,
+       7.9
+      ],
+      "circulation_turns": [
+       1,
+       2
+      ],
+      "circulation_rooms_served": [
+       9,
+       8
+      ],
+      "mean_steps_from_entrance": [
+       2,
+       2.8
+      ],
+      "max_steps_from_entrance": [
+       3,
+       4
+      ],
+      "mean_walk_from_entrance_m": [
+       10.77,
+       13.29
+      ],
+      "dead_space_share": [
+       0.0039,
+       0.0019
+      ],
+      "public_private_wall_m": [
+       10.85,
+       7.0
+      ],
+      "public_private_wall_share": [
+       0.1894,
+       0.1049
+      ],
+      "bedrooms_reached_through_public": [
+       0,
+       5
+      ],
+      "public_components": [
+       2,
+       1
+      ],
+      "private_components": [
+       3,
+       2
+      ],
+      "zone_band_overlap": [
+       1.0,
+       0.4079
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       3
+      ],
+      "public_largest_cluster_share": [
+       0.7058,
+       1.0
+      ],
+      "public_narrowest_neck_m": [
+       3.15,
+       7.0
+      ],
+      "public_compactness": [
+       0.914,
+       0.7935
+      ],
+      "public_worst_aspect": [
+       2.206,
+       2.488
+      ],
+      "bedroom_worst_aspect": [
+       1.426,
+       1.321
+      ],
+      "master_aspect": [
+       1.058,
+       2.21
+      ],
+      "bedroom_min_net_area_m2": [
+       9.045,
+       9.12
+      ],
+      "bedroom_area_cv": [
+       0.1944,
+       0.1202
+      ],
+      "master_is_largest_bedroom": [
+       0,
+       1
+      ],
+      "bedroom_public_wall_m": [
+       10.85,
+       7.0
+      ],
+      "max_single_room_facade_share": [
+       0.2117,
+       0.2697
+      ],
+      "public_facade_share": [
+       0.2661,
+       0.324
+      ],
+      "bedroom_facade_share": [
+       0.4123,
+       0.3529
+      ],
+      "street_facade_public_share": [
+       0.5053,
+       0.787
+      ],
+      "mean_net_aspect": [
+       1.517,
+       1.647
+      ],
+      "max_net_aspect": [
+       2.308,
+       2.488
+      ],
+      "worst_wet_aspect": [
+       2.281,
+       1.564
+      ],
+      "min_net_short_side_m": [
+       1.6,
+       2.6
+      ],
+      "soft_adjacency_lift": [
+       1.3337,
+       1.7439
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 6,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6207,
+       "rooms_changing_band_share": 0.6364,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6667,
+       "rooms_changing_band_share": 0.5455,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": []
+    },
+    {
+     "brief": "B16",
+     "candidates": 8,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 2,
+     "pass_candidates": [
+      5,
+      6
+     ],
+     "outcomes": {
+      "0": "SIZING_INFEASIBLE",
+      "1": "EXPOSURE_INFEASIBLE",
+      "2": "SIZING_INFEASIBLE",
+      "5": "PASS",
+      "6": "PASS"
+     },
+     "seconds_total": 9.704,
+     "seconds_per_realization": [
+      0.391,
+      0.511,
+      0.409,
+      1.502,
+      1.452
+     ],
+     "old_winner": 5,
+     "new_winner": 6,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 34.5,
+      "old": 42.47
+     },
+     "production_reason": null,
+     "new_order": [
+      6,
+      5
+     ],
+     "facts": {
+      "5": {
+       "entrance_rank": 1,
+       "area_delta_m2": 42.47,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.1331,
+       "candidate_index": 5
+      },
+      "6": {
+       "entrance_rank": 1,
+       "area_delta_m2": 34.5,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.003497,
+       "candidate_index": 6
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1209,
+       0.1823
+      ],
+      "circulation_longest_segment_m": [
+       6.3,
+       9.5
+      ],
+      "circulation_turns": [
+       2,
+       1
+      ],
+      "circulation_rooms_served": [
+       8,
+       10
+      ],
+      "mean_steps_from_entrance": [
+       2.5,
+       1.833
+      ],
+      "max_steps_from_entrance": [
+       4,
+       3
+      ],
+      "mean_walk_from_entrance_m": [
+       11.796,
+       11.1
+      ],
+      "dead_space_share": [
+       0.0022,
+       0.0032
+      ],
+      "public_private_wall_m": [
+       11.2,
+       0
+      ],
+      "public_private_wall_share": [
+       0.1591,
+       0.0
+      ],
+      "bedrooms_reached_through_public": [
+       5,
+       0
+      ],
+      "private_components": [
+       2,
+       1
+      ],
+      "zone_band_overlap": [
+       0.432,
+       1.0
+      ],
+      "entrance_to_bedroom_steps": [
+       3,
+       2
+      ],
+      "public_narrowest_neck_m": [
+       1.3,
+       1.1
+      ],
+      "public_compactness": [
+       0.6941,
+       0.7016
+      ],
+      "public_worst_aspect": [
+       3.0,
+       1.615
+      ],
+      "bedroom_worst_aspect": [
+       2.0,
+       1.262
+      ],
+      "master_aspect": [
+       1.219,
+       1.419
+      ],
+      "bedroom_min_net_area_m2": [
+       8.99,
+       8.998
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.8
+      ],
+      "bedroom_area_cv": [
+       0.1935,
+       0.1273
+      ],
+      "master_is_largest_bedroom": [
+       0,
+       1
+      ],
+      "bedroom_public_wall_m": [
+       11.2,
+       0
+      ],
+      "plumbing_complexity_index": [
+       3,
+       4
+      ],
+      "wet_adjacency_share": [
+       0.3333,
+       0.0
+      ],
+      "two_sided_exposure_share": [
+       0.2222,
+       0.3333
+      ],
+      "max_single_room_facade_share": [
+       0.1945,
+       0.15
+      ],
+      "public_facade_share": [
+       0.3387,
+       0.2936
+      ],
+      "bedroom_facade_share": [
+       0.3729,
+       0.3618
+      ],
+      "street_facade_public_share": [
+       0.8657,
+       0.5091
+      ],
+      "mean_net_aspect": [
+       1.805,
+       1.626
+      ],
+      "max_net_aspect": [
+       3.0,
+       3.016
+      ],
+      "worst_wet_aspect": [
+       3.0,
+       2.773
+      ],
+      "soft_adjacency_lift": [
+       0.7054,
+       1.7504
+      ],
+      "measurable_adjacency_coverage": [
+       0.2083,
+       0.125
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 5,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5455,
+       "rooms_changing_band_share": 0.6154,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      5
+     ]
+    },
+    {
+     "brief": "B17",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 2,
+     "pass_candidates": [
+      0,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "EXPOSURE_INFEASIBLE",
+      "5": "SIZING_INFEASIBLE",
+      "7": "PASS"
+     },
+     "seconds_total": 8.57,
+     "seconds_per_realization": [
+      1.439,
+      0.322,
+      1.441,
+      0.354
+     ],
+     "old_winner": 7,
+     "new_winner": 0,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 44.0025,
+      "old": 44.01
+     },
+     "production_reason": null,
+     "new_order": [
+      0,
+      7
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 44.0025,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 1.9514,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.062345,
+       "candidate_index": 0
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 44.01,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        4,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 1.762935,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.1693,
+       0.1717
+      ],
+      "circulation_longest_segment_m": [
+       8.9,
+       10.4
+      ],
+      "circulation_dead_ends": [
+       0,
+       1
+      ],
+      "mean_walk_from_entrance_m": [
+       11.923,
+       11.686
+      ],
+      "dead_space_share": [
+       0.0022,
+       0.0124
+      ],
+      "public_private_wall_m": [
+       8.0,
+       3.7
+      ],
+      "public_private_wall_share": [
+       0.1207,
+       0.0545
+      ],
+      "private_components": [
+       3,
+       2
+      ],
+      "master_hall_sight_line_to_bed": [
+       1,
+       0
+      ],
+      "master_suite_score": [
+       0.3,
+       0.0
+      ],
+      "public_narrowest_neck_m": [
+       4.1,
+       4.75
+      ],
+      "public_compactness": [
+       0.9252,
+       0.9185
+      ],
+      "public_worst_aspect": [
+       1.897,
+       1.896
+      ],
+      "bedroom_worst_aspect": [
+       1.667,
+       1.759
+      ],
+      "master_aspect": [
+       1.258,
+       2.047
+      ],
+      "bedroom_min_net_area_m2": [
+       11.1,
+       9.1
+      ],
+      "bedroom_area_cv": [
+       0.0799,
+       0.1462
+      ],
+      "master_is_largest_bedroom": [
+       0,
+       1
+      ],
+      "bedroom_public_wall_m": [
+       8.0,
+       3.7
+      ],
+      "plumbing_complexity_index": [
+       4,
+       3
+      ],
+      "wet_adjacency_share": [
+       0.0,
+       0.3333
+      ],
+      "two_sided_exposure_share": [
+       0.375,
+       0.5
+      ],
+      "max_single_room_facade_share": [
+       0.2216,
+       0.1819
+      ],
+      "public_facade_share": [
+       0.285,
+       0.2248
+      ],
+      "bedroom_facade_share": [
+       0.5066,
+       0.667
+      ],
+      "street_facade_public_share": [
+       0.7449,
+       0.452
+      ],
+      "mean_net_aspect": [
+       1.868,
+       2.054
+      ],
+      "max_net_aspect": [
+       3.44,
+       4.0
+      ],
+      "worst_wet_aspect": [
+       3.44,
+       3.5
+      ],
+      "min_net_short_side_m": [
+       1.25,
+       1.3
+      ],
+      "soft_adjacency_lift": [
+       1.4123,
+       1.4446
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5806,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      7
+     ]
+    },
+    {
+     "brief": "B18",
+     "candidates": 8,
+     "clean": 4,
+     "realizations_attempted": 4,
+     "pass_plans": 3,
+     "pass_candidates": [
+      0,
+      4,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "SIZING_INFEASIBLE",
+      "4": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 6.968,
+     "seconds_per_realization": [
+      0.776,
+      1.21,
+      0.366,
+      0.366
+     ],
+     "old_winner": 0,
+     "new_winner": 7,
+     "winner_changed": true,
+     "deciding_term": "area_delta_m2",
+     "deciding_values": {
+      "new": 4.67,
+      "old": 4.985
+     },
+     "production_reason": null,
+     "new_order": [
+      7,
+      0,
+      4
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 4.985,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.6952,
+       "wet_core_key": [
+        3,
+        -3.05
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.477117,
+       "candidate_index": 0
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 7.23,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.33683,
+       "candidate_index": 4
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 4.67,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        3,
+        -4.7
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 2.421173,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.157,
+       0.1831
+      ],
+      "circulation_longest_segment_m": [
+       9.3,
+       11.0
+      ],
+      "circulation_turns": [
+       1,
+       0
+      ],
+      "mean_steps_from_entrance": [
+       1.917,
+       2
+      ],
+      "mean_walk_from_entrance_m": [
+       13.062,
+       11.621
+      ],
+      "dead_space_share": [
+       0.0041,
+       0.0033
+      ],
+      "public_private_wall_m": [
+       8.55,
+       10.35
+      ],
+      "public_private_wall_share": [
+       0.1183,
+       0.1445
+      ],
+      "public_components": [
+       1,
+       2
+      ],
+      "arrival_fanout": [
+       2,
+       1
+      ],
+      "public_largest_cluster_share": [
+       1.0,
+       0.6521
+      ],
+      "public_narrowest_neck_m": [
+       3.25,
+       3.15
+      ],
+      "public_compactness": [
+       0.8304,
+       0.9067
+      ],
+      "public_worst_aspect": [
+       1.229,
+       1.714
+      ],
+      "bedroom_worst_aspect": [
+       1.963,
+       1.741
+      ],
+      "master_aspect": [
+       1.293,
+       1.022
+      ],
+      "bedroom_min_net_area_m2": [
+       9.883,
+       9.135
+      ],
+      "bedroom_area_cv": [
+       0.1129,
+       0.1614
+      ],
+      "bedroom_public_wall_m": [
+       8.55,
+       10.35
+      ],
+      "wet_shared_wall_m": [
+       3.05,
+       4.7
+      ],
+      "wet_rooms_with_window": [
+       0.6667,
+       1.0
+      ],
+      "preferred_exposure_satisfied": [
+       0.6667,
+       1.0
+      ],
+      "windowless_rooms": [
+       1,
+       0
+      ],
+      "max_single_room_facade_share": [
+       0.1751,
+       0.1716
+      ],
+      "public_facade_share": [
+       0.2305,
+       0.2177
+      ],
+      "bedroom_facade_share": [
+       0.5426,
+       0.5304
+      ],
+      "street_facade_public_share": [
+       0.278,
+       0.3457
+      ],
+      "mean_net_aspect": [
+       1.758,
+       1.882
+      ],
+      "max_net_aspect": [
+       3.263,
+       4.151
+      ],
+      "worst_wet_aspect": [
+       3.0,
+       2.812
+      ],
+      "min_net_short_side_m": [
+       1.1,
+       1.4
+      ],
+      "soft_adjacency_lift": [
+       1.4446,
+       1.2035
+      ],
+      "measurable_adjacency_coverage": [
+       0.2,
+       0.125
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 0,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5152,
+       "rooms_changing_band_share": 0.4615,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6,
+       "rooms_changing_band_share": 0.4615,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       4,
+       7
+      ],
+      [
+       4,
+       7,
+       0
+      ],
+      [
+       7,
+       0,
+       4
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      0,
+      4
+     ]
+    },
+    {
+     "brief": "B19",
+     "candidates": 8,
+     "clean": 7,
+     "realizations_attempted": 7,
+     "pass_plans": 3,
+     "pass_candidates": [
+      0,
+      4,
+      7
+     ],
+     "outcomes": {
+      "0": "PASS",
+      "1": "EXPOSURE_INFEASIBLE",
+      "2": "EXPOSURE_INFEASIBLE",
+      "4": "PASS",
+      "5": "SIZING_INFEASIBLE",
+      "6": "SIZING_INFEASIBLE",
+      "7": "PASS"
+     },
+     "seconds_total": 10.7,
+     "seconds_per_realization": [
+      1.683,
+      0.326,
+      0.316,
+      0.334,
+      1.479,
+      0.694,
+      0.373
+     ],
+     "old_winner": 0,
+     "new_winner": 0,
+     "winner_changed": false,
+     "deciding_term": "none",
+     "deciding_values": {
+      "new": null,
+      "old": null
+     },
+     "production_reason": null,
+     "new_order": [
+      0,
+      7,
+      4
+     ],
+     "facts": {
+      "0": {
+       "entrance_rank": 1,
+       "area_delta_m2": 3.19,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        2,
+        -5.5
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.011925,
+       "candidate_index": 0
+      },
+      "4": {
+       "entrance_rank": 1,
+       "area_delta_m2": 5.9175,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        3,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 2.421173,
+       "candidate_index": 4
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 3.9575,
+       "distance_to_public_m": 0.0,
+       "composition_score": 1.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -0.0
+       ],
+       "suite_key": [
+        1.3,
+        1.3
+       ],
+       "neg_heuristic_score": 3.38209,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {},
+     "alternatives": [
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.5806,
+       "rooms_changing_band_share": 0.3333,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      },
+      {
+       "candidate": 4,
+       "concept": "VARIANT",
+       "contact_jaccard_distance": 0.3077,
+       "rooms_changing_band_share": 0.0,
+       "same_arrival_room": true,
+       "deciding_term_vs_winner": "area_delta_m2"
+      }
+     ],
+     "circulation_cycles": [
+      [
+       0,
+       4,
+       7
+      ],
+      [
+       0,
+       7,
+       4
+      ],
+      [
+       4,
+       0,
+       7
+      ],
+      [
+       4,
+       7,
+       0
+      ],
+      [
+       7,
+       0,
+       4
+      ],
+      [
+       7,
+       4,
+       0
+      ]
+     ],
+     "circulation_disagrees_with_winner": [
+      7,
+      4
+     ]
+    },
+    {
+     "brief": "B20",
+     "candidates": 9,
+     "clean": 5,
+     "realizations_attempted": 5,
+     "pass_plans": 3,
+     "pass_candidates": [
+      1,
+      6,
+      7
+     ],
+     "outcomes": {
+      "0": "SIZING_INFEASIBLE",
+      "1": "PASS",
+      "3": "EXPOSURE_INFEASIBLE",
+      "6": "PASS",
+      "7": "PASS"
+     },
+     "seconds_total": 9.979,
+     "seconds_per_realization": [
+      0.661,
+      1.098,
+      0.742,
+      0.412,
+      0.51
+     ],
+     "old_winner": 7,
+     "new_winner": 6,
+     "winner_changed": true,
+     "deciding_term": "entrance_rank",
+     "deciding_values": {
+      "new": 0,
+      "old": 1
+     },
+     "production_reason": null,
+     "new_order": [
+      6,
+      1,
+      7
+     ],
+     "facts": {
+      "1": {
+       "entrance_rank": 1,
+       "area_delta_m2": 2.4975,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.5214,
+       "wet_core_key": [
+        2,
+        -4.6
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 1.774272,
+       "candidate_index": 1
+      },
+      "6": {
+       "entrance_rank": 0,
+       "area_delta_m2": 2.15,
+       "distance_to_public_m": 5.3751,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        1,
+        -4.4
+       ],
+       "suite_key": [
+        1.0,
+        1.0
+       ],
+       "neg_heuristic_score": 4.006402,
+       "candidate_index": 6
+      },
+      "7": {
+       "entrance_rank": 1,
+       "area_delta_m2": 15.3625,
+       "distance_to_public_m": 0.0,
+       "composition_score": 0.0,
+       "wet_privacy_key": [
+        0.0,
+        0.0
+       ],
+       "dead_space_m2": 0.3476,
+       "wet_core_key": [
+        1,
+        -6.55
+       ],
+       "suite_key": [
+        0.0,
+        0.0
+       ],
+       "neg_heuristic_score": 0.808195,
+       "candidate_index": 7
+      }
+     },
+     "quality_vector_diff_old_to_new": {
+      "circulation_ratio": [
+       0.0837,
+       0.1231
+      ],
+      "circulation_longest_segment_m": [
+       4.15,
+       5.05
+      ],
+      "circulation_turns": [
+       1,
+       2
+      ],
+      "circulation_rooms_served": [
+       5,
+       6
+      ],
+      "mean_steps_from_entrance": [
+       1.778,
+       1.444
+      ],
+      "mean_walk_from_entrance_m": [
+       9.036,
+       8.819
+      ],
+      "dead_space_share": [
+       0.0033,
+       0.003
+      ],
+      "public_private_wall_m": [
+       0,
+       2.7
+      ],
+      "public_private_wall_share": [
+       0.0,
+       0.0539
+      ],
+      "zone_band_overlap": [
+       1.0,
+       0.5906
+      ],
+      "bedroom_doors_off_arrival": [
+       0,
+       2
+      ],
+      "entrance_to_bedroom_steps": [
+       2,
+       1
+      ],
+      "arrival_is_circulation": [
+       0,
+       1
+      ],
+      "entrance_pocket_m": [
+       0.0,
+       3.002
+      ],
+      "entrance_distance_to_public_m": [
+       0,
+       5.375
+      ],
+      "entrance_private_doors_passed": [
+       0,
+       3
+      ],
+      "arrival_fanout": [
+       3,
+       6
+      ],
+      "steps_entrance_to_living": [
+       0,
+       1
+      ],
+      "public_narrowest_neck_m": [
+       2.8,
+       3.15
+      ],
+      "public_compactness": [
+       0.5535,
+       0.6191
+      ],
+      "public_worst_aspect": [
+       2.217,
+       1.898
+      ],
+      "bedroom_worst_aspect": [
+       1.554,
+       1.115
+      ],
+      "master_aspect": [
+       1.391,
+       1.023
+      ],
+      "bedroom_min_net_area_m2": [
+       10.79,
+       9.12
+      ],
+      "bedroom_min_short_side_m": [
+       2.6,
+       2.85
+      ],
+      "bedroom_public_wall_m": [
+       0,
+       2.7
+      ],
+      "wet_shared_wall_m": [
+       6.55,
+       4.4
+      ],
+      "wet_cluster_count": [
+       1,
+       2
+      ],
+      "two_sided_exposure_share": [
+       0.6667,
+       0.5
+      ],
+      "max_single_room_facade_share": [
+       0.235,
+       0.1958
+      ],
+      "public_facade_share": [
+       0.4942,
+       0.3939
+      ],
+      "bedroom_facade_share": [
+       0.2778,
+       0.2374
+      ],
+      "street_facade_public_share": [
+       0.6406,
+       0.0
+      ],
+      "mean_net_aspect": [
+       1.842,
+       1.758
+      ],
+      "max_net_aspect": [
+       3.4,
+       3.44
+      ],
+      "worst_wet_aspect": [
+       3.4,
+       3.44
+      ],
+      "soft_adjacency_lift": [
+       0.5463,
+       0.0001
+      ],
+      "measurable_adjacency_coverage": [
+       0.15,
+       0.1053
+      ]
+     },
+     "alternatives": [
+      {
+       "candidate": 1,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.6071,
+       "rooms_changing_band_share": 0.7,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      },
+      {
+       "candidate": 7,
+       "concept": "DIFFERENT_CONCEPT",
+       "contact_jaccard_distance": 0.44,
+       "rooms_changing_band_share": 0.5,
+       "same_arrival_room": false,
+       "deciding_term_vs_winner": "entrance_rank"
+      }
+     ],
+     "circulation_cycles": [],
+     "circulation_disagrees_with_winner": [
+      1,
+      7
+     ]
+    }
+   ]
+  }
+ }
+}
