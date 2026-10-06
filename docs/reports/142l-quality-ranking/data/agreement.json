@@ -1,0 +1,1766 @@
+{
+ "judge_self_consistency": {
+  "order": {
+   "n": 30,
+   "same_plan": 15,
+   "both_decided": 23,
+   "position_bias_A": 3,
+   "rate_same_plan": 0.6522
+  },
+  "repeat": {
+   "n": 10,
+   "same": 7,
+   "rate_same": 0.7
+  },
+  "config": {
+   "n": 15,
+   "same": 12,
+   "rate_same": 0.8
+  },
+  "model": {
+   "n": 15,
+   "same": 11,
+   "rate_same": 0.7333
+  },
+  "choice_distribution": {
+   "EQUIVALENT": 9,
+   "A": 38,
+   "B": 53
+  },
+  "mean_confidence": 3.91
+ },
+ "pairs_judged": 30,
+ "pairs_order_consistent_and_decided": 15,
+ "metric_agreement": {
+  "circulation_longest_segment_m": {
+   "n": 12,
+   "agreement": 0.5,
+   "dimension": "circulation_efficiency",
+   "availability": "PRODUCTION"
+  },
+  "circulation_turns": {
+   "n": 8,
+   "agreement": 0.375,
+   "dimension": "circulation_efficiency",
+   "availability": "PRODUCTION"
+  },
+  "mean_steps_from_entrance": {
+   "n": 9,
+   "agreement": 0.4444,
+   "dimension": "circulation_efficiency",
+   "availability": "DERIVED"
+  },
+  "mean_walk_from_entrance_m": {
+   "n": 13,
+   "agreement": 0.5385,
+   "dimension": "circulation_efficiency",
+   "availability": "DERIVED"
+  },
+  "dead_space_share": {
+   "n": 10,
+   "agreement": 0.6,
+   "dimension": "circulation_efficiency",
+   "availability": "PRODUCTION"
+  },
+  "public_private_wall_m": {
+   "n": 11,
+   "agreement": 0.0909,
+   "dimension": "public_private_separation",
+   "availability": "DERIVED"
+  },
+  "public_private_wall_share": {
+   "n": 12,
+   "agreement": 0.1667,
+   "dimension": "public_private_separation",
+   "availability": "DERIVED"
+  },
+  "arrival_fanout": {
+   "n": 9,
+   "agreement": 0.4444,
+   "dimension": "entrance_quality",
+   "availability": "DERIVED"
+  },
+  "public_narrowest_neck_m": {
+   "n": 13,
+   "agreement": 0.6154,
+   "dimension": "public_zone_quality",
+   "availability": "DERIVED"
+  },
+  "public_compactness": {
+   "n": 13,
+   "agreement": 0.4615,
+   "dimension": "public_zone_quality",
+   "availability": "DERIVED"
+  },
+  "public_worst_aspect": {
+   "n": 12,
+   "agreement": 0.4167,
+   "dimension": "public_zone_quality",
+   "availability": "PRODUCTION"
+  },
+  "bedroom_worst_aspect": {
+   "n": 10,
+   "agreement": 0.6,
+   "dimension": "bedroom_quality",
+   "availability": "PRODUCTION"
+  },
+  "master_aspect": {
+   "n": 12,
+   "agreement": 0.4167,
+   "dimension": "bedroom_quality",
+   "availability": "PRODUCTION"
+  },
+  "bedroom_min_net_area_m2": {
+   "n": 12,
+   "agreement": 0.5,
+   "dimension": "bedroom_quality",
+   "availability": "PRODUCTION"
+  },
+  "bedroom_area_cv": {
+   "n": 8,
+   "agreement": 0.5,
+   "dimension": "bedroom_quality",
+   "availability": "DERIVED"
+  },
+  "bedroom_public_wall_m": {
+   "n": 11,
+   "agreement": 0.0909,
+   "dimension": "bedroom_quality",
+   "availability": "DERIVED"
+  },
+  "two_sided_exposure_share": {
+   "n": 10,
+   "agreement": 0.2,
+   "dimension": "exposure_quality",
+   "availability": "PRODUCTION"
+  },
+  "max_single_room_facade_share": {
+   "n": 13,
+   "agreement": 0.4615,
+   "dimension": "exposure_quality",
+   "availability": "DERIVED"
+  },
+  "public_facade_share": {
+   "n": 13,
+   "agreement": 0.4615,
+   "dimension": "exposure_quality",
+   "availability": "DERIVED"
+  },
+  "bedroom_facade_share": {
+   "n": 12,
+   "agreement": 0.4167,
+   "dimension": "exposure_quality",
+   "availability": "DERIVED"
+  },
+  "mean_net_aspect": {
+   "n": 12,
+   "agreement": 0.75,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  "max_net_aspect": {
+   "n": 12,
+   "agreement": 0.5833,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  "worst_wet_aspect": {
+   "n": 12,
+   "agreement": 0.5833,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  "min_net_short_side_m": {
+   "n": 10,
+   "agreement": 0.4,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  "soft_adjacency_lift": {
+   "n": 13,
+   "agreement": 0.6154,
+   "dimension": "soft_adjacency_quality",
+   "availability": "PRODUCTION"
+  }
+ },
+ "dimension_agreement": {
+  "circulation_efficiency": {
+   "n": 13,
+   "agreement": 0.5385
+  },
+  "public_private_separation": {
+   "n": 12,
+   "agreement": 0.25
+  },
+  "privacy": {
+   "n": 8,
+   "agreement": 0.625
+  },
+  "entrance_quality": {
+   "n": 10,
+   "agreement": 0.4
+  },
+  "public_zone_quality": {
+   "n": 13,
+   "agreement": 0.4615
+  },
+  "bedroom_quality": {
+   "n": 12,
+   "agreement": 0.5833
+  },
+  "wet_core_quality": {
+   "n": 10,
+   "agreement": 0.3
+  },
+  "exposure_quality": {
+   "n": 13,
+   "agreement": 0.2308
+  },
+  "proportion_quality": {
+   "n": 12,
+   "agreement": 0.5833
+  },
+  "soft_adjacency_quality": {
+   "n": 13,
+   "agreement": 0.6154
+  }
+ },
+ "scenario_agreement": {
+  "equal": {
+   "n": 12,
+   "agreement": 0.3333
+  },
+  "privacy_led": {
+   "n": 12,
+   "agreement": 0.3333
+  },
+  "openness_led": {
+   "n": 13,
+   "agreement": 0.2308
+  },
+  "efficiency_led": {
+   "n": 13,
+   "agreement": 0.3077
+  },
+  "bedroom_led": {
+   "n": 13,
+   "agreement": 0.3846
+  }
+ },
+ "category_agreement": {
+  "circulation": {
+   "n": 11,
+   "agreement": 0.8182
+  },
+  "zoning_and_privacy": {
+   "n": 10,
+   "agreement": 0.7
+  },
+  "entrance": {
+   "n": 5,
+   "agreement": 0.2
+  },
+  "public_space": {
+   "n": 12,
+   "agreement": 0.3333
+  },
+  "bedrooms": {
+   "n": 11,
+   "agreement": 0.6364
+  },
+  "wet_rooms": {
+   "n": 9,
+   "agreement": 0.5556
+  },
+  "daylight_and_exposure": {
+   "n": 10,
+   "agreement": 0.2
+  },
+  "room_proportion": {
+   "n": 10,
+   "agreement": 0.7
+  }
+ },
+ "heuristic_agreement": {
+  "n": 14,
+  "agreement": 0.5
+ },
+ "dimension_dominance_agreement": {
+  "n": 0,
+  "agreement": null
+ },
+ "strongest_metrics": [
+  {
+   "metric": "mean_net_aspect",
+   "n": 12,
+   "agreement": 0.75,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "public_narrowest_neck_m",
+   "n": 13,
+   "agreement": 0.6154,
+   "dimension": "public_zone_quality",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "soft_adjacency_lift",
+   "n": 13,
+   "agreement": 0.6154,
+   "dimension": "soft_adjacency_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "dead_space_share",
+   "n": 10,
+   "agreement": 0.6,
+   "dimension": "circulation_efficiency",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "bedroom_worst_aspect",
+   "n": 10,
+   "agreement": 0.6,
+   "dimension": "bedroom_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "max_net_aspect",
+   "n": 12,
+   "agreement": 0.5833,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "worst_wet_aspect",
+   "n": 12,
+   "agreement": 0.5833,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "mean_walk_from_entrance_m",
+   "n": 13,
+   "agreement": 0.5385,
+   "dimension": "circulation_efficiency",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "circulation_longest_segment_m",
+   "n": 12,
+   "agreement": 0.5,
+   "dimension": "circulation_efficiency",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "bedroom_min_net_area_m2",
+   "n": 12,
+   "agreement": 0.5,
+   "dimension": "bedroom_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "bedroom_area_cv",
+   "n": 8,
+   "agreement": 0.5,
+   "dimension": "bedroom_quality",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "public_compactness",
+   "n": 13,
+   "agreement": 0.4615,
+   "dimension": "public_zone_quality",
+   "availability": "DERIVED"
+  }
+ ],
+ "weakest_metrics": [
+  {
+   "metric": "public_facade_share",
+   "n": 13,
+   "agreement": 0.4615,
+   "dimension": "exposure_quality",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "mean_steps_from_entrance",
+   "n": 9,
+   "agreement": 0.4444,
+   "dimension": "circulation_efficiency",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "arrival_fanout",
+   "n": 9,
+   "agreement": 0.4444,
+   "dimension": "entrance_quality",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "public_worst_aspect",
+   "n": 12,
+   "agreement": 0.4167,
+   "dimension": "public_zone_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "master_aspect",
+   "n": 12,
+   "agreement": 0.4167,
+   "dimension": "bedroom_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "bedroom_facade_share",
+   "n": 12,
+   "agreement": 0.4167,
+   "dimension": "exposure_quality",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "min_net_short_side_m",
+   "n": 10,
+   "agreement": 0.4,
+   "dimension": "proportion_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "circulation_turns",
+   "n": 8,
+   "agreement": 0.375,
+   "dimension": "circulation_efficiency",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "two_sided_exposure_share",
+   "n": 10,
+   "agreement": 0.2,
+   "dimension": "exposure_quality",
+   "availability": "PRODUCTION"
+  },
+  {
+   "metric": "public_private_wall_share",
+   "n": 12,
+   "agreement": 0.1667,
+   "dimension": "public_private_separation",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "public_private_wall_m",
+   "n": 11,
+   "agreement": 0.0909,
+   "dimension": "public_private_separation",
+   "availability": "DERIVED"
+  },
+  {
+   "metric": "bedroom_public_wall_m",
+   "n": 11,
+   "agreement": 0.0909,
+   "dimension": "bedroom_quality",
+   "availability": "DERIVED"
+  }
+ ],
+ "judge_category_usage": {
+  "circulation": 24,
+  "zoning_and_privacy": 19,
+  "entrance": 8,
+  "public_space": 25,
+  "bedrooms": 17,
+  "wet_rooms": 19,
+  "daylight_and_exposure": 14,
+  "room_proportion": 16
+ },
+ "per_pair": {
+  "B01:0v1": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "EQUIVALENT",
+   "ba_choice": "A",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "EQUAL",
+     "why": "Both use the same central hall with equally short routes and no wasted corridor."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Bedroom and bathroom are similarly grouped and accessed from the hall, with living still at the front."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "In both, the front door opens directly into the living room without a foyer."
+    },
+    "public_space": {
+     "better": "EQUAL",
+     "why": "Living and kitchen are similarly sized, adjacent and connected via the hall/door."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Identical master room size, shape and exposure."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Single bathroom is in the same location off the hall near the bedroom."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Window placement and facade allocation are the same."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "All rooms have identical dimensions and proportions."
+    }
+   },
+   "decisive_reason": "The two schemes are effectively the same layout with identical sizes, connections, and window positions, offering no meaningful architectural advantage for one over the other."
+  },
+  "B01:0v2": {
+   "order_consistent": true,
+   "consensus_plan": 2,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 2,
+   "model2_plan": 2,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "A proper hall distributes to all rooms without crossing the living."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Private rooms are off the hall and the bedroom sits away from the street."
+    },
+    "entrance": {
+     "better": "B",
+     "why": "Entry lands in a hall rather than straight into the living room."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Living is not used as a passage and relates simply to the kitchen."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Slightly larger and placed on the quiet rear side."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathroom is directly off the hall serving guests and bedroom well."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Street-facing window to living with bedroom on a quieter facade."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "Kitchen and bedroom have more practical widths, with less wasted hall area overall."
+    }
+   },
+   "decisive_reason": "Plan B provides a true entrance hall that organizes circulation and separates public and private areas effectively."
+  },
+  "B01:0v7": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "B",
+   "ba_choice": "EQUIVALENT",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Uses the hall as the sole distributor and avoids a through-route via the kitchen."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Kitchen is separated from living, while bedroom and bath remain buffered by the hall."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both front doors open directly into the living room with no vestibule."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Fewer doors make the living and kitchen more furnishable and less fragmented."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Same size, position, and daylight."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Bathroom is similarly placed off the hall near the bedroom."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Window locations and orientations are effectively identical."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions are the same in both plans."
+    }
+   },
+   "decisive_reason": "Plan B eliminates the extra kitchen door, creating clearer circulation and a more usable, uninterrupted kitchen and living room."
+  },
+  "B01:1v7": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "EQUIVALENT",
+   "ba_choice": "A",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "EQUAL",
+     "why": "Both route from the entrance into the living and then into the hall, with similar short links and no extra corridor."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Bedroom and bathroom are clustered off the hall in both, but access still passes through the living."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Each plan enters directly into the living room without a vestibule or clear distribution space."
+    },
+    "public_space": {
+     "better": "EQUAL",
+     "why": "Kitchen and living are adjacent with a simple door connection and comparable sizes."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Master bedrooms are identical in size, shape, and street-facing exposure."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Bathroom is off the hall next to the bedroom in both schemes."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Window positions and facade allocations are the same in both plans."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions and proportions match almost exactly."
+    }
+   },
+   "decisive_reason": "The two layouts are functionally the same in organization, adjacencies, and daylight, offering no clear experiential advantage."
+  },
+  "B02:0v3": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "B",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Hall distributes to both living and bedroom, avoiding through-rooms."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Bedroom accessed from hall, not via living."
+    },
+    "entrance": {
+     "better": "B",
+     "why": "Entry hall serves bathroom, living and bedroom directly."
+    },
+    "public_space": {
+     "better": "EQUAL",
+     "why": "Living, dining and kitchen relate similarly with doors between them."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Same size but with calmer, independent access from hall."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathroom is directly off the hall near the bedroom."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Similar window allocation on exterior walls."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Identical room sizes and shapes."
+    }
+   },
+   "decisive_reason": "Plan B provides direct bedroom access from the hall, improving circulation and privacy by avoiding passage through the living room."
+  },
+  "B02:2v6": {
+   "order_consistent": true,
+   "consensus_plan": 6,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 6,
+   "model2_plan": 6,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "B avoids A\u2019s long cross\u2011house corridor and aligns movement through adjacent public rooms."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Both place bedroom and bath behind a hall off the living room."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter straight into the living space without a defined foyer."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "B lines up living\u2013dining\u2013kitchen as one contiguous zone; A fragments them around a corridor."
+    },
+    "bedrooms": {
+     "better": "A",
+     "why": "A\u2019s master is larger and better proportioned."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "A\u2019s bathroom sits closer to the bedroom while still off the hall."
+    },
+    "daylight_and_exposure": {
+     "better": "A",
+     "why": "A allocates more facade to living, whereas B gives prime frontage to the bathroom."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "A\u2019s living and dining are broader; B\u2019s are narrower and more strip\u2011like."
+    }
+   },
+   "decisive_reason": "B provides a more coherent, contiguous public zone that supports the requested open-plan living, whereas A splits kitchen, dining and living with a corridor."
+  },
+  "B03:0v1": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "A",
+   "ba_choice": "A",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "A links kitchen and living directly, avoiding detours via the hall."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Both keep bedrooms at the rear and access them from a hall after passing through the living."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "In both, arrival is straight into the living room with no foyer."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "A connects kitchen and living; B isolates the kitchen behind the hall."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Sizes, shapes, and positions are the same with similar daylight."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Bathroom sits off the hall by the bedrooms in both plans."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Window placement and orientations are essentially identical."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions and proportions match across plans."
+    }
+   },
+   "decisive_reason": "Plan A provides a direct kitchen\u2013living connection, creating a cohesive public zone and shorter daily routes, while Plan B fragments it by forcing movement through the hall."
+  },
+  "B03:0v3": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "A",
+   "ba_choice": "EQUIVALENT",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Direct kitchen\u2013living door reduces detours and corridor dependence."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "Public-to-public movement stays out of the bedroom hall."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter straight into the living room without a foyer."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Kitchen and living relate directly yet can be closed off."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Same sizes, positions, and similar exposure."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "Bathroom sits more centrally for guests and both bedrooms."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Similar window distribution on three sides for main rooms."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions are identical across both plans."
+    }
+   },
+   "decisive_reason": "Plan A links kitchen and living directly, creating a more coherent public zone and more efficient circulation."
+  },
+  "B03:0v5": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "A",
+   "ba_choice": "EQUIVALENT",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "A has a direct kitchen\u2013living door, avoiding detours through the long hall."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Both keep bedrooms and bath at the back off the hall."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter directly into the living room without a foyer."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Kitchen and living connect while remaining separate; B isolates the kitchen."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Similar sizes and quiet back location in both."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Single bathroom is off the hall near bedrooms in both."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Comparable facade allocation and window positions."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Regular, usable rectangular rooms in both."
+    }
+   },
+   "decisive_reason": "Plan A directly links kitchen and living, creating a more coherent public zone and shorter circulation than Plan B, which routes movement via the long hall."
+  },
+  "B03:1v3": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "A",
+   "ba_choice": "EQUIVALENT",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Direct door between kitchen and living avoids detours via the hall."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Public rooms are at the street side and bedrooms at the rear in both."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter directly into the living room without a foyer."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Kitchen and living link directly, forming a more cohesive daily-use area."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Same sizes and positions, quiet at the back."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Single bathroom off the hall serving bedrooms and living in both."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Similar window placement on street and side facades."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Identical room dimensions and shapes."
+    }
+   },
+   "decisive_reason": "Plan A\u2019s direct kitchen\u2013living connection improves everyday flow and makes the public zone work as a unified space."
+  },
+  "B03:1v5": {
+   "order_consistent": true,
+   "consensus_plan": 1,
+   "ab_choice": "A",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Direct kitchen\u2013living door shortens routes; B detours via the hall."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Both make you cross the living room to reach the bedroom hall."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Entry lands directly in the living room in both."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Kitchen and living connect directly, making a more cohesive daily space."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Same sizes, shapes, and quiet rear placement."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Bathroom is similarly placed off the hall near bedrooms."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Comparable window positions on all key rooms."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions and proportions match."
+    }
+   },
+   "decisive_reason": "Plan A\u2019s direct kitchen\u2013living connection yields a more functional, integrated public area with shorter circulation."
+  },
+  "B03:3v5": {
+   "order_consistent": true,
+   "consensus_plan": 3,
+   "ab_choice": "A",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Direct kitchen\u2013living connection avoids detours through the hall."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Bedrooms are grouped at the rear and are reached via the living room in both."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Arrival is straight into the living room without a lobby in both."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Kitchen and living are directly linked, whereas B isolates them via the hall."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Similar sizes, shapes, and quiet rear location with windows."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Bathroom is off the hall near bedrooms in both."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Comparable window placement across main rooms."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Regular rectangular rooms with like dimensions in both."
+    }
+   },
+   "decisive_reason": "Plan A directly connects kitchen and living, creating a coherent public zone and more efficient movement than Plan B, which routes between them through the hall."
+  },
+  "B04:0v1": {
+   "order_consistent": null,
+   "consensus_plan": null,
+   "ab_choice": "EQUIVALENT",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "EQUAL",
+     "why": "Both rely on the same central hall with similar door positions and equivalent pass-through via the living."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Sleeping rooms are grouped to the rear with similar separation from the living in both."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Entry opens directly into the living in both with an identical short path to the hall."
+    },
+    "public_space": {
+     "better": "EQUAL",
+     "why": "Kitchen and living are side by side, similarly sized and separated in each plan."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Same sizes, positions, and exposure for master and secondary bedrooms."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Bathrooms are placed in the same locations relative to bedrooms in both."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Window distribution on each facade is effectively identical."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions and shapes match across the two schemes."
+    }
+   },
+   "decisive_reason": "The two layouts are essentially the same arrangement with only negligible door shifts, offering no meaningful architectural advantage either way."
+  },
+  "B04:5v7": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "B",
+   "ba_choice": "B",
+   "config_plan": 7,
+   "model2_plan": 7,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Direct kitchen\u2013living connection reduces backtracking through the hall."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Sleeping rooms are grouped behind a hall in both, with similar separation from living."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter straight into the living room without a defined foyer."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Kitchen relates directly to living, making dining and daily use more coherent."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Slightly larger rooms and Bedroom_1 is set deeper from the living zone."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "One bathroom near bedrooms and one near living in both layouts."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Living has two fa\u00e7ades and all rooms have windows in both."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "Bedrooms and kitchen have marginally better, less cramped proportions."
+    }
+   },
+   "decisive_reason": "Plan B forms a more functional public zone by directly linking kitchen and living while keeping bedroom privacy comparable."
+  },
+  "B05:4v7": {
+   "order_consistent": true,
+   "consensus_plan": 7,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 7,
+   "model2_plan": 7,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "A distributes from a central hall, while B forces routes through living and dining to reach bedrooms."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "B clusters both bedrooms and the bathroom in a rear private zone."
+    },
+    "entrance": {
+     "better": "A",
+     "why": "A provides a proper hall that buffers and distributes; B enters directly into the living room."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Kitchen, dining and living read as a contiguous suite along the street side."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Both bedrooms are larger and grouped away from the entry and street."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "The bathroom in B sits with the bedrooms, not at the entrance."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "B gives prime street frontage to living/kitchen, whereas A spends it on hall/bath."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "B\u2019s rooms are more regular and spacious; A has a small front bedroom and slimmer kitchen/dining."
+    }
+   },
+   "decisive_reason": "B clusters the sleeping rooms with their bathroom and assigns the best facade to living/kitchen, yielding better privacy and daylight for daily life."
+  },
+  "B06:0v2": {
+   "order_consistent": true,
+   "consensus_plan": 2,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 2,
+   "model2_plan": 2,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Smaller, more linear hall reduces wasted area and distributes efficiently."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "Bedrooms are more consolidated at the back with fewer doors exposed to living."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter directly into the living without a defined lobby."
+    },
+    "public_space": {
+     "better": "EQUAL",
+     "why": "Kitchen and living are adjacent but separated and reached via the hall in both."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Bedrooms are larger overall with more usable sizes."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathrooms are clustered and closer to the bedrooms for daily use."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Street frontage given to living/kitchen and all rooms have external windows."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "Less oversized hall and slightly better bedroom proportions."
+    }
+   },
+   "decisive_reason": "Plan B uses area more efficiently\u2014less corridor and more space to bedrooms\u2014while clustering bathrooms for practicality."
+  },
+  "B07:0v1": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "B",
+   "ba_choice": "B",
+   "config_plan": 0,
+   "model2_plan": 1,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Smaller central hall with less wasted corridor."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "All bedrooms are set back off the hall; B places a bedroom at the street by the entry."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both plans enter directly into the living room without a foyer."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Living and kitchen have more workable proportions, avoiding a strip-like living room."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Larger, squarer bedrooms overall (though one fronts the street)."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathrooms are positioned to serve both sides of the house without long walks."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Key facades are given to living and bedrooms rather than two front bathrooms."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "Fewer long narrow rooms; spaces are more balanced rectangles."
+    }
+   },
+   "decisive_reason": "Plan B achieves more efficient circulation and better-proportioned rooms, turning more area into usable living space."
+  },
+  "B08:0v2": {
+   "order_consistent": true,
+   "consensus_plan": 0,
+   "ab_choice": "A",
+   "ba_choice": "B",
+   "config_plan": 0,
+   "model2_plan": 2,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Smaller, more central hall with slightly less wasted corridor."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "Bedrooms are grouped at the rear away from the street with doors off a hall."
+    },
+    "entrance": {
+     "better": "B",
+     "why": "Arrival is at the edge of living with quick access to the hall, less intrusive than A\u2019s center-entry."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Living, dining, and kitchen line up and interconnect, reading as a more cohesive open zone."
+    },
+    "bedrooms": {
+     "better": "A",
+     "why": "Larger, better-shaped rooms all in the quiet rear zone; none on the street."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathroom is centrally placed to all bedrooms and a bit larger."
+    },
+    "daylight_and_exposure": {
+     "better": "A",
+     "why": "Prime street frontage is devoted to living/dining/kitchen rather than a bedroom."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "More balanced room shapes; B has a long narrow living and a tight Bedroom_2."
+    }
+   },
+   "decisive_reason": "Plan A offers a stronger public zone with living\u2013dining\u2013kitchen working together and superior bedroom zoning and exposure."
+  },
+  "B09:0v4": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "A",
+   "ba_choice": "A",
+   "config_plan": 0,
+   "model2_plan": 0,
+   "categories": {
+    "circulation": {
+     "better": "EQUAL",
+     "why": "Both use a central hall that distributes efficiently with little wasted corridor."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "Public rooms face the street and all bedrooms are to the rear, unlike B which places a bathroom on the street by the entry."
+    },
+    "entrance": {
+     "better": "A",
+     "why": "Entry lands in a central hall without a wet-room door immediately at the threshold as in B."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Larger living room and both prime street corners go to living and kitchen rather than a bathroom."
+    },
+    "bedrooms": {
+     "better": "A",
+     "why": "Rooms are squarer and the master is larger and well placed away from the street."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "Bathrooms are grouped near the bedrooms, while B scatters them and puts one on the street front."
+    },
+    "daylight_and_exposure": {
+     "better": "A",
+     "why": "Best facade lengths and a corner go to living/kitchen, whereas B gives a corner to a bathroom."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "Spaces are more regular; B has several long narrow rooms (kitchen and bath_1)."
+    }
+   },
+   "decisive_reason": "Plan A gives the prime frontage and daylight to the living spaces while keeping bedrooms and wet rooms logically to the rear."
+  },
+  "B10:3v5": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "A",
+   "ba_choice": "A",
+   "config_plan": 3,
+   "model2_plan": 5,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Shorter, clearer routes without a long living-room passage."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Bedrooms and baths are grouped behind a hall; A leaves one by the living on the street."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter directly into the living without a foyer."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Living is a compact, usable room rather than a long strip."
+    },
+    "bedrooms": {
+     "better": "A",
+     "why": "Larger and better\u2011proportioned rooms overall."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathrooms are placed nearer to the bedroom cluster."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "More of the street facade serves living/bedrooms rather than bathrooms."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "Avoids the narrow, elongated spaces seen in B."
+    }
+   },
+   "decisive_reason": "Plan A offers a well\u2011proportioned living room and larger, better\u2011shaped bedrooms, whereas Plan B\u2019s living is a strip-like thoroughfare with smaller bedrooms."
+  },
+  "B11:0v7": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "B",
+   "ba_choice": "B",
+   "config_plan": 7,
+   "model2_plan": 7,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "More direct distribution from the central hall with fewer detours."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Public rooms line the street while all bedrooms cluster quietly to the rear."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter through the living before reaching the hall."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Kitchen, dining and living form a continuous front that can read as one open zone."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "All four bedrooms are comparable in size and grouped away from the street in both."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathrooms are sensibly clustered off the hall near the bedrooms."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Prime street frontage is given to the living spaces instead of bathrooms."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "Living and dining are deeper and less strip\u2011like than in B."
+    }
+   },
+   "decisive_reason": "Plan B has superior zoning: a coherent public front and clustered wet rooms serving the bedroom wing, making daily use more convenient and private."
+  },
+  "B12:0v4": {
+   "order_consistent": true,
+   "consensus_plan": 0,
+   "ab_choice": "A",
+   "ba_choice": "B",
+   "config_plan": 0,
+   "model2_plan": 4,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Central hall in A distributes all rooms cleanly with shorter runs."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "A keeps bathroom and bedroom doors off the living; B puts WC and a bathroom directly off it."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter straight into the living room with no foyer."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Living is well proportioned and kitchen is adjacent via hall, while B isolates the kitchen and flanks living with wet rooms."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "B\u2019s bedrooms are larger overall and well clustered, though some are narrow."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "A groups them off the hall near bedrooms without opening to living."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Both give the living room prime street\u2011side windows and similar exposure elsewhere."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "A has more balanced room widths; B uses several long, narrow rooms."
+    }
+   },
+   "decisive_reason": "Plan B exposes WC and bathroom doors to the living area and separates the kitchen from it, compromising privacy and the quality of the public zone; Plan A avoids this."
+  },
+  "B13:1v2": {
+   "order_consistent": true,
+   "consensus_plan": 2,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 2,
+   "model2_plan": 2,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "More compact central hall reduces corridor compared to A\u2019s long hallway."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "All bedrooms are grouped away from street and living, unlike A\u2019s street\u2011side master."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both front doors open directly into the living room without a foyer."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Kitchen, dining and living are directly linked, whereas A fragments them."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Quieter rear placement and a larger master; A\u2019s master sits by the living on the street."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Family bath by bedrooms and a small bath near living; A uses prime frontage for a long bathroom."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Street facade is given to living/kitchen, not to a bathroom as in A."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Each plan mixes good and awkward shapes (A\u2019s long bath vs B\u2019s strip\u2011shaped living)."
+    }
+   },
+   "decisive_reason": "Plan B has superior zoning and facade use, keeping bedrooms quiet to the rear and dedicating the bright street frontage to the public spaces with more efficient circulation."
+  },
+  "B14:0v6": {
+   "order_consistent": true,
+   "consensus_plan": 6,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 0,
+   "model2_plan": 6,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Living connects directly to the central hall, avoiding through\u2011kitchen routing."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Hall buffers bedrooms and keeps the kitchen from being a thoroughfare."
+    },
+    "entrance": {
+     "better": "B",
+     "why": "Arrival in living has immediate access to the distributing hall."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Living and kitchen relate via the central hall/dining without circulation cutting through the kitchen."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Same sizes, positions, and orientation."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "Toilet is more centrally placed for general access."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Similar window distribution on the same facades."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Room dimensions are identical."
+    }
+   },
+   "decisive_reason": "Plan B avoids turning the kitchen into a mandatory passage from the entrance/living to the rest of the house, yielding cleaner circulation and better privacy."
+  },
+  "B15:0v5": {
+   "order_consistent": true,
+   "consensus_plan": 5,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": 5,
+   "model2_plan": 5,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "Smaller hall with less wasted corridor than B\u2019s oversized gallery."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Bedrooms are clustered away from the street, unlike A\u2019s front bedroom."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter directly into the living room without a proper vestibule."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Large living with adjacent kitchen creates a cohesive, usable social core."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Better grouped and generally quieter; A has a front bedroom and a small master."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathrooms are sensibly split near the master and children\u2019s rooms, unlike A\u2019s street-side pair."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Prime facade is given to living/kitchen rather than to baths and safe room as in A."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "More comfortable room widths around 3 m versus several 2.6 m narrow rooms in A."
+    }
+   },
+   "decisive_reason": "Plan B\u2019s superior zoning and daylit, coherent public space outweigh Plan A\u2019s slightly leaner circulation."
+  },
+  "B16:5v6": {
+   "order_consistent": false,
+   "consensus_plan": null,
+   "ab_choice": "B",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Central hall distributes to all rooms without crossing kitchen or bedrooms."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Bedrooms and baths open to the hall, not directly to living/dining."
+    },
+    "entrance": {
+     "better": "B",
+     "why": "Entry into living connects immediately to the main hall for distribution."
+    },
+    "public_space": {
+     "better": "A",
+     "why": "Living, dining and kitchen are adjacent, forming a more coherent social zone."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "Regular shapes and all accessed from the hall, improving quiet and privacy."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "One bath by the bedroom cluster and another near living gives better convenience."
+    },
+    "daylight_and_exposure": {
+     "better": "EQUAL",
+     "why": "Both give street facade to living and exterior windows to all bedrooms."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "Fewer elongated rooms; more squarish, usable proportions overall."
+    }
+   },
+   "decisive_reason": "Plan B achieves far better privacy and circulation via a true central hall, avoiding bedroom and bathroom doors opening into the living area."
+  },
+  "B17:0v7": {
+   "order_consistent": true,
+   "consensus_plan": 7,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "B",
+     "why": "Central hall distributes efficiently with less dead corridor and fewer cross-room routes."
+    },
+    "zoning_and_privacy": {
+     "better": "B",
+     "why": "Bedrooms are mostly grouped at the rear away from street-side living."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Both enter directly into the living room without a true vestibule."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Larger, well-shaped living beside the kitchen without wet rooms breaking the frontage."
+    },
+    "bedrooms": {
+     "better": "B",
+     "why": "More consistently sized and rear-facing for quiet; Plan A has a tiny room and street-side bedrooms."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Clustered along the hall to serve bedrooms; Plan A scatters them and uses street frontage."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Prime street facade is given to living/kitchen and bedrooms rather than bathrooms."
+    },
+    "room_proportion": {
+     "better": "B",
+     "why": "Rooms are more regular; Plan A has an overlong corridor and a narrow master."
+    }
+   },
+   "decisive_reason": "Superior zoning and facade allocation: bedrooms are grouped quietly while habitable rooms take the best frontage and light."
+  },
+  "B18:0v4": {
+   "order_consistent": true,
+   "consensus_plan": 0,
+   "ab_choice": "A",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "EQUAL",
+     "why": "Both rely on a long central hall and require crossing the living from the entrance."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "A clusters several bedrooms and all wet rooms off the hall, keeping bedroom and bathroom doors away from the living."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "In both schemes the front door opens straight into the living with no foyer."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Kitchen sits closer to the living, giving a more functional relationship."
+    },
+    "bedrooms": {
+     "better": "A",
+     "why": "Larger master and more regular secondary bedrooms than B\u2019s series of narrow 2.6 m rooms."
+    },
+    "wet_rooms": {
+     "better": "A",
+     "why": "Bathrooms and WC open off the hall rather than directly from the living as in B."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Less prime street frontage is used by bathrooms, favoring habitable rooms."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "Rooms, especially bedrooms, have better widths and proportions than in B."
+    }
+   },
+   "decisive_reason": "Plan A provides superior bedroom quality and privacy, with bathrooms sensibly accessed from the hall instead of the living room."
+  },
+  "B19:0v7": {
+   "order_consistent": true,
+   "consensus_plan": 7,
+   "ab_choice": "B",
+   "ba_choice": "A",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "EQUAL",
+     "why": "Both rely on a large central hall and you must cross the living from the entrance."
+    },
+    "zoning_and_privacy": {
+     "better": "EQUAL",
+     "why": "Bedrooms are dispersed in both and living is on the arrival path."
+    },
+    "entrance": {
+     "better": "EQUAL",
+     "why": "Arrival is straight into the living room in both plans with no foyer."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Living and dining align on the facade with kitchen adjacent, creating a more cohesive open-plan core."
+    },
+    "bedrooms": {
+     "better": "EQUAL",
+     "why": "Sizes and shapes are similar with comparable exposure to street and rear."
+    },
+    "wet_rooms": {
+     "better": "B",
+     "why": "Bathrooms at opposite ends better serve the spread bedrooms."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Public rooms get more continuous facade length, improving light to living/dining."
+    },
+    "room_proportion": {
+     "better": "EQUAL",
+     "why": "Both use many long, narrow rooms with similar proportions."
+    }
+   },
+   "decisive_reason": "B gives the living\u2013dining\u2013kitchen a stronger, brighter contiguous zone along the best facade, better suiting an open-plan home."
+  },
+  "B20:6v7": {
+   "order_consistent": true,
+   "consensus_plan": 6,
+   "ab_choice": "A",
+   "ba_choice": "B",
+   "config_plan": null,
+   "model2_plan": null,
+   "categories": {
+    "circulation": {
+     "better": "A",
+     "why": "A uses a central hall to distribute rooms without passing through the living."
+    },
+    "zoning_and_privacy": {
+     "better": "A",
+     "why": "Bedrooms are grouped and buffered by baths and hall, unlike B where access runs off the living."
+    },
+    "entrance": {
+     "better": "A",
+     "why": "Arrival is into a proper hall that disperses; B opens straight into the living room."
+    },
+    "public_space": {
+     "better": "B",
+     "why": "Living takes the prime street facade and connects more directly to dining and kitchen."
+    },
+    "bedrooms": {
+     "better": "A",
+     "why": "Larger, squarer master and quieter location away from living."
+    },
+    "wet_rooms": {
+     "better": "EQUAL",
+     "why": "Both plans cluster wet rooms centrally with convenient access."
+    },
+    "daylight_and_exposure": {
+     "better": "B",
+     "why": "Main living space enjoys the longest facade and more windows than in A."
+    },
+    "room_proportion": {
+     "better": "A",
+     "why": "Rooms are more generous and less narrow, especially the master and dining."
+    }
+   },
+   "decisive_reason": "Plan A\u2019s stronger zoning and true entrance hall keep circulation efficient and the bedrooms well separated from public areas."
+  }
+ }
+}

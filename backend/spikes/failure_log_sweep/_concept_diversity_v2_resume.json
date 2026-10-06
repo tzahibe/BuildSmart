@@ -1,0 +1,226 @@
+[
+  {
+    "context_id": "43975340-609b-4c07-ac4f-b0a1008989f4",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 3,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "47f81017-3d75-4783-8958-6790a5791ffc",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 2,
+    "n_classes": 2,
+    "classes": [
+      "FRONT_BAND",
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "8d213fe8-2600-4aca-9784-143bd14c34f4",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "d348d1d2-79cd-47a0-b88d-be777491478b",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 3,
+    "n_classes": 2,
+    "classes": [
+      "SPINE",
+      "TWO_WING"
+    ]
+  },
+  {
+    "context_id": "9fea5463-35b3-43ee-a043-bda3bc48eae7",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "ab60e3f2-21fc-4202-9b6d-7fff39368094",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "afcee3d7-7225-4576-9292-31f47ae0a265",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 2,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "37cf4f1d-3b15-410d-a0b1-f2a8504553e2",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "539bce20-90e2-43e2-a252-9d1de374022e",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 3,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "ac1cb6f0-3a53-4144-92f7-98baef9ad8e2",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "23a523af-11ea-42a0-b166-d2175c8d9137",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "86b379ee-8066-475c-84c9-e9dfbbcbeccd",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 3,
+    "n_classes": 2,
+    "classes": [
+      "FRONT_BAND",
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "c4ad8268-5cff-40f5-b241-0457d17114ee",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "defdaa8f-8bda-4641-9006-e98b7044fb43",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "3bf6cc15-ad8f-4069-bda7-964d087ad877",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "5ecc240b-db20-409e-af39-a9c4fa3d3b73",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "79b083a8-08fe-4c78-8b8c-a6c04905f7a0",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 2,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "b465ea5b-d2ce-4891-ad5a-d94f52d2ead5",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 2,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "c9b99a34-e22b-4f5c-9f7d-af0e77f9df8f",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 2,
+    "n_classes": 2,
+    "classes": [
+      "FRONT_BAND",
+      "SPINE"
+    ]
+  },
+  {
+    "context_id": "9cd73e89-ba22-4775-824f-92fecdd655c3",
+    "lost": false,
+    "gained": false,
+    "primary_signature_changed": false,
+    "n_shown": 1,
+    "n_classes": 1,
+    "classes": [
+      "SPINE"
+    ]
+  }
+]

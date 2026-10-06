@@ -1,5 +1,8 @@
 """Reference plan collection V1 (Issue #30) and annotations (Issue #31): schema, index, rights
-policy, and per-entry "why this plan works" annotations.
+policy, and per-entry "why this plan works" annotations. Also the structured `concept` block
+(Issue #77): every entry's block is re-derived, independently, from that same entry's own `tags`/
+`levels`/`footprint_family` and checked for equality — see `_expected_concept` for the mapping and
+its rationale (mirrors `app.vertical_slice.concept_spec`'s own vocabulary/derivations).
 
 Validates docs/architecture_reference/references/index.json against its own schema.json, checks
 the minimum entry count and footprint-family coverage, and enforces the rights invariant: an
@@ -16,6 +19,14 @@ import re
 import jsonschema
 import pytest
 
+from app.vertical_slice.concept_spec import (
+    CirculationClass,
+    EntranceSide,
+    MasterPlacement,
+    WetCoreGrouping,
+    ZoningSplit,
+)
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 REFERENCES_DIR = REPO_ROOT / "docs" / "architecture_reference" / "references"
 SCHEMA_PATH = REFERENCES_DIR / "schema.json"
@@ -27,6 +38,83 @@ REQUIRED_FOOTPRINT_FAMILIES = {"rectangle", "wide-rectangle", "narrow-deep", "L"
 MIN_WHY_BULLETS = 3
 MAX_WHY_BULLETS = 8
 RUBRIC_TAG_RE = re.compile(r"\[([A-O])\]\s*$")
+
+# --------------------------------------------------------------- concept block (Issue #77)
+
+#: A `tags` entry naming the entry's own circulation organisation -> `CirculationClass`. Exactly
+#: one of these must appear in every entry's `tags` (AC-1); this is the entry's own controlled
+#: vocabulary (Issue #77's "filled from their own annotations/tags"), not free-text matching.
+CIRCULATION_TAG_TO_CLASS = {
+    "spine": CirculationClass.SPINE,
+    "hub-lobby": CirculationClass.HUB_LOBBY,
+    "front-band": CirculationClass.FRONT_BAND,
+    "two-wing": CirculationClass.TWO_WING,
+    "courtyard": CirculationClass.RING,
+    "branched-stem": CirculationClass.BRANCHED,
+}
+
+#: `CirculationClass` -> `ZoningSplit`, reusing `concept_spec._ZONING_BY_STRATEGY_VALUE`'s own
+#: rationale for the three classes it already covers (SPINE -> SIDE_BY_SIDE, FRONT_BAND/HUB_LOBBY
+#: -> FRONT_REAR, TWO_WING -> WRAPPED via MULTI_WING_SPLIT); RING (a ring wraps >=3 wings around a
+#: courtyard) and BRANCHED (a T-shape's stem, with one arm public and one private — literally
+#: "columns either side of the ... spine", `ZoningSplit.SIDE_BY_SIDE`'s own docstring) extend it
+#: for the two classes `concept_generator.py` does not produce.
+ZONING_BY_CLASS = {
+    CirculationClass.SPINE: ZoningSplit.SIDE_BY_SIDE,
+    CirculationClass.FRONT_BAND: ZoningSplit.FRONT_REAR,
+    CirculationClass.HUB_LOBBY: ZoningSplit.FRONT_REAR,
+    CirculationClass.TWO_WING: ZoningSplit.WRAPPED,
+    CirculationClass.RING: ZoningSplit.WRAPPED,
+    CirculationClass.BRANCHED: ZoningSplit.SIDE_BY_SIDE,
+}
+
+
+def _expected_circulation_class(tags: list[str]) -> CirculationClass:
+    hits = {CIRCULATION_TAG_TO_CLASS[t] for t in tags if t in CIRCULATION_TAG_TO_CLASS}
+    assert len(hits) == 1, f"expected exactly one circulation tag, tags={tags!r} hits={hits!r}"
+    return next(iter(hits))
+
+
+def _expected_wet_core_grouping(tags: list[str]) -> WetCoreGrouping:
+    """MIXED when the entry's own tags say `ensuite` (a private ensuite *and* a shared bathroom
+    both exist — `ConceptSpec.wet_core_strategy`'s own `MIXED` meaning), else ALL_SHARED — every
+    V1 entry has at least one bathroom, so ALL_ENSUITE/NONE don't occur in this set."""
+    return WetCoreGrouping.MIXED if "ensuite" in tags else WetCoreGrouping.ALL_SHARED
+
+
+def _expected_master_placement(levels: str, circulation_class: CirculationClass) -> MasterPlacement:
+    if levels == "multi":
+        return MasterPlacement.UPPER_LEVEL
+    if circulation_class is CirculationClass.HUB_LOBBY:
+        return MasterPlacement.HUB_FOOT
+    if circulation_class in (CirculationClass.TWO_WING, CirculationClass.RING,
+                             CirculationClass.BRANCHED):
+        return MasterPlacement.OWN_WING
+    return MasterPlacement.WING_END  # SPINE, FRONT_BAND
+
+
+def _expected_entrance_side(footprint_family: str,
+                            circulation_class: CirculationClass) -> EntranceSide:
+    if footprint_family == "L":
+        return EntranceSide.ENTRY_COURT
+    if circulation_class is CirculationClass.RING:
+        return EntranceSide.ENTRY_COURT
+    if footprint_family == "irregular":
+        return EntranceSide.SIDE
+    return EntranceSide.FRONT
+
+
+def _expected_concept(entry: dict) -> dict:
+    tags = entry.get("tags", [])
+    circulation_class = _expected_circulation_class(tags)
+    return {
+        "circulation_class": circulation_class.value,
+        "zoning_split": ZONING_BY_CLASS[circulation_class].value,
+        "wet_core_grouping": _expected_wet_core_grouping(tags).value,
+        "master_placement": _expected_master_placement(entry["levels"], circulation_class).value,
+        "entrance_side": _expected_entrance_side(entry["footprint_family"],
+                                                 circulation_class).value,
+    }
 
 
 def _section_lines(markdown: str, heading: str) -> list[str]:
@@ -163,6 +251,24 @@ def test_every_entry_has_an_annotation_with_why_it_works() -> None:
                 f"entry {entry['id']!r} annotation.md bullet tags rubric section "
                 f"{match.group(1)!r}, which is not a section in quality_rubric.md"
             )
+
+
+def test_every_entry_has_a_concept_block_consistent_with_its_own_tags() -> None:
+    """AC-1 (Issue #77): every entry carries a `concept` block, valid against the extended
+    schema, and EQUAL to `_expected_concept`'s independent re-derivation from that same entry's
+    own `tags`/`levels`/`footprint_family` — catching drift in either direction (a tag changed
+    without updating `concept`, or vice versa)."""
+    schema = _load_schema()
+    index = _load_index()
+    jsonschema.validate(instance=index, schema=schema)
+
+    for entry in index["entries"]:
+        assert "concept" in entry, f"entry {entry['id']!r} is missing a concept block"
+        assert entry["concept"] == _expected_concept(entry), (
+            f"entry {entry['id']!r} concept block {entry['concept']!r} does not match the "
+            f"re-derivation from its own tags {entry.get('tags', [])!r}: "
+            f"{_expected_concept(entry)!r}"
+        )
 
 
 def test_every_annotation_lists_a_trade_off() -> None:
