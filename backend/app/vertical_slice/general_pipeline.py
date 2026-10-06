@@ -29,6 +29,7 @@ from app.geometry_domain.constraints import (
 )
 from app.geometry_domain.primitives import MultiRegion
 
+from . import arrival_policy
 from . import circulation_metrics
 from . import concept_engine_v2
 from . import concept_generator as generator
@@ -208,14 +209,11 @@ def _entrance_rank(plan: "RealizedPlan") -> int:
 
     Used only to RANK candidates that already validate (`run_general`'s main loop): a plan this
     bad on rank 2 already fails C23 and is never `.ok`, so 2 only matters as a total-order floor.
+
+    The rule itself lives in `arrival_policy.arrival_rank` so that this loop and the band/proposal
+    selection path (`proposal_selection`) rank an arrival by the same one definition.
     """
-    target = plan.design.entrance_door.b
-    roles = next((r.roles for r in plan.design.rooms if r.zone_id == target), ())
-    if {"HALL", "CIRCULATION"} & set(roles):
-        return 0
-    if "LIVING" in roles:
-        return 1
-    return 2
+    return arrival_policy.arrival_rank(plan.design)
 
 
 #: Zone role -> the letter it takes in a family signature. Wet rooms are resolved separately: a

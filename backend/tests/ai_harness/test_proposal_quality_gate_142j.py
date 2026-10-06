@@ -6,6 +6,12 @@ fail honestly with NO_VALID_PROPOSAL; a HARD-invalid candidate is never selected
 classified as needing an L-shaped room (B02 B03 B10 B14 B15 B16) and the non-planar B19 pass because a
 DIFFERENT valid proposal is chosen, with the geometry untouched; selection is deterministic across
 processes and PYTHONHASHSEED values.
+
+Issue #142O changed WHICH clean passing proposal wins: the gate now realizes every clean candidate
+inside the same budget and orders the PASS plans by arrival rank, then the existing score, then the
+candidate index. The gate's own guarantees are unchanged and still asserted here — only the
+"top-scored clean candidate always wins" expectation is replaced by the rule that actually holds,
+and the two briefs whose winner moves (`ENTRANCE_IMPROVED`) must move strictly toward a hall arrival.
 """
 from __future__ import annotations
 
@@ -24,6 +30,9 @@ pytestmark = pytest.mark.skipif(not os.path.exists(DATASET), reason="frozen LLM 
 
 FORMER_LIMIT = ("B02", "B03", "B10", "B14", "B15", "B16")
 OLD_PASSES = {"B01", "B04", "B05", "B08", "B11", "B13", "B18"}
+#: Issue #142O: the only briefs whose winner moves, and in both the front door moves from the living
+#: room (arrival rank 1) to a hall (rank 0). Measured, and asserted below to improve and never regress.
+ENTRANCE_IMPROVED = {"B05", "B08"}
 
 
 @pytest.fixture(scope="module")
@@ -39,15 +48,46 @@ def test_at_least_19_of_20_briefs_select_an_existing_clean_passing_proposal(matr
     assert OLD_PASSES <= set(passed)
 
 
+def test_every_pass_plan_reached_inside_the_budget_is_kept_as_an_alternative(matrix):
+    """Issue #142O: the gate no longer returns at the first PASS, so a brief with more than one
+    clean passing candidate must offer the others instead of discarding them."""
+    for bid, r in matrix.items():
+        if r["new_result"] != "PASS":
+            continue
+        kept = {r["new_rank"]} | {a["rank"] for a in r["alternatives"]}
+        assert kept == set(r["clean_pass_ranks"]), (bid, sorted(kept), r["clean_pass_ranks"])
+
+
+def test_the_winner_never_arrives_worse_than_the_candidate_the_old_rule_would_have_picked(matrix):
+    """The whole justification for the change: ordering by arrival rank first may only improve the
+    front door, never worsen it, against the top-scored clean candidate the old gate returned."""
+    for bid, r in matrix.items():
+        if r["new_result"] != "PASS":
+            continue
+        old_rule = min([{"rank": r["new_rank"], "score": r["new_score"],
+                         "entrance_rank": r["new_entrance_rank"]}] + r["alternatives"],
+                       key=lambda o: (-o["score"], o["rank"]))
+        assert r["new_entrance_rank"] <= old_rule["entrance_rank"], (bid, r["new_entrance_rank"], old_rule)
+
+
 def test_selected_candidates_are_critic_clean_and_hard_invalid_ones_never_win(matrix):
     for bid, r in matrix.items():
         if r["new_result"] != "PASS":
             continue
         chosen = next(v for v in r["verdicts"] if v["rank"] == r["new_rank"])
         assert chosen["clean"] and chosen["hard"] == (), (bid, chosen)
-        # the chosen one is the BEST-SCORED clean candidate (score order, ties by index), never an invalid one with a higher score
-        clean_scores = [(v["score"], -v["rank"]) for v in r["verdicts"] if v["clean"]]
-        assert (chosen["score"], -chosen["rank"]) == max(clean_scores), (bid, chosen, clean_scores)
+        # Issue #142O's rule, against the real options: the winner is the minimum of
+        # (arrival rank, -score, index) over every PASS plan, so no alternative may beat it and an
+        # invalid candidate with a higher score still never wins.
+        # `alternatives` reports the score rounded, so round both sides: an exact score tie must
+        # fall through to the candidate index, which is the stable identity the rule ends on.
+        winner_key = (r["new_entrance_rank"], -round(chosen["score"], 4), chosen["rank"])
+        for alt in r["alternatives"]:
+            assert winner_key < (alt["entrance_rank"], -alt["score"], alt["rank"]), (bid, chosen, alt)
+        # and among the plans sharing the winner's arrival rank it is still the best-scored one
+        best_rank_scores = [(-alt["score"], alt["rank"]) for alt in r["alternatives"]
+                            if alt["entrance_rank"] == r["new_entrance_rank"]]
+        assert all((-round(chosen["score"], 4), chosen["rank"]) < k for k in best_rank_scores), (bid, chosen)
         assert r["tried_before"] == [] or all(c != "PASS" for _, c in r["tried_before"])
 
 
@@ -69,6 +109,13 @@ def test_former_representation_limit_briefs_pass_by_choosing_another_proposal(ma
 def test_old_passes_keep_their_proposal_and_nothing_new_is_bizarre(matrix):
     for bid in OLD_PASSES:
         r = matrix[bid]
+        if bid in ENTRANCE_IMPROVED:
+            # Issue #142O: the winner moved, and it moved for the one reason that is allowed to move
+            # it — a strictly better arrival. The displaced plan is kept as an alternative.
+            assert r["new_rank"] != r["old"]["rank"], (bid, r["old"]["rank"], r["new_rank"])
+            assert r["new_entrance_rank"] == 0, (bid, r["new_entrance_rank"])
+            assert any(a["entrance_rank"] > 0 for a in r["alternatives"]), (bid, r["alternatives"])
+            continue
         assert r["new_rank"] == r["old"]["rank"], (bid, r["old"]["rank"], r["new_rank"])
     for bid, r in matrix.items():
         if r["new_result"] == "PASS":

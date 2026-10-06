@@ -95,7 +95,13 @@ def run_brief(record: dict, pri) -> dict:
         row.update({"new_rank": sel.index, "new_clean_rank": sel.clean_rank, "new_score": round(sel.score, 4),
                     "tried_before": sel.tried, "new_result": "PASS", "access": sel.pipeline.access_preserved,
                     "spatial": sel.pipeline.spatial_preserved, "quality": quality(sel.pipeline, props[sel.index]),
-                    "new_wet_rooms": [(w.zone_id, w.kind.value, w.host_zone, w.specified) for w in sel.verdicts[sel.index].report.wet_rooms]})
+                    "new_wet_rooms": [(w.zone_id, w.kind.value, w.host_zone, w.specified) for w in sel.verdicts[sel.index].report.wet_rooms],
+                    # Issue #142O: every PASS plan reached inside the budget, so a test can check the
+                    # selection rule (arrival rank, then score, then index) against the real options.
+                    "new_entrance_rank": sel.entrance_rank,
+                    "alternatives": [{"rank": o.index, "clean_rank": o.clean_rank,
+                                      "score": round(o.score, 4), "entrance_rank": o.entrance_rank}
+                                     for o in sel.alternatives]})
     elif isinstance(sel, NoValidProposal):
         row.update({"new_result": sel.code, "detail": sel.detail})
     else:
