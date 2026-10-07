@@ -1,0 +1,729 @@
+{
+ "note": "stage-by-stage structural diversity through the real production path",
+ "briefs": {
+  "B08": {
+   "brief": "B08",
+   "outlines_offered": 7,
+   "outlines_that_planned": 1,
+   "plans_realized_and_validated": 3,
+   "distinct_massing": 1,
+   "distinct_family": 3,
+   "distinct_layout": 3,
+   "distinct_access_graph": 1,
+   "shown": 3,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 3,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 0,
+     "gross_area_m2": 129.6,
+     "massing_signature": "1W",
+     "family_signature": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "layout_signature": "(('BATH_1', 10.85, 10.15, 4.05, 1.85), ('BEDROOM_1', 10.85, 4.15, 4.05, 3.0), ('BEDROOM_2', 10.85, 7.15, 4.05, 3.0), ('DINING', 4.1, 5.6, 5.35, 3.4), ('HALL', 9.45, 0.0, 1.4, 12.0), ('KITCHEN', 4.1, 9.0, 5.35, 3.0), ('LIVING', 4.1, 0.0, 5.35, 5.6), ('MASTER', 10.85, 0.0, 4.05, 4.15))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    },
+    {
+     "outline": 0,
+     "index": 6,
+     "gross_area_m2": 126.9,
+     "massing_signature": "1W",
+     "family_signature": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "layout_signature": "(('BATH_1', 4.1, 9.65, 5.9, 2.1), ('BEDROOM_1', 11.4, 4.75, 3.5, 3.5), ('BEDROOM_2', 11.4, 8.25, 3.5, 3.5), ('DINING', 4.1, 4.2, 5.9, 2.85), ('HALL', 10.0, 0.0, 1.4, 11.75), ('KITCHEN', 4.1, 7.05, 5.9, 2.6), ('LIVING', 4.1, 0.0, 5.9, 4.2), ('MASTER', 11.4, 0.0, 3.5, 4.75))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    },
+    {
+     "outline": 0,
+     "index": 9,
+     "gross_area_m2": 123.6,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "layout_signature": "(('BATH_1', 11.85, 9.3, 2.8, 2.7), ('BEDROOM_1', 11.85, 0.0, 2.8, 4.65), ('BEDROOM_2', 11.85, 4.65, 2.8, 4.65), ('DINING', 4.35, 3.4, 6.1, 2.8), ('HALL', 10.45, 0.0, 1.4, 12.0), ('KITCHEN', 4.35, 6.2, 6.1, 2.6), ('LIVING', 4.35, 0.0, 6.1, 3.4), ('MASTER', 4.35, 8.8, 6.1, 3.2))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    }
+   ]
+  },
+  "B20": {
+   "brief": "B20",
+   "outlines_offered": 7,
+   "outlines_that_planned": 1,
+   "plans_realized_and_validated": 1,
+   "distinct_massing": 1,
+   "distinct_family": 1,
+   "distinct_layout": 1,
+   "distinct_access_graph": 1,
+   "shown": 1,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 1,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 0,
+     "gross_area_m2": 130.8,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "layout_signature": "(('BATH_1', 4.05, 8.75, 2.35, 3.25), ('BATH_2', 12.1, 9.55, 2.85, 2.45), ('BEDROOM_1', 12.1, 0.0, 2.85, 4.1), ('DINING', 4.05, 3.35, 6.65, 2.8), ('HALL', 10.7, 0.0, 1.4, 12.0), ('KITCHEN', 4.05, 6.15, 6.65, 2.6), ('LIVING', 4.05, 0.0, 6.65, 3.35), ('MASTER', 6.4, 8.75, 4.3, 3.25), ('SAFE_ROOM', 12.1, 4.1, 2.85, 3.95), ('TOILET_1', 12.1, 8.05, 2.85, 1.5))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "HALL|SAFE_ROOM",
+      "HALL|TOILET",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    }
+   ]
+  },
+  "B02": {
+   "brief": "B02",
+   "outlines_offered": 7,
+   "outlines_that_planned": 2,
+   "plans_realized_and_validated": 2,
+   "distinct_massing": 1,
+   "distinct_family": 1,
+   "distinct_layout": 2,
+   "distinct_access_graph": 1,
+   "shown": 2,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 1,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 0,
+     "gross_area_m2": 135.11,
+     "massing_signature": "1W",
+     "family_signature": "V[H[M,W],H,H[P,P,P,F]]",
+     "layout_signature": "(('BATH_1', 12.7, 7.35, 3.2, 4.1), ('DINING', 4.1, 3.85, 7.2, 2.8), ('FLEX', 4.1, 9.25, 7.2, 2.2), ('HALL', 11.3, 0.0, 1.4, 11.45), ('KITCHEN', 4.1, 6.65, 7.2, 2.6), ('LIVING', 4.1, 0.0, 7.2, 3.85), ('MASTER', 12.7, 0.0, 3.2, 7.35))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "DINING|FLEX",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "FLEX|KITCHEN",
+      "FLEX|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 1,
+     "private_total": 1,
+     "wet_entered_from": [
+      "HALL"
+     ],
+     "open_group_sizes": [
+      4
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    },
+    {
+     "outline": 2,
+     "index": 0,
+     "gross_area_m2": 153.62,
+     "massing_signature": "1W",
+     "family_signature": "V[H[M,W],H,H[P,P,P,F]]",
+     "layout_signature": "(('BATH_1', 13.45, 7.45, 3.2, 4.1), ('DINING', 3.35, 3.7, 8.7, 3.05), ('FLEX', 3.35, 9.7, 8.7, 1.85), ('HALL', 12.05, 0.0, 1.4, 11.55), ('KITCHEN', 3.35, 6.75, 8.7, 2.95), ('LIVING', 3.35, 0.0, 8.7, 3.7), ('MASTER', 13.45, 0.0, 3.2, 7.45))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "DINING|FLEX",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "FLEX|KITCHEN",
+      "FLEX|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 1,
+     "private_total": 1,
+     "wet_entered_from": [
+      "HALL"
+     ],
+     "open_group_sizes": [
+      4
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    }
+   ]
+  },
+  "B11": {
+   "brief": "B11",
+   "outlines_offered": 7,
+   "outlines_that_planned": 2,
+   "plans_realized_and_validated": 2,
+   "distinct_massing": 1,
+   "distinct_family": 1,
+   "distinct_layout": 2,
+   "distinct_access_graph": 1,
+   "shown": 2,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 1,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 17,
+     "gross_area_m2": 167.19,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "layout_signature": "(('BATH_1', 4.05, 10.35, 2.3, 3.7), ('BATH_2', 11.95, 12.15, 4.0, 1.9), ('BEDROOM_1', 11.95, 0.0, 4.0, 3.1), ('BEDROOM_2', 11.95, 3.1, 4.0, 3.15), ('BEDROOM_3', 11.95, 6.25, 4.0, 3.15), ('DINING', 4.05, 4.8, 6.5, 2.9), ('HALL', 10.55, 0.0, 1.4, 14.05), ('KITCHEN', 4.05, 7.7, 6.5, 2.65), ('LIVING', 4.05, 0.0, 6.5, 4.8), ('MASTER', 6.35, 10.35, 4.2, 3.7), ('SAFE_ROOM', 11.95, 9.4, 4.0, 2.75))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "HALL|SAFE_ROOM",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 5,
+     "private_total": 5,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    },
+    {
+     "outline": 2,
+     "index": 0,
+     "gross_area_m2": 204.13,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "layout_signature": "(('BATH_1', 2.55, 10.45, 2.95, 3.25), ('BATH_2', 12.55, 11.7, 4.9, 2.0), ('BEDROOM_1', 12.55, 0.0, 4.9, 3.0), ('BEDROOM_2', 12.55, 3.0, 4.9, 3.0), ('BEDROOM_3', 12.55, 6.0, 4.9, 3.0), ('DINING', 2.55, 4.45, 8.6, 3.0), ('HALL', 11.15, 0.0, 1.4, 13.7), ('KITCHEN', 2.55, 7.45, 8.6, 3.0), ('LIVING', 2.55, 0.0, 8.6, 4.45), ('MASTER', 5.5, 10.45, 5.65, 3.25), ('SAFE_ROOM', 12.55, 9.0, 4.9, 2.7))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "HALL|SAFE_ROOM",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 5,
+     "private_total": 5,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    }
+   ]
+  },
+  "B16": {
+   "brief": "B16",
+   "outlines_offered": 7,
+   "outlines_that_planned": 1,
+   "plans_realized_and_validated": 1,
+   "distinct_massing": 1,
+   "distinct_family": 1,
+   "distinct_layout": 1,
+   "distinct_access_graph": 1,
+   "shown": 1,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 1,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 1,
+     "index": 8,
+     "gross_area_m2": 188.34,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,B,B,S,W,W],H,H[P,P,P,M,V[B,E]]]",
+     "layout_signature": "(('BATH_1', 6.5, 11.8, 2.7, 2.8), ('BATH_2', 14.95, 12.8, 4.45, 1.8), ('BEDROOM_1', 9.2, 11.8, 4.35, 2.8), ('BEDROOM_2', 14.95, 0.0, 4.45, 2.85), ('BEDROOM_3', 14.95, 2.85, 4.45, 2.9), ('BEDROOM_4', 14.95, 5.75, 4.45, 2.9), ('DINING', 6.5, 3.3, 7.05, 2.8), ('HALL', 13.55, 0.0, 1.4, 14.6), ('KITCHEN', 6.5, 6.1, 7.05, 2.6), ('LIVING', 6.5, 0.0, 7.05, 3.3), ('MASTER', 6.5, 8.7, 7.05, 3.1), ('SAFE_ROOM', 14.95, 8.65, 4.45, 2.7), ('TOILET_1', 14.95, 11.35, 4.45, 1.45))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "HALL|SAFE_ROOM",
+      "HALL|TOILET",
+      "KITCHEN|LIVING"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 6,
+     "private_total": 6,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    }
+   ]
+  },
+  "B19": {
+   "brief": "B19",
+   "outlines_offered": 7,
+   "outlines_that_planned": 1,
+   "plans_realized_and_validated": 2,
+   "distinct_massing": 1,
+   "distinct_family": 2,
+   "distinct_layout": 2,
+   "distinct_access_graph": 1,
+   "shown": 2,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 2,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "LIVING"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 5,
+     "gross_area_m2": 172.55,
+     "massing_signature": "1W",
+     "family_signature": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,M,V[B,E]]]]",
+     "layout_signature": "(('BATH_1', 4.3, 10.65, 2.0, 3.85), ('BATH_2', 10.7, 12.2, 5.5, 2.3), ('BEDROOM_1', 4.3, 4.1, 5.0, 2.95), ('BEDROOM_2', 6.3, 10.65, 3.0, 3.85), ('BEDROOM_3', 10.7, 4.1, 5.5, 2.7), ('BEDROOM_4', 10.7, 6.8, 5.5, 2.7), ('BEDROOM_5', 10.7, 9.5, 5.5, 2.7), ('DINING', 10.7, 0.0, 2.85, 4.1), ('HALL', 9.3, 4.1, 1.4, 10.4), ('KITCHEN', 13.55, 0.0, 2.65, 4.1), ('LIVING', 4.3, 0.0, 6.4, 4.1), ('MASTER', 4.3, 7.05, 5.0, 3.6))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "KITCHEN|LIVING",
+      "LIVING|OUTSIDE"
+     ],
+     "entrance_room_role": "LIVING",
+     "circulation_rooms": 1,
+     "private_off_circulation": 6,
+     "private_total": 6,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    },
+    {
+     "outline": 0,
+     "index": 2,
+     "gross_area_m2": 179.8,
+     "massing_signature": "1W",
+     "family_signature": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,B,V[E,M]]]]",
+     "layout_signature": "(('BATH_1', 4.05, 9.5, 1.95, 5.0), ('BATH_2', 10.95, 12.2, 5.5, 2.3), ('BEDROOM_1', 4.05, 4.1, 5.5, 2.7), ('BEDROOM_2', 4.05, 6.8, 5.5, 2.7), ('BEDROOM_3', 10.95, 4.1, 5.5, 2.7), ('BEDROOM_4', 10.95, 6.8, 5.5, 2.7), ('BEDROOM_5', 10.95, 9.5, 5.5, 2.7), ('DINING', 11.1, 0.0, 2.8, 4.1), ('HALL', 9.55, 4.1, 1.4, 10.4), ('KITCHEN', 13.9, 0.0, 2.55, 4.1), ('LIVING', 4.05, 0.0, 7.05, 4.1), ('MASTER', 6.0, 9.5, 3.55, 5.0))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "DINING|KITCHEN",
+      "DINING|LIVING",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "KITCHEN|LIVING",
+      "LIVING|OUTSIDE"
+     ],
+     "entrance_room_role": "LIVING",
+     "circulation_rooms": 1,
+     "private_off_circulation": 6,
+     "private_total": 6,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [
+      3
+     ],
+     "public_roles_in_open_group": [
+      "DINING",
+      "KITCHEN",
+      "LIVING"
+     ]
+    }
+   ]
+  },
+  "B06": {
+   "brief": "B06",
+   "outlines_offered": 7,
+   "outlines_that_planned": 1,
+   "plans_realized_and_validated": 4,
+   "distinct_massing": 1,
+   "distinct_family": 4,
+   "distinct_layout": 4,
+   "distinct_access_graph": 1,
+   "shown": 3,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 3,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 9,
+     "gross_area_m2": 177.38,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "layout_signature": "(('BATH_1', 4.05, 10.55, 3.0, 3.2), ('BATH_2', 14.15, 10.5, 2.8, 3.25), ('BEDROOM_1', 14.15, 0.0, 2.8, 5.25), ('BEDROOM_2', 14.15, 5.25, 2.8, 5.25), ('FLEX', 4.05, 7.2, 8.7, 3.35), ('HALL', 12.75, 0.0, 1.4, 13.75), ('KITCHEN', 4.05, 4.25, 8.7, 2.95), ('LIVING', 4.05, 0.0, 8.7, 4.25), ('MASTER', 7.05, 10.55, 5.7, 3.2))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "FLEX|HALL",
+      "HALL|KITCHEN",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [],
+     "public_roles_in_open_group": []
+    },
+    {
+     "outline": 0,
+     "index": 11,
+     "gross_area_m2": 177.38,
+     "massing_signature": "1W",
+     "family_signature": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "layout_signature": "(('BATH_1', 14.75, 0.0, 2.2, 6.1), ('BATH_2', 11.65, 11.6, 5.3, 2.15), ('BEDROOM_1', 11.65, 6.1, 5.3, 2.75), ('BEDROOM_2', 11.65, 8.85, 5.3, 2.75), ('FLEX', 4.05, 8.9, 6.2, 4.85), ('HALL', 10.25, 0.0, 1.4, 13.75), ('KITCHEN', 4.05, 5.9, 6.2, 3.0), ('LIVING', 4.05, 0.0, 6.2, 5.9), ('MASTER', 11.65, 0.0, 3.1, 6.1))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "FLEX|HALL",
+      "HALL|KITCHEN",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [],
+     "public_roles_in_open_group": []
+    },
+    {
+     "outline": 0,
+     "index": 27,
+     "gross_area_m2": 137.94,
+     "massing_signature": "1W",
+     "family_signature": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "layout_signature": "(('BATH_1', 14.0, 0.0, 2.2, 6.1), ('BATH_2', 4.8, 10.3, 4.7, 1.8), ('BEDROOM_1', 10.9, 6.1, 5.3, 3.0), ('BEDROOM_2', 10.9, 9.1, 5.3, 3.0), ('FLEX', 4.8, 7.9, 4.7, 2.4), ('HALL', 9.5, 0.0, 1.4, 12.1), ('KITCHEN', 4.8, 4.95, 4.7, 2.95), ('LIVING', 4.8, 0.0, 4.7, 4.95), ('MASTER', 10.9, 0.0, 3.1, 6.1))",
+     "shown": false,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "FLEX|HALL",
+      "HALL|KITCHEN",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [],
+     "public_roles_in_open_group": []
+    },
+    {
+     "outline": 0,
+     "index": 60,
+     "gross_area_m2": 177.38,
+     "massing_signature": "1W",
+     "family_signature": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "layout_signature": "(('BATH_1', 14.5, 0.0, 2.45, 3.3), ('BATH_2', 12.15, 0.0, 2.35, 3.3), ('BEDROOM_1', 12.15, 7.65, 4.8, 3.05), ('BEDROOM_2', 12.15, 10.7, 4.8, 3.05), ('FLEX', 4.05, 8.7, 6.7, 5.05), ('HALL', 10.75, 0.0, 1.4, 13.75), ('KITCHEN', 4.05, 5.85, 6.7, 2.85), ('LIVING', 4.05, 0.0, 6.7, 5.85), ('MASTER', 12.15, 3.3, 4.8, 4.35))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "FLEX|HALL",
+      "HALL|KITCHEN",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [],
+     "public_roles_in_open_group": []
+    }
+   ]
+  },
+  "B09": {
+   "brief": "B09",
+   "outlines_offered": 7,
+   "outlines_that_planned": 1,
+   "plans_realized_and_validated": 2,
+   "distinct_massing": 1,
+   "distinct_family": 2,
+   "distinct_layout": 2,
+   "distinct_access_graph": 1,
+   "shown": 2,
+   "shown_distinct_massing": 1,
+   "shown_distinct_family": 2,
+   "shown_distinct_access_graph": 1,
+   "shown_entrance_roles": [
+    "HALL"
+   ],
+   "plans": [
+    {
+     "outline": 0,
+     "index": 0,
+     "gross_area_m2": 227.15,
+     "massing_signature": "1W",
+     "family_signature": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "layout_signature": "(('BATH_1', 18.5, 3.95, 3.2, 3.05), ('BATH_2', 16.45, 12.6, 5.25, 2.15), ('BEDROOM_1', 16.45, 7.0, 5.25, 2.8), ('BEDROOM_2', 16.45, 9.8, 5.25, 2.8), ('FLEX', 6.3, 8.2, 8.75, 6.55), ('HALL', 15.05, 0.0, 1.4, 14.75), ('KITCHEN', 6.3, 5.25, 8.75, 2.95), ('LIVING', 6.3, 0.0, 8.75, 5.25), ('MASTER', 16.45, 0.0, 5.25, 3.95), ('TOILET_1', 16.45, 3.95, 2.05, 3.05))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "FLEX|HALL",
+      "HALL|KITCHEN",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "HALL|TOILET"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [],
+     "public_roles_in_open_group": []
+    },
+    {
+     "outline": 0,
+     "index": 12,
+     "gross_area_m2": 199.95,
+     "massing_signature": "1W",
+     "family_signature": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "layout_signature": "(('BATH_1', 7.55, 12.25, 3.0, 3.25), ('BATH_2', 17.65, 12.4, 2.8, 3.1), ('BEDROOM_1', 17.65, 0.0, 2.8, 5.25), ('BEDROOM_2', 17.65, 5.25, 2.8, 5.25), ('FLEX', 7.55, 7.8, 8.7, 4.45), ('HALL', 16.25, 0.0, 1.4, 15.5), ('KITCHEN', 7.55, 4.85, 8.7, 2.95), ('LIVING', 7.55, 0.0, 8.7, 4.85), ('MASTER', 10.55, 12.25, 5.7, 3.25), ('TOILET_1', 17.65, 10.5, 2.8, 1.9))",
+     "shown": true,
+     "access_graph": [
+      "BATHROOM|HALL",
+      "BATHROOM|MASTER_BEDROOM",
+      "BEDROOM|HALL",
+      "FLEX|HALL",
+      "HALL|KITCHEN",
+      "HALL|LIVING",
+      "HALL|MASTER_BEDROOM",
+      "HALL|OUTSIDE",
+      "HALL|TOILET"
+     ],
+     "entrance_room_role": "HALL",
+     "circulation_rooms": 1,
+     "private_off_circulation": 3,
+     "private_total": 3,
+     "wet_entered_from": [
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "open_group_sizes": [],
+     "public_roles_in_open_group": []
+    }
+   ]
+  }
+ }
+}

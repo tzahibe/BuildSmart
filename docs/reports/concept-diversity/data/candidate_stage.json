@@ -1,0 +1,3294 @@
+{
+ "note": "concept diversity at the CANDIDATE stage, upstream of realization and selection",
+ "vocabulary": {
+  "circulation_class": [
+   "SPINE",
+   "FRONT_BAND",
+   "HUB_LOBBY",
+   "BRANCHED",
+   "RING",
+   "TWO_WING"
+  ],
+  "zoning_split": [
+   "SIDE_BY_SIDE",
+   "FRONT_REAR",
+   "WRAPPED"
+  ],
+  "wet_core_grouping": [
+   "ALL_ENSUITE",
+   "ALL_SHARED",
+   "MIXED",
+   "NONE"
+  ],
+  "master_placement": [
+   "HUB_FOOT",
+   "WING_END",
+   "OWN_WING",
+   "UPPER_LEVEL"
+  ],
+  "entrance_side": [
+   "FRONT",
+   "ENTRY_COURT",
+   "SIDE"
+  ]
+ },
+ "briefs": {
+  "B08": {
+   "brief": "B08",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 30,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "BRANCHED_TWO_STACK",
+    "SPINE_DOUBLE_LOADED",
+    "SPINE_PUBLIC_PRIVATE",
+    "SPINE_SERVICE_CLUSTER"
+   ],
+   "distinct_circulation_class": [
+    "SPINE"
+   ],
+   "distinct_zoning": [
+    "SIDE_BY_SIDE"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "ALL_SHARED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "V[H[B,B,W],H,H[P,P,P,M]]",
+    "V[H[M,B,B,W],H,H[P,P,P]]",
+    "V[H[M,B,B],H,H[P,P,P,W]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B,W],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,B,B],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,P,M]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  },
+  "B20": {
+   "brief": "B20",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 12,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "SPINE_DOUBLE_LOADED",
+    "SPINE_SERVICE_CLUSTER"
+   ],
+   "distinct_circulation_class": [
+    "SPINE"
+   ],
+   "distinct_zoning": [
+    "SIDE_BY_SIDE"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "MIXED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,S,W,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  },
+  "B02": {
+   "brief": "B02",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 10,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "SPINE_PUBLIC_PRIVATE"
+   ],
+   "distinct_circulation_class": [
+    "SPINE"
+   ],
+   "distinct_zoning": [
+    "SIDE_BY_SIDE"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "ALL_SHARED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "V[H[M,W],H,H[P,P,P,F]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "ALL_SHARED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,W],H,H[P,P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  },
+  "B11": {
+   "brief": "B11",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 74,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "BRANCHED_TWO_STACK",
+    "SPINE_DOUBLE_LOADED",
+    "SPINE_PUBLIC_PRIVATE",
+    "SPINE_SERVICE_CLUSTER"
+   ],
+   "distinct_circulation_class": [
+    "SPINE"
+   ],
+   "distinct_zoning": [
+    "SIDE_BY_SIDE"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "MIXED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+    "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+    "V[H[B,B,B,W,M,V[E,S]],H,H[P,P,P]]",
+    "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+    "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+    "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+    "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P,W],H,H[V[E,M],B,B,B,S]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,P],H,H[V[E,M],B,B,B,S,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,S,W],H,H[P,P,P,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,S,W],H,H[P,P,P,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,W,M,V[E,S]],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,W,M,V[E,S]],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,W,M,V[E,S]],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,W,M,V[E,S]],H,H[P,P,P]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,B,M,V[E,S]],H,H[P,P,P,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  },
+  "B16": {
+   "brief": "B16",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 0,
+   "topologically_distinct_candidates": 0,
+   "distinct_strategy": [],
+   "distinct_circulation_class": [],
+   "distinct_zoning": [],
+   "distinct_massing": [],
+   "distinct_wet_core_strategy": [],
+   "distinct_entrance_strategy": [],
+   "distinct_family": [],
+   "master_placement_has_no_field": null,
+   "entrance_side_has_no_field": null,
+   "candidates": []
+  },
+  "B19": {
+   "brief": "B19",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 8,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "FRONT_PUBLIC_BAND"
+   ],
+   "distinct_circulation_class": [
+    "FRONT_BAND"
+   ],
+   "distinct_zoning": [
+    "FRONT_REAR"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "MIXED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "H[V[P,P,P],V[H[B,B,B,W],H,H[B,B,V[E,M]]]]",
+    "H[V[P,P,P],V[H[B,B,B,W],H,H[B,M,V[B,E]]]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,B,V[E,M]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,B,V[E,M]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,B,V[E,M]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,B,V[E,M]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,M,V[B,E]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,M,V[B,E]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,M,V[B,E]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "FRONT_PUBLIC_BAND",
+     "circulation_class": "FRONT_BAND",
+     "zoning": "FRONT_REAR",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "H[V[P,P,P],V[H[B,B,B,W],H,H[B,M,V[B,E]]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  },
+  "B06": {
+   "brief": "B06",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 82,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "BRANCHED_TWO_STACK",
+    "SPINE_DOUBLE_LOADED",
+    "SPINE_PUBLIC_PRIVATE",
+    "SPINE_SERVICE_CLUSTER"
+   ],
+   "distinct_circulation_class": [
+    "SPINE"
+   ],
+   "distinct_zoning": [
+    "SIDE_BY_SIDE"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "MIXED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+    "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+    "V[H[B,W,M,V[B,E]],H,H[P,P,F]]",
+    "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+    "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+    "V[H[P,P,F],H,H[V[E,W],M,B,B]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,M],B,B,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,M,V[B,E]],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F],H,H[V[E,W],M,B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,M,V[B,E]],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  },
+  "B09": {
+   "brief": "B09",
+   "wings_offered_by_adapter": 1,
+   "concept_candidates": 56,
+   "topologically_distinct_candidates": 1,
+   "distinct_strategy": [
+    "BRANCHED_TWO_STACK",
+    "SPINE_DOUBLE_LOADED",
+    "SPINE_PUBLIC_PRIVATE",
+    "SPINE_SERVICE_CLUSTER"
+   ],
+   "distinct_circulation_class": [
+    "SPINE"
+   ],
+   "distinct_zoning": [
+    "SIDE_BY_SIDE"
+   ],
+   "distinct_massing": [
+    "1W"
+   ],
+   "distinct_wet_core_strategy": [
+    "MIXED"
+   ],
+   "distinct_entrance_strategy": [
+    "HALL"
+   ],
+   "distinct_family": [
+    "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+    "V[H[B,M,V[B,E]],H,H[P,P,F,W,W]]",
+    "V[H[B,W,W],H,H[P,P,F,B,V[E,M]]]",
+    "V[H[B,W,W],H,H[P,P,F,M,V[B,E]]]",
+    "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+    "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]"
+   ],
+   "master_placement_has_no_field": true,
+   "entrance_side_has_no_field": true,
+   "candidates": [
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,W],H,H[P,P,F,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,W],H,H[P,P,F,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_PUBLIC_PRIVATE",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[M,V[E,W],B,B,W],H,H[P,P,F]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[P,P,F,W,W],H,H[V[E,M],B,B]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_SERVICE_CLUSTER",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,B,W,W],H,H[P,P,F,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,W],H,H[P,P,F,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,W],H,H[P,P,F,B,V[E,M]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,W],H,H[P,P,F,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "SPINE_DOUBLE_LOADED",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,W,W],H,H[P,P,F,M,V[B,E]]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    },
+    {
+     "strategy": "BRANCHED_TWO_STACK",
+     "circulation_class": "SPINE",
+     "zoning": "SIDE_BY_SIDE",
+     "massing": "1W",
+     "wet_core_strategy": "MIXED",
+     "entrance_strategy": "HALL",
+     "family": "V[H[B,M,V[B,E]],H,H[P,P,F,W,W]]",
+     "has_master_placement_field": false,
+     "has_entrance_side_field": false
+    }
+   ]
+  }
+ }
+}
