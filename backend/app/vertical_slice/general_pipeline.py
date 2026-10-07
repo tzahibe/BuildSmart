@@ -426,7 +426,8 @@ def run_general(buildable: BuildableRegion, *,
                 program: ProgramSpec | None = None,
                 fast_path: bool = True,
                 max_alternatives: int = 0,
-                on_stage: Callable[[str], None] | None = None) -> GeneralSliceResult:
+                on_stage: Callable[[str], None] | None = None,
+                concept_engine_v2_enabled: bool | None = None) -> GeneralSliceResult:
     """Run one authoritative buildable region all the way through the existing slice.
 
     The concept now comes from the GENERATOR, not from a hard-coded fixture: the adapter's safe
@@ -639,7 +640,10 @@ def run_general(buildable: BuildableRegion, *,
     # OTHER PLANS THE SAME BRIEF PRODUCES, when the caller asked for them. Computed here rather
     # than on demand because whether any exist is itself the answer — a screen cannot offer options
     # it has not proven are real.
-    if max_alternatives > 0 and CONCEPT_ENGINE_V2_ENABLED:
+    # named `*_enabled` so it cannot shadow the imported `concept_engine_v2` MODULE used below
+    use_concept_engine_v2 = (CONCEPT_ENGINE_V2_ENABLED if concept_engine_v2_enabled is None
+                             else concept_engine_v2_enabled)
+    if max_alternatives > 0 and use_concept_engine_v2:
         # Concept Engine v2 (Issue #78, 4/5): the alternatives come from one best verified plan
         # per circulation class instead of the ordinary family-nearest walk — `_alternative_plans`
         # itself is never called on this path (its own byte-identical behavior when the flag is

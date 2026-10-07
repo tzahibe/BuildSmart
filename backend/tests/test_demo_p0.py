@@ -1923,7 +1923,9 @@ def test_a_validation_failure_records_which_checks_failed(client):
 
     real = service.generate_demo_design
 
-    def failing(project, on_stage=None):
+    # `**_` absorbs the router's keyword arguments (e.g. the engine-preview override) so this
+    # double stays about the FAILURE it simulates, not about the call signature.
+    def failing(project, on_stage=None, **_):
         raise service.DemoGenerationError(
             "PLAN_FAILED_VALIDATION", "התוכנית שנוצרה לא עברה את בדיקות התכנון ולכן לא הוצגה.",
             "C13: HALL-KITCHEN",
