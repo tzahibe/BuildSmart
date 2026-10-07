@@ -84,3 +84,17 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+/* DEVELOPMENT PREVIEW PANEL — deliberately plain and visually subordinate to the drawing: it is a
+   development instrument, not product chrome. It states what the engine did, including when the
+   answer is "0 alternatives" or "concept family not available". */
+.engine-preview { margin: 0 0 14px; padding: 10px 12px; border: 1px dashed #b9c0c7;
+  border-radius: 6px; background: #fafbfc; }
+.engine-preview-title { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: #4a5560;
+  letter-spacing: 0.02em; }
+.engine-preview-choice { display: flex; gap: 14px; margin-bottom: 10px; font-size: 13px; }
+.engine-preview-choice label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.engine-preview-facts { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0;
+  font-size: 12.5px; }
+.engine-preview-facts dt { color: #6b7681; }
+.engine-preview-facts dd { margin: 0; color: #1a1a1a; }

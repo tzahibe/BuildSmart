@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { EngineChoice } from '../api'
 import type { DemoOutline, DemoPlanSet } from './demoDesign'
 import ConceptLabel from './ConceptLabel'
 import DemoPlan from './DemoPlan'
@@ -25,7 +26,11 @@ function outlineText(outline: DemoOutline): string {
  *
  * A plan's LABEL is bound to this original position, not to where it currently sits on screen, so
  * "אפשרות 2" keeps meaning the same drawing after the person has swapped things around. */
-function labelFor(index: number): string {
+function labelFor(index: number, engine: EngineChoice = 'production'): string {
+  // In the Concept Engine preview every plan is a CONCEPT, numbered from 1, so a second concept
+  // the engine starts returning becomes selectable with no further integration work. Production
+  // keeps the words it always had.
+  if (engine === 'concept_engine_v2') return `קונספט ${index + 1}`
   return index === 0 ? 'הבחירה של המנוע' : `אפשרות ${index + 1}`
 }
 
@@ -42,12 +47,74 @@ function labelFor(index: number): string {
  * the same set and nothing is lost by looking. Everything beside the drawing (areas, rooms,
  * legend, checks) is read off the plan CURRENTLY shown, so the panel always describes what the
  * person is looking at. */
-function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
+
+/** DEVELOPMENT PREVIEW PANEL (owner-facing). Everything here is read off the response the backend
+ * already returns, or measured by the caller — nothing is computed about architecture and nothing
+ * is invented. Its purpose is to make engine progress, INCLUDING ITS CURRENT LIMITATIONS, visible:
+ * an engine that returns no alternatives says "0" rather than being padded, and a concept family
+ * the engine did not attach reads "לא זמין" rather than being guessed. */
+function EnginePreviewPanel({ plans, engine, generationMs, onEngineChange }: {
+  plans: DemoPlanSet
+  engine: EngineChoice
+  generationMs: number | null
+  onEngineChange?: (engine: EngineChoice) => void
+}) {
+  const design = plans.plan
+  const alternatives = plans.alternatives.length
+  const family = design.concept?.label ?? null
+  const valid = design.validation?.passed
+  return (
+    <section className="engine-preview" data-testid="engine-preview"
+             aria-label="תצוגת פיתוח — מנוע">
+      <h3 className="engine-preview-title">תצוגת פיתוח — מנוע</h3>
+      <div className="engine-preview-choice">
+        {(['production', 'concept_engine_v2'] as EngineChoice[]).map((option) => (
+          <label key={option}>
+            <input
+              type="radio"
+              name="engine"
+              value={option}
+              checked={engine === option}
+              disabled={!onEngineChange}
+              onChange={() => onEngineChange?.(option)}
+            />
+            {option === 'production' ? 'ייצור נוכחי' : 'Concept Engine v2'}
+          </label>
+        ))}
+      </div>
+      <dl className="engine-preview-facts">
+        <dt>מנוע</dt>
+        <dd data-testid="engine-used">{engine === 'production' ? 'ייצור נוכחי' : 'Concept Engine v2'}</dd>
+        <dt>זמן יצירה</dt>
+        <dd data-testid="engine-ms">{generationMs === null ? 'לא זמין' : `${generationMs} ms`}</dd>
+        <dt>תקפות</dt>
+        <dd data-testid="engine-validity">{valid === undefined ? 'לא זמין' : valid ? 'תקין' : 'נכשל'}</dd>
+        <dt>משפחת קונספט</dt>
+        <dd data-testid="engine-family">{family ?? 'לא זמין'}</dd>
+        <dt>אלטרנטיבות</dt>
+        <dd data-testid="engine-alternatives">{alternatives}</dd>
+        <dt>שטח ברוטו / נטו</dt>
+        <dd data-testid="engine-area">
+          {design.gross_area_m2.toFixed(1)} / {design.net_area_m2.toFixed(1)} מ״ר
+        </dd>
+      </dl>
+    </section>
+  )
+}
+
+function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements,
+                        engine = 'production', generationMs = null, onEngineChange }: {
   plans: DemoPlanSet
   /** The plot edge facing the street, from the project the plans were generated for — drawn as the
    *  compass on the large plan only; thumbnails are too small for it. */
   streetFacingSide?: string | null
   onChangeRequirements: () => void
+  /** DEVELOPMENT PREVIEW. Which engine produced the plans on screen, how long it took, and how to
+   *  re-run the SAME brief through the other one. Absent for every caller that predates the
+   *  preview, which then renders exactly as before. */
+  engine?: EngineChoice
+  generationMs?: number | null
+  onEngineChange?: (engine: EngineChoice) => void
 }) {
   const all = [plans.plan, ...plans.alternatives]
 
@@ -114,12 +181,12 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
                     type="button"
                     className="workspace-option"
                     onClick={() => swapWithLargePlan(position + 1)}
-                    aria-label={`הצג בגדול: ${labelFor(planIndex)}`}
+                    aria-label={`הצג בגדול: ${labelFor(planIndex, engine)}`}
                     data-testid={`plan-option-${planIndex}`}
                   >
                     <DemoPlan design={all[planIndex]} />
                     <span className="workspace-option-label">
-                      {labelFor(planIndex)}
+                      {labelFor(planIndex, engine)}
                       <ConceptLabel concept={all[planIndex].concept} />
                     </span>
                     {all[planIndex].outline ? (
@@ -136,12 +203,14 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
       </main>
 
       <aside className="workspace-side" aria-label="פרטי התוכנית">
+        <EnginePreviewPanel plans={plans} engine={engine} generationMs={generationMs}
+                            onEngineChange={onEngineChange} />
         <h2 className="workspace-title">
           התוכנית שלך
           <ConceptLabel concept={design.concept} />
         </h2>
         {order.length > 1 ? (
-          <p className="workspace-shown" data-testid="plan-shown">{labelFor(order[0])}</p>
+          <p className="workspace-shown" data-testid="plan-shown">{labelFor(order[0], engine)}</p>
         ) : null}
 
         {design.outline ? (

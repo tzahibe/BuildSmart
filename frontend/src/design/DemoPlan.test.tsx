@@ -3,7 +3,7 @@ import { fireEvent, render, within } from '@testing-library/react'
 import DemoPlan, { planViewBox } from './DemoPlan'
 import DemoWorkspace from './DemoWorkspace'
 import ReviewPage from './ReviewPage'
-import type { DemoBuilding, DemoDesign, RequirementsReview } from './demoDesign'
+import type { DemoBuilding, DemoDesign, DemoPlanSet, RequirementsReview } from './demoDesign'
 
 /** The renderer boundary: DemoPlan draws exactly what the backend supplied, and nothing else. */
 function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
@@ -797,5 +797,74 @@ describe('programme-capacity disclosure', () => {
     const el = container.querySelector('.workspace-capacity-notice')!
     expect(el.getAttribute('role')).toBe('note')
     expect(container.querySelector('.workspace-warnings')?.textContent ?? '').not.toContain('יכולה למלא')
+  })
+})
+
+/** DEVELOPMENT ENGINE PREVIEW — the owner must be able to watch the Concept Engine honestly,
+ * including when it currently returns nothing to choose between. */
+describe('engine preview panel', () => {
+  const planSetOf = (alternatives: DemoDesign[] = []) =>
+    ({ plan: design(), alternatives } as unknown as DemoPlanSet)
+
+  it('defaults to production and never shows a concept engine label there', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf()} onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-used').textContent).toContain('ייצור')
+  })
+
+  it('reports zero alternatives as zero rather than hiding the panel', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf()} engine="concept_engine_v2" generationMs={210}
+                     onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-alternatives').textContent).toBe('0')
+    expect(getByTestId('engine-used').textContent).toContain('Concept Engine v2')
+    expect(getByTestId('engine-ms').textContent).toBe('210 ms')
+  })
+
+  it('shows an absent concept family as unavailable, never invented', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf()} engine="concept_engine_v2" onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-family').textContent).toBe('לא זמין')
+  })
+
+  it('shows a concept family when the engine actually attached one', () => {
+    const labelled = { ...design(), concept: { label: 'מסדרון מרכזי' } } as unknown as DemoDesign
+    const { getByTestId } = render(
+      <DemoWorkspace plans={{ plan: labelled, alternatives: [] } as unknown as DemoPlanSet}
+                     engine="concept_engine_v2" onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-family').textContent).toBe('מסדרון מרכזי')
+  })
+
+  it('exposes alternatives as selectable concepts the moment the engine returns any', () => {
+    // No further integration work: the same UI numbers them Concept 1..N.
+    const { getByTestId, getAllByText } = render(
+      <DemoWorkspace plans={planSetOf([design(), design()])} engine="concept_engine_v2"
+                     onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-alternatives').textContent).toBe('2')
+    expect(getByTestId('plan-shown').textContent).toBe('קונספט 1')
+    expect(getAllByText('קונספט 2').length).toBeGreaterThan(0)
+    expect(getAllByText('קונספט 3').length).toBeGreaterThan(0)
+  })
+
+  it('asks the caller to re-run the same brief when the engine is switched', () => {
+    const asked: string[] = []
+    const { getByLabelText } = render(
+      <DemoWorkspace plans={planSetOf()} engine="production"
+                     onEngineChange={(e) => asked.push(e)} onChangeRequirements={() => {}} />,
+    )
+    fireEvent.click(getByLabelText('Concept Engine v2'))
+    expect(asked).toEqual(['concept_engine_v2'])
+  })
+
+  it('keeps production wording when production produced the plans', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf([design()])} onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('plan-shown').textContent).toBe('הבחירה של המנוע')
   })
 })
