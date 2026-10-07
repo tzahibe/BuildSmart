@@ -4,7 +4,7 @@ import { ScaleBar } from './ScaleBar'
 import { DoorSymbol } from '../components/plan/DoorSymbol'
 import { Walls, WALL_STYLE, EXTERIOR_WALL_STYLE, wallStyle } from '../components/plan/Walls'
 import { InteriorLayout } from '../components/plan/InteriorLayout'
-import { roomLabelLayout } from './demoRoomLabel'
+import { doorSwingObstacle, roomLabelLayout, type LabelObstacle } from './demoRoomLabel'
 import './DemoPlan.css'
 
 /** THE DEMO RENDERER — presentation only.
@@ -140,27 +140,46 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
         />
       ))}
 
+      {/* Engine-placed semantic layout objects (Issue #39) — drawn under the doors/windows so a
+          door's swing arc always stays legible over any furniture near it, and UNDER the room
+          labels so the architectural text is never painted over by a piece of furniture
+          (Concept Plan Communication Pass: architectural information outranks contents). */}
+      <InteriorLayout objects={design.layout ?? []} />
+
       {/* Rooms: name, realized NET dimensions, authoritative NET area. The label centres on the
           room's GROSS box — the rectangle the walls actually draw — while the printed numbers are
           the usable (net) triple, so what's printed always multiplies out to the printed area.
           A merged room (Issue #107) centres on its own polygon's AREA CENTROID instead — its
-          bounding-box centre can land in the room's own crook, outside the room. */}
+          bounding-box centre can land in the room's own crook, outside the room.
+          The block then slides deterministically off whatever the engine placed under it — a
+          furniture symbol or a door's swept quarter — without the room moving (`labelOffset`). */}
       {design.rooms.map((room) => {
         const centroid = room.polygon_m && room.polygon_m.length > 0 ? polygonCentroid(room.polygon_m) : null
         const cx = centroid ? centroid.x : room.x + room.gross_width_m / 2
         const cy = centroid ? centroid.y : room.y + room.gross_depth_m / 2
-        const layout = roomLabelLayout(room)
+        const obstacles: LabelObstacle[] = [
+          ...(design.layout ?? [])
+            .filter((o) => o.room_id === room.id)
+            .map((o) => ({ x: o.x, y: o.y, w: o.width_m, h: o.depth_m })),
+          ...(design.doors ?? [])
+            .filter((d) => d.a === room.id || d.b === room.id)
+            .map(doorSwingObstacle)
+            .filter((o): o is LabelObstacle => o !== null),
+        ]
+        const layout = roomLabelLayout(room, obstacles)
+        const lx = cx + (layout.dx ?? 0)
+        const ly = cy + (layout.dy ?? 0)
         return (
           <text
             key={room.id}
             className="demo-room-label"
-            transform={layout.rotated ? `rotate(-90 ${cx} ${cy})` : undefined}
+            transform={layout.rotated ? `rotate(-90 ${lx} ${ly})` : undefined}
           >
             {layout.lines.map((line) => (
               <tspan
                 key={line.kind}
-                x={cx}
-                y={cy + line.dy}
+                x={lx}
+                y={ly + line.dy}
                 className={`demo-room-${line.kind}`}
                 style={{ fontSize: line.fontSize }}
               >
@@ -183,10 +202,6 @@ function DemoPlan({ design, streetFacingSide }: { design: DemoDesign; streetFaci
           OPEN interface has no wall segment at all, so open-plan reads as one continuous space by
           construction. */}
       <Walls walls={design.walls} />
-
-      {/* Engine-placed semantic layout objects (Issue #39) — drawn under the doors/windows so a
-          door's swing arc always stays legible over any furniture near it. */}
-      <InteriorLayout objects={design.layout ?? []} />
 
       {/* DOORS, drawn as an architect draws them: the wall is interrupted, a leaf stands open at
           90°, and an arc sweeps the space it needs. The gap alone read as a wall that simply stops —

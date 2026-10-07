@@ -47,6 +47,10 @@
 .workspace-checks li { padding-right: 18px; }
 .workspace-warnings li { padding: 6px 0; font-size: 13px; color: #a33; }
 .workspace-quality li { padding: 6px 0; font-size: 13px; color: #7a5a00; }
+/* The programme-capacity disclosure reads like the other quality notes — informative, not an
+   alert: the plan is correct, the brief simply asked for more area than its rooms can fill. */
+.workspace-capacity-notice { margin: 8px 0; padding: 8px 10px; font-size: 13px; color: #7a5a00;
+  background: #fff8e6; border-right: 3px solid #e0b000; border-radius: 4px; }
 .workspace-action {
   width: 100%; margin-top: 24px; padding: 12px; font-size: 15px;
   border: 1px solid #c9d2dd; border-radius: 8px; background: #fff; cursor: pointer;

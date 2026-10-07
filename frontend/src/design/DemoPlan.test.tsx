@@ -764,3 +764,38 @@ describe('ReviewPage — the site and its assumptions', () => {
     within(getByLabelText('המגרש והנחות התכנון')).getByText(/אינו נכנס בשטח שנותר לבנייה/)
   })
 })
+
+/** Concept Plan Communication Pass — the programme-capacity disclosure reaches the person.
+ * The backend decides the condition and owns the sentence (`contract.capacity_notice_text`); the
+ * workspace only has to show it, and only when there is one. */
+describe('programme-capacity disclosure', () => {
+  const NOTICE = 'התוכנית שביקשת יכולה למלא עד כ-200 מ"ר בצורה סבירה, והיעד שהוזן הוא 440 מ"ר.'
+
+  function withQuality(capacity_notice: string | null) {
+    const base = design()
+    return { ...base, quality: { ...(base.quality ?? { over_preferred: false, signal: [], notices: [] }), capacity_notice } } as DemoDesign
+  }
+
+  it('shows the backend sentence verbatim when the brief is over capacity', () => {
+    const { getByText } = render(
+      <DemoWorkspace plans={{ plan: withQuality(NOTICE), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(getByText(NOTICE)).toBeTruthy()
+  })
+
+  it('says nothing when the brief fits', () => {
+    const { queryByText } = render(
+      <DemoWorkspace plans={{ plan: withQuality(null), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(queryByText(NOTICE)).toBeNull()
+  })
+
+  it('presents it as a note, never as a validation failure', () => {
+    const { container } = render(
+      <DemoWorkspace plans={{ plan: withQuality(NOTICE), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    const el = container.querySelector('.workspace-capacity-notice')!
+    expect(el.getAttribute('role')).toBe('note')
+    expect(container.querySelector('.workspace-warnings')?.textContent ?? '').not.toContain('יכולה למלא')
+  })
+})

@@ -207,6 +207,15 @@ function DemoWorkspace({ plans, streetFacingSide, onChangeRequirements }: {
           </ul>
         ) : null}
 
+        {/* Programme-capacity disclosure: the requested built area is larger than the requested
+            room programme can reasonably fill, so the concept came out smaller than the number the
+            person typed. The sentence is the BACKEND's (`capacity_notice_text`) — this renders it,
+            it never decides the condition and never computes the capacity. A note, not an alert:
+            the plan is correct and the brief is simply over capacity. */}
+        {design.quality?.capacity_notice ? (
+          <p className="workspace-capacity-notice" role="note">{design.quality.capacity_notice}</p>
+        ) : null}
+
         {/* Room-size quality notices: not validation, not an alert — a note that some rooms came
             out well past their recommended size (the backend decides which; see DemoQuality). */}
         {design.quality && design.quality.notices.length > 0 ? (

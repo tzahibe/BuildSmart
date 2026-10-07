@@ -33,7 +33,19 @@ export interface LabelLine {
   dy: number
 }
 
+/** A rectangle the label should avoid sitting on: a furniture symbol the engine placed, or the
+ * quarter-disc a door leaf sweeps. Supplied by the caller — this module never looks a room up. */
+export interface LabelObstacle {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface RoomLabelLayout {
+  /** Offset of the whole block from the room's label anchor, in plan metres (see `labelOffset`). */
+  dx?: number
+  dy?: number
   lines: LabelLine[]
   rotated: boolean
 }
@@ -51,6 +63,12 @@ const TOP_MARGIN = 0.2
 /** A layout at this scale or better is "fits"; the first candidate that does is chosen. */
 const GOOD_ENOUGH = 0.8
 const MIN_SCALE = 0.55
+//: How many positions the label block is slid through along the room's free axis. Odd, so the
+//: centre — the position an architect uses unless something is in the way — is always a candidate.
+const PLACEMENT_STEPS = 7
+//: Below this the room cannot hold the block anywhere; the label stays centred and simply overlaps,
+//: which is the graceful degradation a very small room gets (never a smaller room, never no label).
+const MIN_FREE_M = 0.05
 
 export function realizedDimsSegments(room: Pick<DemoRoom, 'width_m' | 'depth_m'>): LabelSegment[] {
   return [{ text: `${room.width_m.toFixed(2)} × ${room.depth_m.toFixed(2)}`, isolate: true }, { text: ' מ׳' }]
@@ -85,7 +103,7 @@ function place(stack: Stack, scale: number): LabelLine[] {
   })
 }
 
-export function roomLabelLayout(room: DemoRoom): RoomLabelLayout {
+export function roomLabelLayout(room: DemoRoom, obstacles: LabelObstacle[] = []): RoomLabelLayout {
   const name = { segments: [{ text: room.name }], kind: 'name' as const, font: NAME_FONT }
   const dims = realizedDimsSegments(room)
   const area = areaSegments(room)
@@ -105,19 +123,121 @@ export function roomLabelLayout(room: DemoRoom): RoomLabelLayout {
   const boxWidth = room.gross_width_m
   const boxDepth = room.gross_depth_m
   const orientations: boolean[] = boxDepth > boxWidth ? [false, true] : [false]
-  const candidates = [threeLines, twoLines].flatMap((stack) =>
+  const candidates = [threeLines, twoLines].flatMap((stack, stackIndex) =>
     orientations.map((rotated) => {
       const [w, d] = rotated ? [boxDepth, boxWidth] : [boxWidth, boxDepth]
-      return { stack, rotated, scale: fitScale(stack, w, d) }
+      return { stack, stackIndex, rotated, scale: fitScale(stack, w, d) }
     }),
   )
 
-  const chosen =
-    candidates.find((c) => c.scale >= GOOD_ENOUGH) ??
-    candidates.reduce((best, c) => (c.scale > best.scale ? c : best))
+  const fits = candidates.filter((c) => c.scale >= GOOD_ENOUGH)
+  const pool = fits.length > 0 ? fits : [candidates.reduce((best, c) => (c.scale > best.scale ? c : best))]
 
-  return {
-    rotated: chosen.rotated,
-    lines: place(chosen.stack, Math.max(MIN_SCALE, chosen.scale)),
+  // Among the candidates that FIT, prefer the one the drawing can actually accommodate: least area
+  // covering a furniture symbol or a door's swept quarter. Ties keep the richer three-line stack
+  // (lower `stackIndex`), so information is only given up when it genuinely buys clearance.
+  const scored = pool.map((c) => {
+    const lines = place(c.stack, Math.max(MIN_SCALE, c.scale))
+    const offset = labelOffset(room, lines, c.rotated, obstacles)
+    const size = blockSize(lines)
+    const w = c.rotated ? size.h : size.w
+    const h = c.rotated ? size.w : size.h
+    const block: LabelObstacle = {
+      x: room.x + boxWidth / 2 + offset.dx - w / 2,
+      y: room.y + boxDepth / 2 + offset.dy - h / 2,
+      w,
+      h,
+    }
+    const cover = obstacles.reduce((sum, o) => sum + overlap(block, o), 0)
+    return { ...c, lines, offset, cover }
+  })
+  const chosen = scored.reduce((best, c) =>
+    c.cover < best.cover - 1e-9 || (Math.abs(c.cover - best.cover) <= 1e-9 && c.stackIndex < best.stackIndex)
+      ? c
+      : best,
+  )
+
+  return { rotated: chosen.rotated, lines: chosen.lines, dx: chosen.offset.dx, dy: chosen.offset.dy }
+}
+
+/** The label block's own size, in metres, for the layout that was chosen. Read off the placed lines
+ * themselves (`fontSize` and the line's own `dy`), so the box always matches what is drawn. */
+function blockSize(lines: LabelLine[]): { w: number; h: number } {
+  let w = 0
+  let top = Number.POSITIVE_INFINITY
+  let bottom = Number.NEGATIVE_INFINITY
+  for (const line of lines) {
+    w = Math.max(w, line.text.length * line.fontSize * CHAR_WIDTH_EM)
+    top = Math.min(top, line.dy - line.fontSize / 2)
+    bottom = Math.max(bottom, line.dy + line.fontSize / 2)
   }
+  return { w, h: Number.isFinite(top) ? bottom - top : 0 }
+}
+
+function overlap(a: LabelObstacle, b: LabelObstacle): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+  return w > 0 && h > 0 ? w * h : 0
+}
+
+/** Where to put the label block inside the room, as an offset from the room's own centre.
+ *
+ * DETERMINISTIC AND GEOMETRY-FREE. The block is slid through `PLACEMENT_STEPS` positions along the
+ * room's longer free axis and the position covering the least obstacle area wins; ties go to the
+ * one nearest the centre, then to the lower index. Nothing here is per-room-type, nothing is a
+ * hand-tuned offset, and the ROOM IS NEVER RESIZED to make the label fit — if every position is
+ * obstructed the least-bad one is used, which is exactly what a draughtsman does.
+ */
+export function labelOffset(room: DemoRoom, lines: LabelLine[], rotated: boolean,
+                            obstacles: LabelObstacle[]): { dx: number; dy: number } {
+  if (obstacles.length === 0) return { dx: 0, dy: 0 }
+  const size = blockSize(lines)
+  const w = rotated ? size.h : size.w
+  const h = rotated ? size.w : size.h
+  const boxW = room.gross_width_m
+  const boxD = room.gross_depth_m
+  const freeX = Math.max(0, boxW - w - 2 * SIDE_MARGIN)
+  const freeY = Math.max(0, boxD - h - 2 * TOP_MARGIN)
+  if (freeX <= MIN_FREE_M && freeY <= MIN_FREE_M) return { dx: 0, dy: 0 }
+
+  // A grid over BOTH free axes: sliding only along the longer one cannot clear a bed that spans
+  // the room's depth but leaves a side clear. Still a fixed, enumerable set of positions.
+  const steps: number = PLACEMENT_STEPS
+  const axis = (free: number) =>
+    free <= MIN_FREE_M
+      ? [0]
+      : Array.from({ length: steps }, (_, i) => ((steps <= 1 ? 0.5 : i / (steps - 1)) - 0.5) * free)
+
+  let best = { dx: 0, dy: 0, cover: Number.POSITIVE_INFINITY, dist: Number.POSITIVE_INFINITY }
+  for (const dy of axis(freeY)) {
+    for (const dx of axis(freeX)) {
+      const block: LabelObstacle = {
+        x: room.x + boxW / 2 + dx - w / 2,
+        y: room.y + boxD / 2 + dy - h / 2,
+        w,
+        h,
+      }
+      const cover = obstacles.reduce((sum, o) => sum + overlap(block, o), 0)
+      const dist = Math.hypot(dx, dy)
+      if (cover < best.cover - 1e-9 || (Math.abs(cover - best.cover) <= 1e-9 && dist < best.dist - 1e-9)) {
+        best = { dx, dy, cover, dist }
+      }
+    }
+  }
+  return { dx: best.dx, dy: best.dy }
+}
+
+/** The quarter-disc a door leaf sweeps, as the axis-aligned box that contains it. The hinge and the
+ * swing direction are the ENGINE's own decisions (`doors.py`); nothing is guessed here. */
+export function doorSwingObstacle(door: {
+  hinge_x?: number; hinge_y?: number; swing_deg?: number; width_m: number
+}): LabelObstacle | null {
+  if (door.hinge_x === undefined || door.hinge_y === undefined || door.swing_deg === undefined) return null
+  const r = door.width_m
+  const rad = (door.swing_deg * Math.PI) / 180
+  const dx = Math.cos(rad)
+  const dy = Math.sin(rad)
+  const x0 = dx >= 0 ? door.hinge_x : door.hinge_x - r
+  const y0 = dy >= 0 ? door.hinge_y : door.hinge_y - r
+  return { x: x0, y: y0, w: r, h: r }
 }
