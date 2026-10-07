@@ -370,6 +370,15 @@ class QualityOut(BaseModel):
     notices: list[str] = []
     laundry_notice: str | None = None
     dead_space_notice: str | None = None
+    #: PROGRAMME CAPACITY DISCLOSURE (Concept Plan Communication Pass). Set when the brief's
+    #: requested `built_area_m2` materially exceeds what the requested ROOM PROGRAMME can
+    #: reasonably fill (`concept_generator.program_capacity_gross_m2`) — the plan is then smaller
+    #: than the number the person typed, and the audit measured that this happened silently on 3 of
+    #: 8 briefs, once leaving a 54 m2 unassigned block with no explanation. NEVER a validation
+    #: failure: the plan is correct, the brief is simply over capacity, so this is a product notice
+    #: exactly like `laundry_notice`. `None` when the request fits. The wording is
+    #: `capacity_notice_text`, shared with the refusal that fires when NOTHING plans.
+    capacity_notice: str | None = None
     #: M1–M6 for this plan (Issue #17). `None` only for a payload built before this field existed
     #: — every plan `to_demo_design` produces from here on attaches one.
     metrics: QualityMetricsOut | None = None
@@ -1261,7 +1270,22 @@ def _exposure_of(design: SolvedDesign) -> list[ExposureOut]:
     return out
 
 
-def quality_of(design: SolvedDesign) -> QualityOut:
+#: The programme-capacity sentence, in ONE place. `demo.service` raises it as
+#: `TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY` when no outline planned at all, and attaches it to
+#: `QualityOut.capacity_notice` when a plan DID come back smaller than the request — the same
+#: condition and the same words either way, so the two can never drift apart.
+def capacity_notice_text(target_m2: float | None, capacity_m2: float) -> str | None:
+    """The disclosure when the requested built area exceeds the programme's own capacity, else
+    `None`. The caller supplies both numbers; the capacity formula lives in `concept_generator`
+    and is never re-implemented here or in the frontend."""
+    if target_m2 is None or target_m2 <= capacity_m2:
+        return None
+    return (f"התוכנית שביקשת יכולה למלא עד כ-{capacity_m2:.0f} מ\"ר בצורה סבירה, "
+            f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
+            f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.")
+
+
+def quality_of(design: SolvedDesign, capacity_notice: str | None = None) -> QualityOut:
     """The three tiers of `QualityOut` from the realized rooms — see the class for the policy."""
     signal: list[QualitySignal] = []
     notice_rooms: list[tuple[object, float, float]] = []
@@ -1286,7 +1310,8 @@ def quality_of(design: SolvedDesign) -> QualityOut:
         head = "חדר אחד גדול מהמומלץ בצורה ניכרת" if count == 1 else f"{count} חדרים גדולים מהמומלץ בצורה ניכרת"
         notices.append(f"{head}: {'; '.join(parts)}")
     return QualityOut(over_preferred=design.over_preferred, signal=signal, notices=notices,
-                      laundry_notice=_laundry_redistribution_notice(design))
+                      laundry_notice=_laundry_redistribution_notice(design),
+                      capacity_notice=capacity_notice)
 
 
 def summarize(report: ValidationReport,
@@ -1335,7 +1360,8 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                    family: str | None = None,
                    notes: list[str] | None = None,
                    concept: ConceptOut | None = None,
-                   constraint: TypedConstraint | None = None) -> DemoDesign:
+                   constraint: TypedConstraint | None = None,
+                   capacity_notice: str | None = None) -> DemoDesign:
     """`constraint` (Issue #35): the spec's SAFE_ROOM `TypedConstraint`, attached to
     `QualityOut.constraints` when the brief actually carries one (`source != NONE`) — `None`
     (the default) keeps every caller that predates this parameter unchanged. `concept`
@@ -1422,7 +1448,7 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                             source_text=o.requirement.source_text)
             for o in relationships],
         validation=summarize(report, unsupported, relationships, notes),
-        quality=quality_of(design),
+        quality=quality_of(design, capacity_notice),
         outline=outline,
         family=family,
         merge=merge_out,

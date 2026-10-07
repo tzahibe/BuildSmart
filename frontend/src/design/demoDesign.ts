@@ -196,6 +196,11 @@ export interface DemoQuality {
   /** Issue #21 — a room realized materially below its own template target in a plan with an
    *  explicitly requested LAUNDRY room. Never a validation failure, never a refusal. */
   laundry_notice?: string | null
+  /** Concept Plan Communication Pass — the requested built area materially exceeds what the
+   *  requested room programme can reasonably fill, so the concept is smaller than the number the
+   *  person typed. Computed by the backend (`contract.capacity_notice_text`); the frontend never
+   *  re-implements the capacity formula. Never a validation failure, never a refusal. */
+  capacity_notice?: string | null
   /** M1–M6 for this plan (Issue #17). Absent only for a payload built before this field existed. */
   metrics?: DemoQualityMetrics | null
   /** One entry per room (Issue #19). Absent/empty for a payload built before this field existed. */

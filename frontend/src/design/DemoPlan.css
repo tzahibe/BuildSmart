@@ -29,6 +29,15 @@
   pointer-events: none;
 }
 .demo-layout-object--focal-wall .demo-layout-object-rect { fill: #c9d3dc; stroke: none; }
+
+/* Fixture/furniture PLAN SYMBOLS (Concept Plan Communication Pass). Deliberately the lightest
+   weight on the drawing: the reference conventions put walls, doors and windows heaviest, fixtures
+   thin and furniture lightest, so a reader can tell instantly what is building and what is
+   contents. These never carry text — the object's name lives in its <title>. */
+.demo-fixture-fill { fill: #eef2f6; stroke: #9aa4ae; stroke-width: 0.03; }
+.demo-fixture-outline { fill: none; stroke: #9aa4ae; stroke-width: 0.03; }
+.demo-fixture-line { stroke: #9aa4ae; stroke-width: 0.025; fill: none; }
+.demo-fixture-focal { fill: #c9d3dc; stroke: none; }
 .demo-scale-bar-line { stroke: #1a1a1a; stroke-width: 0.05; }
 .demo-scale-bar-tick { stroke: #1a1a1a; stroke-width: 0.05; }
 .demo-scale-bar-label { font-size: 0.32px; fill: #1a1a1a; text-anchor: middle; dominant-baseline: hanging; }

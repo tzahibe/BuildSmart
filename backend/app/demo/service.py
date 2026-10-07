@@ -69,6 +69,7 @@ from .contract import (
     OutlineOut,
     OutlineTried,
     SearchSummary,
+    capacity_notice_text,
     to_demo_building,
     to_demo_design,
 )
@@ -895,6 +896,14 @@ def _result_from(project: Project, spec, selection: PlanSelection,
             f"לסדר את החדרים; מוצג מתאר אחר באותו שטח")
     offered = next((orr for orr in results if orr.offered_for_area and orr.plans), None)
 
+    # PROGRAMME CAPACITY DISCLOSURE (Concept Plan Communication Pass): computed ONCE per request
+    # from the brief's own programme, with `concept_generator`'s capacity function and the shared
+    # wording. The audit measured this condition on 3 of 8 briefs, where the delivered plan was
+    # 52-74% of the requested area and the person was told nothing — the refusal carrying this
+    # sentence only ever fires when NOTHING plans. It is a notice, never a validation failure.
+    capacity_notice = capacity_notice_text(spec.program.target_built_area_m2,
+                                           program_capacity_gross_m2(build_room_program(spec)))
+
     def design_of(item: tuple[OutlineResult, RealizedPlan]) -> DemoDesign:
         orr, plan = item
         notes = [n for n in (capacity_note(spec, plan.design.gross_area_m2),) if n]
@@ -905,7 +914,7 @@ def _result_from(project: Project, spec, selection: PlanSelection,
                                   corridor=spec.program.corridor, relationships=plan.relationships,
                                   outline=orr.outline.as_out(), family=plan.family_signature,
                                   notes=notes or None, constraint=spec.safe_room_constraint,
-                                  concept=_concept_of(plan))
+                                  concept=_concept_of(plan), capacity_notice=capacity_notice)
         except InconsistentGeometryError as error:
             # C27 failing here is never a real solved design's fault (see its own docstring) — a
             # bug between the solver and this contract, so the product refuses rather than shows a
@@ -1149,12 +1158,11 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
         target_m2 = spec.program.target_built_area_m2
         rooms = build_room_program(spec)
         capacity = program_capacity_gross_m2(rooms)
-        if target_m2 is not None and target_m2 > capacity:
+        over_capacity = capacity_notice_text(target_m2, capacity)
+        if over_capacity is not None:
+            # the SAME sentence the success path attaches as `QualityOut.capacity_notice`
             raise DemoGenerationError(
-                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
-                f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
-                f"והיעד שהוזן הוא {spec.program.target_built_area_m2:.0f} מ\"ר. "
-                f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
+                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY", over_capacity,
                 reasons, diagnostics=_diagnostics(result, spec, outlines))
 
         # Issue #21, AC-3: the LAUNDRY room's own guarantee (exterior wall / window / bay) is a
@@ -1235,15 +1243,13 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
         # capacity, which the person can act on, not for the check — the same diagnosis the
         # not-realizable path gives. Without this, a candidate that solved and then failed C8
         # replaced the capacity message with a raw check id in 8 of 420 logged scenarios.
-        target_m2 = spec.program.target_built_area_m2
-        capacity = program_capacity_gross_m2(build_room_program(spec))
-        if target_m2 is not None and target_m2 > capacity:
-            raise DemoGenerationError(
-                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
-                f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
-                f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
-                f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
-                failures, diagnostics=_diagnostics(result, spec, outlines))
+        over_capacity = capacity_notice_text(
+            spec.program.target_built_area_m2,
+            program_capacity_gross_m2(build_room_program(spec)))
+        if over_capacity is not None:
+            # the SAME sentence the success path attaches as `QualityOut.capacity_notice`
+            raise DemoGenerationError("TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY", over_capacity,
+                                      failures, diagnostics=_diagnostics(result, spec, outlines))
 
         laundry_message = _laundry_unplaceable_message(spec, outlines)
         if laundry_message is not None:
