@@ -1,110 +1,97 @@
-# #185 — BRANCHED end-to-end proof: **not achieved**, and exactly where it stops
+# #185 — BRANCHED end-to-end proof: **achieved**
 
-**Acceptance was one complete, validator-PASS BRANCHED plan. I did not reach it.** This reports
-what the attempt did establish, what blocks it, and the one thing I would change next.
+One real, complete, **validator-PASS** BRANCHED plan for a frozen brief, rendered through the
+product's own `DemoPlan` and visibly a different architectural idea from the production primary.
 
-**No production file was touched.** Everything is in `backend/app/ai_harness/branched_proof/`.
+**No production file was changed.** Everything is in `backend/app/ai_harness/branched_proof/`.
 
 ---
 
-## 1. The brief, and why it was chosen
+## 1. The brief, justified before coding
 
-**B06** — 3 bedrooms, 2 wet rooms, no safe room, not open plan, footprint **13 × 24 m**.
+**B06** — 3 bedrooms, 2 wet rooms, no safe room, not open plan, **13 × 24 m**. The deepest frozen
+site; it hosts #184's measured 8.20 × 16.50 m branched envelope comfortably; its programme is inside
+#185's bounded 3–4 bedroom scope; and production delivers 177.4 m² there as a baseline.
 
-- its programme is inside #185's bounded 3–4 bedroom scope;
-- 2 wet rooms is the simplest case: one ensuite, one shared;
-- no safe room, so the simpler variant of the parti;
-- #184 measured the production branched tree's envelope at **8.20 × 16.50 m**, and 13 × 24 m hosts
-  that comfortably — it was the deepest frozen site available;
-- production delivers **177 m²** on B06 (92% of its 193 m² programme capacity), a clear baseline.
+## 2. Result against every acceptance criterion
 
-## 2. What the attempt achieved
+| # | criterion | result |
+|---|---|---|
+| 1 | all validators PASS, including C26 | **27 / 27 pass**, safety passes, `plan.ok = True`; **dead ends 0** |
+| 2 | all rooms preserved | LIVING, KITCHEN, MASTER, BEDROOM_1, BEDROOM_2, BATH_1, BATH_2 all present; the programme's single `HALL` is realized as **two** circulation spaces, which is the parti |
+| 3 | MASTER has legal direct access to ENSUITE | `MASTER–BATH_1` door, placeable |
+| 4 | both circulation spaces joined by a real door | `HALL_A–HALL_B` door, placeable |
+| 5 | within the site and room-size constraints | safety `rooms_inside_buildable` true, no offending rooms; every room inside its own template band |
+| 6 | area comparable | **165.2 m²** against production's 177.4 (**93%**), and *smaller*, never oversized |
+| 7 | access graph genuinely BRANCHED | `verify_class` returns `CirculationClass.BRANCHED` |
+| 8 | renders through `DemoPlan`, visibly different | `figures/production-vs-branched-B06.jpg` |
 
-### The C26 blocker from #184 is solved
-#184's single finding was that the production tree leaves three corridor ends at a blank wall. The
-redesigned tree terminates each end at a destination:
-
-```
-            LIVING   |   KITCHEN                 public band, north
-   -------------------------------------------
-     MASTER  |      HALL_A      |  <room>        a room at EACH end of the entry hall
-   -------------------------------------------
-     HALL_B  |        BEDROOM_1                  HALL_B under HALL_A: the junction serves its north
-     BATH_2  |        BEDROOM_2                  a wet room serves its south end
-```
-
-Measured on the realized plan: **dead ends 3 → 1**, and `classify_extreme` returns clean. **C26
-passes.** Nothing was relabelled and `circulation_metrics` was left to do the counting.
-
-### Area and programme are not the problem
-| | production primary | this attempt |
-|---|---:|---:|
-| gross area | 177.4 m² | **166.3 m²** (94%) |
-| programme capacity | 193 m² | — |
-| rooms | all | **all 8 preserved** — LIVING, KITCHEN, HALL, MASTER, BEDROOM_1, BEDROOM_2, BATH_1, BATH_2 |
-
-Room areas were LIVING 44.6, KITCHEN 25.6, MASTER 13.0, BEDROOM_1 14.0, BEDROOM_2 13.5, BATH_1 5.8,
-BATH_2 6.6, plus two halls at 13.9 and 16.6 m². No oversizing: every room sits inside its own
-template band, and the house is **smaller** than production's, not larger.
-
-## 3. Why it still fails — four checks, two causes
+## 3. The layout that worked
 
 ```
-C7   HALL_A-HALL_B shared 0.60 m too short for a 0.9 m door
-C13  HALL_A-HALL_B (CASED_OPENING): shares 0.60 m of wall but no placeable opening was generated
-C5   BATH_2; BEDROOM_1; BEDROOM_2; HALL_B          <- the whole wing, cut off by the above
-C17  BATH_1 (ensuite): entered from HALL_A, required only from MASTER
+            LIVING  41.6        |     KITCHEN  23.9        public band, north
+   -----------------------------------------------
+     HALL_A  14.6  |  BEDROOM_1  13.9                      entry hall serving the bedrooms
+             2.65 x 5.50        |  BEDROOM_2  13.9
+   -----------------------------------------------
+     HALL_B   9.4  |  MASTER  17.8  |  BATH_1  11.2        wing corridor serving the master suite
+     BATH_2   5.6  |                                       and a wet room at its south end
 ```
 
-- **The junction is too narrow.** `HALL_A` begins at the master's width; `HALL_B` sits below it but
-  reaches only 0.60 m past that, so the two corridors share too little wall for a door and the
-  entire bedroom wing is disconnected. C5 is a consequence, not a separate defect.
-- **The ensuite was placed off the hall.** C17 requires an ensuite to be entered from its host, so
-  `BATH_1` must sit with the master, not terminate the entry hall.
+Doors: `HALL_A–LIVING` (cased opening) · `LIVING–KITCHEN` · `HALL_A–BEDROOM_1` · `HALL_A–BEDROOM_2`
+· `HALL_A–HALL_B` · `HALL_B–MASTER` · `HALL_B–BATH_2` · `MASTER–BATH_1`.
 
-## 4. The wall I hit when fixing them — and it is a real one
+**Why this one worked where #185's first attempt did not.** Three changes, each removing a specific
+conflict the previous variant hit:
 
-Fixing C17 means stacking the ensuite behind the master, which makes the entry row as deep as the
-two of them together (~6 m). For that hall to have ends at its **west and east** it must be wider
-than it is deep — `circulation_metrics._end_sides` takes a room's ends to be the two sides of its
-own long axis, so a hall narrower than deep has its ends at the north and south and the rooms I put
-beside it serve nothing. So the hall must exceed ~6 m wide, which makes the plan
+1. **Both corridors in one column**, one directly above the other, so their shared wall is the full
+   corridor width rather than the 0.60 m sliver that failed C7/C13.
+2. **The master and its ensuite moved into the wing**, so the entry hall no longer has to be wide
+   enough to carry them — which is what had pushed the plan past the bedroom size caps on a 13 m
+   site — and the ensuite is entered from its host, satisfying C17.
+3. **Bedrooms first, master block last** in the wing, so the master reaches the building's south
+   edge and gets an exterior wall and a window (C19, C8). With the master at the top it was
+   landlocked between the public band, the hall and its own ensuite.
 
-> master (3.75) + hall (>6) + end room (2.8) ≈ **12.5 m wide**,
+Corridor ends: `HALL_A`'s north is the public opening and its south is the door to `HALL_B`;
+`HALL_B`'s north is that same door and its south is `BATH_2`'s door. **Every end is served**, so
+C26 reports zero dead ends — nothing was relabelled and `circulation_metrics` did the counting.
 
-while the wing below must be the same width as a corridor plus a bedroom — and a bedroom's own
-template caps its long side at 18 ÷ 2.6 ≈ **6.9 m**, so the wing can only reach about 8.2 m unless
-the corridor is made implausibly wide. On B06's 13 m site the three requirements cannot hold at
-once: **ensuite with its host, a horizontal entry hall with rooms at both ends, and bedrooms inside
-their size caps.**
+## 4. Architecturally different, not rearranged
 
-That is a genuine geometric conflict in this tree, not an iteration I ran out of patience with.
+| | production primary | BRANCHED |
+|---|---|---|
+| circulation | **one** corridor, 1.30 × 13.45 m | **two**: 2.65 × 5.50 m and 2.65 × 3.55 m, joined by a door |
+| organisation | public block, bedroom strip beside one corridor | entry hall serving the bedrooms; a second corridor serving the master suite |
+| public rooms | living and kitchen merged, 58.6 m² | separate living 41.6 and kitchen 23.9 |
+| master | 16.8 m², off the single corridor | 17.8 m² **suite** with its own 11.2 m² bathroom at the plan's far end |
+| leftover | **27.6 m² "unassigned"** | **none** |
+| gross | 177.4 m² | 165.2 m² |
 
-## 5. Answer
+## 5. The envelope point, which was the last blocker
 
-**A fully valid BRANCHED plan was not produced.** The single blocker #184 identified — C26 — is
-solved and stays solved. What replaced it is an access-topology conflict: a two-corridor plan needs
-its corridors to overlap by a door's width, and a horizontal entry hall with served ends forces a
-width the bedroom templates will not accept on a 13 m site.
+The compiler must be given a **feasible concept envelope**, not the primary's programme-capped wing
+rectangle (#184's gate 4) and not an invented rectangle. With an invented 13 × 24 m rect all 27
+validators passed but `safety.rooms_inside_buildable` was **false** — four rooms sat outside the
+buildable region. Passing the real adapter candidate's rect (13.00 × 24.00 m at x = 4.00) placed the
+plan correctly and `plan.ok` became true. Nothing about the plan changed; only where it was put.
 
-## 6. Recommended next step — one
+## 6. What broader coverage would need
 
-> **Move the master and its ensuite into the wing, and let the entry hall be short.**
-> The entry hall then only has to serve the public band and the wing corridor, so it need not be
-> wide enough for rooms at both ends; the wing carries the master with its ensuite at one end and
-> the other bedrooms along it, and the wing corridor terminates at the master's door.
+This is one brief and one programme shape. For coverage:
 
-Why this one: it removes the width conflict at its source rather than trading one check for
-another. It keeps the ensuite with its host (C17), gives both corridors a served end (C26), and
-makes the junction a simple overlap of two corridors of similar width (C7/C13). It is still a
-hand-authored tree change in the experimental path, with no validator, Geometry Core or production
-change.
-
-**Not recommended:** widening the bedroom template caps, relaxing C17, or allowing a corridor wide
-enough to bridge the width gap. Each buys a PASS by breaking something the checks exist to protect.
+- **5–6 bedrooms** (explicitly out of scope here): the wing stack grows with the corridor's length,
+  so this is tractable — unlike HUB_LOBBY, which is bounded by its own perimeter.
+- **SAFE_ROOM**: it needs an exterior wall, so it would take a wing slot on the envelope edge; the
+  tree already places the master that way, so the same slot rule should carry it.
+- **Open-plan briefs**: the public chain already emits an open group; untested here because B06 is
+  not open plan.
+- **Reachability in production**: #184's gates 1, 3 and 4 remain. The compiler is still unreachable
+  from the product because `_compiled_candidates_for` hands it the primary's rect. That wiring, not
+  the tree, is what stands between this plan and a user seeing it.
 
 ## 7. Scope kept
 
-No production code changed. No validator or Geometry Core change, no L-shapes, no new planner, no
-5–6 bedroom support, BRANCHED not enabled anywhere, production default untouched, and the house was
-never enlarged to make the experiment pass — it came out **smaller** than the production primary.
+No production code changed. No validator, room cap, door-width or Geometry Core change. No special
+case for B06. BRANCHED enabled nowhere, production default untouched, and the house came out smaller
+than the production primary rather than enlarged to pass.
