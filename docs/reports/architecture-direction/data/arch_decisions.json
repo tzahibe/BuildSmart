@@ -1,0 +1,3422 @@
+[
+  {
+    "brief": "B08",
+    "bedrooms": 3,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "requested_m2": 132.0,
+    "objective": {
+      "candidates_total": 30,
+      "candidates_ranked": 30,
+      "first_separating_component": {
+        "fallback_tier": 6,
+        "strategy": 8,
+        "none (tied on every component)": 6,
+        "area_delta": 9
+      },
+      "distinct_used_area_values": 5,
+      "distinct_strategies": [
+        "BRANCHED_TWO_STACK",
+        "SPINE_DOUBLE_LOADED",
+        "SPINE_PUBLIC_PRIVATE",
+        "SPINE_SERVICE_CLUSTER"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "LIVING",
+          "type": "LIVING",
+          "area_m2": 28.0675,
+          "x": 4.1,
+          "y": 0.0,
+          "gross_width_m": 5.35,
+          "gross_depth_m": 5.6,
+          "aspect": 1.06,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "DINING",
+          "type": "DINING",
+          "area_m2": 17.51,
+          "x": 4.1,
+          "y": 5.6,
+          "gross_width_m": 5.35,
+          "gross_depth_m": 3.4,
+          "aspect": 1.51,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "KITCHEN",
+          "type": "KITCHEN",
+          "area_m2": 14.6775,
+          "x": 4.1,
+          "y": 9.0,
+          "gross_width_m": 5.35,
+          "gross_depth_m": 3.0,
+          "aspect": 1.81,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 15.21,
+          "x": 9.45,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 12.0,
+          "aspect": 9.0,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 15.2075,
+          "x": 10.85,
+          "y": 0.0,
+          "gross_width_m": 4.05,
+          "gross_depth_m": 4.15,
+          "aspect": 1.03,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 11.165,
+          "x": 10.85,
+          "y": 4.15,
+          "gross_width_m": 4.05,
+          "gross_depth_m": 3.0,
+          "aspect": 1.33,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_2",
+          "type": "BEDROOM",
+          "area_m2": 11.165,
+          "x": 10.85,
+          "y": 7.15,
+          "gross_width_m": 4.05,
+          "gross_depth_m": 3.0,
+          "aspect": 1.33,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 6.3525,
+          "x": 10.85,
+          "y": 10.15,
+          "gross_width_m": 4.05,
+          "gross_depth_m": 1.85,
+          "aspect": 2.33,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        }
+      ],
+      "room_count": 8,
+      "footprint": [
+        10.8,
+        12.0
+      ],
+      "footprint_aspect": 1.11,
+      "gross_area_m2": 129.6,
+      "public_rooms": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "public_facing_rear": [
+        "KITCHEN"
+      ],
+      "public_street_only": [
+        "LIVING"
+      ],
+      "private_facing_rear": [],
+      "wet_on_envelope": [
+        "BATH_1"
+      ],
+      "wet_facing_rear": [
+        "BATH_1"
+      ],
+      "rooms_one_exterior_face": [
+        "DINING",
+        "BEDROOM_1",
+        "BEDROOM_2"
+      ],
+      "rooms_two_plus_faces": [
+        "LIVING",
+        "KITCHEN",
+        "HALL",
+        "MASTER",
+        "BATH_1"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.62,
+      "circulation_area_m2": 15.21,
+      "circulation_share": 0.1274,
+      "circulation_aspect": [
+        9.0
+      ],
+      "door_degree": {
+        "HALL": 5,
+        "MASTER": 1,
+        "BEDROOM_1": 1,
+        "BEDROOM_2": 1,
+        "BATH_1": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 0,
+      "unassigned_present": false
+    },
+    "alternatives": 2,
+    "alternative_plans": [
+      {
+        "rooms": [
+          {
+            "id": "LIVING",
+            "type": "LIVING",
+            "area_m2": 23.085,
+            "x": 4.1,
+            "y": 0.0,
+            "gross_width_m": 5.9,
+            "gross_depth_m": 4.2,
+            "aspect": 1.41,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "DINING",
+            "type": "DINING",
+            "area_m2": 16.245,
+            "x": 4.1,
+            "y": 4.2,
+            "gross_width_m": 5.9,
+            "gross_depth_m": 2.85,
+            "aspect": 2.0,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "KITCHEN",
+            "type": "KITCHEN",
+            "area_m2": 14.535,
+            "x": 4.1,
+            "y": 7.05,
+            "gross_width_m": 5.9,
+            "gross_depth_m": 2.6,
+            "aspect": 2.24,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 14.885,
+            "x": 10.0,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 11.75,
+            "aspect": 8.81,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 15.015,
+            "x": 11.4,
+            "y": 0.0,
+            "gross_width_m": 3.5,
+            "gross_depth_m": 4.75,
+            "aspect": 1.38,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 11.22,
+            "x": 11.4,
+            "y": 4.75,
+            "gross_width_m": 3.5,
+            "gross_depth_m": 3.5,
+            "aspect": 1.03,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 10.89,
+            "x": 11.4,
+            "y": 8.25,
+            "gross_width_m": 3.5,
+            "gross_depth_m": 3.5,
+            "aspect": 1.0,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 10.83,
+            "x": 4.1,
+            "y": 9.65,
+            "gross_width_m": 5.9,
+            "gross_depth_m": 2.1,
+            "aspect": 3.0,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          }
+        ],
+        "room_count": 8,
+        "footprint": [
+          10.8,
+          11.75
+        ],
+        "footprint_aspect": 1.09,
+        "gross_area_m2": 126.9,
+        "public_rooms": [
+          "LIVING",
+          "DINING",
+          "KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING"
+        ],
+        "private_facing_rear": [
+          "BEDROOM_2"
+        ],
+        "wet_on_envelope": [
+          "BATH_1"
+        ],
+        "wet_facing_rear": [
+          "BATH_1"
+        ],
+        "rooms_one_exterior_face": [
+          "DINING",
+          "KITCHEN",
+          "BEDROOM_1"
+        ],
+        "rooms_two_plus_faces": [
+          "LIVING",
+          "HALL",
+          "MASTER",
+          "BEDROOM_2",
+          "BATH_1"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.62,
+        "circulation_area_m2": 14.88,
+        "circulation_share": 0.1275,
+        "circulation_aspect": [
+          8.81
+        ],
+        "door_degree": {
+          "HALL": 5,
+          "MASTER": 1,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BATH_1": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 0,
+        "unassigned_present": false
+      },
+      {
+        "rooms": [
+          {
+            "id": "LIVING",
+            "type": "LIVING",
+            "area_m2": 19.175,
+            "x": 4.35,
+            "y": 0.0,
+            "gross_width_m": 6.1,
+            "gross_depth_m": 3.4,
+            "aspect": 1.82,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "DINING",
+            "type": "DINING",
+            "area_m2": 16.52,
+            "x": 4.35,
+            "y": 3.4,
+            "gross_width_m": 6.1,
+            "gross_depth_m": 2.8,
+            "aspect": 2.11,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "KITCHEN",
+            "type": "KITCHEN",
+            "area_m2": 15.045,
+            "x": 4.35,
+            "y": 6.2,
+            "gross_width_m": 6.1,
+            "gross_depth_m": 2.6,
+            "aspect": 2.31,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 15.21,
+            "x": 10.45,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 12.0,
+            "aspect": 9.0,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 17.7,
+            "x": 4.35,
+            "y": 8.8,
+            "gross_width_m": 6.1,
+            "gross_depth_m": 3.2,
+            "aspect": 1.97,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 11.57,
+            "x": 11.85,
+            "y": 0.0,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 4.65,
+            "aspect": 1.71,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 11.83,
+            "x": 11.85,
+            "y": 4.65,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 4.65,
+            "aspect": 1.75,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 6.5,
+            "x": 11.85,
+            "y": 9.3,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 2.7,
+            "aspect": 1.04,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          }
+        ],
+        "room_count": 8,
+        "footprint": [
+          10.3,
+          12.0
+        ],
+        "footprint_aspect": 1.17,
+        "gross_area_m2": 123.6,
+        "public_rooms": [
+          "LIVING",
+          "DINING",
+          "KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING"
+        ],
+        "private_facing_rear": [
+          "MASTER"
+        ],
+        "wet_on_envelope": [
+          "BATH_1"
+        ],
+        "wet_facing_rear": [
+          "BATH_1"
+        ],
+        "rooms_one_exterior_face": [
+          "DINING",
+          "KITCHEN",
+          "BEDROOM_2"
+        ],
+        "rooms_two_plus_faces": [
+          "LIVING",
+          "HALL",
+          "MASTER",
+          "BEDROOM_1",
+          "BATH_1"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.62,
+        "circulation_area_m2": 15.21,
+        "circulation_share": 0.1339,
+        "circulation_aspect": [
+          9.0
+        ],
+        "door_degree": {
+          "HALL": 5,
+          "MASTER": 1,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BATH_1": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 0,
+        "unassigned_present": false
+      }
+    ]
+  },
+  {
+    "brief": "B20",
+    "bedrooms": 2,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "requested_m2": 132.0,
+    "objective": {
+      "candidates_total": 12,
+      "candidates_ranked": 12,
+      "first_separating_component": {
+        "strategy": 6,
+        "area_delta": 5
+      },
+      "distinct_used_area_values": 3,
+      "distinct_strategies": [
+        "SPINE_DOUBLE_LOADED",
+        "SPINE_SERVICE_CLUSTER"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "LIVING",
+          "type": "LIVING",
+          "area_m2": 20.64,
+          "x": 4.05,
+          "y": 0.0,
+          "gross_width_m": 6.65,
+          "gross_depth_m": 3.35,
+          "aspect": 2.02,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "DINING",
+          "type": "DINING",
+          "area_m2": 18.06,
+          "x": 4.05,
+          "y": 3.35,
+          "gross_width_m": 6.65,
+          "gross_depth_m": 2.8,
+          "aspect": 2.3,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "KITCHEN",
+          "type": "KITCHEN",
+          "area_m2": 16.4475,
+          "x": 4.05,
+          "y": 6.15,
+          "gross_width_m": 6.65,
+          "gross_depth_m": 2.6,
+          "aspect": 2.53,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 14.04,
+          "x": 10.7,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 12.0,
+          "aspect": 9.75,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 12.81,
+          "x": 6.4,
+          "y": 8.75,
+          "gross_width_m": 4.3,
+          "gross_depth_m": 3.25,
+          "aspect": 1.38,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 10.07,
+          "x": 12.1,
+          "y": 0.0,
+          "gross_width_m": 2.85,
+          "gross_depth_m": 4.1,
+          "aspect": 1.43,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "SAFE_ROOM",
+          "type": "SAFE_ROOM",
+          "area_m2": 9.3075,
+          "x": 12.1,
+          "y": 4.1,
+          "gross_width_m": 2.85,
+          "gross_depth_m": 3.95,
+          "aspect": 1.43,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 6.5575,
+          "x": 4.05,
+          "y": 8.75,
+          "gross_width_m": 2.35,
+          "gross_depth_m": 3.25,
+          "aspect": 1.42,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "TOILET_1",
+          "type": "TOILET",
+          "area_m2": 3.445,
+          "x": 12.1,
+          "y": 8.05,
+          "gross_width_m": 2.85,
+          "gross_depth_m": 1.5,
+          "aspect": 2.04,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_2",
+          "type": "BATHROOM",
+          "area_m2": 5.9625,
+          "x": 12.1,
+          "y": 9.55,
+          "gross_width_m": 2.85,
+          "gross_depth_m": 2.45,
+          "aspect": 1.18,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        }
+      ],
+      "room_count": 10,
+      "footprint": [
+        10.9,
+        12.0
+      ],
+      "footprint_aspect": 1.1,
+      "gross_area_m2": 130.8,
+      "public_rooms": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING"
+      ],
+      "private_facing_rear": [
+        "MASTER"
+      ],
+      "wet_on_envelope": [
+        "BATH_1",
+        "TOILET_1",
+        "BATH_2"
+      ],
+      "wet_facing_rear": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_one_exterior_face": [
+        "DINING",
+        "KITCHEN",
+        "MASTER",
+        "SAFE_ROOM",
+        "TOILET_1"
+      ],
+      "rooms_two_plus_faces": [
+        "LIVING",
+        "HALL",
+        "BEDROOM_1",
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.5,
+      "circulation_area_m2": 14.04,
+      "circulation_share": 0.1197,
+      "circulation_aspect": [
+        9.75
+      ],
+      "door_degree": {
+        "HALL": 6,
+        "MASTER": 2,
+        "BEDROOM_1": 1,
+        "SAFE_ROOM": 1,
+        "BATH_1": 1,
+        "TOILET_1": 1,
+        "BATH_2": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 0,
+      "unassigned_present": false
+    },
+    "alternatives": 0,
+    "alternative_plans": []
+  },
+  {
+    "brief": "B02",
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "requested_m2": 216.0,
+    "objective": {
+      "candidates_total": 10,
+      "candidates_ranked": 10,
+      "first_separating_component": {
+        "area_delta": 9
+      },
+      "distinct_used_area_values": 5,
+      "distinct_strategies": [
+        "SPINE_PUBLIC_PRIVATE"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "LIVING",
+          "type": "LIVING",
+          "area_m2": 25.9,
+          "x": 4.1,
+          "y": 0.0,
+          "gross_width_m": 7.2,
+          "gross_depth_m": 3.85,
+          "aspect": 1.89,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "DINING",
+          "type": "DINING",
+          "area_m2": 19.6,
+          "x": 4.1,
+          "y": 3.85,
+          "gross_width_m": 7.2,
+          "gross_depth_m": 2.8,
+          "aspect": 2.5,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "KITCHEN",
+          "type": "KITCHEN",
+          "area_m2": 18.2,
+          "x": 4.1,
+          "y": 6.65,
+          "gross_width_m": 7.2,
+          "gross_depth_m": 2.6,
+          "aspect": 2.69,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 14.495,
+          "x": 11.3,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 11.45,
+          "aspect": 8.58,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 21.45,
+          "x": 12.7,
+          "y": 0.0,
+          "gross_width_m": 3.2,
+          "gross_depth_m": 7.35,
+          "aspect": 2.38,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 11.7,
+          "x": 12.7,
+          "y": 7.35,
+          "gross_width_m": 3.2,
+          "gross_depth_m": 4.1,
+          "aspect": 1.3,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "FLEX",
+          "type": "FLEX",
+          "area_m2": 14.35,
+          "x": 4.1,
+          "y": 9.25,
+          "gross_width_m": 7.2,
+          "gross_depth_m": 2.2,
+          "aspect": 3.41,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        }
+      ],
+      "room_count": 7,
+      "footprint": [
+        11.8,
+        11.45
+      ],
+      "footprint_aspect": 1.03,
+      "gross_area_m2": 135.11,
+      "public_rooms": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING"
+      ],
+      "private_facing_rear": [],
+      "wet_on_envelope": [
+        "BATH_1"
+      ],
+      "wet_facing_rear": [
+        "BATH_1"
+      ],
+      "rooms_one_exterior_face": [
+        "DINING",
+        "KITCHEN"
+      ],
+      "rooms_two_plus_faces": [
+        "LIVING",
+        "HALL",
+        "MASTER",
+        "BATH_1",
+        "FLEX"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.71,
+      "circulation_area_m2": 14.49,
+      "circulation_share": 0.1153,
+      "circulation_aspect": [
+        8.58
+      ],
+      "door_degree": {
+        "HALL": 3,
+        "MASTER": 1,
+        "BATH_1": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 14.35,
+      "unassigned_present": true
+    },
+    "alternatives": 1,
+    "alternative_plans": [
+      {
+        "rooms": [
+          {
+            "id": "LIVING",
+            "type": "LIVING",
+            "area_m2": 30.175,
+            "x": 3.35,
+            "y": 0.0,
+            "gross_width_m": 8.7,
+            "gross_depth_m": 3.7,
+            "aspect": 2.39,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "DINING",
+            "type": "DINING",
+            "area_m2": 25.925,
+            "x": 3.35,
+            "y": 3.7,
+            "gross_width_m": 8.7,
+            "gross_depth_m": 3.05,
+            "aspect": 2.79,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "KITCHEN",
+            "type": "KITCHEN",
+            "area_m2": 25.075,
+            "x": 3.35,
+            "y": 6.75,
+            "gross_width_m": 8.7,
+            "gross_depth_m": 2.95,
+            "aspect": 2.88,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 14.625,
+            "x": 12.05,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 11.55,
+            "aspect": 8.65,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 21.75,
+            "x": 13.45,
+            "y": 0.0,
+            "gross_width_m": 3.2,
+            "gross_depth_m": 7.45,
+            "aspect": 2.42,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 11.7,
+            "x": 13.45,
+            "y": 7.45,
+            "gross_width_m": 3.2,
+            "gross_depth_m": 4.1,
+            "aspect": 1.3,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "FLEX",
+            "type": "FLEX",
+            "area_m2": 14.45,
+            "x": 3.35,
+            "y": 9.7,
+            "gross_width_m": 8.7,
+            "gross_depth_m": 1.85,
+            "aspect": 5.0,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          }
+        ],
+        "room_count": 7,
+        "footprint": [
+          13.3,
+          11.55
+        ],
+        "footprint_aspect": 1.15,
+        "gross_area_m2": 153.615,
+        "public_rooms": [
+          "LIVING",
+          "DINING",
+          "KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING"
+        ],
+        "private_facing_rear": [],
+        "wet_on_envelope": [
+          "BATH_1"
+        ],
+        "wet_facing_rear": [
+          "BATH_1"
+        ],
+        "rooms_one_exterior_face": [
+          "DINING",
+          "KITCHEN"
+        ],
+        "rooms_two_plus_faces": [
+          "LIVING",
+          "HALL",
+          "MASTER",
+          "BATH_1",
+          "FLEX"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.71,
+        "circulation_area_m2": 14.62,
+        "circulation_share": 0.1018,
+        "circulation_aspect": [
+          8.65
+        ],
+        "door_degree": {
+          "HALL": 3,
+          "MASTER": 1,
+          "BATH_1": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 14.45,
+        "unassigned_present": true
+      }
+    ]
+  },
+  {
+    "brief": "B11",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": true,
+    "requested_m2": 216.0,
+    "objective": {
+      "candidates_total": 74,
+      "candidates_ranked": 46,
+      "first_separating_component": {
+        "strategy": 18,
+        "over_preferred": 4,
+        "area_delta": 23
+      },
+      "distinct_used_area_values": 12,
+      "distinct_strategies": [
+        "BRANCHED_TWO_STACK",
+        "SPINE_DOUBLE_LOADED",
+        "SPINE_PUBLIC_PRIVATE",
+        "SPINE_SERVICE_CLUSTER"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "LIVING",
+          "type": "LIVING",
+          "area_m2": 29.295,
+          "x": 4.05,
+          "y": 0.0,
+          "gross_width_m": 6.5,
+          "gross_depth_m": 4.8,
+          "aspect": 1.35,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "DINING",
+          "type": "DINING",
+          "area_m2": 18.27,
+          "x": 4.05,
+          "y": 4.8,
+          "gross_width_m": 6.5,
+          "gross_depth_m": 2.9,
+          "aspect": 2.17,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "KITCHEN",
+          "type": "KITCHEN",
+          "area_m2": 16.38,
+          "x": 4.05,
+          "y": 7.7,
+          "gross_width_m": 6.5,
+          "gross_depth_m": 2.65,
+          "aspect": 2.42,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 16.5,
+          "x": 10.55,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 14.05,
+          "aspect": 11.46,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 14.35,
+          "x": 6.35,
+          "y": 10.35,
+          "gross_width_m": 4.2,
+          "gross_depth_m": 3.7,
+          "aspect": 1.17,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 11.02,
+          "x": 11.95,
+          "y": 0.0,
+          "gross_width_m": 4.0,
+          "gross_depth_m": 3.1,
+          "aspect": 1.31,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_2",
+          "type": "BEDROOM",
+          "area_m2": 11.59,
+          "x": 11.95,
+          "y": 3.1,
+          "gross_width_m": 4.0,
+          "gross_depth_m": 3.15,
+          "aspect": 1.25,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_3",
+          "type": "BEDROOM",
+          "area_m2": 11.21,
+          "x": 11.95,
+          "y": 6.25,
+          "gross_width_m": 4.0,
+          "gross_depth_m": 3.15,
+          "aspect": 1.29,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "SAFE_ROOM",
+          "type": "SAFE_ROOM",
+          "area_m2": 9.065,
+          "x": 11.95,
+          "y": 9.4,
+          "gross_width_m": 4.0,
+          "gross_depth_m": 2.75,
+          "aspect": 1.51,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 7.35,
+          "x": 4.05,
+          "y": 10.35,
+          "gross_width_m": 2.3,
+          "gross_depth_m": 3.7,
+          "aspect": 1.67,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "BATH_2",
+          "type": "BATHROOM",
+          "area_m2": 6.08,
+          "x": 11.95,
+          "y": 12.15,
+          "gross_width_m": 4.0,
+          "gross_depth_m": 1.9,
+          "aspect": 2.37,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        }
+      ],
+      "room_count": 11,
+      "footprint": [
+        11.9,
+        14.05
+      ],
+      "footprint_aspect": 1.18,
+      "gross_area_m2": 167.195,
+      "public_rooms": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING"
+      ],
+      "private_facing_rear": [
+        "MASTER"
+      ],
+      "wet_on_envelope": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "wet_facing_rear": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_one_exterior_face": [
+        "DINING",
+        "KITCHEN",
+        "MASTER",
+        "BEDROOM_2",
+        "BEDROOM_3",
+        "SAFE_ROOM"
+      ],
+      "rooms_two_plus_faces": [
+        "LIVING",
+        "HALL",
+        "BEDROOM_1",
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.45,
+      "circulation_area_m2": 16.5,
+      "circulation_share": 0.1092,
+      "circulation_aspect": [
+        11.46
+      ],
+      "door_degree": {
+        "HALL": 7,
+        "MASTER": 2,
+        "BEDROOM_1": 1,
+        "BEDROOM_2": 1,
+        "BEDROOM_3": 1,
+        "SAFE_ROOM": 1,
+        "BATH_1": 1,
+        "BATH_2": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 0,
+      "unassigned_present": false
+    },
+    "alternatives": 1,
+    "alternative_plans": [
+      {
+        "rooms": [
+          {
+            "id": "LIVING",
+            "type": "LIVING",
+            "area_m2": 36.12,
+            "x": 2.55,
+            "y": 0.0,
+            "gross_width_m": 8.6,
+            "gross_depth_m": 4.45,
+            "aspect": 1.95,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "DINING",
+            "type": "DINING",
+            "area_m2": 25.2,
+            "x": 2.55,
+            "y": 4.45,
+            "gross_width_m": 8.6,
+            "gross_depth_m": 3.0,
+            "aspect": 2.8,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "KITCHEN",
+            "type": "KITCHEN",
+            "area_m2": 24.78,
+            "x": 2.55,
+            "y": 7.45,
+            "gross_width_m": 8.6,
+            "gross_depth_m": 3.0,
+            "aspect": 2.85,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 16.08,
+            "x": 11.15,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 13.7,
+            "aspect": 11.17,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 16.9275,
+            "x": 5.5,
+            "y": 10.45,
+            "gross_width_m": 5.65,
+            "gross_depth_m": 3.25,
+            "aspect": 1.82,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 13.16,
+            "x": 12.55,
+            "y": 0.0,
+            "gross_width_m": 4.9,
+            "gross_depth_m": 3.0,
+            "aspect": 1.68,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 13.63,
+            "x": 12.55,
+            "y": 3.0,
+            "gross_width_m": 4.9,
+            "gross_depth_m": 3.0,
+            "aspect": 1.62,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_3",
+            "type": "BEDROOM",
+            "area_m2": 13.16,
+            "x": 12.55,
+            "y": 6.0,
+            "gross_width_m": 4.9,
+            "gross_depth_m": 3.0,
+            "aspect": 1.68,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "SAFE_ROOM",
+            "type": "SAFE_ROOM",
+            "area_m2": 11.04,
+            "x": 12.55,
+            "y": 9.0,
+            "gross_width_m": 4.9,
+            "gross_depth_m": 2.7,
+            "aspect": 1.92,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 8.3875,
+            "x": 2.55,
+            "y": 10.45,
+            "gross_width_m": 2.95,
+            "gross_depth_m": 3.25,
+            "aspect": 1.11,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "BATH_2",
+            "type": "BATHROOM",
+            "area_m2": 7.99,
+            "x": 12.55,
+            "y": 11.7,
+            "gross_width_m": 4.9,
+            "gross_depth_m": 2.0,
+            "aspect": 2.76,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          }
+        ],
+        "room_count": 11,
+        "footprint": [
+          14.9,
+          13.7
+        ],
+        "footprint_aspect": 1.09,
+        "gross_area_m2": 204.13,
+        "public_rooms": [
+          "LIVING",
+          "DINING",
+          "KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING"
+        ],
+        "private_facing_rear": [
+          "MASTER"
+        ],
+        "wet_on_envelope": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "wet_facing_rear": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "rooms_one_exterior_face": [
+          "DINING",
+          "KITCHEN",
+          "MASTER",
+          "BEDROOM_2",
+          "BEDROOM_3",
+          "SAFE_ROOM"
+        ],
+        "rooms_two_plus_faces": [
+          "LIVING",
+          "HALL",
+          "BEDROOM_1",
+          "BATH_1",
+          "BATH_2"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.45,
+        "circulation_area_m2": 16.08,
+        "circulation_share": 0.0862,
+        "circulation_aspect": [
+          11.17
+        ],
+        "door_degree": {
+          "HALL": 7,
+          "MASTER": 2,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BEDROOM_3": 1,
+          "SAFE_ROOM": 1,
+          "BATH_1": 1,
+          "BATH_2": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 0,
+        "unassigned_present": false
+      }
+    ]
+  },
+  {
+    "brief": "B16",
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "requested_m2": 216.0,
+    "objective": {
+      "candidates_total": 0,
+      "candidates_ranked": 0,
+      "first_separating_component": {},
+      "distinct_used_area_values": 0,
+      "distinct_strategies": []
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "LIVING",
+          "type": "LIVING",
+          "area_m2": 21.5775,
+          "x": 6.5,
+          "y": 0.0,
+          "gross_width_m": 7.05,
+          "gross_depth_m": 3.3,
+          "aspect": 2.17,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "DINING",
+          "type": "DINING",
+          "area_m2": 19.18,
+          "x": 6.5,
+          "y": 3.3,
+          "gross_width_m": 7.05,
+          "gross_depth_m": 2.8,
+          "aspect": 2.45,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "KITCHEN",
+          "type": "KITCHEN",
+          "area_m2": 17.4675,
+          "x": 6.5,
+          "y": 6.1,
+          "gross_width_m": 7.05,
+          "gross_depth_m": 2.6,
+          "aspect": 2.69,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 17.16,
+          "x": 13.55,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 14.6,
+          "aspect": 11.92,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 20.55,
+          "x": 6.5,
+          "y": 8.7,
+          "gross_width_m": 7.05,
+          "gross_depth_m": 3.1,
+          "aspect": 2.28,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 11.05,
+          "x": 9.2,
+          "y": 11.8,
+          "gross_width_m": 4.35,
+          "gross_depth_m": 2.8,
+          "aspect": 1.63,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_2",
+          "type": "BEDROOM",
+          "area_m2": 11.2625,
+          "x": 14.95,
+          "y": 0.0,
+          "gross_width_m": 4.45,
+          "gross_depth_m": 2.85,
+          "aspect": 1.6,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_3",
+          "type": "BEDROOM",
+          "area_m2": 11.9,
+          "x": 14.95,
+          "y": 2.85,
+          "gross_width_m": 4.45,
+          "gross_depth_m": 2.9,
+          "aspect": 1.52,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_4",
+          "type": "BEDROOM",
+          "area_m2": 11.475,
+          "x": 14.95,
+          "y": 5.75,
+          "gross_width_m": 4.45,
+          "gross_depth_m": 2.9,
+          "aspect": 1.57,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "SAFE_ROOM",
+          "type": "SAFE_ROOM",
+          "area_m2": 9.96,
+          "x": 14.95,
+          "y": 8.65,
+          "gross_width_m": 4.45,
+          "gross_depth_m": 2.7,
+          "aspect": 1.73,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 6.5,
+          "x": 6.5,
+          "y": 11.8,
+          "gross_width_m": 2.7,
+          "gross_depth_m": 2.8,
+          "aspect": 1.04,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "TOILET_1",
+          "type": "TOILET",
+          "area_m2": 5.3125,
+          "x": 14.95,
+          "y": 11.35,
+          "gross_width_m": 4.45,
+          "gross_depth_m": 1.45,
+          "aspect": 3.4,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_2",
+          "type": "BATHROOM",
+          "area_m2": 6.8,
+          "x": 14.95,
+          "y": 12.8,
+          "gross_width_m": 4.45,
+          "gross_depth_m": 1.8,
+          "aspect": 2.66,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        }
+      ],
+      "room_count": 13,
+      "footprint": [
+        12.9,
+        14.6
+      ],
+      "footprint_aspect": 1.13,
+      "gross_area_m2": 188.34,
+      "public_rooms": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING"
+      ],
+      "private_facing_rear": [
+        "BEDROOM_1"
+      ],
+      "wet_on_envelope": [
+        "BATH_1",
+        "TOILET_1",
+        "BATH_2"
+      ],
+      "wet_facing_rear": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_one_exterior_face": [
+        "DINING",
+        "KITCHEN",
+        "MASTER",
+        "BEDROOM_1",
+        "BEDROOM_3",
+        "BEDROOM_4",
+        "SAFE_ROOM",
+        "TOILET_1"
+      ],
+      "rooms_two_plus_faces": [
+        "LIVING",
+        "HALL",
+        "BEDROOM_2",
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.38,
+      "circulation_area_m2": 17.16,
+      "circulation_share": 0.1008,
+      "circulation_aspect": [
+        11.92
+      ],
+      "door_degree": {
+        "HALL": 9,
+        "MASTER": 2,
+        "BEDROOM_1": 1,
+        "BEDROOM_2": 1,
+        "BEDROOM_3": 1,
+        "BEDROOM_4": 1,
+        "SAFE_ROOM": 1,
+        "BATH_1": 1,
+        "TOILET_1": 1,
+        "BATH_2": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 0,
+      "unassigned_present": false
+    },
+    "alternatives": 0,
+    "alternative_plans": []
+  },
+  {
+    "brief": "B19",
+    "bedrooms": 6,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "requested_m2": 181.25,
+    "objective": {
+      "candidates_total": 8,
+      "candidates_ranked": 4,
+      "first_separating_component": {
+        "area_delta": 3
+      },
+      "distinct_used_area_values": 2,
+      "distinct_strategies": [
+        "FRONT_PUBLIC_BAND"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "LIVING",
+          "type": "LIVING",
+          "area_m2": 24.375,
+          "x": 4.3,
+          "y": 0.0,
+          "gross_width_m": 6.4,
+          "gross_depth_m": 4.1,
+          "aspect": 1.6,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "DINING",
+          "type": "DINING",
+          "area_m2": 11.115,
+          "x": 10.7,
+          "y": 0.0,
+          "gross_width_m": 2.85,
+          "gross_depth_m": 4.1,
+          "aspect": 1.37,
+          "exterior_faces": 1,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "KITCHEN",
+          "type": "KITCHEN",
+          "area_m2": 9.75,
+          "x": 13.55,
+          "y": 0.0,
+          "gross_width_m": 2.65,
+          "gross_depth_m": 4.1,
+          "aspect": 1.56,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 13.26,
+          "x": 9.3,
+          "y": 4.1,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 10.4,
+          "aspect": 7.85,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 16.8,
+          "x": 4.3,
+          "y": 7.05,
+          "gross_width_m": 5.0,
+          "gross_depth_m": 3.6,
+          "aspect": 1.37,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 13.68,
+          "x": 4.3,
+          "y": 4.1,
+          "gross_width_m": 5.0,
+          "gross_depth_m": 2.95,
+          "aspect": 1.68,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_2",
+          "type": "BEDROOM",
+          "area_m2": 10.585,
+          "x": 6.3,
+          "y": 10.65,
+          "gross_width_m": 3.0,
+          "gross_depth_m": 3.85,
+          "aspect": 1.26,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_3",
+          "type": "BEDROOM",
+          "area_m2": 13.78,
+          "x": 10.7,
+          "y": 4.1,
+          "gross_width_m": 5.5,
+          "gross_depth_m": 2.7,
+          "aspect": 2.04,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_4",
+          "type": "BEDROOM",
+          "area_m2": 13.78,
+          "x": 10.7,
+          "y": 6.8,
+          "gross_width_m": 5.5,
+          "gross_depth_m": 2.7,
+          "aspect": 2.04,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_5",
+          "type": "BEDROOM",
+          "area_m2": 13.78,
+          "x": 10.7,
+          "y": 9.5,
+          "gross_width_m": 5.5,
+          "gross_depth_m": 2.7,
+          "aspect": 2.04,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 6.57,
+          "x": 4.3,
+          "y": 10.65,
+          "gross_width_m": 2.0,
+          "gross_depth_m": 3.85,
+          "aspect": 2.03,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "BATH_2",
+          "type": "BATHROOM",
+          "area_m2": 11.13,
+          "x": 10.7,
+          "y": 12.2,
+          "gross_width_m": 5.5,
+          "gross_depth_m": 2.3,
+          "aspect": 2.52,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        }
+      ],
+      "room_count": 12,
+      "footprint": [
+        11.9,
+        14.5
+      ],
+      "footprint_aspect": 1.22,
+      "gross_area_m2": 172.55,
+      "public_rooms": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING",
+        "DINING",
+        "KITCHEN"
+      ],
+      "private_facing_rear": [
+        "BEDROOM_2"
+      ],
+      "wet_on_envelope": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "wet_facing_rear": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_one_exterior_face": [
+        "DINING",
+        "HALL",
+        "MASTER",
+        "BEDROOM_1",
+        "BEDROOM_2",
+        "BEDROOM_3",
+        "BEDROOM_4",
+        "BEDROOM_5"
+      ],
+      "rooms_two_plus_faces": [
+        "LIVING",
+        "KITCHEN",
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.33,
+      "circulation_area_m2": 13.26,
+      "circulation_share": 0.0836,
+      "circulation_aspect": [
+        7.85
+      ],
+      "door_degree": {
+        "HALL": 7,
+        "MASTER": 2,
+        "BEDROOM_1": 1,
+        "BEDROOM_2": 1,
+        "BEDROOM_3": 1,
+        "BEDROOM_4": 1,
+        "BEDROOM_5": 1,
+        "BATH_1": 1,
+        "BATH_2": 1,
+        "OUTSIDE": 1,
+        "LIVING": 1
+      },
+      "flex_area_m2": 0,
+      "unassigned_present": false
+    },
+    "alternatives": 1,
+    "alternative_plans": [
+      {
+        "rooms": [
+          {
+            "id": "LIVING",
+            "type": "LIVING",
+            "area_m2": 26.91,
+            "x": 4.05,
+            "y": 0.0,
+            "gross_width_m": 7.05,
+            "gross_depth_m": 4.1,
+            "aspect": 1.77,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "DINING",
+            "type": "DINING",
+            "area_m2": 10.92,
+            "x": 11.1,
+            "y": 0.0,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 4.1,
+            "aspect": 1.39,
+            "exterior_faces": 1,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "KITCHEN",
+            "type": "KITCHEN",
+            "area_m2": 9.36,
+            "x": 13.9,
+            "y": 0.0,
+            "gross_width_m": 2.55,
+            "gross_depth_m": 4.1,
+            "aspect": 1.62,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 13.26,
+            "x": 9.55,
+            "y": 4.1,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 10.4,
+            "aspect": 7.85,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 16.56,
+            "x": 6.0,
+            "y": 9.5,
+            "gross_width_m": 3.55,
+            "gross_depth_m": 5.0,
+            "aspect": 1.39,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 13.78,
+            "x": 4.05,
+            "y": 4.1,
+            "gross_width_m": 5.5,
+            "gross_depth_m": 2.7,
+            "aspect": 2.04,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 13.78,
+            "x": 4.05,
+            "y": 6.8,
+            "gross_width_m": 5.5,
+            "gross_depth_m": 2.7,
+            "aspect": 2.04,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_3",
+            "type": "BEDROOM",
+            "area_m2": 13.78,
+            "x": 10.95,
+            "y": 4.1,
+            "gross_width_m": 5.5,
+            "gross_depth_m": 2.7,
+            "aspect": 2.04,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_4",
+            "type": "BEDROOM",
+            "area_m2": 13.78,
+            "x": 10.95,
+            "y": 6.8,
+            "gross_width_m": 5.5,
+            "gross_depth_m": 2.7,
+            "aspect": 2.04,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_5",
+            "type": "BEDROOM",
+            "area_m2": 13.78,
+            "x": 10.95,
+            "y": 9.5,
+            "gross_width_m": 5.5,
+            "gross_depth_m": 2.7,
+            "aspect": 2.04,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 8.4,
+            "x": 4.05,
+            "y": 9.5,
+            "gross_width_m": 1.95,
+            "gross_depth_m": 5.0,
+            "aspect": 2.74,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "BATH_2",
+            "type": "BATHROOM",
+            "area_m2": 11.13,
+            "x": 10.95,
+            "y": 12.2,
+            "gross_width_m": 5.5,
+            "gross_depth_m": 2.3,
+            "aspect": 2.52,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          }
+        ],
+        "room_count": 12,
+        "footprint": [
+          12.4,
+          14.5
+        ],
+        "footprint_aspect": 1.17,
+        "gross_area_m2": 179.8,
+        "public_rooms": [
+          "LIVING",
+          "DINING",
+          "KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING",
+          "DINING",
+          "KITCHEN"
+        ],
+        "private_facing_rear": [
+          "MASTER"
+        ],
+        "wet_on_envelope": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "wet_facing_rear": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "rooms_one_exterior_face": [
+          "DINING",
+          "HALL",
+          "MASTER",
+          "BEDROOM_1",
+          "BEDROOM_2",
+          "BEDROOM_3",
+          "BEDROOM_4",
+          "BEDROOM_5"
+        ],
+        "rooms_two_plus_faces": [
+          "LIVING",
+          "KITCHEN",
+          "BATH_1",
+          "BATH_2"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.33,
+        "circulation_area_m2": 13.26,
+        "circulation_share": 0.0801,
+        "circulation_aspect": [
+          7.85
+        ],
+        "door_degree": {
+          "HALL": 7,
+          "MASTER": 2,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BEDROOM_3": 1,
+          "BEDROOM_4": 1,
+          "BEDROOM_5": 1,
+          "BATH_1": 1,
+          "BATH_2": 1,
+          "OUTSIDE": 1,
+          "LIVING": 1
+        },
+        "flex_area_m2": 0,
+        "unassigned_present": false
+      }
+    ]
+  },
+  {
+    "brief": "B06",
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "requested_m2": 312.0,
+    "objective": {
+      "candidates_total": 82,
+      "candidates_ranked": 60,
+      "first_separating_component": {
+        "none (tied on every component)": 12,
+        "strategy": 16,
+        "area_delta": 27,
+        "over_preferred": 4
+      },
+      "distinct_used_area_values": 14,
+      "distinct_strategies": [
+        "BRANCHED_TWO_STACK",
+        "SPINE_DOUBLE_LOADED",
+        "SPINE_PUBLIC_PRIVATE",
+        "SPINE_SERVICE_CLUSTER"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 17.485,
+          "x": 12.75,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 13.75,
+          "aspect": 10.35,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 16.8,
+          "x": 7.05,
+          "y": 10.55,
+          "gross_width_m": 5.7,
+          "gross_depth_m": 3.2,
+          "aspect": 1.87,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 13.13,
+          "x": 14.15,
+          "y": 0.0,
+          "gross_width_m": 2.8,
+          "gross_depth_m": 5.25,
+          "aspect": 1.94,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_2",
+          "type": "BEDROOM",
+          "area_m2": 13.39,
+          "x": 14.15,
+          "y": 5.25,
+          "gross_width_m": 2.8,
+          "gross_depth_m": 5.25,
+          "aspect": 1.98,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 8.4,
+          "x": 4.05,
+          "y": 10.55,
+          "gross_width_m": 3.0,
+          "gross_depth_m": 3.2,
+          "aspect": 1.07,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "BATH_2",
+          "type": "BATHROOM",
+          "area_m2": 7.93,
+          "x": 14.15,
+          "y": 10.5,
+          "gross_width_m": 2.8,
+          "gross_depth_m": 3.25,
+          "aspect": 1.17,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "FLEX",
+          "type": "FLEX",
+          "area_m2": 27.625,
+          "x": 4.05,
+          "y": 7.2,
+          "gross_width_m": 8.7,
+          "gross_depth_m": 3.35,
+          "aspect": 2.62,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "LIVING+KITCHEN",
+          "type": "LIVING_KITCHEN",
+          "area_m2": 58.65,
+          "x": 4.05,
+          "y": 0.0,
+          "gross_width_m": 8.7,
+          "gross_depth_m": 7.2,
+          "aspect": 1.21,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        }
+      ],
+      "room_count": 8,
+      "footprint": [
+        12.9,
+        13.75
+      ],
+      "footprint_aspect": 1.07,
+      "gross_area_m2": 177.375,
+      "public_rooms": [
+        "LIVING+KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING+KITCHEN"
+      ],
+      "private_facing_rear": [
+        "MASTER"
+      ],
+      "wet_on_envelope": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "wet_facing_rear": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "rooms_one_exterior_face": [
+        "MASTER",
+        "BEDROOM_2",
+        "FLEX"
+      ],
+      "rooms_two_plus_faces": [
+        "HALL",
+        "BEDROOM_1",
+        "BATH_1",
+        "BATH_2",
+        "LIVING+KITCHEN"
+      ],
+      "rooms_landlocked": [],
+      "mean_exterior_faces": 1.62,
+      "circulation_area_m2": 17.48,
+      "circulation_share": 0.107,
+      "circulation_aspect": [
+        10.35
+      ],
+      "door_degree": {
+        "HALL": 8,
+        "LIVING+KITCHEN": 2,
+        "FLEX": 1,
+        "MASTER": 2,
+        "BEDROOM_1": 1,
+        "BEDROOM_2": 1,
+        "BATH_1": 1,
+        "BATH_2": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 27.62,
+      "unassigned_present": true
+    },
+    "alternatives": 2,
+    "alternative_plans": [
+      {
+        "rooms": [
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 17.485,
+            "x": 10.25,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 13.75,
+            "aspect": 10.35,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 17.7,
+            "x": 11.65,
+            "y": 0.0,
+            "gross_width_m": 3.1,
+            "gross_depth_m": 6.1,
+            "aspect": 1.97,
+            "exterior_faces": 1,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 13.515,
+            "x": 11.65,
+            "y": 6.1,
+            "gross_width_m": 5.3,
+            "gross_depth_m": 2.75,
+            "aspect": 1.92,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 13.515,
+            "x": 11.65,
+            "y": 8.85,
+            "gross_width_m": 5.3,
+            "gross_depth_m": 2.75,
+            "aspect": 1.92,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 11.8,
+            "x": 14.75,
+            "y": 0.0,
+            "gross_width_m": 2.2,
+            "gross_depth_m": 6.1,
+            "aspect": 2.95,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_2",
+            "type": "BATHROOM",
+            "area_m2": 9.945,
+            "x": 11.65,
+            "y": 11.6,
+            "gross_width_m": 5.3,
+            "gross_depth_m": 2.15,
+            "aspect": 2.62,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "FLEX",
+            "type": "FLEX",
+            "area_m2": 27.9,
+            "x": 4.05,
+            "y": 8.9,
+            "gross_width_m": 6.2,
+            "gross_depth_m": 4.85,
+            "aspect": 1.29,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "LIVING+KITCHEN",
+            "type": "LIVING_KITCHEN",
+            "area_m2": 51.6,
+            "x": 4.05,
+            "y": 0.0,
+            "gross_width_m": 6.2,
+            "gross_depth_m": 8.9,
+            "aspect": 1.44,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          }
+        ],
+        "room_count": 8,
+        "footprint": [
+          12.9,
+          13.75
+        ],
+        "footprint_aspect": 1.07,
+        "gross_area_m2": 177.375,
+        "public_rooms": [
+          "LIVING+KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING+KITCHEN"
+        ],
+        "private_facing_rear": [],
+        "wet_on_envelope": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "wet_facing_rear": [
+          "BATH_2"
+        ],
+        "rooms_one_exterior_face": [
+          "MASTER",
+          "BEDROOM_1",
+          "BEDROOM_2"
+        ],
+        "rooms_two_plus_faces": [
+          "HALL",
+          "BATH_1",
+          "BATH_2",
+          "FLEX",
+          "LIVING+KITCHEN"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.62,
+        "circulation_area_m2": 17.48,
+        "circulation_share": 0.107,
+        "circulation_aspect": [
+          10.35
+        ],
+        "door_degree": {
+          "HALL": 8,
+          "LIVING+KITCHEN": 2,
+          "FLEX": 1,
+          "MASTER": 2,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BATH_1": 1,
+          "BATH_2": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 27.9,
+        "unassigned_present": true
+      },
+      {
+        "rooms": [
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 17.485,
+            "x": 10.75,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 13.75,
+            "aspect": 10.35,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 19.55,
+            "x": 12.15,
+            "y": 3.3,
+            "gross_width_m": 4.8,
+            "gross_depth_m": 4.35,
+            "aspect": 1.08,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 13.57,
+            "x": 12.15,
+            "y": 7.65,
+            "gross_width_m": 4.8,
+            "gross_depth_m": 3.05,
+            "aspect": 1.56,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 13.11,
+            "x": 12.15,
+            "y": 10.7,
+            "gross_width_m": 4.8,
+            "gross_depth_m": 3.05,
+            "aspect": 1.61,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 6.975,
+            "x": 14.5,
+            "y": 0.0,
+            "gross_width_m": 2.45,
+            "gross_depth_m": 3.3,
+            "aspect": 1.38,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_2",
+            "type": "BATHROOM",
+            "area_m2": 6.975,
+            "x": 12.15,
+            "y": 0.0,
+            "gross_width_m": 2.35,
+            "gross_depth_m": 3.3,
+            "aspect": 1.38,
+            "exterior_faces": 1,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "FLEX",
+            "type": "FLEX",
+            "area_m2": 31.525,
+            "x": 4.05,
+            "y": 8.7,
+            "gross_width_m": 6.7,
+            "gross_depth_m": 5.05,
+            "aspect": 1.34,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "LIVING+KITCHEN",
+            "type": "LIVING_KITCHEN",
+            "area_m2": 54.6,
+            "x": 4.05,
+            "y": 0.0,
+            "gross_width_m": 6.7,
+            "gross_depth_m": 8.7,
+            "aspect": 1.3,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          }
+        ],
+        "room_count": 8,
+        "footprint": [
+          12.9,
+          13.75
+        ],
+        "footprint_aspect": 1.07,
+        "gross_area_m2": 177.375,
+        "public_rooms": [
+          "LIVING+KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING+KITCHEN"
+        ],
+        "private_facing_rear": [
+          "BEDROOM_2"
+        ],
+        "wet_on_envelope": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "wet_facing_rear": [],
+        "rooms_one_exterior_face": [
+          "MASTER",
+          "BEDROOM_1",
+          "BATH_2"
+        ],
+        "rooms_two_plus_faces": [
+          "HALL",
+          "BEDROOM_2",
+          "BATH_1",
+          "FLEX",
+          "LIVING+KITCHEN"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.62,
+        "circulation_area_m2": 17.48,
+        "circulation_share": 0.1068,
+        "circulation_aspect": [
+          10.35
+        ],
+        "door_degree": {
+          "HALL": 8,
+          "LIVING+KITCHEN": 2,
+          "FLEX": 1,
+          "MASTER": 2,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BATH_1": 1,
+          "BATH_2": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 31.52,
+        "unassigned_present": true
+      }
+    ]
+  },
+  {
+    "brief": "B09",
+    "bedrooms": 3,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "requested_m2": 440.0,
+    "objective": {
+      "candidates_total": 56,
+      "candidates_ranked": 50,
+      "first_separating_component": {
+        "area_delta": 31,
+        "strategy": 18
+      },
+      "distinct_used_area_values": 16,
+      "distinct_strategies": [
+        "BRANCHED_TWO_STACK",
+        "SPINE_DOUBLE_LOADED",
+        "SPINE_PUBLIC_PRIVATE",
+        "SPINE_SERVICE_CLUSTER"
+      ]
+    },
+    "plan": {
+      "rooms": [
+        {
+          "id": "HALL",
+          "type": "HALL",
+          "area_m2": 18.785,
+          "x": 15.05,
+          "y": 0.0,
+          "gross_width_m": 1.4,
+          "gross_depth_m": 14.75,
+          "aspect": 11.12,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": true,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "MASTER",
+          "type": "MASTER_BEDROOM",
+          "area_m2": 18.9375,
+          "x": 16.45,
+          "y": 0.0,
+          "gross_width_m": 5.25,
+          "gross_depth_m": 3.95,
+          "aspect": 1.35,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_1",
+          "type": "BEDROOM",
+          "area_m2": 13.635,
+          "x": 16.45,
+          "y": 7.0,
+          "gross_width_m": 5.25,
+          "gross_depth_m": 2.8,
+          "aspect": 1.87,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BEDROOM_2",
+          "type": "BEDROOM",
+          "area_m2": 13.635,
+          "x": 16.45,
+          "y": 9.8,
+          "gross_width_m": 5.25,
+          "gross_depth_m": 2.8,
+          "aspect": 1.87,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "BATH_1",
+          "type": "BATHROOM",
+          "area_m2": 8.85,
+          "x": 18.5,
+          "y": 3.95,
+          "gross_width_m": 3.2,
+          "gross_depth_m": 3.05,
+          "aspect": 1.02,
+          "exterior_faces": 1,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "TOILET_1",
+          "type": "TOILET",
+          "area_m2": 5.7525,
+          "x": 16.45,
+          "y": 3.95,
+          "gross_width_m": 2.05,
+          "gross_depth_m": 3.05,
+          "aspect": 1.51,
+          "exterior_faces": 0,
+          "street": false,
+          "rear": false,
+          "side_w": false,
+          "side_e": false
+        },
+        {
+          "id": "BATH_2",
+          "type": "BATHROOM",
+          "area_m2": 9.8475,
+          "x": 16.45,
+          "y": 12.6,
+          "gross_width_m": 5.25,
+          "gross_depth_m": 2.15,
+          "aspect": 2.59,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": false,
+          "side_e": true
+        },
+        {
+          "id": "FLEX",
+          "type": "FLEX",
+          "area_m2": 54.2925,
+          "x": 6.3,
+          "y": 8.2,
+          "gross_width_m": 8.75,
+          "gross_depth_m": 6.55,
+          "aspect": 1.35,
+          "exterior_faces": 2,
+          "street": false,
+          "rear": true,
+          "side_w": true,
+          "side_e": false
+        },
+        {
+          "id": "LIVING+KITCHEN",
+          "type": "LIVING_KITCHEN",
+          "area_m2": 67.545,
+          "x": 6.3,
+          "y": 0.0,
+          "gross_width_m": 8.75,
+          "gross_depth_m": 8.2,
+          "aspect": 1.07,
+          "exterior_faces": 2,
+          "street": true,
+          "rear": false,
+          "side_w": true,
+          "side_e": false
+        }
+      ],
+      "room_count": 9,
+      "footprint": [
+        15.4,
+        14.75
+      ],
+      "footprint_aspect": 1.04,
+      "gross_area_m2": 227.15,
+      "public_rooms": [
+        "LIVING+KITCHEN"
+      ],
+      "public_facing_rear": [],
+      "public_street_only": [
+        "LIVING+KITCHEN"
+      ],
+      "private_facing_rear": [],
+      "wet_on_envelope": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "wet_facing_rear": [
+        "BATH_2"
+      ],
+      "rooms_one_exterior_face": [
+        "BEDROOM_1",
+        "BEDROOM_2",
+        "BATH_1"
+      ],
+      "rooms_two_plus_faces": [
+        "HALL",
+        "MASTER",
+        "BATH_2",
+        "FLEX",
+        "LIVING+KITCHEN"
+      ],
+      "rooms_landlocked": [
+        "TOILET_1"
+      ],
+      "mean_exterior_faces": 1.44,
+      "circulation_area_m2": 18.79,
+      "circulation_share": 0.0889,
+      "circulation_aspect": [
+        11.12
+      ],
+      "door_degree": {
+        "HALL": 9,
+        "LIVING+KITCHEN": 2,
+        "FLEX": 1,
+        "MASTER": 2,
+        "BEDROOM_1": 1,
+        "BEDROOM_2": 1,
+        "BATH_1": 1,
+        "TOILET_1": 1,
+        "BATH_2": 1,
+        "OUTSIDE": 1
+      },
+      "flex_area_m2": 54.29,
+      "unassigned_present": true
+    },
+    "alternatives": 1,
+    "alternative_plans": [
+      {
+        "rooms": [
+          {
+            "id": "HALL",
+            "type": "HALL",
+            "area_m2": 19.76,
+            "x": 16.25,
+            "y": 0.0,
+            "gross_width_m": 1.4,
+            "gross_depth_m": 15.5,
+            "aspect": 11.69,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "MASTER",
+            "type": "MASTER_BEDROOM",
+            "area_m2": 17.08,
+            "x": 10.55,
+            "y": 12.25,
+            "gross_width_m": 5.7,
+            "gross_depth_m": 3.25,
+            "aspect": 1.84,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": false
+          },
+          {
+            "id": "BEDROOM_1",
+            "type": "BEDROOM",
+            "area_m2": 13.13,
+            "x": 17.65,
+            "y": 0.0,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 5.25,
+            "aspect": 1.94,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BEDROOM_2",
+            "type": "BEDROOM",
+            "area_m2": 13.39,
+            "x": 17.65,
+            "y": 5.25,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 5.25,
+            "aspect": 1.98,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_1",
+            "type": "BATHROOM",
+            "area_m2": 8.54,
+            "x": 7.55,
+            "y": 12.25,
+            "gross_width_m": 3.0,
+            "gross_depth_m": 3.25,
+            "aspect": 1.09,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "TOILET_1",
+            "type": "TOILET",
+            "area_m2": 4.68,
+            "x": 17.65,
+            "y": 10.5,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 1.9,
+            "aspect": 1.44,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "BATH_2",
+            "type": "BATHROOM",
+            "area_m2": 7.54,
+            "x": 17.65,
+            "y": 12.4,
+            "gross_width_m": 2.8,
+            "gross_depth_m": 3.1,
+            "aspect": 1.12,
+            "exterior_faces": 2,
+            "street": false,
+            "rear": true,
+            "side_w": false,
+            "side_e": true
+          },
+          {
+            "id": "FLEX",
+            "type": "FLEX",
+            "area_m2": 36.975,
+            "x": 7.55,
+            "y": 7.8,
+            "gross_width_m": 8.7,
+            "gross_depth_m": 4.45,
+            "aspect": 1.95,
+            "exterior_faces": 1,
+            "street": false,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          },
+          {
+            "id": "LIVING+KITCHEN",
+            "type": "LIVING_KITCHEN",
+            "area_m2": 63.75,
+            "x": 7.55,
+            "y": 0.0,
+            "gross_width_m": 8.7,
+            "gross_depth_m": 7.8,
+            "aspect": 1.12,
+            "exterior_faces": 2,
+            "street": true,
+            "rear": false,
+            "side_w": true,
+            "side_e": false
+          }
+        ],
+        "room_count": 9,
+        "footprint": [
+          12.9,
+          15.5
+        ],
+        "footprint_aspect": 1.2,
+        "gross_area_m2": 199.95,
+        "public_rooms": [
+          "LIVING+KITCHEN"
+        ],
+        "public_facing_rear": [],
+        "public_street_only": [
+          "LIVING+KITCHEN"
+        ],
+        "private_facing_rear": [
+          "MASTER"
+        ],
+        "wet_on_envelope": [
+          "BATH_1",
+          "TOILET_1",
+          "BATH_2"
+        ],
+        "wet_facing_rear": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "rooms_one_exterior_face": [
+          "MASTER",
+          "BEDROOM_2",
+          "TOILET_1",
+          "FLEX"
+        ],
+        "rooms_two_plus_faces": [
+          "HALL",
+          "BEDROOM_1",
+          "BATH_1",
+          "BATH_2",
+          "LIVING+KITCHEN"
+        ],
+        "rooms_landlocked": [],
+        "mean_exterior_faces": 1.56,
+        "circulation_area_m2": 19.76,
+        "circulation_share": 0.1069,
+        "circulation_aspect": [
+          11.69
+        ],
+        "door_degree": {
+          "HALL": 9,
+          "LIVING+KITCHEN": 2,
+          "FLEX": 1,
+          "MASTER": 2,
+          "BEDROOM_1": 1,
+          "BEDROOM_2": 1,
+          "BATH_1": 1,
+          "TOILET_1": 1,
+          "BATH_2": 1,
+          "OUTSIDE": 1
+        },
+        "flex_area_m2": 36.98,
+        "unassigned_present": true
+      }
+    ]
+  }
+]
