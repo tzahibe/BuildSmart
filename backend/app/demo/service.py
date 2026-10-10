@@ -50,14 +50,16 @@ from app.vertical_slice.general_pipeline import (
     RealizedPlan,
     run_general,
 )
-from app.vertical_slice.geometry_core.engine import solve_fixture
-from app.vertical_slice.safe_adapter import AdapterOutcome
+from app.vertical_slice.geometry_core.engine import GeometryInfeasible, solve_fixture
+from app.vertical_slice.safe_adapter import AdapterOutcome, adapt
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
 from app.vertical_slice.wet_privacy import candidate_privacy_key
 
 from app.vertical_slice.building import Building
 
 from app.vertical_slice import concept_engine_v2
+from app.vertical_slice import concept_generator as generator
+from app.vertical_slice.concept_spec import PublicOrientation
 from app.vertical_slice import general_pipeline as gp
 
 from .contract import (
@@ -249,7 +251,8 @@ def _buildable_from(spec, project: Project, outline: "Outline | None" = None) ->
 
 def generate_demo_design(project: Project,
                          on_stage: Callable[[str], None] | None = None,
-                         *, concept_engine_v2: bool | None = None) -> DemoResult:
+                         *, concept_engine_v2: bool | None = None,
+                         rear_band_preview: bool = False) -> DemoResult:
     rejection: ScopeRejection | None = check_supported(project)
     if rejection is not None:
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
@@ -261,7 +264,9 @@ def generate_demo_design(project: Project,
     # exception a caller has to know about — translated here, once, for every outline this
     # request plans.
     try:
-        return _generate_demo_design(project, spec, on_stage, concept_engine_v2=concept_engine_v2)
+        return _generate_demo_design(project, spec, on_stage,
+                                     concept_engine_v2=concept_engine_v2,
+                                     rear_band_preview=rear_band_preview)
     except SafeRoomDropped as exc:
         raise DemoGenerationError(
             "SAFE_ROOM_DROPPED",
@@ -271,7 +276,8 @@ def generate_demo_design(project: Project,
 
 
 def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None] | None = None,
-                          *, concept_engine_v2: bool | None = None) -> DemoResult:
+                          *, concept_engine_v2: bool | None = None,
+                          rear_band_preview: bool = False) -> DemoResult:
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
@@ -312,6 +318,12 @@ def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None
     selection = _select_plans(results, spec.program.target_built_area_m2, spec.concept)
     if selection is None:
         return _finish(project, spec, head, preference_dropped, outlines=results)
+    if rear_band_preview:
+        # E1 DEVELOPMENT PREVIEW. Replaces the primary with the SAME brief's rear-band plan on the
+        # SAME outline, keeping the production plan as the first alternative so the two are drawn
+        # by the same renderer, side by side. Never a silent fallback: a brief whose band parti
+        # cannot be planned returns that refusal, with the generator's own reason.
+        selection = _rear_band_selection(spec, project, selection)
     use_concept_engine_v2 = (gp.CONCEPT_ENGINE_V2_ENABLED if concept_engine_v2 is None
                              else concept_engine_v2)
     if use_concept_engine_v2:
@@ -882,6 +894,53 @@ def _augment_cross_outline_classes(spec, project: Project, results: list[Outline
         return selection
     alternatives = (*selection.alternatives, *new_pairs)[:_SHOWN_LIMIT - 1]
     return replace(selection, alternatives=alternatives)
+
+
+#: How many rear-band candidates the preview realizes before refusing. The same bounded shape
+#: `concept_engine_v2.CONCEPT_ENGINE_V2_MAX_REALIZATIONS` uses, and for the same reason: the
+#: preview must cost a bounded number of solver runs, never an unbounded search.
+_REAR_BAND_MAX_REALIZATIONS = 8
+
+
+def _rear_band_selection(spec, project: Project, selection: PlanSelection) -> PlanSelection:
+    """E1's preview: the rear-band plan as the primary, production's plan as the alternative.
+
+    DEVELOPMENT ONLY, and reachable only by asking for it by name (`?engine=e1_rear_band`). It
+    changes no default, no ranking and no flag: `generate_concepts` is asked for the GARDEN
+    orientation for this request alone, on the outline the production primary was already fit to,
+    and the result goes through the unchanged `_realize` and the unchanged validators.
+    """
+    orr, production_plan = selection.primary
+    buildable = _buildable_from(spec, _with_outline(project, orr.outline), orr.outline)
+    adapted = adapt(buildable)
+    if adapted.outcome is not AdapterOutcome.SOLVED:
+        raise DemoGenerationError("E1_REAR_BAND_UNAVAILABLE",
+                                  "לא ניתן להציג את תצוגת E1 עבור התוכנית הזו.",
+                                  f"adapter outcome {adapted.outcome.value}")
+    generated = generator.generate_concepts(spec, list(adapted.candidates),
+                                            public_orientation=PublicOrientation.GARDEN)
+    rear = [(i, c) for i, c in enumerate(generated.candidates)
+            if c.strategy is generator.ConceptStrategy.REAR_PUBLIC_BAND]
+    notes: list[str] = [f"{r.strategy.value}/{r.reason.value}: {r.detail}"
+                        for r in generated.rejections
+                        if r.strategy is generator.ConceptStrategy.REAR_PUBLIC_BAND]
+    for index, candidate in rear[:_REAR_BAND_MAX_REALIZATIONS]:
+        try:
+            solve = solve_fixture(candidate.concept.fixture)
+        except GeometryInfeasible as exc:
+            notes.append(f"candidate {index}: solver refused: {exc}")
+            continue
+        plan = gp._realize(spec, buildable, None, candidate, index, solve, ())
+        if plan.ok:
+            others = ((orr, production_plan), *selection.alternatives)
+            return replace(selection, primary=(orr, plan),
+                           alternatives=others[:_SHOWN_LIMIT - 1])
+        failed = ", ".join(c.check_id for c in plan.validation.failures()) or "safety"
+        notes.append(f"candidate {index}: realized but failed {failed}")
+    raise DemoGenerationError(
+        "E1_REAR_BAND_NOT_PLANNABLE",
+        "התוכנית הניסיונית עם הרצועה הציבורית לכיוון הגינה לא ניתנת לתכנון עבור התוכנית הזו.",
+        "; ".join(notes) or "the band parti produced no candidate for this brief")
 
 
 def _concept_of(plan: RealizedPlan, enabled: bool) -> ConceptOut | None:
