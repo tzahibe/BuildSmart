@@ -332,7 +332,13 @@ class Orchestrator:
         """
         if self.analysis is None or self._draining or self._stop.is_set():
             return []
-        if self.store.get_meta("scheduler_paused") == "1" or self.usage.paused:
+        # `paused()` is the orchestrator's own single source for this: the usage guard pauses by
+        # setting the SAME `scheduler_paused` meta, so one check covers both a manual
+        # `agentctl pause` and an automatic usage-guard pause. (An earlier version of this line
+        # read `self.usage.paused`, which does not exist — caught in production on the first tick
+        # after deployment, and now covered by a test that calls `schedule_analysis` on a real
+        # Orchestrator rather than exercising the lane in isolation.)
+        if self.paused():
             return []
         started: list[int] = []
         for task in self.analysis.pending(limit=self.config.analysis_max_per_tick):
