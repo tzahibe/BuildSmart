@@ -337,3 +337,53 @@ def _track_blocked(store, number, **fields):
 def sm_blocked():
     from agent_team import state_machine as sm
     return sm.BLOCKED
+
+
+# ----------------------------------------------------------------- 9. the WIRING, not just the lane
+#
+# The defect these cover shipped because every test above exercised `AnalysisLane` directly and
+# nothing ever called `Orchestrator.schedule_analysis`. It failed on the first production tick.
+
+def _orch_with_analysis(env, enabled=True):
+    from agent_team.tests.test_orchestrator_lifecycle import _orch
+    from agent_team.agent_runner import FakeAgentRunner
+    import dataclasses
+    config, gh, clock, _ = env
+    config = dataclasses.replace(config, analysis_enabled=enabled)
+    return _orch(config, gh, clock, FakeAgentRunner(script={}))
+
+
+def test_schedule_analysis_runs_on_a_real_orchestrator(env):
+    """The regression test for the shipped defect: this calls the real method on a real
+    Orchestrator, which is what no earlier test did."""
+    config, gh, _clock, _ = env
+    orch = _orch_with_analysis(env)
+    _issue(gh)
+    started = orch.schedule_analysis()
+    assert started == [187]
+    orch.wait_for_threads(timeout=30)
+
+
+def test_schedule_analysis_is_inert_when_the_lane_is_disabled(env):
+    orch = _orch_with_analysis(env, enabled=False)
+    _issue(orch.github)
+    assert orch.analysis is None
+    assert orch.schedule_analysis() == []
+
+
+def test_schedule_analysis_respects_a_paused_scheduler(env):
+    orch = _orch_with_analysis(env)
+    _issue(orch.github)
+    orch.store.set_meta("scheduler_paused", "1")
+    assert orch.schedule_analysis() == []
+
+
+def test_a_tick_never_fails_because_of_the_analysis_lane(env):
+    """Even if the lane raises, the tick must survive — the rest of the orchestrator does not
+    depend on it. In production the error WAS caught here, which is why nothing else broke."""
+    orch = _orch_with_analysis(env)
+    _issue(orch.github)
+    orch.analysis.pending = lambda limit=2: (_ for _ in ()).throw(RuntimeError("boom"))
+    report = orch.tick()
+    assert "analysis" in " ".join(report.errors.values())
+    assert report.analysed == []
