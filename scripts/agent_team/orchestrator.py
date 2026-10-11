@@ -45,6 +45,7 @@ from agent_team.labels import DECOMPOSED_LABEL, HOLD_LABEL, ROLLUP_LABEL, STATE_
 from agent_team.protected_periods import Calendar, Period
 from agent_team.locks import LockManager, effective_locks
 from agent_team.analysis_lane import AnalysisLane
+from agent_team.root_completion import evaluate_root
 from agent_team.power import PowerAssertion
 from agent_team.pr_body import render_pr_body
 from agent_team.resource_manager import ResourceManager, ResourceProbe
@@ -418,16 +419,64 @@ class Orchestrator:
         self.store.set_meta("last_tick", str(self.clock()))
         return report
 
+    def integration_landed(self, branch: str) -> bool | None:
+        """Has `branch` actually reached the base branch? `None` when that cannot be established.
+
+        Deliberately GIT ANCESTRY, not the `closed` flag in `root_integrations`: measured on
+        2026-10-11, `integration/non-rectangular-geometry` is flagged `closed: true` and is still
+        **3 commits ahead of origin/main** — it never landed. Trusting the flag would have closed
+        ROOT #105 on work that is not on `main`. A branch that no longer exists is `None`, not
+        `True`: it may have been deleted after its rollup merged, or deleted without ever landing,
+        and this cannot tell the difference — so it refuses instead of guessing.
+        """
+        base = f"origin/{self.config.base_branch}"
+        ref = f"origin/{branch}"
+        try:
+            if run_git(["rev-parse", "--verify", "--quiet", ref],
+                       cwd=self.config.repo_root, check=False).returncode != 0:
+                return None
+            done = run_git(["merge-base", "--is-ancestor", ref, base],
+                           cwd=self.config.repo_root, check=False)
+            return done.returncode == 0
+        except GitError:
+            return None
+
+    def root_required_target(self, root_n: int) -> tuple[str | None, bool]:
+        """(the branch this ROOT's children must merge into, is that branch still UNLANDED).
+
+        A ROOT with a registered integration branch requires its children to merge THERE, and the
+        base branch is reached only through that ROOT's own rollup PR. A ROOT without one requires
+        the base branch directly. "Unlanded" is decided by git ancestry (see `integration_landed`),
+        and an undecidable answer counts as unlanded — refusing, not assuming.
+        """
+        info = self.root_integration_for(root_n) or self._closed_root_integration(root_n)
+        if info:
+            branch = info.get("branch")
+            return branch, self.integration_landed(branch) is not True
+        return self.config.base_branch, False
+
+    def _closed_root_integration(self, root_n: int) -> dict | None:
+        """`root_integration_for` hides entries marked closed; completion still has to judge them,
+        because "closed" is a bookkeeping flag and not proof the branch landed."""
+        info = self.root_integrations().get(int(root_n))
+        return {**info, "root": int(root_n)} if info else None
+
     def close_completed_roots(self) -> list[str]:
-        """A decomposed ROOT is done when every child is done: close it with the summary (the ROOT was
-        never a task itself). Idempotent — a closed ROOT is skipped."""
+        """A decomposed ROOT is closed only when every child was DELIVERED — see
+        `root_completion.evaluate_root` for what that means and why `state == DONE` is not it.
+        Idempotent; a closed ROOT is skipped; a refusal is logged once per tick and nothing is
+        written to GitHub."""
         out: list[str] = []
         roots = {r.root for r in self.store.list() if r.kind == "child"}
         for root_n in sorted(roots):
             children = self.store.children_of(root_n)
-            if not children or any(c.state != sm.DONE for c in children):
+            if not children:
                 continue
             if self.store.get_meta(f"root_closed:{root_n}") == "1":
+                continue
+            # Cheap pre-filter, unchanged in spirit: nothing to evaluate while a child is still
+            # running. It is NO LONGER the decision — `evaluate_root` is.
+            if any(c.state not in sm.TERMINAL_STATES and c.state != sm.INTEGRATED for c in children):
                 continue
             try:
                 root = self.github.get_issue(root_n)
@@ -436,10 +485,21 @@ class Orchestrator:
             if root.get("state") != "open":
                 self.store.set_meta(f"root_closed:{root_n}", "1")
                 continue
-            summary = "\n".join(f"- #{c.issue_id} — PR #{c.pr_number} `{(c.validated_commit or '')[:12]}`" for c in children)
+
+            target, integration_open = self.root_required_target(root_n)
+            verdict = evaluate_root(root_n, children, required_target=target,
+                                     integration_open=integration_open,
+                                     pr_lookup=self.github.get_pr)
+            if not verdict.may_close:
+                log.info("ROOT #%s not closed: %s", root_n, verdict.reason)
+                self.store.record_event(root_n, "root_completion_refused",
+                                        {"reason": verdict.reason, "target": target,
+                                         "children": [{"issue": c.issue_id, "delivered": c.delivered,
+                                                        "detail": c.detail} for c in verdict.children]})
+                continue
             if not self.dry_run:
                 try:
-                    self.github.comment(root_n, f"**[agent-team]** Every child Issue of this ROOT is done and merged by the owner:\n{summary}\n\nClosing the ROOT.")
+                    self.github.comment(root_n, verdict.comment())
                     self.github.set_state_label(root_n, sm.DONE)
                     self.github.close_issue(root_n)
                 except Exception as exc:  # noqa: BLE001
