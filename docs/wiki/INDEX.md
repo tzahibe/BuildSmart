@@ -25,12 +25,15 @@ specific page below for your task.**
 
 ## Features
 
+- [Concept Engine v2](features/concept-engine-v2.md) — IMPLEMENTED, flag OFF (not live product behavior)
 - [Multi-Level](features/multi-level.md) — IMPLEMENTED_MERGED (backend), not wired to the product
 - [L-Massing](features/l-massing.md) — IMPLEMENTED_MERGED
 - [Wet Rooms](features/wet-rooms.md) — IMPLEMENTED_MERGED
 - [Room Proportion / Quality Tier](features/room-proportion-quality-tier.md) — IMPLEMENTED_MERGED
 - [Laundry](features/laundry.md) — INTEGRATED on `integration/laundry-into-main`, not yet on `main` (see page)
 - [Review Page — Quality Panel, Room Details, Refusal Notice](features/review-page.md) — IMPLEMENTED_MERGED
+- [Interior Layout](features/interior-layout.md) — IMPLEMENTED_MERGED
+- [Wall Semantic Model](features/wall-semantics.md) — IMPLEMENTED_MERGED
 
 ## Decisions
 

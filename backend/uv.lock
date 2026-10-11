@@ -94,6 +94,7 @@ local-model = [
 [package.dev-dependencies]
 dev = [
     { name = "jsonschema" },
+    { name = "networkx" },
     { name = "pytest" },
     { name = "pytest-xdist" },
 ]
@@ -118,6 +119,7 @@ provides-extras = ["local-model", "knowledge-embeddings"]
 [package.metadata.requires-dev]
 dev = [
     { name = "jsonschema", specifier = ">=4.26.0" },
+    { name = "networkx", specifier = ">=3.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
 ]

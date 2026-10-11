@@ -1,0 +1,1021 @@
+{
+ "note": "the SHIPPED select_proposal at its production default, over both #142M datasets",
+ "datasets": {
+  "historical": {
+   "totals": {
+    "briefs": 20,
+    "briefs_with_a_pass": 19,
+    "pass_plans_total": 51,
+    "alternatives_total": 32,
+    "winner_changed": 2,
+    "entrance_improved": 2,
+    "entrance_degraded": 0,
+    "changed_briefs": [
+     "B05",
+     "B08"
+    ],
+    "seconds_total": 51.5,
+    "seconds_p50": 1.762,
+    "seconds_worst": 10.063
+   },
+   "measured": {
+    "budget": null,
+    "briefs_with_a_pass": 19,
+    "pass_plans_total": 51,
+    "alternatives_total": 32,
+    "briefs_with_an_alternative": 13,
+    "winner_changed": 2,
+    "entrance_improved": 2,
+    "entrance_degraded": 0,
+    "briefs_truncating_clean": 0,
+    "clean_truncated_total": 0,
+    "seconds_total": 16.4,
+    "seconds_per_brief_p50": 0.497,
+    "seconds_per_brief_worst": 2.573,
+    "seconds_old_early_return_total": 6.5
+   },
+   "agrees_with_measurement": {
+    "briefs_with_a_pass": true,
+    "pass_plans_total": true,
+    "alternatives_total": true,
+    "winner_changed": true,
+    "entrance_improved": true,
+    "entrance_degraded": true
+   },
+   "rows": [
+    {
+     "brief": "B01",
+     "candidates": 7,
+     "seconds": 0.217,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      5
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1962,
+     "alternative_circulation_ratio": [
+      0.1962,
+      0.1962
+     ]
+    },
+    {
+     "brief": "B02",
+     "candidates": 9,
+     "seconds": 0.335,
+     "result": "PASS",
+     "winner": 5,
+     "entrance_rank": 0,
+     "alternatives": [
+      6,
+      7,
+      8,
+      1,
+      4
+     ],
+     "pass_plans": 6,
+     "old_rule_winner": 5,
+     "old_rule_entrance_rank": 0,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1441,
+     "alternative_circulation_ratio": [
+      0.1441,
+      0.1441,
+      0.1441,
+      0.1441,
+      0.1441
+     ]
+    },
+    {
+     "brief": "B03",
+     "candidates": 8,
+     "seconds": 0.182,
+     "result": "PASS",
+     "winner": 4,
+     "entrance_rank": 1,
+     "alternatives": [
+      1
+     ],
+     "pass_plans": 2,
+     "old_rule_winner": 4,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1679,
+     "alternative_circulation_ratio": [
+      0.1679
+     ]
+    },
+    {
+     "brief": "B04",
+     "candidates": 8,
+     "seconds": 1.426,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 1,
+     "alternatives": [
+      3,
+      6
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1098,
+     "alternative_circulation_ratio": [
+      0.1674,
+      0.1405
+     ]
+    },
+    {
+     "brief": "B05",
+     "candidates": 8,
+     "seconds": 0.588,
+     "result": "PASS",
+     "winner": 7,
+     "entrance_rank": 0,
+     "alternatives": [
+      1,
+      4
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 4,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": true,
+     "entrance_improved": true,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1339,
+     "alternative_circulation_ratio": [
+      0.1465,
+      0.1611
+     ]
+    },
+    {
+     "brief": "B06",
+     "candidates": 8,
+     "seconds": 1.371,
+     "result": "PASS",
+     "winner": 3,
+     "entrance_rank": 1,
+     "alternatives": [
+      6,
+      7,
+      2,
+      5
+     ],
+     "pass_plans": 5,
+     "old_rule_winner": 3,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1406,
+     "alternative_circulation_ratio": [
+      0.1233,
+      0.1365,
+      0.1418,
+      0.1696
+     ]
+    },
+    {
+     "brief": "B07",
+     "candidates": 8,
+     "seconds": 1.926,
+     "result": "PASS",
+     "winner": 4,
+     "entrance_rank": 1,
+     "alternatives": [
+      5,
+      7,
+      1
+     ],
+     "pass_plans": 4,
+     "old_rule_winner": 4,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1579,
+     "alternative_circulation_ratio": [
+      0.153,
+      0.181,
+      0.1862
+     ]
+    },
+    {
+     "brief": "B08",
+     "candidates": 6,
+     "seconds": 0.833,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 0,
+     "alternatives": [
+      3
+     ],
+     "pass_plans": 2,
+     "old_rule_winner": 3,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": true,
+     "entrance_improved": true,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1362,
+     "alternative_circulation_ratio": [
+      0.0858
+     ]
+    },
+    {
+     "brief": "B09",
+     "candidates": 8,
+     "seconds": 2.378,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 1,
+     "alternatives": [
+      6,
+      2,
+      4
+     ],
+     "pass_plans": 4,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.0847,
+     "alternative_circulation_ratio": [
+      0.1307,
+      0.135,
+      0.1423
+     ]
+    },
+    {
+     "brief": "B10",
+     "candidates": 9,
+     "seconds": 1.095,
+     "result": "PASS",
+     "winner": 8,
+     "entrance_rank": 1,
+     "alternatives": [],
+     "pass_plans": 1,
+     "old_rule_winner": 8,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1281,
+     "alternative_circulation_ratio": []
+    },
+    {
+     "brief": "B11",
+     "candidates": 9,
+     "seconds": 3.668,
+     "result": "PASS",
+     "winner": 2,
+     "entrance_rank": 1,
+     "alternatives": [
+      6,
+      5,
+      1
+     ],
+     "pass_plans": 4,
+     "old_rule_winner": 2,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1628,
+     "alternative_circulation_ratio": [
+      0.128,
+      0.1631,
+      0.1391
+     ]
+    },
+    {
+     "brief": "B12",
+     "candidates": 8,
+     "seconds": 2.659,
+     "result": "NO_VALID_PROPOSAL",
+     "pass_plans": 0,
+     "winner": null,
+     "alternatives": [],
+     "winner_changed": null
+    },
+    {
+     "brief": "B13",
+     "candidates": 8,
+     "seconds": 3.128,
+     "result": "PASS",
+     "winner": 2,
+     "entrance_rank": 1,
+     "alternatives": [
+      4,
+      3
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 2,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1535,
+     "alternative_circulation_ratio": [
+      0.1858,
+      0.1458
+     ]
+    },
+    {
+     "brief": "B14",
+     "candidates": 8,
+     "seconds": 2.679,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 1,
+     "alternatives": [
+      7,
+      2
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1314,
+     "alternative_circulation_ratio": [
+      0.172,
+      0.1547
+     ]
+    },
+    {
+     "brief": "B15",
+     "candidates": 8,
+     "seconds": 1.598,
+     "result": "PASS",
+     "winner": 7,
+     "entrance_rank": 1,
+     "alternatives": [],
+     "pass_plans": 1,
+     "old_rule_winner": 7,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1328,
+     "alternative_circulation_ratio": []
+    },
+    {
+     "brief": "B16",
+     "candidates": 8,
+     "seconds": 5.284,
+     "result": "PASS",
+     "winner": 3,
+     "entrance_rank": 1,
+     "alternatives": [],
+     "pass_plans": 1,
+     "old_rule_winner": 3,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1566,
+     "alternative_circulation_ratio": []
+    },
+    {
+     "brief": "B17",
+     "candidates": 9,
+     "seconds": 5.39,
+     "result": "PASS",
+     "winner": 4,
+     "entrance_rank": 1,
+     "alternatives": [
+      6,
+      3
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 4,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1406,
+     "alternative_circulation_ratio": [
+      0.1819,
+      0.171
+     ]
+    },
+    {
+     "brief": "B18",
+     "candidates": 8,
+     "seconds": 10.063,
+     "result": "PASS",
+     "winner": 7,
+     "entrance_rank": 1,
+     "alternatives": [],
+     "pass_plans": 1,
+     "old_rule_winner": 7,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1586,
+     "alternative_circulation_ratio": []
+    },
+    {
+     "brief": "B19",
+     "candidates": 8,
+     "seconds": 5.151,
+     "result": "PASS",
+     "winner": 7,
+     "entrance_rank": 1,
+     "alternatives": [],
+     "pass_plans": 1,
+     "old_rule_winner": 7,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1746,
+     "alternative_circulation_ratio": []
+    },
+    {
+     "brief": "B20",
+     "candidates": 9,
+     "seconds": 1.531,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 1,
+     "alternatives": [],
+     "pass_plans": 1,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1567,
+     "alternative_circulation_ratio": []
+    }
+   ]
+  },
+  "corrected": {
+   "totals": {
+    "briefs": 20,
+    "briefs_with_a_pass": 20,
+    "pass_plans_total": 81,
+    "alternatives_total": 61,
+    "winner_changed": 4,
+    "entrance_improved": 4,
+    "entrance_degraded": 0,
+    "changed_briefs": [
+     "B01",
+     "B02",
+     "B05",
+     "B20"
+    ],
+    "seconds_total": 62.7,
+    "seconds_p50": 2.107,
+    "seconds_worst": 8.412
+   },
+   "measured": {
+    "budget": null,
+    "briefs_with_a_pass": 20,
+    "pass_plans_total": 81,
+    "alternatives_total": 61,
+    "briefs_with_an_alternative": 20,
+    "winner_changed": 4,
+    "entrance_improved": 4,
+    "entrance_degraded": 0,
+    "briefs_truncating_clean": 0,
+    "clean_truncated_total": 0,
+    "seconds_total": 26.6,
+    "seconds_per_brief_p50": 0.934,
+    "seconds_per_brief_worst": 4.073,
+    "seconds_old_early_return_total": 7.2
+   },
+   "agrees_with_measurement": {
+    "briefs_with_a_pass": true,
+    "pass_plans_total": true,
+    "alternatives_total": true,
+    "winner_changed": true,
+    "entrance_improved": true,
+    "entrance_degraded": true
+   },
+   "rows": [
+    {
+     "brief": "B01",
+     "candidates": 8,
+     "seconds": 0.435,
+     "result": "PASS",
+     "winner": 2,
+     "entrance_rank": 0,
+     "alternatives": [
+      0,
+      5,
+      3,
+      1,
+      7
+     ],
+     "pass_plans": 6,
+     "old_rule_winner": 0,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": true,
+     "entrance_improved": true,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.156,
+     "alternative_circulation_ratio": [
+      0.1962,
+      0.1873,
+      0.1873,
+      0.1962,
+      0.1962
+     ]
+    },
+    {
+     "brief": "B02",
+     "candidates": 8,
+     "seconds": 0.648,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 0,
+     "alternatives": [
+      3,
+      0,
+      2,
+      6
+     ],
+     "pass_plans": 5,
+     "old_rule_winner": 2,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": true,
+     "entrance_improved": true,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1441,
+     "alternative_circulation_ratio": [
+      0.1441,
+      0.1441,
+      0.149,
+      0.176
+     ]
+    },
+    {
+     "brief": "B03",
+     "candidates": 8,
+     "seconds": 0.696,
+     "result": "PASS",
+     "winner": 5,
+     "entrance_rank": 1,
+     "alternatives": [
+      1,
+      0,
+      3
+     ],
+     "pass_plans": 4,
+     "old_rule_winner": 5,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1679,
+     "alternative_circulation_ratio": [
+      0.1679,
+      0.1679,
+      0.1679
+     ]
+    },
+    {
+     "brief": "B04",
+     "candidates": 8,
+     "seconds": 1.112,
+     "result": "PASS",
+     "winner": 7,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      1,
+      5
+     ],
+     "pass_plans": 4,
+     "old_rule_winner": 7,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1255,
+     "alternative_circulation_ratio": [
+      0.1455,
+      0.1455,
+      0.1272
+     ]
+    },
+    {
+     "brief": "B05",
+     "candidates": 8,
+     "seconds": 0.925,
+     "result": "PASS",
+     "winner": 4,
+     "entrance_rank": 0,
+     "alternatives": [
+      6,
+      1,
+      7,
+      2
+     ],
+     "pass_plans": 5,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": true,
+     "entrance_improved": true,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1359,
+     "alternative_circulation_ratio": [
+      0.1359,
+      0.1477,
+      0.1151,
+      0.1477
+     ]
+    },
+    {
+     "brief": "B06",
+     "candidates": 8,
+     "seconds": 1.245,
+     "result": "PASS",
+     "winner": 1,
+     "entrance_rank": 1,
+     "alternatives": [
+      2,
+      4,
+      7,
+      0,
+      5
+     ],
+     "pass_plans": 6,
+     "old_rule_winner": 1,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1225,
+     "alternative_circulation_ratio": [
+      0.1112,
+      0.1494,
+      0.1494,
+      0.1483,
+      0.1483
+     ]
+    },
+    {
+     "brief": "B07",
+     "candidates": 8,
+     "seconds": 0.998,
+     "result": "PASS",
+     "winner": 0,
+     "entrance_rank": 1,
+     "alternatives": [
+      1
+     ],
+     "pass_plans": 2,
+     "old_rule_winner": 0,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1864,
+     "alternative_circulation_ratio": [
+      0.1492
+     ]
+    },
+    {
+     "brief": "B08",
+     "candidates": 8,
+     "seconds": 1.137,
+     "result": "PASS",
+     "winner": 6,
+     "entrance_rank": 1,
+     "alternatives": [
+      3,
+      1,
+      2,
+      0,
+      4
+     ],
+     "pass_plans": 6,
+     "old_rule_winner": 6,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.152,
+     "alternative_circulation_ratio": [
+      0.122,
+      0.183,
+      0.1121,
+      0.122,
+      0.1475
+     ]
+    },
+    {
+     "brief": "B09",
+     "candidates": 8,
+     "seconds": 1.405,
+     "result": "PASS",
+     "winner": 3,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      4,
+      1,
+      2,
+      5
+     ],
+     "pass_plans": 6,
+     "old_rule_winner": 3,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1689,
+     "alternative_circulation_ratio": [
+      0.1367,
+      0.1474,
+      0.1689,
+      0.1437,
+      0.1224
+     ]
+    },
+    {
+     "brief": "B10",
+     "candidates": 8,
+     "seconds": 1.477,
+     "result": "PASS",
+     "winner": 3,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      2,
+      1,
+      5
+     ],
+     "pass_plans": 5,
+     "old_rule_winner": 3,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.106,
+     "alternative_circulation_ratio": [
+      0.1319,
+      0.1705,
+      0.1415,
+      0.0925
+     ]
+    },
+    {
+     "brief": "B11",
+     "candidates": 8,
+     "seconds": 3.414,
+     "result": "PASS",
+     "winner": 4,
+     "entrance_rank": 1,
+     "alternatives": [
+      7,
+      2,
+      1,
+      0
+     ],
+     "pass_plans": 5,
+     "old_rule_winner": 4,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.131,
+     "alternative_circulation_ratio": [
+      0.1155,
+      0.1391,
+      0.1727,
+      0.1391
+     ]
+    },
+    {
+     "brief": "B12",
+     "candidates": 8,
+     "seconds": 3.132,
+     "result": "PASS",
+     "winner": 6,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      4
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 6,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1943,
+     "alternative_circulation_ratio": [
+      0.1405,
+      0.1009
+     ]
+    },
+    {
+     "brief": "B13",
+     "candidates": 8,
+     "seconds": 2.738,
+     "result": "PASS",
+     "winner": 3,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      2,
+      1,
+      5
+     ],
+     "pass_plans": 5,
+     "old_rule_winner": 3,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.0951,
+     "alternative_circulation_ratio": [
+      0.1572,
+      0.1089,
+      0.1458,
+      0.1456
+     ]
+    },
+    {
+     "brief": "B14",
+     "candidates": 9,
+     "seconds": 4.025,
+     "result": "PASS",
+     "winner": 4,
+     "entrance_rank": 1,
+     "alternatives": [
+      6,
+      0
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 4,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1589,
+     "alternative_circulation_ratio": [
+      0.1589,
+      0.1589
+     ]
+    },
+    {
+     "brief": "B15",
+     "candidates": 8,
+     "seconds": 3.217,
+     "result": "PASS",
+     "winner": 6,
+     "entrance_rank": 1,
+     "alternatives": [
+      0,
+      5
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 6,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1805,
+     "alternative_circulation_ratio": [
+      0.159,
+      0.1526
+     ]
+    },
+    {
+     "brief": "B16",
+     "candidates": 8,
+     "seconds": 7.583,
+     "result": "PASS",
+     "winner": 5,
+     "entrance_rank": 1,
+     "alternatives": [
+      6
+     ],
+     "pass_plans": 2,
+     "old_rule_winner": 5,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1209,
+     "alternative_circulation_ratio": [
+      0.1823
+     ]
+    },
+    {
+     "brief": "B17",
+     "candidates": 8,
+     "seconds": 6.778,
+     "result": "PASS",
+     "winner": 7,
+     "entrance_rank": 1,
+     "alternatives": [
+      0
+     ],
+     "pass_plans": 2,
+     "old_rule_winner": 7,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1693,
+     "alternative_circulation_ratio": [
+      0.1717
+     ]
+    },
+    {
+     "brief": "B18",
+     "candidates": 8,
+     "seconds": 5.495,
+     "result": "PASS",
+     "winner": 0,
+     "entrance_rank": 1,
+     "alternatives": [
+      7,
+      4
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 0,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.157,
+     "alternative_circulation_ratio": [
+      0.1831,
+      0.1695
+     ]
+    },
+    {
+     "brief": "B19",
+     "candidates": 8,
+     "seconds": 8.412,
+     "result": "PASS",
+     "winner": 0,
+     "entrance_rank": 1,
+     "alternatives": [
+      4,
+      7
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 0,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": false,
+     "entrance_improved": false,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1455,
+     "alternative_circulation_ratio": [
+      0.1365,
+      0.1431
+     ]
+    },
+    {
+     "brief": "B20",
+     "candidates": 9,
+     "seconds": 7.839,
+     "result": "PASS",
+     "winner": 6,
+     "entrance_rank": 0,
+     "alternatives": [
+      7,
+      1
+     ],
+     "pass_plans": 3,
+     "old_rule_winner": 7,
+     "old_rule_entrance_rank": 1,
+     "winner_changed": true,
+     "entrance_improved": true,
+     "entrance_degraded": false,
+     "circulation_ratio": 0.1231,
+     "alternative_circulation_ratio": [
+      0.0837,
+      0.0719
+     ]
+    }
+   ]
+  }
+ },
+ "shipped_matches_measurement": true
+}

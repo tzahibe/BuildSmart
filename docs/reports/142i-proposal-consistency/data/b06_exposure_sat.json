@@ -1,0 +1,51 @@
+{
+ "brief": "B06",
+ "required_exposure": [
+  "LIVING",
+  "KITCHEN",
+  "MASTER",
+  "BEDROOM_1",
+  "BEDROOM_2"
+ ],
+ "spatial_edges": 11,
+ "band_all_exposed": false,
+ "band_seconds": 1.12,
+ "band_witness": null,
+ "rect_all_exposed": false,
+ "rect_seconds": 1.51,
+ "rect_witness": null,
+ "single_unbacked_edge_removals": [
+  {
+   "dropped": [
+    "BATHROOM_1",
+    "BATHROOM_2"
+   ],
+   "band_all_exposed": true,
+   "seconds": 0.0
+  },
+  {
+   "dropped": [
+    "BATHROOM_2",
+    "BEDROOM_1"
+   ],
+   "band_all_exposed": true,
+   "seconds": 0.0
+  },
+  {
+   "dropped": [
+    "BATHROOM_2",
+    "LIVING"
+   ],
+   "band_all_exposed": true,
+   "seconds": 0.0
+  },
+  {
+   "dropped": [
+    "KITCHEN",
+    "LIVING"
+   ],
+   "band_all_exposed": false,
+   "seconds": 1.29
+  }
+ ]
+}

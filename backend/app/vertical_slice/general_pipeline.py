@@ -29,11 +29,18 @@ from app.geometry_domain.constraints import (
 )
 from app.geometry_domain.primitives import MultiRegion
 
+from . import arrival_policy
+from . import circulation_metrics
+from . import concept_engine_v2
 from . import concept_generator as generator
+from . import concept_spec
+from . import entrance_sequence
 from . import footprint as footprint_module
 from . import hub_guard
 from . import l_massing_guard
+from . import public_composition
 from . import doors as doors_stage
+from . import door_clearance
 from . import relationships as relationships_stage
 from . import furniture as furniture_stage
 from . import site as site_stage
@@ -103,6 +110,15 @@ class RunMetrics:
 #: (`demo/service._SHOWN_LIMIT`); this is the pool it chooses from.
 ALTERNATIVE_PLAN_LIMIT = 3
 
+#: Concept Engine v2 (Issue #78, 4/5). OFF: `run_general`'s alternatives come from
+#: `_alternative_plans` alone, exactly as before this Issue — every flag-off output stays
+#: byte-identical. ON: `concept_engine_v2.plans_per_class` replaces them with one best verified
+#: plan per circulation class `concept_patterns.patterns_for` names for this brief; the primary and
+#: the massing-representation slot rule (`_massing_representation_plans`) are untouched either way.
+#: The `LAUNDRY_ROOM_ENABLED` pattern (`concept_generator.py`): a single module flag gates the
+#: whole path, not scattered conditionals.
+CONCEPT_ENGINE_V2_ENABLED = False
+
 #: How many candidates of an UNREPRESENTED massing family to try so that one plan of it can be
 #: shown beside the rest (`_alternative_plans`). Bounded separately from the attempt limit above
 #: because it only ever runs when a second massing family exists among the candidates — an L site —
@@ -135,6 +151,10 @@ class RealizedPlan:
     design: GeometricDesign
     validation: validation_stage.ValidationReport
     safety: SafetyReport
+    #: Issue #75: `concept_spec.realized_circulation_class`, computed from the SOLVED geometry
+    #: (`_realize`) — never copied from `concept.circulation_class`. `concept_spec.verify_class`
+    #: compares the two; metadata only, nothing here reads it.
+    circulation_class: concept_spec.CirculationClass | None = None
     relationships: tuple = ()
 
     @property
@@ -189,14 +209,11 @@ def _entrance_rank(plan: "RealizedPlan") -> int:
 
     Used only to RANK candidates that already validate (`run_general`'s main loop): a plan this
     bad on rank 2 already fails C23 and is never `.ok`, so 2 only matters as a total-order floor.
+
+    The rule itself lives in `arrival_policy.arrival_rank` so that this loop and the band/proposal
+    selection path (`proposal_selection`) rank an arrival by the same one definition.
     """
-    target = plan.design.entrance_door.b
-    roles = next((r.roles for r in plan.design.rooms if r.zone_id == target), ())
-    if {"HALL", "CIRCULATION"} & set(roles):
-        return 0
-    if "LIVING" in roles:
-        return 1
-    return 2
+    return arrival_policy.arrival_rank(plan.design)
 
 
 #: Zone role -> the letter it takes in a family signature. Wet rooms are resolved separately: a
@@ -264,6 +281,15 @@ class GeneralSliceResult:
     #: Other plans this same brief and this same land produce, each one fully checked. Empty when
     #: the generator has nothing else to offer, which is a real and common answer.
     alternatives: tuple[RealizedPlan, ...] = ()
+    #: Issue #75: the CHOSEN plan's `RealizedPlan.circulation_class` (`concept_spec.verify_class`
+    #: material), carried through so a caller need not reconstruct a `RealizedPlan` to read it.
+    circulation_class: concept_spec.CirculationClass | None = None
+    #: Issue #79, AC-5: every concept candidate `generator.generate_concepts` built for THIS run
+    #: (`generated.candidates`) — already computed regardless of `max_alternatives`, so exposing it
+    #: costs nothing new. `demo.service`'s cross-outline search reads this off a SURVEYED outline's
+    #: own result (`max_alternatives=0`, so `alternatives` above is empty) to compile a pattern
+    #: class the primary outline's own candidates never offered, without a second generator call.
+    candidates: tuple[generator.ConceptCandidate, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -400,7 +426,8 @@ def run_general(buildable: BuildableRegion, *,
                 program: ProgramSpec | None = None,
                 fast_path: bool = True,
                 max_alternatives: int = 0,
-                on_stage: Callable[[str], None] | None = None) -> GeneralSliceResult:
+                on_stage: Callable[[str], None] | None = None,
+                concept_engine_v2_enabled: bool | None = None) -> GeneralSliceResult:
     """Run one authoritative buildable region all the way through the existing slice.
 
     The concept now comes from the GENERATOR, not from a hard-coded fixture: the adapter's safe
@@ -475,6 +502,22 @@ def run_general(buildable: BuildableRegion, *,
     # instant the best possible rank is reached, so a brief whose first valid candidate already has
     # a HALL/CIRCULATION entrance costs exactly what it did before this Issue.
     best_entrance_rank: int | None = None
+    # ENTRANCE SEQUENCE TIEBREAK (Issue #22, hub_guard-style): a STRICT tiebreak, never a gate —
+    # `entrance_sequence_prefers` only decides between candidates already equal under BOTH of the
+    # existing ranking terms (the generator's own area-proximity order `generated.candidates`
+    # already arrives in, and `_entrance_rank` above). A candidate is never promoted past a better
+    # area-proximity or a better entrance rank for a shorter tunnel; it only breaks a genuine tie.
+    best_used_area_m2: float | None = None
+    best_entrance_seq: entrance_sequence.EntranceSequence | None = None
+    # PUBLIC-ZONE COMPOSITION TIEBREAK (Issue #41, hub_guard-style): the LOWEST-precedence term of
+    # all — `composition_prefers` only decides between candidates already equal under EVERY
+    # existing ranking term above: entrance rank, area proximity, AND entrance sequence in BOTH
+    # directions (neither prefers the other — a real tie, not merely "not preferred" the one
+    # direction already checked). A candidate is never promoted past a better entrance rank, area
+    # proximity or entrance sequence for a better composition score; it only breaks a genuine tie
+    # of all three, so it never overrides circulation (`hub_guard`) or quality-tier
+    # (`_prefer_quality_twin`) either — both still run on whatever this loop picks, afterward.
+    best_composition: public_composition.PublicComposition | None = None
     stage("realize")
     for index, concept_candidate in enumerate(generated.candidates):
         # Tier 2 (`concept_generator.Repartition`) is strictly second: its candidates sit after
@@ -501,9 +544,27 @@ def run_general(buildable: BuildableRegion, *,
                                 f"but failed validation: {', '.join(failed) or 'safety'}")
                 continue
             rank = _entrance_rank(candidate_plan)
-            if best_entrance_rank is None or rank < best_entrance_rank:
+            candidate_seq = entrance_sequence.measure(candidate_plan.design)
+            candidate_composition = public_composition.measure(candidate_plan.design)
+            take = best_entrance_rank is None or rank < best_entrance_rank
+            if (not take and rank == best_entrance_rank
+                    and best_used_area_m2 is not None
+                    and abs(concept_candidate.used_area_m2 - best_used_area_m2) < 1e-9
+                    and best_entrance_seq is not None):
+                if entrance_sequence.entrance_sequence_prefers(best_entrance_seq, candidate_seq) is None:
+                    take = True
+                elif (entrance_sequence.entrance_sequence_prefers(
+                            candidate_seq, best_entrance_seq) is not None
+                        and best_composition is not None
+                        and public_composition.composition_prefers(
+                            best_composition, candidate_composition) is None):
+                    take = True
+            if take:
                 chosen, solve, chosen_index, plan = concept_candidate, candidate_solve, index, candidate_plan
                 best_entrance_rank = rank
+                best_used_area_m2 = concept_candidate.used_area_m2
+                best_entrance_seq = candidate_seq
+                best_composition = candidate_composition
             if fast_path and best_entrance_rank == 0:
                 break
             continue
@@ -546,7 +607,7 @@ def run_general(buildable: BuildableRegion, *,
             metrics=RunMetrics(solver_attempts=attempts,
                                latency_ms=round((time.perf_counter() - started) * 1000, 1),
                                **base_metrics),
-            notes=tuple(failures))
+            notes=tuple(failures), candidates=generated.candidates)
 
     if plan is None:  # the relationships path chose on score; realize the winner here
         plan = _realize(spec, buildable, site_constraints, chosen, chosen_index, solve,
@@ -579,10 +640,31 @@ def run_general(buildable: BuildableRegion, *,
     # OTHER PLANS THE SAME BRIEF PRODUCES, when the caller asked for them. Computed here rather
     # than on demand because whether any exist is itself the answer — a screen cannot offer options
     # it has not proven are real.
-    alternatives = (_alternative_plans(spec, buildable, site_constraints, generated.candidates,
-                                       chosen_index, plan, relationships, max_alternatives,
-                                       skip=displaced)
-                    if max_alternatives > 0 else ())
+    # named `*_enabled` so it cannot shadow the imported `concept_engine_v2` MODULE used below
+    use_concept_engine_v2 = (CONCEPT_ENGINE_V2_ENABLED if concept_engine_v2_enabled is None
+                             else concept_engine_v2_enabled)
+    if max_alternatives > 0 and use_concept_engine_v2:
+        # Concept Engine v2 (Issue #78, 4/5): the alternatives come from one best verified plan
+        # per circulation class instead of the ordinary family-nearest walk — `_alternative_plans`
+        # itself is never called on this path (its own byte-identical behavior when the flag is
+        # off is exactly why it stays untouched). The massing-representation guarantee is the same
+        # function `_alternative_plans` uses, so an L still earns its own slot here.
+        def _realize_for_class(index: int, candidate) -> RealizedPlan:
+            solve = solve_fixture(candidate.concept.fixture)
+            return _realize(spec, buildable, site_constraints, candidate, index, solve,
+                            relationships, on_stage=on_stage)
+
+        class_plans = list(concept_engine_v2.plans_per_class(
+            spec, _realize_for_class, generated.candidates, chosen_index, plan, skip=displaced))
+        class_plans.extend(_massing_representation_plans(
+            spec, buildable, site_constraints, generated.candidates, plan, class_plans,
+            relationships, skip=displaced))
+        alternatives = tuple(class_plans)
+    else:
+        alternatives = (_alternative_plans(spec, buildable, site_constraints, generated.candidates,
+                                           chosen_index, plan, relationships, max_alternatives,
+                                           skip=displaced)
+                        if max_alternatives > 0 else ())
 
     used_wings = {c.order for c in adapter_result.candidates
                   if c.order in chosen.wing_orders}
@@ -601,7 +683,9 @@ def run_general(buildable: BuildableRegion, *,
         # Measured on the CHOSEN plan, so the summary the person reads and the plan they see are
         # the same thing. Each alternative carries its own, for the same reason.
         relationships=plan.relationships,
-        alternatives=alternatives)
+        alternatives=alternatives,
+        circulation_class=plan.circulation_class,
+        candidates=generated.candidates)
 
 
 def _quality_twins_of(candidates: tuple, chosen) -> list[tuple[int, object]]:
@@ -715,13 +799,27 @@ def _guard_demoted_hub(spec: ArchitecturalSpec, buildable: BuildableRegion,
             continue
         reason = hub_guard.hub_keeps_primary(hub_guard.proportions_of(hub_plan.design),
                                              hub_guard.proportions_of(plan.design))
-        if reason is not None:
-            failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
-                            f"{chosen_index} ({chosen.strategy.value}): {reason}")
-            return candidate, index, hub_plan
-        failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) replaces "
-                        f"the demoted hub (candidate {index}): replacement is better")
-        return chosen, chosen_index, plan
+        if reason is None:
+            failures.append(f"hub guard: candidate {chosen_index} ({chosen.strategy.value}) "
+                            f"replaces the demoted hub (candidate {index}): replacement is better")
+            return chosen, chosen_index, plan
+        # CIRCULATION QUALITY (Issue #36, hub_guard-style): hub_guard says the hub's bedroom/wet
+        # proportions earn it the stay — but a hub whose realized circulation is not actually more
+        # compact than the replacement's has not delivered the one thing a hub parti exists for
+        # (specs/005). This narrows hub_guard's own decision further; it never overrides it the
+        # other way — a hub is never handed the primary FOR its circulation when hub_guard already
+        # said the replacement wins on proportions (`circulation_prefers`'s own docstring is why).
+        circulation_reason = circulation_metrics.circulation_prefers(
+            circulation_metrics.measure(hub_plan.design), hub_plan.design.gross_area_m2,
+            circulation_metrics.measure(plan.design), plan.design.gross_area_m2)
+        if circulation_reason is None:
+            failures.append(f"circulation guard: candidate {chosen_index} ({chosen.strategy.value}) "
+                            f"replaces the demoted hub (candidate {index}): its circulation is "
+                            f"more compact than the hub's")
+            return chosen, chosen_index, plan
+        failures.append(f"hub guard: hub (candidate {index}) kept as primary over candidate "
+                        f"{chosen_index} ({chosen.strategy.value}): {reason}")
+        return candidate, index, hub_plan
     return chosen, chosen_index, plan
 
 
@@ -773,6 +871,12 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
     entrance_door = doors_stage.build_entrance_door(site_plan.entrance, footprint,
                                                     entrance_zone_id, wings)
+    # Conflict avoidance BEFORE C28 (Issue #38): the entrance door itself never flips (there is no
+    # other side of the street), but it stays IN this call so an interior door can still be flipped
+    # away from a conflict WITH it.
+    resolved_doors = door_clearance.resolve_swings(
+        concept.fixture, rects, solve.walls, [*interior_doors, entrance_door])
+    *interior_doors, entrance_door = resolved_doors
     windows = windows_stage.generate_windows(concept.fixture, rects, footprint, wings)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 
@@ -786,6 +890,7 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
         # brief's, or an eligible rearrangement's) — resolved, padded and defaulted, so a legacy
         # brief is held to its defaults and never skipped (C17 fails closed on absence).
         wet_rooms=candidate.wet_rooms,
+        constraint=spec.safe_room_constraint,
     )
     stage("assemble")
     design = assemble(concept.fixture, rects, solve.walls, solve.wall_iterations,
@@ -796,6 +901,8 @@ def _realize(spec: ArchitecturalSpec, buildable: BuildableRegion,
         index=index, concept=candidate, design=design, validation=validation,
         safety=_check_safety(design, buildable.require_known(),
                              _exclusion_geometry(site_constraints)),
+        circulation_class=concept_spec.realized_circulation_class(
+            concept.fixture, rects, solve.walls, interior_doors),
         relationships=tuple(relationships_stage.evaluate(
             concept.fixture, rects,
             validation_stage.realized_connections(rects, solve.walls, interior_doors),
@@ -861,27 +968,47 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
     # two-wing plan ranks by area like every other — behind the one-wing re-proportionings that
     # land nearer the request, and past the attempt cap. Measured on the five L sites: a valid L
     # existed for 17 of 25 briefs and reached the screen for one — as the primary, where nothing
-    # one-wing planned. So one plan of every massing family the
-    # candidates contain is guaranteed a look: for each family not yet represented, its candidates
-    # are tried in the generator's order (bounded) and the first valid, distinct, ELIGIBLE one
-    # joins the alternatives — in a slot of its own, beyond `limit`, so no one-wing alternative the
-    # walk found is displaced (`ALTERNATIVE_PLAN_LIMIT` says why). The primary is untouched, and a
-    # brief whose candidates are all one massing pays nothing here and stays within `limit`.
-    #
-    # ELIGIBILITY (2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md): an
-    # ENGINE-generated non-rectangle massing (today, only "2W" — an L) is no longer guaranteed a
-    # slot merely by validating. It must clear `l_massing_guard.l_earns_representation_slot`
-    # against the best "1W" plan already realized (the chosen primary, or an alternative the
-    # normal walk already found) — the same hub_guard-style correctness-then-area-floor pattern
-    # 008 already uses for the structurally identical "does the challenger replace the incumbent"
-    # question. Measured: 14 of 16 real/fixture L's fail this gate, all on the area floor; the
-    # gate reads only REALIZED metrics (area, bedroom/master/safe-room aspect, wet adjacency and
-    # shape, two-sided exposure) — never `massing_signature` — so an L is never scored for being
-    # an L. A brief with no realized "1W" plan to compare against (rare; a massing-only outline)
-    # has nothing to gate against and the candidate is taken as before — there is no "better
-    # rectangle" it could be displacing. Entrance-sequence quality is a separate, un-gated
-    # follow-up (see that report's §5.1) and is untouched here.
-    represented = {chosen.massing_signature} | {plan.massing_signature for plan in found}
+    # one-wing planned. So one plan of every massing family the candidates contain is guaranteed a
+    # look — see `_massing_representation_plans` (also reused by Concept Engine v2, Issue #78,
+    # which needs the same guarantee for its own class-per-brief pool).
+    found.extend(_massing_representation_plans(spec, buildable, site_constraints, candidates,
+                                                chosen, found, relationships, skip))
+    return tuple(found)
+
+
+def _massing_representation_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
+                                  site_constraints: SiteConstraints | None, candidates: tuple,
+                                  chosen: RealizedPlan, already_found: list[RealizedPlan],
+                                  relationships: tuple,
+                                  skip: frozenset[int] = frozenset()) -> list[RealizedPlan]:
+    """One plan of every massing family `candidates` contains that `chosen`/`already_found` do not
+    already represent — extracted from `_alternative_plans`'s own former tail so a second caller
+    (`run_general`'s Concept Engine v2 path, Issue #78) gets the identical guarantee without a
+    second, drifting copy of it. `already_found` is read, never mutated; the caller decides how the
+    plans this returns join its own pool (`_alternative_plans` extends `found` with them; `run_
+    general` appends them to `concept_engine_v2.plans_per_class`'s result the same way).
+
+    Bounded, beyond whatever slot budget `already_found` was built under, so no plan `already_found`
+    holds is ever displaced (`ALTERNATIVE_PLAN_LIMIT` says why for the ordinary walk). The primary
+    is untouched, and a brief whose candidates are all one massing pays nothing here.
+
+    ELIGIBILITY (2026-09-17, docs/L_MASSING_REPRESENTATION_QUALITY_GATE_INVESTIGATION.md): an
+    ENGINE-generated non-rectangle massing (today, only "2W" — an L) is no longer guaranteed a slot
+    merely by validating. It must clear `l_massing_guard.l_earns_representation_slot` against the
+    best "1W" plan already realized (the chosen primary, or a plan `already_found`/this function
+    itself already produced) — the same hub_guard-style correctness-then-area-floor pattern 008
+    already uses for the structurally identical "does the challenger replace the incumbent"
+    question. Measured: 14 of 16 real/fixture L's fail this gate, all on the area floor; the gate
+    reads only REALIZED metrics (area, bedroom/master/safe-room aspect, wet adjacency and shape,
+    two-sided exposure) — never `massing_signature` — so an L is never scored for being an L. A
+    brief with no realized "1W" plan to compare against (rare; a massing-only outline) has nothing
+    to gate against and the candidate is taken as before — there is no "better rectangle" it could
+    be displacing. Entrance-sequence quality is a separate, un-gated follow-up (see that report's
+    §5.1) and is untouched here.
+    """
+    seen = {chosen.layout_signature} | {p.layout_signature for p in already_found}
+    represented = {chosen.massing_signature} | {p.massing_signature for p in already_found}
+    new_plans: list[RealizedPlan] = []
     for massing in dict.fromkeys(massing_of(c) for c in candidates):
         if massing in represented:
             continue
@@ -892,14 +1019,15 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
         # site: the 15 area-nearest L forced trees all failed in the solver and every twin solved,
         # so a walk in list order found nothing within the limit.
         family = [(i, c) for i, c in enumerate(candidates)
-                  if i != chosen_index and i not in skip and massing_of(c) == massing]
+                  if i != chosen.index and i not in skip and massing_of(c) == massing]
         forced = [x for x in family if not x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
         twins = [x for x in family if x[1].rationale.endswith(generator.FREE_TWIN_RATIONALE)]
         interleaved = [x for pair in zip(forced, twins) for x in pair]
         interleaved += forced[len(twins):] + twins[len(forced):]
         best_rect = None
         if massing != "1W":
-            rect_plans = [p for p in ([chosen] + found) if p.massing_signature == "1W"]
+            rect_plans = [p for p in ([chosen] + already_found + new_plans)
+                          if p.massing_signature == "1W"]
             if rect_plans:
                 best_rect = max(rect_plans, key=lambda p: p.concept.used_area_m2)
         tries = 0
@@ -918,10 +1046,10 @@ def _alternative_plans(spec: ArchitecturalSpec, buildable: BuildableRegion,
                     and l_massing_guard.eligible_for_slot(best_rect, plan) is not None):
                 continue
             seen.add(plan.layout_signature)
-            found.append(plan)
+            new_plans.append(plan)
             represented.add(massing)
             break
-    return tuple(found)
+    return new_plans
 
 
 def run_general_from_site(site: SiteConstraints, *, render_path: str | None = None,

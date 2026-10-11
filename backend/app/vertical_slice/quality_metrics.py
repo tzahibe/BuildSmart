@@ -8,9 +8,15 @@ gaps against them, and the PROPOSED follow-ups, are written up in
 
 Side-effect-free and deliberately does not import `app.demo.contract` at runtime (that module
 imports `app.vertical_slice.*` and would make this a circular import) — the functions here are
-duck-typed against `DemoDesign`'s shape: `.rooms` (`.id`, `.type`, `.width_m`, `.depth_m`),
-`.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`), `.doors`
-(`.a`, `.b`, `.kind`, `.is_entrance`).
+duck-typed against `DemoDesign`'s shape: `.rooms` (`.id`, `.type`, `.gross_width_m`,
+`.gross_depth_m`), `.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`),
+`.doors` (`.a`, `.b`, `.kind`, `.is_entrance`).
+
+Uses the GROSS rectangle deliberately, not `RoomOut`'s net `.width_m`/`.depth_m` (Issue #34's
+gross/net split) — these metrics measure how the built envelope is proportioned/shared, the same
+question a floor plan's own wall centerlines answer, and switching to net would move every M1/M3/M4
+number by each room's own wall-inset share for no architectural reason. It also keeps this
+module's numbers, and the frozen `quality_baseline.json` regression, unchanged by that Issue.
 
     measure_design(design)          -> QualityMetrics  # one plan's own M1–M6
     summarize(designs)              -> dict            # corpus medians/shares (the spike's report)
@@ -55,9 +61,15 @@ def is_(kind, room_type: str) -> bool:
 
 @dataclass(frozen=True)
 class QualityMetrics:
-    """M1–M6 for ONE realized plan, plus the two additive facts (`dead_space_m2`,
-    `wasted_circulation_share`) `QualityOut.metrics` carries. A value is `None` only when the
-    plan genuinely has no room of the kind that metric measures (e.g. no wet room -> M5 `None`).
+    """M1–M6 for ONE realized plan, plus `wasted_circulation_share`, an additive fact
+    `QualityOut.metrics` carries. A value is `None` only when the plan genuinely has no room of the
+    kind that metric measures (e.g. no wet room -> M5 `None`).
+
+    `dead_space_m2`/`dead_space_share` are NOT fields here — they are measured independently by
+    `app.vertical_slice.dead_space` (Issue #43) off the raw solver output, the same reason
+    `circulation_area_m2` etc. live in `circulation_metrics.CirculationMetrics` rather than here:
+    this module only ever sees the flattened `DemoDesign`, which the dead-space module's own
+    per-end/per-door geometry (door swing hinges, wall-side `Construction`) does not carry.
     """
 
     m1_habitable_aspect_median: float | None
@@ -68,9 +80,6 @@ class QualityMetrics:
     m4_hall_aspect_median: float | None
     m5_wet_adjacency_ratio: float | None
     m6_public_zone_contiguous: bool | None
-    #: Always 0 — validation C2 already gates every delivered plan on zero residual interior
-    #: area. Carried as data, not re-derived, so a future change to C2 would be visible here too.
-    dead_space_m2: float = 0.0
     #: Share of this plan's total area sitting in a hall whose long/short ratio is past
     #: `COMPACT_HALL_ASPECT_MAX` — the portion of M3's circulation share that reads as a spine
     #: rather than a lobby, and so is plausibly recoverable (not all circulation is "waste").
@@ -81,7 +90,7 @@ class QualityMetrics:
 
 
 def _habitable_aspects(design: "DemoDesign") -> list[tuple[str, float]]:
-    return [(r.type, max(r.width_m, r.depth_m) / max(min(r.width_m, r.depth_m), 1e-6))
+    return [(r.type, max(r.gross_width_m, r.gross_depth_m) / max(min(r.gross_width_m, r.gross_depth_m), 1e-6))
             for r in design.rooms if is_(HABITABLE, r.type)]
 
 
@@ -98,17 +107,22 @@ def _hall_room_ids(design: "DemoDesign") -> set[str]:
 
 
 def _hall_stats(design: "DemoDesign") -> dict:
+    # `gross_area_m2` (not `gross_width_m * gross_depth_m`) — identical for a RECTANGLE room
+    # (that product IS its `gross_area_m2`, by construction), but for a merged "L" room
+    # `gross_width_m`/`gross_depth_m` are the room's own AXIS-ALIGNED BOUNDING BOX, which
+    # overstates a real (non-flush) L's true footprint; `gross_area_m2` is always the room's own
+    # true area (Issue #118, AC-1).
     rooms = {r.id: r for r in design.rooms}
     halls = _hall_room_ids(design)
-    total = sum(r.width_m * r.depth_m for r in design.rooms)
-    circ_area = sum(r.width_m * r.depth_m for r in design.rooms if r.id in halls)
+    total = sum(r.gross_area_m2 for r in design.rooms)
+    circ_area = sum(r.gross_area_m2 for r in design.rooms if r.id in halls)
     aspects, wasted_area = [], 0.0
     for h in halls:
         r = rooms[h]
-        a = max(r.width_m, r.depth_m) / max(min(r.width_m, r.depth_m), 1e-6)
+        a = max(r.gross_width_m, r.gross_depth_m) / max(min(r.gross_width_m, r.gross_depth_m), 1e-6)
         aspects.append(a)
         if a > COMPACT_HALL_ASPECT_MAX:
-            wasted_area += r.width_m * r.depth_m
+            wasted_area += r.gross_area_m2
     door_count = sum(1 for dr in design.doors if not dr.is_entrance and (dr.a in halls or dr.b in halls))
     return dict(
         circ_share=circ_area / total if total else 0.0,
@@ -158,6 +172,14 @@ def _open_adjacency(design: "DemoDesign") -> dict[str, set[str]]:
 def _public_zone_contiguous(design: "DemoDesign") -> bool | None:
     pub = [r.id for r in design.rooms if is_(PUBLIC, r.type)]
     if len(pub) < 2:
+        # A validated LIVING+KITCHEN merge (Issue #118) can leave exactly ONE public room (no
+        # DINING in the plan) — that IS one contiguous public room, more so than an open-plan
+        # join (there is no seam left at all), not "nothing to measure." `< 2` otherwise never
+        # happens on this codebase's own room programme (LIVING and KITCHEN are always both
+        # present), so this is scoped to the merge case, not a general threshold change.
+        if len(pub) == 1 and any(r.id == pub[0] and getattr(r, "shape", "RECTANGLE") == "L"
+                                 for r in design.rooms):
+            return True
         return None
     open_adj = _open_adjacency(design)
     seen: set[str] = set()
@@ -191,7 +213,6 @@ def measure_design(design: "DemoDesign") -> QualityMetrics:
         m4_hall_aspect_median=statistics.median(hall["hall_aspects"]) if hall["hall_aspects"] else None,
         m5_wet_adjacency_ratio=(wet_adjacent / wet_total) if wet_total else None,
         m6_public_zone_contiguous=_public_zone_contiguous(design),
-        dead_space_m2=0.0,
         wasted_circulation_share=hall["wasted_circulation_share"],
     )
 

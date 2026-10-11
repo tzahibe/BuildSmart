@@ -1,0 +1,1209 @@
+{
+ "n_layouts": 68,
+ "n_realized": 16,
+ "refusals_of_rest": {
+  "AREA_INFEASIBLE": 52
+ },
+ "realized": [
+  {
+   "layout_index": 32,
+   "rows": [
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "HALL",
+      1
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ],
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "LIVING",
+      3
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.8,
+    7.4
+   ],
+   "rects_u": {
+    "MASTER": [
+     40,
+     40,
+     91,
+     81
+    ],
+    "HALL": [
+     131,
+     40,
+     51,
+     81
+    ],
+    "KITCHEN": [
+     182,
+     40,
+     54,
+     81
+    ],
+    "BATHROOM_1": [
+     40,
+     121,
+     45,
+     67
+    ],
+    "LIVING": [
+     85,
+     121,
+     151,
+     67
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 33,
+   "rows": [
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "HALL",
+      2
+     ]
+    ],
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    10.4,
+    8.0
+   ],
+   "rects_u": {
+    "MASTER": [
+     40,
+     40,
+     101,
+     67
+    ],
+    "HALL": [
+     141,
+     40,
+     107,
+     67
+    ],
+    "BATHROOM_1": [
+     40,
+     107,
+     47,
+     93
+    ],
+    "LIVING": [
+     87,
+     107,
+     106,
+     93
+    ],
+    "KITCHEN": [
+     193,
+     107,
+     55,
+     93
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 35,
+   "rows": [
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "LIVING",
+      2
+     ]
+    ],
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.2,
+    8.3
+   ],
+   "rects_u": {
+    "MASTER": [
+     40,
+     40,
+     84,
+     88
+    ],
+    "LIVING": [
+     124,
+     40,
+     100,
+     88
+    ],
+    "BATHROOM_1": [
+     40,
+     128,
+     42,
+     78
+    ],
+    "HALL": [
+     82,
+     128,
+     88,
+     78
+    ],
+    "KITCHEN": [
+     170,
+     128,
+     54,
+     78
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 36,
+   "rows": [
+    [
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "MASTER",
+      2
+     ]
+    ],
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.2,
+    8.3
+   ],
+   "rects_u": {
+    "LIVING": [
+     40,
+     40,
+     100,
+     88
+    ],
+    "MASTER": [
+     140,
+     40,
+     84,
+     88
+    ],
+    "KITCHEN": [
+     40,
+     128,
+     54,
+     78
+    ],
+    "HALL": [
+     94,
+     128,
+     88,
+     78
+    ],
+    "BATHROOM_1": [
+     182,
+     128,
+     42,
+     78
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 38,
+   "rows": [
+    [
+     [
+      "LIVING",
+      3
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ],
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "MASTER",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ]
+    ]
+   ],
+   "envelope_m": [
+    11.6,
+    7.7
+   ],
+   "rects_u": {
+    "LIVING": [
+     40,
+     40,
+     170,
+     80
+    ],
+    "KITCHEN": [
+     210,
+     40,
+     62,
+     80
+    ],
+    "BATHROOM_1": [
+     40,
+     120,
+     53,
+     74
+    ],
+    "MASTER": [
+     93,
+     120,
+     66,
+     74
+    ],
+    "HALL": [
+     159,
+     120,
+     113,
+     74
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 39,
+   "rows": [
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ],
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "HALL",
+      2
+     ]
+    ]
+   ],
+   "envelope_m": [
+    10.4,
+    8.0
+   ],
+   "rects_u": {
+    "BATHROOM_1": [
+     40,
+     40,
+     47,
+     93
+    ],
+    "LIVING": [
+     87,
+     40,
+     106,
+     93
+    ],
+    "KITCHEN": [
+     193,
+     40,
+     55,
+     93
+    ],
+    "MASTER": [
+     40,
+     133,
+     101,
+     67
+    ],
+    "HALL": [
+     141,
+     133,
+     107,
+     67
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 41,
+   "rows": [
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "LIVING",
+      3
+     ]
+    ],
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "HALL",
+      1
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.8,
+    7.4
+   ],
+   "rects_u": {
+    "BATHROOM_1": [
+     40,
+     40,
+     45,
+     67
+    ],
+    "LIVING": [
+     85,
+     40,
+     151,
+     67
+    ],
+    "MASTER": [
+     40,
+     107,
+     91,
+     81
+    ],
+    "HALL": [
+     131,
+     107,
+     51,
+     81
+    ],
+    "KITCHEN": [
+     182,
+     107,
+     54,
+     81
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 47,
+   "rows": [
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ],
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "LIVING",
+      2
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.2,
+    8.3
+   ],
+   "rects_u": {
+    "BATHROOM_1": [
+     40,
+     40,
+     42,
+     78
+    ],
+    "HALL": [
+     82,
+     40,
+     88,
+     78
+    ],
+    "KITCHEN": [
+     170,
+     40,
+     54,
+     78
+    ],
+    "MASTER": [
+     40,
+     118,
+     84,
+     88
+    ],
+    "LIVING": [
+     124,
+     118,
+     100,
+     88
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 48,
+   "rows": [
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ],
+    [
+     [
+      "HALL",
+      2
+     ],
+     [
+      "MASTER",
+      2
+     ]
+    ]
+   ],
+   "envelope_m": [
+    10.4,
+    8.0
+   ],
+   "rects_u": {
+    "KITCHEN": [
+     40,
+     40,
+     55,
+     93
+    ],
+    "LIVING": [
+     95,
+     40,
+     106,
+     93
+    ],
+    "BATHROOM_1": [
+     201,
+     40,
+     47,
+     93
+    ],
+    "HALL": [
+     40,
+     133,
+     107,
+     67
+    ],
+    "MASTER": [
+     147,
+     133,
+     101,
+     67
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 49,
+   "rows": [
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "LIVING",
+      3
+     ]
+    ],
+    [
+     [
+      "HALL",
+      2
+     ],
+     [
+      "MASTER",
+      1
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    11.6,
+    7.7
+   ],
+   "rects_u": {
+    "KITCHEN": [
+     40,
+     40,
+     62,
+     80
+    ],
+    "LIVING": [
+     102,
+     40,
+     170,
+     80
+    ],
+    "HALL": [
+     40,
+     120,
+     113,
+     74
+    ],
+    "MASTER": [
+     153,
+     120,
+     66,
+     74
+    ],
+    "BATHROOM_1": [
+     219,
+     120,
+     53,
+     74
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 51,
+   "rows": [
+    [
+     [
+      "LIVING",
+      3
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ],
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "HALL",
+      1
+     ],
+     [
+      "MASTER",
+      2
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.8,
+    7.4
+   ],
+   "rects_u": {
+    "LIVING": [
+     40,
+     40,
+     151,
+     67
+    ],
+    "BATHROOM_1": [
+     191,
+     40,
+     45,
+     67
+    ],
+    "KITCHEN": [
+     40,
+     107,
+     54,
+     81
+    ],
+    "HALL": [
+     94,
+     107,
+     51,
+     81
+    ],
+    "MASTER": [
+     145,
+     107,
+     91,
+     81
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 53,
+   "rows": [
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "HALL",
+      1
+     ],
+     [
+      "MASTER",
+      2
+     ]
+    ],
+    [
+     [
+      "LIVING",
+      3
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.8,
+    7.4
+   ],
+   "rects_u": {
+    "KITCHEN": [
+     40,
+     40,
+     54,
+     81
+    ],
+    "HALL": [
+     94,
+     40,
+     51,
+     81
+    ],
+    "MASTER": [
+     145,
+     40,
+     91,
+     81
+    ],
+    "LIVING": [
+     40,
+     121,
+     151,
+     67
+    ],
+    "BATHROOM_1": [
+     191,
+     121,
+     45,
+     67
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 54,
+   "rows": [
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "MASTER",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ]
+    ],
+    [
+     [
+      "LIVING",
+      3
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    11.6,
+    7.7
+   ],
+   "rects_u": {
+    "BATHROOM_1": [
+     40,
+     40,
+     53,
+     74
+    ],
+    "MASTER": [
+     93,
+     40,
+     66,
+     74
+    ],
+    "HALL": [
+     159,
+     40,
+     113,
+     74
+    ],
+    "LIVING": [
+     40,
+     114,
+     170,
+     80
+    ],
+    "KITCHEN": [
+     210,
+     114,
+     62,
+     80
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='LIVING', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 57,
+   "rows": [
+    [
+     [
+      "HALL",
+      2
+     ],
+     [
+      "MASTER",
+      1
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ],
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "LIVING",
+      3
+     ]
+    ]
+   ],
+   "envelope_m": [
+    11.6,
+    7.7
+   ],
+   "rects_u": {
+    "HALL": [
+     40,
+     40,
+     113,
+     74
+    ],
+    "MASTER": [
+     153,
+     40,
+     66,
+     74
+    ],
+    "BATHROOM_1": [
+     219,
+     40,
+     53,
+     74
+    ],
+    "KITCHEN": [
+     40,
+     114,
+     62,
+     80
+    ],
+    "LIVING": [
+     102,
+     114,
+     170,
+     80
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 58,
+   "rows": [
+    [
+     [
+      "HALL",
+      2
+     ],
+     [
+      "MASTER",
+      2
+     ]
+    ],
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ]
+   ],
+   "envelope_m": [
+    10.4,
+    8.0
+   ],
+   "rects_u": {
+    "HALL": [
+     40,
+     40,
+     107,
+     67
+    ],
+    "MASTER": [
+     147,
+     40,
+     101,
+     67
+    ],
+    "KITCHEN": [
+     40,
+     107,
+     55,
+     93
+    ],
+    "LIVING": [
+     95,
+     107,
+     106,
+     93
+    ],
+    "BATHROOM_1": [
+     201,
+     107,
+     47,
+     93
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='HALL', b='KITCHEN', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='MASTER', b='BATHROOM_1', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  },
+  {
+   "layout_index": 62,
+   "rows": [
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ],
+    [
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "MASTER",
+      2
+     ]
+    ]
+   ],
+   "envelope_m": [
+    9.2,
+    8.3
+   ],
+   "rects_u": {
+    "KITCHEN": [
+     40,
+     40,
+     54,
+     78
+    ],
+    "HALL": [
+     94,
+     40,
+     88,
+     78
+    ],
+    "BATHROOM_1": [
+     182,
+     40,
+     42,
+     78
+    ],
+    "LIVING": [
+     40,
+     118,
+     100,
+     88
+    ],
+    "MASTER": [
+     140,
+     118,
+     84,
+     88
+    ]
+   },
+   "spatial": "6/6",
+   "access": "4/4",
+   "validator_ok": true,
+   "access_edges": [
+    "DesiredAccessEdge(a='BATHROOM_1', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='HALL', b='MASTER', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='HALL', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)",
+    "DesiredAccessEdge(a='KITCHEN', b='LIVING', kind=<ConnectionKind.DOOR: 'DOOR'>, min_clear_m=0.9)"
+   ]
+  }
+ ]
+}

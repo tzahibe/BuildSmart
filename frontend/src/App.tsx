@@ -11,7 +11,7 @@ import {
   reportFailure,
   updateRequirementsReview,
 } from './api'
-import type { DemoProgress } from './api'
+import type { DemoProgress, EngineChoice } from './api'
 import Autocomplete from './Autocomplete'
 import DesignPage from './design/DesignPage'
 import ReviewPage from './design/ReviewPage'
@@ -58,6 +58,11 @@ function App() {
   // the validated pipeline (POST /design/demo). Nothing here reuses the old solver route.
   const [review, setReview] = useState<RequirementsReview | null>(null)
   const [demoPlans, setDemoPlans] = useState<DemoPlanSet | null>(null)
+  // DEVELOPMENT PREVIEW (owner-facing): which engine the LAST generation ran, and how long it took.
+  // `production` is the default and changes nothing; selecting the Concept Engine sends a
+  // per-request override and never touches the backend's global flag.
+  const [engine, setEngine] = useState<EngineChoice>('production')
+  const [lastRun, setLastRun] = useState<{ engine: EngineChoice; ms: number } | null>(null)
   const [demoError, setDemoError] = useState<{ code: string; message: string; detail: string } | null>(null)
   const [demoProgress, setDemoProgress] = useState<DemoProgress | null>(null)
   // THE OUTLINE IS THE ENGINE'S TO CHOOSE (feature 006). It used to be a screen of its own between
@@ -339,7 +344,9 @@ function App() {
       }
       // The percentage on the loading screen comes from these callbacks — one per pipeline stage,
       // as the backend enters it. No stream means no percentage, not a made-up one.
-      setDemoPlans(await generateDemoDesignStreaming(project.project_id, setDemoProgress))
+      const started = performance.now()
+      setDemoPlans(await generateDemoDesignStreaming(project.project_id, setDemoProgress, engine))
+      setLastRun({ engine, ms: Math.round(performance.now() - started) })
       setView('plan')
     } catch (error) {
       // Product-level failure: an unsupported request or an unrealizable brief. The message is
@@ -382,11 +389,48 @@ function App() {
     return <LoadingScreen progress={demoProgress} />
   }
 
+  // Switching engines re-runs the SAME stored brief — the person never re-enters anything. A
+  // failure is surfaced as itself: no fallback to the other engine, and the previous plans are
+  // cleared so a stale drawing can never be read as the new engine's output.
+  async function regenerateWith(next: EngineChoice) {
+    if (!project) return
+    setEngine(next)
+    setDemoError(null)
+    setView('loading')
+    try {
+      const started = performance.now()
+      const plans = await generateDemoDesignStreaming(project.project_id, setDemoProgress, next)
+      setDemoPlans(plans)
+      setLastRun({ engine: next, ms: Math.round(performance.now() - started) })
+      setView('plan')
+    } catch (error) {
+      // The preview's whole point is that a failure is the engine's own. Nothing falls back to the
+      // other engine, and the typed code is shown as it arrived.
+      const unreachable = error instanceof TypeError
+      const code = error instanceof DemoPipelineError ? error.code
+        : unreachable ? 'SERVER_UNREACHABLE' : 'GENERATE_FAILED'
+      const failure = error instanceof DemoPipelineError
+        ? { code, message: error.message, detail: error.detail }
+        : unreachable
+          ? { code, message: 'לא ניתן להתחבר לשרת. יש לוודא שהשרת פועל ולנסות שוב.', detail: '' }
+          : { code, message: 'אירעה שגיאה בלתי צפויה ביצירת התוכנית.', detail: '' }
+      reportFailure(code, failure.message, 'generate', failure.detail,
+                    { projectId: project.project_id })
+      setDemoPlans(null)
+      setLastRun({ engine: next, ms: 0 })
+      setDemoError(failure)
+      setView('review')
+    }
+  }
+
   if (view === 'plan' && demoPlans) {
     return (
       <DemoWorkspace
         plans={demoPlans}
         streetFacingSide={project?.street_facing_side}
+        engine={lastRun?.engine ?? 'production'}
+        generationMs={lastRun?.ms ?? null}
+        onEngineChange={regenerateWith}
         onChangeRequirements={() => {
           setDemoError(null)
           setView('review')

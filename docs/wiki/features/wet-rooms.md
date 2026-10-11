@@ -60,6 +60,18 @@ grid, the same fact `building_validation.py`'s V2 already relies on) — not wir
 single-level pipeline call (`design_output.assemble` only ever sees one level), for a future
 caller that has both levels' realized geometry to call directly.
 
+**Master-suite access and privacy (Issue #42, `master_suite.py`)**: a related, but separate,
+capability — where `wet_privacy.py` reads a wet room's own door relative to the PUBLIC part of the
+house, `master_suite.py` reads the ENSUITE's relationship to its own bedroom: per `MASTER_BEDROOM`
+zone, a `MasterSuite` record covering `ensuite_access` (direct off the bedroom vs. via
+circulation), the linked `DRESSING_ROOM`'s `wardrobe_relationship` (in room / dressing room /
+none), a hall-to-bedroom-door sight line to the bed and to the ensuite door, and whether the
+straight route from the bedroom's own entry door to the ensuite/wardrobe door crosses the bed's own
+conservative clearance footprint. No new hard rule — `validation.py`'s existing C24 (a room
+reachable only through another private room) already fails closed on the one case that matters
+here. `suite_score`/`candidate_suite_key`/`better_candidate` mirror `wet_privacy`'s own ranking
+key, quality data only. See rubric section P (`docs/architecture_reference/quality_rubric.md`).
+
 ## Authoritative implementation
 
 - `app/requirements/wet_room_normalizer.py` (deterministic rules R1–R5), `app/requirements/parser.py`
@@ -72,8 +84,12 @@ caller that has both levels' realized geometry to call directly.
 - Plumbing / wet-core efficiency (Issue #44): `app/vertical_slice/wet_core.py`; wired into
   `design_output.py` (`GeometricDesign.wet_core`) and `contract.py`
   (`QualityOut.metrics.wet_core`) only — no `validation.py` check.
+- Master-suite access and privacy (Issue #42): `app/vertical_slice/master_suite.py`; not wired
+  into `design_output.py`/`contract.py`/ranking by this Issue — see its own "Known follow-ups"
+  entry below.
 - Tests: `tests/wet_room_corpus/` (61 hand-labelled briefs), `tests/vertical_slice/test_quality_repartition.py`,
-  `tests/vertical_slice/test_wet_privacy.py`, `tests/vertical_slice/test_wet_core.py`.
+  `tests/vertical_slice/test_wet_privacy.py`, `tests/vertical_slice/test_wet_core.py`,
+  `tests/vertical_slice/test_master_suite.py`.
 
 ## Current constraints/invariants
 
@@ -116,6 +132,11 @@ privacy) is the natural next step, not part of this Issue's scope. `wet_core_ali
 has no caller: it needs two levels' realized geometry, which no single-level pipeline call
 provides today (Multi-Level Phase 1 is backend-only — see the Multi-Level Wiki page); wiring it in
 is future work for whenever Multi-Level reaches the live product path.
+
+`master_suite.candidate_suite_key`/`better_candidate` (Issue #42) likewise has no caller wired in —
+`MasterSuite` records are not on `QualityOut`/`GeometricDesign` and no ranking tiebreak reads them
+yet; a future Issue wiring `compute_master_suites` into `design_output.py`/`contract.py` and a
+caller (`_break_l_tie` or a new one) is the natural next step, not part of this Issue's scope.
 
 ## Evidence/history
 

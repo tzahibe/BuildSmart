@@ -1,0 +1,482 @@
+{
+ "B01": {
+  "result": "PASS",
+  "candidate": 0,
+  "oriented": false,
+  "selection": {
+   "candidates": 34,
+   "hard_feasible": 22,
+   "sized": 16,
+   "oriented": 4,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "LIVING",
+   "MASTER"
+  ],
+  "access": "4/4",
+  "spatial": "6/6",
+  "doors": {
+   "HALL->KITCHEN": {
+    "shared_u": 75,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER": {
+    "shared_u": 28,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->HALL": {
+    "shared_u": 40,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "MASTER->BATHROOM_1": {
+    "shared_u": 36,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": null,
+  "failed_checks": []
+ },
+ "B04": {
+  "result": "PASS",
+  "candidate": 0,
+  "oriented": false,
+  "selection": {
+   "candidates": 120,
+   "hard_feasible": 33,
+   "sized": 25,
+   "oriented": 15,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "KITCHEN",
+   "LIVING"
+  ],
+  "access": "7/7",
+  "spatial": "9/9",
+  "doors": {
+   "HALL->BATHROOM_2": {
+    "shared_u": 27,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_1": {
+    "shared_u": 75,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER": {
+    "shared_u": 75,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->SAFE_ROOM": {
+    "shared_u": 28,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->HALL": {
+    "shared_u": 55,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->KITCHEN": {
+    "shared_u": 70,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "MASTER->BATHROOM_1": {
+    "shared_u": 40,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": {
+   "sides": {
+    "N": "RC_SAFE_ROOM",
+    "S": "RC_SAFE_ROOM",
+    "E": "RC_SAFE_ROOM",
+    "W": "RC_SAFE_ROOM"
+   },
+   "net_area_m2": 11.28,
+   "window": [
+    "W"
+   ]
+  },
+  "failed_checks": []
+ },
+ "B05": {
+  "result": "PASS",
+  "candidate": 8,
+  "oriented": false,
+  "selection": {
+   "candidates": 120,
+   "hard_feasible": 67,
+   "oriented": 38,
+   "sized": 42,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "DINING",
+   "LIVING"
+  ],
+  "access": "6/6",
+  "spatial": "9/9",
+  "doors": {
+   "DINING->KITCHEN": {
+    "shared_u": 60,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BATHROOM_1": {
+    "shared_u": 34,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_1": {
+    "shared_u": 63,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER_BEDROOM": {
+    "shared_u": 22,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "KITCHEN->HALL": {
+    "shared_u": 50,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->DINING": {
+    "shared_u": 76,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": null,
+  "failed_checks": []
+ },
+ "B08": {
+  "result": "PASS",
+  "candidate": 0,
+  "oriented": false,
+  "selection": {
+   "candidates": 120,
+   "hard_feasible": 32,
+   "sized": 17,
+   "oriented": 20,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "LIVING",
+   "KITCHEN"
+  ],
+  "access": "7/7",
+  "spatial": "10/10",
+  "doors": {
+   "DINING->KITCHEN": {
+    "shared_u": 66,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_1": {
+    "shared_u": 71,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_2": {
+    "shared_u": 22,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER_BEDROOM": {
+    "shared_u": 26,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->DINING": {
+    "shared_u": 30,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->HALL": {
+    "shared_u": 48,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "MASTER_BEDROOM->BATHROOM_1": {
+    "shared_u": 64,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": null,
+  "failed_checks": []
+ },
+ "B11": {
+  "result": "PASS",
+  "candidate": 3,
+  "oriented": false,
+  "selection": {
+   "candidates": 120,
+   "hard_feasible": 10,
+   "oriented": 3,
+   "sized": 2,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "BEDROOM_1",
+   "BEDROOM_2",
+   "LIVING",
+   "KITCHEN"
+  ],
+  "access": "10/10",
+  "spatial": "13/13",
+  "doors": {
+   "HALL->BATHROOM_1": {
+    "shared_u": 59,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BATHROOM_2": {
+    "shared_u": 34,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_1": {
+    "shared_u": 25,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_2": {
+    "shared_u": 62,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_3": {
+    "shared_u": 63,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER_BEDROOM": {
+    "shared_u": 46,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->SAFE_ROOM": {
+    "shared_u": 22,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->DINING": {
+    "shared_u": 25,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->HALL": {
+    "shared_u": 78,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->KITCHEN": {
+    "shared_u": 96,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": {
+   "sides": {
+    "N": "RC_SAFE_ROOM",
+    "S": "RC_SAFE_ROOM",
+    "E": "RC_SAFE_ROOM",
+    "W": "RC_SAFE_ROOM"
+   },
+   "net_area_m2": 13.7175,
+   "window": [
+    "E"
+   ]
+  },
+  "failed_checks": []
+ },
+ "B13": {
+  "result": "PASS",
+  "candidate": 20,
+  "oriented": false,
+  "selection": {
+   "candidates": 120,
+   "hard_feasible": 3,
+   "sized": 3,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "KITCHEN",
+   "LIVING"
+  ],
+  "access": "9/9",
+  "spatial": "12/12",
+  "doors": {
+   "DINING->HALL": {
+    "shared_u": 39,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "DINING->KITCHEN": {
+    "shared_u": 74,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BATHROOM_2": {
+    "shared_u": 35,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_1": {
+    "shared_u": 70,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_2": {
+    "shared_u": 54,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_3": {
+    "shared_u": 70,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER_BEDROOM": {
+    "shared_u": 39,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "LIVING->DINING": {
+    "shared_u": 39,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "MASTER_BEDROOM->BATHROOM_1": {
+    "shared_u": 64,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": null,
+  "failed_checks": []
+ },
+ "B18": {
+  "result": "PASS",
+  "candidate": 40,
+  "oriented": false,
+  "selection": {
+   "candidates": 120,
+   "hard_feasible": 60,
+   "oriented": 56,
+   "sized": 1,
+   "realized": 1,
+   "passed": 1
+  },
+  "entrance_room": "LIVING",
+  "street_band": [
+   "BATHROOM_1",
+   "BEDROOM_3",
+   "BEDROOM_1",
+   "KITCHEN",
+   "LIVING"
+  ],
+  "access": "12/12",
+  "spatial": "14/14",
+  "doors": {
+   "BEDROOM_3->BATHROOM_1": {
+    "shared_u": 98,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BATHROOM_2": {
+    "shared_u": 34,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BATHROOM_3": {
+    "shared_u": 39,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_1": {
+    "shared_u": 54,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_2": {
+    "shared_u": 22,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_3": {
+    "shared_u": 22,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_4": {
+    "shared_u": 63,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->BEDROOM_5": {
+    "shared_u": 60,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->KITCHEN": {
+    "shared_u": 50,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->LIVING": {
+    "shared_u": 58,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->MASTER_BEDROOM": {
+    "shared_u": 26,
+    "need_u": 22,
+    "door_placed": true
+   },
+   "HALL->SAFE_ROOM": {
+    "shared_u": 60,
+    "need_u": 22,
+    "door_placed": true
+   }
+  },
+  "safe_room": {
+   "sides": {
+    "N": "RC_SAFE_ROOM",
+    "S": "RC_SAFE_ROOM",
+    "E": "RC_SAFE_ROOM",
+    "W": "RC_SAFE_ROOM"
+   },
+   "net_area_m2": 9.045,
+   "window": [
+    "W"
+   ]
+  },
+  "failed_checks": []
+ }
+}

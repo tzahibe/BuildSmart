@@ -38,6 +38,7 @@ from enum import Enum
 
 from . import concept_generator as cg
 from .concept import Concept
+from .concept_spec import CirculationClass
 from .concept_generator import (
     ConceptCandidate,
     ConceptRejection,
@@ -689,6 +690,12 @@ def _candidate_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], plan: LPl
     # The arm: rows across the seam; every row's corridor-side member is a declared seam side.
     arm_tree = cg._forced_chain(plan.arm_rows, plan.arm_depths_m, u_to_m(plan.arm.w) - inset,
                                 exterior_first=(g.side is ArmSide.WEST))
+    # HALL's own length is `arm_len_m` by construction (see the module docstring: "its length IS
+    # the arm's length"), served on both sides of the seam — the column rows inside the primary
+    # wing and the arm rows across it. Check that against the REALIZED extent of the last row on
+    # each side (Issue #22), rather than assuming the shared length is always correct.
+    cg._assert_corridor_extent(plan.arm_len_m, "L-parti hall",
+                               plan.column_depths_m, plan.arm_depths_m)
     seam_member = (lambda row: row[0]) if g.side is ArmSide.EAST else (lambda row: row[-1])
     arm_seams = tuple((seam_member(row).zone_id, g.arm_seam_side) for row in plan.arm_rows)
 
@@ -725,6 +732,7 @@ def _candidate_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], plan: LPl
     return ConceptCandidate(
         Concept(fixture, HALL, Side.N, u_to_m(bbox_x2 - bbox_x), u_to_m(bbox_y2 - bbox_y)),
         STRATEGY, (primary.order, arm.order),
+        circulation_class=CirculationClass.TWO_WING,
         rationale=(f"L: {rationale}; arm {g.side.value} at the {g.end.value}, "
                    f"{u_to_m(plan.arm.w):.2f} x {plan.arm_len_m:.2f} m ({len(plan.arm_rows)} rows); "
                    f"primary {u_to_m(plan.primary.w):.2f} x {u_to_m(plan.primary.h):.2f} m: "

@@ -8,6 +8,7 @@ dist/
 data/
 
 backend/spikes/failure_log_sweep/gained.json
+backend/spikes/failure_log_sweep/living_kitchen_merge_ab_result.json
 
 # Autonomous engineering workflow (scripts/agent_team): local runtime state only.
 .worktrees/

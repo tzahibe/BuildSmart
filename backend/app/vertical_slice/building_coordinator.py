@@ -32,6 +32,7 @@ from app.geometry_domain.primitives import MultiRegion, Region, Ring
 from app.geometry_domain.provenance import Authority, Provenance, Source
 
 from . import doors as doors_stage
+from . import door_clearance
 from . import footprint as footprint_module
 from . import furniture as furniture_stage
 from . import general_pipeline as gp
@@ -363,6 +364,7 @@ def _realize_upper(spec: ArchitecturalSpec, candidate: ConceptCandidate, solve, 
     footprint = footprint_module.bounding_box(wings)
     rects = solve.rects
     interior_doors = doors_stage.generate_interior_doors(concept.fixture, rects)
+    interior_doors = door_clearance.resolve_swings(concept.fixture, rects, solve.walls, interior_doors)
     windows = windows_stage.generate_windows(concept.fixture, rects, footprint, wings)
     furniture = furniture_stage.check_furniture_feasibility(concept.fixture, rects, solve.walls)
 
@@ -372,6 +374,7 @@ def _realize_upper(spec: ArchitecturalSpec, candidate: ConceptCandidate, solve, 
     site_plan = SitePlan(plot=footprint, footprint=footprint, footprint_offset_u=(footprint.x, footprint.y),
                          parking=(), entrance=EntranceWalk((stair_rect.x, stair_rect.y), stair_rect),
                          garden=(), wings=wings)
+    # width_m=0.0: a placeholder, no real leaf — `door_clearance` skips every zero-width door.
     entrance_door = Door("STAIR", "STAIR", ConnectionKind.DOOR, 0.0, (stair_rect.x, stair_rect.y),
                          "horizontal", placeable=True, shared_length_m=0.0)
 

@@ -1,0 +1,4256 @@
+{
+ "frozen": [
+  {
+   "brief": "B01",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [],
+   "findings": [],
+   "critic_seconds": 0.005,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 0,
+    "access": "4/4",
+    "spatial": "6/6",
+    "selection": {
+     "candidates": 34,
+     "hard_feasible": 22,
+     "sized": 16,
+     "oriented": 4,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B02",
+   "expected_embedding": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_1",
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "detail": "BATHROOM_1 has 2 doors (HALL, MASTER_BEDROOM); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of MASTER_BEDROOM and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "HALL",
+       "MASTER_BEDROOM"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_1"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_1 (ensuite of MASTER_BEDROOM): an ENSUITE is entered only from its host (MASTER_BEDROOM)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "MASTER_BEDROOM"
+     }
+    },
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: four mutually adjacent rooms BATHROOM_1/HALL/LIVING/MASTER_BEDROOM (a K4): three mutually touching rectangles meet at a T-junction and enclose nothing, so no dissection into rectangles \u2014 band, slicing tree or non-guillotine \u2014 can carry all six pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+    "stage": "EMBEDDING",
+    "detail": "four mutually adjacent rooms BATHROOM_1/HALL/LIVING/MASTER_BEDROOM (a K4): three mutually touching rectangles meet at a T-junction and enclose nothing, so no dissection into rectangles \u2014 band, slicing tree or non-guillotine \u2014 can carry all ",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B03",
+   "expected_embedding": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE"
+   ],
+   "critic_all": [
+    "ACCESS_WITHOUT_CONTACT",
+    "CONTACTS_NOT_REPRESENTABLE"
+   ],
+   "findings": [
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->KITCHEN"
+     ],
+     "detail": "1 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->KITCHEN",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "KITCHEN"
+       ]
+      ]
+     }
+    },
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BEDROOM_1/LIVING/MASTER_BEDROOM are each required to touch both BATHROOM_1 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+    "stage": "EMBEDDING",
+    "detail": "rooms BEDROOM_1/LIVING/MASTER_BEDROOM are each required to touch both BATHROOM_1 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these ",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B04",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [],
+   "findings": [],
+   "critic_seconds": 0.114,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 0,
+    "access": "7/7",
+    "spatial": "9/9",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 33,
+     "sized": 25,
+     "oriented": 15,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B05",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [],
+   "findings": [],
+   "critic_seconds": 0.052,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 8,
+    "access": "6/6",
+    "spatial": "9/9",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 67,
+     "oriented": 38,
+     "sized": 42,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B06",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [
+    "EXPOSURE_INFEASIBLE"
+   ],
+   "critic_all": [
+    "EXPOSURE_INFEASIBLE"
+   ],
+   "findings": [
+    {
+     "code": "EXPOSURE_INFEASIBLE",
+     "severity": "HARD",
+     "subjects": [
+      "BEDROOM_1",
+      "BEDROOM_2",
+      "KITCHEN",
+      "LIVING",
+      "MASTER"
+     ],
+     "detail": "every one of 58 band layouts (complete family) buries a REQUIRED-exposure room: BEDROOM_1 x40, LIVING x32, KITCHEN x22, MASTER x10, BEDROOM_2 x10",
+     "evidence": {
+      "layouts": 58,
+      "complete": true,
+      "buried": {
+       "BEDROOM_1": 40,
+       "MASTER": 10,
+       "BEDROOM_2": 10,
+       "LIVING": 32,
+       "KITCHEN": 22
+      }
+     }
+    }
+   ],
+   "critic_seconds": 0.087,
+   "production_before": {
+    "result": "EXPOSURE_INFEASIBLE",
+    "stage": "SELECTION",
+    "detail": "no band layout (complete family of 58) keeps every REQUIRED-exposure room on the envelope (58 of 58 rejected by exposure_ok)",
+    "selection": {
+     "candidates": 58
+    }
+   },
+   "repairs": [
+    {
+     "rule": "R5_DEMOTE_FOR_EXPOSURE",
+     "original": "required contact BATHROOM_2-LIVING",
+     "changed": "preferred contact BATHROOM_2-LIVING (not required)",
+     "reason": "a wall contact no door uses; demoting it to a preference removes the obstruction",
+     "evidence": {
+      "pool_size": 4,
+      "set_size": 1
+     },
+     "alternatives": []
+    }
+   ],
+   "unrepaired": [],
+   "critic_after_hard": [],
+   "production_after_repair": {
+    "result": "PASS",
+    "candidate": 0,
+    "access": "7/7",
+    "spatial": "10/10",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 68,
+     "sized": 46,
+     "oriented": 37,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B07",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [
+    "ACCESS_SPATIAL_CONTRADICTION",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "ACCESS_SPATIAL_CONTRADICTION",
+    "ACCESS_WITHOUT_CONTACT",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_1",
+      "BEDROOM_1",
+      "HALL",
+      "MASTER"
+     ],
+     "detail": "BATHROOM_1 has 3 doors (BEDROOM_1, HALL, MASTER); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of BEDROOM_1 and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "BEDROOM_1",
+       "HALL",
+       "MASTER"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_1"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_1 (ensuite of BEDROOM_1): an ENSUITE is entered only from its host (BEDROOM_1)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_1"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "MASTER",
+      "BATHROOM_1"
+     ],
+     "detail": "MASTER (MASTER_BEDROOM) -> BATHROOM_1 (ensuite of BEDROOM_1): an ENSUITE is entered only from its host (BEDROOM_1)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_1"
+     }
+    },
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_2",
+      "BEDROOM_2",
+      "HALL"
+     ],
+     "detail": "BATHROOM_2 has 2 doors (BEDROOM_2, HALL); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of BEDROOM_2 and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "BEDROOM_2",
+       "HALL"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_2"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_2 (ensuite of BEDROOM_2): an ENSUITE is entered only from its host (BEDROOM_2)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_2"
+     }
+    },
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->BATHROOM_1",
+      "HALL->KITCHEN"
+     ],
+     "detail": "2 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->BATHROOM_1, HALL->KITCHEN",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "BATHROOM_1"
+       ],
+       [
+        "HALL",
+        "KITCHEN"
+       ]
+      ]
+     }
+    },
+    {
+     "code": "ACCESS_SPATIAL_CONTRADICTION",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_2/BEDROOM_1/MASTER are each required to touch both BATHROOM_1 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": false
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "ACCESS_SPATIAL_CONTRADICTION",
+    "stage": "EMBEDDING",
+    "detail": "the spatial adjacency alone has a band layout (120 candidate(s)) but spatial \u222a direct-access does not (TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_2/BEDROOM_1/MASTER are each required to touch both BATHROOM_1 and HALL: a straight wall has",
+    "selection": {}
+   },
+   "repairs": [
+    {
+     "rule": "R1_ONE_DOOR_WET",
+     "original": "BATHROOM_1 doors from ['BEDROOM_1', 'HALL', 'MASTER']",
+     "changed": "BATHROOM_1 door from HALL only",
+     "reason": "a wet room has exactly one door (specs/007 FR-9); the proposal asked for a HALL door, which makes BATHROOM_1 a shared_bathroom; the dropped entrants still reach it through legal doors",
+     "evidence": {
+      "kept": "HALL",
+      "kept_kind": "shared_bathroom",
+      "dropped": [
+       "BEDROOM_1",
+       "MASTER"
+      ],
+      "dropped_still_reach_room_in_steps": {
+       "BEDROOM_1": 2,
+       "MASTER": 2
+      }
+     },
+     "alternatives": [
+      "keep BEDROOM_1 only (ensuite of BEDROOM_1)",
+      "keep MASTER only (ensuite of MASTER)"
+     ]
+    },
+    {
+     "rule": "R1_ONE_DOOR_WET",
+     "original": "BATHROOM_2 doors from ['BEDROOM_2', 'HALL']",
+     "changed": "BATHROOM_2 door from HALL only",
+     "reason": "a wet room has exactly one door (specs/007 FR-9); the proposal asked for a HALL door, which makes BATHROOM_2 a shared_bathroom; the dropped entrants still reach it through legal doors",
+     "evidence": {
+      "kept": "HALL",
+      "kept_kind": "shared_bathroom",
+      "dropped": [
+       "BEDROOM_2"
+      ],
+      "dropped_still_reach_room_in_steps": {
+       "BEDROOM_2": 2
+      }
+     },
+     "alternatives": [
+      "keep BEDROOM_2 only (ensuite of BEDROOM_2)"
+     ]
+    },
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BATHROOM_1 (no shared wall)",
+     "changed": "HALL->BATHROOM_1 + required contact HALL-BATHROOM_1",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R3_REROUTE_ACCESS",
+     "original": "HALL->KITCHEN (no shared wall)",
+     "changed": "LIVING->KITCHEN",
+     "reason": "a door needs a shared wall; KITCHEN touches LIVING, a legal entrant reachable from HALL in 1 legal step(s) \u2014 direct access becomes access through LIVING",
+     "evidence": {
+      "candidates": [
+       "LIVING"
+      ]
+     },
+     "alternatives": []
+    },
+    {
+     "rule": "R4_DEMOTE_CONTACT",
+     "original": "required contact BATHROOM_1-BEDROOM_1",
+     "changed": "preferred contact BATHROOM_1-BEDROOM_1 (not required)",
+     "reason": "a wall contact no door uses; demoting it to a preference removes the obstruction",
+     "evidence": {
+      "pool_size": 5,
+      "set_size": 1
+     },
+     "alternatives": []
+    }
+   ],
+   "unrepaired": [],
+   "critic_after_hard": [],
+   "production_after_repair": {
+    "result": "PASS",
+    "candidate": 2,
+    "access": "8/8",
+    "spatial": "11/11",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 37,
+     "sized": 24,
+     "oriented": 21,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B08",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [],
+   "findings": [],
+   "critic_seconds": 0.171,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 0,
+    "access": "7/7",
+    "spatial": "10/10",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 32,
+     "sized": 17,
+     "oriented": 20,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B09",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [
+    "ACCESS_SPATIAL_CONTRADICTION",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "ACCESS_SPATIAL_CONTRADICTION",
+    "ACCESS_WITHOUT_CONTACT",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_1",
+      "BEDROOM_1",
+      "HALL"
+     ],
+     "detail": "BATHROOM_1 has 2 doors (BEDROOM_1, HALL); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of BEDROOM_1 and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "BEDROOM_1",
+       "HALL"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_1"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_1 (ensuite of BEDROOM_1): an ENSUITE is entered only from its host (BEDROOM_1)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_1"
+     }
+    },
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_2",
+      "BEDROOM_2",
+      "HALL"
+     ],
+     "detail": "BATHROOM_2 has 2 doors (BEDROOM_2, HALL); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of BEDROOM_2 and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "BEDROOM_2",
+       "HALL"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_2"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_2 (ensuite of BEDROOM_2): an ENSUITE is entered only from its host (BEDROOM_2)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_2"
+     }
+    },
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_3",
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "detail": "BATHROOM_3 has 2 doors (HALL, MASTER_BEDROOM); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of MASTER_BEDROOM and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "HALL",
+       "MASTER_BEDROOM"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_3"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_3 (ensuite of MASTER_BEDROOM): an ENSUITE is entered only from its host (MASTER_BEDROOM)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "MASTER_BEDROOM"
+     }
+    },
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->BATHROOM_3"
+     ],
+     "detail": "1 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->BATHROOM_3",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "BATHROOM_3"
+       ]
+      ]
+     }
+    },
+    {
+     "code": "ACCESS_SPATIAL_CONTRADICTION",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_1/BATHROOM_3/BEDROOM_2 are each required to touch both BATHROOM_2 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": false
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "ACCESS_SPATIAL_CONTRADICTION",
+    "stage": "EMBEDDING",
+    "detail": "the spatial adjacency alone has a band layout (30 candidate(s)) but spatial \u222a direct-access does not (TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_1/BATHROOM_3/BEDROOM_2 are each required to touch both BATHROOM_2 and HALL: a straight wall ",
+    "selection": {}
+   },
+   "repairs": [
+    {
+     "rule": "R1_ONE_DOOR_WET",
+     "original": "BATHROOM_1 doors from ['BEDROOM_1', 'HALL']",
+     "changed": "BATHROOM_1 door from HALL only",
+     "reason": "a wet room has exactly one door (specs/007 FR-9); the proposal asked for a HALL door, which makes BATHROOM_1 a shared_bathroom; the dropped entrants still reach it through legal doors",
+     "evidence": {
+      "kept": "HALL",
+      "kept_kind": "shared_bathroom",
+      "dropped": [
+       "BEDROOM_1"
+      ],
+      "dropped_still_reach_room_in_steps": {
+       "BEDROOM_1": 2
+      }
+     },
+     "alternatives": [
+      "keep BEDROOM_1 only (ensuite of BEDROOM_1)"
+     ]
+    },
+    {
+     "rule": "R1_ONE_DOOR_WET",
+     "original": "BATHROOM_2 doors from ['BEDROOM_2', 'HALL']",
+     "changed": "BATHROOM_2 door from HALL only",
+     "reason": "a wet room has exactly one door (specs/007 FR-9); the proposal asked for a HALL door, which makes BATHROOM_2 a shared_bathroom; the dropped entrants still reach it through legal doors",
+     "evidence": {
+      "kept": "HALL",
+      "kept_kind": "shared_bathroom",
+      "dropped": [
+       "BEDROOM_2"
+      ],
+      "dropped_still_reach_room_in_steps": {
+       "BEDROOM_2": 2
+      }
+     },
+     "alternatives": [
+      "keep BEDROOM_2 only (ensuite of BEDROOM_2)"
+     ]
+    },
+    {
+     "rule": "R1_ONE_DOOR_WET",
+     "original": "BATHROOM_3 doors from ['HALL', 'MASTER_BEDROOM']",
+     "changed": "BATHROOM_3 door from HALL only",
+     "reason": "a wet room has exactly one door (specs/007 FR-9); the proposal asked for a HALL door, which makes BATHROOM_3 a shared_bathroom; the dropped entrants still reach it through legal doors",
+     "evidence": {
+      "kept": "HALL",
+      "kept_kind": "shared_bathroom",
+      "dropped": [
+       "MASTER_BEDROOM"
+      ],
+      "dropped_still_reach_room_in_steps": {
+       "MASTER_BEDROOM": 2
+      }
+     },
+     "alternatives": [
+      "keep MASTER_BEDROOM only (ensuite of MASTER_BEDROOM)"
+     ]
+    },
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BATHROOM_3 (no shared wall)",
+     "changed": "HALL->BATHROOM_3 + required contact HALL-BATHROOM_3",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R4_DEMOTE_CONTACT",
+     "original": "required contact BATHROOM_2-BEDROOM_2",
+     "changed": "preferred contact BATHROOM_2-BEDROOM_2 (not required)",
+     "reason": "a wall contact no door uses; demoting it to a preference removes the obstruction",
+     "evidence": {
+      "pool_size": 7,
+      "set_size": 1
+     },
+     "alternatives": []
+    }
+   ],
+   "unrepaired": [],
+   "critic_after_hard": [],
+   "production_after_repair": {
+    "result": "PASS",
+    "candidate": 0,
+    "access": "8/8",
+    "spatial": "13/13",
+    "selection": {
+     "candidates": 82,
+     "hard_feasible": 68,
+     "sized": 24,
+     "oriented": 38,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B10",
+   "expected_embedding": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_1",
+      "BEDROOM_1",
+      "HALL"
+     ],
+     "detail": "BATHROOM_1 has 2 doors (BEDROOM_1, HALL); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of BEDROOM_1 and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "BEDROOM_1",
+       "HALL"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_1"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_1 (ensuite of BEDROOM_1): an ENSUITE is entered only from its host (BEDROOM_1)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_1"
+     }
+    },
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_2",
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "detail": "BATHROOM_2 has 2 doors (HALL, MASTER_BEDROOM); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of MASTER_BEDROOM and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "HALL",
+       "MASTER_BEDROOM"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_2"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_2 (ensuite of MASTER_BEDROOM): an ENSUITE is entered only from its host (MASTER_BEDROOM)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "MASTER_BEDROOM"
+     }
+    },
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: four mutually adjacent rooms BATHROOM_1/BEDROOM_1/HALL/LIVING (a K4): three mutually touching rectangles meet at a T-junction and enclose nothing, so no dissection into rectangles \u2014 band, slicing tree or non-guillotine \u2014 can carry all six pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+    "stage": "EMBEDDING",
+    "detail": "four mutually adjacent rooms BATHROOM_1/BEDROOM_1/HALL/LIVING (a K4): three mutually touching rectangles meet at a T-junction and enclose nothing, so no dissection into rectangles \u2014 band, slicing tree or non-guillotine \u2014 can carry all six p",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B11",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [],
+   "findings": [],
+   "critic_seconds": 0.219,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 3,
+    "access": "10/10",
+    "spatial": "13/13",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 10,
+     "oriented": 3,
+     "sized": 2,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B12",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [
+    "EXPOSURE_INFEASIBLE"
+   ],
+   "critic_all": [
+    "ACCESS_WITHOUT_CONTACT",
+    "EXPOSURE_INFEASIBLE"
+   ],
+   "findings": [
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->BATHROOM_2"
+     ],
+     "detail": "1 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->BATHROOM_2",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "BATHROOM_2"
+       ]
+      ]
+     }
+    },
+    {
+     "code": "EXPOSURE_INFEASIBLE",
+     "severity": "HARD",
+     "subjects": [
+      "BEDROOM_1",
+      "BEDROOM_2",
+      "BEDROOM_3",
+      "KITCHEN",
+      "LIVING",
+      "MASTER_BEDROOM"
+     ],
+     "detail": "every one of 150 band layouts (complete family) buries a REQUIRED-exposure room: BEDROOM_1 x150, BEDROOM_2 x40, LIVING x34, KITCHEN x26, BEDROOM_3 x17, MASTER_BEDROOM x14",
+     "evidence": {
+      "layouts": 150,
+      "complete": true,
+      "buried": {
+       "BEDROOM_1": 150,
+       "BEDROOM_3": 17,
+       "MASTER_BEDROOM": 14,
+       "KITCHEN": 26,
+       "BEDROOM_2": 40,
+       "LIVING": 34
+      }
+     }
+    }
+   ],
+   "critic_seconds": 0.722,
+   "production_before": {
+    "result": "EXPOSURE_INFEASIBLE",
+    "stage": "SELECTION",
+    "detail": "no band layout (complete family of 418) keeps every REQUIRED-exposure room on the envelope (120 of 120 rejected by exposure_ok)",
+    "selection": {
+     "candidates": 120
+    }
+   },
+   "repairs": [
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BATHROOM_2 (no shared wall)",
+     "changed": "HALL->BATHROOM_2 + required contact HALL-BATHROOM_2",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R5_DEMOTE_FOR_EXPOSURE",
+     "original": "required contact BATHROOM_2-BATHROOM_3",
+     "changed": "preferred contact BATHROOM_2-BATHROOM_3 (not required)",
+     "reason": "a wall contact no door uses; demoting it to a preference removes the obstruction",
+     "evidence": {
+      "pool_size": 5,
+      "set_size": 1
+     },
+     "alternatives": []
+    }
+   ],
+   "unrepaired": [],
+   "critic_after_hard": [],
+   "production_after_repair": {
+    "result": "PASS",
+    "candidate": 1,
+    "access": "9/9",
+    "spatial": "12/12",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 25,
+     "sized": 14,
+     "oriented": 20,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B13",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [],
+   "findings": [],
+   "critic_seconds": 0.29,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 20,
+    "access": "9/9",
+    "spatial": "12/12",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 3,
+     "sized": 3,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B14",
+   "expected_embedding": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE"
+   ],
+   "critic_all": [
+    "CONTACTS_NOT_REPRESENTABLE"
+   ],
+   "findings": [
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_3/BEDROOM_4/KITCHEN are each required to touch both HALL and LIVING: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+    "stage": "EMBEDDING",
+    "detail": "rooms BATHROOM_3/BEDROOM_4/KITCHEN are each required to touch both HALL and LIVING: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B15",
+   "expected_embedding": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "ACCESS_WITHOUT_CONTACT",
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_1",
+      "HALL",
+      "MASTER_BEDROOM"
+     ],
+     "detail": "BATHROOM_1 has 2 doors (HALL, MASTER_BEDROOM); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of MASTER_BEDROOM and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "HALL",
+       "MASTER_BEDROOM"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_1"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_1 (ensuite of MASTER_BEDROOM): an ENSUITE is entered only from its host (MASTER_BEDROOM)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "MASTER_BEDROOM"
+     }
+    },
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->BEDROOM_1"
+     ],
+     "detail": "1 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->BEDROOM_1",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "BEDROOM_1"
+       ]
+      ]
+     }
+    },
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_1/BEDROOM_2/BEDROOM_3 are each required to touch both BATHROOM_2 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+    "stage": "EMBEDDING",
+    "detail": "rooms BATHROOM_1/BEDROOM_2/BEDROOM_3 are each required to touch both BATHROOM_2 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these p",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B16",
+   "expected_embedding": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "CONTACTS_NOT_REPRESENTABLE",
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_1",
+      "HALL",
+      "MASTER"
+     ],
+     "detail": "BATHROOM_1 has 2 doors (HALL, MASTER); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of MASTER and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "HALL",
+       "MASTER"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_1"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_1 (ensuite of MASTER): an ENSUITE is entered only from its host (MASTER)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "MASTER"
+     }
+    },
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BATHROOM_3/BEDROOM_1/BEDROOM_4 are each required to touch both HALL and LIVING: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+    "stage": "EMBEDDING",
+    "detail": "rooms BATHROOM_3/BEDROOM_1/BEDROOM_4 are each required to touch both HALL and LIVING: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B17",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [
+    "ACCESS_SPATIAL_CONTRADICTION"
+   ],
+   "critic_all": [
+    "ACCESS_SPATIAL_CONTRADICTION",
+    "ACCESS_WITHOUT_CONTACT"
+   ],
+   "findings": [
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->BEDROOM_1",
+      "HALL->BEDROOM_2",
+      "HALL->BEDROOM_3",
+      "HALL->BEDROOM_5"
+     ],
+     "detail": "4 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->BEDROOM_1, HALL->BEDROOM_2, HALL->BEDROOM_3, HALL->BEDROOM_5",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "BEDROOM_1"
+       ],
+       [
+        "HALL",
+        "BEDROOM_2"
+       ],
+       [
+        "HALL",
+        "BEDROOM_3"
+       ],
+       [
+        "HALL",
+        "BEDROOM_5"
+       ]
+      ]
+     }
+    },
+    {
+     "code": "ACCESS_SPATIAL_CONTRADICTION",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_REPRESENTATION_LIMIT: rooms BEDROOM_1/BEDROOM_2/BEDROOM_3 are each required to touch both BATHROOM_2 and HALL: a straight wall has only two sides, so the middle of the three triangles separates the others \u2014 no dissection into rectangles can carry all of these pairs",
+     "evidence": {
+      "obstruction": "TOPOLOGY_REPRESENTATION_LIMIT",
+      "spatial_alone_obstructed": false
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "ACCESS_SPATIAL_CONTRADICTION",
+    "stage": "EMBEDDING",
+    "detail": "the spatial adjacency alone has a band layout (120 candidate(s)) but spatial \u222a direct-access does not (TOPOLOGY_REPRESENTATION_LIMIT: rooms BEDROOM_1/BEDROOM_2/BEDROOM_3 are each required to touch both BATHROOM_2 and HALL: a straight wall h",
+    "selection": {}
+   },
+   "repairs": [
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BEDROOM_1 (no shared wall)",
+     "changed": "HALL->BEDROOM_1 + required contact HALL-BEDROOM_1",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BEDROOM_2 (no shared wall)",
+     "changed": "HALL->BEDROOM_2 + required contact HALL-BEDROOM_2",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BEDROOM_3 (no shared wall)",
+     "changed": "HALL->BEDROOM_3 + required contact HALL-BEDROOM_3",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R3_KEEP_AS_CONTACT",
+     "original": "HALL->BEDROOM_5 (no shared wall)",
+     "changed": "HALL->BEDROOM_5 + required contact HALL-BEDROOM_5",
+     "reason": "no legal touching entrant can replace this door; the contact is required (as production does)",
+     "evidence": {},
+     "alternatives": []
+    },
+    {
+     "rule": "R4_DEMOTE_CONTACT",
+     "original": "required contact BATHROOM_3-LIVING",
+     "changed": "preferred contact BATHROOM_3-LIVING (not required)",
+     "reason": "a wall contact no door uses; demoting it to a preference removes the obstruction",
+     "evidence": {
+      "pool_size": 5,
+      "set_size": 2
+     },
+     "alternatives": []
+    },
+    {
+     "rule": "R4_DEMOTE_CONTACT",
+     "original": "required contact BATHROOM_2-BEDROOM_1",
+     "changed": "preferred contact BATHROOM_2-BEDROOM_1 (not required)",
+     "reason": "a wall contact no door uses; demoting it to a preference removes the obstruction",
+     "evidence": {
+      "pool_size": 5,
+      "set_size": 2
+     },
+     "alternatives": []
+    }
+   ],
+   "unrepaired": [],
+   "critic_after_hard": [],
+   "production_after_repair": {
+    "result": "SIZING_INFEASIBLE",
+    "stage": "SIZING",
+    "detail": "none of 40 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 40,
+     "oriented": 36
+    }
+   }
+  },
+  {
+   "brief": "B18",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [],
+   "critic_all": [
+    "ACCESS_WITHOUT_CONTACT"
+   ],
+   "findings": [
+    {
+     "code": "ACCESS_WITHOUT_CONTACT",
+     "severity": "WARN",
+     "subjects": [
+      "HALL->SAFE_ROOM"
+     ],
+     "detail": "1 direct-access pair(s) have no spatial contact; a door needs a shared wall, so they are required contacts: HALL->SAFE_ROOM",
+     "evidence": {
+      "pairs": [
+       [
+        "HALL",
+        "SAFE_ROOM"
+       ]
+      ]
+     }
+    }
+   ],
+   "critic_seconds": 1.17,
+   "production_before": {
+    "result": "PASS",
+    "candidate": 40,
+    "access": "12/12",
+    "spatial": "14/14",
+    "selection": {
+     "candidates": 120,
+     "hard_feasible": 60,
+     "oriented": 56,
+     "sized": 1,
+     "realized": 1,
+     "passed": 1
+    }
+   }
+  },
+  {
+   "brief": "B19",
+   "expected_embedding": "TOPOLOGY_NON_PLANAR",
+   "critic_hard": [
+    "CONTACTS_NOT_REPRESENTABLE"
+   ],
+   "critic_all": [
+    "CONTACTS_NOT_REPRESENTABLE"
+   ],
+   "findings": [
+    {
+     "code": "CONTACTS_NOT_REPRESENTABLE",
+     "severity": "HARD",
+     "subjects": [],
+     "detail": "TOPOLOGY_NON_PLANAR: the required adjacency graph is not planar: no partition of the plane (rectangles, bands, L-shapes or any polygons) has a non-planar contact graph",
+     "evidence": {
+      "obstruction": "TOPOLOGY_NON_PLANAR",
+      "spatial_alone_obstructed": true
+     }
+    }
+   ],
+   "critic_seconds": 0.0,
+   "production_before": {
+    "result": "TOPOLOGY_NON_PLANAR",
+    "stage": "EMBEDDING",
+    "detail": "the required adjacency graph is not planar: no partition of the plane (rectangles, bands, L-shapes or any polygons) has a non-planar contact graph",
+    "selection": {}
+   }
+  },
+  {
+   "brief": "B20",
+   "expected_embedding": "BAND_REPRESENTABLE",
+   "critic_hard": [
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "critic_all": [
+    "WET_ROOM_ENTRY_POLICY",
+    "WET_ROOM_MULTIPLE_ENTRANTS"
+   ],
+   "findings": [
+    {
+     "code": "WET_ROOM_MULTIPLE_ENTRANTS",
+     "severity": "HARD",
+     "subjects": [
+      "BATHROOM_2",
+      "BEDROOM_1",
+      "HALL"
+     ],
+     "detail": "BATHROOM_2 has 2 doors (BEDROOM_1, HALL); specs/007 FR-9: a wet room has exactly one \u2014 an ensuite only from its host, a shared wet room only from circulation. The harness would silently read it as ensuite of BEDROOM_1 and the other door(s) then fail C17 / the wet-room filter",
+     "evidence": {
+      "entrants": [
+       "BEDROOM_1",
+       "HALL"
+      ],
+      "inferred_kind": "ensuite"
+     }
+    },
+    {
+     "code": "WET_ROOM_ENTRY_POLICY",
+     "severity": "HARD",
+     "subjects": [
+      "HALL",
+      "BATHROOM_2"
+     ],
+     "detail": "HALL (HALL) -> BATHROOM_2 (ensuite of BEDROOM_1): an ENSUITE is entered only from its host (BEDROOM_1)",
+     "evidence": {
+      "kind": "ensuite",
+      "host": "BEDROOM_1"
+     }
+    }
+   ],
+   "critic_seconds": 0.101,
+   "production_before": {
+    "result": "ACCESS_POLICY_CONFLICT",
+    "stage": "SELECTION",
+    "detail": "no band layout can carry every direct-access pair as a legal door: HALL->BATHROOM_2: BATHROOM_2: an ENSUITE is entered only from its host (BEDROOM_1)",
+    "selection": {
+     "candidates": 120
+    }
+   },
+   "repairs": [
+    {
+     "rule": "R1_ONE_DOOR_WET",
+     "original": "BATHROOM_2 doors from ['BEDROOM_1', 'HALL']",
+     "changed": "BATHROOM_2 door from HALL only",
+     "reason": "a wet room has exactly one door (specs/007 FR-9); the proposal asked for a HALL door, which makes BATHROOM_2 a shared_bathroom; the dropped entrants still reach it through legal doors",
+     "evidence": {
+      "kept": "HALL",
+      "kept_kind": "shared_bathroom",
+      "dropped": [
+       "BEDROOM_1"
+      ],
+      "dropped_still_reach_room_in_steps": {
+       "BEDROOM_1": 2
+      }
+     },
+     "alternatives": [
+      "keep BEDROOM_1 only (ensuite of BEDROOM_1)"
+     ]
+    }
+   ],
+   "unrepaired": [],
+   "critic_after_hard": [],
+   "production_after_repair": {
+    "result": "NO_ENTRANCE",
+    "stage": "SELECTION",
+    "detail": "no band layout (120 found within the search bound) puts an ALLOWED_ENTRANCE room in the street band in either orientation (120 of 120)",
+    "selection": {
+     "candidates": 120
+    }
+   }
+  }
+ ],
+ "frozen_seconds": 17.6,
+ "dataset": {
+  "proposals": 162,
+  "critic_clean": 59,
+  "hard_findings_per_code": {
+   "ILLEGAL_ACCESS_PAIR": 56,
+   "UNREACHABLE_ROOM": 57,
+   "WET_ROOM_ENTRY_POLICY": 30,
+   "WET_ROOM_MULTIPLE_ENTRANTS": 31,
+   "ACCESS_SPATIAL_CONTRADICTION": 17,
+   "CONTACTS_NOT_REPRESENTABLE": 15,
+   "EXPOSURE_INFEASIBLE": 6,
+   "ENTRANCE_INTO_NON_ENTRANCE_ROLE": 1,
+   "ROOM_WITHOUT_ACCESS": 1
+  },
+  "by_brief": {
+   "B01": [
+    {
+     "rank": 0,
+     "score": 0.6518,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "4/4",
+      "spatial": "6/6",
+      "selection": {
+       "candidates": 34,
+       "hard_feasible": 22,
+       "sized": 16,
+       "oriented": 4,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 1,
+     "score": -0.3398,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "4/4",
+      "spatial": "6/6",
+      "selection": {
+       "candidates": 60,
+       "hard_feasible": 52,
+       "sized": 40,
+       "oriented": 18,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -0.3398,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -2.2674,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -2.5187,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -3.5102,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -3.5102,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "4/4",
+      "spatial": "4/4",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 90,
+       "sized": 72,
+       "oriented": 38,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    }
+   ],
+   "B02": [
+    {
+     "rank": 0,
+     "score": 0.6518,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -1.8973,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.8973,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.8973,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 80,
+       "hard_feasible": 52,
+       "sized": 44,
+       "oriented": 12,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 4,
+     "score": -2.5187,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "6/6",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 69,
+       "oriented": 45,
+       "sized": 64,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -2.5187,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 88,
+       "hard_feasible": 40,
+       "sized": 36,
+       "oriented": 16,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -2.5187,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 88,
+       "hard_feasible": 40,
+       "sized": 36,
+       "oriented": 16,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -3.5102,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "7/7",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 74,
+       "oriented": 36,
+       "sized": 66,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 8,
+     "score": -3.5102,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 88,
+       "hard_feasible": 40,
+       "sized": 36,
+       "oriented": 16,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    }
+   ],
+   "B03": [
+    {
+     "rank": 0,
+     "score": 0.2718,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.0389,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -0.6427,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -0.7198,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -0.7198,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "7/7",
+      "selection": {
+       "candidates": 40,
+       "hard_feasible": 32,
+       "sized": 16,
+       "oriented": 12,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -1.3134,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "5/5",
+      "spatial": "7/7",
+      "selection": {
+       "candidates": 96,
+       "hard_feasible": 62,
+       "sized": 30,
+       "oriented": 30,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -2.6583,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -2.6928,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    }
+   ],
+   "B04": [
+    {
+     "rank": 0,
+     "score": -1.0708,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "7/7",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 33,
+       "sized": 25,
+       "oriented": 15,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 1,
+     "score": -1.0708,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.1076,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.1664,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.2952,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 1,
+      "access": "7/7",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 15,
+       "sized": 11,
+       "oriented": 8,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -2.2868,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 2,
+      "access": "7/7",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 37,
+       "sized": 31,
+       "oriented": 17,
+       "realized": 3,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -2.6928,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -2.7516,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    }
+   ],
+   "B05": [
+    {
+     "rank": 0,
+     "score": -0.0389,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 8,
+      "access": "6/6",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 67,
+       "oriented": 38,
+       "sized": 42,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 1,
+     "score": -0.0389,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "6/6",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 39,
+       "oriented": 20,
+       "sized": 31,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -0.3723,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.6241,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.6746,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "6/6",
+      "spatial": "10/10",
+      "selection": {
+       "candidates": 110,
+       "hard_feasible": 20,
+       "oriented": 4,
+       "sized": 20,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -2.2705,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.6407,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -2.6583,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    }
+   ],
+   "B06": [
+    {
+     "rank": 0,
+     "score": -0.7198,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "EXPOSURE_INFEASIBLE"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -1.4494,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.48,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "7/7",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 70,
+       "sized": 61,
+       "oriented": 22,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -2.0708,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 2,
+      "access": "7/7",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 33,
+       "sized": 30,
+       "oriented": 23,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 4,
+     "score": -2.4409,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "6/7",
+      "spatial": "8/8",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 41,
+       "oriented": 38,
+       "sized": 27,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -2.6746,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "7/7",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 28,
+       "sized": 25,
+       "oriented": 12,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -2.8743,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -3.0623,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "8/8",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 55,
+       "sized": 36,
+       "oriented": 36,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    }
+   ],
+   "B07": [
+    {
+     "rank": 0,
+     "score": -0.6427,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.6427,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "PASS",
+      "candidate": 1,
+      "access": "8/8",
+      "spatial": "10/10",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 30,
+       "sized": 29,
+       "oriented": 9,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -0.6427,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "PASS",
+      "candidate": 6,
+      "access": "8/8",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 26,
+       "sized": 24,
+       "oriented": 12,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -0.7786,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.2364,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -1.7969,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.0119,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "8/8",
+      "spatial": "11/11",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 70,
+       "sized": 51,
+       "oriented": 31,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -2.6241,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 6,
+      "access": "8/8",
+      "spatial": "10/10",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 34,
+       "sized": 29,
+       "oriented": 13,
+       "realized": 2,
+       "passed": 1
+      }
+     }
+    }
+   ],
+   "B08": [
+    {
+     "rank": 0,
+     "score": 0.5145,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "7/7",
+      "spatial": "10/10",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 32,
+       "sized": 17,
+       "oriented": 20,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 1,
+     "score": -1.0708,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 47,
+      "access": "7/7",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 10,
+       "oriented": 8,
+       "sized": 7,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -1.4183,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ENTRANCE_INTO_NON_ENTRANCE_ROLE",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ENTRANCE_INTO_NON_ENTRANCE_ROLE",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.8827,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -2.2529,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -3.6498,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    }
+   ],
+   "B09": [
+    {
+     "rank": 0,
+     "score": 0.2984,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.2952,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "EXPOSURE_INFEASIBLE"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -0.3949,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "7/8",
+      "spatial": "11/11",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 14,
+       "sized": 8,
+       "oriented": 7,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -0.3949,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -0.8105,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "8/8",
+      "spatial": "11/11",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 66,
+       "sized": 36,
+       "oriented": 34,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -1.7198,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "8/8",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 96,
+       "sized": 49,
+       "oriented": 48,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -1.9761,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "8/8",
+      "spatial": "10/10",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 18,
+       "oriented": 14,
+       "sized": 10,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -2.2891,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    }
+   ],
+   "B10": [
+    {
+     "rank": 0,
+     "score": 0.6091,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.6427,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -0.6427,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.6768,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.6853,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.9172,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.9943,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 5,
+      "access": "7/8",
+      "spatial": "9/9",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 14,
+       "sized": 11,
+       "oriented": 5,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -3.6407,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 8,
+     "score": -4.2598,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    }
+   ],
+   "B11": [
+    {
+     "rank": 0,
+     "score": -1.0027,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -1.0418,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.6241,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 3,
+      "access": "10/10",
+      "spatial": "13/13",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 10,
+       "oriented": 3,
+       "sized": 2,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -2.3821,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -2.3905,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "SAFE_ROOM_RC_MISSING",
+      "stage": "VALIDATORS",
+      "detail": "C4 failed on 1 candidate(s)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 32,
+       "oriented": 29,
+       "sized": 1,
+       "realized": 1
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -2.6241,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.6928,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 11,
+      "access": "10/10",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 14,
+       "oriented": 13,
+       "sized": 5,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -3.0334,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 2,
+      "access": "10/10",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 26,
+       "sized": 4,
+       "oriented": 5,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 8,
+     "score": -4.0035,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 15,
+      "access": "10/10",
+      "spatial": "11/11",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 10,
+       "oriented": 10,
+       "sized": 8,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    }
+   ],
+   "B12": [
+    {
+     "rank": 0,
+     "score": 0.1987,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "EXPOSURE_INFEASIBLE"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "EXPOSURE_INFEASIBLE"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.112,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.0027,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "EXPOSURE_INFEASIBLE"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "EXPOSURE_INFEASIBLE"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.0531,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.6468,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.974,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.974,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -3.5931,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY"
+     ]
+    }
+   ],
+   "B13": [
+    {
+     "rank": 0,
+     "score": 0.8252,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 20,
+      "access": "9/9",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 3,
+       "sized": 3,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 1,
+     "score": -0.3723,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "SIZING_INFEASIBLE",
+      "stage": "SIZING",
+      "detail": "none of 12 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 12,
+       "oriented": 4
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -1.3134,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 92,
+      "access": "9/9",
+      "spatial": "14/14",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 15,
+       "oriented": 9,
+       "sized": 1,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -1.3134,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "SIZING_INFEASIBLE",
+      "stage": "SIZING",
+      "detail": "none of 5 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 5,
+       "oriented": 2
+      }
+     }
+    },
+    {
+     "rank": 4,
+     "score": -2.3476,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.3905,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 39,
+      "access": "8/9",
+      "spatial": "10/10",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 7,
+       "oriented": 4,
+       "sized": 1,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -2.6491,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -2.7012,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY"
+     ]
+    }
+   ],
+   "B14": [
+    {
+     "rank": 0,
+     "score": -0.112,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.3723,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 7,
+      "access": "10/10",
+      "spatial": "14/14",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 21,
+       "sized": 9,
+       "oriented": 15,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -1.0531,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.0531,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "10/10",
+      "spatial": "14/14",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 59,
+       "sized": 21,
+       "oriented": 43,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 4,
+     "score": -1.9598,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.0922,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 4,
+      "access": "10/10",
+      "spatial": "13/13",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 38,
+       "oriented": 26,
+       "sized": 14,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 6,
+     "score": -2.2868,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -4.2236,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    }
+   ],
+   "B15": [
+    {
+     "rank": 0,
+     "score": 0.9022,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.7601,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.2891,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.3639,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.4183,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.0922,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.2868,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -3.0334,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "PASS",
+      "candidate": 2,
+      "access": "10/10",
+      "spatial": "11/11",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 43,
+       "oriented": 29,
+       "sized": 17,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    }
+   ],
+   "B16": [
+    {
+     "rank": 0,
+     "score": 1.1903,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -1.683,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "PASS",
+      "candidate": 12,
+      "access": "13/13",
+      "spatial": "14/14",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 12,
+       "oriented": 8,
+       "sized": 2,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -1.9575,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -2.0119,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -2.6157,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -4.1868,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -12.0119,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "SIZING_INFEASIBLE",
+      "stage": "SIZING",
+      "detail": "none of 4 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 4,
+       "oriented": 2
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -13.3368,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ROOM_WITHOUT_ACCESS",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ROOM_WITHOUT_ACCESS",
+      "UNREACHABLE_ROOM"
+     ]
+    }
+   ],
+   "B17": [
+    {
+     "rank": 0,
+     "score": -1.6491,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -1.6972,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.7239,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 6,
+      "access": "11/11",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 18,
+       "oriented": 14,
+       "sized": 3,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -1.7239,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE"
+     ],
+     "production": {
+      "result": "EXPOSURE_INFEASIBLE",
+      "stage": "SELECTION",
+      "detail": "no band layout (120 found within the search bound) keeps every REQUIRED-exposure room on the envelope (117 of 120 rejected by exposure_ok)",
+      "selection": {
+       "candidates": 120
+      }
+     }
+    },
+    {
+     "rank": 4,
+     "score": -2.3702,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.974,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -3.0261,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 34,
+      "access": "12/12",
+      "spatial": "13/13",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 53,
+       "oriented": 53,
+       "sized": 4,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 7,
+     "score": -3.1105,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 0,
+      "access": "11/11",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 56,
+       "oriented": 55,
+       "sized": 31,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 8,
+     "score": -4.2009,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    }
+   ],
+   "B18": [
+    {
+     "rank": 0,
+     "score": -0.0349,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "PASS",
+      "candidate": 40,
+      "access": "12/12",
+      "spatial": "14/14",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 60,
+       "oriented": 56,
+       "sized": 1,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 1,
+     "score": -0.3723,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -1.3134,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.3361,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT"
+     ],
+     "production": {
+      "result": "SIZING_INFEASIBLE",
+      "stage": "SIZING",
+      "detail": "none of 3 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 3,
+       "oriented": 3
+      }
+     }
+    },
+    {
+     "rank": 4,
+     "score": -1.3361,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "SIZING_INFEASIBLE",
+      "stage": "SIZING",
+      "detail": "none of 2 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 2,
+       "oriented": 2
+      }
+     }
+    },
+    {
+     "rank": 5,
+     "score": -1.3638,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -1.3888,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -1.9575,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    }
+   ],
+   "B19": [
+    {
+     "rank": 0,
+     "score": -0.3723,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.7282,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 7,
+      "access": "11/11",
+      "spatial": "15/15",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 17,
+       "oriented": 15,
+       "sized": 1,
+       "realized": 1,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 2,
+     "score": -1.1076,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "SIZING_INFEASIBLE",
+      "stage": "SIZING",
+      "detail": "none of 2 HARD-feasible candidate placements could be sized (enumeration complete: False)",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 2
+      }
+     }
+    },
+    {
+     "rank": 3,
+     "score": -1.3639,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ACCESS_SPATIAL_CONTRADICTION"
+     ],
+     "critic_all": [
+      "ACCESS_SPATIAL_CONTRADICTION",
+      "ACCESS_WITHOUT_CONTACT"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -2.0646,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -2.305,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ],
+     "critic_all": [
+      "CONTACTS_NOT_REPRESENTABLE"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -2.6491,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ACCESS_WITHOUT_CONTACT",
+      "EXPOSURE_INFEASIBLE",
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -3.6583,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    }
+   ],
+   "B20": [
+    {
+     "rank": 0,
+     "score": 0.3489,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": true,
+     "critic_hard": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ],
+     "critic_all": [
+      "WET_ROOM_ENTRY_POLICY",
+      "WET_ROOM_MULTIPLE_ENTRANTS"
+     ]
+    },
+    {
+     "rank": 1,
+     "score": -0.4227,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 2,
+     "score": -0.7827,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 3,
+     "score": -1.3361,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 4,
+     "score": -1.6468,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 5,
+     "score": -1.9824,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 6,
+     "score": -1.9824,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM"
+     ]
+    },
+    {
+     "rank": 7,
+     "score": -2.6157,
+     "policy_valid_by_access_rules": true,
+     "frozen_choice": false,
+     "critic_hard": [],
+     "critic_all": [],
+     "production": {
+      "result": "PASS",
+      "candidate": 12,
+      "access": "9/9",
+      "spatial": "12/12",
+      "selection": {
+       "candidates": 120,
+       "hard_feasible": 36,
+       "sized": 13,
+       "oriented": 14,
+       "realized": 2,
+       "passed": 1
+      }
+     }
+    },
+    {
+     "rank": 8,
+     "score": -5.1279,
+     "policy_valid_by_access_rules": false,
+     "frozen_choice": false,
+     "critic_hard": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY"
+     ],
+     "critic_all": [
+      "ILLEGAL_ACCESS_PAIR",
+      "UNREACHABLE_ROOM",
+      "WET_ROOM_ENTRY_POLICY"
+     ]
+    }
+   ]
+  }
+ },
+ "dataset_seconds": 48.9
+}

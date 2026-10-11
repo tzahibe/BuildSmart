@@ -45,6 +45,10 @@ dev = [
     "jsonschema>=4.26.0",
     "pytest>=8.0.0",
     "pytest-xdist>=3.8.0",
+    # tests/knowledge/test_adjacency_priors_fullcorpus.py builds synthetic plan graphs with
+    # networkx.Graph directly. Previously only reachable transitively via the torch extra, so a
+    # plain `uv sync` (no extras) left it missing and the test module failed to collect.
+    "networkx>=3.0",
 ]
 
 [tool.uv]

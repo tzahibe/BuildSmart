@@ -3,7 +3,7 @@ import { fireEvent, render, within } from '@testing-library/react'
 import DemoPlan, { planViewBox } from './DemoPlan'
 import DemoWorkspace from './DemoWorkspace'
 import ReviewPage from './ReviewPage'
-import type { DemoBuilding, DemoDesign, RequirementsReview } from './demoDesign'
+import type { DemoBuilding, DemoDesign, DemoPlanSet, RequirementsReview } from './demoDesign'
 
 /** The renderer boundary: DemoPlan draws exactly what the backend supplied, and nothing else. */
 function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
@@ -14,6 +14,7 @@ function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
       {
         id: 'LIVING', type: 'LIVING', name: 'סלון',
         x: 3, y: 5.5, width_m: 5, depth_m: 6, area_m2: 27.4,
+        gross_width_m: 5, gross_depth_m: 6, gross_area_m2: 30,
         walls: {
           N: { construction: 'STANDARD_PARTITION', boundary_context: 'EXTERIOR', can_take_a_window: true },
           S: { construction: 'NONE', boundary_context: 'INTERIOR', can_take_a_window: false },
@@ -123,7 +124,8 @@ describe('DemoPlan', () => {
     const casedOpening = design({
       doors: [
         { a: 'HALL', b: 'LIVING', kind: 'CASED_OPENING', width_m: 0.9, x: 8, y: 8,
-          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5,
+          swing_deg: 180 },
       ],
     })
     const { container } = render(<DemoPlan design={casedOpening} />)
@@ -137,7 +139,8 @@ describe('DemoPlan', () => {
     const ordinaryDoor = design({
       doors: [
         { a: 'HALL', b: 'LIVING', kind: 'DOOR', width_m: 0.9, x: 8, y: 8,
-          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5 },
+          orientation: 'vertical', is_entrance: false, swings_into: 'LIVING', hinge_x: 8, hinge_y: 5,
+          swing_deg: 180 },
       ],
     })
     const { container } = render(<DemoPlan design={ordinaryDoor} />)
@@ -200,6 +203,22 @@ describe('DemoPlan compass', () => {
   it('draws no compass without a street side (thumbnails, or no site)', () => {
     const { container } = render(<DemoPlan design={design()} />)
     expect(container.querySelector('[data-testid="compass"]')).toBeNull()
+  })
+})
+
+describe('DemoPlan scale bar', () => {
+  it('draws a scale bar with a round metre length, alongside the compass', () => {
+    const { container } = render(<DemoPlan design={design()} streetFacingSide="NORTH" />)
+    const bar = container.querySelector('[data-testid="scale-bar"]')
+    expect(bar).not.toBeNull()
+    const lengthM = Number(bar!.getAttribute('data-length-m'))
+    expect([1, 2, 5, 10, 20, 50].includes(lengthM)).toBe(true)
+    expect(bar!.textContent).toContain('מ׳')
+  })
+
+  it('draws no scale bar without a street side, matching the compass on thumbnails', () => {
+    const { container } = render(<DemoPlan design={design()} />)
+    expect(container.querySelector('[data-testid="scale-bar"]')).toBeNull()
   })
 })
 
@@ -743,5 +762,109 @@ describe('ReviewPage — the site and its assumptions', () => {
         onConfirm={() => {}} onBack={() => {}} />,
     )
     within(getByLabelText('המגרש והנחות התכנון')).getByText(/אינו נכנס בשטח שנותר לבנייה/)
+  })
+})
+
+/** Concept Plan Communication Pass — the programme-capacity disclosure reaches the person.
+ * The backend decides the condition and owns the sentence (`contract.capacity_notice_text`); the
+ * workspace only has to show it, and only when there is one. */
+describe('programme-capacity disclosure', () => {
+  const NOTICE = 'התוכנית שביקשת יכולה למלא עד כ-200 מ"ר בצורה סבירה, והיעד שהוזן הוא 440 מ"ר.'
+
+  function withQuality(capacity_notice: string | null) {
+    const base = design()
+    return { ...base, quality: { ...(base.quality ?? { over_preferred: false, signal: [], notices: [] }), capacity_notice } } as DemoDesign
+  }
+
+  it('shows the backend sentence verbatim when the brief is over capacity', () => {
+    const { getByText } = render(
+      <DemoWorkspace plans={{ plan: withQuality(NOTICE), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(getByText(NOTICE)).toBeTruthy()
+  })
+
+  it('says nothing when the brief fits', () => {
+    const { queryByText } = render(
+      <DemoWorkspace plans={{ plan: withQuality(null), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    expect(queryByText(NOTICE)).toBeNull()
+  })
+
+  it('presents it as a note, never as a validation failure', () => {
+    const { container } = render(
+      <DemoWorkspace plans={{ plan: withQuality(NOTICE), alternatives: [] }} onChangeRequirements={() => {}} />,
+    )
+    const el = container.querySelector('.workspace-capacity-notice')!
+    expect(el.getAttribute('role')).toBe('note')
+    expect(container.querySelector('.workspace-warnings')?.textContent ?? '').not.toContain('יכולה למלא')
+  })
+})
+
+/** DEVELOPMENT ENGINE PREVIEW — the owner must be able to watch the Concept Engine honestly,
+ * including when it currently returns nothing to choose between. */
+describe('engine preview panel', () => {
+  const planSetOf = (alternatives: DemoDesign[] = []) =>
+    ({ plan: design(), alternatives } as unknown as DemoPlanSet)
+
+  it('defaults to production and never shows a concept engine label there', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf()} onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-used').textContent).toContain('ייצור')
+  })
+
+  it('reports zero alternatives as zero rather than hiding the panel', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf()} engine="concept_engine_v2" generationMs={210}
+                     onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-alternatives').textContent).toBe('0')
+    expect(getByTestId('engine-used').textContent).toContain('Concept Engine v2')
+    expect(getByTestId('engine-ms').textContent).toBe('210 ms')
+  })
+
+  it('shows an absent concept family as unavailable, never invented', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf()} engine="concept_engine_v2" onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-family').textContent).toBe('לא זמין')
+  })
+
+  it('shows a concept family when the engine actually attached one', () => {
+    const labelled = { ...design(), concept: { label: 'מסדרון מרכזי' } } as unknown as DemoDesign
+    const { getByTestId } = render(
+      <DemoWorkspace plans={{ plan: labelled, alternatives: [] } as unknown as DemoPlanSet}
+                     engine="concept_engine_v2" onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-family').textContent).toBe('מסדרון מרכזי')
+  })
+
+  it('exposes alternatives as selectable concepts the moment the engine returns any', () => {
+    // No further integration work: the same UI numbers them Concept 1..N.
+    const { getByTestId, getAllByText } = render(
+      <DemoWorkspace plans={planSetOf([design(), design()])} engine="concept_engine_v2"
+                     onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('engine-alternatives').textContent).toBe('2')
+    expect(getByTestId('plan-shown').textContent).toBe('קונספט 1')
+    expect(getAllByText('קונספט 2').length).toBeGreaterThan(0)
+    expect(getAllByText('קונספט 3').length).toBeGreaterThan(0)
+  })
+
+  it('asks the caller to re-run the same brief when the engine is switched', () => {
+    const asked: string[] = []
+    const { getByLabelText } = render(
+      <DemoWorkspace plans={planSetOf()} engine="production"
+                     onEngineChange={(e) => asked.push(e)} onChangeRequirements={() => {}} />,
+    )
+    fireEvent.click(getByLabelText('Concept Engine v2'))
+    expect(asked).toEqual(['concept_engine_v2'])
+  })
+
+  it('keeps production wording when production produced the plans', () => {
+    const { getByTestId } = render(
+      <DemoWorkspace plans={planSetOf([design()])} onChangeRequirements={() => {}} />,
+    )
+    expect(getByTestId('plan-shown').textContent).toBe('הבחירה של המנוע')
   })
 })

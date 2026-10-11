@@ -33,6 +33,8 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 
 from .concept import Concept
+from .concept_spec import CirculationClass
+from .constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, assert_realized
 from .geometry_core.model import (
     UNIT_M,
     WALL_THICKNESS_M,
@@ -53,6 +55,8 @@ from .geometry_core.model import (
     m_to_u,
     u_to_m,
 )
+from . import adjacency_priors as _adjacency_priors
+from . import room_proportion_priors as _priors
 from .safe_adapter import SolverGeometryCandidate
 from .spec import (
     ENSUITE_HOST_BEDROOM,
@@ -452,6 +456,11 @@ class ConceptCandidate:
     concept: Concept
     strategy: ConceptStrategy
     wing_orders: tuple[int, ...]
+    #: The circulation parti this candidate belongs to (Issue #75) — set explicitly by the
+    #: builder that produced it (`_concept_from` -> SPINE, `_front_band_candidate` -> FRONT_BAND,
+    #: `_hub_candidate` -> HUB_LOBBY, `l_parti._candidate_from` -> TWO_WING). Verified against the
+    #: realized plan by `concept_spec.verify_class`; metadata only, never read by selection.
+    circulation_class: CirculationClass
     rationale: str
     used_area_m2: float
     unused_wing_area_m2: float
@@ -2870,6 +2879,35 @@ def _free_twin(candidate: ConceptCandidate) -> ConceptCandidate:
 FREE_TWIN_RATIONALE = "cut positions chosen by the solver"
 
 
+def _corridor_served_extent_m(*row_depths_lists: list[float]) -> float:
+    """The far edge, measured from the corridor's own start, of the LAST row served on either
+    side of it — the deepest of the columns the corridor runs beside.
+
+    Issue #22, Required behaviour 1: the corridor leaf's own endpoint must be STRUCTURALLY
+    derived from the last door it serves, not merely coincide with the wing edge. `_row_depths`/
+    `_distribute_column_surplus` already guarantee every column's own rows sum to exactly that
+    column's `column_depth` — this reads that guarantee back off the REALIZED row layout, so the
+    corridor's construction site can assert its own length against it (`_assert_corridor_extent`)
+    rather than simply inheriting the wing's height because a `Split` sibling always does.
+    """
+    return max(sum(depths) for depths in row_depths_lists)
+
+
+def _assert_corridor_extent(corridor_depth_m: float, where: str,
+                            *row_depths_lists: list[float]) -> None:
+    """Fail closed — never silently — if a corridor leaf's own length ever stopped matching the
+    last door it serves (see `_corridor_served_extent_m`). Holds for every real plan today (the
+    432-context sweep behind `docs/ENTRANCE_CIRCULATION_SWEEP.md` found zero counter-examples);
+    this turns that empirical fact into a checked structural invariant instead of an assumption,
+    so a future change to the row-distribution guarantee cannot silently reintroduce a dead
+    corridor stub beyond the entrance's last served door (C25)."""
+    served = _corridor_served_extent_m(*row_depths_lists)
+    assert abs(corridor_depth_m - served) <= 1e-6, (
+        f"{where}: corridor leaf is {corridor_depth_m:.4f} m but its last served door is at "
+        f"{served:.4f} m — the corridor's own extent must be derived from the last door it "
+        f"serves, not the wing edge (Issue #22)")
+
+
 def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: Rect,
                   strategy: ConceptStrategy, rationale: str,
                   footprint: Rect, plan: LayoutPlan, *, repartitioned: bool = False,
@@ -2895,6 +2933,11 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
     east_tree = _forced_chain(plan.east.rows, plan.east.row_depths_m,
                               plan.east.width_m - _EDGE_INSET_ALLOWANCE_M, open_block,
                               exterior_first=False)
+    # HALL is a `Cut.V` sibling of west/east, so its own rectangle inherits the wing's full
+    # height (`fh`) by construction. `_assert_corridor_extent` checks that this always equals
+    # the REALIZED extent of the last row served on either side (Issue #22) rather than assuming
+    # the two coincide.
+    _assert_corridor_extent(fh, "spine hall", plan.west.row_depths_m, plan.east.row_depths_m)
     tree = Split(Cut.V, west_tree,
                  Split(Cut.V, Leaf("HALL"), east_tree, m_to_u(plan.hall_w_m)),
                  m_to_u(plan.west.width_m))
@@ -2910,6 +2953,7 @@ def _concept_from(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate: 
                       tuple(specs[r.zone_id] for r in rooms), access, open_groups=groups)
     return ConceptCandidate(
         Concept(fixture, "HALL", Side.N, fw, fh), strategy, (0,),
+        circulation_class=CirculationClass.SPINE,
         rationale=(f"{rationale}; west {plan.west.width_m:.2f} m ({len(plan.west.rows)} rows) | "
                    f"hall {plan.hall_w_m:.2f} m | east {plan.east.width_m:.2f} m "
                    f"({len(plan.east.rows)} rows) over {fh:.2f} m"),
@@ -3191,6 +3235,10 @@ def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], can
     fw, fh = u_to_m(footprint.w), u_to_m(footprint.h)
 
     band_tree = _forced_v_chain(public, public_widths)
+    # HALL is a `Cut.V` sibling of the rear west/east columns, so its own rectangle inherits the
+    # rear's height (`fh - band_depth`) by construction; check that against the REALIZED extent
+    # of the last row served on either side (Issue #22).
+    _assert_corridor_extent(fh - band_depth, "front-band hall", west_depths, east_depths)
     rear = Split(Cut.V,
                  _forced_chain(west_rows, west_depths, west_w - _EDGE_INSET_ALLOWANCE_M,
                                exterior_first=True),
@@ -3211,6 +3259,7 @@ def _front_band_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], can
                       tuple(specs[r.zone_id] for r in rooms), access, open_groups=groups)
     return ConceptCandidate(
         Concept(fixture, "HALL", Side.N, fw, fh), strategy, (0,),
+        circulation_class=CirculationClass.FRONT_BAND,
         rationale=(f"front public band {band_depth:.2f} m deep; rear west {west_w:.2f} m "
                    f"({len(west_rows)} rows) | hall {hall_w:.2f} m | east {east_w:.2f} m "
                    f"({len(east_rows)} rows)"
@@ -4038,6 +4087,7 @@ def _hub_candidate(spec: ArchitecturalSpec, rooms: list[ProgramRoom], candidate:
                       tuple(plan.specs[r.zone_id] for r in rooms), access, open_groups=groups)
     return ConceptCandidate(
         Concept(fixture, alloc.hub.zone_id, Side.N, fw, fh), ConceptStrategy.HUB_PRIVATE_WING, (0,),
+        circulation_class=CirculationClass.HUB_LOBBY,
         rationale=(f"room lobby {plan.hub_w_m:.2f} x {plan.hub_d_m:.2f} m with {plan.doors_on_hub} "
                    f"doors; front band {plan.band_depth_m:.2f} m; flanks {plan.west_w_m:.2f} | "
                    f"{plan.east_w_m:.2f} m; foot band {plan.foot_depth_m:.2f} m "
@@ -4425,6 +4475,14 @@ def generate_concepts(spec: ArchitecturalSpec,
     """A small, bounded, deterministic set of plausible concepts, best first."""
     variants = programme_variants(spec)
     rooms = variants[0]                     # the literal reading of the brief, for the diagnostics
+    constraint = spec.safe_room_constraint
+    # Issue #35, stage assertion 1/3: the room PROGRAMME this concept stage is about to build
+    # candidates from must still carry an authoritative constraint's room. `build_room_program`
+    # (via `programme_variants`) is the only place that adds SAFE_ROOM to `rooms`, so this also
+    # protects every later variant (`programme_variants` only ever rearranges wet rooms, never
+    # drops SAFE_ROOM) and every return below, which all derive from `rooms`/`variants`.
+    assert_realized(constraint, any(r.role is ProgramRole.SAFE_ROOM for r in rooms),
+                    stage="concept_generation", detail=SAFE_ROOM_NOT_REALIZED_DETAIL)
     accepted: list[ConceptCandidate] = []
     rejections: list[ConceptRejection] = []
     last_resort: set[int] = set()   # ids of hub candidates demoted by their outline's bound (008)
@@ -4554,22 +4612,34 @@ def generate_concepts(spec: ArchitecturalSpec,
     # front of any candidate a brief already had. Ranking among them is a later review's question.
     quality = [c for c in accepted if c.quality_repartitioned]
     accepted = [c for c in accepted if not c.repartitioned]
+    # ROOM-PROPORTION PRIORS (Issue #140, `room_proportion_priors.py`): appended as the LAST
+    # element of every sort key below, strictly after `c.strategy.value` (the existing final
+    # determinism tiebreak) — it can only ever reorder candidates that already tie on every
+    # existing criterion, and with `ROOM_PROPORTION_PRIORS_ENABLED` False (the default) it is a
+    # constant 0.0 for every candidate, a genuine no-op on ordering.
+    # ADJACENCY PRIORS (Issue #141, `adjacency_priors.py`): appended AFTER the room-proportion
+    # prior — an even lower precedence soft signal, same no-op guarantee with
+    # `ADJACENCY_PRIORS_ENABLED` False (the default).
     if target_m2 is not None:
         # A shrunk candidate (`ConceptCandidate.shrunk`) ranks by the same proximity and loses
         # only a tie in area to a normal one.
         accepted.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                      c.over_preferred or c.shrunk, c.over_preferred,
-                                     round(c.used_area_m2, 4), c.strategy.value))
+                                     round(c.used_area_m2, 4), c.strategy.value,
+                                     _priors.priors_score(c), _adjacency_priors.adjacency_score(c)))
         tier2.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
-                                  round(c.used_area_m2, 4), c.strategy.value))
+                                  round(c.used_area_m2, 4), c.strategy.value,
+                                  _priors.priors_score(c), _adjacency_priors.adjacency_score(c)))
         quality.sort(key=lambda c: (round(abs(c.used_area_m2 - target_m2), 4),
                                     c.over_preferred or c.shrunk, c.over_preferred,
-                                    round(c.used_area_m2, 4), c.strategy.value))
+                                    round(c.used_area_m2, 4), c.strategy.value,
+                                    _priors.priors_score(c), _adjacency_priors.adjacency_score(c)))
 
     else:
         # Without a target the strategy order is kept; the fallbacks (shrunk, then over
         # preferred) follow the normal candidates.
-        accepted.sort(key=lambda c: (c.over_preferred or c.shrunk, c.over_preferred))
+        accepted.sort(key=lambda c: (c.over_preferred or c.shrunk, c.over_preferred,
+                                     _priors.priors_score(c), _adjacency_priors.adjacency_score(c)))
     # Every forced tree first, in the order just decided; then the same trees with their cut
     # positions left to the solver, in the same order. See `_unforced` for why this ordering — and
     # not one twin behind each forced tree — is the one that leaves every existing plan untouched.

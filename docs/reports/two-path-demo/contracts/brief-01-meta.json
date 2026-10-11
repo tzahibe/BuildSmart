@@ -1,0 +1,39 @@
+{
+  "brief_id": "{\"bedrooms\": 2, \"built_area_m2\": 200.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 10.0, \"open_plan\": true, \"plot_depth_m\": 30.5, \"plot_width_m\": 17.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+  "street_facing_side": "NORTH",
+  "family_b": "TWO_WING",
+  "a": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.6,
+      "m1_habitable_aspect_max": 2.046875,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.14285714285714285,
+      "m4_hall_door_count": 3,
+      "m4_hall_aspect_median": 10.0,
+      "m5_wet_adjacency_ratio": 0.0,
+      "m6_public_zone_contiguous": true,
+      "validation_passed": true
+    }
+  },
+  "b": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.5885518590998042,
+      "m1_habitable_aspect_max": 2.072463768115942,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.16944846683433681,
+      "m4_hall_door_count": 7,
+      "m4_hall_aspect_median": 2.677536231884058,
+      "m5_wet_adjacency_ratio": null,
+      "m6_public_zone_contiguous": false,
+      "validation_passed": true
+    },
+    "c30_passed": false,
+    "c30_detail": "S_MASTER_BEDROOM: BED"
+  }
+}

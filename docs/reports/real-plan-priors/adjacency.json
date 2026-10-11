@@ -1,0 +1,211 @@
+{
+  "corpus_dir": "tests/spikes/fixtures/geometry_shapes/plans",
+  "plans_scanned": 19,
+  "plans_excluded_synthetic": 1,
+  "baseline_adjacency_rate": 0.703448,
+  "smoothing_method": "laplace",
+  "smoothing_alpha": 1.0,
+  "min_support": 3,
+  "rows": [
+    {
+      "role_a": "BATHROOM",
+      "role_b": "BEDROOM",
+      "sample_count": 15,
+      "adjacent_count": 15,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.941176,
+      "lift": 1.337947,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BATHROOM",
+      "role_b": "CIRCULATION",
+      "sample_count": 3,
+      "adjacent_count": 3,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.8,
+      "lift": 1.137255,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BATHROOM",
+      "role_b": "KITCHEN",
+      "sample_count": 15,
+      "adjacent_count": 4,
+      "raw_p_adjacent": 0.266667,
+      "p_adjacent": 0.294118,
+      "lift": 0.418109,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BATHROOM",
+      "role_b": "LIVING",
+      "sample_count": 16,
+      "adjacent_count": 15,
+      "raw_p_adjacent": 0.9375,
+      "p_adjacent": 0.888889,
+      "lift": 1.263617,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BATHROOM",
+      "role_b": "STORAGE",
+      "sample_count": 2,
+      "adjacent_count": 1,
+      "raw_p_adjacent": 0.5,
+      "p_adjacent": 0.5,
+      "lift": 0.710785,
+      "meets_min_support": false
+    },
+    {
+      "role_a": "BATHROOM",
+      "role_b": "TOILET",
+      "sample_count": 7,
+      "adjacent_count": 3,
+      "raw_p_adjacent": 0.428571,
+      "p_adjacent": 0.444444,
+      "lift": 0.631809,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BEDROOM",
+      "role_b": "CIRCULATION",
+      "sample_count": 3,
+      "adjacent_count": 3,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.8,
+      "lift": 1.137255,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BEDROOM",
+      "role_b": "KITCHEN",
+      "sample_count": 15,
+      "adjacent_count": 5,
+      "raw_p_adjacent": 0.333333,
+      "p_adjacent": 0.352941,
+      "lift": 0.50173,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BEDROOM",
+      "role_b": "LIVING",
+      "sample_count": 16,
+      "adjacent_count": 16,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.944444,
+      "lift": 1.342593,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "BEDROOM",
+      "role_b": "STORAGE",
+      "sample_count": 2,
+      "adjacent_count": 2,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.75,
+      "lift": 1.066177,
+      "meets_min_support": false
+    },
+    {
+      "role_a": "BEDROOM",
+      "role_b": "TOILET",
+      "sample_count": 5,
+      "adjacent_count": 4,
+      "raw_p_adjacent": 0.8,
+      "p_adjacent": 0.714286,
+      "lift": 1.015407,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "CIRCULATION",
+      "role_b": "KITCHEN",
+      "sample_count": 5,
+      "adjacent_count": 1,
+      "raw_p_adjacent": 0.2,
+      "p_adjacent": 0.285714,
+      "lift": 0.406163,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "CIRCULATION",
+      "role_b": "LIVING",
+      "sample_count": 4,
+      "adjacent_count": 3,
+      "raw_p_adjacent": 0.75,
+      "p_adjacent": 0.666667,
+      "lift": 0.947713,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "CIRCULATION",
+      "role_b": "TOILET",
+      "sample_count": 3,
+      "adjacent_count": 1,
+      "raw_p_adjacent": 0.333333,
+      "p_adjacent": 0.4,
+      "lift": 0.568628,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "KITCHEN",
+      "role_b": "LIVING",
+      "sample_count": 16,
+      "adjacent_count": 16,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.944444,
+      "lift": 1.342593,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "KITCHEN",
+      "role_b": "STORAGE",
+      "sample_count": 2,
+      "adjacent_count": 0,
+      "raw_p_adjacent": 0.0,
+      "p_adjacent": 0.25,
+      "lift": 0.355392,
+      "meets_min_support": false
+    },
+    {
+      "role_a": "KITCHEN",
+      "role_b": "TOILET",
+      "sample_count": 7,
+      "adjacent_count": 3,
+      "raw_p_adjacent": 0.428571,
+      "p_adjacent": 0.444444,
+      "lift": 0.631809,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "LIVING",
+      "role_b": "STORAGE",
+      "sample_count": 2,
+      "adjacent_count": 2,
+      "raw_p_adjacent": 1.0,
+      "p_adjacent": 0.75,
+      "lift": 1.066177,
+      "meets_min_support": false
+    },
+    {
+      "role_a": "LIVING",
+      "role_b": "TOILET",
+      "sample_count": 6,
+      "adjacent_count": 5,
+      "raw_p_adjacent": 0.833333,
+      "p_adjacent": 0.75,
+      "lift": 1.066177,
+      "meets_min_support": true
+    },
+    {
+      "role_a": "STORAGE",
+      "role_b": "TOILET",
+      "sample_count": 1,
+      "adjacent_count": 0,
+      "raw_p_adjacent": 0.0,
+      "p_adjacent": 0.333333,
+      "lift": 0.473856,
+      "meets_min_support": false
+    }
+  ]
+}

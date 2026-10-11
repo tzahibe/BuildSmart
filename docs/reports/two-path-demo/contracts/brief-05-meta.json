@@ -1,0 +1,29 @@
+{
+  "brief_id": "{\"bedrooms\": 4, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": true, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+  "street_facing_side": "NORTH",
+  "family_b": "PINWHEEL",
+  "a": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.7090909090909092,
+      "m1_habitable_aspect_max": 2.1355932203389827,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.11290322580645158,
+      "m4_hall_door_count": 6,
+      "m4_hall_aspect_median": 10.714285714285715,
+      "m5_wet_adjacency_ratio": 0.6666666666666666,
+      "m6_public_zone_contiguous": true,
+      "validation_passed": true
+    }
+  },
+  "b": {
+    "outcome": "REFUSED",
+    "refusal_code": "SHORT_SIDE_INFEASIBLE",
+    "refusal_detail": "N_MASTER_BEDROOM: pinwheel-realized short side 3.10 m (gross) < 3.0 m (net) + 0.3 m inset margin",
+    "metrics": null,
+    "c30_passed": null,
+    "c30_detail": null
+  }
+}

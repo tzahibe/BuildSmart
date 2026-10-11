@@ -1,0 +1,140 @@
+{
+ "B04": {
+  "candidate": 0,
+  "safe_room": "SAFE_ROOM",
+  "gross_m": [
+   4.75,
+   2.7
+  ],
+  "net_m": [
+   4.45,
+   2.4
+  ],
+  "net_area_m2": 10.68,
+  "safe_room_sides": {
+   "N": "RC_SAFE_ROOM",
+   "S": "RC_SAFE_ROOM",
+   "E": "RC_SAFE_ROOM",
+   "W": "RC_SAFE_ROOM"
+  },
+  "rc_neighbour_sides": [
+   [
+    "BATHROOM_2",
+    "W"
+   ],
+   [
+    "BEDROOM_1",
+    "S"
+   ],
+   [
+    "HALL",
+    "S"
+   ]
+  ],
+  "safe_room_doors": [
+   "HALL-SAFE_ROOM"
+  ],
+  "safe_room_windows": [
+   "W"
+  ],
+  "exterior_sides_of_safe_room": [
+   "S",
+   "W"
+  ],
+  "validator_ok": true,
+  "failed_checks": []
+ },
+ "B11": {
+  "candidate": 17,
+  "safe_room": "SAFE_ROOM",
+  "gross_m": [
+   5.3,
+   3.1
+  ],
+  "net_m": [
+   5.0,
+   2.8
+  ],
+  "net_area_m2": 14.0,
+  "safe_room_sides": {
+   "N": "RC_SAFE_ROOM",
+   "S": "RC_SAFE_ROOM",
+   "E": "RC_SAFE_ROOM",
+   "W": "RC_SAFE_ROOM"
+  },
+  "rc_neighbour_sides": [
+   [
+    "BEDROOM_2",
+    "E"
+   ],
+   [
+    "DINING",
+    "S"
+   ],
+   [
+    "HALL",
+    "S"
+   ]
+  ],
+  "safe_room_doors": [
+   "HALL-SAFE_ROOM"
+  ],
+  "safe_room_windows": [
+   "E"
+  ],
+  "exterior_sides_of_safe_room": [
+   "S",
+   "E"
+  ],
+  "validator_ok": true,
+  "failed_checks": []
+ },
+ "B18": {
+  "candidate": 40,
+  "safe_room": "SAFE_ROOM",
+  "gross_m": [
+   3.7,
+   2.95
+  ],
+  "net_m": [
+   3.4,
+   2.65
+  ],
+  "net_area_m2": 9.01,
+  "safe_room_sides": {
+   "N": "RC_SAFE_ROOM",
+   "S": "RC_SAFE_ROOM",
+   "E": "RC_SAFE_ROOM",
+   "W": "RC_SAFE_ROOM"
+  },
+  "rc_neighbour_sides": [
+   [
+    "BATHROOM_1",
+    "S"
+   ],
+   [
+    "BEDROOM_2",
+    "N"
+   ],
+   [
+    "BEDROOM_3",
+    "S"
+   ],
+   [
+    "HALL",
+    "W"
+   ]
+  ],
+  "safe_room_doors": [
+   "SAFE_ROOM-HALL"
+  ],
+  "safe_room_windows": [
+   "W"
+  ],
+  "exterior_sides_of_safe_room": [
+   "W"
+  ],
+  "validator_ok": true,
+  "failed_checks": []
+ }
+}

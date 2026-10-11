@@ -1,0 +1,517 @@
+{
+ "B06": {
+  "tally": {
+   "lp_feasible": 0,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {}
+  },
+  "examples": []
+ },
+ "B07": {
+  "tally": {
+   "lp_feasible": 0,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {}
+  },
+  "examples": []
+ },
+ "B09": {
+  "tally": {
+   "lp_feasible": 0,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {}
+  },
+  "examples": []
+ },
+ "B12": {
+  "tally": {
+   "lp_feasible": 13,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {
+    "SHORT_SIDE_INFEASIBLE": 3,
+    "AREA_INFEASIBLE": 10
+   }
+  },
+  "examples": [
+   {
+    "witness": 0,
+    "lp_envelope_m": [
+     12.1,
+     11.4
+    ],
+    "lp_row_heights": [
+     3.54,
+     3.94,
+     3.94
+    ],
+    "lp_col_widths": [
+     2.39,
+     1.9,
+     1.49,
+     0.5,
+     2.89,
+     0.5,
+     2.39
+    ],
+    "rows": [
+     [
+      [
+       "BATHROOM_1",
+       1
+      ],
+      [
+       "BEDROOM_3",
+       2
+      ],
+      [
+       "BEDROOM_2",
+       2
+      ],
+      [
+       "BATHROOM_2",
+       2
+      ]
+     ],
+     [
+      [
+       "MASTER_BEDROOM",
+       2
+      ],
+      [
+       "HALL",
+       2
+      ],
+      [
+       "BEDROOM_1",
+       2
+      ],
+      [
+       "BATHROOM_3",
+       1
+      ]
+     ],
+     [
+      [
+       "KITCHEN",
+       3
+      ],
+      [
+       "LIVING",
+       4
+      ]
+     ]
+    ],
+    "rank1_refusal": "SHORT_SIDE_INFEASIBLE: BATHROOM_1: grid-realized short side 1.80 m (gross) < 1.6 m (net) + 0.3 m inset margin"
+   },
+   {
+    "witness": 2,
+    "lp_envelope_m": [
+     12.0,
+     9.5
+    ],
+    "lp_row_heights": [
+     3.03,
+     3.03,
+     3.43
+    ],
+    "lp_col_widths": [
+     2.07,
+     1.4,
+     2.87,
+     0.5,
+     1.21,
+     1.85,
+     2.07
+    ],
+    "rows": [
+     [
+      [
+       "BEDROOM_3",
+       2
+      ],
+      [
+       "BEDROOM_2",
+       3
+      ],
+      [
+       "BATHROOM_2",
+       2
+      ]
+     ],
+     [
+      [
+       "BATHROOM_1",
+       1
+      ],
+      [
+       "HALL",
+       3
+      ],
+      [
+       "BEDROOM_1",
+       2
+      ],
+      [
+       "BATHROOM_3",
+       1
+      ]
+     ],
+     [
+      [
+       "MASTER_BEDROOM",
+       2
+      ],
+      [
+       "KITCHEN",
+       1
+      ],
+      [
+       "LIVING",
+       4
+      ]
+     ]
+    ],
+    "rank1_refusal": "SHORT_SIDE_INFEASIBLE: BEDROOM_3: grid-realized short side 2.70 m (gross) < 2.6 m (net) + 0.3 m inset margin"
+   }
+  ]
+ },
+ "B17": {
+  "tally": {
+   "lp_feasible": 24,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {
+    "AREA_INFEASIBLE": 13,
+    "SHORT_SIDE_INFEASIBLE": 11
+   }
+  },
+  "examples": [
+   {
+    "witness": 26,
+    "lp_envelope_m": [
+     13.8,
+     10.7
+    ],
+    "lp_row_heights": [
+     3.66,
+     3.26,
+     3.82
+    ],
+    "lp_col_widths": [
+     3.07,
+     0.5,
+     2.07,
+     0.5,
+     1.72,
+     1.88,
+     1.0,
+     0.5,
+     2.57
+    ],
+    "rows": [
+     [
+      [
+       "BEDROOM_3",
+       1
+      ],
+      [
+       "BATHROOM_2",
+       3
+      ],
+      [
+       "BEDROOM_2",
+       2
+      ],
+      [
+       "MASTER_BEDROOM",
+       3
+      ]
+     ],
+     [
+      [
+       "BEDROOM_1",
+       2
+      ],
+      [
+       "BATHROOM_3",
+       1
+      ],
+      [
+       "HALL",
+       5
+      ],
+      [
+       "BATHROOM_1",
+       1
+      ]
+     ],
+     [
+      [
+       "BEDROOM_5",
+       2
+      ],
+      [
+       "LIVING",
+       3
+      ],
+      [
+       "KITCHEN",
+       2
+      ],
+      [
+       "BEDROOM_4",
+       2
+      ]
+     ]
+    ],
+    "rank1_refusal": "AREA_INFEASIBLE: BEDROOM_3: grid-realized area 5.35 m2 outside [9.0,14.0]"
+   },
+   {
+    "witness": 50,
+    "lp_envelope_m": [
+     14.3,
+     9.8
+    ],
+    "lp_row_heights": [
+     3.32,
+     3.44,
+     3.09
+    ],
+    "lp_col_widths": [
+     2.91,
+     0.57,
+     2.34,
+     3.31,
+     0.5,
+     1.74,
+     2.91
+    ],
+    "rows": [
+     [
+      [
+       "BEDROOM_3",
+       1
+      ],
+      [
+       "BATHROOM_1",
+       2
+      ],
+      [
+       "MASTER_BEDROOM",
+       1
+      ],
+      [
+       "KITCHEN",
+       3
+      ]
+     ],
+     [
+      [
+       "BATHROOM_2",
+       2
+      ],
+      [
+       "HALL",
+       3
+      ],
+      [
+       "LIVING",
+       2
+      ]
+     ],
+     [
+      [
+       "BEDROOM_1",
+       1
+      ],
+      [
+       "BEDROOM_2",
+       2
+      ],
+      [
+       "BEDROOM_4",
+       1
+      ],
+      [
+       "BATHROOM_3",
+       2
+      ],
+      [
+       "BEDROOM_5",
+       1
+      ]
+     ]
+    ],
+    "rank1_refusal": "AREA_INFEASIBLE: BEDROOM_3: grid-realized area 7.26 m2 outside [9.0,14.0]"
+   }
+  ]
+ },
+ "B18": {
+  "tally": {
+   "lp_feasible": 0,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {}
+  },
+  "examples": []
+ },
+ "B20": {
+  "tally": {
+   "lp_feasible": 65,
+   "rank1_sized_with_lp_envelope": 0,
+   "realized_validated": 0,
+   "refusals": {
+    "AREA_INFEASIBLE": 46,
+    "SHORT_SIDE_INFEASIBLE": 19
+   }
+  },
+  "examples": [
+   {
+    "witness": 13,
+    "lp_envelope_m": [
+     9.6,
+     13.4
+    ],
+    "lp_row_heights": [
+     3.3,
+     4.13,
+     2.3,
+     3.7
+    ],
+    "lp_col_widths": [
+     2.3,
+     1.0,
+     2.57,
+     1.4,
+     2.3
+    ],
+    "rows": [
+     [
+      [
+       "DINING",
+       3
+      ],
+      [
+       "KITCHEN",
+       2
+      ]
+     ],
+     [
+      [
+       "SAFE_ROOM",
+       2
+      ],
+      [
+       "LIVING",
+       2
+      ],
+      [
+       "BATHROOM_1",
+       1
+      ]
+     ],
+     [
+      [
+       "BATHROOM_2",
+       1
+      ],
+      [
+       "HALL",
+       4
+      ]
+     ],
+     [
+      [
+       "BEDROOM_1",
+       2
+      ],
+      [
+       "BATHROOM_3",
+       1
+      ],
+      [
+       "MASTER_BEDROOM",
+       2
+      ]
+     ]
+    ],
+    "rank1_refusal": "AREA_INFEASIBLE: SAFE_ROOM: grid-realized area 14.78 m2 outside [9.0,14.0]"
+   },
+   {
+    "witness": 14,
+    "lp_envelope_m": [
+     9.6,
+     13.4
+    ],
+    "lp_row_heights": [
+     3.3,
+     4.13,
+     2.3,
+     3.7
+    ],
+    "lp_col_widths": [
+     2.3,
+     1.0,
+     2.57,
+     1.4,
+     2.3
+    ],
+    "rows": [
+     [
+      [
+       "DINING",
+       3
+      ],
+      [
+       "KITCHEN",
+       2
+      ]
+     ],
+     [
+      [
+       "SAFE_ROOM",
+       2
+      ],
+      [
+       "LIVING",
+       2
+      ],
+      [
+       "BATHROOM_1",
+       1
+      ]
+     ],
+     [
+      [
+       "BATHROOM_3",
+       1
+      ],
+      [
+       "HALL",
+       4
+      ]
+     ],
+     [
+      [
+       "BEDROOM_1",
+       2
+      ],
+      [
+       "BATHROOM_2",
+       1
+      ],
+      [
+       "MASTER_BEDROOM",
+       2
+      ]
+     ]
+    ],
+    "rank1_refusal": "AREA_INFEASIBLE: SAFE_ROOM: grid-realized area 14.78 m2 outside [9.0,14.0]"
+   }
+  ]
+ }
+}

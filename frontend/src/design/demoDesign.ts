@@ -20,6 +20,11 @@ export interface DemoWallFacts {
   can_take_a_window: boolean
 }
 
+/** `x`/`y` is the room's GROSS rectangle's corner — the centerline allocation the walls (drawn
+ * from this same rectangle) actually run along. `width_m`/`depth_m`/`area_m2` are the NET
+ * (usable, wall-inset) triple: `width_m * depth_m === area_m2` always (backend check C27).
+ * `gross_width_m`/`gross_depth_m`/`gross_area_m2` are the drawing rectangle at `x`,`y` — see
+ * `docs/wiki/architecture/geometry-validation.md` ("Realized dimensions: gross vs net"). */
 export interface DemoRoom {
   id: string
   type: string
@@ -30,9 +35,25 @@ export interface DemoRoom {
   width_m: number
   depth_m: number
   area_m2: number
+  gross_width_m: number
+  gross_depth_m: number
+  gross_area_m2: number
   walls: Record<string, DemoWallFacts>
+  /** Architecture A spike (Issue #107), additive. `'RECTANGLE'` (the only value before this
+   *  field existed) for every ordinary room; `'L'` only for a room the LIVING+KITCHEN merge
+   *  spike produced — its boundary is `polygon_m`, not `x`/`y`/`gross_width_m`/`gross_depth_m`
+   *  (those still carry the room's own axis-aligned bounding box, for layout/labelling only). */
+  shape?: 'RECTANGLE' | 'L'
+  /** The room's own outer boundary, metres, plot-absolute, no closing duplicate point. `null`/
+   *  absent for a `'RECTANGLE'` room. */
+  polygon_m?: [number, number][] | null
 }
 
+/** `wall_class` collapses `construction`/`boundary_context` into the single semantic class the
+ * backend's wall model (`app.vertical_slice.walls`, Issue #45) computes — EXTERIOR | INTERIOR |
+ * WET_SERVICE | PROTECTED. `id` is what `DemoDoor.wall_id`/`DemoWindow.wall_id` reference.
+ * `thickness_m` is the REAL solved wall thickness — the renderer no longer guesses it from
+ * `construction` alone. All three are `undefined` only for a payload built before this Issue. */
 export interface DemoWallSegment {
   orientation: 'horizontal' | 'vertical'
   coord: number
@@ -41,6 +62,9 @@ export interface DemoWallSegment {
   construction: string
   boundary_context: string
   room_ids: string[]
+  id?: string
+  wall_class?: 'EXTERIOR' | 'INTERIOR' | 'WET_SERVICE' | 'PROTECTED'
+  thickness_m?: number
 }
 
 /** A boundary two spaces share with NO wall. Drawn as a deliberate absence, not by omission. */
@@ -58,6 +82,9 @@ export interface DemoDoor {
   swings_into?: string
   hinge_x?: number
   hinge_y?: number
+  /** The open leaf's own direction in degrees (`doors.py::Door.swing_deg`: 0=+x, 90=+y, 180=-x,
+   *  270=-y) — `DoorSymbol` places the leaf from this alone, never from a room lookup. */
+  swing_deg?: number
   a: string
   b: string
   kind: string
@@ -66,6 +93,9 @@ export interface DemoDoor {
   y: number
   orientation: 'horizontal' | 'vertical'
   is_entrance: boolean
+  /** `DemoWallSegment.id` this door is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
 }
 
 export interface DemoWindow {
@@ -74,6 +104,27 @@ export interface DemoWindow {
   width_m: number
   x: number
   y: number
+  /** `DemoWallSegment.id` this window is realized on (Issue #45). `undefined` only for a payload
+   *  built before this field existed. */
+  wall_id?: string
+}
+
+/** One engine-placed semantic layout object (Issue #39) — mirrors `app.demo.contract.
+ * LayoutObjectOut` exactly. `clearance_*` always contains the object's own footprint (`x`/`y`/
+ * `width_m`/`depth_m`): a footprint plus its required use clearance, never a disjoint zone. The
+ * renderer draws these as-is — never inventing a decorative object of its own. */
+export interface DemoLayoutObject {
+  kind: string
+  room_id: string
+  x: number
+  y: number
+  width_m: number
+  depth_m: number
+  rotation_deg: number
+  clearance_x: number
+  clearance_y: number
+  clearance_width_m: number
+  clearance_depth_m: number
 }
 
 export interface DemoValidation {
@@ -145,6 +196,11 @@ export interface DemoQuality {
   /** Issue #21 — a room realized materially below its own template target in a plan with an
    *  explicitly requested LAUNDRY room. Never a validation failure, never a refusal. */
   laundry_notice?: string | null
+  /** Concept Plan Communication Pass — the requested built area materially exceeds what the
+   *  requested room programme can reasonably fill, so the concept is smaller than the number the
+   *  person typed. Computed by the backend (`contract.capacity_notice_text`); the frontend never
+   *  re-implements the capacity formula. Never a validation failure, never a refusal. */
+  capacity_notice?: string | null
   /** M1–M6 for this plan (Issue #17). Absent only for a payload built before this field existed. */
   metrics?: DemoQualityMetrics | null
   /** One entry per room (Issue #19). Absent/empty for a payload built before this field existed. */
@@ -202,6 +258,16 @@ export interface SearchSummary {
   total_latency_ms: number
 }
 
+/** One plan's concept, in the person's own language (Issue #78, Concept Engine v2 4/5) — mirrors
+ *  `backend/app/demo/contract.py`'s `ConceptOut`. `circulation_class` is the same class
+ *  `concept_spec.realized_circulation_class` computed for this exact plan; `label`/`rationale` are
+ *  already-formatted Hebrew text, never parsed or re-derived by the renderer. */
+export interface DemoConcept {
+  circulation_class: string
+  label: string
+  rationale: string
+}
+
 export interface DemoDesign {
   plot: DemoRect
   /** The building's bounding box — the footprint itself for a one-wing house. */
@@ -211,6 +277,9 @@ export interface DemoDesign {
   open_interfaces: DemoOpenInterface[]
   doors: DemoDoor[]
   windows: DemoWindow[]
+  /** Engine-placed semantic layout objects (Issue #39). Absent/empty for a payload that predates
+   *  the field, or a plan with no role this Issue furnishes. */
+  layout?: DemoLayoutObject[]
   parking: DemoRect[]
   garden: DemoRect[]
   entrance_walk: DemoRect
@@ -228,6 +297,19 @@ export interface DemoDesign {
   /** The footprint as its wings, one rectangle each. One entry — equal to `footprint` — for every
    *  house the engine plans today; absent for a payload that predates the field. */
   footprints?: DemoRect[]
+  /** Architecture A spike (Issue #107), additive. Absent/`null` when the flag is off (today's
+   *  default) or this plan has no LIVING+KITCHEN CLOSED_ADJACENT pair. */
+  merge?: {
+    living_id: string
+    kitchen_id: string
+    merged_id: string
+    applied: boolean
+    checks: { check_id: string; passed: boolean; detail: string }[]
+    oriented_aspect: number
+  } | null
+
+  /** Issue #78. Absent unless the backend's `CONCEPT_ENGINE_V2_ENABLED` labelled this plan. */
+  concept?: DemoConcept | null
 }
 
 /** The rectangles a design is made of: its wings, or the one footprint when the payload has no

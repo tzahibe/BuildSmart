@@ -256,11 +256,13 @@ def test_access_and_validation_remain_green(spine_plan):
     for code in ("C5", "C6", "C7", "C13"):
         assert demo.validation.checks[code], code
     # The rule is drawing truth only: room geometry, net areas and the corridor's measured
-    # width are exactly what the engine solved.
+    # width are exactly what the engine solved. The drawing rectangle (x, y, gross_*) is the
+    # engine's GROSS `rect_m` (Issue #34); `width_m`/`depth_m`/`area_m2` are its NET triple.
     hall = _hall_id(demo)
     engine_hall = next(r for r in result.design.rooms if r.zone_id == hall)
     demo_hall = next(r for r in demo.rooms if r.id == hall)
-    assert (demo_hall.x, demo_hall.y, demo_hall.width_m, demo_hall.depth_m) == engine_hall.rect_m
+    assert (demo_hall.x, demo_hall.y, demo_hall.gross_width_m, demo_hall.gross_depth_m) == engine_hall.rect_m
+    assert (demo_hall.width_m, demo_hall.depth_m) == (engine_hall.net_w_m, engine_hall.net_h_m)
     assert demo_hall.area_m2 == engine_hall.net_area_m2
     assert demo.corridor is not None
     assert demo.corridor.realized_width_m == pytest.approx(

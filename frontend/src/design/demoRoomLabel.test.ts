@@ -3,7 +3,12 @@ import { roomLabelLayout } from './demoRoomLabel'
 import type { DemoRoom } from './demoDesign'
 
 function room(width_m: number, depth_m: number, name = 'חדר שינה'): DemoRoom {
-  return { id: 'R', type: 'BEDROOM', name, x: 0, y: 0, width_m, depth_m, area_m2: 11.8, walls: {} }
+  // Layout fits within the GROSS box; these fixtures set gross === net (no wall inset) so the
+  // fit computation matches the printed dimensions exactly, as it did before the gross/net split.
+  return {
+    id: 'R', type: 'BEDROOM', name, x: 0, y: 0, width_m, depth_m, area_m2: 11.8,
+    gross_width_m: width_m, gross_depth_m: depth_m, gross_area_m2: width_m * depth_m, walls: {},
+  }
 }
 
 describe('roomLabelLayout', () => {

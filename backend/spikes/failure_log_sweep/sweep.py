@@ -69,8 +69,16 @@ def distinct_contexts(path: Path = FAILURES) -> list[dict]:
 
 
 def signature(design) -> tuple:
-    """Everything a person would see of a plan's geometry: every room's type and rectangle."""
-    return tuple(sorted((r.type, r.x, r.y, r.width_m, r.depth_m) for r in design.rooms))
+    """Everything a person would see of a plan's geometry: every room's type and rectangle.
+
+    Hashes the GROSS rectangle (`gross_width_m`/`gross_depth_m`) — the drawn box the walls
+    actually align to (`x`/`y` is always the gross corner; see `app.demo.contract.RoomOut`'s own
+    docstring and `docs/wiki/architecture/geometry-validation.md`) — not the NET pair (Issue #34).
+    A design's realized geometry is unchanged by which of the two definitions gets displayed as
+    `width_m`, so this must stay stable across that change: only the drawn rectangle should ever
+    move this signature.
+    """
+    return tuple(sorted((r.type, r.x, r.y, r.gross_width_m, r.gross_depth_m) for r in design.rooms))
 
 
 def plans_shown(result) -> list:

@@ -1,0 +1,109 @@
+{
+  "issue": 155,
+  "method": "spikes.two_path_demo.selection.select_briefs (sha256 stable hash of each context own source_key, 6 size x SAFE_ROOM buckets + 2 narrow/wide plot slots, lowest-hash winner per bucket)",
+  "corpus_path": "backend/tests/regression_corpus/corpus.json",
+  "size_tier_thresholds_m2": {
+    "p33": 200.0,
+    "p66": 288.0
+  },
+  "brief_ids": [
+    "{\"bedrooms\": 3, \"built_area_m2\": 200.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 10.0, \"open_plan\": true, \"plot_depth_m\": 30.5, \"plot_width_m\": 17.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "{\"bedrooms\": 2, \"built_area_m2\": 200.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 10.0, \"open_plan\": true, \"plot_depth_m\": 30.5, \"plot_width_m\": 17.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "{\"bedrooms\": 3, \"built_area_m2\": 288.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 16.0, \"open_plan\": false, \"plot_depth_m\": 28.5, \"plot_width_m\": 23.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "{\"bedrooms\": 2, \"built_area_m2\": 312.0, \"footprint_depth_m\": 24.0, \"footprint_width_m\": 13.0, \"open_plan\": false, \"plot_depth_m\": 34.5, \"plot_width_m\": 20.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "{\"bedrooms\": 4, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": true, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "{\"bedrooms\": 4, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "{\"bedrooms\": 4, \"built_area_m2\": 312.0, \"footprint_depth_m\": 13.0, \"footprint_width_m\": 24.0, \"open_plan\": true, \"plot_depth_m\": 23.5, \"plot_width_m\": 31.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}"
+  ],
+  "briefs": [
+    {
+      "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 200.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 10.0, \"open_plan\": true, \"plot_depth_m\": 30.5, \"plot_width_m\": 17.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+      "project_id": "a41440f8-496c-4342-b160-2895e1d37089",
+      "bedrooms": 3,
+      "safe_room": true,
+      "built_area_m2": 200.0,
+      "size_tier": "SMALL",
+      "plot_width_m": 17.0,
+      "plot_depth_m": 30.5,
+      "plot_aspect_ratio": 0.5574
+    },
+    {
+      "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 200.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 10.0, \"open_plan\": true, \"plot_depth_m\": 30.5, \"plot_width_m\": 17.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+      "project_id": "32747fd3-2e42-4060-b845-3df49425eacc",
+      "bedrooms": 2,
+      "safe_room": false,
+      "built_area_m2": 200.0,
+      "size_tier": "SMALL",
+      "plot_width_m": 17.0,
+      "plot_depth_m": 30.5,
+      "plot_aspect_ratio": 0.5574
+    },
+    {
+      "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 288.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 16.0, \"open_plan\": false, \"plot_depth_m\": 28.5, \"plot_width_m\": 23.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+      "project_id": "f0ad889f-1e5c-4a45-a32c-96d8471f39aa",
+      "bedrooms": 3,
+      "safe_room": true,
+      "built_area_m2": 288.0,
+      "size_tier": "MEDIUM",
+      "plot_width_m": 23.0,
+      "plot_depth_m": 28.5,
+      "plot_aspect_ratio": 0.807
+    },
+    {
+      "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+      "project_id": "0af83a02-4430-4d6c-a3cd-5867722c4c24",
+      "bedrooms": 5,
+      "safe_room": false,
+      "built_area_m2": 216.0,
+      "size_tier": "MEDIUM",
+      "plot_width_m": 25.0,
+      "plot_depth_m": 22.5,
+      "plot_aspect_ratio": 1.1111
+    },
+    {
+      "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 312.0, \"footprint_depth_m\": 24.0, \"footprint_width_m\": 13.0, \"open_plan\": false, \"plot_depth_m\": 34.5, \"plot_width_m\": 20.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+      "project_id": "c847c2a0-910f-4a71-a2b8-14303d3f7e10",
+      "bedrooms": 2,
+      "safe_room": true,
+      "built_area_m2": 312.0,
+      "size_tier": "LARGE",
+      "plot_width_m": 20.0,
+      "plot_depth_m": 34.5,
+      "plot_aspect_ratio": 0.5797
+    },
+    {
+      "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": true, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+      "project_id": "575dbaf5-bbcc-4f05-b702-a23ff747bfe1",
+      "bedrooms": 4,
+      "safe_room": false,
+      "built_area_m2": 440.0,
+      "size_tier": "LARGE",
+      "plot_width_m": 27.0,
+      "plot_depth_m": 32.5,
+      "plot_aspect_ratio": 0.8308
+    },
+    {
+      "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+      "project_id": "f709aad2-ebd8-42e9-82d6-fe72a1fe78b6",
+      "bedrooms": 4,
+      "safe_room": true,
+      "built_area_m2": 216.0,
+      "size_tier": "MEDIUM",
+      "plot_width_m": 19.0,
+      "plot_depth_m": 28.5,
+      "plot_aspect_ratio": 0.6667
+    },
+    {
+      "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 312.0, \"footprint_depth_m\": 13.0, \"footprint_width_m\": 24.0, \"open_plan\": true, \"plot_depth_m\": 23.5, \"plot_width_m\": 31.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+      "project_id": "e753aa33-34e6-477c-a91e-ec82b0a2a2ef",
+      "bedrooms": 4,
+      "safe_room": true,
+      "built_area_m2": 312.0,
+      "size_tier": "LARGE",
+      "plot_width_m": 31.0,
+      "plot_depth_m": 23.5,
+      "plot_aspect_ratio": 1.3191
+    }
+  ]
+}

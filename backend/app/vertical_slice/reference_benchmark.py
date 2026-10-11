@@ -5,7 +5,8 @@ plan, compared against the matching-footprint-family entries of the curated refe
     benchmark(design, references) -> BenchmarkReport
 
 `design` is duck-typed against `app.demo.contract.DemoDesign`'s shape, the same convention
-`quality_metrics.py` already uses: `.rooms` (`.id`, `.type`, `.width_m`, `.depth_m`, `.area_m2`),
+`quality_metrics.py` already uses: `.rooms` (`.id`, `.type`, `.width_m`, `.depth_m`, `.area_m2`,
+`.gross_width_m`, `.gross_depth_m`, `.gross_area_m2`),
 `.walls` (`.boundary_context`, `.room_ids`), `.open_interfaces` (`.room_ids`), `.doors` (`.a`, `.b`,
 `.is_entrance`), `.windows` (`.room_id`, `.width_m`), `.footprint` (`.width_m`, `.depth_m`), and
 optionally `.outline` (`.shape`) and `.validation` (`.checks`, a dict of check-id -> bool). Nothing
@@ -35,9 +36,16 @@ those nine collide with the six this module defines its own way.
                      for why the circulation-SHARE floor itself stays a fixed constant instead)
     C  zoning      — is each of PUBLIC / PRIVATE / SERVICE a spatially contiguous group
     H  exposure    — share of daylight-required rooms that got a window (C8's own data)
-    K  dead space  — residual interior area (C2; always 0 today — a correctness floor, not a band)
-    L  consistency — how far each room's declared area_m2 sits from its own width_m x depth_m
-                     (net finished area vs. gross rect — expected to differ a little by wall
+    K  dead space  — residual interior area OUTSIDE zones (C2, always 0 — a correctness floor)
+                     PLUS residual dead space INSIDE zones, measured by
+                     `app.vertical_slice.dead_space` (Issue #43: corridor stubs, room slivers,
+                     door-swing corners, oversized-hall excess) — not a band either; all four kinds
+                     are reported quality data; `dead_space.classify_hard` measures a would-refuse
+                     verdict for one of them (a corridor stub, disclosed on
+                     `QualityOut.dead_space_notice`) but nothing here or in `validation.py` gates
+                     on it
+    L  consistency — how far each room's declared area_m2 (net) sits from its own
+                     gross_width_m x gross_depth_m (gross rect — expected to differ a little by wall
                      thickness; reported as a measured fact, not a pass/fail gate)
 """
 from __future__ import annotations
@@ -210,8 +218,8 @@ def _section_a(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 def _section_b(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
     metrics = qm.measure_design(design)
     halls = [r for r in design.rooms if qm.is_(qm.HALL, r.type)]
-    circulation_area_m2 = sum(r.width_m * r.depth_m for r in halls)
-    corridor_length_m = max((max(r.width_m, r.depth_m) for r in halls), default=0.0)
+    circulation_area_m2 = sum(r.gross_area_m2 for r in halls)
+    corridor_length_m = max((max(r.gross_width_m, r.gross_depth_m) for r in halls), default=0.0)
     ratio = metrics.m3_circulation_share
     matching = _matching_entries(references, family)
     entries = [e["id"] for e in matching]
@@ -251,6 +259,14 @@ def _section_b(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 
 def _section_c(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
     public_ok = _zone_contiguous(design, qm.PUBLIC)
+    if public_ok is None and any(qm.is_(qm.PUBLIC, r.type)
+                                 and getattr(r, "shape", "RECTANGLE") == "L"
+                                 for r in design.rooms):
+        # A validated LIVING+KITCHEN merge (Issue #118) can leave exactly ONE public room (no
+        # DINING) — `_zone_contiguous`'s own "fewer than 2 rooms, nothing to test" escape hatch
+        # otherwise never fires for PUBLIC on this codebase's room programme (LIVING/KITCHEN are
+        # always both present), so this reads as "public zone is one contiguous room," not n/a.
+        public_ok = True
     private_ok = _zone_contiguous(design, PRIVATE)
     service_ok = _zone_contiguous(design, SERVICE)
     value = {"public_contiguous": public_ok, "private_contiguous": private_ok,
@@ -292,9 +308,13 @@ def _section_k(design: "DemoDesign", family: str, references: list[dict]) -> Sec
     quality = getattr(design, "quality", None)
     metrics = getattr(quality, "metrics", None)
     dead_space_m2 = metrics.dead_space_m2 if metrics is not None else 0.0
-    finding = (f"residual interior area is {dead_space_m2:.2f} m² (C2 already gates every "
-              f"delivered plan to zero — a correctness floor, not a reference band)")
-    return SectionFinding("K", "Dead Space", True, value=dead_space_m2,
+    dead_space_share = getattr(metrics, "dead_space_share", 0.0) if metrics is not None else 0.0
+    value = {"dead_space_m2": dead_space_m2, "dead_space_share": dead_space_share}
+    finding = (f"residual area outside every zone is 0 (C2, a correctness floor); measured "
+              f"residual area INSIDE zones (Issue #43: corridor stubs, room slivers, door-swing "
+              f"corners, oversized-hall excess) is {dead_space_m2:.2f} m² "
+              f"({dead_space_share:.1%} of this plan's room area)")
+    return SectionFinding("K", "Dead Space", True, value=value,
                           reference_range=(0.0, 0.0), reference_entries=[], finding=finding)
 
 
@@ -302,9 +322,14 @@ def _section_k(design: "DemoDesign", family: str, references: list[dict]) -> Sec
 
 
 def _section_l(design: "DemoDesign", family: str, references: list[dict]) -> SectionFinding:
+    # `gross_area_m2` (not `gross_width_m * gross_depth_m`) so a merged "L" room's own true
+    # polygon area is compared here — for that room `gross_width_m`/`gross_depth_m` are only its
+    # AXIS-ALIGNED BOUNDING BOX (informational), and the bbox product would report a gap driven by
+    # the L's own shape, not by wall thickness (Issue #118, AC-1); identical to the old product
+    # for every RECTANGLE room, since `gross_area_m2` IS `gross_width_m * gross_depth_m` there.
     gaps = []
     for r in design.rooms:
-        gross = r.width_m * r.depth_m
+        gross = r.gross_area_m2
         if gross <= 0:
             continue
         gaps.append(abs(gross - r.area_m2) / gross)

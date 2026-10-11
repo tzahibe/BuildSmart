@@ -18,10 +18,12 @@ const design: DemoDesign = {
   rooms: [
     {
       id: 'living-1', type: 'LIVING', name: 'סלון', x: 1, y: 1, width_m: 5, depth_m: 4, area_m2: 20,
+      gross_width_m: 5.2, gross_depth_m: 4.2, gross_area_m2: 21.84,
       walls: {},
     },
     {
       id: 'bed-1', type: 'BEDROOM', name: 'חדר שינה', x: 6, y: 1, width_m: 5, depth_m: 4, area_m2: 20,
+      gross_width_m: 5.2, gross_depth_m: 4.2, gross_area_m2: 21.84,
       walls: {},
     },
   ],
@@ -33,6 +35,7 @@ const design: DemoDesign = {
     {
       a: 'living-1', b: 'bed-1', kind: 'ROOM_DOOR', width_m: 0.9, x: 6, y: 3,
       orientation: 'vertical', is_entrance: false, swings_into: 'bed-1', hinge_x: 6, hinge_y: 3.9,
+      swing_deg: 0,
     },
   ],
   windows: [{ room_id: 'living-1', side: 'S', width_m: 1.5, x: 3, y: 9 }],

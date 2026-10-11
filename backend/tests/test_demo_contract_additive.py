@@ -30,6 +30,7 @@ def test_a_design_without_the_new_fields_still_validates():
     design = _minimal_design()
     assert design.outline is None
     assert design.family is None
+    assert design.concept is None
     assert "outline" in design.model_dump()
 
 

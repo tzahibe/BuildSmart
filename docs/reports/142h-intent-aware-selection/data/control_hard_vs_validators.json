@@ -1,0 +1,172 @@
+{
+ "B01/spatial": {
+  "candidates": 34,
+  "validator_pass_no_selection": 14,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 10,
+  "hard_rejected_among_full_access": {}
+ },
+ "B01/union": {
+  "candidates": 34,
+  "validator_pass_no_selection": 14,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 10,
+  "hard_rejected_among_full_access": {}
+ },
+ "B04/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 3,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 3,
+  "hard_rejected_among_full_access": {}
+ },
+ "B04/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 3,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 3,
+  "hard_rejected_among_full_access": {}
+ },
+ "B05/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 7,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 7,
+  "hard_rejected_among_full_access": {}
+ },
+ "B05/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 7,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 7,
+  "hard_rejected_among_full_access": {}
+ },
+ "B06/spatial": {
+  "candidates": 58,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B06/union": {
+  "candidates": 58,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B07/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B07/union": {
+  "embedding": "TOPOLOGY_REPRESENTATION_LIMIT"
+ },
+ "B08/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 2,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 1,
+  "hard_rejected_among_full_access": {}
+ },
+ "B08/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 2,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 1,
+  "hard_rejected_among_full_access": {}
+ },
+ "B09/spatial": {
+  "candidates": 30,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B09/union": {
+  "embedding": "TOPOLOGY_REPRESENTATION_LIMIT"
+ },
+ "B11/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B11/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B12/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B12/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B13/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 1,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 1,
+  "hard_rejected_among_full_access": {}
+ },
+ "B13/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 1,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 1,
+  "hard_rejected_among_full_access": {}
+ },
+ "B17/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B17/union": {
+  "embedding": "TOPOLOGY_REPRESENTATION_LIMIT"
+ },
+ "B18/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B18/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B20/spatial": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ },
+ "B20/union": {
+  "candidates": 120,
+  "validator_pass_no_selection": 0,
+  "hard_rejected_among_passing": {},
+  "passing_with_full_access": 0,
+  "hard_rejected_among_full_access": {}
+ }
+}

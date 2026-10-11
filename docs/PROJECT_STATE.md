@@ -18,9 +18,11 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Wet Rooms | IMPLEMENTED_MERGED | [wiki/features/wet-rooms.md](wiki/features/wet-rooms.md) |
 | Room Proportion / Quality Tier | IMPLEMENTED_MERGED | [wiki/features/room-proportion-quality-tier.md](wiki/features/room-proportion-quality-tier.md) |
 | Multi-Level | IMPLEMENTED_MERGED (backend), not wired to product | [wiki/features/multi-level.md](wiki/features/multi-level.md) |
+| Concept Engine v2 | IMPLEMENTED, flag OFF — not live product behavior | [wiki/features/concept-engine-v2.md](wiki/features/concept-engine-v2.md) |
 | Laundry | IMPLEMENTED_MERGED | [wiki/features/laundry.md](wiki/features/laundry.md) |
 | Knowledge System (this RAG + Wiki + AI test harness) | IMPLEMENTED_MERGED | [wiki/architecture/knowledge-system.md](wiki/architecture/knowledge-system.md) |
 | Review Page — Quality Panel, Room Details, Refusal Notice | IMPLEMENTED_MERGED | [wiki/features/review-page.md](wiki/features/review-page.md) |
+| Interior Layout (engine-placed semantic furniture objects) | IMPLEMENTED_MERGED | [wiki/features/interior-layout.md](wiki/features/interior-layout.md) |
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
 | Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; governance since 2026-09-18: owner approves ROOT Issues and merges, the Team Lead executes everything else (child Issues, parallel workers); Telegram control plane; on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
 | Product roadmap (owner-maintained, proposed only) | PROPOSED | [ROADMAP.md](ROADMAP.md) |
@@ -28,6 +30,35 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 
 Backend: FastAPI (`backend/app`), Python 3.11, `uv`-managed, `[tool.uv] package = false` — CLIs
 run as `python -m app.<module>.cli`, not via `[project.scripts]`.
+
+## Capability wiring table (Issue #156)
+
+The table above records "merged" status. It does not by itself say whether a user of the product
+can actually reach a capability — the same status covers both a capability with a live caller and
+one with none. This table makes that distinction explicit, per capability, and
+`backend/tests/knowledge/test_capability_wiring_table.py` re-derives every fact below from
+`origin/main` itself on each run, so a drifted default or a caller that appears/disappears fails
+the test rather than rotting silently. **"Merged to main" and "merged to an integration branch"
+are different facts** — a module that only exists on an integration branch is not reachable from
+the product no matter how many gates it has passed there, because it has not shipped at all.
+
+| Capability | Implementing module(s) | Flag | Committed default on `main` (2026-09-29) | Production caller on `main`? | Reachable from the product today? |
+|---|---|---|---|---|---|
+| Rectilinear (non-guillotine) realizer | `app/vertical_slice/rectilinear_realizer.py` (Issue #117) | `RECTILINEAR_REALIZER_ENABLED` | `False` | No — the module's own header states it plainly: "gates nothing in the production path — no existing caller imports this module" | **Not reachable from the product today.** Merged to `main`, gate-passed on the 432-context corpus, zero production callers. Wiring it in is future Stage 2 work (Issue #133/#135's own successors), not yet its own numbered Issue. |
+| LIVING+KITCHEN room merge | `app/vertical_slice/room_merge.py` (Issue #107/#118) | `LIVING_KITCHEN_MERGE_ENABLED` | `True` | Yes — `app/demo/contract.py` calls `room_merge.plan_merge` on every request | **Reachable from the product today.** |
+| Laundry room | `app/vertical_slice/concept_generator.py` (Issue #18/#21) | `LAUNDRY_ROOM_ENABLED` | `True` | Yes — `build_room_program` (the production room-program builder) is imported by `general_pipeline.py` on every request | **Reachable from the product today.** |
+| Stage 2 contract (donor identity / realization-intent types) | `app/vertical_slice/stage2/contract.py` (Issue #133) | `STAGE2_CONTRACT_ENABLED` | `False` | No — the module's own header states it plainly: "no existing caller imports this package" | **Not reachable from the product today.** Types-only scaffolding; no realization, no repair, no wiring into any caller. Wiring it in is a future Stage 2 child, not yet its own numbered Issue. |
+| Real-plan room-proportion priors (ranking signal) | `app/vertical_slice/room_proportion_priors.py` (Issue #140) | `ROOM_PROPORTION_PRIORS_ENABLED` | `False` | Yes — `concept_generator.py` imports this module unconditionally and calls `priors_score(c)` as part of every candidate's sort key, on every request | **Reachable, but inert while the flag is off.** The module runs on every request; with the flag `False` it returns a constant `0.0` for every candidate — a genuine no-op on ordering (stable sort, same value for everyone). The A/B report (`docs/reports/real-plan-priors/room-proportions-ab.md`) shows flipping the flag ON changes 0/404 corpus primaries — it is the lowest-precedence tiebreak, below criteria that already decide every case in the frozen corpus. |
+| Real-plan adjacency priors (ranking signal) | `app/vertical_slice/adjacency_priors.py` (Issue #141) | `ADJACENCY_PRIORS_ENABLED` | `False` | Yes — `concept_generator.py` imports this module unconditionally and calls `adjacency_score(c)` as part of every candidate's sort key, on every request | **Reachable, but inert while the flag is off.** Same shape as the room-proportion priors above: unconditionally called, flag `False` means a constant `0.0` (no-op). The A/B report (`docs/reports/real-plan-priors/adjacency-ab.md`) shows flipping the flag ON also changes 0/404 corpus primaries — this score sits even lower in precedence than the room-proportion priors, so it never gets a candidate pool the criteria above it left tied. |
+| Concept Engine v2 (circulation-class alternatives) | `app/vertical_slice/concept_engine_v2.py` + `general_pipeline.py` wiring (ROOT #74, children #75-#79) | `CONCEPT_ENGINE_V2_ENABLED` | `False` on `main` | Yes — `general_pipeline.run_general` imports `concept_engine_v2` and calls `plans_per_class`, gated behind the flag | **Shipped to `main` but OFF**: ROOT #74's rollup landed on 2026-10-06 (PR #174, which carried the long-open #129 together with #173). The module and the flag now exist on `main`; the committed default is `False`, so with the flag off the payload is byte-identical and this is still not live product behaviour. The row this replaces recorded the pre-rollup fact — that INTEGRATED and gate-passed was not the same claim as shipped — which is exactly the drift this table exists to catch. |
+| Multi-level (two-storey building **planning**: allocations A/C, the core-band stair coordinator) | `app/vertical_slice/building_coordinator.py`, `primary_selection.py`, `level_planner.py`, `level_program.py` | none — no kill-switch flag exists for this capability | Not applicable (no flag) | No — `app/demo/contract.py`/`service.py` only ever construct `Building.single_level(...)` (always one level, no cores); nothing on the production path calls `building_coordinator`'s allocation logic or `primary_selection`'s cross-building candidate ranking | **Not reachable from the product today.** `app/vertical_slice/building.py`/`building_validation.py`/`vertical.py` (the general `Building` container, its V-report, and the `VerticalCore` type) ARE imported by `contract.py`/`service.py` and run on every request — but only ever in trivial single-level mode, always zero cores. That is a different, already-reachable fact from whether the product can PLAN a two-storey building, which it cannot yet. See the Multi-Level Wiki page's Known follow-ups; no numbered wiring Issue filed yet. |
+| Furnishability / usability validation (C30) | `app/vertical_slice/furnishability.py` (Issue #40/#132) | none — unconditional, no flag | Not applicable (always on) | Yes — `validation.py`'s `check_furnishability` and `app/demo/contract.py` both call it unconditionally | **Reachable from the product today.** |
+| Public-zone composition validation | `app/vertical_slice/public_composition.py` (Issue #41/#124) | none — unconditional, no flag | Not applicable (always on) | Yes — `validation.py` calls `public_composition.measure`/`hard_violations` unconditionally on every request | **Reachable from the product today.** |
+| Professional architectural drawing representation | `frontend/src/design/DemoPlan.tsx`, `ScaleBar.tsx` (Issue #146) | none — unconditional, no flag | Not applicable (always on) | Yes — rendered unconditionally from the authoritative `RoomOut`/wall/door/window/furniture payload on every plan view | **Reachable from the product today.** |
+
+Any other module carrying its own `*_ENABLED` constant on `main` is, as of 2026-09-29, one of the
+six rows above with a Flag column filled in — there is no seventh. A future flag must be added as a
+new row here in the same commit that adds it, or the wiring-table test has no way to know it exists.
 
 ## Active branches / work in progress
 
@@ -66,20 +97,17 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   `.agent/proposals/roadmap/cev2-*.md`) — approved by the owner 2026-09-20 as ROOT #74 (children #75–#79,
   #79 conditional); implementation is in progress through the agent team, nothing merged yet.
 
-- Non-rectangular geometry (what it takes to realize real-plan shapes) — ROOT #102, owner-approved 2026-09-22,
-  investigation only; the POC Architectural Brain (ROOT #93) runs in parallel on its own branch.
-
-## Agent-team Issues
-
-- **#24 Work reports and structured failure records** — every failure transition (worker
-  failed/blocked, publish failed, CI red, review rejected, owner reject/change-request, a rate
-  limit, `agentctl block`) emits one structured `failure_record` event and a fixed-template
-  failure milestone comment; a per-Issue Markdown work report (`.agent/logs/reports/<issue>.md`,
-  `agentctl report N`) is regenerated on every state change with a "What was done" section per
-  attempt and a "Failure history" table; `agentctl audit N` shows the failure history before raw
-  events; the Telegram compact status (`status.render_compact`) appends the short root cause next
-  to a BLOCKED/repair-pending class. See the agent-team-workflow Wiki page's Observability section
-  (`work_reports.py`).
+- **Non-rectangular geometry** (Issue #102, 2026-09-22) —
+  `docs/NON_RECTANGULAR_GEOMETRY_INVESTIGATION.md`: the Geometry Core is a guillotine (slicing-tree)
+  partition of rectangular rooms; module-by-module rectangle-assumption inventory for Geometry
+  Core/validators C1-C29/M1-M6/hub-l-massing-wet-core guards/the demo contract/both renderers/the
+  corpus signature; measured on a 20-plan real-ResPlan fixture
+  (`backend/spikes/geometry_shapes/measure_real_plan_shapes.py`): 41.9% of real rooms are
+  rectangles, 19.6% simple L-shapes, and **0/19 real plans' room layouts are guillotine-separable**;
+  three candidate architectures (A — slicing tree + room merging, B — non-guillotine rectangular
+  layout, C — polygonal layout) each scoped with effort/risk/a 2-week spike; recommends A first (in
+  parallel with a spike proving/killing B), C deferred; proposed ROOT + children under
+  `.agent/proposals/roadmap/`, not yet scheduled.
 
 ## Agent-team Issues
 
@@ -108,6 +136,16 @@ run as `python -m app.<module>.cli`, not via `[project.scripts]`.
   stash/checkout/reset from a session.
 - **Corridor opening** (hall↔LDK) is a contract-level post-process (`app/demo/contract.py`), not
   an engine change.
+- **Corridor-endpoint invariant (C25, Issue #22)**: a circulation zone's own endpoint must be
+  derived from the last door it serves, never extend past it for no reason — verified against real
+  spine/L candidates (`test_entrance_circulation.py`), no live corpus/fixture violation found
+  (see `docs/ENTRANCE_CIRCULATION_SWEEP.md`). `ENTRANCE_DEAD_END` is the demo refusal code when C25
+  alone fails.
+- **`INCONSISTENT_GEOMETRY`** (Issue #34) is a `DemoGenerationError` refusal code raised when
+  validation check C27 finds a `RoomOut`'s displayed width×depth disagreeing with its own area (or
+  the building's `gross_area_m2` disagreeing with the sum of its rooms') — see the Geometry /
+  Validation Wiki page. It is a data-integrity refusal, not a feasibility one (not in
+  `_FEASIBILITY_CODES`); on a real solved design it never fires.
 - **Do not treat the production OpenAI parser as a source of truth for AI-test expected
   behavior.** It is an implementation under test, exactly like local Ollama models. Authoritative
   expected behavior is: approved product/architecture semantics, versioned golden expected outputs,

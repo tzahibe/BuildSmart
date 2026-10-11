@@ -1,0 +1,506 @@
+{
+ "B01": {
+  "tally": {
+   "lp_feasible": 40,
+   "sizing_stub_pass": 40,
+   "realization_pass": 28,
+   "validators_pass": 16,
+   "refusals": {
+    "VALIDATION_FAILED": 12,
+    "NO_ENTRANCE": 12
+   },
+   "validator_fail_samples": [
+    "C26: circulation ratio 30% exceeds 24%",
+    "C26: circulation ratio 27% exceeds 24%",
+    "C26: circulation ratio 27% exceeds 24%"
+   ]
+  },
+  "first_success": {
+   "witness": 0,
+   "envelope_m": [
+    9.1,
+    8.14
+   ],
+   "spatial": "6/6",
+   "access": "4/4",
+   "access_lost": [],
+   "rows": [
+    [
+     [
+      "MASTER",
+      2
+     ],
+     [
+      "LIVING",
+      2
+     ]
+    ],
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "HALL",
+      2
+     ],
+     [
+      "KITCHEN",
+      1
+     ]
+    ]
+   ],
+   "rects_m": {
+    "BATHROOM_1": [
+     2.0,
+     6.4,
+     2.9,
+     3.75,
+     10.9
+    ],
+    "HALL": [
+     4.9,
+     6.4,
+     2.5,
+     3.75,
+     9.4
+    ],
+    "KITCHEN": [
+     7.4,
+     6.4,
+     3.7,
+     3.75,
+     13.9
+    ],
+    "LIVING": [
+     6.3,
+     2.0,
+     4.8,
+     4.4,
+     21.1
+    ],
+    "MASTER": [
+     2.0,
+     2.0,
+     4.3,
+     4.4,
+     18.9
+    ]
+   }
+  }
+ },
+ "B04": {
+  "tally": {
+   "lp_feasible": 11,
+   "sizing_stub_pass": 6,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {
+    "AREA_INFEASIBLE": 5,
+    "NO_ENTRANCE": 6
+   },
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B05": {
+  "tally": {
+   "lp_feasible": 43,
+   "sizing_stub_pass": 35,
+   "realization_pass": 7,
+   "validators_pass": 0,
+   "refusals": {
+    "NO_ENTRANCE": 28,
+    "VALIDATION_FAILED": 7,
+    "SHORT_SIDE_INFEASIBLE": 5,
+    "AREA_INFEASIBLE": 3
+   },
+   "validator_fail_samples": [
+    "C3: LIVING net 14.6475 m2 outside [16.0,46.0]; BEDROOM_1 net 8.265 m2 outside [9.0,14.0]; C5: BATHROOM_1; BEDROOM_1; C24: BATHROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; C17: BATHROOM_1 (",
+    "C3: DINING net 9.425 m2 outside [10.0,30.0]; MASTER_BEDROOM net 10.4 m2 outside [11.0,20.0]; C5: BEDROOM_1; C24: BEDROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+    "C3: DINING net 8.9375 m2 outside [10.0,30.0]; LIVING net 14.4625 m2 outside [16.0,46.0]; C5: BEDROOM_1; C24: BEDROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in"
+   ]
+  },
+  "first_success": null
+ },
+ "B06": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B07": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B08": {
+  "tally": {
+   "lp_feasible": 19,
+   "sizing_stub_pass": 19,
+   "realization_pass": 10,
+   "validators_pass": 3,
+   "refusals": {
+    "NO_ENTRANCE": 9,
+    "VALIDATION_FAILED": 7
+   },
+   "validator_fail_samples": [
+    "C5: BEDROOM_2; C24: BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+    "C5: BEDROOM_2; C24: BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+    "C3: LIVING aspect 2.84 > 2.5; C20: LIVING realized 10.50 x 3.70 m (aspect 2.84) past its LIVING template's 2.5; C5: BEDROOM_2; C24: BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; C19: DINING has no exterior wall (interior room)"
+   ]
+  },
+  "first_success": {
+   "witness": 64,
+   "envelope_m": [
+    14.99,
+    8.66
+   ],
+   "spatial": "10/10",
+   "access": "6/7",
+   "access_lost": [
+    [
+     "L",
+     "I",
+     "V",
+     "I",
+     "N",
+     "G",
+     "-",
+     "H",
+     "A",
+     "L",
+     "L"
+    ]
+   ],
+   "rows": [
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "LIVING",
+      2
+     ],
+     [
+      "BEDROOM_1",
+      1
+     ],
+     [
+      "BEDROOM_2",
+      2
+     ],
+     [
+      "BATHROOM_1",
+      1
+     ]
+    ],
+    [
+     [
+      "DINING",
+      2
+     ],
+     [
+      "HALL",
+      3
+     ],
+     [
+      "MASTER_BEDROOM",
+      2
+     ]
+    ]
+   ],
+   "rects_m": {
+    "BATHROOM_1": [
+     15.0,
+     2.0,
+     2.0,
+     4.3,
+     8.6
+    ],
+    "BEDROOM_1": [
+     9.0,
+     2.0,
+     3.0,
+     4.3,
+     12.9
+    ],
+    "BEDROOM_2": [
+     12.0,
+     2.0,
+     3.0,
+     4.3,
+     12.9
+    ],
+    "DINING": [
+     2.0,
+     6.3,
+     6.5,
+     4.35,
+     28.3
+    ],
+    "HALL": [
+     8.5,
+     6.3,
+     5.1,
+     4.35,
+     22.2
+    ],
+    "KITCHEN": [
+     2.0,
+     2.0,
+     2.8,
+     4.3,
+     12.0
+    ],
+    "LIVING": [
+     4.8,
+     2.0,
+     4.2,
+     4.3,
+     18.1
+    ],
+    "MASTER_BEDROOM": [
+     13.6,
+     6.3,
+     3.4,
+     4.35,
+     14.8
+    ]
+   }
+  }
+ },
+ "B09": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B11": {
+  "tally": {
+   "lp_feasible": 2,
+   "sizing_stub_pass": 2,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {
+    "NO_ENTRANCE": 2
+   },
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B12": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B13": {
+  "tally": {
+   "lp_feasible": 21,
+   "sizing_stub_pass": 19,
+   "realization_pass": 8,
+   "validators_pass": 2,
+   "refusals": {
+    "VALIDATION_FAILED": 6,
+    "NO_ENTRANCE": 11,
+    "AREA_INFEASIBLE": 2
+   },
+   "validator_fail_samples": [
+    "C5: BATHROOM_1; BATHROOM_2; BEDROOM_1; BEDROOM_2; BEDROOM_3; HALL; MASTER_BEDROOM",
+    "C5: BATHROOM_1; BATHROOM_2; BEDROOM_1; BEDROOM_2; BEDROOM_3; HALL; MASTER_BEDROOM",
+    "C5: BATHROOM_1; BATHROOM_2; BEDROOM_1; BEDROOM_2; BEDROOM_3; HALL; MASTER_BEDROOM; C31: DINING: only realized path to it is blocked by furniture in an intermediate room, no way around it"
+   ]
+  },
+  "first_success": {
+   "witness": 11,
+   "envelope_m": [
+    10.03,
+    13.72
+   ],
+   "spatial": "12/12",
+   "access": "9/9",
+   "access_lost": [],
+   "rows": [
+    [
+     [
+      "KITCHEN",
+      1
+     ],
+     [
+      "LIVING",
+      3
+     ]
+    ],
+    [
+     [
+      "DINING",
+      2
+     ],
+     [
+      "BATHROOM_2",
+      1
+     ],
+     [
+      "BEDROOM_1",
+      1
+     ]
+    ],
+    [
+     [
+      "BEDROOM_2",
+      1
+     ],
+     [
+      "HALL",
+      3
+     ]
+    ],
+    [
+     [
+      "BATHROOM_1",
+      1
+     ],
+     [
+      "MASTER_BEDROOM",
+      2
+     ],
+     [
+      "BEDROOM_3",
+      1
+     ]
+    ]
+   ],
+   "rects_m": {
+    "BATHROOM_1": [
+     2.0,
+     12.05,
+     3.25,
+     3.65,
+     11.9
+    ],
+    "BATHROOM_2": [
+     6.65,
+     5.55,
+     2.2,
+     3.25,
+     7.2
+    ],
+    "BEDROOM_1": [
+     8.85,
+     5.55,
+     3.2,
+     3.25,
+     10.4
+    ],
+    "BEDROOM_2": [
+     2.0,
+     8.8,
+     3.25,
+     3.25,
+     10.6
+    ],
+    "BEDROOM_3": [
+     8.85,
+     12.05,
+     3.2,
+     3.65,
+     11.7
+    ],
+    "DINING": [
+     2.0,
+     5.55,
+     4.65,
+     3.25,
+     15.1
+    ],
+    "HALL": [
+     5.25,
+     8.8,
+     6.8,
+     3.25,
+     22.1
+    ],
+    "KITCHEN": [
+     2.0,
+     2.0,
+     3.25,
+     3.55,
+     11.5
+    ],
+    "LIVING": [
+     5.25,
+     2.0,
+     6.8,
+     3.55,
+     24.1
+    ],
+    "MASTER_BEDROOM": [
+     5.25,
+     12.05,
+     3.6,
+     3.65,
+     13.1
+    ]
+   }
+  }
+ },
+ "B17": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B18": {
+  "tally": {
+   "lp_feasible": 0,
+   "sizing_stub_pass": 0,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {},
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ },
+ "B20": {
+  "tally": {
+   "lp_feasible": 9,
+   "sizing_stub_pass": 7,
+   "realization_pass": 0,
+   "validators_pass": 0,
+   "refusals": {
+    "NO_ENTRANCE": 7,
+    "AREA_INFEASIBLE": 2
+   },
+   "validator_fail_samples": []
+  },
+  "first_success": null
+ }
+}

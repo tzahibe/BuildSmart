@@ -1,0 +1,1421 @@
+{
+  "plot": {
+    "x": 0.0,
+    "y": 0.0,
+    "width_m": 20.0,
+    "depth_m": 34.5
+  },
+  "footprint": {
+    "x": 3.6,
+    "y": 0.0,
+    "width_m": 12.8,
+    "depth_m": 13.4
+  },
+  "rooms": [
+    {
+      "id": "HALL",
+      "type": "HALL",
+      "name": "מסדרון",
+      "x": 11.0,
+      "y": 0.0,
+      "width_m": 1.2,
+      "depth_m": 13.1,
+      "area_m2": 15.72,
+      "gross_width_m": 1.4,
+      "gross_depth_m": 13.4,
+      "gross_area_m2": 18.76,
+      "walls": {
+        "N": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "S": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "E": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "W": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        }
+      },
+      "preferred_max_m2": null,
+      "hard_max_m2": null,
+      "over_preferred_ratio": null,
+      "shape": "RECTANGLE",
+      "polygon_m": null
+    },
+    {
+      "id": "MASTER",
+      "type": "MASTER_BEDROOM",
+      "name": "חדר הורים",
+      "x": 12.4,
+      "y": 0.0,
+      "width_m": 3.8,
+      "depth_m": 4.9,
+      "area_m2": 18.62,
+      "gross_width_m": 4.0,
+      "gross_depth_m": 5.1,
+      "gross_area_m2": 20.4,
+      "walls": {
+        "N": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "S": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "E": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "W": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        }
+      },
+      "preferred_max_m2": 20.0,
+      "hard_max_m2": 23.0,
+      "over_preferred_ratio": null,
+      "shape": "RECTANGLE",
+      "polygon_m": null
+    },
+    {
+      "id": "BEDROOM_1",
+      "type": "BEDROOM",
+      "name": "חדר שינה",
+      "x": 12.4,
+      "y": 5.1,
+      "width_m": 3.8,
+      "depth_m": 3.35,
+      "area_m2": 12.73,
+      "gross_width_m": 4.0,
+      "gross_depth_m": 3.55,
+      "gross_area_m2": 14.2,
+      "walls": {
+        "N": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "S": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "E": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "W": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        }
+      },
+      "preferred_max_m2": 14.0,
+      "hard_max_m2": 18.0,
+      "over_preferred_ratio": null,
+      "shape": "RECTANGLE",
+      "polygon_m": null
+    },
+    {
+      "id": "SAFE_ROOM",
+      "type": "SAFE_ROOM",
+      "name": "ממ\"ד",
+      "x": 12.4,
+      "y": 8.65,
+      "width_m": 3.7,
+      "depth_m": 2.45,
+      "area_m2": 9.065,
+      "gross_width_m": 4.0,
+      "gross_depth_m": 2.75,
+      "gross_area_m2": 11.0,
+      "walls": {
+        "N": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "S": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "E": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "W": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        }
+      },
+      "preferred_max_m2": 14.0,
+      "hard_max_m2": 14.0,
+      "over_preferred_ratio": null,
+      "shape": "RECTANGLE",
+      "polygon_m": null
+    },
+    {
+      "id": "BATH_1",
+      "type": "BATHROOM",
+      "name": "חדר רחצה",
+      "x": 12.4,
+      "y": 11.4,
+      "width_m": 3.8,
+      "depth_m": 1.7,
+      "area_m2": 6.46,
+      "gross_width_m": 4.0,
+      "gross_depth_m": 2.0,
+      "gross_area_m2": 8.0,
+      "walls": {
+        "N": {
+          "construction": "RC_SAFE_ROOM",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "S": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "E": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "W": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        }
+      },
+      "preferred_max_m2": 12.0,
+      "hard_max_m2": 14.0,
+      "over_preferred_ratio": null,
+      "shape": "RECTANGLE",
+      "polygon_m": null
+    },
+    {
+      "id": "FLEX",
+      "type": "FLEX",
+      "name": "שטח גמיש (לא מוקצה)",
+      "x": 3.6,
+      "y": 8.25,
+      "width_m": 7.2,
+      "depth_m": 4.95,
+      "area_m2": 35.64,
+      "gross_width_m": 7.4,
+      "gross_depth_m": 5.15,
+      "gross_area_m2": 38.11,
+      "walls": {
+        "N": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "S": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        },
+        "E": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "INTERIOR",
+          "can_take_a_window": false
+        },
+        "W": {
+          "construction": "STANDARD_PARTITION",
+          "boundary_context": "EXTERIOR",
+          "can_take_a_window": true
+        }
+      },
+      "preferred_max_m2": null,
+      "hard_max_m2": null,
+      "over_preferred_ratio": null,
+      "shape": "RECTANGLE",
+      "polygon_m": null
+    },
+    {
+      "id": "LIVING+KITCHEN",
+      "type": "LIVING_KITCHEN",
+      "name": "סלון ומטבח",
+      "x": 3.6,
+      "y": 0.0,
+      "width_m": 7.4,
+      "depth_m": 8.25,
+      "area_m2": 57.24,
+      "gross_width_m": 7.4,
+      "gross_depth_m": 8.25,
+      "gross_area_m2": 61.05,
+      "walls": {},
+      "preferred_max_m2": 72.0,
+      "hard_max_m2": 78.0,
+      "over_preferred_ratio": null,
+      "shape": "L",
+      "polygon_m": [
+        [
+          11.0,
+          0.0
+        ],
+        [
+          3.6,
+          0.0
+        ],
+        [
+          3.6,
+          8.25
+        ],
+        [
+          11.0,
+          8.25
+        ]
+      ]
+    }
+  ],
+  "walls": [
+    {
+      "orientation": "horizontal",
+      "coord": 0.0,
+      "start": 3.6,
+      "end": 11.0,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "LIVING+KITCHEN"
+      ],
+      "id": "wall-0",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 3.6,
+      "start": 0.0,
+      "end": 5.6,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "LIVING+KITCHEN"
+      ],
+      "id": "wall-2",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 11.0,
+      "start": 0.0,
+      "end": 5.6,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "LIVING+KITCHEN",
+        "HALL"
+      ],
+      "id": "wall-3",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.1
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 8.25,
+      "start": 3.6,
+      "end": 11.0,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "LIVING+KITCHEN",
+        "FLEX"
+      ],
+      "id": "wall-4",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.1
+    },
+    {
+      "orientation": "vertical",
+      "coord": 3.6,
+      "start": 5.6,
+      "end": 8.25,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "LIVING+KITCHEN"
+      ],
+      "id": "wall-5",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 11.0,
+      "start": 5.6,
+      "end": 8.25,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "LIVING+KITCHEN",
+        "HALL"
+      ],
+      "id": "wall-6",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.1
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 0.0,
+      "start": 11.0,
+      "end": 12.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "HALL"
+      ],
+      "id": "wall-7",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 13.4,
+      "start": 11.0,
+      "end": 12.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "HALL"
+      ],
+      "id": "wall-8",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 11.0,
+      "start": 8.25,
+      "end": 13.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "HALL",
+        "FLEX"
+      ],
+      "id": "wall-9",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.1
+    },
+    {
+      "orientation": "vertical",
+      "coord": 12.4,
+      "start": 0.0,
+      "end": 5.1,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "HALL",
+        "MASTER"
+      ],
+      "id": "wall-10",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 12.4,
+      "start": 5.1,
+      "end": 8.649999999999999,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "HALL",
+        "BEDROOM_1"
+      ],
+      "id": "wall-11",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 12.4,
+      "start": 8.65,
+      "end": 11.4,
+      "construction": "RC_SAFE_ROOM",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "HALL",
+        "SAFE_ROOM"
+      ],
+      "id": "wall-12",
+      "wall_class": "PROTECTED",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 12.4,
+      "start": 11.4,
+      "end": 13.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "HALL",
+        "BATH_1"
+      ],
+      "id": "wall-13",
+      "wall_class": "WET_SERVICE",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 0.0,
+      "start": 12.4,
+      "end": 16.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "MASTER"
+      ],
+      "id": "wall-14",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 5.1,
+      "start": 12.4,
+      "end": 16.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "MASTER",
+        "BEDROOM_1"
+      ],
+      "id": "wall-15",
+      "wall_class": "INTERIOR",
+      "thickness_m": 0.1
+    },
+    {
+      "orientation": "vertical",
+      "coord": 16.4,
+      "start": 0.0,
+      "end": 5.1,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "MASTER"
+      ],
+      "id": "wall-16",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 8.649999999999999,
+      "start": 12.4,
+      "end": 16.4,
+      "construction": "RC_SAFE_ROOM",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "BEDROOM_1",
+        "SAFE_ROOM"
+      ],
+      "id": "wall-17",
+      "wall_class": "PROTECTED",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 16.4,
+      "start": 5.1,
+      "end": 8.649999999999999,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "BEDROOM_1"
+      ],
+      "id": "wall-18",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 11.4,
+      "start": 12.4,
+      "end": 16.4,
+      "construction": "RC_SAFE_ROOM",
+      "boundary_context": "INTERIOR",
+      "room_ids": [
+        "SAFE_ROOM",
+        "BATH_1"
+      ],
+      "id": "wall-19",
+      "wall_class": "PROTECTED",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 16.4,
+      "start": 8.65,
+      "end": 11.4,
+      "construction": "RC_SAFE_ROOM",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "SAFE_ROOM"
+      ],
+      "id": "wall-20",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 13.4,
+      "start": 12.4,
+      "end": 16.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "BATH_1"
+      ],
+      "id": "wall-21",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 16.4,
+      "start": 11.4,
+      "end": 13.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "BATH_1"
+      ],
+      "id": "wall-22",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "horizontal",
+      "coord": 13.4,
+      "start": 3.6,
+      "end": 11.0,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "FLEX"
+      ],
+      "id": "wall-23",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    },
+    {
+      "orientation": "vertical",
+      "coord": 3.6,
+      "start": 8.25,
+      "end": 13.4,
+      "construction": "STANDARD_PARTITION",
+      "boundary_context": "EXTERIOR",
+      "room_ids": [
+        "FLEX"
+      ],
+      "id": "wall-24",
+      "wall_class": "EXTERIOR",
+      "thickness_m": 0.3
+    }
+  ],
+  "open_interfaces": [],
+  "doors": [
+    {
+      "a": "HALL",
+      "b": "LIVING+KITCHEN",
+      "kind": "CASED_OPENING",
+      "width_m": 0.9,
+      "x": 11.0,
+      "y": 2.8,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "LIVING+KITCHEN",
+      "hinge_x": 11.0,
+      "hinge_y": 2.35,
+      "swing_deg": 180.0,
+      "wall_id": "wall-3"
+    },
+    {
+      "a": "HALL",
+      "b": "LIVING+KITCHEN",
+      "kind": "DOOR",
+      "width_m": 0.9,
+      "x": 11.0,
+      "y": 6.9,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "LIVING+KITCHEN",
+      "hinge_x": 11.0,
+      "hinge_y": 6.45,
+      "swing_deg": 180.0,
+      "wall_id": "wall-6"
+    },
+    {
+      "a": "HALL",
+      "b": "FLEX",
+      "kind": "DOOR",
+      "width_m": 0.9,
+      "x": 11.0,
+      "y": 10.8,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "FLEX",
+      "hinge_x": 11.0,
+      "hinge_y": 10.35,
+      "swing_deg": 180.0,
+      "wall_id": "wall-9"
+    },
+    {
+      "a": "HALL",
+      "b": "MASTER",
+      "kind": "DOOR",
+      "width_m": 0.9,
+      "x": 12.4,
+      "y": 2.55,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "MASTER",
+      "hinge_x": 12.4,
+      "hinge_y": 2.1,
+      "swing_deg": 0.0,
+      "wall_id": "wall-10"
+    },
+    {
+      "a": "HALL",
+      "b": "BEDROOM_1",
+      "kind": "DOOR",
+      "width_m": 0.9,
+      "x": 12.4,
+      "y": 6.85,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "BEDROOM_1",
+      "hinge_x": 12.4,
+      "hinge_y": 6.4,
+      "swing_deg": 0.0,
+      "wall_id": "wall-11"
+    },
+    {
+      "a": "HALL",
+      "b": "SAFE_ROOM",
+      "kind": "DOOR",
+      "width_m": 0.9,
+      "x": 12.4,
+      "y": 10.0,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "SAFE_ROOM",
+      "hinge_x": 12.4,
+      "hinge_y": 9.55,
+      "swing_deg": 0.0,
+      "wall_id": "wall-12"
+    },
+    {
+      "a": "HALL",
+      "b": "BATH_1",
+      "kind": "DOOR",
+      "width_m": 0.9,
+      "x": 12.4,
+      "y": 12.4,
+      "orientation": "vertical",
+      "is_entrance": false,
+      "swings_into": "BATH_1",
+      "hinge_x": 12.4,
+      "hinge_y": 11.95,
+      "swing_deg": 0.0,
+      "wall_id": "wall-13"
+    },
+    {
+      "a": "OUTSIDE",
+      "b": "HALL",
+      "kind": "DOOR",
+      "width_m": 1.0,
+      "x": 11.7,
+      "y": 0.0,
+      "orientation": "horizontal",
+      "is_entrance": true,
+      "swings_into": "HALL",
+      "hinge_x": 11.2,
+      "hinge_y": 0.0,
+      "swing_deg": 90.0,
+      "wall_id": "wall-7"
+    }
+  ],
+  "windows": [
+    {
+      "room_id": "LIVING+KITCHEN",
+      "side": "W",
+      "width_m": 2.0,
+      "x": 3.6,
+      "y": 2.8,
+      "wall_id": "wall-2"
+    },
+    {
+      "room_id": "LIVING+KITCHEN",
+      "side": "W",
+      "width_m": 2.0,
+      "x": 3.6,
+      "y": 6.9,
+      "wall_id": "wall-5"
+    },
+    {
+      "room_id": "MASTER",
+      "side": "N",
+      "width_m": 2.0,
+      "x": 14.4,
+      "y": 0.0,
+      "wall_id": "wall-14"
+    },
+    {
+      "room_id": "BEDROOM_1",
+      "side": "E",
+      "width_m": 1.6,
+      "x": 16.4,
+      "y": 6.85,
+      "wall_id": "wall-18"
+    },
+    {
+      "room_id": "SAFE_ROOM",
+      "side": "E",
+      "width_m": 1.6,
+      "x": 16.4,
+      "y": 10.0,
+      "wall_id": "wall-20"
+    },
+    {
+      "room_id": "BATH_1",
+      "side": "E",
+      "width_m": 1.0,
+      "x": 16.4,
+      "y": 12.4,
+      "wall_id": "wall-22"
+    }
+  ],
+  "layout": [
+    {
+      "kind": "SOFA",
+      "room_id": "LIVING",
+      "x": 6.35,
+      "y": 0.15,
+      "width_m": 2.0,
+      "depth_m": 0.9,
+      "rotation_deg": 0.0,
+      "clearance_x": 6.35,
+      "clearance_y": 0.15,
+      "clearance_width_m": 2.0,
+      "clearance_depth_m": 1.8
+    },
+    {
+      "kind": "COFFEE_TABLE",
+      "room_id": "LIVING",
+      "x": 6.85,
+      "y": 1.4,
+      "width_m": 1.0,
+      "depth_m": 0.5,
+      "rotation_deg": 0.0,
+      "clearance_x": 6.85,
+      "clearance_y": 1.4,
+      "clearance_width_m": 1.0,
+      "clearance_depth_m": 0.5
+    },
+    {
+      "kind": "FOCAL_WALL",
+      "room_id": "LIVING",
+      "x": 6.35,
+      "y": 5.500000000000001,
+      "width_m": 2.0,
+      "depth_m": 0.05,
+      "rotation_deg": 180.0,
+      "clearance_x": 6.35,
+      "clearance_y": 5.500000000000001,
+      "clearance_width_m": 2.0,
+      "clearance_depth_m": 0.05
+    },
+    {
+      "kind": "REFRIGERATOR",
+      "room_id": "KITCHEN",
+      "x": 3.75,
+      "y": 5.6499999999999995,
+      "width_m": 0.6,
+      "depth_m": 0.6,
+      "rotation_deg": 90.0,
+      "clearance_x": 3.75,
+      "clearance_y": 5.6499999999999995,
+      "clearance_width_m": 1.7999999999999998,
+      "clearance_depth_m": 0.6
+    },
+    {
+      "kind": "COUNTER_RUN",
+      "room_id": "KITCHEN",
+      "x": 3.75,
+      "y": 6.249999999999999,
+      "width_m": 0.6,
+      "depth_m": 0.375,
+      "rotation_deg": 90.0,
+      "clearance_x": 3.75,
+      "clearance_y": 6.249999999999999,
+      "clearance_width_m": 1.7999999999999998,
+      "clearance_depth_m": 0.375
+    },
+    {
+      "kind": "SINK",
+      "room_id": "KITCHEN",
+      "x": 3.75,
+      "y": 6.624999999999999,
+      "width_m": 0.6,
+      "depth_m": 0.6,
+      "rotation_deg": 90.0,
+      "clearance_x": 3.75,
+      "clearance_y": 6.624999999999999,
+      "clearance_width_m": 1.7999999999999998,
+      "clearance_depth_m": 0.6
+    },
+    {
+      "kind": "COUNTER_RUN",
+      "room_id": "KITCHEN",
+      "x": 3.75,
+      "y": 7.225,
+      "width_m": 0.6,
+      "depth_m": 0.375,
+      "rotation_deg": 90.0,
+      "clearance_x": 3.75,
+      "clearance_y": 7.225,
+      "clearance_width_m": 1.7999999999999998,
+      "clearance_depth_m": 0.375
+    },
+    {
+      "kind": "COOKTOP",
+      "room_id": "KITCHEN",
+      "x": 3.75,
+      "y": 7.6,
+      "width_m": 0.6,
+      "depth_m": 0.6,
+      "rotation_deg": 90.0,
+      "clearance_x": 3.75,
+      "clearance_y": 7.6,
+      "clearance_width_m": 1.7999999999999998,
+      "clearance_depth_m": 0.6
+    },
+    {
+      "kind": "BED",
+      "room_id": "MASTER",
+      "x": 14.25,
+      "y": 1.7000000000000002,
+      "width_m": 2.0,
+      "depth_m": 1.8,
+      "rotation_deg": 270.0,
+      "clearance_x": 13.55,
+      "clearance_y": 1.7000000000000002,
+      "clearance_width_m": 2.7,
+      "clearance_depth_m": 1.8
+    },
+    {
+      "kind": "WARDROBE",
+      "room_id": "MASTER",
+      "x": 13.450000000000001,
+      "y": 4.450000000000001,
+      "width_m": 1.8,
+      "depth_m": 0.6,
+      "rotation_deg": 180.0,
+      "clearance_x": 13.450000000000001,
+      "clearance_y": 3.8500000000000005,
+      "clearance_width_m": 1.8,
+      "clearance_depth_m": 1.2
+    },
+    {
+      "kind": "BED",
+      "room_id": "BEDROOM_1",
+      "x": 13.65,
+      "y": 5.1499999999999995,
+      "width_m": 1.4,
+      "depth_m": 2.0,
+      "rotation_deg": 0.0,
+      "clearance_x": 13.65,
+      "clearance_y": 5.1499999999999995,
+      "clearance_width_m": 1.4,
+      "clearance_depth_m": 2.7
+    },
+    {
+      "kind": "TOILET",
+      "room_id": "BATH_1",
+      "x": 14.15,
+      "y": 11.55,
+      "width_m": 0.4,
+      "depth_m": 0.6,
+      "rotation_deg": 0.0,
+      "clearance_x": 14.15,
+      "clearance_y": 11.55,
+      "clearance_width_m": 0.4,
+      "clearance_depth_m": 1.15
+    },
+    {
+      "kind": "SINK",
+      "room_id": "BATH_1",
+      "x": 15.85,
+      "y": 12.15,
+      "width_m": 0.4,
+      "depth_m": 0.5,
+      "rotation_deg": 270.0,
+      "clearance_x": 15.35,
+      "clearance_y": 12.15,
+      "clearance_width_m": 0.9,
+      "clearance_depth_m": 0.5
+    }
+  ],
+  "parking": [],
+  "garden": [
+    {
+      "x": 0.0,
+      "y": 13.4,
+      "width_m": 20.0,
+      "depth_m": 21.1
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "width_m": 3.6,
+      "depth_m": 13.4
+    },
+    {
+      "x": 16.4,
+      "y": 0.0,
+      "width_m": 3.6,
+      "depth_m": 13.4
+    }
+  ],
+  "entrance_walk": {
+    "x": 11.1,
+    "y": 0.0,
+    "width_m": 1.2,
+    "depth_m": 0.0
+  },
+  "gross_area_m2": 171.52,
+  "net_area_m2": 155.48,
+  "corridor": {
+    "requested_width_m": null,
+    "requested_mode": null,
+    "realized_width_m": 1.2,
+    "satisfied": null
+  },
+  "relationships": [],
+  "validation": {
+    "passed": true,
+    "statements": [
+      "אין חפיפה בין חדרים",
+      "כל שטח הבניין מנוצל",
+      "שטחי החדרים ומידותיהם תקינים",
+      "אף חדר אינו רצועה — הפרופורציות של כל חדר בטווח שנקבע לו",
+      "אף חדר אינו גדול מהמקסימום שנקבע לסוגו",
+      "הממ\"ד עומד בדרישות המעטפת והשטח",
+      "כל החדרים נגישים פיזית מהכניסה",
+      "החלל הפתוח אינו מחולק בדלתות מיותרות",
+      "לכל דלת יש מקום פיזי בקיר",
+      "לכל חדר הדורש אור טבעי יש חלון",
+      "בכל חדר יש מקום לריהוט הבסיסי",
+      "החניה מחוברת לרחוב",
+      "החניות מחוץ לבית",
+      "הכניסה להולכי רגל מחוברת לבית",
+      "שטחי החוץ מסווגים במפורש",
+      "כל קשר שתוכנן קיים בפועל בתוכנית",
+      "הגישה לכל חדר רחצה תואמת את מה שביקשת"
+    ],
+    "warnings": [
+      "התוכנית ממלאת 172 מ\"ר מתוך כ-180 מ\"ר שהחדרים שביקשת יכולים למלא בצורה סבירה; היעד שהוזן הוא 312 מ\"ר. אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת."
+    ],
+    "checks": {
+      "C1": true,
+      "C2": true,
+      "C3": true,
+      "C20": true,
+      "C21": true,
+      "C4": true,
+      "C5": true,
+      "C24": true,
+      "C6": true,
+      "C7": true,
+      "C28": true,
+      "C19": true,
+      "C8": true,
+      "C9": true,
+      "C26": true,
+      "C10": true,
+      "C18": true,
+      "C11": true,
+      "C12": true,
+      "C16": true,
+      "C23": true,
+      "C25": true,
+      "C31": true,
+      "C13": true,
+      "C17": true,
+      "C29": true,
+      "C33": true
+    }
+  },
+  "outline": {
+    "width_m": 13.0,
+    "depth_m": 24.0,
+    "area_m2": 312.0,
+    "origin": "PERSON",
+    "shape": "RECTANGLE",
+    "wing_dims_m": []
+  },
+  "family": "V[H[M,B,S,W],H,H[P,P,F]]",
+  "quality": {
+    "over_preferred": false,
+    "signal": [],
+    "notices": [
+      "ל-2 חדרים יש ריהוט אך אין מעבר פנוי מהדלת: מטבח, חדר רחצה"
+    ],
+    "laundry_notice": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.2008802816901407,
+      "m1_habitable_aspect_max": 1.4545454545454546,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.10937500000000001,
+      "m4_hall_door_count": 7,
+      "m4_hall_aspect_median": 9.571428571428573,
+      "m5_wet_adjacency_ratio": 0.0,
+      "m6_public_zone_contiguous": true,
+      "dead_space_m2": 0.0,
+      "wasted_circulation_share": 0.10937500000000001,
+      "circulation_area_m2": 15.72,
+      "circulation_ratio": 0.10110950313555232,
+      "circulation_longest_segment_m": 13.1,
+      "circulation_total_length_m": 13.1,
+      "circulation_narrowest_width_m": 1.2,
+      "circulation_dead_end_count": 1,
+      "circulation_turn_count": 0,
+      "circulation_duplicated_segment_count": 0,
+      "circulation_duplicated_area_m2": 0.0,
+      "wet_core": {
+        "shared_wall_length_m": 0.0,
+        "clusters": [
+          [
+            "BATH_1"
+          ]
+        ],
+        "cluster_count": 1,
+        "kitchen_adjacent_count": 0,
+        "plumbing_complexity_index": 2
+      }
+    },
+    "constraints": [
+      {
+        "kind": "SAFE_ROOM",
+        "source": "USER",
+        "authoritative": true,
+        "min_area_m2": 9.0
+      }
+    ],
+    "exposure": [
+      {
+        "room_id": "LIVING",
+        "exterior_sides": [
+          "N",
+          "W"
+        ],
+        "window_side": "W",
+        "window_width_m": 2.0,
+        "no_window_reason": null
+      },
+      {
+        "room_id": "KITCHEN",
+        "exterior_sides": [
+          "W"
+        ],
+        "window_side": "W",
+        "window_width_m": 2.0,
+        "no_window_reason": null
+      },
+      {
+        "room_id": "HALL",
+        "exterior_sides": [
+          "N",
+          "S"
+        ],
+        "window_side": null,
+        "window_width_m": null,
+        "no_window_reason": "WINDOW_NOT_REQUIRED"
+      },
+      {
+        "room_id": "MASTER",
+        "exterior_sides": [
+          "N",
+          "E"
+        ],
+        "window_side": "N",
+        "window_width_m": 2.0,
+        "no_window_reason": null
+      },
+      {
+        "room_id": "BEDROOM_1",
+        "exterior_sides": [
+          "E"
+        ],
+        "window_side": "E",
+        "window_width_m": 1.6,
+        "no_window_reason": null
+      },
+      {
+        "room_id": "SAFE_ROOM",
+        "exterior_sides": [
+          "E"
+        ],
+        "window_side": "E",
+        "window_width_m": 1.6,
+        "no_window_reason": null
+      },
+      {
+        "room_id": "BATH_1",
+        "exterior_sides": [
+          "S",
+          "E"
+        ],
+        "window_side": "E",
+        "window_width_m": 1.0,
+        "no_window_reason": null
+      },
+      {
+        "room_id": "FLEX",
+        "exterior_sides": [
+          "S",
+          "W"
+        ],
+        "window_side": null,
+        "window_width_m": null,
+        "no_window_reason": "WINDOW_NOT_REQUIRED"
+      }
+    ],
+    "wet_privacy": [
+      {
+        "zone_id": "BATH_1",
+        "entered_from": "HALL",
+        "entered_from_class": "CIRCULATION",
+        "door_facing": null,
+        "direct_sight_line": false,
+        "public_exposure_score": 0.2,
+        "circulation_obstruction": true,
+        "adjacency_quality": false,
+        "privacy_score": 0.35
+      }
+    ],
+    "usability": [
+      {
+        "room_id": "LIVING",
+        "tier": "GOOD",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 5.4,
+        "window_blocked": false
+      },
+      {
+        "room_id": "KITCHEN",
+        "tier": "POOR",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 6.6,
+        "window_blocked": true
+      },
+      {
+        "room_id": "HALL",
+        "tier": "GOOD",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 13.1,
+        "window_blocked": false
+      },
+      {
+        "room_id": "MASTER",
+        "tier": "GOOD",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 4.9,
+        "window_blocked": false
+      },
+      {
+        "room_id": "BEDROOM_1",
+        "tier": "GOOD",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 3.8,
+        "window_blocked": false
+      },
+      {
+        "room_id": "SAFE_ROOM",
+        "tier": "GOOD",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 3.7,
+        "window_blocked": false
+      },
+      {
+        "room_id": "BATH_1",
+        "tier": "POOR",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 3.8,
+        "window_blocked": true
+      },
+      {
+        "room_id": "FLEX",
+        "tier": "GOOD",
+        "required_placed": true,
+        "missing_required": [],
+        "clearance_satisfied": true,
+        "access_path_clear": true,
+        "blocked_objects": [],
+        "usable_wall_length_m": 7.2,
+        "window_blocked": false
+      }
+    ],
+    "entrance_sequence": {
+      "arrival_zone": "HALL",
+      "arrival_roles": [
+        "HALL",
+        "CIRCULATION"
+      ],
+      "is_circulation_arrival": true,
+      "pocket_length_m": 2.6443,
+      "has_public_opening": true,
+      "distance_to_public_m": 6.0312,
+      "private_doors_passed": 3,
+      "foyer": true,
+      "tunnel": "6.03 m to the first public opening, passing 3 private room door(s), exceeds 4.00 m",
+      "stray_pockets": []
+    },
+    "public_composition": {
+      "kitchen_dining_related": null,
+      "dining_living_related": null,
+      "public_zone_coherent": false,
+      "entrance_reaches_public": true,
+      "living_exterior_exposed": true,
+      "living_has_window": true,
+      "blocked_public_rooms": [],
+      "composition_score": 0.0
+    }
+  },
+  "footprints": [
+    {
+      "x": 3.6,
+      "y": 0.0,
+      "width_m": 12.8,
+      "depth_m": 13.4
+    }
+  ],
+  "merge": {
+    "living_id": "LIVING",
+    "kitchen_id": "KITCHEN",
+    "merged_id": "LIVING+KITCHEN",
+    "applied": true,
+    "checks": [
+      {
+        "check_id": "C1",
+        "passed": true,
+        "detail": "none"
+      },
+      {
+        "check_id": "C2",
+        "passed": true,
+        "detail": "the union's own area exactly equals the sum of the two source rectangles"
+      },
+      {
+        "check_id": "C3",
+        "passed": true,
+        "detail": "merged pair within its own combined template bounds"
+      },
+      {
+        "check_id": "C6",
+        "passed": true,
+        "detail": "the opened seam carries no door — one room, not two joined by an opening"
+      },
+      {
+        "check_id": "C7",
+        "passed": true,
+        "detail": "inherited from the plan's own C7 — the merge touches no other door"
+      },
+      {
+        "check_id": "C8",
+        "passed": true,
+        "detail": "inherited — the merge touches no exterior wall"
+      },
+      {
+        "check_id": "C9",
+        "passed": true,
+        "detail": "each source room's own already-proven furniture fit is untouched by the merge"
+      },
+      {
+        "check_id": "C14",
+        "passed": true,
+        "detail": "not applicable — the merged room is not a circulation zone"
+      },
+      {
+        "check_id": "C16",
+        "passed": true,
+        "detail": "not applicable — the entrance does not open into either source room"
+      },
+      {
+        "check_id": "C19",
+        "passed": true,
+        "detail": "inherited — the merge touches no exterior wall"
+      },
+      {
+        "check_id": "C20",
+        "passed": true,
+        "detail": "merged oriented aspect 1.11 vs the 3.0 ceiling"
+      },
+      {
+        "check_id": "C26",
+        "passed": true,
+        "detail": "not applicable — the merged room is not a circulation zone"
+      },
+      {
+        "check_id": "C27",
+        "passed": true,
+        "detail": "reported gross area 61.05 m2 matches the union polygon's own area 61.05 m2; this merge happens to be flush (no notch), so the bounding-box product agrees with the polygon area here too"
+      }
+    ],
+    "oriented_aspect": 1.114864864864865
+  }
+}

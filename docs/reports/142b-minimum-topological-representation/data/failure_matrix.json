@@ -1,0 +1,760 @@
+{
+ "B10": {
+  "n": 9,
+  "m": 14,
+  "degree": {
+   "LIVING": 4,
+   "KITCHEN": 2,
+   "HALL": 8,
+   "MASTER_BEDROOM": 2,
+   "BEDROOM_1": 3,
+   "BEDROOM_2": 2,
+   "BEDROOM_3": 1,
+   "BATHROOM_1": 3,
+   "BATHROOM_2": 3
+  },
+  "planar": true,
+  "k4": [
+   [
+    "BATHROOM_1",
+    "BEDROOM_1",
+    "HALL",
+    "LIVING"
+   ]
+  ],
+  "lens3": [
+   [
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_1",
+     "KITCHEN"
+    ]
+   ]
+  ],
+  "heuristic_best_form": "GRID 3x3 rows=[3, 3, 3]",
+  "heuristic_preserved": [
+   [
+    "BATHROOM_1",
+    "BEDROOM_1"
+   ],
+   [
+    "BATHROOM_1",
+    "HALL"
+   ],
+   [
+    "BATHROOM_2",
+    "BEDROOM_2"
+   ],
+   [
+    "BATHROOM_2",
+    "MASTER_BEDROOM"
+   ],
+   [
+    "BEDROOM_1",
+    "LIVING"
+   ],
+   [
+    "BEDROOM_2",
+    "HALL"
+   ],
+   [
+    "HALL",
+    "LIVING"
+   ],
+   [
+    "HALL",
+    "MASTER_BEDROOM"
+   ],
+   [
+    "KITCHEN",
+    "LIVING"
+   ]
+  ],
+  "heuristic_lost": [
+   [
+    "BATHROOM_1",
+    "LIVING"
+   ],
+   [
+    "BATHROOM_2",
+    "HALL"
+   ],
+   [
+    "BEDROOM_1",
+    "HALL"
+   ],
+   [
+    "BEDROOM_3",
+    "HALL"
+   ],
+   [
+    "HALL",
+    "KITCHEN"
+   ]
+  ],
+  "exact_max_within_production_slot_structures": 9,
+  "max_edges_band_full": 13,
+  "max_edges_slicing": 13,
+  "max_edges_rect": 13,
+  "band_layout_carries_all": false,
+  "slicing_carries_all": false,
+  "rect_carries_all": false,
+  "one_L_room_rect": [
+   "BATHROOM_1",
+   "BEDROOM_1",
+   "HALL",
+   "LIVING"
+  ],
+  "one_L_room_band": [
+   "BATHROOM_1",
+   "BEDROOM_1",
+   "HALL",
+   "LIVING"
+  ],
+  "edges_whose_removal_alone_restores_rectangles": [
+   "BATHROOM_1--HALL",
+   "BATHROOM_1--LIVING",
+   "BEDROOM_1--HALL",
+   "BEDROOM_1--LIVING",
+   "HALL--LIVING"
+  ],
+  "lost_edges": [
+   {
+    "edge": [
+     "BATHROOM_1",
+     "LIVING"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: K4 BATHROOM_1/BEDROOM_1/HALL/LIVING; edge LIVING-HALL with 3 common neighbours BATHROOM_1/BEDROOM_1/KITCHEN -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_1, BEDROOM_1, HALL, LIVING) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BATHROOM_2",
+     "HALL"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: K4 BATHROOM_1/BEDROOM_1/HALL/LIVING; edge LIVING-HALL with 3 common neighbours BATHROOM_1/BEDROOM_1/KITCHEN -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_1, BEDROOM_1, HALL, LIVING) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "KITCHEN"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge LIVING-HALL with 3 common neighbours BATHROOM_1/BEDROOM_1/KITCHEN -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_1, BEDROOM_1, HALL, LIVING) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   }
+  ],
+  "losses_attributed": {
+   "representation_forced": 1,
+   "search": 4,
+   "obstruction_edges_among_lost": 3
+  },
+  "band_witness_dropped": [
+   [
+    "BEDROOM_1",
+    "LIVING"
+   ]
+  ]
+ },
+ "B13": {
+  "n": 10,
+  "m": 12,
+  "degree": {
+   "LIVING": 4,
+   "DINING": 3,
+   "KITCHEN": 2,
+   "HALL": 6,
+   "MASTER_BEDROOM": 2,
+   "BEDROOM_1": 2,
+   "BEDROOM_2": 1,
+   "BEDROOM_3": 1,
+   "BATHROOM_1": 1,
+   "BATHROOM_2": 2
+  },
+  "planar": true,
+  "k4": [],
+  "lens3": [],
+  "heuristic_best_form": "GRID 3x4 rows=[4, 3, 3]",
+  "heuristic_preserved": [
+   [
+    "BATHROOM_1",
+    "MASTER_BEDROOM"
+   ],
+   [
+    "BATHROOM_2",
+    "HALL"
+   ],
+   [
+    "BATHROOM_2",
+    "LIVING"
+   ],
+   [
+    "BEDROOM_1",
+    "HALL"
+   ],
+   [
+    "BEDROOM_1",
+    "LIVING"
+   ],
+   [
+    "BEDROOM_2",
+    "HALL"
+   ],
+   [
+    "BEDROOM_3",
+    "HALL"
+   ],
+   [
+    "DINING",
+    "KITCHEN"
+   ],
+   [
+    "KITCHEN",
+    "LIVING"
+   ]
+  ],
+  "heuristic_lost": [
+   [
+    "DINING",
+    "HALL"
+   ],
+   [
+    "DINING",
+    "LIVING"
+   ],
+   [
+    "HALL",
+    "MASTER_BEDROOM"
+   ]
+  ],
+  "exact_max_within_production_slot_structures": 9,
+  "max_edges_band_full": 12,
+  "max_edges_slicing": 12,
+  "max_edges_rect": 12,
+  "band_layout_carries_all": true,
+  "slicing_carries_all": true,
+  "rect_carries_all": true,
+  "one_L_room_rect": [],
+  "one_L_room_band": [],
+  "edges_whose_removal_alone_restores_rectangles": [
+   "BATHROOM_1--MASTER_BEDROOM",
+   "BATHROOM_2--HALL",
+   "BATHROOM_2--LIVING",
+   "BEDROOM_1--HALL",
+   "BEDROOM_1--LIVING",
+   "BEDROOM_2--HALL",
+   "BEDROOM_3--HALL",
+   "DINING--HALL",
+   "DINING--KITCHEN",
+   "DINING--LIVING",
+   "HALL--MASTER_BEDROOM",
+   "KITCHEN--LIVING"
+  ],
+  "lost_edges": [
+   {
+    "edge": [
+     "DINING",
+     "HALL"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "DINING",
+     "LIVING"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   }
+  ],
+  "losses_attributed": {
+   "representation_forced": 0,
+   "search": 3,
+   "obstruction_edges_among_lost": 0
+  },
+  "band_witness_dropped": []
+ },
+ "B15": {
+  "n": 11,
+  "m": 15,
+  "degree": {
+   "LIVING": 3,
+   "KITCHEN": 2,
+   "HALL": 9,
+   "MASTER_BEDROOM": 2,
+   "BEDROOM_1": 1,
+   "BEDROOM_2": 2,
+   "BEDROOM_3": 2,
+   "BEDROOM_4": 1,
+   "SAFE_ROOM": 1,
+   "BATHROOM_1": 3,
+   "BATHROOM_2": 4
+  },
+  "planar": true,
+  "k4": [],
+  "lens3": [
+   [
+    [
+     "HALL",
+     "BATHROOM_2"
+    ],
+    [
+     "BATHROOM_1",
+     "BEDROOM_2",
+     "BEDROOM_3"
+    ]
+   ]
+  ],
+  "heuristic_best_form": "GRID 4x3 rows=[3, 3, 3, 2]",
+  "heuristic_preserved": [
+   [
+    "BATHROOM_1",
+    "HALL"
+   ],
+   [
+    "BATHROOM_1",
+    "MASTER_BEDROOM"
+   ],
+   [
+    "BATHROOM_2",
+    "BEDROOM_2"
+   ],
+   [
+    "BATHROOM_2",
+    "BEDROOM_3"
+   ],
+   [
+    "BATHROOM_2",
+    "HALL"
+   ],
+   [
+    "BEDROOM_1",
+    "LIVING"
+   ],
+   [
+    "BEDROOM_4",
+    "HALL"
+   ],
+   [
+    "HALL",
+    "LIVING"
+   ],
+   [
+    "KITCHEN",
+    "LIVING"
+   ]
+  ],
+  "heuristic_lost": [
+   [
+    "BATHROOM_1",
+    "BATHROOM_2"
+   ],
+   [
+    "BEDROOM_2",
+    "HALL"
+   ],
+   [
+    "BEDROOM_3",
+    "HALL"
+   ],
+   [
+    "HALL",
+    "KITCHEN"
+   ],
+   [
+    "HALL",
+    "MASTER_BEDROOM"
+   ],
+   [
+    "HALL",
+    "SAFE_ROOM"
+   ]
+  ],
+  "exact_max_within_production_slot_structures": 10,
+  "max_edges_band_full": 14,
+  "max_edges_slicing": 14,
+  "max_edges_rect": 14,
+  "band_layout_carries_all": false,
+  "slicing_carries_all": false,
+  "rect_carries_all": false,
+  "one_L_room_rect": [
+   "BATHROOM_1",
+   "BATHROOM_2",
+   "BEDROOM_2",
+   "BEDROOM_3",
+   "HALL"
+  ],
+  "one_L_room_band": [
+   "BATHROOM_1",
+   "BATHROOM_2",
+   "BEDROOM_2",
+   "BEDROOM_3",
+   "HALL"
+  ],
+  "edges_whose_removal_alone_restores_rectangles": [
+   "BATHROOM_1--BATHROOM_2",
+   "BATHROOM_1--HALL",
+   "BATHROOM_2--BEDROOM_2",
+   "BATHROOM_2--BEDROOM_3",
+   "BATHROOM_2--HALL",
+   "BEDROOM_2--HALL",
+   "BEDROOM_3--HALL"
+  ],
+  "lost_edges": [
+   {
+    "edge": [
+     "BATHROOM_1",
+     "BATHROOM_2"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge HALL-BATHROOM_2 with 3 common neighbours BATHROOM_1/BEDROOM_2/BEDROOM_3 -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_1, BATHROOM_2, BEDROOM_2, BEDROOM_3, HALL) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge HALL-BATHROOM_2 with 3 common neighbours BATHROOM_1/BEDROOM_2/BEDROOM_3 -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_1, BATHROOM_2, BEDROOM_2, BEDROOM_3, HALL) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": false
+   },
+   {
+    "edge": [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge HALL-BATHROOM_2 with 3 common neighbours BATHROOM_1/BEDROOM_2/BEDROOM_3 -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_1, BATHROOM_2, BEDROOM_2, BEDROOM_3, HALL) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "KITCHEN"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "MASTER_BEDROOM"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   }
+  ],
+  "losses_attributed": {
+   "representation_forced": 1,
+   "search": 5,
+   "obstruction_edges_among_lost": 3
+  },
+  "band_witness_dropped": [
+   [
+    "BEDROOM_2",
+    "HALL"
+   ]
+  ]
+ },
+ "B16": {
+  "n": 13,
+  "m": 19,
+  "degree": {
+   "LIVING": 6,
+   "DINING": 2,
+   "KITCHEN": 3,
+   "HALL": 10,
+   "MASTER": 2,
+   "BEDROOM_1": 2,
+   "BEDROOM_2": 2,
+   "BEDROOM_3": 1,
+   "BEDROOM_4": 2,
+   "SAFE_ROOM": 2,
+   "BATHROOM_1": 2,
+   "BATHROOM_2": 2,
+   "BATHROOM_3": 2
+  },
+  "planar": true,
+  "k4": [],
+  "lens3": [
+   [
+    [
+     "LIVING",
+     "HALL"
+    ],
+    [
+     "BATHROOM_3",
+     "BEDROOM_1",
+     "BEDROOM_4"
+    ]
+   ]
+  ],
+  "heuristic_best_form": "GRID 5x3 rows=[3, 3, 3, 2, 2]",
+  "heuristic_preserved": [
+   [
+    "BATHROOM_1",
+    "HALL"
+   ],
+   [
+    "BATHROOM_1",
+    "MASTER"
+   ],
+   [
+    "BATHROOM_2",
+    "BEDROOM_2"
+   ],
+   [
+    "BATHROOM_2",
+    "HALL"
+   ],
+   [
+    "BATHROOM_3",
+    "HALL"
+   ],
+   [
+    "BEDROOM_1",
+    "LIVING"
+   ],
+   [
+    "BEDROOM_4",
+    "LIVING"
+   ],
+   [
+    "DINING",
+    "KITCHEN"
+   ],
+   [
+    "HALL",
+    "LIVING"
+   ],
+   [
+    "KITCHEN",
+    "LIVING"
+   ],
+   [
+    "KITCHEN",
+    "SAFE_ROOM"
+   ]
+  ],
+  "heuristic_lost": [
+   [
+    "BATHROOM_3",
+    "LIVING"
+   ],
+   [
+    "BEDROOM_1",
+    "HALL"
+   ],
+   [
+    "BEDROOM_2",
+    "HALL"
+   ],
+   [
+    "BEDROOM_3",
+    "HALL"
+   ],
+   [
+    "BEDROOM_4",
+    "HALL"
+   ],
+   [
+    "DINING",
+    "LIVING"
+   ],
+   [
+    "HALL",
+    "MASTER"
+   ],
+   [
+    "HALL",
+    "SAFE_ROOM"
+   ]
+  ],
+  "exact_max_within_production_slot_structures": 12,
+  "max_edges_band_full": 18,
+  "max_edges_slicing": 18,
+  "max_edges_rect": 18,
+  "band_layout_carries_all": false,
+  "slicing_carries_all": false,
+  "rect_carries_all": false,
+  "one_L_room_rect": [
+   "BATHROOM_3",
+   "BEDROOM_1",
+   "BEDROOM_4",
+   "HALL",
+   "LIVING"
+  ],
+  "one_L_room_band": [
+   "BATHROOM_3",
+   "BEDROOM_1",
+   "BEDROOM_4",
+   "HALL",
+   "LIVING"
+  ],
+  "edges_whose_removal_alone_restores_rectangles": [
+   "BATHROOM_3--HALL",
+   "BATHROOM_3--LIVING",
+   "BEDROOM_1--HALL",
+   "BEDROOM_1--LIVING",
+   "BEDROOM_4--HALL",
+   "BEDROOM_4--LIVING",
+   "HALL--LIVING"
+  ],
+  "lost_edges": [
+   {
+    "edge": [
+     "BATHROOM_3",
+     "LIVING"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge LIVING-HALL with 3 common neighbours BATHROOM_3/BEDROOM_1/BEDROOM_4 -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_3, BEDROOM_1, BEDROOM_4, HALL, LIVING) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_1",
+     "HALL"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge LIVING-HALL with 3 common neighbours BATHROOM_3/BEDROOM_1/BEDROOM_4 -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_3, BEDROOM_1, BEDROOM_4, HALL, LIVING) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_2",
+     "HALL"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_3",
+     "HALL"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "BEDROOM_4",
+     "HALL"
+    ],
+    "class": "representation (rectangles): 1 of these edges",
+    "reason": "OBSTRUCTION EDGE: edge LIVING-HALL with 3 common neighbours BATHROOM_3/BEDROOM_1/BEDROOM_4 -> a separating triangle in every planar embedding; EXACTLY ONE edge of this obstruction must be lost by any dissection into rectangles (band, slicing or non-guillotine); the other obstruction edges the search lost are search losses",
+    "minimal_capability": "one L-shaped room (any of: BATHROOM_3, BEDROOM_1, BEDROOM_4, HALL, LIVING) - band layout + 1 L cell is enough",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "DINING",
+     "LIVING"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "MASTER"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   },
+   {
+    "edge": [
+     "HALL",
+     "SAFE_ROOM"
+    ],
+    "class": "algorithm (search space)",
+    "reason": "SEARCH: carried by a band layout (full GridWing dataclass); lost only because the production search fixes balanced row lengths and 1,1,..,remainder spans",
+    "minimal_capability": "GridWing as already defined + an exact embedder (no new representation)",
+    "kept_by_max_band_witness": true
+   }
+  ],
+  "losses_attributed": {
+   "representation_forced": 1,
+   "search": 7,
+   "obstruction_edges_among_lost": 3
+  },
+  "band_witness_dropped": [
+   [
+    "BEDROOM_1",
+    "LIVING"
+   ]
+  ]
+ }
+}

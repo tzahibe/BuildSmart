@@ -1,0 +1,29 @@
+{
+  "brief_id": "{\"bedrooms\": 4, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+  "street_facing_side": "NORTH",
+  "family_b": "L",
+  "a": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 2.142857142857143,
+      "m1_habitable_aspect_max": 2.6140350877192984,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.07261553588987217,
+      "m4_hall_door_count": 6,
+      "m4_hall_aspect_median": 7.5357142857142865,
+      "m5_wet_adjacency_ratio": 0.0,
+      "m6_public_zone_contiguous": true,
+      "validation_passed": true
+    }
+  },
+  "b": {
+    "outcome": "REFUSED",
+    "refusal_code": "SHORT_SIDE_INFEASIBLE",
+    "refusal_detail": "HALL: row-realized short side 1.20 m (gross) < 1.0 m (net) + 0.3 m inset margin",
+    "metrics": null,
+    "c30_passed": null,
+    "c30_detail": null
+  }
+}

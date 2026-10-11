@@ -10,7 +10,7 @@ import json
 import queue
 import threading
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -169,8 +169,32 @@ def _failure_context(project_id: str, project, error=None) -> dict:
     return context
 
 
+
+#: THE DEVELOPMENT PREVIEW SEAM. `?engine=` lets the owner generate the SAME brief through the
+#: Concept Engine instead of the production path, so engine progress — including its current
+#: limitations — is visually inspectable in the existing demo UI. It is a PER-REQUEST override and
+#: nothing else: `general_pipeline.CONCEPT_ENGINE_V2_ENABLED` stays globally OFF, is never written,
+#: and an absent/`production` value reads the module flag exactly as the endpoint always did, so
+#: normal production behaviour is unchanged. There is deliberately no silent fallback: a request
+#: that asks for the Concept Engine and fails returns that failure, not a production plan.
+ENGINE_PRODUCTION = "production"
+ENGINE_CONCEPT_V2 = "concept_engine_v2"
+
+
+def _engine_override(engine: str | None) -> bool | None:
+    """`None` keeps the module flag (production). `True` runs the Concept Engine for this request
+    only. An unknown value is refused rather than silently treated as production."""
+    if engine is None or engine == ENGINE_PRODUCTION:
+        return None
+    if engine == ENGINE_CONCEPT_V2:
+        return True
+    raise HTTPException(status_code=422, detail=(
+        f"unknown engine {engine!r}; expected {ENGINE_PRODUCTION!r} or {ENGINE_CONCEPT_V2!r}"))
+
+
 @router.post("/{project_id}/design/demo/stream")
-def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
+def generate_demo_plan_streaming(project_id: str,
+                                 engine: str | None = Query(default=None)) -> StreamingResponse:
     """The same generation, reporting each stage AS IT HAPPENS.
 
     The loading screen needs a percentage that means something. A timer would produce one with no
@@ -181,6 +205,9 @@ def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
     Server-sent events: one `progress` per stage, then exactly one `done` or `error`.
     """
     project = _project_or_404(project_id)
+    # resolved HERE, in the request frame: a bad value must be a 422 on the request, not an error
+    # event inside a stream that has already started.
+    override = _engine_override(engine)
     total = len(PIPELINE_STAGES)
     labels = dict(PIPELINE_STAGES)
     order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
@@ -197,7 +224,8 @@ def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
 
         def run() -> None:
             try:
-                result = generate_demo_design(project, on_stage=updates.put)
+                result = generate_demo_design(project, on_stage=updates.put,
+                                              concept_engine_v2=override)
                 outcome["value"] = DemoPlanSet(plan=result.design,
                                                alternatives=list(result.alternatives),
                                                search=result.search,
@@ -241,10 +269,11 @@ def generate_demo_plan_streaming(project_id: str) -> StreamingResponse:
 
 
 @router.post("/{project_id}/design/demo", response_model=DemoPlanSet)
-def generate_demo_plan(project_id: str, request: Request) -> DemoPlanSet:
+def generate_demo_plan(project_id: str, request: Request,
+                       engine: str | None = Query(default=None)) -> DemoPlanSet:
     project = _project_or_404(project_id)
     try:
-        result = generate_demo_design(project)
+        result = generate_demo_design(project, concept_engine_v2=_engine_override(engine))
         return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
                            search=result.search, building=result.building)
     except DemoGenerationError as error:

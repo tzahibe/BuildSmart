@@ -37,6 +37,7 @@ from app.vertical_slice.concept_generator import (
     build_room_program,
     program_capacity_gross_m2,
 )
+from app.vertical_slice.constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, SafeRoomDropped
 from app.vertical_slice.relationships import describe
 from app.geometry_domain.walls import BoundaryContext
 from app.vertical_slice import doors as doors_stage
@@ -49,19 +50,26 @@ from app.vertical_slice.general_pipeline import (
     RealizedPlan,
     run_general,
 )
+from app.vertical_slice.geometry_core.engine import solve_fixture
 from app.vertical_slice.safe_adapter import AdapterOutcome
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
 from app.vertical_slice.wet_privacy import candidate_privacy_key
 
 from app.vertical_slice.building import Building
 
+from app.vertical_slice import concept_engine_v2
+from app.vertical_slice import general_pipeline as gp
+
 from .contract import (
+    ConceptOut,
     DemoBuilding,
     DemoDesign,
     DemoPlanSet,
+    InconsistentGeometryError,
     OutlineOut,
     OutlineTried,
     SearchSummary,
+    capacity_notice_text,
     to_demo_building,
     to_demo_design,
 )
@@ -81,6 +89,7 @@ _FEASIBILITY_CODES = frozenset({
     "CORRIDOR_WIDTH_NOT_FEASIBLE",
     "ROOM_RELATIONSHIP_NOT_FEASIBLE",
     "ENTRANCE_NO_ARRIVAL_ROOM",
+    "ENTRANCE_DEAD_END",
     "LAUNDRY_UNPLACEABLE",
     "FOOTPRINT_DOES_NOT_FIT_BUILDABLE_REGION",
     "FOOTPRINT_LEAVES_NO_ROOM_FOR_PARKING",
@@ -239,17 +248,36 @@ def _buildable_from(spec, project: Project, outline: "Outline | None" = None) ->
 
 
 def generate_demo_design(project: Project,
-                         on_stage: Callable[[str], None] | None = None) -> DemoResult:
+                         on_stage: Callable[[str], None] | None = None,
+                         *, concept_engine_v2: bool | None = None) -> DemoResult:
     rejection: ScopeRejection | None = check_supported(project)
     if rejection is not None:
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
 
     spec = spec_for(project)
+    # Issue #35, stage assertion 1/3, caught at the product boundary: `generate_concepts` raises
+    # `SafeRoomDropped` the moment the concept stage's own room programme loses an authoritative
+    # SAFE_ROOM constraint. That is a refusal like any other in this module, not a Python
+    # exception a caller has to know about — translated here, once, for every outline this
+    # request plans.
+    try:
+        return _generate_demo_design(project, spec, on_stage, concept_engine_v2=concept_engine_v2)
+    except SafeRoomDropped as exc:
+        raise DemoGenerationError(
+            "SAFE_ROOM_DROPPED",
+            "לא נציג תוכנית: חדר הממ\"ד שביקשת נעלם במהלך התכנון, ולא נציג תוכנית שלא כוללת אותו.",
+            str(exc),
+        ) from exc
+
+
+def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None] | None = None,
+                          *, concept_engine_v2: bool | None = None) -> DemoResult:
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
     target_m2 = spec.program.target_built_area_m2
-    results = _plan_outlines_until_one_plans(spec, project, outlines, target_m2, on_stage)
+    results = _plan_outlines_until_one_plans(spec, project, outlines, target_m2, on_stage,
+                                             concept_engine_v2=concept_engine_v2)
 
     # A PREFERRED width may be dropped when the programme cannot fit it; a required one may not.
     # The retry happens once, without the corridor, and the plan says plainly that the preference
@@ -284,7 +312,14 @@ def generate_demo_design(project: Project,
     selection = _select_plans(results, spec.program.target_built_area_m2, spec.concept)
     if selection is None:
         return _finish(project, spec, head, preference_dropped, outlines=results)
-    return _result_from(project, spec, selection, results, preference_dropped)
+    use_concept_engine_v2 = (gp.CONCEPT_ENGINE_V2_ENABLED if concept_engine_v2 is None
+                             else concept_engine_v2)
+    if use_concept_engine_v2:
+        # Cross-outline search (Issue #79, AC-5) — additive, after the ordinary selection so the
+        # primary and `plans_per_class`'s own alternatives are exactly what they were.
+        selection = _augment_cross_outline_classes(spec, project, results, selection)
+    return _result_from(project, spec, selection, results, preference_dropped,
+                        concept_engine_v2=use_concept_engine_v2)
 
 
 # ------------------------------------------------------------------ 006: the engine's outlines
@@ -436,13 +471,15 @@ def _chosen_as_realized(result: GeneralSliceResult) -> RealizedPlan:
 
 
 def _plan_outlines(spec, project: Project, outlines: list[Outline], on_stage=None, *,
-                   max_alternatives: int = ALTERNATIVE_PLAN_LIMIT) -> list[OutlineResult]:
+                   max_alternatives: int = ALTERNATIVE_PLAN_LIMIT,
+                   concept_engine_v2: bool | None = None) -> list[OutlineResult]:
     """Plan each outline, in order, one after the other — never concurrently (research R4)."""
     out: list[OutlineResult] = []
     for outline in outlines:
         started = time.perf_counter()
         result = _plan(spec, _with_outline(project, outline), on_stage,
-                       max_alternatives=max_alternatives, outline=outline)
+                       max_alternatives=max_alternatives, outline=outline,
+                       concept_engine_v2=concept_engine_v2)
         latency_ms = (time.perf_counter() - started) * 1000
         plans = (_chosen_as_realized(result), *result.alternatives) if result.ok else ()
         if outline.massing is not None:
@@ -487,7 +524,8 @@ def effective_target_m2(spec) -> float | None:
 
 def _plan_outlines_until_one_plans(spec, project: Project, outlines: list[Outline],
                                    target_m2: float | None,
-                                   on_stage=None) -> list[OutlineResult]:
+                                   on_stage=None, *,
+                                   concept_engine_v2: bool | None = None) -> list[OutlineResult]:
     """The person's outline is authoritative: when they gave one and it plans, the engine's
     outlines are not run at all — the request costs exactly what it cost before this feature.
 
@@ -499,17 +537,19 @@ def _plan_outlines_until_one_plans(spec, project: Project, outlines: list[Outlin
     """
     person = [o for o in outlines if o.origin == "PERSON"]
     engine = [o for o in outlines if o.origin == "ENGINE"]
-    results = _plan_outlines(spec, project, person, on_stage)
+    results = _plan_outlines(spec, project, person, on_stage, concept_engine_v2=concept_engine_v2)
     if _any_plan(results):
         offer = _better_engine_outline(spec, project, engine, results[0], target_m2, on_stage)
         return results + ([offer] if offer is not None else [])
 
-    surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0)
+    surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0,
+                              concept_engine_v2=concept_engine_v2)
     chosen = _nearest_primary(surveyed, target_m2)
     if chosen is None:
         return results + surveyed
     chosen_result, chosen_plan = chosen
-    full = _plan_outlines(spec, project, [chosen_result.outline], on_stage)[0]
+    full = _plan_outlines(spec, project, [chosen_result.outline], on_stage,
+                          concept_engine_v2=concept_engine_v2)[0]
     # The pipeline is deterministic: the re-run's primary IS the surveyed primary. Alternatives
     # were gathered on top of it, never instead of it.
     assert full.plans and full.plans[0].layout_signature == chosen_plan.layout_signature, (
@@ -536,7 +576,8 @@ def _better_engine_outline(spec, project: Project, engine: list[Outline], person
     delivered = person.plans[0].design.gross_area_m2
     if delivered >= OUTLINE_SHORTFALL_RATIO * effective:
         return None
-    surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0)
+    surveyed = _plan_outlines(spec, project, engine, on_stage, max_alternatives=0,
+                              concept_engine_v2=concept_engine_v2)
     chosen = _nearest_primary(surveyed, target_m2)
     if chosen is None:
         return None
@@ -804,8 +845,62 @@ def _select_plans(results: list[OutlineResult],
     return PlanSelection(primary, tuple(shown[1:]))
 
 
+def _augment_cross_outline_classes(spec, project: Project, results: list[OutlineResult],
+                                   selection: PlanSelection) -> PlanSelection:
+    """Cross-outline search (Issue #79, AC-5): a pattern class the PRIMARY outline's own
+    candidates never offered `plans_per_class` (already spent, inside `run_general`) may still be
+    reachable on an OTHER outline the survey already ran (`_plan_outlines_until_one_plans`) —
+    every such outline's own `generated.candidates` sit unused on
+    `OutlineResult.result.candidates` (Issue #79's `GeneralSliceResult.candidates`), since a
+    surveyed outline runs with `max_alternatives=0`.
+
+    Never touches the primary plan or the alternatives `plans_per_class` already found for its own
+    outline (`selection.alternatives`) — only appends NEW plans, bounded by the same `_SHOWN_LIMIT`
+    the ordinary selection already holds to. A `realize` closure is built per OTHER outline,
+    re-deriving that outline's own `buildable` exactly as `_plan` does
+    (`_buildable_from`/`_with_outline`) — the same context that outline's own `run_general` call
+    already planned in, never a new one.
+    """
+    primary_orr, primary_plan = selection.primary
+    already_found = (primary_plan, *(p for _, p in selection.alternatives))
+    outlines: list[tuple[OutlineResult, concept_engine_v2.OutlineCandidates]] = []
+    for orr in results:
+        if orr is primary_orr or not orr.result.candidates:
+            continue
+        outline_buildable = _buildable_from(spec, _with_outline(project, orr.outline), orr.outline)
+
+        def realize(index: int, candidate, _buildable=outline_buildable) -> RealizedPlan:
+            solve = solve_fixture(candidate.concept.fixture)
+            return gp._realize(spec, _buildable, None, candidate, index, solve, ())
+
+        outlines.append((orr, concept_engine_v2.OutlineCandidates(orr.result.candidates, realize)))
+    if not outlines:
+        return selection
+    new_pairs = concept_engine_v2.plans_per_class_cross_outline(
+        spec, primary_plan, already_found, outlines)
+    if not new_pairs:
+        return selection
+    alternatives = (*selection.alternatives, *new_pairs)[:_SHOWN_LIMIT - 1]
+    return replace(selection, alternatives=alternatives)
+
+
+def _concept_of(plan: RealizedPlan, enabled: bool) -> ConceptOut | None:
+    """`ConceptOut` for `plan`'s own realized circulation class (Issue #78, AC-3) — `None` unless
+    the Concept Engine is in use for THIS request and the plan actually carries one; flag-off output
+    is unaffected either way (`to_demo_design`'s `concept` stays its own default, `None`).
+
+    `enabled` is the request's resolved choice, not the module flag, so the development preview can
+    label a plan the engine produced without the global flag ever being on."""
+    if not enabled or plan.circulation_class is None:
+        return None
+    label = concept_engine_v2.concept_label(plan.circulation_class)
+    return ConceptOut(circulation_class=label.circulation_class.value, label=label.label,
+                      rationale=label.rationale)
+
+
 def _result_from(project: Project, spec, selection: PlanSelection,
-                 results: list[OutlineResult], preference_dropped: bool) -> DemoResult:
+                 results: list[OutlineResult], preference_dropped: bool,
+                 *, concept_engine_v2: bool = False) -> DemoResult:
     """A plan set from plans that have ALREADY passed every gate — the pool is built from `ok`
     results only, so nothing here re-litigates validation, and nothing here can lower it."""
     unsupported = _set_aside(project, spec, preference_dropped)
@@ -816,15 +911,35 @@ def _result_from(project: Project, spec, selection: PlanSelection,
             f"לסדר את החדרים; מוצג מתאר אחר באותו שטח")
     offered = next((orr for orr in results if orr.offered_for_area and orr.plans), None)
 
+    # PROGRAMME CAPACITY DISCLOSURE (Concept Plan Communication Pass): computed ONCE per request
+    # from the brief's own programme, with `concept_generator`'s capacity function and the shared
+    # wording. The audit measured this condition on 3 of 8 briefs, where the delivered plan was
+    # 52-74% of the requested area and the person was told nothing — the refusal carrying this
+    # sentence only ever fires when NOTHING plans. It is a notice, never a validation failure.
+    capacity_notice = capacity_notice_text(spec.program.target_built_area_m2,
+                                           program_capacity_gross_m2(build_room_program(spec)))
+
     def design_of(item: tuple[OutlineResult, RealizedPlan]) -> DemoDesign:
         orr, plan = item
         notes = [n for n in (capacity_note(spec, plan.design.gross_area_m2),) if n]
         if item is selection.primary and offered is not None and person is not None:
             notes.append(outline_note(person, offered))
-        return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
-                              corridor=spec.program.corridor, relationships=plan.relationships,
-                              outline=orr.outline.as_out(), family=plan.family_signature,
-                              notes=notes or None)
+        try:
+            return to_demo_design(plan.design, plan.validation, unsupported=unsupported,
+                                  corridor=spec.program.corridor, relationships=plan.relationships,
+                                  outline=orr.outline.as_out(), family=plan.family_signature,
+                                  notes=notes or None, constraint=spec.safe_room_constraint,
+                                  concept=_concept_of(plan, concept_engine_v2),
+                                  capacity_notice=capacity_notice)
+        except InconsistentGeometryError as error:
+            # C27 failing here is never a real solved design's fault (see its own docstring) — a
+            # bug between the solver and this contract, so the product refuses rather than shows a
+            # plan whose own numbers disagree with each other.
+            raise DemoGenerationError(
+                "INCONSISTENT_GEOMETRY",
+                "התוכנית שנוצרה מכילה מידות שאינן תואמות את השטח המחושב עבורה, ולכן לא הוצגה.",
+                error.detail,
+            ) from error
 
     primary = design_of(selection.primary)
     _, primary_plan = selection.primary
@@ -897,7 +1012,8 @@ def _street_fronting_roles(design) -> frozenset[str]:
 
 
 def _plan(spec, project: Project, on_stage=None, *,
-          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT, outline: "Outline | None" = None):
+          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT, outline: "Outline | None" = None,
+          concept_engine_v2: bool | None = None):
     # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
     # Every other caller of the pipeline still gets one plan at one plan's cost. `max_alternatives`
     # is `run_general`'s own argument: 0 is the fast path (stop at the first plan that validates),
@@ -908,6 +1024,7 @@ def _plan(spec, project: Project, on_stage=None, *,
         program=spec.program,
         max_alternatives=max_alternatives,
         on_stage=on_stage,
+        concept_engine_v2_enabled=concept_engine_v2,
     )
 
 
@@ -1001,6 +1118,19 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
     """The refusal path: every outline was planned and none produced a validated plan. `result`
     is the first outline's run — the person's own when they gave one — and `outlines` is all of
     them, for the diagnostics."""
+    # Issue #35, stage assertion 2/3, escalated: C4 fails this specific way ONLY when the spec
+    # carries an authoritative SAFE_ROOM constraint and no candidate realized it — checked first,
+    # like every other check-specific diagnosis below, because it names an exact, actionable
+    # cause the generic "failed validation" message would otherwise swallow.
+    if (result.validation is not None and not result.validation.ok
+            and any(c.check_id == "C4" and SAFE_ROOM_NOT_REALIZED_DETAIL in c.detail
+                    for c in result.validation.failures())):
+        raise DemoGenerationError(
+            "SAFE_ROOM_DROPPED",
+            "לא הצלחנו לשמר את חדר הממ\"ד שביקשת בתוכנית שנוצרה, ולכן לא נציג תוכנית שלא כוללת אותו.",
+            "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
+            diagnostics=_diagnostics(result, spec, outlines))
+
     # A hard relationship that no candidate could realize is its own outcome: the geometry could
     # not be arranged that way with this programme, which is NOT a claim that no such house exists.
     if (result.outcome is not AdapterOutcome.SOLVED
@@ -1046,12 +1176,11 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
         target_m2 = spec.program.target_built_area_m2
         rooms = build_room_program(spec)
         capacity = program_capacity_gross_m2(rooms)
-        if target_m2 is not None and target_m2 > capacity:
+        over_capacity = capacity_notice_text(target_m2, capacity)
+        if over_capacity is not None:
+            # the SAME sentence the success path attaches as `QualityOut.capacity_notice`
             raise DemoGenerationError(
-                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
-                f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
-                f"והיעד שהוזן הוא {spec.program.target_built_area_m2:.0f} מ\"ר. "
-                f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
+                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY", over_capacity,
                 reasons, diagnostics=_diagnostics(result, spec, outlines))
 
         # Issue #21, AC-3: the LAUNDRY room's own guarantee (exterior wall / window / bay) is a
@@ -1107,6 +1236,22 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
                     "; ".join(f"{c.check_id}: {c.detail}" for c in result.validation.failures()),
                     diagnostics=_diagnostics(result, spec, outlines))
 
+    # ENTRANCE-TO-CIRCULATION INTEGRATION (Issue #22). C25 alone failing means the front door
+    # lands in a dead-space pocket — an unserved corridor stub directly beyond the door, or an
+    # arrival zone with no path onward to a public room — rather than a generic planning defect.
+    # Gated on C25 being the ONLY failure so an unrelated defect (furniture, corridor width, ...)
+    # is never misdiagnosed as an entrance problem.
+    if (result.design is not None and result.validation is not None and not result.validation.ok
+            and [c.check_id for c in result.validation.failures()] == ["C25"]):
+        detail = next(c.detail for c in result.validation.failures() if c.check_id == "C25")
+        raise DemoGenerationError(
+            "ENTRANCE_DEAD_END",
+            "הכניסה לבית נפתחת אל מרחב תנועה ללא המשך — קטע מסדרון סתום ליד הדלת, או הול כניסה "
+            "שאין ממנו מעבר לחלל ציבורי. אפשר להגדיל את שטח הבנייה או לשנות את המתאר שנבחר — לא "
+            "נציג תוכנית עם כניסה שמובילה למבוי סתום.",
+            f"C25: {detail}",
+            diagnostics=_diagnostics(result, spec, outlines))
+
     # HARD GATE. A plan is never returned as successful while a validation check is failing —
     # including C13, the realized-connectivity invariant.
     if result.validation is None or not result.validation.ok:
@@ -1116,15 +1261,13 @@ def _finish(project: Project, spec, result, preference_dropped: bool,
         # capacity, which the person can act on, not for the check — the same diagnosis the
         # not-realizable path gives. Without this, a candidate that solved and then failed C8
         # replaced the capacity message with a raw check id in 8 of 420 logged scenarios.
-        target_m2 = spec.program.target_built_area_m2
-        capacity = program_capacity_gross_m2(build_room_program(spec))
-        if target_m2 is not None and target_m2 > capacity:
-            raise DemoGenerationError(
-                "TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY",
-                f"התוכנית שביקשת יכולה למלא עד כ-{capacity:.0f} מ\"ר בצורה סבירה, "
-                f"והיעד שהוזן הוא {target_m2:.0f} מ\"ר. "
-                f"אפשר להוסיף חדרים או להקטין את שטח הבנייה — הדרישות שלך נשמרו כפי שהזנת.",
-                failures, diagnostics=_diagnostics(result, spec, outlines))
+        over_capacity = capacity_notice_text(
+            spec.program.target_built_area_m2,
+            program_capacity_gross_m2(build_room_program(spec)))
+        if over_capacity is not None:
+            # the SAME sentence the success path attaches as `QualityOut.capacity_notice`
+            raise DemoGenerationError("TARGET_AREA_EXCEEDS_CURRENT_PROGRAM_CAPACITY", over_capacity,
+                                      failures, diagnostics=_diagnostics(result, spec, outlines))
 
         laundry_message = _laundry_unplaceable_message(spec, outlines)
         if laundry_message is not None:

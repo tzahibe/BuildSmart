@@ -1,0 +1,1117 @@
+{
+  "B01": {
+    "brief_id": "B01",
+    "source_key": "{\"bedrooms\": 1, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": false, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": null,
+        "access_similarity": null,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -0.386294
+      },
+      "canonical_hash": "4ad4fe416a155030ee0be7db55cc1a505daec7d2b3a96138b8e86d4e73f2ead9"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -3.8407376872220134,
+          "access_similarity": -7.010408523061481,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -8.859574
+        },
+        "canonical_hash": "814aca19124fde70329631004a8e9617b5103a0e4fedaf65eaaf630837bd1938"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.03109744414469839,
+          "access_similarity": -0.03109744414469839,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ENTRANCE_INTO_PRIVATE:MASTER"
+          ],
+          "total_score": -9.062195
+        },
+        "canonical_hash": "ce9b30e28db2df6aca6fa1f2fe3380f0516e9fe5dd3f1349c89c9dd75f7e2dbd"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -5.846548042018,
+          "access_similarity": -3.839951369054157,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -7.694927
+        },
+        "canonical_hash": "155396dc6014fd29e5421092c0e71b7f8b43656ed553fc6856fee64582a7f1e5"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.03109744414469839,
+          "access_similarity": -0.03109744414469839,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ENTRANCE_INTO_PRIVATE:MASTER"
+          ],
+          "total_score": -10.062195
+        },
+        "canonical_hash": "5998aa8be1ad013b17b0b3082e03ebe0354de4c1e61d688b28ca9962a9538889"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -5.846548042018,
+          "access_similarity": -3.839951369054157,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -8.694927
+        },
+        "canonical_hash": "ccc8351961deb05ba9cd37362237cdbc5c7569b5ed268bbf136f18b1cb68757e"
+      }
+    ],
+    "llm_raw_generated": 8,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 3,
+    "materially_distinct_count": 5,
+    "llm_call_latency_s": 54.35787010192871,
+    "llm_model": "llama3.2:latest"
+  },
+  "B02": {
+    "brief_id": "B02",
+    "source_key": "{\"bedrooms\": 1, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 1,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.676090888010677,
+        "access_similarity": -0.6694942150468344,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.345585
+      },
+      "canonical_hash": "6b686f52353bb7d3777d508b84235b16fed76b5ea670e61d4f45fa079c0b7ee5"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -3.8407376872220134,
+          "access_similarity": -3.839951369054157,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [],
+          "total_score": -5.689117
+        },
+        "canonical_hash": "1c165ca7a7bf383e6504ab474c2b8e3ad47a7c92094ae269287768606159c157"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.09314432695782497,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.186289
+        },
+        "canonical_hash": "9c0d41633f543b05cf200468b9bba8dfb5ee62b35a4de61a4ff60b6d7e7492bc"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.09314432695782497,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -0.186289
+        },
+        "canonical_hash": "257bc3540409cd8bc5a0de5b1de7e6ec09682066982dce67393e60731440ba8f"
+      }
+    ],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 4,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 3,
+    "llm_call_latency_s": 40.13327717781067,
+    "llm_model": "llama3.2:latest"
+  },
+  "B03": {
+    "brief_id": "B03",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 250.0, \"footprint_depth_m\": 13.12, \"footprint_width_m\": 19.05, \"open_plan\": false, \"plot_depth_m\": 15.0, \"plot_width_m\": 20.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "wide",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "0deb4ec5c9be1273917bcd7795c925c1b9172f5820ec78797ba723085e1d895d"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.6702805332146903,
+          "access_similarity": -3.8399513690541576,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.991572,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:BATHROOM_1",
+            "DISCONNECTED_ROOM:BATHROOM_1",
+            "DISCONNECTED_ROOM:HALL"
+          ],
+          "total_score": -32.51866
+        },
+        "canonical_hash": "1748fe86f1b676370197a8d0aae343987c3d0310ea5123e57e8cd5e57f57a702"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.09314432695782497,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:HALL",
+            "ENTRANCE_INTO_PRIVATE:MASTER"
+          ],
+          "total_score": -20.186289
+        },
+        "canonical_hash": "8655b786db948b26ed191163ee46837aeb8049de2daefb3365acf96523b289cd"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.09314432695782497,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:HALL",
+            "ENTRANCE_INTO_PRIVATE:MASTER"
+          ],
+          "total_score": -20.186289
+        },
+        "canonical_hash": "df118d4cd246083110dc465153fd554997754bc55ad22fa37ce0824fa382a9aa"
+      }
+    ],
+    "llm_raw_generated": 18,
+    "llm_schema_rejected": 13,
+    "llm_exact_duplicates": 2,
+    "materially_distinct_count": 3,
+    "llm_call_latency_s": 49.63800406455994,
+    "llm_model": "llama3.2:latest"
+  },
+  "B04": {
+    "brief_id": "B04",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": false, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 2,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "abbdad4137a15c6aeb734db1015a99633eb9f30ea96a15f49d70518a02b06bb8"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": null,
+          "access_similarity": null,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "BEDROOM_TO_BEDROOM_ONLY_ACCESS:BEDROOM_1"
+          ],
+          "total_score": -11.386294
+        },
+        "canonical_hash": "0f02b0dfe13c6a636e94cd122d30748260d30abf99a30ff40264439092543c33"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -6.019864021629663,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -15.531309
+        },
+        "canonical_hash": "3a53ad8cad3e521e18998dff53112e99150d41721ee79c305b215fd33c34a5da"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -2.0083346396642328,
+          "access_similarity": -0.14411520408416775,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -2.15245
+        },
+        "canonical_hash": "707451a582897eb4b926ec99e80fee93e537e579e263580f66cdeb5f25e7a688"
+      }
+    ],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 4,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 3,
+    "llm_call_latency_s": 40.82605004310608,
+    "llm_model": "llama3.2:latest"
+  },
+  "B05": {
+    "brief_id": "B05",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 288.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 16.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 23.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.295320382147868,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.033395
+      },
+      "canonical_hash": "105b195ba23521a22a207f467a31c2f9a963abb9b69b85c6488c359590d015e6"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -0.14411520408416775,
+          "access_similarity": -0.14411520408416775,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:BATHROOM_1",
+            "ENTRANCE_INTO_PRIVATE:MASTER"
+          ],
+          "total_score": -19.28823
+        },
+        "canonical_hash": "6fc7dd0647b2297ec3edd7ec15defb5ba59123f5169dfe2e2d1fcb0f12f9c2c8"
+      }
+    ],
+    "llm_raw_generated": 17,
+    "llm_schema_rejected": 13,
+    "llm_exact_duplicates": 3,
+    "materially_distinct_count": 1,
+    "llm_call_latency_s": 54.70486617088318,
+    "llm_model": "llama3.2:latest"
+  },
+  "B06": {
+    "brief_id": "B06",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 312.0, \"footprint_depth_m\": 24.0, \"footprint_width_m\": 13.0, \"open_plan\": false, \"plot_depth_m\": 34.5, \"plot_width_m\": 20.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "9b6ff8a88fff3ab16021aa76dd5155e1776016a403a4688ecc3c7ab49b33a56b"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 0,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 54.35295104980469,
+    "llm_model": "llama3.2:latest"
+  },
+  "B07": {
+    "brief_id": "B07",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 360.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 30.5, \"plot_width_m\": 25.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.41981578122236,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -3.839632
+      },
+      "canonical_hash": "00cb8f91ddd458909c3699689d313f888fd475f58d59c0c4589ebb772ac9fe4e"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "UNKNOWN",
+        "score": {
+          "adjacency_similarity": -0.09314432695782497,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "ENTRANCE_INTO_PRIVATE:MASTER",
+            "BEDROOM_TO_BEDROOM_ONLY_ACCESS:BEDROOM_1"
+          ],
+          "total_score": -19.186289
+        },
+        "canonical_hash": "57a0d85345dc6204cbef8ab2740d58c3e9339f6f27e49976e69ac113ab6fb540"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -6.019864021629663,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -15.531309
+        },
+        "canonical_hash": "16d03635b731d8c54f9c464cff382a2d0cfe48dcee6990e09cbe78c65299205c"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -6.019864021629663,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -15.531309
+        },
+        "canonical_hash": "e77d030d48819d804fc7e8885aa0afb29dbe08c670e62e703ac645186477799b"
+      }
+    ],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 2,
+    "llm_exact_duplicates": 2,
+    "materially_distinct_count": 3,
+    "llm_call_latency_s": 42.32869601249695,
+    "llm_model": "llama3.2:latest"
+  },
+  "B08": {
+    "brief_id": "B08",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+    "bedrooms": 3,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "small",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.295320382147868,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.033395
+      },
+      "canonical_hash": "7d6b7b3340759f88114aac28f46af452bf8b775548b27d76a6389daeff1d38f4"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -6.019864021629663,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -15.531309
+        },
+        "canonical_hash": "83eed3fe7911f6babf9df783b929be5a64357e0ca68db2ff982292479ce8a4b3"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": null,
+          "access_similarity": null,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -1.386294
+        },
+        "canonical_hash": "9378073f23b0b95207ee043ededab973d1c3a255ba32eae5a22d0f9ea80a3dc1"
+      }
+    ],
+    "llm_raw_generated": 14,
+    "llm_schema_rejected": 12,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 2,
+    "llm_call_latency_s": 28.359888076782227,
+    "llm_model": "llama3.2:latest"
+  },
+  "B09": {
+    "brief_id": "B09",
+    "source_key": "{\"bedrooms\": 3, \"built_area_m2\": 440.0, \"footprint_depth_m\": 22.0, \"footprint_width_m\": 20.0, \"open_plan\": false, \"plot_depth_m\": 32.5, \"plot_width_m\": 27.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 3,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "ba6283a866379290cfd976645bf781b9a5f2705ede00d324513ec5e7e3acb2c4"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "UNKNOWN",
+        "score": {
+          "adjacency_similarity": -2.41981578122236,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 0.0,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "ENTRANCE_INTO_PRIVATE:MASTER",
+            "BEDROOM_TO_BEDROOM_ONLY_ACCESS:BEDROOM_1"
+          ],
+          "total_score": -22.51296
+        },
+        "canonical_hash": "07087af01a1a0b3abe2aefd0498f08185ea9d9ee9322b530302b670a50d8b266"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -6.019864021629663,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:LIVING"
+          ],
+          "total_score": -25.531309
+        },
+        "canonical_hash": "8cbb5ffee82e30050f708029c9832a51c5287e7d190ce7a50e0380b5818887d2"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "UNKNOWN",
+        "score": {
+          "adjacency_similarity": -0.09314432695782497,
+          "access_similarity": -0.09314432695782497,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:BEDROOM_2",
+            "ENTRANCE_INTO_PRIVATE:BATHROOM_1"
+          ],
+          "total_score": -19.186289
+        },
+        "canonical_hash": "26d7e449631c5020f2155c7d740235cbe243e6eae875589d91d7b81b5eeeb96a"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -6.019864021629663,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [],
+          "total_score": -15.531309
+        },
+        "canonical_hash": "3f3524b27c9d42612bde69bb4482623d3804431691cff10173b064cc840b15f6"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 4,
+        "realizability": "UNKNOWN",
+        "score": {
+          "adjacency_similarity": null,
+          "access_similarity": null,
+          "wet_core_similarity": null,
+          "entrance_relation_score": null,
+          "hard_violations": [
+            "ENTRANCE_INTO_PRIVATE:MASTER",
+            "BEDROOM_TO_BEDROOM_ONLY_ACCESS:BEDROOM_1"
+          ],
+          "total_score": -21.386294
+        },
+        "canonical_hash": "772e93de16b4eaa5321e25108a547d90e3f012861104d5f82bf6e97c874bd38c"
+      }
+    ],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 1,
+    "llm_exact_duplicates": 1,
+    "materially_distinct_count": 5,
+    "llm_call_latency_s": 42.29056406021118,
+    "llm_model": "llama3.2:latest"
+  },
+  "B10": {
+    "brief_id": "B10",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 288.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 16.0, \"open_plan\": false, \"plot_depth_m\": 28.5, \"plot_width_m\": 23.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "6b8d4b067b1f9d3a73c16bc8d1bebc01c68583d704accfc613c1c01d099338ea"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 15,
+    "llm_schema_rejected": 15,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 44.31696796417236,
+    "llm_model": "llama3.2:latest"
+  },
+  "B11": {
+    "brief_id": "B11",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": true, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -4.2683275348622844,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -4.006402
+      },
+      "canonical_hash": "41127658eeaee1d63bc46ed35d3d615aea57ca79a1dd05ee7d9842ea17b7d119"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 7,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 42.49554896354675,
+    "llm_model": "llama3.2:latest"
+  },
+  "B12": {
+    "brief_id": "B12",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 360.0, \"footprint_depth_m\": 20.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 30.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 4,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "large",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.41981578122236,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -3.839632
+      },
+      "canonical_hash": "f1b9520b7ea8dd3dd177cda2f9f8a5e40bbfaf29d6ac971df58e240c884860aa"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 0,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 78.55617880821228,
+    "llm_model": "llama3.2:latest"
+  },
+  "B13": {
+    "brief_id": "B13",
+    "source_key": "{\"bedrooms\": 4, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "small",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -3.880548959151529,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -3.618623
+      },
+      "canonical_hash": "9add38b0fdb74a7f5798956184b55282b5f1cc9b20f3a82ccc9f06b4928b7697"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 16,
+    "llm_schema_rejected": 16,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 62.632081031799316,
+    "llm_model": "llama3.2:latest"
+  },
+  "B14": {
+    "brief_id": "B14",
+    "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 18.0, \"footprint_width_m\": 12.0, \"open_plan\": false, \"plot_depth_m\": 28.5, \"plot_width_m\": 19.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "narrow",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "59f887e7ebe6e172a365e0a4abc57ba27ca9eaf8354e18c33b4d409058c1cdb2"
+    },
+    "generator_error": null,
+    "llm_proposals": [
+      {
+        "source": "LLM",
+        "raw_index": 0,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:BEDROOM_4",
+            "DISCONNECTED_ROOM:BATHROOM_1",
+            "DISCONNECTED_ROOM:BATHROOM_2",
+            "DISCONNECTED_ROOM:BATHROOM_3",
+            "DISCONNECTED_ROOM:BEDROOM_1",
+            "DISCONNECTED_ROOM:BEDROOM_2",
+            "DISCONNECTED_ROOM:BEDROOM_3",
+            "DISCONNECTED_ROOM:BEDROOM_4"
+          ],
+          "total_score": -81.030489
+        },
+        "canonical_hash": "cbc0bd33363e84e9d91b0117d71e08986f172dcddc57635881f88d915647a6eb"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 1,
+        "realizability": "NOT_REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -1.6801937804606306,
+          "access_similarity": -0.3502956629168488,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:BEDROOM_2",
+            "ROOM_NOT_ZONED:BATHROOM_1",
+            "DISCONNECTED_ROOM:BATHROOM_1",
+            "DISCONNECTED_ROOM:BATHROOM_2",
+            "DISCONNECTED_ROOM:BATHROOM_3",
+            "DISCONNECTED_ROOM:BEDROOM_1",
+            "DISCONNECTED_ROOM:BEDROOM_2",
+            "DISCONNECTED_ROOM:BEDROOM_3",
+            "DISCONNECTED_ROOM:MASTER",
+            "BEDROOM_TO_BEDROOM_ONLY_ACCESS:BEDROOM_2"
+          ],
+          "total_score": -101.030489
+        },
+        "canonical_hash": "60899d855b8b1ad67fe96eb04a517fcb2296a01955ae2a553e100926ade48fea"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 2,
+        "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+        "score": {
+          "adjacency_similarity": -7.400273813510066e-05,
+          "access_similarity": -9.511445464760104,
+          "wet_core_similarity": 1.0,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "DISCONNECTED_ROOM:BATHROOM_2",
+            "DISCONNECTED_ROOM:BATHROOM_3"
+          ],
+          "total_score": -28.511519
+        },
+        "canonical_hash": "62f7c762b8b166767b655d7f8c92bf24b64371e33c0175131c4cf9d7a6205498"
+      },
+      {
+        "source": "LLM",
+        "raw_index": 3,
+        "realizability": "UNKNOWN",
+        "score": {
+          "adjacency_similarity": -0.8066545955662101,
+          "access_similarity": -3.977111749573533,
+          "wet_core_similarity": 0.5,
+          "entrance_relation_score": 0.0,
+          "hard_violations": [
+            "ROOM_NOT_ZONED:BATHROOM_2",
+            "DISCONNECTED_ROOM:BATHROOM_2",
+            "DISCONNECTED_ROOM:BEDROOM_1"
+          ],
+          "total_score": -34.283766
+        },
+        "canonical_hash": "a59a252f1d7d3123b47a9d6ca373d4f54a3816cd10574596f930b686b1c364de"
+      }
+    ],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 3,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 4,
+    "llm_call_latency_s": 62.39643216133118,
+    "llm_model": "llama3.2:latest"
+  },
+  "B15": {
+    "brief_id": "B15",
+    "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 181.25, \"footprint_depth_m\": 14.5, \"footprint_width_m\": 12.5, \"open_plan\": false, \"plot_depth_m\": 25.0, \"plot_width_m\": 19.5, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 5,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "81580bbd20ed4161439348475b556c6d0499b8ab9ec9b84406d893216984334e"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 17,
+    "llm_schema_rejected": 17,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 58.52974605560303,
+    "llm_model": "llama3.2:latest"
+  },
+  "B16": {
+    "brief_id": "B16",
+    "source_key": "{\"bedrooms\": 5, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 5,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "wide",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.295320382147868,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -2.033395
+      },
+      "canonical_hash": "7ed55f54a8676b62baf1b8d204d19ec31e650d82364fb799f416fd2327c5d537"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 14,
+    "llm_schema_rejected": 14,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 40.43922185897827,
+    "llm_model": "llama3.2:latest"
+  },
+  "B17": {
+    "brief_id": "B17",
+    "source_key": "{\"bedrooms\": 6, \"built_area_m2\": 216.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 18.0, \"open_plan\": false, \"plot_depth_m\": 22.5, \"plot_width_m\": 25.0, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": false,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "wide",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -0.09314432695782497,
+        "access_similarity": -2.41981578122236,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -1.51296
+      },
+      "canonical_hash": "6387ecdd64e0277d42b5e24b576f3d976228075cf2f116c74f2d6ae0085003ba"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 0,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 78.67668199539185,
+    "llm_model": "llama3.2:latest"
+  },
+  "B18": {
+    "brief_id": "B18",
+    "source_key": "{\"bedrooms\": 6, \"built_area_m2\": 181.25, \"footprint_depth_m\": 14.5, \"footprint_width_m\": 12.5, \"open_plan\": false, \"plot_depth_m\": 25.0, \"plot_width_m\": 19.5, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": false,
+    "size_tier": "medium",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -1.9364922645028129,
+        "access_similarity": -2.323302815631266,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": 0.991572,
+        "hard_violations": [],
+        "total_score": -2.268223
+      },
+      "canonical_hash": "450629838d32498f4348875973c439b554c48da88accaa6db72adb30b70e22f0"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 9,
+    "llm_schema_rejected": 9,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 63.59491777420044,
+    "llm_model": "llama3.2:latest"
+  },
+  "B19": {
+    "brief_id": "B19",
+    "source_key": "{\"bedrooms\": 6, \"built_area_m2\": 181.25, \"footprint_depth_m\": 14.5, \"footprint_width_m\": 12.5, \"open_plan\": true, \"plot_depth_m\": 25.0, \"plot_width_m\": 19.5, \"safe_room\": false, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 2}",
+    "bedrooms": 6,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": true,
+    "size_tier": "medium",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -2.9393974419008058,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": 0.991572,
+        "hard_violations": [],
+        "total_score": -1.6859
+      },
+      "canonical_hash": "67b63250d44fb20a99b2f27b1342fdaf1bcb13799f6ede9e12d2b669da56e299"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 0,
+    "llm_schema_rejected": 0,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 78.63379693031311,
+    "llm_model": "llama3.2:latest"
+  },
+  "B20": {
+    "brief_id": "B20",
+    "source_key": "{\"bedrooms\": 2, \"built_area_m2\": 132.0, \"footprint_depth_m\": 12.0, \"footprint_width_m\": 11.0, \"open_plan\": true, \"plot_depth_m\": 22.5, \"plot_width_m\": 18.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 3}",
+    "bedrooms": 2,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "size_tier": "small",
+    "aspect_tier": "square",
+    "generator": {
+      "source": "CURRENT_GENERATOR",
+      "raw_index": 0,
+      "realizability": "REALIZABLE_BY_CURRENT_ENGINE",
+      "score": {
+        "adjacency_similarity": -4.2683275348622844,
+        "access_similarity": -0.7380742386276046,
+        "wet_core_similarity": 1.0,
+        "entrance_relation_score": null,
+        "hard_violations": [],
+        "total_score": -4.006402
+      },
+      "canonical_hash": "4e79f3681c3a530286f060cd7d086ed018faecfc0aaf03eebd021290747624a6"
+    },
+    "generator_error": null,
+    "llm_proposals": [],
+    "llm_raw_generated": 7,
+    "llm_schema_rejected": 7,
+    "llm_exact_duplicates": 0,
+    "materially_distinct_count": 0,
+    "llm_call_latency_s": 78.57469081878662,
+    "llm_model": "llama3.2:latest"
+  }
+}

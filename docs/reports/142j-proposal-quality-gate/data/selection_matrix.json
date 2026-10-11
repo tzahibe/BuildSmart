@@ -1,0 +1,5225 @@
+[
+ {
+  "brief": "B01",
+  "generated": 7,
+  "hard_invalid": 4,
+  "critic_clean": 3,
+  "old": {
+   "rank": 0,
+   "result": "PASS",
+   "score": 0.6518,
+   "quality": {
+    "circulation_share": 0.192,
+    "mean_net_aspect": 1.42,
+    "max_net_aspect": 2.22,
+    "bands": 2,
+    "preferred_exposure": "1/1",
+    "public_front_share": 0.5,
+    "doors": 5,
+    "rooms": 5,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 0.11,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": 0.651797,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -0.339775,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -3.510232,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 0,
+  "new_clean_rank": 0,
+  "new_score": 0.6518,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "4/4",
+  "spatial": "6/6",
+  "quality": {
+   "circulation_share": 0.192,
+   "mean_net_aspect": 1.42,
+   "max_net_aspect": 2.22,
+   "bands": 2,
+   "preferred_exposure": "1/1",
+   "public_front_share": 0.5,
+   "doors": 5,
+   "rooms": 5,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER",
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   0,
+   1,
+   6
+  ]
+ },
+ {
+  "brief": "B02",
+  "generated": 9,
+  "hard_invalid": 3,
+  "critic_clean": 6,
+  "old": {
+   "rank": 1,
+   "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "score": -1.8973
+  },
+  "new_code": "PASS",
+  "seconds": 0.15,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.897253,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.51866,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.51866,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.51866,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -3.510232,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 8,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -3.510232,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 3,
+  "new_clean_rank": 0,
+  "new_score": -1.8973,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "5/5",
+  "spatial": "8/8",
+  "quality": {
+   "circulation_share": 0.15,
+   "mean_net_aspect": 1.78,
+   "max_net_aspect": 3.4,
+   "bands": 3,
+   "preferred_exposure": "1/1",
+   "public_front_share": 0.75,
+   "doors": 6,
+   "rooms": 6,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   3,
+   4,
+   5,
+   6,
+   7,
+   8
+  ]
+ },
+ {
+  "brief": "B03",
+  "generated": 8,
+  "hard_invalid": 6,
+  "critic_clean": 2,
+  "old": {
+   "rank": 0,
+   "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "score": 0.2718
+  },
+  "new_code": "PASS",
+  "seconds": 0.15,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": -0.719786,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.313443,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 4,
+  "new_clean_rank": 0,
+  "new_score": -0.7198,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "5/5",
+  "spatial": "7/7",
+  "quality": {
+   "circulation_share": 0.164,
+   "mean_net_aspect": 1.67,
+   "max_net_aspect": 3.05,
+   "bands": 3,
+   "preferred_exposure": "1/1",
+   "public_front_share": 1.0,
+   "doors": 6,
+   "rooms": 6,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   4,
+   5
+  ]
+ },
+ {
+  "brief": "B04",
+  "generated": 8,
+  "hard_invalid": 5,
+  "critic_clean": 3,
+  "old": {
+   "rank": 0,
+   "result": "PASS",
+   "score": -1.0708,
+   "quality": {
+    "circulation_share": 0.107,
+    "mean_net_aspect": 1.38,
+    "max_net_aspect": 1.98,
+    "bands": 3,
+    "preferred_exposure": "2/2",
+    "public_front_share": 1.0,
+    "doors": 7,
+    "rooms": 8,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 1.16,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.070773,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.295216,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.286788,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 0,
+  "new_clean_rank": 0,
+  "new_score": -1.0708,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "7/7",
+  "spatial": "9/9",
+  "quality": {
+   "circulation_share": 0.107,
+   "mean_net_aspect": 1.38,
+   "max_net_aspect": 1.98,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 1.0,
+   "doors": 7,
+   "rooms": 8,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   0,
+   4,
+   5
+  ]
+ },
+ {
+  "brief": "B05",
+  "generated": 8,
+  "hard_invalid": 5,
+  "critic_clean": 3,
+  "old": {
+   "rank": 0,
+   "result": "PASS",
+   "score": -0.0389,
+   "quality": {
+    "circulation_share": 0.157,
+    "mean_net_aspect": 1.66,
+    "max_net_aspect": 2.4,
+    "bands": 3,
+    "preferred_exposure": "1/1",
+    "public_front_share": 1.0,
+    "doors": 7,
+    "rooms": 7,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 0.46,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -0.038917,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -0.038917,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.674567,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "EXPOSURE_INFEASIBLE",
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 0,
+  "new_clean_rank": 0,
+  "new_score": -0.0389,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "6/6",
+  "spatial": "9/9",
+  "quality": {
+   "circulation_share": 0.157,
+   "mean_net_aspect": 1.66,
+   "max_net_aspect": 2.4,
+   "bands": 3,
+   "preferred_exposure": "1/1",
+   "public_front_share": 1.0,
+   "doors": 7,
+   "rooms": 7,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   0,
+   1,
+   4
+  ]
+ },
+ {
+  "brief": "B06",
+  "generated": 8,
+  "hard_invalid": 3,
+  "critic_clean": 5,
+  "old": {
+   "rank": 0,
+   "result": "EXPOSURE_INFEASIBLE",
+   "score": -0.7198
+  },
+  "new_code": "PASS",
+  "seconds": 0.89,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "EXPOSURE_INFEASIBLE"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.480022,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.070773,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.440939,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.674567,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -3.062345,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 2,
+  "new_clean_rank": 0,
+  "new_score": -1.48,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "7/7",
+  "spatial": "9/9",
+  "quality": {
+   "circulation_share": 0.134,
+   "mean_net_aspect": 1.36,
+   "max_net_aspect": 1.79,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 0.67,
+   "doors": 7,
+   "rooms": 8,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   2,
+   3,
+   4,
+   5,
+   7
+  ]
+ },
+ {
+  "brief": "B07",
+  "generated": 8,
+  "hard_invalid": 4,
+  "critic_clean": 4,
+  "old": {
+   "rank": 0,
+   "result": "ACCESS_SPATIAL_CONTRADICTION",
+   "score": -0.6427
+  },
+  "new_code": "PASS",
+  "seconds": 1.34,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.642711,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.642711,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "EXPOSURE_UNKNOWN",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.011925,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.624146,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 1,
+  "new_clean_rank": 0,
+  "new_score": -0.6427,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "8/8",
+  "spatial": "10/10",
+  "quality": {
+   "circulation_share": 0.152,
+   "mean_net_aspect": 1.47,
+   "max_net_aspect": 1.94,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 0.57,
+   "doors": 9,
+   "rooms": 9,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "BEDROOM_1",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "ensuite",
+    "MASTER",
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   1,
+   2,
+   6,
+   7
+  ]
+ },
+ {
+  "brief": "B08",
+  "generated": 6,
+  "hard_invalid": 4,
+  "critic_clean": 2,
+  "old": {
+   "rank": 0,
+   "result": "PASS",
+   "score": 0.5145,
+   "quality": {
+    "circulation_share": 0.084,
+    "mean_net_aspect": 1.47,
+    "max_net_aspect": 2.05,
+    "bands": 3,
+    "preferred_exposure": "1/1",
+    "public_front_share": 1.0,
+    "doors": 9,
+    "rooms": 8,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 0.75,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": 0.514455,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.070773,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ENTRANCE_INTO_NON_ENTRANCE_ROLE",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 0,
+  "new_clean_rank": 0,
+  "new_score": 0.5145,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "7/7",
+  "spatial": "10/10",
+  "quality": {
+   "circulation_share": 0.084,
+   "mean_net_aspect": 1.47,
+   "max_net_aspect": 2.05,
+   "bands": 3,
+   "preferred_exposure": "1/1",
+   "public_front_share": 1.0,
+   "doors": 9,
+   "rooms": 8,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   0,
+   1
+  ]
+ },
+ {
+  "brief": "B09",
+  "generated": 8,
+  "hard_invalid": 4,
+  "critic_clean": 4,
+  "old": {
+   "rank": 0,
+   "result": "ACCESS_SPATIAL_CONTRADICTION",
+   "score": 0.2984
+  },
+  "new_code": "PASS",
+  "seconds": 2.11,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "EXPOSURE_INFEASIBLE"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "BEDROOM_1",
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "ensuite",
+      "BEDROOM_2",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.394921,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.81045,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.719786,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.976085,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "ensuite",
+      "BEDROOM_2",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "BEDROOM_2",
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 2,
+  "new_clean_rank": 0,
+  "new_score": -0.3949,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "8/8",
+  "spatial": "11/11",
+  "quality": {
+   "circulation_share": 0.082,
+   "mean_net_aspect": 1.47,
+   "max_net_aspect": 1.88,
+   "bands": 3,
+   "preferred_exposure": "3/3",
+   "public_front_share": 0.71,
+   "doors": 8,
+   "rooms": 9,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_3",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   2,
+   4,
+   5,
+   6
+  ]
+ },
+ {
+  "brief": "B10",
+  "generated": 9,
+  "hard_invalid": 8,
+  "critic_clean": 1,
+  "old": {
+   "rank": 0,
+   "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "score": 0.6091
+  },
+  "new_code": "PASS",
+  "seconds": 1.1,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.994312,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 8,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 6,
+  "new_clean_rank": 0,
+  "new_score": -2.9943,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "8/8",
+  "spatial": "9/9",
+  "quality": {
+   "circulation_share": 0.124,
+   "mean_net_aspect": 1.49,
+   "max_net_aspect": 2.49,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 0.71,
+   "doors": 8,
+   "rooms": 9,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   6
+  ]
+ },
+ {
+  "brief": "B11",
+  "generated": 9,
+  "hard_invalid": 4,
+  "critic_clean": 5,
+  "old": {
+   "rank": 2,
+   "result": "PASS",
+   "score": -1.6241,
+   "quality": {
+    "circulation_share": 0.159,
+    "mean_net_aspect": 1.64,
+    "max_net_aspect": 2.96,
+    "bands": 3,
+    "preferred_exposure": "2/2",
+    "public_front_share": 0.67,
+    "doors": 12,
+    "rooms": 11,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 2.64,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.624146,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.390518,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.692793,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -3.033395,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 8,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -4.003497,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 2,
+  "new_clean_rank": 0,
+  "new_score": -1.6241,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "10/10",
+  "spatial": "13/13",
+  "quality": {
+   "circulation_share": 0.159,
+   "mean_net_aspect": 1.64,
+   "max_net_aspect": 2.96,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 0.67,
+   "doors": 12,
+   "rooms": 11,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   2,
+   6,
+   7,
+   8
+  ]
+ },
+ {
+  "brief": "B12",
+  "generated": 8,
+  "hard_invalid": 8,
+  "critic_clean": 0,
+  "old": {
+   "rank": 0,
+   "result": "EXPOSURE_INFEASIBLE",
+   "score": 0.1987
+  },
+  "new_code": "NO_VALID_PROPOSAL",
+  "seconds": 2.71,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "EXPOSURE_INFEASIBLE"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "EXPOSURE_INFEASIBLE"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "EXPOSURE_INFEASIBLE",
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_result": "NO_VALID_PROPOSAL",
+  "detail": "every one of 8 candidate proposal(s) has a HARD finding: ACCESS_SPATIAL_CONTRADICTION, EXPOSURE_INFEASIBLE, ILLEGAL_ACCESS_PAIR, UNREACHABLE_ROOM, WET_ROOM_ENTRY_POLICY",
+  "clean_pass_ranks": []
+ },
+ {
+  "brief": "B13",
+  "generated": 8,
+  "hard_invalid": 3,
+  "critic_clean": 5,
+  "old": {
+   "rank": 0,
+   "result": "PASS",
+   "score": 0.8252,
+   "quality": {
+    "circulation_share": 0.149,
+    "mean_net_aspect": 1.71,
+    "max_net_aspect": 2.69,
+    "bands": 4,
+    "preferred_exposure": "1/2",
+    "public_front_share": 1.0,
+    "doors": 10,
+    "rooms": 10,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 2.22,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": 0.825159,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -0.372291,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.313443,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": -1.313443,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -2.390518,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 0,
+  "new_clean_rank": 0,
+  "new_score": 0.8252,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "9/9",
+  "spatial": "12/12",
+  "quality": {
+   "circulation_share": 0.149,
+   "mean_net_aspect": 1.71,
+   "max_net_aspect": 2.69,
+   "bands": 4,
+   "preferred_exposure": "1/2",
+   "public_front_share": 1.0,
+   "doors": 10,
+   "rooms": 10,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   0,
+   2,
+   5
+  ]
+ },
+ {
+  "brief": "B14",
+  "generated": 8,
+  "hard_invalid": 5,
+  "critic_clean": 3,
+  "old": {
+   "rank": 0,
+   "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "score": -0.112
+  },
+  "new_code": "PASS",
+  "seconds": 2.27,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.372291,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.05312,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.092243,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 1,
+  "new_clean_rank": 0,
+  "new_score": -0.3723,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "10/10",
+  "spatial": "14/14",
+  "quality": {
+   "circulation_share": 0.126,
+   "mean_net_aspect": 1.59,
+   "max_net_aspect": 3.13,
+   "bands": 3,
+   "preferred_exposure": "3/3",
+   "public_front_share": 0.67,
+   "doors": 10,
+   "rooms": 11,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_3",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   1,
+   3,
+   5
+  ]
+ },
+ {
+  "brief": "B15",
+  "generated": 8,
+  "hard_invalid": 7,
+  "critic_clean": 1,
+  "old": {
+   "rank": 0,
+   "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "score": 0.9022
+  },
+  "new_code": "PASS",
+  "seconds": 1.66,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "EXPOSURE_UNKNOWN",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "BEDROOM_3",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION",
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "BEDROOM_2",
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT"
+    ],
+    "score": -3.033395,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 7,
+  "new_clean_rank": 0,
+  "new_score": -3.0334,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "10/10",
+  "spatial": "11/11",
+  "quality": {
+   "circulation_share": 0.13,
+   "mean_net_aspect": 1.9,
+   "max_net_aspect": 3.0,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 0.44,
+   "doors": 10,
+   "rooms": 11,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   7
+  ]
+ },
+ {
+  "brief": "B16",
+  "generated": 8,
+  "hard_invalid": 6,
+  "critic_clean": 2,
+  "old": {
+   "rank": 0,
+   "result": "TOPOLOGY_REPRESENTATION_LIMIT",
+   "score": 1.1903
+  },
+  "new_code": "PASS",
+  "seconds": 4.41,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.682995,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "EXPOSURE_UNKNOWN",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE",
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -12.011925,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ROOM_WITHOUT_ACCESS",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "ensuite",
+      "MASTER",
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 1,
+  "new_clean_rank": 0,
+  "new_score": -1.683,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "13/13",
+  "spatial": "14/14",
+  "quality": {
+   "circulation_share": 0.156,
+   "mean_net_aspect": 2.09,
+   "max_net_aspect": 4.4,
+   "bands": 3,
+   "preferred_exposure": "3/3",
+   "public_front_share": 0.64,
+   "doors": 14,
+   "rooms": 13,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_3",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   1
+  ]
+ },
+ {
+  "brief": "B17",
+  "generated": 9,
+  "hard_invalid": 5,
+  "critic_clean": 4,
+  "old": {
+   "rank": 1,
+   "result": "ACCESS_SPATIAL_CONTRADICTION",
+   "score": -1.6972
+  },
+  "new_code": "PASS",
+  "seconds": 3.64,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.723851,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.723851,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -3.026127,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -3.11047,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 8,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 2,
+  "new_clean_rank": 0,
+  "new_score": -1.7239,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "11/11",
+  "spatial": "12/12",
+  "quality": {
+   "circulation_share": 0.134,
+   "mean_net_aspect": 1.89,
+   "max_net_aspect": 2.92,
+   "bands": 3,
+   "preferred_exposure": "2/3",
+   "public_front_share": 0.6,
+   "doors": 11,
+   "rooms": 12,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_3",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   2,
+   6,
+   7
+  ]
+ },
+ {
+  "brief": "B18",
+  "generated": 8,
+  "hard_invalid": 5,
+  "critic_clean": 3,
+  "old": {
+   "rank": 0,
+   "result": "PASS",
+   "score": -0.0349,
+   "quality": {
+    "circulation_share": 0.152,
+    "mean_net_aspect": 1.73,
+    "max_net_aspect": 3.1,
+    "bands": 3,
+    "preferred_exposure": "3/3",
+    "public_front_share": 0.64,
+    "doors": 13,
+    "rooms": 13,
+    "footprint_m": [
+     0
+    ]
+   }
+  },
+  "new_code": "PASS",
+  "seconds": 8.79,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.034893,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "BEDROOM_3",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.336073,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -1.336073,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "EXPOSURE_UNKNOWN",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 0,
+  "new_clean_rank": 0,
+  "new_score": -0.0349,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "12/12",
+  "spatial": "14/14",
+  "quality": {
+   "circulation_share": 0.152,
+   "mean_net_aspect": 1.73,
+   "max_net_aspect": 3.1,
+   "bands": 3,
+   "preferred_exposure": "3/3",
+   "public_front_share": 0.64,
+   "doors": 13,
+   "rooms": 13,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "BEDROOM_3",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_3",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   0
+  ]
+ },
+ {
+  "brief": "B19",
+  "generated": 8,
+  "hard_invalid": 6,
+  "critic_clean": 2,
+  "old": {
+   "rank": 0,
+   "result": "TOPOLOGY_NON_PLANAR",
+   "score": -0.3723
+  },
+  "new_code": "PASS",
+  "seconds": 4.11,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -0.728214,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": true,
+    "hard": [],
+    "warn": [],
+    "score": -1.107565,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ACCESS_SPATIAL_CONTRADICTION"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "CONTACTS_NOT_REPRESENTABLE"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "ACCESS_WITHOUT_CONTACT",
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 1,
+  "new_clean_rank": 0,
+  "new_score": -0.7282,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "11/11",
+  "spatial": "15/15",
+  "quality": {
+   "circulation_share": 0.168,
+   "mean_net_aspect": 2.03,
+   "max_net_aspect": 3.63,
+   "bands": 3,
+   "preferred_exposure": "2/2",
+   "public_front_share": 0.5,
+   "doors": 13,
+   "rooms": 12,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   1
+  ]
+ },
+ {
+  "brief": "B20",
+  "generated": 9,
+  "hard_invalid": 8,
+  "critic_clean": 1,
+  "old": {
+   "rank": 0,
+   "result": "ACCESS_POLICY_CONFLICT",
+   "score": 0.3489
+  },
+  "new_code": "PASS",
+  "seconds": 1.53,
+  "verdicts": [
+   {
+    "rank": 0,
+    "clean": false,
+    "hard": [
+     "WET_ROOM_ENTRY_POLICY",
+     "WET_ROOM_MULTIPLE_ENTRANTS"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 1,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 2,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 3,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 4,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 5,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 6,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 7,
+    "clean": true,
+    "hard": [],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": -2.615718,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   },
+   {
+    "rank": 8,
+    "clean": false,
+    "hard": [
+     "ILLEGAL_ACCESS_PAIR",
+     "UNREACHABLE_ROOM",
+     "WET_ROOM_ENTRY_POLICY"
+    ],
+    "warn": [
+     "WET_ROOM_KIND_DIFFERS_FROM_DEFAULT"
+    ],
+    "score": null,
+    "wet_rooms": [
+     [
+      "BATHROOM_1",
+      "ensuite",
+      "MASTER_BEDROOM",
+      false
+     ],
+     [
+      "BATHROOM_2",
+      "shared_bathroom",
+      null,
+      false
+     ],
+     [
+      "BATHROOM_3",
+      "shared_bathroom",
+      null,
+      false
+     ]
+    ]
+   }
+  ],
+  "new_rank": 7,
+  "new_clean_rank": 0,
+  "new_score": -2.6157,
+  "tried_before": [],
+  "new_result": "PASS",
+  "access": "9/9",
+  "spatial": "12/12",
+  "quality": {
+   "circulation_share": 0.152,
+   "mean_net_aspect": 1.5,
+   "max_net_aspect": 1.88,
+   "bands": 3,
+   "preferred_exposure": "3/3",
+   "public_front_share": 0.75,
+   "doors": 11,
+   "rooms": 10,
+   "footprint_m": [
+    0
+   ]
+  },
+  "new_wet_rooms": [
+   [
+    "BATHROOM_1",
+    "ensuite",
+    "MASTER_BEDROOM",
+    false
+   ],
+   [
+    "BATHROOM_2",
+    "shared_bathroom",
+    null,
+    false
+   ],
+   [
+    "BATHROOM_3",
+    "shared_bathroom",
+    null,
+    false
+   ]
+  ],
+  "clean_pass_ranks": [
+   7
+  ]
+ }
+]

@@ -1,0 +1,10 @@
+{
+  "total_contexts": 432,
+  "planned_on_flag_on": 404,
+  "planned_with_alternatives_flag_on": 228,
+  "status_changes": 0,
+  "refusal_code_changes": 0,
+  "crashes": 0,
+  "crash_reasons": {},
+  "mismatches": []
+}

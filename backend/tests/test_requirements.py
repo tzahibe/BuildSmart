@@ -6,7 +6,14 @@ from app.projects.models import PoolField, SourceTag, TaggedBool, TaggedFloat, T
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.routes import base_routes as project_base_routes
 from app.requirements import router as requirements_router
-from app.requirements.parser import LaundryRoomDemand, RequirementExtraction, RequirementParser
+from app.requirements.parser import (
+    _SYSTEM_PROMPT,
+    BriefExtraction,
+    LaundryRoomDemand,
+    OpenAIRequirementParser,
+    RequirementExtraction,
+    RequirementParser,
+)
 
 
 class FakeRequirementParser(RequirementParser):
@@ -269,3 +276,79 @@ def test_parsing_does_not_change_updated_at(client: TestClient):
     response = client.post(f"/projects/{project_id}/requirements")
 
     assert response.json()["updated_at"] == created_updated_at
+
+
+_FAKE_BRIEF_EXTRACTION = BriefExtraction(
+    floors=TaggedInt(value=1, source=SourceTag.inferred),
+    bedrooms=TaggedInt(value=None, source=SourceTag.unknown),
+    safe_room=TaggedBool(value=None, source=SourceTag.unknown),
+    parking_spaces=TaggedInt(value=None, source=SourceTag.unknown),
+    pool=PoolField(
+        requested=TaggedBool(value=None, source=SourceTag.unknown),
+        length_m=TaggedFloat(value=None, source=SourceTag.unknown),
+        width_m=TaggedFloat(value=None, source=SourceTag.unknown),
+    ),
+)
+
+
+class _FakeCompletions:
+    """Records every call so tests can assert on the exact kwargs sent to the real SDK method."""
+
+    def __init__(self, parsed: BriefExtraction):
+        self._parsed = parsed
+        self.calls: list[dict] = []
+
+    def parse(self, **kwargs):
+        self.calls.append(kwargs)
+        message = type("Message", (), {"parsed": self._parsed})()
+        choice = type("Choice", (), {"message": message})()
+        return type("Response", (), {"choices": [choice]})()
+
+
+class _FakeOpenAIClient:
+    def __init__(self, parsed: BriefExtraction = _FAKE_BRIEF_EXTRACTION):
+        self.completions = _FakeCompletions(parsed)
+        self.chat = type("Chat", (), {"completions": self.completions})()
+
+
+def test_openai_parser_requests_minimal_reasoning_effort_by_default_and_honours_the_env_override(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.delenv("REQUIREMENTS_REASONING_EFFORT", raising=False)
+    default_parser = OpenAIRequirementParser()
+    default_client = _FakeOpenAIClient()
+    default_parser._client = default_client
+
+    default_parser.extract("תיאור הבית")
+
+    call = default_client.completions.calls[0]
+    assert call["reasoning_effort"] == "minimal"
+    assert call["model"] == "gpt-5-nano"
+    assert call["response_format"] is BriefExtraction
+    assert call["messages"] == [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": "תיאור הבית"},
+    ]
+
+    monkeypatch.setenv("REQUIREMENTS_REASONING_EFFORT", "low")
+    overridden_parser = OpenAIRequirementParser()
+    overridden_client = _FakeOpenAIClient()
+    overridden_parser._client = overridden_client
+
+    overridden_parser.extract("תיאור הבית")
+
+    overridden_call = overridden_client.completions.calls[0]
+    assert overridden_call["reasoning_effort"] == "low"
+    assert overridden_call["model"] == call["model"]
+    assert overridden_call["messages"] == call["messages"]
+    assert overridden_call["response_format"] is BriefExtraction
+
+
+def test_openai_parser_rejects_an_unknown_reasoning_effort(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("REQUIREMENTS_REASONING_EFFORT", raising=False)
+    with pytest.raises(ValueError):
+        OpenAIRequirementParser(reasoning_effort="extreme")
+
+    monkeypatch.setenv("REQUIREMENTS_REASONING_EFFORT", "extreme")
+    with pytest.raises(ValueError):
+        OpenAIRequirementParser()

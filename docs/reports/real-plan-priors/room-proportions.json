@@ -1,0 +1,260 @@
+{
+  "corpus_dir": "tests/spikes/fixtures/geometry_shapes/plans",
+  "plans_scanned": 19,
+  "plans_excluded_synthetic": 1,
+  "edges": {
+    "house_size_terciles": [
+      142.1416,
+      167.2254
+    ],
+    "bedroom_count_terciles": [
+      3.0,
+      3.0
+    ],
+    "bedroom_count_median": 3.0
+  },
+  "rows": [
+    {
+      "role": "BATHROOM",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 6.059,
+      "p25_area_m2": 5.548,
+      "p75_area_m2": 6.665,
+      "median_aspect": 1.646,
+      "area_share_of_plan": 0.0311,
+      "sample_count": 14
+    },
+    {
+      "role": "BATHROOM",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 5.433,
+      "p25_area_m2": 5.293,
+      "p75_area_m2": 6.319,
+      "median_aspect": 1.715,
+      "area_share_of_plan": 0.0358,
+      "sample_count": 15
+    },
+    {
+      "role": "BATHROOM",
+      "house_size_bucket": "SMALL(<=142m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 5.122,
+      "p25_area_m2": 4.816,
+      "p75_area_m2": 5.512,
+      "median_aspect": 1.546,
+      "area_share_of_plan": 0.041,
+      "sample_count": 15
+    },
+    {
+      "role": "BEDROOM",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 22.831,
+      "p25_area_m2": 22.548,
+      "p75_area_m2": 25.389,
+      "median_aspect": 1.143,
+      "area_share_of_plan": 0.1328,
+      "sample_count": 12
+    },
+    {
+      "role": "BEDROOM",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "HIGH(>3bd)",
+      "median_area_m2": 16.278,
+      "p25_area_m2": 13.234,
+      "p75_area_m2": 17.637,
+      "median_aspect": 1.108,
+      "area_share_of_plan": 0.1095,
+      "sample_count": 4
+    },
+    {
+      "role": "BEDROOM",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 21.581,
+      "p25_area_m2": 18.395,
+      "p75_area_m2": 24.654,
+      "median_aspect": 1.257,
+      "area_share_of_plan": 0.1419,
+      "sample_count": 15
+    },
+    {
+      "role": "BEDROOM",
+      "house_size_bucket": "SMALL(<=142m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 17.812,
+      "p25_area_m2": 16.226,
+      "p75_area_m2": 22.03,
+      "median_aspect": 1.27,
+      "area_share_of_plan": 0.1377,
+      "sample_count": 21
+    },
+    {
+      "role": "CIRCULATION",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 28.446,
+      "p25_area_m2": 17.515,
+      "p75_area_m2": 39.67,
+      "median_aspect": 1.087,
+      "area_share_of_plan": 0.141,
+      "sample_count": 3
+    },
+    {
+      "role": "CIRCULATION",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "HIGH(>3bd)",
+      "median_area_m2": 9.863,
+      "p25_area_m2": 9.863,
+      "p75_area_m2": 9.863,
+      "median_aspect": 1.251,
+      "area_share_of_plan": 0.0664,
+      "sample_count": 1
+    },
+    {
+      "role": "CIRCULATION",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 48.807,
+      "p25_area_m2": 48.807,
+      "p75_area_m2": 48.807,
+      "median_aspect": 1.294,
+      "area_share_of_plan": 0.3261,
+      "sample_count": 1
+    },
+    {
+      "role": "KITCHEN",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 13.751,
+      "p25_area_m2": 12.65,
+      "p75_area_m2": 16.089,
+      "median_aspect": 1.352,
+      "area_share_of_plan": 0.0742,
+      "sample_count": 6
+    },
+    {
+      "role": "KITCHEN",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "HIGH(>3bd)",
+      "median_area_m2": 9.241,
+      "p25_area_m2": 9.241,
+      "p75_area_m2": 9.241,
+      "median_aspect": 1.235,
+      "area_share_of_plan": 0.0622,
+      "sample_count": 1
+    },
+    {
+      "role": "KITCHEN",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 12.075,
+      "p25_area_m2": 9.836,
+      "p75_area_m2": 12.767,
+      "median_aspect": 1.354,
+      "area_share_of_plan": 0.0763,
+      "sample_count": 5
+    },
+    {
+      "role": "KITCHEN",
+      "house_size_bucket": "SMALL(<=142m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 11.853,
+      "p25_area_m2": 10.299,
+      "p75_area_m2": 13.965,
+      "median_aspect": 1.182,
+      "area_share_of_plan": 0.0982,
+      "sample_count": 5
+    },
+    {
+      "role": "LIVING",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 70.849,
+      "p25_area_m2": 64.957,
+      "p75_area_m2": 72.822,
+      "median_aspect": 1.397,
+      "area_share_of_plan": 0.3525,
+      "sample_count": 6
+    },
+    {
+      "role": "LIVING",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "HIGH(>3bd)",
+      "median_area_m2": 48.108,
+      "p25_area_m2": 48.108,
+      "p75_area_m2": 48.108,
+      "median_aspect": 1.233,
+      "area_share_of_plan": 0.3236,
+      "sample_count": 1
+    },
+    {
+      "role": "LIVING",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 52.947,
+      "p25_area_m2": 49.947,
+      "p75_area_m2": 55.994,
+      "median_aspect": 1.205,
+      "area_share_of_plan": 0.3387,
+      "sample_count": 4
+    },
+    {
+      "role": "LIVING",
+      "house_size_bucket": "SMALL(<=142m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 42.24,
+      "p25_area_m2": 40.875,
+      "p75_area_m2": 45.035,
+      "median_aspect": 1.232,
+      "area_share_of_plan": 0.3498,
+      "sample_count": 7
+    },
+    {
+      "role": "STORAGE",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 4.128,
+      "p25_area_m2": 3.535,
+      "p75_area_m2": 4.72,
+      "median_aspect": 1.12,
+      "area_share_of_plan": 0.0219,
+      "sample_count": 2
+    },
+    {
+      "role": "TOILET",
+      "house_size_bucket": "LARGE(>167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 3.02,
+      "p25_area_m2": 2.421,
+      "p75_area_m2": 3.647,
+      "median_aspect": 1.397,
+      "area_share_of_plan": 0.0134,
+      "sample_count": 4
+    },
+    {
+      "role": "TOILET",
+      "house_size_bucket": "MEDIUM(142-167m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 2.626,
+      "p25_area_m2": 2.461,
+      "p75_area_m2": 2.79,
+      "median_aspect": 1.599,
+      "area_share_of_plan": 0.0167,
+      "sample_count": 2
+    },
+    {
+      "role": "TOILET",
+      "house_size_bucket": "SMALL(<=142m2)",
+      "bedroom_count_bucket": "LOW(<=3bd)",
+      "median_area_m2": 3.663,
+      "p25_area_m2": 3.482,
+      "p75_area_m2": 3.736,
+      "median_aspect": 1.468,
+      "area_share_of_plan": 0.0316,
+      "sample_count": 4
+    }
+  ]
+}

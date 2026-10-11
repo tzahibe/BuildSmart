@@ -1,0 +1,29 @@
+{
+  "brief_id": "{\"bedrooms\": 2, \"built_area_m2\": 312.0, \"footprint_depth_m\": 24.0, \"footprint_width_m\": 13.0, \"open_plan\": false, \"plot_depth_m\": 34.5, \"plot_width_m\": 20.0, \"safe_room\": true, \"street_facing_side\": \"NORTH\", \"wet_rooms\": 1}",
+  "street_facing_side": "NORTH",
+  "family_b": "L",
+  "a": {
+    "outcome": "REALIZED",
+    "refusal_code": null,
+    "refusal_detail": null,
+    "metrics": {
+      "m1_habitable_aspect_median": 1.2008802816901407,
+      "m1_habitable_aspect_max": 1.4545454545454546,
+      "m2_habitable_on_envelope_ratio": 1.0,
+      "m3_circulation_share": 0.10937500000000001,
+      "m4_hall_door_count": 7,
+      "m4_hall_aspect_median": 9.571428571428573,
+      "m5_wet_adjacency_ratio": 0.0,
+      "m6_public_zone_contiguous": true,
+      "validation_passed": true
+    }
+  },
+  "b": {
+    "outcome": "REFUSED",
+    "refusal_code": "VALIDATION_FAILED",
+    "refusal_detail": "C31: BIG_LIVING_KITCHEN__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+    "metrics": null,
+    "c30_passed": null,
+    "c30_detail": null
+  }
+}

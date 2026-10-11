@@ -6,6 +6,10 @@
 .demo-parking-label { font-size: 0.7px; fill: #5f6368; text-anchor: middle; dominant-baseline: middle; }
 .demo-footprint { fill: #ffffff; }
 .demo-room-flex { fill: #eef0f2; stroke: #b7bfc7; stroke-width: 0.05; stroke-dasharray: 0.2 0.14; }
+/* Architecture A spike (Issue #107): a merged LIVING+KITCHEN room's own polygon fill, additive —
+   a faint tint so the L reads as one continuous room; the walls themselves come from
+   `design.walls`, unchanged by this rule. */
+.demo-room-merged { fill: #fbf7ee; fill-opacity: 0.6; stroke: none; }
 .demo-room-label { text-anchor: middle; dominant-baseline: middle; }
 .demo-room-name { fill: #1f2933; }
 .demo-room-dims, .demo-room-area, .demo-room-compact { fill: #66707a; }
@@ -19,3 +23,21 @@
 .demo-door-arc { stroke: #9aa4ae; stroke-width: 0.035; fill: none; stroke-dasharray: 0.18 0.12; }
 .demo-door-jamb { stroke: #8b939c; stroke-width: 0.05; }
 .demo-window-label { font-size: 0.3px; fill: #2f7fd6; text-anchor: middle; dominant-baseline: middle; }
+.demo-layout-object-rect { fill: #eef2f6; stroke: #9aa4ae; stroke-width: 0.03; }
+.demo-layout-object-label {
+  font-size: 0.22px; fill: #5f6368; text-anchor: middle; dominant-baseline: middle;
+  pointer-events: none;
+}
+.demo-layout-object--focal-wall .demo-layout-object-rect { fill: #c9d3dc; stroke: none; }
+
+/* Fixture/furniture PLAN SYMBOLS (Concept Plan Communication Pass). Deliberately the lightest
+   weight on the drawing: the reference conventions put walls, doors and windows heaviest, fixtures
+   thin and furniture lightest, so a reader can tell instantly what is building and what is
+   contents. These never carry text — the object's name lives in its <title>. */
+.demo-fixture-fill { fill: #eef2f6; stroke: #9aa4ae; stroke-width: 0.03; }
+.demo-fixture-outline { fill: none; stroke: #9aa4ae; stroke-width: 0.03; }
+.demo-fixture-line { stroke: #9aa4ae; stroke-width: 0.025; fill: none; }
+.demo-fixture-focal { fill: #c9d3dc; stroke: none; }
+.demo-scale-bar-line { stroke: #1a1a1a; stroke-width: 0.05; }
+.demo-scale-bar-tick { stroke: #1a1a1a; stroke-width: 0.05; }
+.demo-scale-bar-label { font-size: 0.32px; fill: #1a1a1a; text-anchor: middle; dominant-baseline: hanging; }

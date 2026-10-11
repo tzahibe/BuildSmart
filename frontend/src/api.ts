@@ -366,8 +366,21 @@ export async function updateRequirementsReview(projectId: string, edit: ReviewEd
   return response.json()
 }
 
-export async function generateDemoDesign(projectId: string): Promise<DemoPlanSet> {
-  const response = await fetch(`/projects/${projectId}/design/demo`, { method: 'POST' })
+/** Which engine a generation request should run. DEVELOPMENT PREVIEW ONLY: `production` is the
+ * default and sends no parameter at all, so the request is byte-identical to the one that always
+ * went out. `concept_engine_v2` is a PER-REQUEST override — it never turns the backend's global
+ * flag on, and there is deliberately no fallback from it to production: a preview that failed must
+ * show its own failure, not somebody else's plan. */
+export type EngineChoice = 'production' | 'concept_engine_v2'
+
+function engineQuery(engine: EngineChoice | undefined): string {
+  return engine && engine !== 'production' ? `?engine=${encodeURIComponent(engine)}` : ''
+}
+
+export async function generateDemoDesign(projectId: string,
+                                         engine?: EngineChoice): Promise<DemoPlanSet> {
+  const response = await fetch(`/projects/${projectId}/design/demo${engineQuery(engine)}`,
+                               { method: 'POST' })
   if (!response.ok) throw await demoErrorFrom(response)
   return response.json()
 }
@@ -391,14 +404,18 @@ export interface DemoProgress {
 export async function generateDemoDesignStreaming(
   projectId: string,
   onProgress: (progress: DemoProgress) => void,
+  engine?: EngineChoice,
 ): Promise<DemoPlanSet> {
   let response: Response
   try {
-    response = await fetch(`/projects/${projectId}/design/demo/stream`, { method: 'POST' })
+    response = await fetch(`/projects/${projectId}/design/demo/stream${engineQuery(engine)}`,
+                           { method: 'POST' })
   } catch {
-    return generateDemoDesign(projectId)
+    // the non-streaming fallback must carry the SAME engine: falling back to the stream-less
+    // endpoint may cost the percentage, it must never quietly change which engine ran.
+    return generateDemoDesign(projectId, engine)
   }
-  if (!response.ok || !response.body?.getReader) return generateDemoDesign(projectId)
+  if (!response.ok || !response.body?.getReader) return generateDemoDesign(projectId, engine)
 
   const reader = response.body.getReader()
   const decoder = new TextDecoder()

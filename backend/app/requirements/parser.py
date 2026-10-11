@@ -413,15 +413,34 @@ class RequirementParser(ABC):
     def parse(self, description: str) -> RequirementExtraction: ...
 
 
+#: Allowed values of the `reasoning_effort` request parameter (and of the
+#: REQUIREMENTS_REASONING_EFFORT env override) — everything the OpenAI Chat Completions API accepts
+#: for a reasoning model as of openai 3.7.0.
+_REASONING_EFFORTS = ("minimal", "low", "medium", "high")
+
+
 class OpenAIRequirementParser(RequirementParser):
     """Extracts RequirementExtraction via OpenAI's gpt-5-nano (cheapest current model, confirmed via
     platform.openai.com/docs/pricing) using structured outputs. See
     specs/002-requirement-parser/research.md for the model choice and the accepted trade-off: adherence
     to the "never guess" instructions above is the model's instruction-following, not a hard guarantee.
+
+    `reasoning_effort` defaults to "minimal" (Issue #89): gpt-5-nano is a reasoning model, and this
+    extraction is a simple structured read of the brief, not a task that benefits from its default
+    reasoning budget — measured ~10x faster at "minimal" with the same schema/prompt. Override via
+    REQUIREMENTS_REASONING_EFFORT for comparison; an unrecognised value fails fast at construction
+    rather than being silently sent to the API.
     """
 
-    def __init__(self, model: str = "gpt-5-nano") -> None:
+    def __init__(self, model: str = "gpt-5-nano", reasoning_effort: str = "minimal") -> None:
         self._model = model
+        reasoning_effort = os.environ.get("REQUIREMENTS_REASONING_EFFORT", reasoning_effort)
+        if reasoning_effort not in _REASONING_EFFORTS:
+            raise ValueError(
+                f"Unsupported REQUIREMENTS_REASONING_EFFORT {reasoning_effort!r}; "
+                f"expected one of {_REASONING_EFFORTS}"
+            )
+        self._reasoning_effort = reasoning_effort
         # Deliberately does not require OPENAI_API_KEY at construction — only when parse() is actually
         # called — so importing this module (e.g. via app.main during tests) never needs the key set.
         self._client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -438,6 +457,7 @@ class OpenAIRequirementParser(RequirementParser):
                 {"role": "user", "content": description},
             ],
             response_format=BriefExtraction,
+            reasoning_effort=self._reasoning_effort,
         )
         parsed = response.choices[0].message.parsed
         assert parsed is not None
