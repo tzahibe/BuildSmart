@@ -841,7 +841,16 @@ def cmd_reconcile(config: Config, args) -> int:
 
 def cmd_doctor(config: Config, args) -> int:
     ok = True
-    print(f"config: {config.repo_root / '.agent' / 'config.yaml'} (repo {config.repo}, base {config.base_branch})")
+    from agent_team.config import overlay_sources
+    sources = overlay_sources(config.repo_root)
+    print(f"config: {sources[0]} (repo {config.repo}, base {config.base_branch})")
+    if len(sources) > 1:
+        # Say plainly that what is running is NOT only what is committed.
+        print(f"  overlay: {sources[-1]} (machine-local, gitignored — overrides the tracked file)")
+    else:
+        print("  overlay: none (running exactly the tracked configuration)")
+    print(f"  effective: analysis.enabled={config.analysis_enabled} "
+          f"power.caffeinate_while_working={config.caffeinate_while_working}")
     gh_ok, why = GhCliTransport().available()
     print(f"gh: {'OK' if gh_ok else 'MISSING'} — {why}")
     ok &= gh_ok

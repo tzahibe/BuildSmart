@@ -11,6 +11,7 @@ backend/spikes/failure_log_sweep/gained.json
 
 # Autonomous engineering workflow (scripts/agent_team): local runtime state only.
 .worktrees/
+.agent/config.local.yaml
 .agent/state/
 .agent/logs/
 .agent/contracts/
