@@ -175,6 +175,12 @@ class GitHubClient:
                 self.remove_label(number, l)
         return target
 
+    def list_issue_comments(self, number: int) -> list[dict]:
+        """Every comment on an Issue. Used by the ANALYSIS lane to prove it has not already
+        answered — the last idempotency layer, independent of labels and of local state."""
+        return self.transport.request(
+            "GET", f"/repos/{self.repo}/issues/{number}/comments?per_page=100", paginate=True) or []
+
     def comment(self, number: int, body: str) -> dict:
         return self.transport.request("POST", f"/repos/{self.repo}/issues/{number}/comments", body={"body": body})
 
@@ -401,6 +407,9 @@ class FakeGitHub:
     def comment(self, number: int, body: str) -> dict:
         self.comments.append((number, body))
         return {"id": len(self.comments)}
+
+    def list_issue_comments(self, number: int) -> list[dict]:
+        return [{"body": b} for n, b in self.comments if n == number]
 
     def close_issue(self, number: int, reason: str = "completed") -> None:
         self.get_issue(number)["state"] = "closed"
