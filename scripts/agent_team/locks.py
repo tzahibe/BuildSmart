@@ -31,15 +31,26 @@ class LockDecision:
 
 
 def effective_locks(contract: IssueContract, config: Config) -> tuple[LockRequirement, ...]:
-    """Explicit locks win; otherwise the locks implied by the affected domains (exclusive)."""
+    """Explicit locks win; otherwise the locks implied by the affected domains (exclusive).
+
+    `config.locks.concurrent` then serves the named locks as SHARED even where an Issue asked for
+    them exclusively (owner 2026-09-23, "no worker may rest"): those cores are edited in separate
+    worktrees on separate branches, so two agents never overwrite each other's work — the cost is a
+    merge conflict at integration, which the fixer resolves, and that is far cheaper than parking
+    every other geometry/validator Issue behind one exclusive holder (measured that day: a single
+    holder blocked five Issues, one of them a repair that could not run). A lock that is NOT listed
+    there keeps full exclusive semantics."""
     if contract.locks:
-        return contract.locks
-    implied: list[LockRequirement] = []
-    for domain in contract.domains:
-        for name in config.implied_locks_by_domain.get(domain, ()):
-            if not any(l.name == name for l in implied):
-                implied.append(LockRequirement(name, "exclusive"))
-    return tuple(implied)
+        requested: tuple[LockRequirement, ...] = contract.locks
+    else:
+        implied: list[LockRequirement] = []
+        for domain in contract.domains:
+            for name in config.implied_locks_by_domain.get(domain, ()):
+                if not any(l.name == name for l in implied):
+                    implied.append(LockRequirement(name, "exclusive"))
+        requested = tuple(implied)
+    return tuple(LockRequirement(l.name, "shared") if l.name in config.concurrent_locks else l
+                 for l in requested)
 
 
 class LockManager:

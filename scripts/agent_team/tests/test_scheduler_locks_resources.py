@@ -113,11 +113,26 @@ def test_external_closed_dependency_is_satisfied(env):
 
 
 def test_exclusive_lock_conflict_within_one_tick(env):
-    a = make_contract(1, locks="planner-core (exclusive)")
-    b = make_contract(2, locks="planner-core (exclusive)")
+    """`ci-infra` is deliberately absent from `locks.concurrent` (one pipeline definition cannot be
+    designed by two agents at once), so its exclusivity is the real thing — see
+    `test_locks_listed_as_concurrent_are_served_shared` for the cores that are not."""
+    a = make_contract(1, locks="ci-infra (exclusive)")
+    b = make_contract(2, locks="ci-infra (exclusive)")
     d = _plan(env, [a, b])
-    assert d[0].action == "start" and d[0].locks[0].name == "planner-core"
-    assert d[1].action == "wait" and "planner-core(exclusive) held by #1" in d[1].reason
+    assert d[0].action == "start" and d[0].locks[0].name == "ci-infra"
+    assert d[1].action == "wait" and "ci-infra(exclusive) held by #1" in d[1].reason
+
+
+def test_locks_listed_as_concurrent_are_served_shared(env):
+    """Owner 2026-09-23 ("no worker may rest"): a lock in `locks.concurrent` is granted SHARED even
+    where the Issue asked for it exclusively, so two Issues on the same product core run at once —
+    each in its own worktree and branch, with a merge conflict (the fixer's job) as the worst case.
+    The day this was measured, one exclusive holder had parked five Issues, one of them a repair."""
+    a = make_contract(1, locks="geometry-core (exclusive)")
+    b = make_contract(2, locks="geometry-core (exclusive), validator-core (exclusive)")
+    d = _plan(env, [a, b])
+    assert [x.action for x in d] == ["start", "start"]
+    assert {l.mode for x in d for l in x.locks} == {"shared"}
 
 
 def test_shared_locks_coexist_but_not_with_exclusive(env):
@@ -182,12 +197,14 @@ def test_heavy_pool_independent_of_agent_slots(env):
     config, store, rm, lm, _ = env
     job = rm.try_acquire_heavy(1, "regression")
     assert job is not None
-    assert rm.try_acquire_heavy(2, "pytest") is None          # pool full (concurrency 1)
+    second = rm.try_acquire_heavy(2, "pytest")
+    assert second is not None                                   # concurrency 2 (owner 2026-09-23)
+    assert rm.try_acquire_heavy(3, "pytest") is None            # pool full
     snap = rm.snapshot(probe_machine=False)
-    assert snap.heavy_running == 1 and snap.workers_running == 0
+    assert snap.heavy_running == 2 and snap.workers_running == 0
     assert rm.can_start_worker("LIGHT", snap).ok                # agents unaffected by the heavy pool
     rm.release_heavy(job)
-    assert rm.try_acquire_heavy(2, "pytest") is not None
+    assert rm.try_acquire_heavy(3, "pytest") is not None
 
 
 def test_reviewer_admission(env):
@@ -201,6 +218,15 @@ def test_reviewer_admission(env):
     store.update(1, assigned_agent="reviewer:sonnet")
     snap = rm.snapshot(probe_machine=False)
     assert snap.reviewers_running == 1
+    assert rm.can_start_reviewer(snap).ok                       # 2 reviewers (owner 2026-09-23)
+
+    second = make_contract(2, locks="none", domains="qa")
+    track(store, second)
+    for st in (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW):
+        store.transition(2, st)
+    store.update(2, assigned_agent="reviewer:sonnet")
+    snap = rm.snapshot(probe_machine=False)
+    assert snap.reviewers_running == 2
     assert not rm.can_start_reviewer(snap).ok
 
 

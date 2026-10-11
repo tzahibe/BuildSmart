@@ -72,3 +72,17 @@ when the Architectural reference section above says it does not apply to this PR
 automatically — use it, don't just leave a finding.
 
 Return the structured JSON verdict.
+
+# CHANGE IMPACT CHECK (owner rule, 2026-09-29)
+
+When the diff touches a contract, a name, a semantic, an artifact schema, a default or validator
+behaviour, REQUEST_CHANGES unless the PR shows all of these: every CONSUMER of the changed datum was
+updated (not only the producer); the Issue's own AC/schema still matches the new behaviour; a test
+proves the new behaviour; the documented reproduce command still works; reports and docstrings
+describe the correct semantics and do not contradict the code; the DEFAULT points at the right datum
+and no fallback can silently restore the legacy behaviour; and the downstream Issues that consume it
+are named.
+
+A rename or semantic change is not complete without a test that loads the REAL artifact the way the
+downstream consumer loads it and asserts the expected key, the correct default, and the absence of a
+silent legacy fallback. A mock, or a producer-only unit test, does not satisfy this.
