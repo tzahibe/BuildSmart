@@ -58,6 +58,7 @@ from app.vertical_slice.wet_privacy import candidate_privacy_key
 from app.vertical_slice.building import Building
 
 from app.vertical_slice import concept_engine_v2
+from app.vertical_slice.brain.runner import run_brain
 from app.vertical_slice import general_pipeline as gp
 
 from .contract import (
@@ -249,7 +250,8 @@ def _buildable_from(spec, project: Project, outline: "Outline | None" = None) ->
 
 def generate_demo_design(project: Project,
                          on_stage: Callable[[str], None] | None = None,
-                         *, concept_engine_v2: bool | None = None) -> DemoResult:
+                         *, concept_engine_v2: bool | None = None,
+                         brain: bool = False) -> DemoResult:
     rejection: ScopeRejection | None = check_supported(project)
     if rejection is not None:
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
@@ -261,7 +263,8 @@ def generate_demo_design(project: Project,
     # exception a caller has to know about — translated here, once, for every outline this
     # request plans.
     try:
-        return _generate_demo_design(project, spec, on_stage, concept_engine_v2=concept_engine_v2)
+        return _generate_demo_design(project, spec, on_stage,
+                                     concept_engine_v2=concept_engine_v2, brain=brain)
     except SafeRoomDropped as exc:
         raise DemoGenerationError(
             "SAFE_ROOM_DROPPED",
@@ -271,7 +274,8 @@ def generate_demo_design(project: Project,
 
 
 def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None] | None = None,
-                          *, concept_engine_v2: bool | None = None) -> DemoResult:
+                          *, concept_engine_v2: bool | None = None,
+                          brain: bool = False) -> DemoResult:
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
@@ -312,6 +316,12 @@ def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None
     selection = _select_plans(results, spec.program.target_built_area_m2, spec.concept)
     if selection is None:
         return _finish(project, spec, head, preference_dropped, outlines=results)
+    if brain:
+        # THE ARCHITECTURAL BRAIN (#197), development preview only. Several distinct concepts are
+        # proposed, gated by the critic BEFORE placement, and realized through the unchanged band
+        # pipeline and validators. Never a silent fallback: a brief the brain cannot plan returns
+        # its own typed refusal rather than the guillotine plan.
+        return _brain_result(project, spec, selection, results, preference_dropped)
     use_concept_engine_v2 = (gp.CONCEPT_ENGINE_V2_ENABLED if concept_engine_v2 is None
                              else concept_engine_v2)
     if use_concept_engine_v2:
@@ -882,6 +892,44 @@ def _augment_cross_outline_classes(spec, project: Project, results: list[Outline
         return selection
     alternatives = (*selection.alternatives, *new_pairs)[:_SHOWN_LIMIT - 1]
     return replace(selection, alternatives=alternatives)
+
+
+def _brain_result(project: Project, spec, selection: PlanSelection,
+                  results: list[OutlineResult], preference_dropped: bool) -> DemoResult:
+    """The brain's distinct plans as the demo payload — primary plus alternatives, every one drawn
+    by the same `DemoPlan` the product already uses."""
+    orr, _production = selection.primary
+    outline = orr.outline
+    res = run_brain(spec, (outline.width_m, outline.depth_m), brief=getattr(project, "project_id", "brief"))
+    if not res.distinct:
+        detail = "; ".join(f"{p.parti} [{p.stage}]: {p.reason[:120]}" for p in res.plans) or "no parti applied"
+        raise DemoGenerationError(
+            "BRAIN_NO_PLAN",
+            "המוח האדריכלי לא הצליח לתכנן תוכנית עבור הבקשה הזו.",
+            detail)
+    unsupported = _set_aside(project, spec, preference_dropped)
+    capacity_notice = capacity_notice_text(spec.program.target_built_area_m2,
+                                           program_capacity_gross_m2(build_room_program(spec)))
+    designs = []
+    for plan in res.distinct:
+        layout = plan.realized
+        notes = [f"{plan.parti}: {plan.rationale}",
+                 f"requested graph preserved — contacts {plan.spatial_preserved}, "
+                 f"doors {plan.access_preserved}; {plan.bands} bands"]
+        designs.append(to_demo_design(
+            layout.design, layout.report, unsupported=unsupported,
+            corridor=spec.program.corridor, outline=outline.as_out(),
+            family=f"brain:{plan.parti}", notes=notes,
+            constraint=spec.safe_room_constraint, capacity_notice=capacity_notice))
+    primary, alternatives = designs[0], tuple(designs[1:_SHOWN_LIMIT])
+    building = to_demo_building(
+        Building.single_level(res.distinct[0].realized.design, res.distinct[0].realized.report),
+        [primary])
+    return DemoResult(
+        design=primary, alternatives=alternatives,
+        search=SearchSummary(outlines=[r.as_tried() for r in results],
+                             total_latency_ms=round(sum(r.latency_ms for r in results), 1)),
+        building=building)
 
 
 def _concept_of(plan: RealizedPlan, enabled: bool) -> ConceptOut | None:

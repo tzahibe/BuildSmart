@@ -1,0 +1,353 @@
+[
+  {
+    "brief": "B08",
+    "tried": 4,
+    "accepted": 4,
+    "distinct": 4,
+    "seconds": 1.074,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "7/7",
+        "access": "7/7",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "7/7",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "7/7",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "TWO_HALL",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "8/8",
+        "access": "8/8",
+        "bands": 3,
+        "reason": "realized"
+      }
+    ]
+  },
+  {
+    "brief": "B20",
+    "tried": 3,
+    "accepted": 3,
+    "distinct": 3,
+    "seconds": 1.719,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "9/9",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "11/11",
+        "access": "9/9",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "SERVICE_CORE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "10/10",
+        "access": "9/9",
+        "bands": 3,
+        "reason": "realized"
+      }
+    ]
+  },
+  {
+    "brief": "B02",
+    "tried": 2,
+    "accepted": 2,
+    "distinct": 2,
+    "seconds": 0.504,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "5/5",
+        "access": "5/5",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "7/7",
+        "access": "5/5",
+        "bands": 3,
+        "reason": "realized"
+      }
+    ]
+  },
+  {
+    "brief": "B11",
+    "tried": 4,
+    "accepted": 3,
+    "distinct": 3,
+    "seconds": 6.297,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "10/10",
+        "access": "10/10",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "12/12",
+        "access": "10/10",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "13/13",
+        "access": "10/10",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "TWO_HALL",
+        "counts": false,
+        "stage": "SIZING",
+        "spatial": "",
+        "access": "",
+        "bands": 0,
+        "reason": "SIZING_INFEASIBLE: none of 1 HARD-feasible candidate placements could be sized (enumeration complete: False)"
+      }
+    ]
+  },
+  {
+    "brief": "B16",
+    "tried": 5,
+    "accepted": 3,
+    "distinct": 3,
+    "seconds": 11.382,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "12/12",
+        "access": "12/12",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "14/14",
+        "access": "12/12",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "counts": false,
+        "stage": "SIZING",
+        "spatial": "",
+        "access": "",
+        "bands": 0,
+        "reason": "SIZING_INFEASIBLE: none of 16 HARD-feasible candidate placements could be sized (enumeration complete: False)"
+      },
+      {
+        "parti": "TWO_HALL",
+        "counts": false,
+        "stage": "SIZING",
+        "spatial": "",
+        "access": "",
+        "bands": 0,
+        "reason": "SIZING_INFEASIBLE: none of 3 HARD-feasible candidate placements could be sized (enumeration complete: False)"
+      },
+      {
+        "parti": "SERVICE_CORE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "13/13",
+        "access": "12/12",
+        "bands": 3,
+        "reason": "realized"
+      }
+    ]
+  },
+  {
+    "brief": "B19",
+    "tried": 4,
+    "accepted": 2,
+    "distinct": 2,
+    "seconds": 7.937,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": false,
+        "stage": "SELECTION",
+        "spatial": "",
+        "access": "",
+        "bands": 0,
+        "reason": "EXPOSURE_INFEASIBLE: no band layout (150 found within the search bound) keeps every REQUIRED-exposure room on the envelope (146 of"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "13/13",
+        "access": "11/11",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "16/16",
+        "access": "11/11",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "TWO_HALL",
+        "counts": false,
+        "stage": "SELECTION",
+        "spatial": "",
+        "access": "",
+        "bands": 0,
+        "reason": "EXPOSURE_INFEASIBLE: no band layout (38 found within the search bound) keeps every REQUIRED-exposure room on the envelope (38 of 3"
+      }
+    ]
+  },
+  {
+    "brief": "B06",
+    "tried": 4,
+    "accepted": 4,
+    "distinct": 3,
+    "seconds": 2.427,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "7/7",
+        "access": "7/7",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "8/8",
+        "access": "7/7",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "7/7",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "TWO_HALL",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "8/8",
+        "access": "8/8",
+        "bands": 3,
+        "reason": "realized"
+      }
+    ]
+  },
+  {
+    "brief": "B09",
+    "tried": 5,
+    "accepted": 5,
+    "distinct": 4,
+    "seconds": 1.844,
+    "partis": [
+      {
+        "parti": "HALL_SPINE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "8/8",
+        "access": "8/8",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "8/8",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "10/10",
+        "access": "8/8",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "TWO_HALL",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "9/9",
+        "bands": 3,
+        "reason": "realized"
+      },
+      {
+        "parti": "SERVICE_CORE",
+        "counts": true,
+        "stage": "REALIZED",
+        "spatial": "9/9",
+        "access": "8/8",
+        "bands": 3,
+        "reason": "realized"
+      }
+    ]
+  }
+]

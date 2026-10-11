@@ -179,17 +179,29 @@ def _failure_context(project_id: str, project, error=None) -> dict:
 #: that asks for the Concept Engine and fails returns that failure, not a production plan.
 ENGINE_PRODUCTION = "production"
 ENGINE_CONCEPT_V2 = "concept_engine_v2"
+#: THE ARCHITECTURAL BRAIN (#197), development preview. Proposes several distinct spatial concepts,
+#: gates them on the critic BEFORE placement, and realizes them through the unchanged band pipeline
+#: and validators — returning the distinct plans as the plan set. Per-request only; no default
+#: moves; a brief the brain cannot plan returns ITS OWN refusal, never the guillotine plan.
+ENGINE_BRAIN = "brain"
 
 
 def _engine_override(engine: str | None) -> bool | None:
     """`None` keeps the module flag (production). `True` runs the Concept Engine for this request
     only. An unknown value is refused rather than silently treated as production."""
-    if engine is None or engine == ENGINE_PRODUCTION:
+    if engine is None or engine in (ENGINE_PRODUCTION, ENGINE_BRAIN):
         return None
     if engine == ENGINE_CONCEPT_V2:
         return True
     raise HTTPException(status_code=422, detail=(
-        f"unknown engine {engine!r}; expected {ENGINE_PRODUCTION!r} or {ENGINE_CONCEPT_V2!r}"))
+        f"unknown engine {engine!r}; expected {ENGINE_PRODUCTION!r}, {ENGINE_CONCEPT_V2!r} "
+        f"or {ENGINE_BRAIN!r}"))
+
+
+def _brain_requested(engine: str | None) -> bool:
+    """Whether this request asked for the architectural brain. Any value neither this nor
+    `_engine_override` knows was already refused by `_engine_override`."""
+    return engine == ENGINE_BRAIN
 
 
 @router.post("/{project_id}/design/demo/stream")
@@ -208,6 +220,7 @@ def generate_demo_plan_streaming(project_id: str,
     # resolved HERE, in the request frame: a bad value must be a 422 on the request, not an error
     # event inside a stream that has already started.
     override = _engine_override(engine)
+    brain = _brain_requested(engine)
     total = len(PIPELINE_STAGES)
     labels = dict(PIPELINE_STAGES)
     order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
@@ -225,7 +238,7 @@ def generate_demo_plan_streaming(project_id: str,
         def run() -> None:
             try:
                 result = generate_demo_design(project, on_stage=updates.put,
-                                              concept_engine_v2=override)
+                                              concept_engine_v2=override, brain=brain)
                 outcome["value"] = DemoPlanSet(plan=result.design,
                                                alternatives=list(result.alternatives),
                                                search=result.search,
@@ -273,7 +286,8 @@ def generate_demo_plan(project_id: str, request: Request,
                        engine: str | None = Query(default=None)) -> DemoPlanSet:
     project = _project_or_404(project_id)
     try:
-        result = generate_demo_design(project, concept_engine_v2=_engine_override(engine))
+        result = generate_demo_design(project, concept_engine_v2=_engine_override(engine),
+                                      brain=_brain_requested(engine))
         return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
                            search=result.search, building=result.building)
     except DemoGenerationError as error:

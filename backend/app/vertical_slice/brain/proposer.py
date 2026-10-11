@@ -31,7 +31,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Iterable, Protocol
 
-from app.vertical_slice.concept_generator import ZoneGroup, build_room_program
+from app.vertical_slice.concept_generator import (ASSUMED_EFFICIENCY, ZoneGroup,
+                                                   build_room_program, scale_program)
 from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.stage2.contract import ZoneIntent
 from app.vertical_slice.wet_rooms import ResolvedWetRoom
@@ -116,17 +117,31 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
     # MASTER first so a parti that gives one bedroom a privileged position gives it to the master.
     bedrooms.sort(key=lambda z: (by_id[z].role is not ProgramRole.MASTER_BEDROOM, z))
 
+    # AREA FIDELITY. Sizing every room at its template target ignores what the person asked for:
+    # measured on the eight audit briefs, that delivered 78 m2 against a 216 m2 request (B02) and
+    # 98 against 440 (B09). Production does not do that — it scales the programme to the area
+    # actually available (`scale_program`, distributing surplus by each room's own elasticity and
+    # capping at its own maximum), and the brain now uses the SAME function rather than a second
+    # opinion about room sizes.
+    net_available = (footprint_m[0] * footprint_m[1]) * ASSUMED_EFFICIENCY
+    planned = [r for r in rooms if r.role is not ProgramRole.FLEX]
+    scaled = scale_program(planned, net_available)
+
     zones: dict[str, ZoneIntent] = {}
-    for r in rooms:
-        if r.role is ProgramRole.FLEX:
-            continue                                   # FLEX is the guillotine path's surplus sink
+    for r in planned:
         t = r.template
+        spec_for_room = scaled.get(r.zone_id)
+        target = spec_for_room.net_area_target_m2 if spec_for_room else t.target_area_m2
+        ceiling = t.hard_max_area_m2 or t.max_area_m2
         zones[r.zone_id] = ZoneIntent(
             zone_id=r.zone_id, role=r.role, donor_room_id=None,
-            target_area_m2=t.target_area_m2, min_area_m2=t.min_area_m2,
-            max_area_m2=t.hard_max_area_m2 or t.max_area_m2,
+            target_area_m2=round(max(t.min_area_m2, min(target, ceiling)), 2),
+            min_area_m2=t.min_area_m2, max_area_m2=ceiling,
             min_short_side_m=t.min_short_side_m, max_aspect_ratio=t.max_aspect_ratio)
-    zones[HALL] = _hall_intent(HALL)
+    # The hall is the brain's own room (no template row of its own in the programme): give it a
+    # share of the surplus too, so circulation grows with the house instead of staying at 9 m2.
+    hall_target = max(9.0, min(0.09 * net_available, 22.0))
+    zones[HALL] = _hall_intent(HALL, target=round(hall_target, 2))
 
     return Programme(public=tuple(public), bedrooms=tuple(bedrooms), ensuites=ensuites,
                      shared_wet=tuple(shared_wet), safe_room=safe_room, zones=zones,
