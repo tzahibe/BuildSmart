@@ -33,6 +33,7 @@ import json
 import os
 import signal
 import subprocess
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -755,6 +756,79 @@ def cmd_investigate(config: Config, args) -> int:
     return 0
 
 
+def cmd_resolve(config: Config, args) -> int:
+    """Retire a BLOCKED Issue whose outcome a human already settled on GitHub.
+
+    WHY THIS VERB EXISTS. `reconciliation.reconcile` deliberately refuses to guess: an Issue closed
+    on GitHub while BLOCKED, or a PR merged outside the workflow, is recorded and left alone
+    ("already blocked: nothing to re-block"). That is correct — the orchestrator must never
+    silently continue — but it leaves correctly-blocked work sitting in the owner's BLOCKED view
+    forever with no supported way out. This is that way out, and it is deliberately narrow:
+
+      * it refuses unless GitHub itself shows the outcome (Issue closed, or PR merged/closed);
+      * it NEVER approves, requeues or re-runs anything — the only transition it makes is to a
+        terminal state, which starts no work;
+      * it requires a reason, and records the prior state, failure class and note as an event, so
+        the audit trail says what was retired and why rather than losing it.
+    """
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None:
+        print(f"#{args.number}: not in the state store")
+        return 1
+    gh = _github(config)
+
+    # 1. VERIFY GITHUB AGAINST THE STORE — the owner's precondition, not a formality.
+    issue = gh.get_issue(args.number)
+    issue_state = issue.get("state")
+    pr_state = pr_merged = None
+    if rec.pr_number:
+        pr = gh.get_pr(rec.pr_number)
+        pr_state, pr_merged = pr.get("state"), bool(pr.get("merged_at") or pr.get("merged"))
+    print(f"#{args.number}  store: {rec.state} / {rec.failure_class or '-'}  attempt {rec.attempt_number}")
+    print(f"           github: issue {issue_state}"
+          + (f", PR #{rec.pr_number} {pr_state}{' (merged)' if pr_merged else ''}" if rec.pr_number else ""))
+
+    settled = issue_state == "closed" or pr_merged or pr_state == "closed"
+    if not settled:
+        print("refusing: GitHub shows this Issue open and no PR merged or closed — there is no "
+              "human outcome to record. Use `requeue`, `resume-pr` or `block` instead.")
+        return 1
+    if rec.state == sm.DONE:
+        print("already DONE: nothing to do")
+        return 0
+    if rec.state != sm.BLOCKED:
+        print(f"refusing: only a BLOCKED Issue may be resolved this way (this one is {rec.state})")
+        return 1
+    if args.dry_run:
+        print(f"dry-run: would transition BLOCKED -> {sm.DONE} with reason {args.reason!r}")
+        return 0
+
+    # 2. PRESERVE THE AUDIT HISTORY before the record is overwritten.
+    store.record_event(args.number, "blocked_resolved", {
+        "by": "operator", "reason": args.reason,
+        "previous_state": rec.state, "previous_failure_class": rec.failure_class,
+        "previous_attempt": rec.attempt_number, "pr_number": rec.pr_number,
+        "github_issue_state": issue_state, "github_pr_state": pr_state, "github_pr_merged": pr_merged,
+    })
+    note = f"resolved by the owner: {args.reason} (was {rec.failure_class or 'BLOCKED'})"
+    store.transition(args.number, sm.DONE, note=note)
+    # DONE is terminal, so `reconcile` will never visit this Issue again and the usual label-drift
+    # repair cannot run. Sync the state label HERE or GitHub would keep showing `agent:blocked`
+    # while the store says DONE — exactly the store/GitHub disagreement this verb exists to end.
+    try:
+        gh.set_state_label(args.number, sm.DONE)
+        print(f"#{args.number}: BLOCKED -> DONE — {note}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"#{args.number}: BLOCKED -> DONE — {note}")
+        print(f"WARNING: state label not updated on GitHub: {exc}")
+    print("audit: event 'blocked_resolved' recorded with the prior state, failure class and attempt")
+    if issue_state != "closed":
+        print(f"note: Issue #{args.number} is still OPEN on GitHub. Closing it is an owner action; "
+              f"this verb does not close Issues.")
+    return 0
+
+
 def cmd_reconcile(config: Config, args) -> int:
     setup_logging(config)
     from agent_team.reconciliation import reconcile
@@ -771,13 +845,27 @@ def cmd_doctor(config: Config, args) -> int:
     gh_ok, why = GhCliTransport().available()
     print(f"gh: {'OK' if gh_ok else 'MISSING'} — {why}")
     ok &= gh_ok
+    # CLAUDE RESOLUTION, in enough detail to answer "will this work under launchd?" (GitHub #188
+    # §3.1). A terminal and a LaunchAgent have different PATHs, so "it works when I run it" proves
+    # nothing about the service: print what was searched and whether the answer is pinned.
+    from agent_team.agent_runner import claude_preflight, extension_binaries
+    print(f"  PATH: {os.environ.get('PATH', '')}")
+    print(f"  CLAUDE_BIN: {os.environ.get('CLAUDE_BIN') or '(unset)'}   "
+          f"config claude.binary: {config.claude_binary}")
+    print(f"  claude on PATH: {shutil.which('claude') or '(not found)'}   "
+          f"editor-extension copies: {len(extension_binaries())}")
     try:
-        b = resolve_claude_binary(config.claude_binary)
-        v = subprocess.run([b, "--version"], capture_output=True, text=True, timeout=30).stdout.strip()
+        b, v = claude_preflight(config.claude_binary)
+        pinned = bool(os.environ.get("CLAUDE_BIN")) or config.claude_binary != "auto"
         print(f"claude: OK — {b} ({v})")
+        if not pinned:
+            print("  WARNING: not pinned — resolution falls back to the newest editor-extension "
+                  "binary, which moves on every extension update. Set CLAUDE_BIN in the launchd "
+                  "plist to make this deterministic.")
     except Exception as exc:  # noqa: BLE001
         print(f"claude: MISSING — {exc}")
         ok = False
+    print(f"caffeinate: {shutil.which('caffeinate') or '/usr/bin/caffeinate (assumed present)'}")
     print(f"state db: {config.state_db_path} ({'exists' if config.state_db_path.exists() else 'not created yet'})")
     print(f"worktree root: {config.path(config.worktree_root)}")
     from agent_team.resource_manager import PsutilProbe
@@ -1169,6 +1257,11 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
     s = sub.add_parser("report"); s.add_argument("number", type=int); s.set_defaults(fn=cmd_report)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
+    s = sub.add_parser("resolve")
+    s.add_argument("number", type=int)
+    s.add_argument("--reason", required=True)
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(fn=cmd_resolve)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
     s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)

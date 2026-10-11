@@ -134,6 +134,15 @@ class Config:
     protected_periods_enabled: bool
     protected_periods_raw: dict
 
+    #: The read-only ANALYSIS lane (`analysis_lane.py`): off by default, so an orchestrator that
+    #: does not opt in behaves exactly as it does today.
+    analysis_enabled: bool
+    analysis_max_per_tick: int
+
+    #: Hold a scoped `caffeinate` idle-sleep assertion while agent work runs (GitHub #188 §3.3).
+    #: Never a global power setting; `pmset` is not touched. False = today's behaviour exactly.
+    caffeinate_while_working: bool
+
     # usage guard + rolling backlog
     usage_guard_enabled: bool
     usage_pause_at_percent: float
@@ -312,6 +321,9 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         drain_timeout_seconds=int(gov.get("drain_timeout_seconds", 3900)),
         protected_periods_enabled=bool((raw.get("protected_periods") or {}).get("enabled", True)),
         protected_periods_raw=dict(raw.get("protected_periods") or {}),
+        analysis_enabled=bool((raw.get("analysis") or {}).get("enabled", False)),
+        analysis_max_per_tick=int((raw.get("analysis") or {}).get("max_per_tick", 2)),
+        caffeinate_while_working=bool((raw.get("power") or {}).get("caffeinate_while_working", False)),
         usage_guard_enabled=bool(ug.get("enabled", True)),
         usage_pause_at_percent=float(ug.get("pause_at_percent", 98)),
         usage_resume_below_percent=float(ug.get("resume_below_percent", 90)),

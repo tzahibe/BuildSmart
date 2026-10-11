@@ -191,6 +191,26 @@ protected_periods:
   # keys: yom_kippur, sukkot (incl. Chol HaMoed), shemini_atzeret, shavuot, rosh_hashanah, pesach
   holidays: [yom_kippur, sukkot, shemini_atzeret, shavuot]
   erev: true                          # the period starts on Erev Chag
+# SCOPED WAKEFULNESS (GitHub #188 §3.3). The Mac sleeps unless the display is on, and launchd
+# runs nothing while it sleeps — so progress stops exactly when the owner is away. With this on,
+# the orchestrator holds a `caffeinate -i` assertion ONLY while at least one agent thread is
+# alive, and releases it when the last one finishes. It is never a global power setting: `pmset`
+# is not touched, no system preference is written, and the child process is tied to the
+# orchestrator's own pid so a crash cannot leave the machine awake. False = today's behaviour.
+# THE READ-ONLY ANALYSIS LANE (GitHub #188 §5.1). A second, much smaller task class: an Issue
+# labelled `claude-task` by a trusted author gets ONE comment containing a read-only analysis, and
+# nothing else — no branch, no commit, no PR, no merge, and no contract is required. The agent runs
+# with Read/Grep/Glob only, in a DETACHED throwaway worktree, and the Issue body is passed to it as
+# fenced untrusted data. Off by default: an orchestrator that does not opt in behaves as it does
+# today. `max_per_tick` bounds how many analyses may START per tick; the existing worker cap still
+# applies, so analysis can never starve engineering work.
+analysis:
+  enabled: true
+  max_per_tick: 2
+
+power:
+  caffeinate_while_working: true
+
 usage_guard:
   enabled: true
   pause_at_percent: 98

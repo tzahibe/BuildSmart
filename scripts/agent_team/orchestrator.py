@@ -44,6 +44,8 @@ from agent_team import integration_mode as im
 from agent_team.labels import DECOMPOSED_LABEL, HOLD_LABEL, ROLLUP_LABEL, STATE_LABEL_PREFIX, metadata_labels
 from agent_team.protected_periods import Calendar, Period
 from agent_team.locks import LockManager, effective_locks
+from agent_team.analysis_lane import AnalysisLane
+from agent_team.power import PowerAssertion
 from agent_team.pr_body import render_pr_body
 from agent_team.resource_manager import ResourceManager, ResourceProbe
 from agent_team.schemas import DOMAIN_LEAD_BRIEF_SCHEMA, REVIEW_VERDICT_SCHEMA, WORKER_REPORT_SCHEMA
@@ -66,6 +68,8 @@ class TickReport:
     waiting: dict[int, str] = field(default_factory=dict)
     advanced: dict[int, str] = field(default_factory=dict)
     reconciled: list[str] = field(default_factory=list)
+    #: Issue numbers whose read-only ANALYSIS run was started this tick (`analysis_lane.py`).
+    analysed: list[int] = field(default_factory=list)
     errors: dict[int, str] = field(default_factory=dict)
 
     def summary(self) -> str:
@@ -74,6 +78,8 @@ class TickReport:
             parts.append("reconciled: " + "; ".join(self.reconciled))
         parts.append(f"polled {self.polled or '-'}")
         parts.append(f"started {self.started or '-'}")
+        if self.analysed:
+            parts.append(f"analysing {self.analysed}")
         if self.waiting:
             parts.append("waiting " + ", ".join(f"#{k} ({v})" for k, v in self.waiting.items()))
         if self.advanced:
@@ -126,6 +132,15 @@ class Orchestrator:
         self._ci_started: dict[int, float] = {}
         self.blocking_decisions: list[str] = []
         self.usage = UsageGuard(config.usage_pause_at_percent, config.usage_resume_below_percent, enabled=config.usage_guard_enabled)
+        # SCOPED WAKEFULNESS (GitHub #188 §3.3). Held only while at least one agent thread is
+        # alive, so an idle orchestrator lets the machine sleep exactly as it does today. Never a
+        # global power setting: `pmset` is not touched.
+        self.power = PowerAssertion(enabled=config.caffeinate_while_working and not dry_run)
+        # THE ANALYSIS LANE (GitHub #188 §5.1): read-only answers to a labelled Issue. A separate,
+        # much smaller task class that produces no branch, no commit and no PR — see
+        # `analysis_lane.py` for what it cannot do. `None` when disabled, and disabled by default.
+        self.analysis = (AnalysisLane(config, github, runner, self.store, dry_run=dry_run)
+                         if config.analysis_enabled else None)
         self.usage_prober = None          # callable() -> UsageSnapshot; None = the real `claude -p /usage`
         self._last_usage_probe = 0.0
         # Weekend / holiday integration mode (governance §26–§41). The active period is persisted in
@@ -274,6 +289,10 @@ class Orchestrator:
                 raise RuntimeError(f"{key} already running")
             t = threading.Thread(target=self._guard, args=(key, target, *args), name=key, daemon=True)
             self.threads[key] = t
+            # Acquired HERE and not inside the thread: between `t.start()` and the thread's first
+            # instruction the machine may already be idle, and an assertion taken a moment late is
+            # an assertion that did not prevent the sleep it existed to prevent.
+            self.power.acquire()
             t.start()
 
     def _guard(self, key: str, target, *args) -> None:
@@ -284,6 +303,10 @@ class Orchestrator:
             self._wake.set()
         except Exception:  # noqa: BLE001
             log.exception("thread %s crashed", key)
+        finally:
+            # Balanced with `_spawn` on every path, including a crashed target — otherwise one
+            # exception would hold the machine awake until the process exits.
+            self.power.release()
 
     def active_threads(self) -> list[str]:
         with self._threads_lock:
@@ -298,6 +321,41 @@ class Orchestrator:
     def attempts_remaining(self, rec: IssueRecord) -> bool:
         """attempt_number counts worker runs; repairs allowed on top of the first run."""
         return max(0, rec.attempt_number - 1) < self.config.max_repair_attempts
+
+    # -- analysis lane ------------------------------------------------------------------------
+    def schedule_analysis(self) -> list[int]:
+        """Start a read-only analysis per pending labelled Issue, bounded and non-blocking.
+
+        Deliberately gated on the same conditions as every other agent run — paused, draining,
+        stopping, usage-guard — so the owner's existing controls apply to this lane without it
+        having to know about them.
+        """
+        if self.analysis is None or self._draining or self._stop.is_set():
+            return []
+        # `paused()` is the orchestrator's own single source for this: the usage guard pauses by
+        # setting the SAME `scheduler_paused` meta, so one check covers both a manual
+        # `agentctl pause` and an automatic usage-guard pause. (An earlier version of this line
+        # read `self.usage.paused`, which does not exist — caught in production on the first tick
+        # after deployment, and now covered by a test that calls `schedule_analysis` on a real
+        # Orchestrator rather than exercising the lane in isolation.)
+        if self.paused():
+            return []
+        started: list[int] = []
+        for task in self.analysis.pending(limit=self.config.analysis_max_per_tick):
+            key = f"analysis-{task.issue_id}"
+            if self._thread_active(key):
+                continue
+            if len(self.active_threads()) >= self.config.max_worker_agents:
+                break        # analysis never starves engineering work of the machine
+            self._spawn(key, self._run_analysis, task)
+            started.append(task.issue_id)
+        return started
+
+    def _run_analysis(self, task) -> None:
+        outcome = self.analysis.analyze(task, self.config.repo_root)
+        log.info("analysis #%s: %s", outcome.issue_id, outcome.detail)
+        self.store.record_event(task.issue_id, "analysis_complete",
+                                {"ok": outcome.ok, "detail": outcome.detail[:400]})
 
     # -- tick ---------------------------------------------------------------------------------
     def tick(self) -> TickReport:
@@ -324,6 +382,14 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.exception("poll failed")
             report.errors[0] = f"poll: {exc}"
+        # Analysis tasks are independent of the engineering state machine: they hold no locks,
+        # consume no issue slot, and cannot block or be blocked by a worker. They are scheduled
+        # here so a drain/pause stops them like everything else.
+        try:
+            report.analysed = self.schedule_analysis()
+        except Exception as exc:  # noqa: BLE001
+            log.exception("analysis scheduling failed")
+            report.errors[1] = f"analysis: {exc}"
         # In-flight Issues first — a repair re-acquires its locks before new claims compete for them
         # (finish what was started); then new claims fill the remaining slots.
         for rec in self.store.list((sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)):
@@ -449,6 +515,8 @@ class Orchestrator:
         if callable(term):
             term()
         self.wait_for_threads(timeout=10)
+        # Whatever the refcount says, the machine must be allowed to sleep once we are gone.
+        self.power.shutdown()
         self.release_singleton()
 
     # -- poll ---------------------------------------------------------------------------------
