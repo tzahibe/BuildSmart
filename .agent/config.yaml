@@ -205,11 +205,11 @@ protected_periods:
 # today. `max_per_tick` bounds how many analyses may START per tick; the existing worker cap still
 # applies, so analysis can never starve engineering work.
 analysis:
-  enabled: false
+  enabled: true
   max_per_tick: 2
 
 power:
-  caffeinate_while_working: false
+  caffeinate_while_working: true
 
 usage_guard:
   enabled: true
