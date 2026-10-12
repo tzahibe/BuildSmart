@@ -6,6 +6,23 @@ each preserving the requested spatial graph exactly, each drawn by the product's
 
 **Cost: $0. Latency: 0.5–11.4 s. No model call, no API key, no network.**
 
+> ### ⚠️ Read `PART-3-quality.md` before trusting the numbers below
+>
+> A second iteration audited the twelve renders **as drawings** and **three headline claims in this
+> document are wrong or incomplete**:
+>
+> 1. *"circulation aspect 1.11–4.02 vs 7.85–11.92"* — true, and bought by turning a thin perimeter
+>    corridor into a **landlocked** box that is ~1.7× **larger** in the big briefs. 22 of 23 plans
+>    had circulation in an interior band.
+> 2. *"zero rooms without a window"* — the metric excluded halls and wet rooms. (Circulation has
+>    window policy NONE in production by design, so it is policy, not a defect — but the sentence
+>    reads as a clean sweep and is not one.)
+> 3. *"area fidelity 53–110%"* — **net reported as gross**, and the 53% end is two briefs whose room
+>    list cannot fill the footprint at any size.
+>
+> Part 3 also fixes the entrance regression (arrival at circulation **1/22 → 25/46 plans, 8/8
+> briefs**), adds typed area verdicts, and names a **new** bad plan that Part 3's own change caused.
+
 ---
 
 ## 1. The decision that shaped this

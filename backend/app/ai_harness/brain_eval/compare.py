@@ -33,6 +33,16 @@ def _project_for(b):
                          plot_depth_m=b.footprint_depth_m + 8))
 
 
+def _kitchen_living_door(design, rooms) -> bool | None:
+    """Does the kitchen open directly to a living space? Production never does on these briefs."""
+    kit = [r["id"] for r in rooms if r["type"] == "KITCHEN"]
+    liv = [r["id"] for r in rooms if r["type"] in ("LIVING", "LIVING_KITCHEN", "LDK", "FAMILY_ROOM")]
+    if not kit or not liv:
+        return None
+    pairs = {frozenset((d.a, d.b)) for d in design.doors}
+    return any(frozenset((k, l)) in pairs for k in kit for l in liv)
+
+
 def profile(design, requested_m2: float) -> dict:
     """The architectural profile of one delivered plan."""
     fp = design.footprint
@@ -72,8 +82,22 @@ def profile(design, requested_m2: float) -> dict:
         "circulation_share": round(sum(r["area"] for r in circ) / total, 4),
         "circulation_aspect": [r["aspect"] for r in circ],
         "worst_bedroom_aspect": max([r["aspect"] for r in priv], default=None),
+        # #197: this used to filter to PUBLIC | PRIVATE, which is how the first report could say
+        # "zero rooms without a window" while every hall in both paths was windowless. HALL and
+        # CIRCULATION have window policy NONE in production by design (`windows.py`), so they are
+        # reported SEPARATELY rather than hidden inside a figure that reads as a defect count.
         "rooms_no_window": sorted(r["id"] for r in rooms
                                   if r["type"] in PUBLIC | PRIVATE and not windows.get(r["id"])),
+        "wet_no_window": sorted(r["id"] for r in rooms
+                                if r["type"] in WET and not windows.get(r["id"])),
+        "circulation_landlocked": sorted(r["id"] for r in rooms
+                                         if r["type"] in CIRC and r["faces"] == 0),
+        "circulation_area_m2": round(sum(r["area"] for r in circ), 1),
+        # The whole house's usable floor, so gross and net can never again be quoted as each other.
+        "net_m2": round(sum(r["area"] for r in rooms), 2),
+        "net_fidelity_pct": round(100 * sum(r["area"] for r in rooms) / requested_m2, 1),
+        "worst_wet_aspect": max([r["aspect"] for r in wet], default=None),
+        "kitchen_living_door": _kitchen_living_door(design, rooms),
         "mean_faces": round(sum(r["faces"] for r in rooms) / max(len(rooms), 1), 2),
         "arrival": arrival_type,
         "validators": len(design.validation.checks) if hasattr(design.validation, "checks") else None,
@@ -96,6 +120,7 @@ def run_brief(bid: str) -> dict:
     try:
         br = svc.generate_demo_design(project, brain=True)
         out["brain"] = {**profile(br.design, b.built_area_m2),
+                        "area_verdict": getattr(getattr(br, "area_verdict", None), "code", None),
                         "alternatives": len(br.alternatives),
                         "partis": [br.design.family] + [a.family for a in br.alternatives],
                         "seconds": round(time.monotonic() - t0, 2), "cost_usd": 0.0}

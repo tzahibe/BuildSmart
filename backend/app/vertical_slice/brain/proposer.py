@@ -32,7 +32,8 @@ from dataclasses import dataclass, field
 from typing import Callable, Iterable, Protocol
 
 from app.vertical_slice.concept_generator import (ASSUMED_EFFICIENCY, ZoneGroup,
-                                                   build_room_program, scale_program)
+                                                   build_room_program,
+                                                   program_capacity_gross_m2, scale_program)
 from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.stage2.contract import ZoneIntent
 from app.vertical_slice.wet_rooms import ResolvedWetRoom
@@ -41,6 +42,18 @@ from app.vertical_slice.wet_rooms import ResolvedWetRoom
 HALL = "HALL"
 #: The second circulation node of the two-hall partis.
 HALL_B = "HALL_B"
+#: The entry foyer (Issue #197). A SEPARATE room from the hall, of degree 2 — street and hall —
+#: because that degree is the whole point: the hall is a hub (it touches every bedroom, every
+#: shared wet room and a public room), and in a band layout a hub has to sit in a middle band to
+#: reach the bands above and below it. A middle band has no exterior wall, so the hall cannot hold
+#: the front door however much the entrance policy would like it to. The #197 audit measured the
+#: consequence: 22 of 23 plans arrived in the living room. A degree-2 foyer places trivially in the
+#: street band, takes the front door (CIRCULATION outranks LIVING in `ENTRANCE_ZONE_PRIORITY`),
+#: gets a window, and gives the plan the arrival sequence it did not have: street -> foyer -> hall.
+ENTRY = "ENTRY"
+#: Below this much net floor a foyer is a room the brief cannot spare; the parti is offered
+#: without one and the plan arrives in a public room, which is honest for a small house.
+FOYER_MIN_NET_M2 = 85.0
 
 
 @dataclass(frozen=True)
@@ -88,10 +101,37 @@ class Programme:
     footprint_m: tuple[float, float]
     #: the resolved form, for the realizer's own C17/C29
     resolved_wet: tuple[ResolvedWetRoom, ...] = ()
+    #: usable floor the programme was scaled against — what decides whether a foyer is affordable
+    net_available_m2: float = 0.0
+    #: The largest house this room list can responsibly fill — PRODUCTION's own
+    #: `program_capacity_gross_m2(hard=True)`, not a second opinion about it. The #197 audit traced
+    #: the "53% area fidelity" headline to this number rather than to any sizing bug: B09 asks for
+    #: 440 m² from a programme that tops out well below it, so no layout — production's or the
+    #: brain's — can fill the footprint. Production already DISCLOSES this to the customer
+    #: (`capacity_notice_text`); what the brain adds is that it also GATES on it, and that it can
+    #: tell this case apart from a layout that simply fell short.
+    capacity_m2: float = 0.0
+    #: The BRIEF's own requested built area (`spec.program.target_built_area_m2`) — NOT the
+    #: footprint the brain was handed. They differ: production chooses an outline before the brain
+    #: runs, and on one unseen brief that outline was 21% larger than the request, so measuring
+    #: against the footprint reported a plan as over-delivering when it was the outline that grew.
+    #: Fidelity is owed to what the customer asked for.
+    requested_m2: float = 0.0
+
+    @property
+    def affords_foyer(self) -> bool:
+        return self.net_available_m2 >= FOYER_MIN_NET_M2
+
+    #: The brief's multi-purpose room, when it has one. PRODUCTION's own device for the area a
+    #: named room list cannot absorb — on the three briefs whose programme underfills the
+    #: footprint it carries 54.3 m² (B09), 27.6 (B06) and 14.3 (B02), which is most of the gap
+    #: between production and a brain that dropped FLEX on the floor. Treated here as what it is:
+    #: a spare room off the circulation, like a bedroom without a bed.
+    flex: tuple[str, ...] = ()
 
     @property
     def private(self) -> tuple[str, ...]:
-        return self.bedrooms + ((self.safe_room,) if self.safe_room else ())
+        return self.bedrooms + ((self.safe_room,) if self.safe_room else ()) + self.flex
 
 
 def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
@@ -99,11 +139,13 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
     brain plans the same rooms the product would."""
     rooms = build_room_program(spec)
     by_id = {r.zone_id: r for r in rooms}
-    public, bedrooms, shared_wet = [], [], []
+    public, bedrooms, shared_wet, flex = [], [], [], []
     ensuites: dict[str, str] = {}
     safe_room = None
     for r in rooms:
-        if r.role is ProgramRole.SAFE_ROOM:
+        if r.role is ProgramRole.FLEX:
+            flex.append(r.zone_id)
+        elif r.role is ProgramRole.SAFE_ROOM:
             safe_room = r.zone_id
         elif r.group is ZoneGroup.PUBLIC and r.role is not ProgramRole.FLEX:
             public.append(r.zone_id)
@@ -124,7 +166,7 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
     # capping at its own maximum), and the brain now uses the SAME function rather than a second
     # opinion about room sizes.
     net_available = (footprint_m[0] * footprint_m[1]) * ASSUMED_EFFICIENCY
-    planned = [r for r in rooms if r.role is not ProgramRole.FLEX]
+    planned = list(rooms)
     scaled = scale_program(planned, net_available)
 
     zones: dict[str, ZoneIntent] = {}
@@ -141,19 +183,53 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
     # The hall is the brain's own room (no template row of its own in the programme): give it a
     # share of the surplus too, so circulation grows with the house instead of staying at 9 m2.
     hall_target = max(9.0, min(0.09 * net_available, 22.0))
-    zones[HALL] = _hall_intent(HALL, target=round(hall_target, 2))
+    # How much the hall may grow depends on whether the PROGRAMME can fill the footprint, because
+    # the band grid tiles it exactly and the slack has to land somewhere. Where the rooms can
+    # absorb it (capacity >= net), hold circulation near its target — the #197 audit found 29.6 m²
+    # halls and a master bedroom smaller than the corridor. Where they cannot (B02/B06/B09, whose
+    # room lists top out below the area requested), the hall IS the slack, and squeezing it only
+    # makes the layout infeasible without giving the customer a single extra square metre.
+    # The canonical formula, never re-derived here. It excludes FLEX deliberately — FLEX exists to
+    # absorb what the rooms cannot — so compare against it with the hall's own ceiling added, the
+    # hall being the one room the brain adds that has no template row. The foyer is deliberately
+    # NOT added: leaving it out understates capacity by a few m², which biases a borderline brief
+    # toward "the layout fell short" rather than "your brief does not add up". Of the two
+    # misclassifications that is the one to prefer — it blames this code, not the customer.
+    capacity = program_capacity_gross_m2(planned, hard=True)
+    if capacity >= net_available:
+        hall_ceiling = round(min(1.15 * hall_target, 20.0), 2)
+    else:
+        hall_ceiling = round(min(1.5 * hall_target, 26.0), 2)
+    zones[HALL] = _hall_intent(HALL, target=round(hall_target, 2), ceiling=hall_ceiling)
+    zones[ENTRY] = _entry_intent()
 
-    return Programme(public=tuple(public), bedrooms=tuple(bedrooms), ensuites=ensuites,
+    return Programme(public=tuple(public), bedrooms=tuple(bedrooms), ensuites=ensuites, flex=tuple(flex),
                      shared_wet=tuple(shared_wet), safe_room=safe_room, zones=zones,
                      wet_rooms=tuple(spec.program.wet_room_kinds or ()),
                      footprint_m=footprint_m,
-                     resolved_wet=tuple(r.wet for r in rooms if r.wet is not None))
+                     resolved_wet=tuple(r.wet for r in rooms if r.wet is not None),
+                     net_available_m2=round(net_available, 2),
+                     capacity_m2=round(capacity + hall_ceiling, 2),
+                     requested_m2=float(getattr(spec.program, "target_built_area_m2", 0.0) or 0.0))
 
 
-def _hall_intent(zone_id: str, target: float = 9.0) -> ZoneIntent:
+def _hall_intent(zone_id: str, target: float = 9.0, ceiling: float = 30.0) -> ZoneIntent:
+    """The hall. `ceiling` matters more than it looks: the band grid tiles the footprint exactly,
+    so whatever area the rooms' own maxima do not absorb has to go somewhere, and the hall — the
+    one room here with no template row and the loosest bounds — was absorbing all of it. The #197
+    audit measured the result: 29.6 m2 halls, and a master bedroom smaller than the corridor."""
     return ZoneIntent(zone_id=zone_id, role=ProgramRole.HALL, donor_room_id=None,
-                      target_area_m2=target, min_area_m2=4.0, max_area_m2=30.0,
+                      target_area_m2=min(target, ceiling), min_area_m2=4.0, max_area_m2=ceiling,
                       min_short_side_m=1.2, max_aspect_ratio=8.0)
+
+
+def _entry_intent(target: float = 5.0) -> ZoneIntent:
+    """The foyer. CIRCULATION, not HALL, so that where both front the street the hall still wins
+    the door — this never outranks a hall that genuinely reached the street. Kept small on purpose:
+    a foyer that grows into a second hall is the 29.6 m2 landlocked room the audit named."""
+    return ZoneIntent(zone_id=ENTRY, role=ProgramRole.CIRCULATION, donor_room_id=None,
+                      target_area_m2=target, min_area_m2=3.5, max_area_m2=9.0,
+                      min_short_side_m=1.5, max_aspect_ratio=2.5)
 
 
 # ---------------------------------------------------------------------------- the partis
@@ -276,18 +352,36 @@ class DeterministicProposer:
     partis: tuple = field(default=PARTIS)
 
     def propose(self, p: Programme) -> list[TopologyProposal]:
+        """Every applicable parti, and — where the brief can afford one — the same parti with an
+        entry foyer, which is a different concept and a different contact graph, not a tweak.
+
+        The foyer variant comes FIRST. On the eight audit briefs the plain variant arrives in a
+        public room, because the hall is a hub and hubs land in interior bands (see `ENTRY`); the
+        foyer variant gives the plan an actual entrance sequence. Both are offered because they
+        are genuinely different buildings, and because a brief too tight for a foyer must still
+        get a plan rather than a refusal.
+        """
         out: list[TopologyProposal] = []
         for parti_name, rationale, build in self.partis:
             built = build(p)
             if built is None:
                 continue                                  # this parti does not apply to this brief
             spatial, access, arrival = built
-            spatial = _dedupe_undirected(spatial)
-            access = tuple(dict.fromkeys(access))
-            out.append(TopologyProposal(
-                name=parti_name, rationale=rationale, spatial=spatial,
-                access=(("ENTRANCE", arrival),) + access, arrival=arrival))
+            for name, sp, ac, arr in _with_and_without_foyer(parti_name, spatial, access, arrival, p):
+                out.append(TopologyProposal(
+                    name=name, rationale=rationale, spatial=_dedupe_undirected(sp),
+                    access=(("ENTRANCE", arr),) + tuple(dict.fromkeys(ac)), arrival=arr))
         return out
+
+
+def _with_and_without_foyer(parti: str, spatial, access, arrival, p: Programme):
+    """(name, spatial, access, arrival) for each variant, foyer first when the brief affords it."""
+    if p.affords_foyer and ENTRY in p.zones:
+        yield (f"{parti}+FOYER",
+               list(spatial) + [(ENTRY, arrival)],
+               list(access) + [(ENTRY, arrival)],
+               ENTRY)
+    yield (parti, list(spatial), list(access), arrival)
 
 
 def _dedupe_undirected(pairs) -> tuple[tuple[str, str], ...]:

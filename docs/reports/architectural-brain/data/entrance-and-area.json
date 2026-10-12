@@ -1,0 +1,467 @@
+[
+  {
+    "brief": "B08",
+    "requested_m2": 132.0,
+    "distinct": 8,
+    "arrive_at_circulation": 4,
+    "seconds": 2.8,
+    "codes": {
+      "WITHIN_TOLERANCE": 8
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 96.7,
+        "net_pct": 88.1
+      },
+      {
+        "parti": "HALL_SPINE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 91.7,
+        "net_pct": 83.7
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 96.3,
+        "net_pct": 87.9
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 94.9,
+        "net_pct": 86.9
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 97.0,
+        "net_pct": 88.6
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 94.0,
+        "net_pct": 86.0
+      },
+      {
+        "parti": "TWO_HALL+FOYER",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 98.0,
+        "net_pct": 89.3
+      },
+      {
+        "parti": "TWO_HALL",
+        "arrival": "HALL_B",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 98.8,
+        "net_pct": 90.4
+      }
+    ]
+  },
+  {
+    "brief": "B20",
+    "requested_m2": 132.0,
+    "distinct": 5,
+    "arrive_at_circulation": 2,
+    "seconds": 4.6,
+    "codes": {
+      "WITHIN_TOLERANCE": 5
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 99.1,
+        "net_pct": 88.8
+      },
+      {
+        "parti": "HALL_SPINE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 102.8,
+        "net_pct": 92.3
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 96.7,
+        "net_pct": 86.5
+      },
+      {
+        "parti": "SERVICE_CORE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 101.1,
+        "net_pct": 90.1
+      },
+      {
+        "parti": "SERVICE_CORE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 96.6,
+        "net_pct": 85.5
+      }
+    ]
+  },
+  {
+    "brief": "B02",
+    "requested_m2": 216.0,
+    "distinct": 4,
+    "arrive_at_circulation": 4,
+    "seconds": 0.9,
+    "codes": {
+      "BELOW_TARGET_DISCLOSED": 4
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.1,
+        "net_pct": 64.0
+      },
+      {
+        "parti": "HALL_SPINE",
+        "arrival": "HALL",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 70.0,
+        "net_pct": 65.0
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 63.2,
+        "net_pct": 58.0
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "HALL",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 70.0,
+        "net_pct": 65.0
+      }
+    ]
+  },
+  {
+    "brief": "B11",
+    "requested_m2": 216.0,
+    "distinct": 5,
+    "arrive_at_circulation": 3,
+    "seconds": 13.5,
+    "codes": {
+      "BELOW_TARGET_DISCLOSED": 4,
+      "WITHIN_TOLERANCE": 1
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 77.7,
+        "net_pct": 70.4
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 75.6,
+        "net_pct": 68.1
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 91.3,
+        "net_pct": 83.5
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.8,
+        "net_pct": 69.3
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 89.7,
+        "net_pct": 81.8
+      }
+    ]
+  },
+  {
+    "brief": "B16",
+    "requested_m2": 216.0,
+    "distinct": 3,
+    "arrive_at_circulation": 1,
+    "seconds": 23.5,
+    "codes": {
+      "WITHIN_TOLERANCE": 3
+    },
+    "plans": [
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 91.9,
+        "net_pct": 83.0
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 96.6,
+        "net_pct": 88.0
+      },
+      {
+        "parti": "SERVICE_CORE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 94.8,
+        "net_pct": 86.2
+      }
+    ]
+  },
+  {
+    "brief": "B19",
+    "requested_m2": 181.25,
+    "distinct": 4,
+    "arrive_at_circulation": 1,
+    "seconds": 16.6,
+    "codes": {
+      "WITHIN_TOLERANCE": 4
+    },
+    "plans": [
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 95.1,
+        "net_pct": 86.9
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 109.7,
+        "net_pct": 101.0
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 106.3,
+        "net_pct": 97.8
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "WITHIN_TOLERANCE",
+        "gross_pct": 92.4,
+        "net_pct": 84.7
+      }
+    ]
+  },
+  {
+    "brief": "B06",
+    "requested_m2": 312.0,
+    "distinct": 8,
+    "arrive_at_circulation": 5,
+    "seconds": 3.1,
+    "codes": {
+      "PROGRAMME_UNDERFILLS_FOOTPRINT": 8
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 56.9,
+        "net_pct": 52.7
+      },
+      {
+        "parti": "HALL_SPINE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 56.0,
+        "net_pct": 51.9
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 56.3,
+        "net_pct": 52.1
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 53.8,
+        "net_pct": 49.8
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 56.9,
+        "net_pct": 52.7
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 55.8,
+        "net_pct": 51.7
+      },
+      {
+        "parti": "TWO_HALL+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 44.4,
+        "net_pct": 40.6
+      },
+      {
+        "parti": "TWO_HALL",
+        "arrival": "HALL_B",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 55.6,
+        "net_pct": 51.5
+      }
+    ]
+  },
+  {
+    "brief": "B09",
+    "requested_m2": 440.0,
+    "distinct": 9,
+    "arrive_at_circulation": 5,
+    "seconds": 4.9,
+    "codes": {
+      "PROGRAMME_UNDERFILLS_FOOTPRINT": 9
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 40.2,
+        "net_pct": 37.2
+      },
+      {
+        "parti": "HALL_SPINE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 40.0,
+        "net_pct": 37.1
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 37.9,
+        "net_pct": 35.0
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 40.2,
+        "net_pct": 37.2
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 41.6,
+        "net_pct": 38.4
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 40.0,
+        "net_pct": 37.1
+      },
+      {
+        "parti": "TWO_HALL",
+        "arrival": "HALL",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 39.3,
+        "net_pct": 36.2
+      },
+      {
+        "parti": "SERVICE_CORE+FOYER",
+        "arrival": "ENTRY",
+        "at_circulation": true,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 42.3,
+        "net_pct": 39.1
+      },
+      {
+        "parti": "SERVICE_CORE",
+        "arrival": "LIVING",
+        "at_circulation": false,
+        "area_code": "PROGRAMME_UNDERFILLS_FOOTPRINT",
+        "gross_pct": 40.0,
+        "net_pct": 37.1
+      }
+    ]
+  }
+]

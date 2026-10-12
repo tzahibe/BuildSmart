@@ -916,6 +916,11 @@ def _brain_result(project: Project, spec, selection: PlanSelection,
         notes = [f"{plan.parti}: {plan.rationale}",
                  f"requested graph preserved — contacts {plan.spatial_preserved}, "
                  f"doors {plan.access_preserved}; {plan.bands} bands"]
+        # #197: the area verdict travels WITH the plan. A plan that does not meet the requested
+        # area must never be handed over as though it did, and the shortfall is a sentence with
+        # the numbers in it rather than a figure the owner has to go and compute.
+        if plan.area is not None and not plan.area.meets_brief:
+            notes.append(f"{plan.area.code}: {plan.area.detail}")
         designs.append(to_demo_design(
             layout.design, layout.report, unsupported=unsupported,
             corridor=spec.program.corridor, outline=outline.as_out(),
