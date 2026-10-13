@@ -1,0 +1,22 @@
+   FEASIBLE: ('HALL_SPINE', 53, 'H', [2, 5, 6], (58, 65, 67))
+   FEASIBLE: ('HALL_SPINE', 53, 'H', [6, 5, 2], (67, 65, 58))
+F4-entry-court-notch: 1920 (candidate x orientation x flip) in 54s -> {'INFEASIBLE': 1902, 'FEASIBLE': 18, 'EMB:INVALID_INPUT': 2}
+   FEASIBLE: ('HALL_SPINE+FOYER', 53, 'H', [1, 4, 4, 4], (38, 66, 58, 58))
+   FEASIBLE: ('HALL_SPINE+FOYER', 53, 'H', [4, 4, 4, 1], (58, 58, 66, 38))
+   FEASIBLE: ('HALL_SPINE+FOYER', 54, 'H', [1, 4, 4, 4], (38, 66, 58, 58))
+   FEASIBLE: ('HALL_SPINE+FOYER', 54, 'H', [4, 4, 4, 1], (58, 58, 66, 38))
+   FEASIBLE: ('HALL_SPINE+FOYER', 55, 'H', [1, 4, 4, 4], (38, 66, 58, 58))
+   FEASIBLE: ('HALL_SPINE+FOYER', 55, 'H', [4, 4, 4, 1], (58, 58, 66, 38))
+F1-rect-control: 1440 (candidate x orientation x flip) in 42s -> {'FEASIBLE': 920, 'INFEASIBLE': 520, 'EMB:INVALID_INPUT': 2}
+   FEASIBLE: ('HALL_SPINE+FOYER', 0, 'H', [1, 4, 3, 2], (93, 75, 70, 67))
+   FEASIBLE: ('HALL_SPINE+FOYER', 0, 'H', [2, 3, 4, 1], (67, 70, 75, 64))
+   FEASIBLE: ('HALL_SPINE+FOYER', 1, 'H', [1, 4, 3, 2], (93, 75, 70, 67))
+   FEASIBLE: ('HALL_SPINE+FOYER', 1, 'H', [2, 3, 4, 1], (67, 70, 75, 64))
+   FEASIBLE: ('HALL_SPINE+FOYER', 2, 'H', [1, 3, 3, 3], (73, 66, 94, 76))
+   FEASIBLE: ('HALL_SPINE+FOYER', 2, 'H', [3, 3, 3, 1], (67, 69, 72, 64))
+usage: pgrep [-Lfilnoqvx] [-d delim] [-F pidfile] [-G gid]
+             [-P ppid] [-U uid] [-g pgrp] [-t tty] [-u euid]
+             pattern ...
+--- suite --- [lines       30] procs=0
+
+[exited with code 0]

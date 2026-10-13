@@ -1,0 +1,34 @@
+[
+  {
+    "id": "F4-entry-court-notch",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 2,
+      "SCREENED": 76,
+      "SELECTION_exposure_ok": 553,
+      "SELECTION_safe_room_on_envelope": 124,
+      "SELECTION_entrance_feasible": 397,
+      "ORACLE_FEASIBLE": 2,
+      "UNKNOWN": 5,
+      "VALIDATION_FAILED": 2,
+      "ORACLE_INFEASIBLE": 74
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 14.9,
+    "solved": false,
+    "distinct_footprints": 0
+  }
+]

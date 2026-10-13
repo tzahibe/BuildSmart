@@ -1,0 +1,18 @@
+F2-L-envelope-fixed: 1920 (candidate x orientation x flip) in 58s -> {'INFEASIBLE': 1881, 'FEASIBLE': 39, 'EMB:INVALID_INPUT': 2}
+   FEASIBLE: ('HALL_SPINE', 6, 'V', [5, 4, 2], (67, 71, 67))
+   FEASIBLE: ('HALL_SPINE', 7, 'V', [5, 3, 3], (75, 66, 111))
+   FEASIBLE: ('HALL_SPINE', 15, 'H', [4, 3, 2, 2], (71, 62, 115, 61))
+   FEASIBLE: ('HALL_SPINE', 15, 'V', [4, 3, 2, 2], (65, 64, 86, 54))
+   FEASIBLE: ('HALL_SPINE', 23, 'H', [4, 3, 2, 2], (71, 78, 95, 61))
+   FEASIBLE: ('HALL_SPINE', 23, 'V', [4, 3, 2, 2], (61, 67, 86, 54))
+   FEASIBLE: ('HALL_SPINE', 28, 'H', [1, 4, 3, 3], (38, 78, 63, 76))
+   FEASIBLE: ('HALL_SPINE', 31, 'V', [4, 4, 3], (67, 63, 107))
+F3-wide-shallow-free: 1920 (candidate x orientation x flip) in 35s -> {'INFEASIBLE': 1902, 'FEASIBLE': 18, 'EMB:INVALID_INPUT': 2}
+   FEASIBLE: ('HALL_SPINE', 26, 'H', [3, 5, 5], (66, 58, 66))
+   FEASIBLE: ('HALL_SPINE', 26, 'H', [5, 5, 3], (66, 58, 66))
+   FEASIBLE: ('HALL_SPINE', 52, 'H', [2, 5, 6], (58, 65, 67))
+   FEASIBLE: ('HALL_SPINE', 52, 'H', [6, 5, 2], (67, 65, 58))
+   FEASIBLE: ('HALL_SPINE', 53, 'H', [2, 5, 6], (58, 65, 67))
+   FEASIBLE: ('HALL_SPINE', 53, 'H', [6, 5, 2], (67, 65, 58))
+   FEASIBLE: ('SERVICE_CORE', 0, 'H', [3, 4, 6], (58, 66, 66))
+   FEASIBLE: ('SERVICE_CORE', 0, 'H', [6, 4, 3], (66, 66, 58))
