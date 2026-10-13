@@ -58,7 +58,8 @@ def _height_grid(lo: int, hi: int, k: int) -> list[int]:
 
 def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
                  k: int = 10, tol_m2: float = 0.01, time_limit_s: float = 10.0,
-                 align: bool = False, sides: dict | None = None) -> OracleResult:
+                 align: bool = False, sides: dict | None = None,
+                 objective: str = "feasible") -> OracleResult:
     """`align=True` adds the one-wall-type-per-side rule as a disjunction: a band's start/end
     either coincides with a cell boundary of the band above or lies outside it, and the band
     above's endpoint that falls strictly inside this band becomes one of this band's boundaries.
@@ -265,7 +266,21 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
         ub[v] = 1.0
     for v in range(first_align_var, nvar):
         ub[v] = 1.0
-    res = milp(c=np.zeros(nvar), constraints=LinearConstraint(A.tocsr(), np.array(lbs, float), np.array(ubs, float)),
+    c = np.zeros(nvar)
+    if objective == "area":
+        # Gate 3's lever, not a shape: grow the HABITABLE rooms (a feasibility program leaves every
+        # room at its minimum and hands the rest to circulation). Cell area is width x height and
+        # height is a binary choice, so the linear proxy is width weighted by the band's mid-grid
+        # height; circulation cells carry no weight and are held by their own bounds.
+        from app.vertical_slice.geometry_core.model import ProgramRole
+        circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}
+        for cell in cells:
+            if getattr(zones[cell.zone_id], "role", None) in circ:
+                continue
+            mid_h = grids[cell.r][len(grids[cell.r]) // 2]
+            c[cell.c1] -= float(mid_h)            # minimise -(width) -> maximise width
+            c[cell.c0] += float(mid_h)
+    res = milp(c=c, constraints=LinearConstraint(A.tocsr(), np.array(lbs, float), np.array(ubs, float)),
                integrality=integrality, bounds=Bounds(lb, ub), options={"time_limit": time_limit_s})
     if res.status == 0 and res.x is not None:
         heights = []
@@ -281,7 +296,7 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
 
 
 def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
-                   k: int = 12, rounds: int = 3) -> OracleResult:
+                   k: int = 12, rounds: int = 3, objective: str = "area") -> OracleResult:
     """The aligned oracle as THE sizer: solve, read the real wall types off the placement, re-solve
     with exact insets until they stop changing (the same fixed point the sizer runs), and hand the
     final placement to `realize_cells`. Every refusal downstream is then a validator's own."""
@@ -290,7 +305,7 @@ def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u:
     last = None
     for _ in range(rounds):
         res = milp_heights(bands, zones, required, envelope, min_contact_u=min_contact_u, k=k,
-                           align=True, sides=sides)
+                           align=True, sides=sides, objective=objective)
         if res.status != "FEASIBLE":
             return last if (last is not None and last.status == "FEASIBLE") else res
         real = sides_from_rects(res.as_sizing().rects(bands), zones)
