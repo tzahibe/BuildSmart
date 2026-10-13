@@ -17,7 +17,8 @@ from dataclasses import dataclass, field
 
 from app.vertical_slice.band_pipeline import PipelineInput, PipelineSuccess, run_band_pipeline
 from app.vertical_slice.brain.area import AREA_TOLERANCE, AreaVerdict, assess_area
-from app.vertical_slice.brain.proposer import (DeterministicProposer, Programme, TopologyProposal,
+from app.vertical_slice.brain.proposer import (AREA_BAND, HALL_CEILING_M2, DeterministicProposer,
+                                               Programme, TopologyProposal, band_around,
                                                programme_from_spec)
 from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.proposal_critic import Proposal, criticize
@@ -39,6 +40,10 @@ class BrainPlan:
     seconds: float = 0.0
     critic_findings: tuple = ()
     area: AreaVerdict | None = None
+    #: Which rung of `AREA_BAND_LADDER` produced this plan. `None` means the last rung — the full
+    #: template range — so a loosely-proportioned result is visible rather than silently equal to
+    #: a tight one.
+    area_band: float | None = AREA_BAND
 
     @property
     def geometry_signature(self) -> tuple:
@@ -188,12 +193,25 @@ def _entrance_preference(prop: TopologyProposal, zones: dict, programme: Program
 
 
 #: Sizing refusals that mean "the rooms do not fit the footprint under these bounds" — the ones a
-#: wider hall can resolve. A representation or access refusal is not one of them and is not retried.
+#: wider area band can resolve. A representation or access refusal is not one of them and is never
+#: retried: no amount of extra room makes a K4 placeable.
 _ROOM_SHORTAGE = ("SIZING_INFEASIBLE", "BAND_GEOMETRY_LIMIT", "SHORT_SIDE_INFEASIBLE",
                   "AREA_INFEASIBLE", "GRID_INFEASIBLE")
-#: What the hall may reach on the second attempt. The first attempt's ceiling comes from
-#: `programme_from_spec`, which keeps circulation near its target where the rooms can fill the plan.
-RELAXED_HALL_CEILING_M2 = 30.0
+
+#: The widening ladder (#197 Stage 3). Each rung is how far a room may sit from its own fair share
+#: of the floor; `None` is the full template range, which is exactly the behaviour that existed
+#: before this change.
+#:
+#: Tight first, because that is what stops circulation hoarding the surplus. But a tight band can
+#: make a brief unplannable — Stage 2 capped the hall alone and took B16 from three plans to one,
+#: every loss a `SIZING_INFEASIBLE` — so feasibility is never traded for proportion: the ladder
+#: loosens until the brief plans, and the last rung guarantees nothing that planned before stops
+#: planning. The rung that succeeded is recorded on the plan, so a loose result is visible rather
+#: than silently equivalent to a tight one.
+AREA_BAND_LADDER: tuple[float | None, ...] = (0.15, 0.30, 0.50, None)
+
+#: A parti's second corridor serves a bedroom wing, not a whole house, so it aims small.
+SECOND_CORRIDOR_TARGET_M2 = 7.0
 
 
 def _pipeline(prop: TopologyProposal, zones: dict, p: Programme,
@@ -211,14 +229,25 @@ def _needs_more_room(out) -> bool:
     return not isinstance(out, PipelineSuccess) and getattr(out, "code", "") in _ROOM_SHORTAGE
 
 
-def _with_relaxed_hall(zones: dict) -> dict:
-    """The same zones with every circulation room's ceiling widened. Nothing else moves — no room
-    bound, no validator, no access rule."""
+def _rebanded(zones: dict, p: Programme, frac: float | None) -> dict:
+    """The same zones with every room's area band re-cut at `frac` around its own target.
+
+    Nothing else moves — no validator, no access rule, no short side, no aspect ratio — and every
+    band stays inside the room's own template range (`Programme.full_bounds`), so a wider rung can
+    never allow a size the template did not already allow.
+    """
     from dataclasses import replace
+
     out = dict(zones)
     for zone_id, zi in zones.items():
-        if zi.role in _CIRC_ROLES and zi.max_area_m2 < RELAXED_HALL_CEILING_M2:
-            out[zone_id] = replace(zi, max_area_m2=RELAXED_HALL_CEILING_M2)
+        # A parti's own second corridor is created here rather than in `programme_from_spec`, so it
+        # has no `full_bounds` entry. Falling back to its CURRENT band would let the ladder re-cut
+        # a band against itself and widen nothing, so fall back to the hall's outer clamp instead.
+        default = ((4.0, HALL_CEILING_M2) if zi.role in _CIRC_ROLES
+                   else (zi.min_area_m2, zi.max_area_m2))
+        floor, ceiling = p.full_bounds.get(zone_id, default)
+        lo, hi = band_around(zi.target_area_m2, frac, floor, ceiling)
+        out[zone_id] = replace(zi, min_area_m2=lo, max_area_m2=hi)
     return out
 
 def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
@@ -241,8 +270,13 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
     missing = [z for z in prop.rooms if z not in p.zones]
     if missing:
         from app.vertical_slice.brain.proposer import _hall_intent
-        for z in missing:                               # a parti's own second corridor
-            zones[z] = _hall_intent(z, target=7.0)
+        # A parti's own second corridor. It is BANDED like every other room — left at the default
+        # 4–30 m² it becomes the loosest-bounded zone in the programme and inherits exactly the
+        # job the hall used to do: on B09 TWO_HALL it absorbed the surplus to 48.7 m² of total
+        # circulation while every other room sat tight at its fair share (#197 Stage 3).
+        for z in missing:
+            lo, hi = band_around(SECOND_CORRIDOR_TARGET_M2, AREA_BAND, 4.0, HALL_CEILING_M2)
+            zones[z] = _hall_intent(z, target=SECOND_CORRIDOR_TARGET_M2, floor=lo, ceiling=hi)
 
     roles = {z: zones[z].role for z in zones}
     # 1. THE CRITIC, BEFORE ANY PLACEMENT.
@@ -259,15 +293,17 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
 
     # 2. the UNCHANGED pipeline: embedding -> sizing -> realization -> validators -> preservation.
     #
-    # Twice, when the first attempt dies for want of room. The band grid tiles the footprint
-    # exactly, so whatever the rooms' own maxima do not absorb has to go to the hall — the one
-    # room here with no template row. #197 capped the hall to stop it reaching 29.6 m² while the
-    # master bedroom sat at 13.7, and that cap is right where the programme can fill the plan and
-    # fatal where it cannot: B16 went from three plans to one, every loss a SIZING_INFEASIBLE.
-    # So: ask for the better-proportioned house first, and widen the hall rather than refuse.
+    # Once per rung of the widening ladder, stopping at the first rung that plans. The grid tiles
+    # the footprint exactly, so the surplus the rooms' own bands do not absorb has to go somewhere;
+    # the tight rung spreads it across the programme, and each looser rung trades proportion for
+    # feasibility only when the tighter one could not plan at all.
+    band = AREA_BAND_LADDER[0]
     out = _pipeline(prop, zones, p, max_candidates, max_realizations)
-    if _needs_more_room(out):
-        out = _pipeline(prop, _with_relaxed_hall(zones), p, max_candidates, max_realizations)
+    for rung in AREA_BAND_LADDER[1:]:
+        if not _needs_more_room(out):
+            break
+        band = rung
+        out = _pipeline(prop, _rebanded(zones, p, rung), p, max_candidates, max_realizations)
     secs = round(time.monotonic() - t0, 3)
     if not isinstance(out, PipelineSuccess):
         return BrainPlan(prop.name, prop.rationale, False,
@@ -279,7 +315,7 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                      stage="REALIZED", spatial_preserved=out.spatial_preserved,
                      access_preserved=out.access_preserved,
                      bands=len(getattr(out.placement, "bands", ()) or getattr(out.placement, "rows", ())),
-                     realized=out.realized, seconds=secs,
+                     realized=out.realized, seconds=secs, area_band=band,
                      area=assess_area(requested, gross, net, p.capacity_m2))
 
 

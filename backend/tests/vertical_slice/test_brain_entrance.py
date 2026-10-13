@@ -16,7 +16,7 @@ import pytest
 from app.vertical_slice.band_pipeline import PipelineInput, PipelineSuccess, run_band_pipeline
 from app.vertical_slice.brain.proposer import (ENTRY, FOYER_MIN_NET_M2, HALL, DeterministicProposer,
                                                programme_from_spec)
-from app.vertical_slice.brain.runner import _arrival_zone, run_brain
+from app.vertical_slice.brain.runner import _arrival_zone, _rebanded, run_brain
 from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.band_embedding import find_k4, find_triple_lens
 from tests.vertical_slice.test_hub_guard import _project
@@ -104,7 +104,10 @@ def test_the_pipeline_is_unchanged_for_callers_that_pass_no_preference():
     spec, fp = _spec()
     p = programme_from_spec(spec, fp)
     prop = next(x for x in DeterministicProposer().propose(p) if not x.name.endswith("+FOYER"))
-    zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
+    # The FULL template range, which is what a caller outside the brain passes. The brain's own
+    # zones are area-banded (#197 Stage 3) and rely on the runner's widening ladder; this test is
+    # about the `prefer` seam in the pipeline, not about banding.
+    zones = _rebanded({z: p.zones[z] for z in prop.rooms if z in p.zones}, p, None)
     inp = PipelineInput(name=prop.name, zones=zones, required_edges=tuple(prop.spatial),
                         footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
                         access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE"))
@@ -119,7 +122,7 @@ def test_a_preference_can_choose_a_different_candidate_than_first_wins():
     spec, fp = _spec()
     p = programme_from_spec(spec, fp)
     prop = next(x for x in DeterministicProposer().propose(p) if not x.name.endswith("+FOYER"))
-    zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
+    zones = _rebanded({z: p.zones[z] for z in prop.rooms if z in p.zones}, p, None)
     inp = PipelineInput(name=prop.name, zones=zones, required_edges=tuple(prop.spatial),
                         footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
                         access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE"))

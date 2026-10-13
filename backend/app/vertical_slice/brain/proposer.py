@@ -38,6 +38,8 @@ from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.stage2.contract import ZoneIntent
 from app.vertical_slice.wet_rooms import ResolvedWetRoom
 
+_WET_ROLES = frozenset({ProgramRole.BATHROOM, ProgramRole.TOILET, ProgramRole.LAUNDRY})
+
 #: The circulation node every parti has at least one of.
 HALL = "HALL"
 #: The second circulation node of the two-hall partis.
@@ -54,6 +56,36 @@ ENTRY = "ENTRY"
 #: Below this much net floor a foyer is a room the brief cannot spare; the parti is offered
 #: without one and the plan arrives in a public room, which is honest for a small house.
 FOYER_MIN_NET_M2 = 85.0
+
+#: How far a room may sit from its own fair share of the available floor, on the FIRST attempt.
+#:
+#: THE DEFECT THIS EXISTS FOR (#197 Stage 3). `band_sizing` constrains each cell to
+#: `net_area in [min_area, max_area]` and has NO target — it finds *a* feasible tiling, not a good
+#: one. The grid tiles the footprint exactly, so surplus area must land somewhere, and it lands in
+#: whichever room has the loosest bounds. That was the hall, which has no template row at all.
+#: Measured on B11: accepted candidates ranged over 70%–87% of the requested area with nothing
+#: choosing between them, and the difference pooled in circulation — the 20–30 m² landlocked halls
+#: and the 12.5 × 1.6 m corridor. Those are an ALLOCATION defect showing up in the hall, which is
+#: why capping the hall was the wrong fix: it took B16 from three plans to one.
+#:
+#: `scale_program` already computes each room's fair share. Banding the bounds around that share
+#: makes the surplus distribute across the programme instead of pooling. The band is always
+#: intersected with the room's own template range, so this only ever NARROWS what was allowed.
+AREA_BAND = 0.15
+
+#: The proportion limits the brain asks for, over and above each room's template.
+#:
+#: Area banding alone does not fix shape: a 20 m² hall can still be 12.5 x 1.6 m, which is the
+#: corridor the #197 audit named, and `_hall_intent` was asking for `max_aspect_ratio=8.0` — it was
+#: ALLOWED. These are intents, not validator changes: they only ever narrow what the brain asks
+#: for, inside the template's own limits, and the widening ladder relaxes them toward the template
+#: when a brief cannot otherwise plan.
+HALL_MAX_ASPECT = 3.0
+HALL_MIN_SHORT_SIDE_M = 1.6
+#: 1.25 x 3.90 m is a corridor with a WC in it, not a toilet. Template limits allow it; the brain
+#: does not ask for it.
+WET_MAX_ASPECT = 2.2
+WET_MIN_SHORT_SIDE_M = 1.6
 
 
 @dataclass(frozen=True)
@@ -111,6 +143,9 @@ class Programme:
     #: (`capacity_notice_text`); what the brain adds is that it also GATES on it, and that it can
     #: tell this case apart from a layout that simply fell short.
     capacity_m2: float = 0.0
+    #: Every room's FULL template range, so the widening ladder has something to relax toward
+    #: without re-deriving template bounds outside this module.
+    full_bounds: dict[str, tuple[float, float]] = field(default_factory=dict)
     #: The BRIEF's own requested built area (`spec.program.target_built_area_m2`) — NOT the
     #: footprint the brain was handed. They differ: production chooses an outline before the brain
     #: runs, and on one unseen brief that outline was 21% larger than the request, so measuring
@@ -170,38 +205,51 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
     scaled = scale_program(planned, net_available)
 
     zones: dict[str, ZoneIntent] = {}
+    full_bounds: dict[str, tuple[float, float]] = {}
     for r in planned:
         t = r.template
         spec_for_room = scaled.get(r.zone_id)
         target = spec_for_room.net_area_target_m2 if spec_for_room else t.target_area_m2
         ceiling = t.hard_max_area_m2 or t.max_area_m2
+        target = round(max(t.min_area_m2, min(target, ceiling)), 2)
+        full_bounds[r.zone_id] = (t.min_area_m2, ceiling)
+        lo, hi = band_around(target, AREA_BAND, t.min_area_m2, ceiling)
+        short, aspect = t.min_short_side_m, t.max_aspect_ratio
+        if r.role in _WET_ROLES:
+            short = max(short, WET_MIN_SHORT_SIDE_M)
+            aspect = min(aspect, WET_MAX_ASPECT)
         zones[r.zone_id] = ZoneIntent(
             zone_id=r.zone_id, role=r.role, donor_room_id=None,
-            target_area_m2=round(max(t.min_area_m2, min(target, ceiling)), 2),
-            min_area_m2=t.min_area_m2, max_area_m2=ceiling,
-            min_short_side_m=t.min_short_side_m, max_aspect_ratio=t.max_aspect_ratio)
-    # The hall is the brain's own room (no template row of its own in the programme): give it a
-    # share of the surplus too, so circulation grows with the house instead of staying at 9 m2.
-    hall_target = max(9.0, min(0.09 * net_available, 22.0))
-    # How much the hall may grow depends on whether the PROGRAMME can fill the footprint, because
-    # the band grid tiles it exactly and the slack has to land somewhere. Where the rooms can
-    # absorb it (capacity >= net), hold circulation near its target — the #197 audit found 29.6 m²
-    # halls and a master bedroom smaller than the corridor. Where they cannot (B02/B06/B09, whose
-    # room lists top out below the area requested), the hall IS the slack, and squeezing it only
-    # makes the layout infeasible without giving the customer a single extra square metre.
-    # The canonical formula, never re-derived here. It excludes FLEX deliberately — FLEX exists to
-    # absorb what the rooms cannot — so compare against it with the hall's own ceiling added, the
-    # hall being the one room the brain adds that has no template row. The foyer is deliberately
-    # NOT added: leaving it out understates capacity by a few m², which biases a borderline brief
-    # toward "the layout fell short" rather than "your brief does not add up". Of the two
-    # misclassifications that is the one to prefer — it blames this code, not the customer.
+            target_area_m2=target, min_area_m2=lo, max_area_m2=hi,
+            min_short_side_m=short, max_aspect_ratio=aspect)
+    # The hall is the brain's own room — no template row — so its share is computed here rather
+    # than by `scale_program`. With every room now banded around its own share (`AREA_BAND`), the
+    # hall is an ORDINARY room with an ordinary band: the capacity-dependent ceiling that Stage 2
+    # used is gone. That ceiling was treating the symptom — circulation absorbing the surplus —
+    # and squeezing it took B16 from three plans to one without giving the customer a square metre.
+    # Circulation is a share of THE ROOMS IT SERVES, not of the plot. Sizing it against the plot
+    # is what produced 20% circulation on the underfilled briefs: B09's hall was given 9% of a
+    # 396 m² plot while the programme only makes a ~180 m² house, so the corridor was 12% of the
+    # building before the foyer was even added. The scaled programme is what will actually be
+    # built, so that is what the hall is measured against.
+    programme_net = sum(z.target_area_m2 for z in zones.values())
+    hall_target = round(max(9.0, min(0.09 * programme_net, 22.0)), 2)
+    full_bounds[HALL] = (4.0, HALL_CEILING_M2)
+    hall_lo, hall_hi = band_around(hall_target, AREA_BAND, 4.0, HALL_CEILING_M2)
+    zones[HALL] = _hall_intent(HALL, target=hall_target, floor=hall_lo, ceiling=hall_hi)
+    # The canonical capacity formula, never re-derived here. It excludes FLEX deliberately — FLEX
+    # exists to absorb what the rooms cannot. The foyer is deliberately NOT added either: leaving
+    # it out understates capacity by a few m², which biases a borderline brief toward "the layout
+    # fell short" rather than "your brief does not add up". Of the two misclassifications that is
+    # the one to prefer — it blames this code, not the customer.
     capacity = program_capacity_gross_m2(planned, hard=True)
-    if capacity >= net_available:
-        hall_ceiling = round(min(1.15 * hall_target, 20.0), 2)
-    else:
-        hall_ceiling = round(min(1.5 * hall_target, 26.0), 2)
-    zones[HALL] = _hall_intent(HALL, target=round(hall_target, 2), ceiling=hall_ceiling)
-    zones[ENTRY] = _entry_intent()
+    # The foyer is banded like everything else. Left at 3.5–9.0 it was the second-loosest zone in
+    # the programme, and the loosest zone is always where the surplus goes.
+    full_bounds[ENTRY] = (3.5, 9.0)
+    entry = _entry_intent()
+    entry_lo, entry_hi = band_around(entry.target_area_m2, AREA_BAND, 3.5, 9.0)
+    from dataclasses import replace as _replace
+    zones[ENTRY] = _replace(entry, min_area_m2=entry_lo, max_area_m2=entry_hi)
 
     return Programme(public=tuple(public), bedrooms=tuple(bedrooms), ensuites=ensuites, flex=tuple(flex),
                      shared_wet=tuple(shared_wet), safe_room=safe_room, zones=zones,
@@ -209,18 +257,45 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
                      footprint_m=footprint_m,
                      resolved_wet=tuple(r.wet for r in rooms if r.wet is not None),
                      net_available_m2=round(net_available, 2),
-                     capacity_m2=round(capacity + hall_ceiling, 2),
-                     requested_m2=float(getattr(spec.program, "target_built_area_m2", 0.0) or 0.0))
+                     capacity_m2=round(capacity + HALL_CEILING_M2, 2),
+                     requested_m2=float(getattr(spec.program, "target_built_area_m2", 0.0) or 0.0),
+                     full_bounds=full_bounds)
 
 
-def _hall_intent(zone_id: str, target: float = 9.0, ceiling: float = 30.0) -> ZoneIntent:
-    """The hall. `ceiling` matters more than it looks: the band grid tiles the footprint exactly,
-    so whatever area the rooms' own maxima do not absorb has to go somewhere, and the hall — the
-    one room here with no template row and the loosest bounds — was absorbing all of it. The #197
-    audit measured the result: 29.6 m2 halls, and a master bedroom smaller than the corridor."""
+def band_around(target: float, frac: float, floor: float, ceiling: float) -> tuple[float, float]:
+    """A room's allowed area band around its own fair share, clamped to its template range.
+
+    Always a SUBSET of [floor, ceiling]: this narrows what the sizer may choose, it never permits
+    a size the template did not already allow. `frac = None` means "no band" — the full range,
+    which is the behaviour that existed before #197 Stage 3 and the last rung of the ladder.
+    """
+    if frac is None:
+        return round(floor, 2), round(ceiling, 2)
+    lo = max(floor, target * (1 - frac))
+    hi = min(ceiling, target * (1 + frac))
+    if lo > hi:                      # the target sits outside its own template range
+        lo, hi = floor, ceiling
+    return round(lo, 2), round(hi, 2)
+
+
+#: The widest a hall may ever be, at the last rung of the widening ladder. It is the outer bound
+#: the band is clamped into, not the size anything aims for.
+HALL_CEILING_M2 = 30.0
+
+
+def _hall_intent(zone_id: str, target: float = 9.0, floor: float = 4.0,
+                 ceiling: float = HALL_CEILING_M2) -> ZoneIntent:
+    """The hall, as an ordinary banded room.
+
+    Its bounds used to be the loosest in the programme — no template row, 4–30 m² — which is
+    precisely why the exact sizer dumped every surplus square metre here (#197 Stage 3). It is now
+    banded around its own share like everything else, and `floor`/`ceiling` are the outer clamp the
+    widening ladder relaxes toward, not a target.
+    """
     return ZoneIntent(zone_id=zone_id, role=ProgramRole.HALL, donor_room_id=None,
-                      target_area_m2=min(target, ceiling), min_area_m2=4.0, max_area_m2=ceiling,
-                      min_short_side_m=1.2, max_aspect_ratio=8.0)
+                      target_area_m2=min(max(target, floor), ceiling),
+                      min_area_m2=floor, max_area_m2=ceiling,
+                      min_short_side_m=HALL_MIN_SHORT_SIDE_M, max_aspect_ratio=HALL_MAX_ASPECT)
 
 
 def _entry_intent(target: float = 5.0) -> ZoneIntent:
