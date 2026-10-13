@@ -1,0 +1,651 @@
+[
+  {
+    "id": "F1-rect-control",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 24,
+      "SCREENED": 58,
+      "SELECTION_entrance_feasible": 116,
+      "SELECTION_exposure_ok": 177,
+      "ORACLE_INFEASIBLE": 34,
+      "ORACLE_FEASIBLE": 24,
+      "INFEASIBLE": 47,
+      "NO_ENTRANCE": 13,
+      "VALIDATION_FAILED": 2
+    },
+    "plans": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 141.7,
+        "net_m2": 129.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 65.6,
+        "wings": [
+          [
+            1.95,
+            0.0,
+            9.6,
+            6.4
+          ],
+          [
+            0.0,
+            6.4,
+            11.55,
+            3.95
+          ],
+          [
+            0.0,
+            10.35,
+            11.55,
+            3.0
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__HALL_SPINE+FOYER.json"
+      },
+      {
+        "parti": "HALL_SPINE",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 147.6,
+        "net_m2": 135.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            12.0,
+            4.35
+          ],
+          [
+            0.0,
+            9.1,
+            12.0,
+            3.2
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__HALL_SPINE.json"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 138.0,
+        "net_m2": 126.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 63.9,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            4.95
+          ],
+          [
+            0.0,
+            4.95,
+            12.0,
+            2.65
+          ],
+          [
+            0.0,
+            7.6,
+            12.0,
+            3.9
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__PUBLIC_BAND+FOYER.json"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 147.6,
+        "net_m2": 135.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            12.0,
+            4.35
+          ],
+          [
+            0.0,
+            9.1,
+            12.0,
+            3.2
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__PUBLIC_BAND.json"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "V",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 166.9,
+        "net_m2": 153.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 77.3,
+        "wings": [
+          [
+            0.0,
+            2.05,
+            4.3,
+            15.95
+          ],
+          [
+            4.3,
+            2.05,
+            3.5,
+            15.95
+          ],
+          [
+            7.8,
+            6.2,
+            3.6,
+            11.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__BEDROOM_WING+FOYER.json"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "bands": 3,
+        "rung": 0.3,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 171.6,
+        "net_m2": 158.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            4.95
+          ],
+          [
+            0.0,
+            4.95,
+            12.0,
+            5.45
+          ],
+          [
+            0.0,
+            10.4,
+            12.0,
+            3.9
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__BEDROOM_WING.json"
+      },
+      {
+        "parti": "TWO_HALL",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 133.4,
+        "net_m2": 121.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 61.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            11.4,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            11.4,
+            3.75
+          ],
+          [
+            0.0,
+            8.5,
+            11.4,
+            3.2
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "render": "F1-rect-control__TWO_HALL.json"
+      }
+    ],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL"
+    ],
+    "seconds": 9.0,
+    "solved": true,
+    "distinct_footprints": 6
+  },
+  {
+    "id": "F2-L-envelope-fixed",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 19,
+      "SCREENED": 398,
+      "SELECTION_exposure_ok": 1241,
+      "SELECTION_safe_room_on_envelope": 344,
+      "SELECTION_entrance_feasible": 676,
+      "ORACLE_INFEASIBLE": 379,
+      "ORACLE_FEASIBLE": 19,
+      "INFEASIBLE": 70,
+      "NO_ENTRANCE": 3,
+      "VALIDATION_FAILED": 1
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 17.5,
+    "solved": false,
+    "distinct_footprints": 0
+  },
+  {
+    "id": "F3-wide-shallow-free",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 1,
+      "SCREENED": 407,
+      "SELECTION_entrance_feasible": 587,
+      "SELECTION_exposure_ok": 1080,
+      "SELECTION_safe_room_on_envelope": 317,
+      "ORACLE_INFEASIBLE": 406,
+      "ORACLE_FEASIBLE": 1,
+      "INFEASIBLE": 3
+    },
+    "plans": [
+      {
+        "parti": "SERVICE_CORE",
+        "bands": 3,
+        "rung": null,
+        "orientation": "H",
+        "contacts": "13/13",
+        "doors": "12/12",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 167.6,
+        "net_m2": 150.3,
+        "area": "WITHIN_TOLERANCE",
+        "gross_pct": 95.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            20.1,
+            3.3
+          ],
+          [
+            0.0,
+            3.3,
+            20.1,
+            3.2
+          ],
+          [
+            6.9,
+            6.5,
+            13.2,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "render": "F3-wide-shallow-free__SERVICE_CORE.json"
+      }
+    ],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 17.5,
+    "solved": true,
+    "distinct_footprints": 1
+  },
+  {
+    "id": "F4-entry-court-notch",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 13,
+      "SCREENED": 402,
+      "SELECTION_exposure_ok": 1240,
+      "SELECTION_safe_room_on_envelope": 301,
+      "SELECTION_entrance_feasible": 792,
+      "ORACLE_INFEASIBLE": 389,
+      "ORACLE_FEASIBLE": 13,
+      "INFEASIBLE": 34,
+      "VALIDATION_FAILED": 11
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 24.0,
+    "solved": false,
+    "distinct_footprints": 0
+  },
+  {
+    "id": "F5-garden-court",
+    "expected": "FEASIBLE (exists) \u2014 A may refuse: EMBEDDING/BAND_GAP; that refusal must be typed, never a timeout or a distorted plan",
+    "stages": {
+      "SIZED_CANDIDATES": 12,
+      "SCREENED": 426,
+      "SELECTION_exposure_ok": 601,
+      "SELECTION_entrance_feasible": 303,
+      "ORACLE_BAND_GAP": 189,
+      "ORACLE_FEASIBLE": 12,
+      "INFEASIBLE": 34,
+      "NO_ENTRANCE": 6,
+      "ORACLE_INFEASIBLE": 225,
+      "VALIDATION_FAILED": 2
+    },
+    "plans": [
+      {
+        "parti": "PUBLIC_BAND",
+        "bands": 4,
+        "rung": null,
+        "orientation": "V",
+        "contacts": "10/10",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 129.9,
+        "net_m2": 118.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 72.2,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.9,
+            9.0
+          ],
+          [
+            3.9,
+            0.0,
+            5.85,
+            9.0
+          ],
+          [
+            9.75,
+            0.0,
+            3.5,
+            9.0
+          ],
+          [
+            13.25,
+            4.65,
+            2.45,
+            4.35
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "render": "F5-garden-court__PUBLIC_BAND.json"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "bands": 2,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 144.0,
+        "net_m2": 132.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 80.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            16.0,
+            4.05
+          ],
+          [
+            0.0,
+            4.05,
+            16.0,
+            4.95
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "render": "F5-garden-court__BEDROOM_WING.json"
+      },
+      {
+        "parti": "TWO_HALL+FOYER",
+        "bands": 3,
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 115.1,
+        "net_m2": 103.5,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 63.9,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            11.7,
+            3.45
+          ],
+          [
+            0.0,
+            3.45,
+            11.7,
+            1.7
+          ],
+          [
+            0.0,
+            5.15,
+            15.45,
+            3.55
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "render": "F5-garden-court__TWO_HALL+FOYER.json"
+      }
+    ],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL"
+    ],
+    "seconds": 7.1,
+    "solved": true,
+    "distinct_footprints": 3
+  },
+  {
+    "id": "F6-unsatisfiable-K4",
+    "expected": "REFUSE: TOPOLOGY_REPRESENTATION_LIMIT (K4) \u2014 in < 1 s, with the four rooms named",
+    "stages": {
+      "REPRESENTATION": 8
+    },
+    "plans": [],
+    "refusals": [
+      {
+        "parti": "HALL_SPINE+FOYER",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "HALL_SPINE",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "PUBLIC_BAND",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "BEDROOM_WING",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "TWO_HALL+FOYER",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "REPRESENTATION",
+        "code": "TOPOLOGY_REPRESENTATION_LIMIT",
+        "detail": "K4 ('HALL', 'KITCHEN', 'LIVING', 'MASTER')"
+      }
+    ],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL"
+    ],
+    "seconds": 0.0,
+    "solved": false,
+    "distinct_footprints": 0
+  }
+]

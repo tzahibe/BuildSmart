@@ -73,3 +73,52 @@ that exposure for 5-bedroom programmes needs more than two rows per wing on a sh
 in which case the right answer is a typed refusal, not a deeper grid. I recommend spending day 4
 on the pivot and day 5 on Gate 3's quality axes with whatever the pivot reaches — and STOP at the
 time-box regardless, with the evidence as it stands.
+
+---
+
+## Addendum, day 4 — the aligned oracle as the sizer
+
+The pivot inside formulation A that the verdict above named for day 4 was built and measured:
+the one-wall-type-per-side rule is in the MILP as a disjunction (a band's start/end coincides with
+a cell boundary of the band above or lies outside it, with the outside endpoint forced as one of
+this band's boundaries), and the oracle's full placement — heights **and** boundary positions,
+insets re-solved to a fixed point — goes straight into `realize_cells`. No search left to fail.
+
+| case | before (exact sizer) | **after (aligned oracle)** | time | what the plans are |
+|---|---|---|---:|---|
+| F1 rectangle control | 3–5 / 5 | **7 / 7**, 6 distinct footprints | **9.0 s** | flush rectangles and two stepped variants |
+| F2 L envelope | 0 | 0 | 17.5 s | 19 survive selection + oracle; the aligned MILP is INFEASIBLE on them at every rung |
+| F3 wide-shallow strip | 0 | **1 / 1** | 17.5 s | 3 bands across the 24 m strip, **95.8 % gross, WITHIN_TOLERANCE**, 13/13 contacts, 12/12 doors, a stepped footprint with a garden notch — `figures/aligned-oracle/F3-wide-shallow-free__SERVICE_CORE.png` |
+| F4 street-side court | 0 | 0 | 24.0 s | 13 survive; the aligned MILP INFEASIBLE or validators (11) |
+| F5 garden court | typed BAND_GAP | **3 / 3**, 3 distinct footprints | **7.1 s** | the house sits above the court (the court is unused depth, not a split band): one flush 16 × 9 m plan arriving at the HALL, two stepped ones |
+| F6 K4 | REFUSED | REFUSED, 0.0 s | — | — |
+
+**Feasible cases solved: 3 of 5 (F1, F3, F5); the unsatisfiable case refused correctly; 4 of 6
+cases at their expected verdict.** Against the gate's own wording — ≥ 4 of the predeclared
+feasible cases — that is **3/5: not met**, by one. Every case runs under 30 s on this machine
+(the Gate-3 latency target), and no plan here relaxed a constraint: every one passed the 28
+unchanged validators with every contact and door preserved.
+
+### What stops F2 and F4, precisely
+
+Both are the band family meeting the product's own exposure and entrance rules for 12–13-room
+programmes: selection rejects ~1 240 candidate-orientations per case on exposure and ~700 on
+entrance before any geometry; of the 19 (F2) and 13 (F4) that survive, the aligned MILP has no
+solution at any band rung, or the validators refuse the geometry. The family is the limit, not
+the solver — the solver is now exact.
+
+### What the solved plans are not yet
+
+The MILP is a feasibility program (zero objective), so rooms sit near their minimums and
+circulation takes the rest: F1 plans deliver 62–79 % of the request, F3's hall is 9.0 × 3.0 m.
+That is Gate 3's question — an objective toward the requested area and the Stage-3 proportion
+intents — and it is exactly the kind of lever the gate contract says to pull *instead of* shape
+code. The stepped footprints are shapes nothing named.
+
+### Verdict after day 4
+
+**PIVOT stands, narrower.** Formulation A with the exact aligned oracle is a working
+shape-agnostic realizer for rectangles, strips and courts; its documented limit is programmes whose
+exposure and entrance needs exceed what one row of full-depth rooms per band can give. The 2D wing
+per band remains the representation step for those. Day 5: Gate-3 quality axes on what is solved
+(objective, proportions, legible renders) and STOP at the time-box.

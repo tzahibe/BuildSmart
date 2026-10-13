@@ -1,0 +1,100 @@
+[
+  {
+    "id": "F2-L-envelope-fixed",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 19,
+      "SCREENED": 398,
+      "SELECTION_exposure_ok": 1241,
+      "SELECTION_safe_room_on_envelope": 344,
+      "SELECTION_entrance_feasible": 676,
+      "ORACLE_INFEASIBLE": 379,
+      "ORACLE_FEASIBLE": 19,
+      "UNKNOWN": 66,
+      "ALIGNMENT_UNSAT": 8,
+      "INFEASIBLE": 2
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 52.7,
+    "solved": false,
+    "distinct_footprints": 0
+  },
+  {
+    "id": "F3-wide-shallow-free",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 2,
+      "SCREENED": 418,
+      "SELECTION_entrance_feasible": 682,
+      "SELECTION_exposure_ok": 1209,
+      "SELECTION_safe_room_on_envelope": 368,
+      "ORACLE_INFEASIBLE": 416,
+      "ORACLE_FEASIBLE": 2,
+      "INFEASIBLE": 4,
+      "ALIGNMENT_UNSAT": 4
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 17.8,
+    "solved": false,
+    "distinct_footprints": 0
+  },
+  {
+    "id": "F4-entry-court-notch",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 13,
+      "SCREENED": 402,
+      "SELECTION_exposure_ok": 1240,
+      "SELECTION_safe_room_on_envelope": 301,
+      "SELECTION_entrance_feasible": 792,
+      "ORACLE_INFEASIBLE": 389,
+      "ORACLE_FEASIBLE": 13,
+      "UNKNOWN": 32,
+      "VALIDATION_FAILED": 10,
+      "ALIGNMENT_UNSAT": 2
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 35.8,
+    "solved": false,
+    "distinct_footprints": 0
+  }
+]

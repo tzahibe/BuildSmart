@@ -43,10 +43,10 @@ CASES_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "do
 MAX_CANDIDATES = 150         # embedder candidates examined per parti; the selection + oracle screens are cheap
 MAX_SIZINGS = 12             # candidates actually sized per parti (both orientations count)
 
-try:                         # the MILP oracle (formulation B) screens candidates where scipy exists;
-    from app.ai_harness.shape_agnostic.milp_oracle import milp_heights   # research tooling, optional
+try:                         # the MILP oracle (formulation B) where scipy exists — research tooling:
+    from app.ai_harness.shape_agnostic.milp_oracle import milp_heights, milp_placement
 except ImportError:          # pragma: no cover
-    milp_heights = None
+    milp_heights = milp_placement = None
 
 
 def _project_for(case: dict):
@@ -188,8 +188,13 @@ def run_case(case: dict, out_dir: str) -> dict:
                 sized += 1
                 for rung in AREA_BAND_LADDER:
                     zr = _rebanded(zones, p, rung) if rung != AREA_BAND_LADDER[0] else zones
-                    sz = solve_staircase_layout(bands, zr, union, env_o, min_contact_u=contacts,
-                                                node_limit=800, seed=seed)
+                    if milp_placement is not None:
+                        # the aligned oracle IS the sizer: heights and boundaries from one exact
+                        # MILP, insets to a fixed point, no search left to fail
+                        sz = milp_placement(bands, zr, union, env_o, min_contact_u=contacts).as_sizing()
+                    else:
+                        sz = solve_staircase_layout(bands, zr, union, env_o, min_contact_u=contacts,
+                                                    node_limit=800, seed=seed)
                     if sz.status != "FEASIBLE":
                         reasons[sz.status] += 1
                         if sz.status == "BAND_GAP":

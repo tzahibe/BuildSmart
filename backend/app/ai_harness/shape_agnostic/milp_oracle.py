@@ -37,6 +37,16 @@ class OracleResult:
     status: str                      # FEASIBLE | INFEASIBLE | UNKNOWN | BAND_GAP
     heights_u: tuple[int, ...] = ()
     detail: str = ""
+    #: the full placement when FEASIBLE: per band (start, boundaries..., end) in units
+    band_x_u: tuple[tuple[int, ...], ...] = ()
+    y_start_u: int = 0
+
+    def as_sizing(self):
+        """The oracle's placement in the exact sizer's own result type, so `rects()` /
+        `band_rects()` and `realize_cells` need no second path."""
+        from app.vertical_slice.staircase_sizing import StaircaseSizing
+        return StaircaseSizing(self.status, self.heights_u, self.band_x_u, 0, self.detail,
+                               y_start_u=self.y_start_u)
 
 
 def _height_grid(lo: int, hi: int, k: int) -> list[int]:
@@ -47,8 +57,13 @@ def _height_grid(lo: int, hi: int, k: int) -> list[int]:
 
 
 def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
-                 k: int = 10, tol_m2: float = 0.01, time_limit_s: float = 10.0) -> OracleResult:
-    cells, band_nodes, N = _cells_and_nodes(bands, zones, None)
+                 k: int = 10, tol_m2: float = 0.01, time_limit_s: float = 10.0,
+                 align: bool = False, sides: dict | None = None) -> OracleResult:
+    """`align=True` adds the one-wall-type-per-side rule as a disjunction: a band's start/end
+    either coincides with a cell boundary of the band above or lies outside it, and the band
+    above's endpoint that falls strictly inside this band becomes one of this band's boundaries.
+    `sides` feeds back real wall types for exact insets (the fixed point `milp_placement` runs)."""
+    cells, band_nodes, N = _cells_and_nodes(bands, zones, sides)
     R = len(bands)
     req = [tuple(e) for e in required]
     by_zone = {c.zone_id: c for c in cells}
@@ -202,6 +217,44 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
             add({s: 1.0, bv: -BIG}, Lb - BIG, BIG)
             add({e: 1.0, bv: BIG}, -BIG, Rb + BIG)
 
+    first_align_var = nvar
+    if align:
+        for r in range(R - 1):
+            U, D = band_nodes[r], band_nodes[r + 1]
+            u0, uk = U[0], U[-1]
+            for endpoint, outside_is_left in ((D[0], True), (D[-1], False)):
+                # choice: coincide with one of U's boundaries, or lie outside U on the near side
+                choice_vars = []
+                for uj in U:
+                    v = nvar; nvar += 1; choice_vars.append(v)
+                    add({endpoint: 1.0, uj: -1.0, v: BIG}, -BIG, BIG)         # |endpoint - uj| <= BIG(1-v)
+                    add({endpoint: 1.0, uj: -1.0, v: -BIG}, -BIG, BIG)
+                    rows[-2] = {endpoint: 1.0, uj: -1.0, v: BIG}; lbs[-2] = -BIG; ubs[-2] = BIG
+                    rows[-1] = {endpoint: 1.0, uj: -1.0, v: -BIG}; lbs[-1] = -BIG; ubs[-1] = BIG
+                    # exact forms: endpoint - uj <= BIG*(1-v)  ->  endpoint - uj + BIG v <= BIG
+                    rows[-2] = {endpoint: 1.0, uj: -1.0, v: BIG}; lbs[-2] = -BIG * 2; ubs[-2] = BIG
+                    #              endpoint - uj >= -BIG*(1-v) ->  endpoint - uj - BIG v >= -BIG
+                    rows[-1] = {endpoint: 1.0, uj: -1.0, v: -BIG}; lbs[-1] = -BIG; ubs[-1] = BIG * 2
+                v_out = nvar; nvar += 1; choice_vars.append(v_out)
+                if outside_is_left:
+                    add({endpoint: 1.0, u0: -1.0, v_out: BIG}, -BIG, BIG)     # endpoint <= u0 when v_out
+                    # and then u0 must be one of D's interior boundaries
+                    ts = []
+                    for di in D[1:-1]:
+                        t = nvar; nvar += 1; ts.append(t)
+                        add({di: 1.0, u0: -1.0, t: BIG}, -BIG * 2, BIG)
+                        add({di: 1.0, u0: -1.0, t: -BIG}, -BIG, BIG * 2)
+                    add({**{t: 1.0 for t in ts}, v_out: -1.0}, 0, BIG)        # sum t >= v_out
+                else:
+                    add({endpoint: 1.0, uk: -1.0, v_out: -BIG}, -BIG, BIG)    # endpoint >= uk when v_out
+                    ts = []
+                    for di in D[1:-1]:
+                        t = nvar; nvar += 1; ts.append(t)
+                        add({di: 1.0, uk: -1.0, t: BIG}, -BIG * 2, BIG)
+                        add({di: 1.0, uk: -1.0, t: -BIG}, -BIG, BIG * 2)
+                    add({**{t: 1.0 for t in ts}, v_out: -1.0}, 0, BIG)
+                add({v: 1.0 for v in choice_vars}, 1, 1)
+
     A = lil_matrix((len(rows), nvar))
     for i, coefs in enumerate(rows):
         for v, cft in coefs.items():
@@ -210,6 +263,8 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     lb = np.zeros(nvar); ub = np.full(nvar, float(BIG))
     for v in list(z_idx.values()) + list(a_idx.values()) + list(b_idx.values()):
         ub[v] = 1.0
+    for v in range(first_align_var, nvar):
+        ub[v] = 1.0
     res = milp(c=np.zeros(nvar), constraints=LinearConstraint(A.tocsr(), np.array(lbs, float), np.array(ubs, float)),
                integrality=integrality, bounds=Bounds(lb, ub), options={"time_limit": time_limit_s})
     if res.status == 0 and res.x is not None:
@@ -217,7 +272,29 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
         for r in range(R):
             kk = max(range(len(grids[r])), key=lambda j: res.x[z_idx[(r, j)]])
             heights.append(grids[r][kk])
-        return OracleResult("FEASIBLE", tuple(heights), detail=f"{len(rows)} constraints, {nvar} variables")
+        band_x = tuple(tuple(int(round(res.x[i])) for i in band_nodes[r]) for r in range(R))
+        return OracleResult("FEASIBLE", tuple(heights), detail=f"{len(rows)} constraints, {nvar} variables",
+                            band_x_u=band_x, y_start_u=y_start)
     if res.status == 2:
         return OracleResult("INFEASIBLE", detail=f"HiGHS: {res.message}")
     return OracleResult("UNKNOWN", detail=f"HiGHS: {res.message}")
+
+
+def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
+                   k: int = 12, rounds: int = 3) -> OracleResult:
+    """The aligned oracle as THE sizer: solve, read the real wall types off the placement, re-solve
+    with exact insets until they stop changing (the same fixed point the sizer runs), and hand the
+    final placement to `realize_cells`. Every refusal downstream is then a validator's own."""
+    from app.vertical_slice.staircase_sizing import sides_from_rects
+    sides = None
+    last = None
+    for _ in range(rounds):
+        res = milp_heights(bands, zones, required, envelope, min_contact_u=min_contact_u, k=k,
+                           align=True, sides=sides)
+        if res.status != "FEASIBLE":
+            return last if (last is not None and last.status == "FEASIBLE") else res
+        real = sides_from_rects(res.as_sizing().rects(bands), zones)
+        if real == sides:
+            return res
+        sides, last = real, res
+    return last
