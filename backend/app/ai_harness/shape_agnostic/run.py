@@ -25,6 +25,11 @@ import time
 from collections import Counter
 
 from app.ai_harness.shape_agnostic.spine import choose_spine, embed_spine
+from app.ai_harness.shape_agnostic.stacks import (
+    expand_wings,
+    merge_stack,
+    propose_stacks,
+)
 from app.demo.contract import to_demo_design
 from app.demo.service import spec_for
 from app.vertical_slice.band_embedding import (
@@ -60,11 +65,12 @@ try:                         # the MILP oracle (formulation B) where scipy exist
         milp_heights,
         milp_placement,
         milp_spine_placement,
+        placement_rects,
         spine_geometry,
         spine_intents,
     )
 except ImportError:          # pragma: no cover
-    milp_heights = milp_placement = milp_spine_placement = spine_geometry = spine_intents = None
+    milp_heights = milp_placement = milp_spine_placement = spine_geometry = spine_intents = placement_rects = None
 
 
 def _project_for(case: dict):
@@ -121,6 +127,9 @@ def _transpose_rects(rects: dict) -> dict:
 #: track the programme targets, circulation overshoot penalised). Set SHAPE_AGNOSTIC_OBJECTIVE.
 OBJECTIVE = os.environ.get("SHAPE_AGNOSTIC_OBJECTIVE", "area")
 SPINE_MAX_LAYOUTS = 40
+#: stacks (the 2D wing's minimal form): how many (pair, order) options a proposal tries
+STACK_MAX_OPTIONS = 6
+STACK_BUDGET_S = 60.0
 SPINE_BUDGET_S = 90.0
 
 
@@ -157,6 +166,126 @@ def _proportions(out, intents: dict) -> dict:
             "min_bed_pct": round(100 * min(beds), 1) if beds else None}
 
 
+def _stack_family(case, prop, zones, p, union, spatial, access, orientations, requested, rec):
+    """The 2D wing, minimal form (`stacks.py`): the band pipeline run with two small rooms merged
+    into one column for the embedding and the screens, expanded into their own heights by the
+    exact sizer, realized as ordinary cells with the column as its own wing. Plans tagged
+    family="stack"; the first plan that counts is returned with its realization."""
+    t0 = time.monotonic()
+    reasons: Counter = Counter()
+    # one pair per tier (both orders), wet -> public -> bedrooms, within the option cap
+    from app.ai_harness.shape_agnostic.stacks import _tier
+    options, seen_tiers = [], {}
+    for a, b in propose_stacks(zones, union):
+        t = _tier(zones[a].role)
+        if seen_tiers.setdefault(t, frozenset((a, b))) != frozenset((a, b)):
+            continue
+        options.append((a, b))
+    options = options[:STACK_MAX_OPTIONS]
+    if not options:
+        return None
+    union_m = sorted({tuple(sorted(e)) for e in spatial} | {tuple(sorted(e)) for e in access})
+    contacts_m = contact_requirements(zones, union_m, access)
+    best = None
+    sized = 0
+    for stack in options:
+        if time.monotonic() - t0 > STACK_BUDGET_S or sized >= MAX_SIZINGS:
+            break
+        z2, e2, a2, pid = merge_stack(zones, spatial, access, stack)
+        union2 = sorted({tuple(sorted(e)) for e in e2} | {tuple(sorted(e)) for e in a2})
+        adj = _adjacency(union2)
+        if find_k4(adj) or find_triple_lens(adj):
+            reasons["STACK_REPRESENTATION"] += 1
+            continue
+        emb = embed_band(z2, union2, max_candidates=MAX_CANDIDATES)
+        if isinstance(emb, BandEmbeddingRefusal):
+            reasons[f"STACK_EMBEDDING_{emb.code}"] += 1
+            continue
+        rec["stages"]["STACK_CANDIDATES"] += len(emb.candidates)
+        for cand in emb.candidates:
+            if time.monotonic() - t0 > STACK_BUDGET_S or sized >= MAX_SIZINGS:
+                break
+            flags = placement_flags(cand, z2, p.resolved_wet, tuple(a2))
+            rejected = hard_rejections(flags)
+            if rejected:
+                for k in rejected:
+                    reasons[f"STACK_SELECTION_{k}"] += 1
+                continue
+            oriented, _flipped = orient(cand, flags)
+            for orient_tag, env_o in orientations:
+                bands = oriented.bands
+                # the 15 ms feasibility screen at the loosest rung, as the band family runs it: an
+                # exact placement under the target objective can take seconds to prove infeasible
+                zl = _rebanded(zones, p, None)
+                screen = milp_heights(bands, {z: zl.get(z, zi) for z, zi in z2.items()}, union_m, env_o,
+                                      min_contact_u=contacts_m, k=16, stacks={pid: tuple(zl[m] for m in stack)})
+                reasons[f"STACK_SCREEN_{screen.status}"] += 1
+                if screen.status != "FEASIBLE":
+                    continue
+                for rung in AREA_BAND_LADDER:
+                    if time.monotonic() - t0 > STACK_BUDGET_S:
+                        break                              # an exact placement can cost seconds per rung
+                    zr = _rebanded(zones, p, rung) if rung != AREA_BAND_LADDER[0] else zones
+                    z2r = {z: zr.get(z, zi) for z, zi in z2.items()}
+                    stacks = {pid: tuple(zr[m] for m in stack)}
+                    o = milp_placement(bands, z2r, union_m, env_o, min_contact_u=contacts_m,
+                                       objective=OBJECTIVE, stacks=stacks)
+                    reasons[f"STACK_{o.status}"] += 1
+                    if o.status != "FEASIBLE":
+                        if o.status == "BAND_GAP":
+                            break
+                        continue
+                    sized += 1
+                    sz = o.as_sizing()
+                    cell_rects, intents = placement_rects(bands, z2r, o, stacks)
+                    wing_rects = expand_wings(sz.band_rects(bands), sz.rects(bands),
+                                              {pid: tuple(m.zone_id for m in stacks[pid])})
+                    if orient_tag == "V":
+                        cell_rects = _transpose_rects(cell_rects)
+                        wing_rects = tuple(_transpose_rects(dict(enumerate(wing_rects))).values())
+                    out = realize_cells(f"{case['id']}:{prop.name}:stack", cell_rects, intents, wing_rects, access,
+                                        wet_rooms=p.resolved_wet)
+                    if not isinstance(out, RealizedLayout):
+                        reasons[f"STACK_{out.constraint}"] += 1
+                        rec["refusals"].append({"parti": prop.name, "stage": "STACK_REALIZATION",
+                                                "code": out.constraint, "detail": out.detail[:200]})
+                        break
+                    sp = measure_spatial_adjacency(out.rects, frozenset(frozenset(e) for e in spatial))
+                    ac = measure_access_graph(out.fixture.access.edges, access)
+                    gross = float(out.design.gross_area_m2)
+                    net = float(out.design.net_area_m2 or 0.0)
+                    verdict = assess_area(requested, gross, net, p.capacity_m2)
+                    full = sp.preserved == sp.requested and ac.preserved == ac.requested
+                    plan = {"family": "stack", "parti": prop.name, "stack": list(stack), "bands": len(bands),
+                            "rung": rung, "orientation": orient_tag,
+                            "contacts": f"{sp.preserved}/{sp.requested}",
+                            "doors": f"{ac.preserved}/{ac.requested}",
+                            "lost_doors": sorted(str(e) for e in ac.lost),
+                            "arrival": _arrival_zone(out),
+                            "gross_m2": round(gross, 1), "net_m2": round(net, 1),
+                            "area": verdict.code, "gross_pct": verdict.gross_pct,
+                            "wings": [(round(w.x * .05, 2), round(w.y * .05, 2), round(w.w * .05, 2),
+                                       round(w.h * .05, 2)) for w in wing_rects],
+                            "non_rectangular": len({(w.x, w.w) for w in sz.band_rects(bands)}) > 1,
+                            "validators": len(out.report.checks),
+                            "counts": bool(full and verdict.acceptable), **_proportions(out, intents)}
+                    rec["plans"].append(plan)
+                    if plan["counts"] and best is None:
+                        best = (plan, out)
+                    break
+                if best is not None:
+                    break
+            if best is not None:
+                break
+        if best is not None:
+            break
+    rec["stages"]["STACK_SIZED"] += sized
+    for k, v in reasons.items():
+        rec["stages"][k] += v
+    rec["stages"]["STACK_SECONDS"] += round(time.monotonic() - t0, 1)
+    return best
+
+
 def _spine_selection(layout, zones, orient_tag: str) -> list[str]:
     """The production SELECTION questions for a spine layout, before any geometry is sized — the
     HARD flags `placement_flags` asks of a band candidate, read off the layout's structure:
@@ -190,7 +319,6 @@ def _spine_selection(layout, zones, orient_tag: str) -> list[str]:
             fronting = set(layout.top[0]) if layout.top else set()
         if not any(z in fronting for z in foyers):
             failed.append("foyer_fronts_street")
-    a, b = layout.section
     exterior = {layout.spine}
     for band in layout.top + layout.bottom:
         exterior.update(band[0:1]); exterior.update(band[-1:])
@@ -449,6 +577,12 @@ def run_case(case: dict, out_dir: str) -> dict:
                                        orientations, requested, rec)
             if spine_best is not None:
                 _dump_design(case, prop, spine_best, out_dir, "spine")
+
+        # 5. the 2D wing, minimal form: two small rooms stacked in one column of a band
+        if milp_placement is not None:
+            stack_best = _stack_family(case, prop, zones, p, union, spatial, access, orientations, requested, rec)
+            if stack_best is not None:
+                _dump_design(case, prop, stack_best, out_dir, "stack")
 
     rec["seconds"] = round(time.monotonic() - t0, 1)
     counted = [x for x in rec["plans"] if x["counts"]]

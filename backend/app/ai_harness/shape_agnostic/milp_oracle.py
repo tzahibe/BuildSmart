@@ -19,7 +19,7 @@ has any solution at all; alignment is asked of the found heights afterwards.
 from __future__ import annotations
 
 import itertools
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from scipy.optimize import Bounds, LinearConstraint, milp
@@ -41,6 +41,8 @@ class OracleResult:
     #: the full placement when FEASIBLE: per band (start, boundaries..., end) in units
     band_x_u: tuple[tuple[int, ...], ...] = ()
     y_start_u: int = 0
+    #: stacks (2D wing): each member's own height, top to bottom inside its column
+    member_heights_u: dict = field(default_factory=dict)
 
     def as_sizing(self):
         """The oracle's placement in the exact sizer's own result type, so `rects()` /
@@ -60,7 +62,7 @@ def _height_grid(lo: int, hi: int, k: int) -> list[int]:
 def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
                  k: int = 10, tol_m2: float = 0.01, time_limit_s: float = 10.0,
                  align: bool = False, sides: dict | None = None,
-                 objective: str = "feasible") -> OracleResult:
+                 objective: str = "feasible", stacks: dict | None = None) -> OracleResult:
     """`align=True` adds the one-wall-type-per-side rule as a disjunction: a band's start/end
     either coincides with a cell boundary of the band above or lies outside it, and the band
     above's endpoint that falls strictly inside this band becomes one of this band's boundaries.
@@ -68,7 +70,32 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     cells, band_nodes, N = _cells_and_nodes(bands, zones, sides)
     R = len(bands)
     req = [tuple(e) for e in required]
-    by_zone = {c.zone_id: c for c in cells}
+    # stacks (the 2D wing, `stacks.py`): a pseudo-cell is replaced by its MEMBERS — same column
+    # (c0, c1), own heights summing to the band's. The pseudo's bounds are never applied.
+    stacks = stacks or {}
+    from app.vertical_slice.band_sizing import CellSpec
+    from app.vertical_slice.geometry_core.model import WallType, inset_u
+    ext_i, part_i = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION)
+    members: list[CellSpec] = []          # CellSpec per member, r/c0/c1 = the column's
+    member_of: dict[str, tuple[str, int, int]] = {}   # member id -> (pseudo id, index, count)
+    zones_all = dict(zones)
+    for c in list(cells):
+        if c.zone_id not in stacks:
+            continue
+        cells.remove(c)
+        ms = stacks[c.zone_id]
+        for i, m in enumerate(ms):
+            known = (sides or {}).get(m.zone_id)
+            if known is not None:
+                iw = inset_u(known["W"]) + inset_u(known["E"]); ih = inset_u(known["N"]) + inset_u(known["S"])
+            else:
+                iw = c.inset_w_u
+                ih = (ext_i if i == 0 else part_i) + (ext_i if i == len(ms) - 1 else part_i)
+            members.append(CellSpec(m.zone_id, c.r, c.c0, c.c1, m.min_area_m2, m.max_area_m2,
+                                    m.min_short_side_m, m.max_aspect_ratio, iw, ih))
+            member_of[m.zone_id] = (c.zone_id, i, len(ms))
+            zones_all[m.zone_id] = m
+    by_zone = {c.zone_id: c for c in cells + members}
 
     # depth: the same start / cap rule as the sizer
     windows = envelope.split_depth_windows_u()
@@ -87,6 +114,9 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     for c in cells:
         lo, hi = _height_bounds(c, tol_m2, h_cap)
         hL0[c.r] = max(hL0[c.r], lo); hU0[c.r] = min(hU0[c.r], hi)
+    for pid in stacks:
+        col = [m for m in members if member_of[m.zone_id][0] == pid]
+        hL0[col[0].r] = max(hL0[col[0].r], sum(m_to_u(m.min_short_m) + m.inset_h_u for m in col))
     if any(hL0[r] > hU0[r] for r in range(R)):
         return OracleResult("INFEASIBLE", detail="a band's cells have no common feasible depth")
     if sum(hL0) > h_cap:
@@ -117,6 +147,15 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
         for d in inner_steps:
             a_idx[(r, d)] = nx; nx += 1               # band r has some part ABOVE depth d
             b_idx[(r, d)] = nx; nx += 1               # band r has some part BELOW depth d
+    # members: one binary per candidate height (every unit from the member's own minimum up to
+    # the band's maximum — unit steps so the members' sum can equal any band height exactly)
+    mgrid: dict[str, list[int]] = {}
+    mz_idx: dict[tuple[str, int], int] = {}
+    for m in members:
+        lo = m_to_u(m.min_short_m) + m.inset_h_u
+        mgrid[m.zone_id] = list(range(lo, hU0[m.r] + 1))
+        for j in range(len(mgrid[m.zone_id])):
+            mz_idx[(m.zone_id, j)] = nx; nx += 1
     nvar = nx
     rows, lbs, ubs = [], [], []
 
@@ -168,16 +207,57 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
             # aspect: net width <= asp * hn ; net width >= hn / asp
             add({**w, zv: BIG}, -BIG, c.max_aspect * hn + c.inset_w_u + BIG)
             add({**w, zv: -BIG}, hn / c.max_aspect + c.inset_w_u - BIG, BIG)
+    # members: one height each, the column's heights sum to the band's, own area / short / aspect
+    def mh_expr(mid: str) -> dict[int, float]:
+        return {mz_idx[(mid, j)]: float(H) for j, H in enumerate(mgrid[mid])}
+    for pid in stacks:
+        col = [m for m in members if member_of[m.zone_id][0] == pid]
+        total = dict(h_expr(col[0].r))
+        for m in col:
+            add({mz_idx[(m.zone_id, j)]: 1.0 for j in range(len(mgrid[m.zone_id]))}, 1, 1)
+            for v, cft in mh_expr(m.zone_id).items():
+                total[v] = total.get(v, 0.0) - cft
+        add(total, 0, 0)                                  # band height - sum(member heights) = 0
+    for m in members:
+        w = {m.c1: 1.0, m.c0: -1.0}
+        a_lo, a_hi = m.min_area_m2 / (UNIT_M * UNIT_M), m.max_area_m2 / (UNIT_M * UNIT_M)
+        ms_ = m_to_u(m.min_short_m)
+        for j, H in enumerate(mgrid[m.zone_id]):
+            hn = H - m.inset_h_u
+            zv = mz_idx[(m.zone_id, j)]
+            if hn < 1 or hn < ms_:
+                add({zv: 1.0}, 0, 0); continue
+            add({**w, zv: -BIG}, a_lo / hn + m.inset_w_u - BIG, BIG)
+            add({**w, zv: BIG}, -BIG, a_hi / hn + m.inset_w_u + BIG)
+            add({**w, zv: -BIG}, ms_ + m.inset_w_u - BIG, BIG)
+            add({**w, zv: BIG}, -BIG, m.max_aspect * hn + m.inset_w_u + BIG)
+            add({**w, zv: -BIG}, hn / m.max_aspect + m.inset_w_u - BIG, BIG)
     # required contacts
     for a, b in req:
         ca, cb = by_zone[a], by_zone[b]
+        need = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
+        ma, mb = member_of.get(a), member_of.get(b)
+        if ma and mb and ma[0] == mb[0]:
+            if abs(ma[1] - mb[1]) != 1:
+                return OracleResult("INFEASIBLE", detail=f"{a}-{b} are not neighbours in their stack")
+            add({ca.c1: 1.0, ca.c0: -1.0}, need, BIG)      # they share the column's width
+            continue
         if ca.r == cb.r:
             if abs(ca.c0 - cb.c0) != 1:
                 return OracleResult("INFEASIBLE", detail=f"{a}-{b} share a band but are not consecutive")
+            # a member touches its side neighbour along its OWN height
+            for mid, info in ((a, ma), (b, mb)):
+                if info and need > 1:
+                    add(mh_expr(mid), need, BIG)
             continue
         if abs(ca.r - cb.r) != 1:
             return OracleResult("INFEASIBLE", detail=f"{a}-{b} are not in consecutive bands")
-        need = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
+        # a member reaches the band above only from the top of its stack, the band below only from the bottom
+        for mid, info, other in ((a, ma, cb), (b, mb, ca)):
+            if info:
+                upper = other.r < by_zone[mid].r
+                if (upper and info[1] != 0) or (not upper and info[1] != info[2] - 1):
+                    return OracleResult("INFEASIBLE", detail=f"{mid} is buried in its stack and cannot reach {a if mid == b else b}")
         add({cb.c1: 1.0, ca.c0: -1.0}, need, BIG)
         add({ca.c1: 1.0, cb.c0: -1.0}, need, BIG)
     # consecutive bands overlap by >= 1
@@ -261,7 +341,10 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     obj_c: dict[int, float] = {}
     continuous: list[int] = []
     if objective == "target":
-        nvar, obj_c, continuous = _target_objective(cells, zones, grids, z_idx, nvar, add, w_hi=envelope.width_u)
+        items = [(c, grids[c.r], [z_idx[(c.r, kk)] for kk in range(len(grids[c.r]))]) for c in cells]
+        items += [(m, mgrid[m.zone_id], [mz_idx[(m.zone_id, j)] for j in range(len(mgrid[m.zone_id]))])
+                  for m in members]
+        nvar, obj_c, continuous = _target_objective(items, zones_all, nvar, add, w_hi=envelope.width_u)
     A = lil_matrix((len(rows), nvar))
     for i, coefs in enumerate(rows):
         for v, cft in coefs.items():
@@ -270,7 +353,7 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     for v in continuous:
         integrality[v] = 0.0
     lb = np.zeros(nvar); ub = np.full(nvar, float(BIG))
-    for v in list(z_idx.values()) + list(a_idx.values()) + list(b_idx.values()):
+    for v in list(z_idx.values()) + list(a_idx.values()) + list(b_idx.values()) + list(mz_idx.values()):
         ub[v] = 1.0
     for v in range(first_align_var, binary_end):
         ub[v] = 1.0
@@ -298,14 +381,16 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
             kk = max(range(len(grids[r])), key=lambda j: res.x[z_idx[(r, j)]])
             heights.append(grids[r][kk])
         band_x = tuple(tuple(int(round(res.x[i])) for i in band_nodes[r]) for r in range(R))
+        mh = {m.zone_id: mgrid[m.zone_id][max(range(len(mgrid[m.zone_id])),
+                                              key=lambda j: res.x[mz_idx[(m.zone_id, j)]])] for m in members}
         return OracleResult("FEASIBLE", tuple(heights), detail=f"{len(rows)} constraints, {nvar} variables",
-                            band_x_u=band_x, y_start_u=y_start)
+                            band_x_u=band_x, y_start_u=y_start, member_heights_u=mh)
     if res.status == 2:
         return OracleResult("INFEASIBLE", detail=f"HiGHS: {res.message}")
     return OracleResult("UNKNOWN", detail=f"HiGHS: {res.message}")
 
 
-def _target_objective(cells, zones, grids, z_idx, nvar, add, *, w_hi: int, extra=()):
+def _target_objective(items, zones, nvar, add, *, w_hi: int, extra=()):
     """Objective "target" (A1): every room's EXACT net area tracks the programme's target.
 
     Net area is (w - iw)(h - ih) with w = c1 - c0 and h a binary choice from the band's grid, so
@@ -323,11 +408,11 @@ def _target_objective(cells, zones, grids, z_idx, nvar, add, *, w_hi: int, extra
     c: dict[int, float] = {}
     continuous: list[int] = []
     terms = []
-    for cell in cells:
+    for cell, grid, zvars in items:
         w = {cell.c1: 1.0, cell.c0: -1.0}
         expr = {cell.c1: -float(cell.inset_h_u), cell.c0: float(cell.inset_h_u)}     # - ih * w
-        for kk, Hk in enumerate(grids[cell.r]):
-            zv = z_idx[(cell.r, kk)]
+        for kk, Hk in enumerate(grid):
+            zv = zvars[kk]
             pv = nvar; nvar += 1; continuous.append(pv)
             add({pv: 1.0, zv: -float(w_hi)}, -BIG, 0)                                  # p <= wh z
             add({pv: 1.0, zv: -1.0}, 0, BIG)                                           # p >= 1 z
@@ -351,7 +436,7 @@ def _target_objective(cells, zones, grids, z_idx, nvar, add, *, w_hi: int, extra
 
 
 def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
-                   k: int = 12, rounds: int = 3, objective: str = "area") -> OracleResult:
+                   k: int = 12, rounds: int = 3, objective: str = "area", stacks: dict | None = None) -> OracleResult:
     """The aligned oracle as THE sizer: solve, read the real wall types off the placement, re-solve
     with exact insets until they stop changing (the same fixed point the sizer runs), and hand the
     final placement to `realize_cells`. Every refusal downstream is then a validator's own."""
@@ -360,14 +445,29 @@ def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u:
     last = None
     for _ in range(rounds):
         res = milp_heights(bands, zones, required, envelope, min_contact_u=min_contact_u, k=k,
-                           align=True, sides=sides, objective=objective)
+                           align=True, sides=sides, objective=objective, stacks=stacks)
         if res.status != "FEASIBLE":
             return last if (last is not None and last.status == "FEASIBLE") else res
-        real = sides_from_rects(res.as_sizing().rects(bands), zones)
+        real = sides_from_rects(*placement_rects(bands, zones, res, stacks))
         if real == sides:
             return res
         sides, last = real, res
     return last
+
+
+def placement_rects(bands, zones, res: OracleResult, stacks: dict | None = None):
+    """(rects, intents) of a placement with every stack expanded into its members — what the
+    realizer and the wall-type fixed point see. `stacks`: pseudo id -> member intents, top first."""
+    from app.ai_harness.shape_agnostic.stacks import expand_rects
+    rects = res.as_sizing().rects(bands)
+    if not stacks:
+        return rects, zones
+    ids = {pid: tuple(m.zone_id for m in ms) for pid, ms in stacks.items()}
+    intents = {z: zi for z, zi in zones.items() if z not in stacks}
+    for ms in stacks.values():
+        for m in ms:
+            intents[m.zone_id] = m
+    return expand_rects(rects, ids, res.member_heights_u), intents
 
 
 # ----------------------------------------------------------------------------- the spine (path B)
@@ -674,7 +774,8 @@ def _spine_once(layout, zones, required, envelope: Envelope, *, min_contact_u, k
     obj_c: dict[int, float] = {}
     continuous: list[int] = []
     if objective == "target":
-        nvar, obj_c, continuous = _target_objective(cells, zones, grids, z_idx, nvar, add, w_hi=envelope.width_u,
+        items = [(c, grids[c.r], [z_idx[(c.r, kk)] for kk in range(len(grids[c.r]))]) for c in cells]
+        nvar, obj_c, continuous = _target_objective(items, zones, nvar, add, w_hi=envelope.width_u,
                                                     extra=[(spine, net_area, float(iw_s * ih_s))])
     A = lil_matrix((len(rows), nvar))
     for i, coefs in enumerate(rows):
