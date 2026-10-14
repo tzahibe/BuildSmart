@@ -277,13 +277,18 @@ class StateStore:
 
     def track(self, issue_id: int, *, title: str, risk: str, resource_class: str, domains: list[str],
               dependencies: list[int], contract: dict | None, state: str = sm.QUEUED,
-              root_issue: int | None = None, parent_issue: int | None = None, kind: str = "root") -> IssueRecord:
-        """Insert if unknown; if known, refresh the contract-derived metadata but never the state."""
+              root_issue: int | None = None, parent_issue: int | None = None, kind: str | None = None) -> IssueRecord:
+        """Insert if unknown; if known, refresh the contract-derived metadata but never the state — and never
+        the ROOT linkage unless the caller passes it (a contract refresh once reset a child of #74 to a ROOT
+        of its own, 2026-09-20, and the child then skipped its integration branch)."""
         now = self.clock()
-        root_issue = root_issue or issue_id
-        parent_issue = parent_issue or (root_issue if kind == "child" else None)
         with self.tx() as c:
-            existing = c.execute("SELECT issue_id FROM issues WHERE issue_id=?", (issue_id,)).fetchone()
+            existing = c.execute("SELECT issue_id, root_issue, parent_issue, kind FROM issues WHERE issue_id=?", (issue_id,)).fetchone()
+            if existing and kind is None and root_issue is None:
+                root_issue, parent_issue, kind = existing["root_issue"], existing["parent_issue"], existing["kind"]
+            kind = kind or "root"
+            root_issue = root_issue or issue_id
+            parent_issue = parent_issue or (root_issue if kind == "child" else None)
             if existing:
                 c.execute(
                     "UPDATE issues SET title=?, risk=?, resource_class=?, domains=?, dependencies=?, contract=?, updated_at=?,"

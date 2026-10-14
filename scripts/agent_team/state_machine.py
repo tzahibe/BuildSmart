@@ -32,17 +32,17 @@ TRANSITIONS: dict[str, tuple[str, ...]] = {
     QUEUED: (CLAIMED, BLOCKED),
     CLAIMED: (WORKING, PR_OPEN, QUEUED, BLOCKED),       # PR_OPEN: reconciled an existing PR
     WORKING: (PR_OPEN, QUEUED, BLOCKED),                # QUEUED: stale agent requeued
-    PR_OPEN: (CI, BLOCKED),
-    CI: (REVIEW, FIX_REQUIRED, BLOCKED),
+    PR_OPEN: (CI, BLOCKED, INTEGRATED),                 # INTEGRATED: adopted owner merge into a ROOT's integration branch
+    CI: (REVIEW, FIX_REQUIRED, BLOCKED, INTEGRATED),
     REVIEW: (READY_FOR_OWNER, INTEGRATED, FIX_REQUIRED, BLOCKED, CI),   # CI: head moved -> review is stale, re-validate
     FIX_REQUIRED: (WORKING, BLOCKED),
     # READY_FOR_OWNER: the orchestrator never merges. MERGED only through an explicit owner merge
     # (Telegram CONFIRM MERGE, or the owner pressing Merge on GitHub); CI when the head or the base
     # moved (readiness invalidated); FIX_REQUIRED on an owner change request; BLOCKED on a reject.
-    READY_FOR_OWNER: (MERGED, CI, FIX_REQUIRED, BLOCKED),
+    READY_FOR_OWNER: (MERGED, CI, FIX_REQUIRED, BLOCKED, INTEGRATED),
     INTEGRATED: (DONE, FIX_REQUIRED, BLOCKED),          # DONE when the rollup merges; FIX_REQUIRED when integration smoke reverts it
-    MERGED: (DONE, BLOCKED),
-    BLOCKED: (QUEUED, PR_OPEN, FIX_REQUIRED, DONE),     # lead decisions: requeue / resume PR / send back for repair / close
+    MERGED: (DONE, BLOCKED, INTEGRATED),               # INTEGRATED: the owner merged into a ROOT's integration branch
+    BLOCKED: (QUEUED, PR_OPEN, FIX_REQUIRED, DONE, INTEGRATED),     # lead decisions: requeue / resume PR / repair / close / adopt an integration merge
     DONE: (),
 }
 

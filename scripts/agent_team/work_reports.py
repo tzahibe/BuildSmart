@@ -27,7 +27,7 @@ from agent_team.state_store import StateStore
 
 #: `stage` values a failure_record may carry: worker/publish/ci/review are worker-lifecycle
 #: failures, `owner` is an owner reject/change-request, `usage` is a rate-limit pause.
-FAILURE_STAGES = ("worker", "publish", "ci", "review", "owner", "usage")
+FAILURE_STAGES = ("worker", "publish", "ci", "review", "merge", "owner", "usage")
 NEXT_ACTIONS = ("requeue", "repair", "rerun_ci", "blocked", "paused")
 
 _ROOT_CAUSE_LIMIT = 500
@@ -69,7 +69,9 @@ def load_latest_evidence_note(config: Config, issue_id: int) -> str:
     """The most recent per-attempt evidence note, falling back to the legacy single-file note."""
     d = _evidence_dir(config)
     if d.exists():
-        candidates = sorted((p for p in d.glob(f"{issue_id}-attempt*.md")), key=lambda p: _attempt_of(p.name))
+        # by modification time, not attempt number: after `requeue --reset-attempts` an old higher-numbered
+        # note outranked the fresh review findings and the fixer worked from stale INFRA evidence (#38)
+        candidates = sorted((p for p in d.glob(f"{issue_id}-attempt*.md")), key=lambda p: (p.stat().st_mtime, _attempt_of(p.name)))
         if candidates:
             return candidates[-1].read_text(encoding="utf-8")
     legacy = d / f"{issue_id}.md"

@@ -31,41 +31,48 @@ from typing import Literal
 from app.geometry_domain.constraints import BuildableRegion
 from app.geometry_domain.primitives import MultiRegion, Region, Ring
 from app.geometry_domain.provenance import Authority, Provenance, Source
+from app.geometry_domain.walls import BoundaryContext
 from app.projects.models import Project, SelectedFootprint
+from app.vertical_slice import concept_engine_v2, l_massing_guard
+from app.vertical_slice import concept_generator as generator
+from app.vertical_slice import doors as doors_stage
+from app.vertical_slice import general_pipeline as gp
+from app.vertical_slice.brain.runner import run_brain
+from app.vertical_slice.building import Building
 from app.vertical_slice.concept_generator import (
     RejectionReason,
     build_room_program,
     program_capacity_gross_m2,
 )
-from app.vertical_slice.constraints import SAFE_ROOM_NOT_REALIZED_DETAIL, SafeRoomDropped
-from app.vertical_slice.relationships import describe
-from app.geometry_domain.walls import BoundaryContext
-from app.vertical_slice import doors as doors_stage
-from app.vertical_slice import l_massing_guard
-from app.vertical_slice.hub_guard import proportions_of
-from app.vertical_slice.spec import HouseConcept, LaundryDemand, PublicOpenSide, RelationStrength
+from app.vertical_slice.concept_spec import PublicOrientation
+from app.vertical_slice.constraints import (
+    SAFE_ROOM_NOT_REALIZED_DETAIL,
+    SafeRoomDropped,
+)
 from app.vertical_slice.general_pipeline import (
     ALTERNATIVE_PLAN_LIMIT,
     GeneralSliceResult,
     RealizedPlan,
     run_general,
 )
-from app.vertical_slice.geometry_core.engine import solve_fixture
-from app.vertical_slice.safe_adapter import AdapterOutcome
+from app.vertical_slice.geometry_core.engine import GeometryInfeasible, solve_fixture
+from app.vertical_slice.hub_guard import proportions_of
+from app.vertical_slice.relationships import describe
+from app.vertical_slice.safe_adapter import AdapterOutcome, adapt
 from app.vertical_slice.site import PARKING_BAY_DEPTH_M, front_band_m
+from app.vertical_slice.spec import (
+    HouseConcept,
+    LaundryDemand,
+    PublicOpenSide,
+    RelationStrength,
+)
 from app.vertical_slice.wet_privacy import candidate_privacy_key
 
-from app.vertical_slice.building import Building
-
-from app.vertical_slice import concept_engine_v2
-from app.vertical_slice.brain.runner import run_brain
-from app.vertical_slice import general_pipeline as gp
-
+from . import site_geometry
 from .contract import (
     ConceptOut,
     DemoBuilding,
     DemoDesign,
-    DemoPlanSet,
     InconsistentGeometryError,
     OutlineOut,
     OutlineTried,
@@ -75,9 +82,7 @@ from .contract import (
     to_demo_design,
 )
 from .requirements_view import spec_for
-from . import site_geometry
 from .scope import ScopeRejection, check_supported
-
 
 #: Refusals that are about FEASIBILITY — this brief, this parcel, these assumptions — rather than
 #: about a malformed request. Each carries the scoping sentence so no refusal can be read as
@@ -209,7 +214,7 @@ def _set_aside(project: Project, spec, preference_dropped: bool) -> list[str]:
     return notes
 
 
-def _buildable_from(spec, project: Project, outline: "Outline | None" = None) -> BuildableRegion:
+def _buildable_from(spec, project: Project, outline: Outline | None = None) -> BuildableRegion:
     """The land the planner may use: the chosen footprint, PLACED INSIDE the real buildable area.
 
     Both containments are real — footprint inside buildable, buildable inside the parcel — so the
@@ -251,7 +256,8 @@ def _buildable_from(spec, project: Project, outline: "Outline | None" = None) ->
 def generate_demo_design(project: Project,
                          on_stage: Callable[[str], None] | None = None,
                          *, concept_engine_v2: bool | None = None,
-                         brain: bool = False) -> DemoResult:
+                         brain: bool = False,
+                         rear_band_preview: bool = False) -> DemoResult:
     rejection: ScopeRejection | None = check_supported(project)
     if rejection is not None:
         raise DemoGenerationError(rejection.code.value, rejection.message, rejection.detail)
@@ -264,7 +270,8 @@ def generate_demo_design(project: Project,
     # request plans.
     try:
         return _generate_demo_design(project, spec, on_stage,
-                                     concept_engine_v2=concept_engine_v2, brain=brain)
+                                     concept_engine_v2=concept_engine_v2, brain=brain,
+                                     rear_band_preview=rear_band_preview)
     except SafeRoomDropped as exc:
         raise DemoGenerationError(
             "SAFE_ROOM_DROPPED",
@@ -275,7 +282,8 @@ def generate_demo_design(project: Project,
 
 def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None] | None = None,
                           *, concept_engine_v2: bool | None = None,
-                          brain: bool = False) -> DemoResult:
+                          brain: bool = False,
+                          rear_band_preview: bool = False) -> DemoResult:
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
@@ -322,6 +330,12 @@ def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None
         # pipeline and validators. Never a silent fallback: a brief the brain cannot plan returns
         # its own typed refusal rather than the guillotine plan.
         return _brain_result(project, spec, selection, results, preference_dropped)
+    if rear_band_preview:
+        # E1 DEVELOPMENT PREVIEW. Replaces the primary with the SAME brief's rear-band plan on the
+        # SAME outline, keeping the production plan as the first alternative so the two are drawn
+        # by the same renderer, side by side. Never a silent fallback: a brief whose band parti
+        # cannot be planned returns that refusal, with the generator's own reason.
+        selection = _rear_band_selection(spec, project, selection)
     use_concept_engine_v2 = (gp.CONCEPT_ENGINE_V2_ENABLED if concept_engine_v2 is None
                              else concept_engine_v2)
     if use_concept_engine_v2:
@@ -935,6 +949,51 @@ def _brain_result(project: Project, spec, selection: PlanSelection,
         search=SearchSummary(outlines=[r.as_tried() for r in results],
                              total_latency_ms=round(sum(r.latency_ms for r in results), 1)),
         building=building)
+#: How many rear-band candidates the preview realizes before refusing. The same bounded shape
+#: `concept_engine_v2.CONCEPT_ENGINE_V2_MAX_REALIZATIONS` uses, and for the same reason: the
+#: preview must cost a bounded number of solver runs, never an unbounded search.
+_REAR_BAND_MAX_REALIZATIONS = 8
+
+
+def _rear_band_selection(spec, project: Project, selection: PlanSelection) -> PlanSelection:
+    """E1's preview: the rear-band plan as the primary, production's plan as the alternative.
+
+    DEVELOPMENT ONLY, and reachable only by asking for it by name (`?engine=e1_rear_band`). It
+    changes no default, no ranking and no flag: `generate_concepts` is asked for the GARDEN
+    orientation for this request alone, on the outline the production primary was already fit to,
+    and the result goes through the unchanged `_realize` and the unchanged validators.
+    """
+    orr, production_plan = selection.primary
+    buildable = _buildable_from(spec, _with_outline(project, orr.outline), orr.outline)
+    adapted = adapt(buildable)
+    if adapted.outcome is not AdapterOutcome.SOLVED:
+        raise DemoGenerationError("E1_REAR_BAND_UNAVAILABLE",
+                                  "לא ניתן להציג את תצוגת E1 עבור התוכנית הזו.",
+                                  f"adapter outcome {adapted.outcome.value}")
+    generated = generator.generate_concepts(spec, list(adapted.candidates),
+                                            public_orientation=PublicOrientation.GARDEN)
+    rear = [(i, c) for i, c in enumerate(generated.candidates)
+            if c.strategy is generator.ConceptStrategy.REAR_PUBLIC_BAND]
+    notes: list[str] = [f"{r.strategy.value}/{r.reason.value}: {r.detail}"
+                        for r in generated.rejections
+                        if r.strategy is generator.ConceptStrategy.REAR_PUBLIC_BAND]
+    for index, candidate in rear[:_REAR_BAND_MAX_REALIZATIONS]:
+        try:
+            solve = solve_fixture(candidate.concept.fixture)
+        except GeometryInfeasible as exc:
+            notes.append(f"candidate {index}: solver refused: {exc}")
+            continue
+        plan = gp._realize(spec, buildable, None, candidate, index, solve, ())
+        if plan.ok:
+            others = ((orr, production_plan), *selection.alternatives)
+            return replace(selection, primary=(orr, plan),
+                           alternatives=others[:_SHOWN_LIMIT - 1])
+        failed = ", ".join(c.check_id for c in plan.validation.failures()) or "safety"
+        notes.append(f"candidate {index}: realized but failed {failed}")
+    raise DemoGenerationError(
+        "E1_REAR_BAND_NOT_PLANNABLE",
+        "התוכנית הניסיונית עם הרצועה הציבורית לכיוון הגינה לא ניתנת לתכנון עבור התוכנית הזו.",
+        "; ".join(notes) or "the band parti produced no candidate for this brief")
 
 
 def _concept_of(plan: RealizedPlan, enabled: bool) -> ConceptOut | None:
@@ -1065,7 +1124,7 @@ def _street_fronting_roles(design) -> frozenset[str]:
 
 
 def _plan(spec, project: Project, on_stage=None, *,
-          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT, outline: "Outline | None" = None,
+          max_alternatives: int = ALTERNATIVE_PLAN_LIMIT, outline: Outline | None = None,
           concept_engine_v2: bool | None = None):
     # The demo screen SHOWS the other plans, so the demo is what asks for them to be computed.
     # Every other caller of the pipeline still gets one plan at one plan's cost. `max_alternatives`
@@ -1133,7 +1192,7 @@ def _rejection_reason_names_only_laundry_shape(reason: str) -> bool:
     return bool(detail) and detail.split(" ", 1)[0] == _LAUNDRY_ZONE_ID
 
 
-def _laundry_unplaceable_message(spec, outlines: list["OutlineResult"] | None) -> str | None:
+def _laundry_unplaceable_message(spec, outlines: list[OutlineResult] | None) -> str | None:
     """None unless EVERY outline this brief tried failed for a reason that names the LAUNDRY
     room's own exterior-wall/window/bay guarantee specifically (see `_LAUNDRY_REQUIREMENT_CHECKS`)
     and NOTHING ELSE — a check or a pre-solve rejection that also names a different room never

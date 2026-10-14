@@ -166,12 +166,20 @@ class GitHubClient:
         that also live under `agent:` (child, decomposed, hold, rollup) are left alone."""
         target = state_to_label(state)
         current = self.issue_labels(number)
+        # add first, remove second: gate 1 reads the Issue's labels within seconds of a push and once
+        # saw NO state label in the swap window (#67, 2026-09-20) — a brief window with two is harmless
+        if target not in current:
+            self.add_labels(number, [target])
         for l in current:
             if l in STATE_LABEL_NAMES and l != target:
                 self.remove_label(number, l)
-        if target not in current:
-            self.add_labels(number, [target])
         return target
+
+    def list_issue_comments(self, number: int) -> list[dict]:
+        """Every comment on an Issue. Used by the ANALYSIS lane to prove it has not already
+        answered — the last idempotency layer, independent of labels and of local state."""
+        return self.transport.request(
+            "GET", f"/repos/{self.repo}/issues/{number}/comments?per_page=100", paginate=True) or []
 
     def comment(self, number: int, body: str) -> dict:
         return self.transport.request("POST", f"/repos/{self.repo}/issues/{number}/comments", body={"body": body})
@@ -206,6 +214,10 @@ class GitHubClient:
         prs = self.transport.request("GET", f"/repos/{self.repo}/pulls?head={owner}:{branch}&state={state}&per_page=10") or []
         return prs[0] if prs else None
 
+    def open_prs_for_base(self, base: str) -> list[dict]:
+        """Every open PR that targets `base` — what GitHub would auto-close if `base` were deleted."""
+        return self.transport.request("GET", f"/repos/{self.repo}/pulls?base={base}&state=open&per_page=100", paginate=True) or []
+
     def create_pr(self, *, head: str, base: str, title: str, body: str, draft: bool = False) -> dict:
         return self.transport.request("POST", f"/repos/{self.repo}/pulls",
                                       body={"head": head, "base": base, "title": title, "body": body, "draft": draft})
@@ -231,6 +243,9 @@ class GitHubClient:
         if sha:
             body["sha"] = sha
         return self.transport.request("PUT", f"/repos/{self.repo}/pulls/{number}/merge", body=body)
+
+    def rerun_workflow(self, run_id: int) -> None:
+        self.transport.request("POST", f"/repos/{self.repo}/actions/runs/{run_id}/rerun")
 
     def delete_branch(self, branch: str) -> bool:
         try:
@@ -382,16 +397,19 @@ class FakeGitHub:
 
     def set_state_label(self, number: int, state: str) -> str:
         target = state_to_label(state)
+        if target not in self.issue_labels(number):
+            self.add_labels(number, [target])
         for l in self.issue_labels(number):
             if l in STATE_LABEL_NAMES and l != target:
                 self.remove_label(number, l)
-        if target not in self.issue_labels(number):
-            self.add_labels(number, [target])
         return target
 
     def comment(self, number: int, body: str) -> dict:
         self.comments.append((number, body))
         return {"id": len(self.comments)}
+
+    def list_issue_comments(self, number: int) -> list[dict]:
+        return [{"body": b} for n, b in self.comments if n == number]
 
     def close_issue(self, number: int, reason: str = "completed") -> None:
         self.get_issue(number)["state"] = "closed"
@@ -422,6 +440,9 @@ class FakeGitHub:
             if pr["head"]["ref"] == branch and (state == "all" or pr["state"] == state):
                 return self.get_pr(pr["number"])
         return None
+
+    def open_prs_for_base(self, base: str) -> list[dict]:
+        return [pr for pr in self.prs.values() if pr.get("state") == "open" and (pr.get("base") or {}).get("ref") == base and not pr.get("merged")]
 
     def create_pr(self, *, head: str, base: str, title: str, body: str, draft: bool = False) -> dict:
         n = self.next_number
@@ -463,6 +484,9 @@ class FakeGitHub:
         self.merged.append(number)
         self.default_branch_sha = pr["merge_commit_sha"]
         return {"merged": True, "sha": pr["merge_commit_sha"]}
+
+    def rerun_workflow(self, run_id: int) -> None:
+        self.reruns = getattr(self, "reruns", []) + [run_id]
 
     def delete_branch(self, branch: str) -> bool:
         self.deleted_branches.append(branch)

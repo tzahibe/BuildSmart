@@ -26,6 +26,7 @@ reports (`docs/*.md`, `specs/*/`), retrievable through the Project Knowledge RAG
 | Private House V1 scope | APPROVED (decision) | [wiki/decisions/private-house-v1-scope.md](wiki/decisions/private-house-v1-scope.md) |
 | Autonomous Engineering Workflow (Agent Team) | LIVE — pilot passed 2026-09-17; governance since 2026-09-18: owner approves ROOT Issues and merges, the Team Lead executes everything else (child Issues, parallel workers); Telegram control plane; on `infra/telegram-control-plane` (PR #16, owner merges) | [wiki/architecture/agent-team-workflow.md](wiki/architecture/agent-team-workflow.md) |
 | Product roadmap (owner-maintained, proposed only) | PROPOSED | [ROADMAP.md](ROADMAP.md) |
+| Concept Engine v2 — Hybrid Architectural Planning | IN PROGRESS — ROOT #74 (owner-approved 2026-09-20), children #75–#79 on `integration/concept-engine-v2`; nothing on `main`; primary plan unchanged until the owner sees #78's benchmark | [CONCEPT_ENGINE_V2_INVESTIGATION.md](CONCEPT_ENGINE_V2_INVESTIGATION.md), [ROADMAP.md](ROADMAP.md) |
 
 Backend: FastAPI (`backend/app`), Python 3.11, `uv`-managed, `[tool.uv] package = false` — CLIs
 run as `python -m app.<module>.cli`, not via `[project.scripts]`.
@@ -91,6 +92,11 @@ new row here in the same commit that adds it, or the wiring-table test has no wa
 
 - Room capacity constraint, plan-not-realizable root cause — no successor doc yet.
 - Layout-selection UX research — partially realized via `specs/006-engine-chosen-outline`.
+- Concept Engine v2 (why concepts converge to one spine parti; generative vs retrieval vs hybrid) —
+  `CONCEPT_ENGINE_V2_INVESTIGATION.md` (2026-09-20, proposal: hybrid, ROOT + 5 children in
+  `.agent/proposals/roadmap/cev2-*.md`) — approved by the owner 2026-09-20 as ROOT #74 (children #75–#79,
+  #79 conditional); implementation is in progress through the agent team, nothing merged yet.
+
 - **Non-rectangular geometry** (Issue #102, 2026-09-22) —
   `docs/NON_RECTANGULAR_GEOMETRY_INVESTIGATION.md`: the Geometry Core is a guillotine (slicing-tree)
   partition of rectangular rooms; module-by-module rectangle-assumption inventory for Geometry

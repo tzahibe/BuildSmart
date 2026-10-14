@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable, Protocol
 
 WORKER = "worker"
+FIXER = "fixer"          # fix-and-resubmit worker: CI red / review findings / merge conflicts / amended contract
 REVIEWER = "reviewer"
 DOMAIN_LEAD = "domain_lead"
 
@@ -47,11 +48,39 @@ def redact(text: str) -> str:
     return out
 
 
+#: Editor extensions that ship a Claude Code native binary. Searched ONLY as a last resort, and
+#: only because on this machine it is the sole copy that exists (GitHub #188 §3.1): `claude` is on
+#: no PATH at all, so the orchestrator has been running on this fallback without anyone choosing
+#: it. The right answer is an explicit `CLAUDE_BIN` / `claude.binary`; this list is the safety net.
+_EXTENSION_GLOBS = (
+    "~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude",
+    "~/.vscode-server/extensions/anthropic.claude-code-*/resources/native-binary/claude",
+    "~/.cursor/extensions/anthropic.claude-code-*/resources/native-binary/claude",
+)
+
+
+def _version_key(path: str) -> tuple[int, ...]:
+    m = re.search(r"claude-code-(\d+)\.(\d+)\.(\d+)", path)
+    return tuple(int(x) for x in m.groups()) if m else (0,)
+
+
+def extension_binaries() -> list[str]:
+    """Every executable extension-shipped binary, newest first. Exposed for `agentctl doctor`."""
+    found: list[str] = []
+    for pattern in _EXTENSION_GLOBS:
+        found.extend(glob.glob(os.path.expanduser(pattern)))
+    return sorted({c for c in found if os.access(c, os.X_OK)}, key=_version_key, reverse=True)
+
+
 def resolve_claude_binary(configured: str = "auto") -> str:
-    """$CLAUDE_BIN, an explicit config path, `claude` on PATH, then the newest VS Code extension binary."""
+    """$CLAUDE_BIN, an explicit config path, `claude` on PATH, then the newest editor-extension
+    binary. Raises `FileNotFoundError` naming every place that was searched, so a failure says
+    what to fix rather than just that something is missing."""
     env = os.environ.get("CLAUDE_BIN")
-    if env and Path(env).exists():
-        return env
+    if env:
+        if Path(env).exists():
+            return env
+        raise FileNotFoundError(f"CLAUDE_BIN is set but does not exist: {env}")
     if configured and configured != "auto":
         if Path(configured).exists():
             return configured
@@ -59,16 +88,43 @@ def resolve_claude_binary(configured: str = "auto") -> str:
     on_path = shutil.which("claude")
     if on_path:
         return on_path
-    candidates = glob.glob(os.path.expanduser("~/.vscode/extensions/anthropic.claude-code-*/resources/native-binary/claude"))
-
-    def version_key(p: str) -> tuple[int, ...]:
-        m = re.search(r"claude-code-(\d+)\.(\d+)\.(\d+)", p)
-        return tuple(int(x) for x in m.groups()) if m else (0,)
-
-    candidates = [c for c in candidates if os.access(c, os.X_OK)]
+    candidates = extension_binaries()
     if candidates:
-        return max(candidates, key=version_key)
-    raise FileNotFoundError("no Claude Code binary found: set CLAUDE_BIN or claude.binary in .agent/config.yaml")
+        return candidates[0]
+    searched = ", ".join(os.path.expanduser(p) for p in _EXTENSION_GLOBS)
+    raise FileNotFoundError(
+        "no Claude Code binary found. Set CLAUDE_BIN (recommended: pin it in the launchd plist) "
+        "or claude.binary in .agent/config.yaml. Searched: $CLAUDE_BIN, claude.binary, "
+        f"`claude` on PATH ({os.environ.get('PATH', '')!r}), and {searched}")
+
+
+#: A resolved path is not a working binary: an extension directory can be half-removed, or
+#: quarantined by Gatekeeper, and the orchestrator would then fail at the first agent run —
+#: possibly hours after start. `claude_preflight` proves it RUNS, at startup, once.
+CLAUDE_PREFLIGHT_TIMEOUT_S = 30
+
+
+def verify_claude_binary(path: str, timeout: float = CLAUDE_PREFLIGHT_TIMEOUT_S) -> str:
+    """The binary's own reported version, by executing it. Raises `RuntimeError` if it will not
+    run — which is the failure the orchestrator needs to know about BEFORE it claims an Issue."""
+    try:
+        done = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=timeout)
+    except OSError as exc:
+        raise RuntimeError(f"claude binary at {path} could not be executed: {exc}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"claude binary at {path} did not answer --version "
+                           f"within {timeout}s") from exc
+    if done.returncode != 0:
+        raise RuntimeError(f"claude binary at {path} exited {done.returncode} for --version: "
+                           f"{redact((done.stderr or done.stdout or '').strip())[:200]}")
+    return (done.stdout or "").strip().splitlines()[0] if done.stdout.strip() else "unknown"
+
+
+def claude_preflight(configured: str = "auto",
+                     timeout: float = CLAUDE_PREFLIGHT_TIMEOUT_S) -> tuple[str, str]:
+    """(path, version), or raise. One call that answers "can this machine run an agent at all?"."""
+    path = resolve_claude_binary(configured)
+    return path, verify_claude_binary(path, timeout)
 
 
 @dataclass(frozen=True)
@@ -299,6 +355,8 @@ class FakeAgentRunner:
             heartbeat(4242)
             self.heartbeats += 1
         entry = self.script.get((spec.role, spec.issue_id), self.script.get(spec.role))
+        if entry is None and spec.role == FIXER:      # tests script "worker" once for both roles
+            entry = self.script.get((WORKER, spec.issue_id), self.script.get(WORKER))
         if callable(entry):
             entry = entry(spec)
         if isinstance(entry, AgentRunResult):

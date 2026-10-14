@@ -361,7 +361,7 @@ def test_status_blocked_line_includes_root_cause(remote):
     _add_issue(gh, 9, risk="LOW")
     failing = FakeAgentRunner(script={"worker": AgentRunResult(ok=False, exit_code=1, error="boom: pytest failed on test_x")})
     orch2 = _orch(orch.config, gh, clock, failing)
-    for _ in range(3):     # max_repair_attempts=2: 3 straight worker failures exhaust the budget
+    for _ in range(4):     # max_repair_attempts=3: 4 straight worker failures exhaust the budget
         _tick(orch2)
     rec = orch2.store.get(9)
     assert rec.state == sm.BLOCKED and rec.failure_class == "WORKER_FAILED"
@@ -460,6 +460,26 @@ def test_stale_base_blocks_owner_merge(remote):
     (other / "o.txt").write_text("o\n"); _git(["add", "."], other); _git(["commit", "-q", "-m", "o"], other); _git(["push", "-q", "origin", "main"], other)
     res = orch.owner_merge(13, head, source="telegram", owner_id=OWNER, command_id="s1")
     assert res["result"] == "REFUSED" and "base advanced" in res["reason"] and gh.merged == []
+
+
+def test_owner_merge_measures_behind_against_the_prs_own_base_not_a_stale_period_override(remote):
+    """2026-09-20: the Telegram service refused a merge with "base advanced by 56 commits" because its
+    long-lived orchestrator still carried the ENDED period's (deleted) integration branch as the base."""
+    orch, gh, clock, tg, interp, gw, svc, origin = remote
+    _pair(remote)
+    rec, head = _ready(remote, 16)
+    # a stale override pointing at a branch with commits main does not have (a period that ended elsewhere)
+    other = orch.config.repo_root.parent / "other2"
+    _git(["clone", "-q", str(origin), str(other)], orch.config.repo_root.parent)
+    _git(["config", "user.email", "o@example.com"], other); _git(["config", "user.name", "other"], other)
+    _git(["checkout", "-q", "-b", "integration/stale-period"], other)
+    (other / "stale.txt").write_text("s\n"); _git(["add", "stale.txt"], other); _git(["commit", "-q", "-m", "stale"], other)
+    _git(["push", "-q", "origin", "integration/stale-period"], other)
+    orch.worktrees.base_override = "integration/stale-period"
+    assert orch.store.get_meta("protected_period") in (None, "")            # no period persisted: the override is stale
+    res = orch.owner_merge(16, head, source="telegram", owner_id=OWNER, command_id="s2")
+    assert res["result"] == "SUCCESS", res.get("reason")
+    assert orch.worktrees.base_override is None                             # the merge path re-synced the period
 
 
 def test_reject_and_change_request(remote):
@@ -701,3 +721,53 @@ def test_claude_interpreter_answer_uses_the_fast_tier(tmp_path):
         monkey.undo()
     assert interp.answer("מה קרה?", "evidence", ConversationContext(chat_id=1)) == "תשובה"
     assert seen[0].model == "sonnet" and seen[0].tools == () and seen[0].timeout_seconds == 60
+
+
+def test_handler_thread_is_restarted_when_it_dies_and_replaced_when_stalled(remote, monkeypatch):
+    """Regression (2026-09-19): the bot received the owner's button presses but its single handler
+    thread had died/wedged, so every later press vanished silently."""
+    import threading, time as _time
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    svc.threaded = True
+    svc._ensure_worker()
+    first = svc._worker
+    assert first.is_alive()
+    # a dead thread is restarted on the next tick
+    svc._stop.set(); first.join(timeout=3); svc._stop.clear()
+    assert not first.is_alive()
+    svc.tick()
+    assert svc._worker is not first and svc._worker.is_alive()
+    # a stalled thread (one update stuck) is abandoned and replaced, and the owner is told
+    gate = threading.Event()
+    monkeypatch.setattr(svc, "handle_update", lambda u: gate.wait(30))
+    svc._queue.put({"update_id": 1, "message": {}})
+    for _ in range(50):
+        if svc._busy_since is not None:
+            break
+        _time.sleep(0.05)
+    stuck = svc._worker
+    monkeypatch.setattr(svc, "_busy_since", _time.monotonic() - svc.HANDLER_STALL_SECONDS - 1)
+    svc.tick()
+    assert svc._worker is not stuck and svc._worker.is_alive()
+    assert any("נתקעה" in t for t in tg.texts())
+    assert any(e["kind"] == "remote_handler_stalled" for e in orch.store.events(None, limit=20))
+    gate.set(); svc._stop.set()
+
+
+def test_ready_notification_drops_the_merge_button_while_the_lead_is_authorized_to_merge(remote):
+    """Owner, 2026-09-22: 'the bot gives me Merge buttons when you already have permission to merge'."""
+    orch, gh, clock, tg, interp, gw, svc, _ = remote
+    _pair(remote)
+    orch.authorize_lead_merge(clock() + 3600)
+    rec, head = _ready(remote, 30)
+    svc.tick()
+    msg = tg.last()
+    labels = [b["text"] for row in (msg["buttons"] or []) for b in row]
+    assert "מזג" not in labels and "פרטים" in labels and "דחה" in labels
+    assert "הרשאת מיזוג" in msg["text"]
+    # authorization over -> the button is back
+    orch.authorize_lead_merge(0.0)
+    rec2, head2 = _ready(remote, 31)
+    svc.tick()
+    assert "מזג" in [b["text"] for row in (tg.last()["buttons"] or []) for b in row]
