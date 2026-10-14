@@ -208,6 +208,37 @@ def _cmd(spec: Any) -> Command:
     raise ConfigError(f"invalid command spec: {spec!r}")
 
 
+#: Machine-local overrides, deep-merged over the tracked config. GITIGNORED on purpose.
+#:
+#: WHY THIS EXISTS (GitHub #188). `.agent/config.yaml` is TRACKED, so the values committed there
+#: are what every checkout starts with — including `main`. Enabling a feature for this machine by
+#: editing it means committing "on" as the default for everyone, and leaving it off means the
+#: running orchestrator loses the setting on its next pull. There was no third option: `load_config`
+#: read exactly one file and nothing else (`AGENT_TEAM_REPO_ROOT` only chooses the ROOT, never a
+#: value). This is that third option, and it is the smallest one that works: the tracked file keeps
+#: SAFE defaults, and what this machine actually runs lives beside it, unversioned.
+LOCAL_CONFIG_NAME = "config.local.yaml"
+
+
+def _deep_merge(base: dict, over: dict) -> dict:
+    """`over` wins, key by key, recursing into dicts. A list replaces rather than appends — a
+    half-merged `worker_allowed_tools` would be a security hole, not a convenience."""
+    out = dict(base)
+    for k, v in (over or {}).items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _deep_merge(out[k], v)
+        else:
+            out[k] = v
+    return out
+
+
+def overlay_sources(repo_root: Path, path: Path | None = None) -> list[Path]:
+    """Every file that contributed, lowest precedence first. For `agentctl doctor`."""
+    base = path or (repo_root / ".agent" / "config.yaml")
+    local = base.parent / LOCAL_CONFIG_NAME
+    return [base] + ([local] if local.exists() else [])
+
+
 def load_config(repo_root: Path | None = None, path: Path | None = None) -> Config:
     root = repo_root or find_repo_root()
     cfg_path = path or (root / ".agent" / "config.yaml")
@@ -215,6 +246,15 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         raise ConfigError(f"missing config file {cfg_path}")
     with open(cfg_path, encoding="utf-8") as f:
         raw = yaml.safe_load(f) or {}
+    local_path = cfg_path.parent / LOCAL_CONFIG_NAME
+    if local_path.exists():
+        with open(local_path, encoding="utf-8") as f:
+            local = yaml.safe_load(f) or {}
+        if not isinstance(local, dict):
+            raise ConfigError(f"{local_path} must be a YAML mapping")
+        # `version` is the tracked file's contract; a local file may not change it.
+        local.pop("version", None)
+        raw = _deep_merge(raw, local)
     if raw.get("version") != 1:
         raise ConfigError("config 'version' must be 1")
 
