@@ -43,7 +43,8 @@ def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None 
     rep.add("PR targets base branch", base_ok, f"base={base!r}")
     rep.add("head branch is not the base branch", head != base and head != config.base_branch, f"head={head!r}")
     linked = [int(n) for n in _CLOSES.findall(body)]
-    if head.startswith("integration/"):
+    issue_labels = {l["name"] for l in (issue or {}).get("labels", [])}
+    if head.startswith("integration/") or "agent:rollup" in issue_labels:
         # the rollup PR of a weekend/holiday period: its Issue is the rollup Issue the body closes
         issue_no = linked[0] if linked else None
         rep.add("rollup PR targets main", base == config.base_branch, f"base={base!r}")
@@ -120,6 +121,17 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"could not fetch issue #{issue_no}: {exc}", file=sys.stderr)
     rep = evaluate(pr, issue, config)
+    label_only = [c["name"] for c in rep.checks if not c["ok"]] == ["Issue carries an executable agent:* label"]
+    if label_only and issue_no is not None:
+        # the orchestrator swaps the state label right after the push that triggered this run; a
+        # read inside that window sees no state label — wait once and read again before failing
+        import time as _time
+        _time.sleep(20)
+        try:
+            issue = client.get_issue(issue_no)
+            rep = evaluate(pr, issue, config)
+        except Exception as exc:  # noqa: BLE001
+            print(f"could not re-fetch issue #{issue_no}: {exc}", file=sys.stderr)
     out_dir = root / ".agent" / "ci"
     write_report(rep, out_dir / "contract_report.json")
     if "manifest" in rep.extra:

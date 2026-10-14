@@ -35,7 +35,10 @@ CLASSES = (IMPLEMENTATION_FAILURE, REGRESSION, TEST_FAILURE, ENVIRONMENT_FAILURE
            MERGE_CONFLICT, INFRA_FAILURE, REVIEW_REJECTED)
 
 #: Classes a worker may try to repair. The others need the Team Lead (or a re-run) first.
-REPAIRABLE = (IMPLEMENTATION_FAILURE, TEST_FAILURE, REGRESSION, REVIEW_REJECTED)
+# What the FIXER (fix-and-resubmit worker, owner rule 2026-09-20) takes automatically. SPEC_MISMATCH only when the
+# live Issue contract still parses (the orchestrator checks) — then the PR is what must catch up with the contract;
+# MERGE_CONFLICT after the orchestrator has started the merge in the worktree (the fixer resolves the markers).
+REPAIRABLE = (IMPLEMENTATION_FAILURE, TEST_FAILURE, REGRESSION, REVIEW_REJECTED, SPEC_MISMATCH, MERGE_CONFLICT)
 
 _INFRA_PATTERNS = [
     r"The runner has received a shutdown signal", r"No space left on device", r"lost communication with the server",
@@ -133,6 +136,16 @@ def classify(inp: FailureInput) -> Classification:
     if gate4:
         rep = inp.reports.get("regression_gate_report", {})
         bad = [f"{c['name']}: {c['detail']}" for c in rep.get("checks", []) if not c.get("ok")]
+        if not bad:
+            # gate 4 went red WITHOUT a budget verdict: the regression machinery itself failed (a CI script
+            # error such as `unrecognized arguments: --shard` on the base checkout — #67, or a missing file —
+            # #35). That is implementation/infra work, never "a regression outside the budget".
+            gate4_logs = "\n".join(v for k, v in inp.logs.items() if "gate-4" in k or "regression" in k) or all_logs
+            m = re.search(r"(error: unrecognized arguments[^\n]*|can't open file[^\n]*|Traceback \(most recent call last\)[^\n]*|"
+                          r"No such file or directory[^\n]*|##\[error\][^\n]*)", gate4_logs)
+            detail = m.group(1)[:300] if m else "gate 4 failed before producing a budget verdict"
+            return Classification(IMPLEMENTATION_FAILURE, f"gate 4 regression machinery failed (no budget verdict): {detail}",
+                                  gate4_logs[-3000:], gate4[0])
         return Classification(REGRESSION, "corpus regression outside the declared budget", "\n".join(bad)[:2000], gate4[0])
 
     gate3 = [n for n in failed if n.startswith("gate-3")]

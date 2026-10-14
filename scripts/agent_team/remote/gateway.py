@@ -61,6 +61,9 @@ class Gateway:
         if handler is None:
             return Reply(f"פעולה לא נתמכת: {cmd.action}.", ok=False)
         try:
+            # this process never ticks: adopt the persisted period/base before acting on it
+            if hasattr(self.orch, "sync_period"):
+                self.orch.sync_period()
             reply = handler(cmd)
         except Exception as exc:  # noqa: BLE001 — a bug in a handler must never crash the service
             log.exception("command %s failed", cmd.action)
@@ -428,7 +431,7 @@ class Gateway:
         if res["result"] == "SUCCESS":
             return Reply(f"✅ PR #{pr} מוזג (squash {str(res.get('merge_commit'))[:12]}) ב-SHA המאומת {pm['sha'][:12]}. בדיקת ה-smoke שאחרי המיזוג רצה; "
                          "ה-Issue ייסגר כשהיא ירוקה.")
-        return Reply(f"❌ לא מוזג: {res.get('reason')}", ok=False)
+        return Reply(f"❌ לא מוזג: {res.get('reason')}\n\nהאישור נוצל (אישור אחד = ניסיון אחד). כשה-PR יהיה מוכן שוב תקבל הודעת READY חדשה עם כפתור Merge חדש.", ok=False)
 
     def _do_cancel_merge(self, cmd: OwnerCommand) -> Reply:
         self.store.set_context(cmd.chat_id, pending_merge=None)

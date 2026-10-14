@@ -128,7 +128,16 @@ def render(config: Config, store: StateStore, resources: ResourceManager, *, pro
             lines.insert(0, pr_line + "\n")
         except Exception:  # noqa: BLE001
             pass
-    section("INTEGRATED (in the period's branch, land with the rollup)",
+    ri_raw = store.get_meta("root_integrations")
+    if ri_raw:
+        try:
+            ri = {int(k): v for k, v in json.loads(ri_raw).items() if not v.get("closed")}
+            if ri:
+                lines.insert(0, "ROOT INTEGRATION BRANCHES: " + "; ".join(f"#{k} ({v.get('label')}) -> {v['branch']}" for k, v in sorted(ri.items()))
+                                + " — children merge there after every gate; main only via the ROOT's rollup PR\n")
+        except Exception:  # noqa: BLE001
+            pass
+    section("INTEGRATED (in an integration branch, land with its rollup)",
             [f"#{r.issue_id} PR #{r.pr_number} `{(r.validated_commit or '')[:12]}` — {r.title[:50]}" for r in by_state.get(sm.INTEGRATED, [])])
     usage_raw = store.get_meta("usage_last")
     if usage_raw:

@@ -29,6 +29,7 @@ dependencies), configured by `.agent/config.yaml`, operated through `scripts/age
 | Domain Lead | Sonnet | on demand: `agentctl investigate --domain <d> "<question>"` (read-only) | investigate a domain and propose acceptance criteria / verification targets |
 | Worker | Sonnet | `claude -p` in the Issue's worktree, spawned by the orchestrator | edit files, run tests, commit on its branch. **Never** push, open PRs, switch branches, touch GitHub, or weaken tests |
 | Independent Reviewer | Sonnet | `claude -p --restricted` (Read/Grep/Glob only), a fresh session, never the worker's | APPROVE / REQUEST_CHANGES / BLOCK with per-AC assessment; may block, may never override a deterministic gate |
+| **Fixer** (since 2026-09-20, owner rule) | Sonnet (`models.fixer`) | `claude -p` in the Issue's worktree, a FRESH session with the failure evidence and the LIVE contract (`prompts/fixer.md`) | fix and resubmit the same PR after a red CI (implementation / test / regression), a review REQUEST_CHANGES or BLOCK, a gate-1 SPEC_MISMATCH against a valid live contract, or a merge conflict at base update (the orchestrator starts the merge and leaves the markers); same tool limits as the worker; `repair.max_attempts` (3) fix runs per Issue, then `agent:blocked` + one Telegram line |
 
 The orchestrator (a Python process, `agentctl run`/`start`) pushes branches, opens PRs, posts
 milestones, runs the gates' evidence collection, applies the merge policy, merges, runs smoke,
@@ -274,11 +275,26 @@ regardless of what the reviewer says.
 `TEST_FAILURE`, `ENVIRONMENT_FAILURE`, `FLAKY_TEST`, `SPEC_MISMATCH`, `MERGE_CONFLICT`,
 `INFRA_FAILURE` (plus `REVIEW_REJECTED` for gate 5) from gate results, uploaded reports, failed-job
 logs and the PR's changed files — a missing optional `torch` is an ENVIRONMENT_FAILURE, not a
-reason to change product code. Repairable classes (IMPLEMENTATION, TEST, REGRESSION,
-REVIEW_REJECTED) get at most `repair.max_attempts` (2) repair runs, each resuming the worker's
-session with the exact evidence; INFRA/FLAKY get one CI re-run; everything else and every
-exhausted budget becomes `agent:blocked` for the Team Lead. The class is persisted on the Issue
-record and posted as a milestone comment.
+reason to change product code.
+
+**The fixer loop (owner rule 2026-09-20: "a blockage in review or a red CI gets a worker whose job is
+to fix and resubmit the PR").** Fixable classes go to the FIXER automatically, without a Team Lead
+decision, while the Issue's fix budget (`repair.max_attempts`, 3) lasts:
+
+| Trigger | Class | What the fixer gets |
+|---|---|---|
+| CI red: implementation / test / regression | IMPLEMENTATION_FAILURE, TEST_FAILURE, REGRESSION | the failing check's logs and report |
+| independent review REQUEST_CHANGES **or BLOCK** | REVIEW_REJECTED | the reviewer's findings (severity, file, summary) |
+| gate 1 red while the live Issue contract still parses (the contract was amended after the attempt started) | SPEC_MISMATCH | the live contract; the PR body/evidence table is re-rendered from it at publish |
+| the base advanced and the branch conflicts (readiness invalidation) | MERGE_CONFLICT | the merge already started in the worktree with the conflict markers and the file list (`WorktreeManager.begin_merge`) — the fixer resolves, commits, never runs `git merge` |
+
+The fixer is a fresh `claude -p` session (no resume) with `prompts/fixer.md`, the same tool limits as
+the worker, and the LIVE contract (`refresh_contract`); when it commits, the orchestrator pushes the
+branch — the same PR is re-validated (CI, regression, review). INFRA/FLAKY still get one CI re-run
+first; an invalid live contract, an environment failure, a worker/fixer that reports `blocked`, or an
+exhausted budget becomes `agent:blocked` for the Team Lead — and the owner gets ONE Telegram line
+(`_blocked_notice`) saying why a decision is needed (`agentctl repair | requeue | block`). The class
+is persisted on the Issue record and posted as a milestone comment.
 
 ## Governance: owner vs Team Lead authority (since 2026-09-18)
 
@@ -384,6 +400,43 @@ Tests: `tests/test_integration_mode.py` (calendar on real 2026 dates; period sta
 integration instead of READY; dependents on the integrated base; rollup creation, validation,
 single notification, owner merge, children done; smoke-failure revert; exclude; change request;
 normal owner gate outside a period).
+
+## ROOT-scoped integration branches (since 2026-09-20, §42 — first use: Concept Engine v2)
+
+The owner may assign a ROOT its own integration branch (`integration/<slug>`), as for Concept Engine v2
+(`agentctl integration set 74 integration/concept-engine-v2 --from origin/main --label "Concept Engine v2"`;
+registry in the state store's `root_integrations` meta, event `ROOT_INTEGRATION_SET`; `agentctl integration
+status|close`). For every child of that ROOT (and the ROOT itself if it runs as a task):
+
+- the worktree's new branch starts from the integration branch (`WorktreeManager.ensure(..., base=)`), the
+  worker's base ref and the base-update path follow it (`_base_ref_for`, `resume-pr --update-base` uses the
+  PR's own base);
+- the PR targets the integration branch, never `main` (`_pr_base_for_worktree`); gate-1 accepts an
+  `integration/**` base, gate-4 measures regression against it;
+- the child still passes every gate: CI, regression per policy, its ACs (gate 3), the independent review;
+- once `merge_policy` says every gate is green, `_step_review` calls `_integrate(..., target=)`: the Team Lead
+  merges the PR into the integration branch (squash), releases the locks, marks the Issue `INTEGRATED`
+  (satisfies dependents), records the integration and runs the integration smoke on the combined head — a red
+  smoke reverts the merge and sends the Issue back for repair, exactly as in weekend mode;
+- nothing of the ROOT is ever merged to `main` directly. At a stable integration point the Team Lead freezes
+  the branch, updates it against `main`, runs the full relevant tests, the full corpus regression, the
+  benchmarks the ROOT defines (Concept Engine v2: concept diversity, architectural quality, runtime p50/p95),
+  a combined independent review and a known-limitations report, then opens ONE PR `integration/<slug> →
+  main` listing the ROOT, every child and PR, before/after benchmarks, quality and diversity changes,
+  runtime, regressions, limitations and the exact final SHA, stopping at READY_FOR_OWNER. **The owner's
+  absolute rule: the integration branch is never merged to `main` without their explicit approval.** (The
+  rollup command for ROOT integrations reuses the period rollup machinery; it is wired when the first
+  stable point is reached.)
+
+Work that is not part of the ROOT stays on its own track (`main` or the period's branch); a related product
+Issue joins the ROOT's branch only with a real, explicit dependency.
+
+**Owner priority order and per-domain caps** (same date): `governance.priority_roots` is the owner's ordered
+list of ROOT Issues — the scheduler sorts queued Issues by that rank (children inherit their ROOT's rank,
+unlisted ROOTs come after the listed ones), then by ROOT, then FIFO; `governance.max_active_by_domain`
+(`infra: 1`) caps the Issues in flight per domain ("at most one infra worker"). Current order: the open
+basic P0 (#35, #38, #22, #34, #36) → Concept Engine v2 (#74) → #39/#40 → the CI chain (#66→#67→#68) →
+#41/#43 → #42/#45/#46. Tests: `tests/test_root_integration.py`.
 
 ## Merge policy (owner-controlled)
 
@@ -708,6 +761,65 @@ and 5 CI cycles. What the workflow learned, all fixed on the Issue branch and on
   committed file), manual base merges when the integration branch gained fixes.
 - Integrated by 13:50: #18, #24, #25, #29, #30, #31, #33 (7); PR CI ~50 min each with a warm base cache.
 
+## After the first rollup (2026-09-20) — lessons
+
+- The rollup merge (#62 → `648292f2`) deleted the integration branch, and GitHub auto-closed every open
+  PR that still targeted it (#34/#36/#38 and the blocked #35). Their commits exist only on their own
+  branches: `agentctl repair N --class MERGE_CONFLICT` merges `origin/main` in the worktree and the
+  orchestrator opens a fresh PR against `main` (#72/#73). Rule: before ending a period, list the open
+  PRs on the integration base — a PR that cannot make the rollup should be retargeted or repaired first.
+- A PR that was READY_FOR_OWNER when the base moved is invalidated back to CI (base merged into the
+  branch) and needs a fresh review at the new head (#66).
+- `agentctl investigate --domain knowledge` twice returned a placeholder brief (`summary: "test"`,
+  findings `["a"]`, 40+ turns, ~$0.7 each) on long prose-heavy questions while the geometry/backend leads
+  answered fully. Until the runner rejects placeholder JSON (a follow-up), treat a domain-lead brief with
+  one-word fields as a failed run and do the reading yourself.
+- The Telegram service is a long-lived orchestrator instance that never ticks: it kept the ENDED period's
+  (deleted) integration branch as `base_override` and refused the owner's merge of PR #71 with "base advanced
+  by 56 commits" (the deleted branch's history vs the branch), and every retry of the used CONFIRM button
+  read "stale/expired". Fix: `Orchestrator.sync_period()` before every remote command and in `owner_merge`,
+  which now measures "behind" against the PR's OWN base; the refusal reply says what happens next
+  (`tests/test_remote_control.py::test_owner_merge_measures_behind_against_the_prs_own_base…`).
+- The Concept Engine v2 investigation ran on the main checkout read-only with `cwd=` overridden (the
+  domain leads read `main`, not the home branch); the dry-run store (`dry-run.sqlite3`) had never been
+  migrated, and three simultaneous starts raced on `ALTER TABLE` (harmless; stagger parallel
+  `investigate` starts by a few seconds).
+
+## Second Yom Kippur entry (Sun 2026-09-20, owner instruction) — lessons
+
+- A period ended early is not re-entered by the calendar (`period_closed_through`); on the owner's
+  instruction the lead re-opens it by setting `period_closed_through` back (here `2026-09-19`) — the
+  daemon's next `check_period` starts it, recreating the integration branch from the current `main`.
+  Remove the stale `61-rollup` worktree and the stale LOCAL branch of the same name first.
+- A ROOT-integration child (#75) lost its linkage when `refresh_contract` re-tracked it (fixed: `track()`
+  keeps an existing linkage); the owner's merge into the ROOT's branch is now adopted as INTEGRATED
+  (`adopt_integration_merge`, `agentctl integration adopt N --root R`) instead of failing the main-only
+  post-merge smoke.
+- Evidence notes are picked by modification time (an old higher-numbered note misled the fixer on #38);
+  a CI-detected MERGE_CONFLICT starts the merge in the worktree before the fixer runs (#34); gate 4 red
+  without a budget verdict is IMPLEMENTATION_FAILURE, not REGRESSION (#67's `--shard` on the base script).
+- ROOT-integration children keep their own branch during a period (#76/#77 → `integration/concept-engine-v2`);
+  everything else integrates into the period branch and lands with its rollup.
+
+## Night of 2026-09-21/22 (owner merge authorization until the morning) — lessons
+
+- A rollup Issue must never become a worker task: a fixer's publish failure on the rollup requeued #90, the
+  scheduler CLAIMED it, and a worker squashed the integration branch onto `agent/90-…` and opened a second
+  rollup PR (#98, tree-identical). Fixed: `_worker_failed` blocks a rollup instead of requeueing it, `schedule`
+  blocks a QUEUED rollup, a rollup's review findings stay with the lead. Repair of the live record: close the
+  duplicate PR, point the record back at the integration PR, reset the `90-rollup` worktree, `resume-pr
+  --rereview`.
+- Every `pull_request: edited` event re-runs the whole CI (gate 4 ≈ 1 h) on the head that just went READY: the
+  rollup's READY summary is now a PR COMMENT, never a body edit. Gate 1 recognizes a rollup PR by its Issue's
+  `agent:rollup` label as well as by an `integration/` head.
+- A gate-3 target that TIMES OUT (`test_every_door_out_carries_hinge_and_swing`, 1800 s) is a test defect or a
+  hang, not "AC evidence failed": dispatch the fixer with the exact target and the timeout.
+- Concept Engine child 5 (#79): HUB_LOBBY / BRANCHED compilers reachable, but their precondition (no SAFE_ROOM,
+  no open plan) covers only 83/404 briefs → 19.6 %; the lead directed safe-room-aware and open-plan-aware
+  variants inside the ROOT's scope (the 40 % bar unchanged). POC child C (#96): the Geometry Core shape-curve
+  query ignores a node's own forced split when reporting to its parent — a real engine note; realization
+  ≈ 150 s per POC plan (acceptable offline).
+
 ## Last verified against git
 
-`7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.
+`648292f2` (main) + home branch `9876cb7`+ (§42 ROOT integration branches, priority order); before that `7244159` (main) — owner-controlled governance + Telegram owner control plane (PR #16) is merged.

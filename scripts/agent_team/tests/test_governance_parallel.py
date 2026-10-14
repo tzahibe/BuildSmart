@@ -194,7 +194,8 @@ def test_multiple_workers_scheduled_from_one_root(env):
     assert all(orch.store.get(n).state in (sm.PR_OPEN, sm.CI) for n in (121, 122, 123))
     assert len({orch.store.get(n).branch for n in (121, 122, 123)}) == 3          # own branch + worktree each
     assert len({orch.store.get(n).worktree for n in (121, 122, 123)}) == 3
-    assert orch.active_roots() == {ROOT}
+    # the workers finished within the tick (PRs open): nothing holds a worker slot any more
+    assert orch.active_roots() == set()
 
 
 def test_dependency_aware_parallelism_follows_the_dag(env):
@@ -233,17 +234,17 @@ def test_work_stealing_a_finished_run_wakes_the_scheduler_and_the_next_task_star
 
 def test_safe_resource_saturation_respects_slots_and_weighted_capacity(env):
     config, gh, clock, origin = env
-    orch = _orch(config, gh, clock, _runner())      # 3 workers, weighted capacity 7 (real config)
+    orch = _orch(config, gh, clock, _runner())      # 4 workers, weighted capacity 12 (real config)
     _root(gh)
-    for n in (121, 122, 123, 124):
+    for n in (121, 122, 123, 124, 125):
         _child(gh, n)
     rep = _tick(orch)
-    assert rep.started == [121, 122, 123] and "worker slots full" in rep.waiting[124]
+    assert rep.started == [121, 122, 123, 124] and "worker slots full" in rep.waiting[125]
 
 
 def test_weighted_capacity_limits_heavy_work_even_with_free_slots(env):
     config, gh, clock, origin = env
-    orch = _orch(_with(config, max_worker_agents=5), gh, clock, _runner())   # capacity 7: HEAVY=3 each
+    orch = _orch(_with(config, max_worker_agents=5, weighted_capacity=7), gh, clock, _runner())   # capacity 7: HEAVY=3 each
     _root(gh, 200, locks="docs (shared)")
     for n in (201, 202, 203):
         _child(gh, n, root=200, resource="HEAVY")
@@ -254,15 +255,17 @@ def test_weighted_capacity_limits_heavy_work_even_with_free_slots(env):
 def test_lock_aware_scheduling_serializes_the_same_exclusive_lock(env):
     config, gh, clock, origin = env
     orch = _orch(config, gh, clock, _runner())
-    _root(gh)
-    _child(gh, 121, locks="planner-core (exclusive)")
-    _child(gh, 122, locks="planner-core (exclusive)")
+    # ci-infra, unlike the product cores, is NOT in `locks.concurrent` (owner 2026-09-23): two
+    # agents cannot design one pipeline definition at once, so its exclusivity still serializes.
+    _root(gh, locks="docs (shared), ci-infra (exclusive)", domains="knowledge, infra")
+    _child(gh, 121, locks="ci-infra (exclusive)")
+    _child(gh, 122, locks="ci-infra (exclusive)")
     _child(gh, 123, locks="docs (shared)")
     # keep 121 running so its lock stays held
     orch.runner.script["worker"] = lambda spec: (_ for _ in ()).throw(RuntimeError("hold")) if spec.issue_id == 121 else _worker_that_commits()(spec)
     rep = orch.tick()
     assert rep.started == [121, 123]
-    assert "planner-core" in rep.waiting[122] and "#121" in rep.waiting[122]
+    assert "ci-infra" in rep.waiting[122] and "#121" in rep.waiting[122]
     orch.wait_for_threads(timeout=30)
 
 

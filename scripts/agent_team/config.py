@@ -109,6 +109,12 @@ class Config:
     known_locks: tuple[str, ...]
     implied_locks_by_domain: dict[str, tuple[str, ...]]
     lock_stale_after_seconds: int
+    # Locks served as SHARED even where an Issue asks for them exclusively (owner 2026-09-23, "no
+    # worker may rest"): every agent works in its own worktree on its own branch, so a second agent
+    # on the same core cannot corrupt the first one's work — the only real cost is a merge conflict
+    # at integration, which the fixer resolves. Cores where concurrent design genuinely cannot be
+    # reconciled (CI infra, the database schema, the requirements parser) are deliberately absent.
+    concurrent_locks: tuple[str, ...]
 
     # repair / policy
     max_repair_attempts: int
@@ -119,10 +125,23 @@ class Config:
     # governance
     owner_approval_label: str
     max_active_issues: int
+    #: owner priority order of ROOT Issues (children inherit): earlier starts first; unlisted ROOTs after
+    priority_roots: tuple[int, ...]
+    #: per-domain cap on Issues in flight (CLAIMED/WORKING/FIX_REQUIRED), e.g. {"infra": 1}
+    max_active_by_domain: dict[str, int]
     release_locks_at: str            # pr_open | ready | merge
     drain_timeout_seconds: int
     protected_periods_enabled: bool
     protected_periods_raw: dict
+
+    #: The read-only ANALYSIS lane (`analysis_lane.py`): off by default, so an orchestrator that
+    #: does not opt in behaves exactly as it does today.
+    analysis_enabled: bool
+    analysis_max_per_tick: int
+
+    #: Hold a scoped `caffeinate` idle-sleep assertion while agent work runs (GitHub #188 §3.3).
+    #: Never a global power setting; `pmset` is not touched. False = today's behaviour exactly.
+    caffeinate_while_working: bool
 
     # usage guard + rolling backlog
     usage_guard_enabled: bool
@@ -262,7 +281,7 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         state_dir=Path(str(_need(paths, "state_dir", "paths"))),
         logs_dir=Path(str(_need(paths, "logs_dir", "paths"))),
         contracts_dir=Path(str(_need(paths, "contracts_dir", "paths"))),
-        models={k: str(v) for k, v in models.items()},
+        models={"fixer": str(models.get("fixer", models["worker"])), **{k: str(v) for k, v in models.items()}},
         claude_binary=str(cl.get("binary", "auto")),
         claude_effort=str(cl.get("effort", "high")),
         worker_timeout_seconds=int(_need(cl, "worker_timeout_seconds", "claude")),
@@ -289,16 +308,22 @@ def load_config(repo_root: Path | None = None, path: Path | None = None) -> Conf
         known_locks=tuple(locks.get("known") or ()),
         implied_locks_by_domain=implied,
         lock_stale_after_seconds=int(locks.get("stale_after_seconds", 7200)),
+        concurrent_locks=tuple(locks.get("concurrent") or ()),
         max_repair_attempts=int(_need(repair, "max_attempts", "repair")),
         risk_policy=risk_policy,
         regression_domains=tuple(raw.get("regression_domains") or ("backend", "geometry", "validator")),
         behavior_domains=tuple(raw.get("behavior_domains") or ("backend", "geometry", "validator", "frontend", "ai")),
         owner_approval_label=str(gov.get("owner_approval_label", "owner:approved")),
         max_active_issues=int(gov.get("max_active_issues", 2)),
+        priority_roots=tuple(int(n) for n in (gov.get("priority_roots") or ())),
+        max_active_by_domain={str(k): int(v) for k, v in (gov.get("max_active_by_domain") or {}).items()},
         release_locks_at=str(gov.get("release_locks_at", "ready" if gov.get("release_locks_at_ready", True) else "merge")),
         drain_timeout_seconds=int(gov.get("drain_timeout_seconds", 3900)),
         protected_periods_enabled=bool((raw.get("protected_periods") or {}).get("enabled", True)),
         protected_periods_raw=dict(raw.get("protected_periods") or {}),
+        analysis_enabled=bool((raw.get("analysis") or {}).get("enabled", False)),
+        analysis_max_per_tick=int((raw.get("analysis") or {}).get("max_per_tick", 2)),
+        caffeinate_while_working=bool((raw.get("power") or {}).get("caffeinate_while_working", False)),
         usage_guard_enabled=bool(ug.get("enabled", True)),
         usage_pause_at_percent=float(ug.get("pause_at_percent", 98)),
         usage_resume_below_percent=float(ug.get("resume_below_percent", 90)),

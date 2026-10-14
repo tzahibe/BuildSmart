@@ -14,6 +14,9 @@
     agentctl report N                    the Issue's work report (.agent/logs/reports/N.md): what was done per
                                          attempt, the failure history, and the event timeline
     agentctl investigate --domain D "question"   an on-demand read-only Sonnet domain lead
+    agentctl integration set ROOT integration/<slug> [--from REF] [--label L] | status | close ROOT
+                                         a ROOT's own integration branch: children start from it, PRs target
+                                         it, green PRs are merged into it by the lead; main only via ONE rollup PR
     agentctl reconcile                   one reconciliation pass, printed
     agentctl doctor                      environment checks (gh auth, claude binary, config)
     agentctl pause | resume              stop/continue taking new work (audited; the owner can also do it on Telegram)
@@ -30,6 +33,7 @@ import json
 import os
 import signal
 import subprocess
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -431,14 +435,20 @@ def cmd_resume_pr(config: Config, args) -> int:
         wm = WorktreeManager(config)
         slug = rec.contract_dict().get("slug") or Path(rec.worktree).name.split("-", 1)[1]
         info = wm.ensure(args.number, slug)
+        # the PR's own base (main, a period's branch or a ROOT's integration branch) is what the branch follows
         try:
-            behind = wm.behind_base(info.path)
+            pr_base = (_github(config, require_auth=False).get_pr(rec.pr_number).get("base") or {}).get("ref")
+        except Exception:  # noqa: BLE001
+            pr_base = None
+        base_ref = wm.base_ref(pr_base) if pr_base else wm.base_ref()
+        try:
+            behind = wm.behind_base(info.path, pr_base)
             if behind:
-                wm.update_from_base(info.path)
+                wm.update_from_base(info.path, pr_base)
                 wm.push(info.path, info.branch)
-                print(f"#{args.number}: merged {wm.base_ref()} into {info.branch} ({behind} commit(s)) and pushed")
+                print(f"#{args.number}: merged {base_ref} into {info.branch} ({behind} commit(s)) and pushed")
             else:
-                print(f"#{args.number}: branch already up to date with {wm.base_ref()}")
+                print(f"#{args.number}: branch already up to date with {base_ref}")
         except MergeConflict as exc:
             print(f"cannot update base: {exc}")
             return 1
@@ -466,12 +476,28 @@ def cmd_resume_pr(config: Config, args) -> int:
                 except SystemExit:
                     pass
         print(f"#{args.number}: cleared review_verdict ({previous_verdict}) and ordered a fresh review: {args.reason}")
+    if getattr(args, "rerun_ci", False):
+        # The head did not move (e.g. only the contract was amended): GitHub will not start a new run, and
+        # the orchestrator would re-read the old red run. Re-run the latest workflow run for the head.
+        try:
+            gh = _github(config)
+            head = gh.get_pr(rec.pr_number)["head"]["sha"]
+            runs = gh.workflow_runs(head)
+            if runs:
+                gh.rerun_workflow(runs[0]["id"])
+                print(f"#{args.number}: re-running workflow run {runs[0]['id']} for head {head[:12]}")
+            else:
+                print(f"#{args.number}: no workflow run found for head {head[:12]} — nothing to re-run")
+        except SystemExit:
+            pass
     try:
         note = "resumed at PR by lead"
         if args.update_base:
             note += " (base updated)"
         if args.rereview:
             note += " (re-review ordered)"
+        if getattr(args, "rerun_ci", False):
+            note += " (CI re-run)"
         store.transition(args.number, sm.PR_OPEN, allowed_from=(sm.BLOCKED,), failure_class=None, last_error=None,
                          validated_commit=None, note=note)
     except Exception as exc:  # noqa: BLE001
@@ -559,6 +585,48 @@ def cmd_period(config: Config, args) -> int:
             print("no active period")
             return 1
         print(orch.end_period())
+        return 0
+    return 1
+
+
+def cmd_integration(config: Config, args) -> int:
+    """ROOT-scoped integration branches (§42): `set ROOT BRANCH [--from REF] [--label ...]`, `status`,
+    `close ROOT`. Every child of the ROOT starts from the branch, targets it with its PR and is merged
+    into it by the Team Lead after every gate; main only through the ROOT's final rollup PR."""
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    orch = Orchestrator(config, github=_github(config), runner=FakeAgentRunner(script={}))
+    if args.integration_cmd == "set":
+        sha = orch.set_root_integration(args.number, args.branch, from_ref=args.from_ref, label=args.label)
+        print(f"ROOT #{args.number} -> {args.branch} (base {sha[:12]})")
+        return 0
+    if args.integration_cmd == "status":
+        items = orch.root_integrations()
+        if not items:
+            print("no ROOT integration branches")
+        for root, info in sorted(items.items()):
+            merged = [i["issue"] for i in orch.integrations() if i.get("branch") == info["branch"]]
+            print(f"ROOT #{root} ({info.get('label')}): {info['branch']} from {info.get('created_from', '')[:12]}"
+                  f"{' [closed]' if info.get('closed') else ''} — integrated: {merged or 'none yet'}")
+        return 0
+    if args.integration_cmd == "adopt":
+        # a child PR merged into the ROOT's integration branch outside `_integrate` (by the owner, or before the
+        # orchestrator knew the child's linkage): record it as INTEGRATED and run the integration smoke
+        rec = orch.store.get(args.number)
+        if rec is None or not rec.pr_number:
+            print("not tracked or no PR"); return 1
+        if args.root:
+            orch.store.track(rec.issue_id, title=rec.title, risk=rec.risk, resource_class=rec.resource_class, domains=list(rec.domains),
+                             dependencies=list(rec.dependencies), contract=rec.contract_dict() or None,
+                             root_issue=int(args.root), parent_issue=int(args.root), kind="child")
+            rec = orch.store.get(args.number)
+        pr = orch.github.get_pr(rec.pr_number)
+        print(orch.adopt_integration_merge(rec, pr, by=args.by))
+        orch.wait_for_threads(timeout=1800)
+        return 0
+    if args.integration_cmd == "close":
+        orch.close_root_integration(args.number)
+        print(f"ROOT #{args.number}: integration branch closed (children start from the normal base again)")
         return 0
     return 1
 
@@ -688,6 +756,79 @@ def cmd_investigate(config: Config, args) -> int:
     return 0
 
 
+def cmd_resolve(config: Config, args) -> int:
+    """Retire a BLOCKED Issue whose outcome a human already settled on GitHub.
+
+    WHY THIS VERB EXISTS. `reconciliation.reconcile` deliberately refuses to guess: an Issue closed
+    on GitHub while BLOCKED, or a PR merged outside the workflow, is recorded and left alone
+    ("already blocked: nothing to re-block"). That is correct — the orchestrator must never
+    silently continue — but it leaves correctly-blocked work sitting in the owner's BLOCKED view
+    forever with no supported way out. This is that way out, and it is deliberately narrow:
+
+      * it refuses unless GitHub itself shows the outcome (Issue closed, or PR merged/closed);
+      * it NEVER approves, requeues or re-runs anything — the only transition it makes is to a
+        terminal state, which starts no work;
+      * it requires a reason, and records the prior state, failure class and note as an event, so
+        the audit trail says what was retired and why rather than losing it.
+    """
+    store = StateStore(config.state_db_path)
+    rec = store.get(args.number)
+    if rec is None:
+        print(f"#{args.number}: not in the state store")
+        return 1
+    gh = _github(config)
+
+    # 1. VERIFY GITHUB AGAINST THE STORE — the owner's precondition, not a formality.
+    issue = gh.get_issue(args.number)
+    issue_state = issue.get("state")
+    pr_state = pr_merged = None
+    if rec.pr_number:
+        pr = gh.get_pr(rec.pr_number)
+        pr_state, pr_merged = pr.get("state"), bool(pr.get("merged_at") or pr.get("merged"))
+    print(f"#{args.number}  store: {rec.state} / {rec.failure_class or '-'}  attempt {rec.attempt_number}")
+    print(f"           github: issue {issue_state}"
+          + (f", PR #{rec.pr_number} {pr_state}{' (merged)' if pr_merged else ''}" if rec.pr_number else ""))
+
+    settled = issue_state == "closed" or pr_merged or pr_state == "closed"
+    if not settled:
+        print("refusing: GitHub shows this Issue open and no PR merged or closed — there is no "
+              "human outcome to record. Use `requeue`, `resume-pr` or `block` instead.")
+        return 1
+    if rec.state == sm.DONE:
+        print("already DONE: nothing to do")
+        return 0
+    if rec.state != sm.BLOCKED:
+        print(f"refusing: only a BLOCKED Issue may be resolved this way (this one is {rec.state})")
+        return 1
+    if args.dry_run:
+        print(f"dry-run: would transition BLOCKED -> {sm.DONE} with reason {args.reason!r}")
+        return 0
+
+    # 2. PRESERVE THE AUDIT HISTORY before the record is overwritten.
+    store.record_event(args.number, "blocked_resolved", {
+        "by": "operator", "reason": args.reason,
+        "previous_state": rec.state, "previous_failure_class": rec.failure_class,
+        "previous_attempt": rec.attempt_number, "pr_number": rec.pr_number,
+        "github_issue_state": issue_state, "github_pr_state": pr_state, "github_pr_merged": pr_merged,
+    })
+    note = f"resolved by the owner: {args.reason} (was {rec.failure_class or 'BLOCKED'})"
+    store.transition(args.number, sm.DONE, note=note)
+    # DONE is terminal, so `reconcile` will never visit this Issue again and the usual label-drift
+    # repair cannot run. Sync the state label HERE or GitHub would keep showing `agent:blocked`
+    # while the store says DONE — exactly the store/GitHub disagreement this verb exists to end.
+    try:
+        gh.set_state_label(args.number, sm.DONE)
+        print(f"#{args.number}: BLOCKED -> DONE — {note}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"#{args.number}: BLOCKED -> DONE — {note}")
+        print(f"WARNING: state label not updated on GitHub: {exc}")
+    print("audit: event 'blocked_resolved' recorded with the prior state, failure class and attempt")
+    if issue_state != "closed":
+        print(f"note: Issue #{args.number} is still OPEN on GitHub. Closing it is an owner action; "
+              f"this verb does not close Issues.")
+    return 0
+
+
 def cmd_reconcile(config: Config, args) -> int:
     setup_logging(config)
     from agent_team.reconciliation import reconcile
@@ -704,13 +845,27 @@ def cmd_doctor(config: Config, args) -> int:
     gh_ok, why = GhCliTransport().available()
     print(f"gh: {'OK' if gh_ok else 'MISSING'} — {why}")
     ok &= gh_ok
+    # CLAUDE RESOLUTION, in enough detail to answer "will this work under launchd?" (GitHub #188
+    # §3.1). A terminal and a LaunchAgent have different PATHs, so "it works when I run it" proves
+    # nothing about the service: print what was searched and whether the answer is pinned.
+    from agent_team.agent_runner import claude_preflight, extension_binaries
+    print(f"  PATH: {os.environ.get('PATH', '')}")
+    print(f"  CLAUDE_BIN: {os.environ.get('CLAUDE_BIN') or '(unset)'}   "
+          f"config claude.binary: {config.claude_binary}")
+    print(f"  claude on PATH: {shutil.which('claude') or '(not found)'}   "
+          f"editor-extension copies: {len(extension_binaries())}")
     try:
-        b = resolve_claude_binary(config.claude_binary)
-        v = subprocess.run([b, "--version"], capture_output=True, text=True, timeout=30).stdout.strip()
+        b, v = claude_preflight(config.claude_binary)
+        pinned = bool(os.environ.get("CLAUDE_BIN")) or config.claude_binary != "auto"
         print(f"claude: OK — {b} ({v})")
+        if not pinned:
+            print("  WARNING: not pinned — resolution falls back to the newest editor-extension "
+                  "binary, which moves on every extension update. Set CLAUDE_BIN in the launchd "
+                  "plist to make this deterministic.")
     except Exception as exc:  # noqa: BLE001
         print(f"claude: MISSING — {exc}")
         ok = False
+    print(f"caffeinate: {shutil.which('caffeinate') or '/usr/bin/caffeinate (assumed present)'}")
     print(f"state db: {config.state_db_path} ({'exists' if config.state_db_path.exists() else 'not created yet'})")
     print(f"worktree root: {config.path(config.worktree_root)}")
     from agent_team.resource_manager import PsutilProbe
@@ -873,6 +1028,56 @@ def cmd_remote(config: Config, args) -> int:
 
 # -- owner updates from the Team Lead -----------------------------------------------------------
 
+def cmd_authorize_merge(config: Config, args) -> int:
+    """Record the owner's time-boxed authorization for the Team Lead to merge to main. While it holds,
+    READY notifications carry no Merge button (the lead merges); `--off` ends it immediately."""
+    import datetime as _dt
+    from agent_team.orchestrator import Orchestrator
+    from agent_team.agent_runner import FakeAgentRunner
+    orch = Orchestrator(config, github=_github(config, require_auth=False), runner=FakeAgentRunner(script={}), dry_run=True)
+    if args.off:
+        orch.authorize_lead_merge(0.0, by=args.by)
+        print("lead merge authorization ended")
+        return 0
+    until = _dt.datetime.fromisoformat(args.until) if args.until else _dt.datetime.now() + _dt.timedelta(hours=args.hours)
+    orch.authorize_lead_merge(until.timestamp(), by=args.by)
+    print(f"lead may merge until {until:%Y-%m-%d %H:%M} (every gate still required)")
+    return 0
+
+
+def cmd_notify_photo(config: Config, args) -> int:
+    """Send the owner one or more PNG/SVG plan images on Telegram (SVG is rasterised with macOS
+    QuickLook, `qlmanage -t`, when no PNG is given). Synchronous — the images go out now."""
+    import subprocess, tempfile
+    from agent_team.remote.transport import HttpTelegramTransport, resolve_token
+    store = StateStore(config.state_db_path)
+    owner = store.owner()
+    if owner is None:
+        print("no paired owner — run `agentctl remote pair`", file=sys.stderr)
+        return 2
+    token = resolve_token(config.telegram_token_env, config.telegram_env_file)
+    tg = HttpTelegramTransport(token)
+    sent = 0
+    for i, path in enumerate(args.images):
+        src = Path(path)
+        data: bytes
+        if src.suffix.lower() == ".svg":
+            with tempfile.TemporaryDirectory() as td:
+                proc = subprocess.run(["qlmanage", "-t", "-s", str(args.size), "-o", td, str(src)], capture_output=True, text=True)
+                pngs = list(Path(td).glob("*.png"))
+                if proc.returncode != 0 or not pngs:
+                    print(f"{src}: SVG rasterisation failed: {proc.stderr[-200:]}", file=sys.stderr)
+                    continue
+                data = pngs[0].read_bytes()
+        else:
+            data = src.read_bytes()
+        caption = args.captions[i] if args.captions and i < len(args.captions) else src.stem
+        tg.send_photo(owner["chat_id"], data, caption=caption, filename=src.stem + ".png")
+        sent += 1
+    print(f"sent {sent} photo(s) to the owner")
+    return 0 if sent else 1
+
+
 def cmd_notify(config: Config, args) -> int:
     """Send the owner a progress update on Telegram (through the outbox: delivered by the running
     remote service, deduplicated, retried). The Team Lead uses this so the owner is never left
@@ -1028,6 +1233,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("requeue"); s.add_argument("number", type=int); s.add_argument("--reason"); s.add_argument("--reset-attempts", action="store_true")
     s.set_defaults(fn=cmd_requeue)
     s = sub.add_parser("resume-pr"); s.add_argument("number", type=int); s.add_argument("--update-base", action="store_true")
+    s.add_argument("--rerun-ci", dest="rerun_ci", action="store_true", help="re-run the latest workflow run of the PR head (contract amended, head unchanged)")
     s.add_argument("--rereview", action="store_true"); s.add_argument("--reason")
     s.set_defaults(fn=cmd_resume_pr)
     s = sub.add_parser("block"); s.add_argument("number", type=int); s.add_argument("--reason", required=True); s.set_defaults(fn=cmd_block)
@@ -1038,6 +1244,12 @@ def build_parser() -> argparse.ArgumentParser:
     lsub.add_parser("list"); lr = lsub.add_parser("release"); lr.add_argument("number", type=int); lr.add_argument("--reason", required=True); s.set_defaults(fn=cmd_locks)
     s = sub.add_parser("period"); psub = s.add_subparsers(dest="period_cmd", required=True)
     psub.add_parser("status"); psub.add_parser("start"); psub.add_parser("end"); s.set_defaults(fn=cmd_period)
+    s = sub.add_parser("integration"); isub2 = s.add_subparsers(dest="integration_cmd", required=True)
+    st = isub2.add_parser("set"); st.add_argument("number", type=int); st.add_argument("branch")
+    st.add_argument("--from", dest="from_ref"); st.add_argument("--label")
+    isub2.add_parser("status"); cl = isub2.add_parser("close"); cl.add_argument("number", type=int)
+    ad = isub2.add_parser("adopt"); ad.add_argument("number", type=int); ad.add_argument("--root", type=int, help="also restore the child's ROOT linkage")
+    ad.add_argument("--by", default="owner"); s.set_defaults(fn=cmd_integration)
     s = sub.add_parser("rollup"); rsub = s.add_subparsers(dest="rollup_cmd", required=True)
     x = rsub.add_parser("exclude"); x.add_argument("number", type=int); x.add_argument("--reason"); s.set_defaults(fn=cmd_rollup)
     s = sub.add_parser("repair"); s.add_argument("number", type=int); s.add_argument("--class", dest="failure_class", default="IMPLEMENTATION_FAILURE")
@@ -1045,6 +1257,11 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("audit"); s.add_argument("number", type=int); s.add_argument("--limit", type=int, default=200); s.set_defaults(fn=cmd_audit)
     s = sub.add_parser("report"); s.add_argument("number", type=int); s.set_defaults(fn=cmd_report)
     s = sub.add_parser("investigate"); s.add_argument("--domain", required=True); s.add_argument("question"); s.set_defaults(fn=cmd_investigate)
+    s = sub.add_parser("resolve")
+    s.add_argument("number", type=int)
+    s.add_argument("--reason", required=True)
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(fn=cmd_resolve)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
     s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)
@@ -1057,6 +1274,11 @@ def build_parser() -> argparse.ArgumentParser:
     r = rsub.add_parser("run"); r.add_argument("--verbose", action="store_true")
     rem.set_defaults(fn=cmd_remote)
     s = sub.add_parser("notify"); s.add_argument("text", help="Hebrew update for the owner ('-' reads stdin)"); s.set_defaults(fn=cmd_notify)
+    s = sub.add_parser("authorize-merge"); s.add_argument("--hours", type=float, default=24.0)
+    s.add_argument("--until", help="ISO datetime, e.g. 2026-09-23T10:00"); s.add_argument("--off", action="store_true")
+    s.add_argument("--by", default="owner"); s.set_defaults(fn=cmd_authorize_merge)
+    s = sub.add_parser("notify-photo"); s.add_argument("images", nargs="+", help="PNG or SVG files (SVG rasterised via qlmanage)")
+    s.add_argument("--caption", dest="captions", action="append", help="one per image, in order"); s.add_argument("--size", type=int, default=1600); s.set_defaults(fn=cmd_notify_photo)
     s = sub.add_parser("install"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_install)
     s = sub.add_parser("uninstall"); s.add_argument("service", nargs="?", choices=["all", "orchestrator", "remote"], default="all"); s.set_defaults(fn=cmd_uninstall)
     return p

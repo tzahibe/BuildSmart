@@ -20,6 +20,7 @@ GitHub is detected and audited. The owner can pause new claims/repairs at any ti
 from __future__ import annotations
 
 import fcntl
+import datetime as dt
 import json
 import re
 import logging
@@ -27,21 +28,24 @@ import os
 import signal
 import threading
 import time
+import dataclasses
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from agent_team import audit, ci_evidence, merge_policy, prompts, scheduler, work_reports
 from agent_team import state_machine as sm
-from agent_team.agent_runner import DOMAIN_LEAD, REVIEWER, WORKER, AgentRunner, AgentRunResult, AgentRunSpec
+from agent_team.agent_runner import DOMAIN_LEAD, FIXER, REVIEWER, WORKER, AgentRunner, AgentRunResult, AgentRunSpec
 from agent_team.config import Config
 from agent_team.failure_classifier import (
-    ENVIRONMENT_FAILURE, FLAKY_TEST, INFRA_FAILURE, MERGE_CONFLICT, REVIEW_REJECTED, Classification, FailureInput, classify,
+    ENVIRONMENT_FAILURE, FLAKY_TEST, INFRA_FAILURE, MERGE_CONFLICT, REVIEW_REJECTED, SPEC_MISMATCH, Classification, FailureInput, classify,
 )
 from agent_team.issue_contract import ContractError, IssueContract, parse_contract, verification_manifest, child_scope_problems
 from agent_team import integration_mode as im
 from agent_team.labels import DECOMPOSED_LABEL, HOLD_LABEL, ROLLUP_LABEL, STATE_LABEL_PREFIX, metadata_labels
 from agent_team.protected_periods import Calendar, Period
 from agent_team.locks import LockManager, effective_locks
+from agent_team.analysis_lane import AnalysisLane
+from agent_team.power import PowerAssertion
 from agent_team.pr_body import render_pr_body
 from agent_team.resource_manager import ResourceManager, ResourceProbe
 from agent_team.schemas import DOMAIN_LEAD_BRIEF_SCHEMA, REVIEW_VERDICT_SCHEMA, WORKER_REPORT_SCHEMA
@@ -64,6 +68,8 @@ class TickReport:
     waiting: dict[int, str] = field(default_factory=dict)
     advanced: dict[int, str] = field(default_factory=dict)
     reconciled: list[str] = field(default_factory=list)
+    #: Issue numbers whose read-only ANALYSIS run was started this tick (`analysis_lane.py`).
+    analysed: list[int] = field(default_factory=list)
     errors: dict[int, str] = field(default_factory=dict)
 
     def summary(self) -> str:
@@ -72,6 +78,8 @@ class TickReport:
             parts.append("reconciled: " + "; ".join(self.reconciled))
         parts.append(f"polled {self.polled or '-'}")
         parts.append(f"started {self.started or '-'}")
+        if self.analysed:
+            parts.append(f"analysing {self.analysed}")
         if self.waiting:
             parts.append("waiting " + ", ".join(f"#{k} ({v})" for k, v in self.waiting.items()))
         if self.advanced:
@@ -89,6 +97,14 @@ class AuthDecision:
     parent: int | None
     source: str               # owner | inherited | none
     problems: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class _RootIntegrationTarget:
+    """What `_integrate` needs from a ROOT-scoped integration branch (§42) — the Period's shape."""
+    branch: str
+    label: str
+    root: int
 
 
 class Orchestrator:
@@ -116,6 +132,15 @@ class Orchestrator:
         self._ci_started: dict[int, float] = {}
         self.blocking_decisions: list[str] = []
         self.usage = UsageGuard(config.usage_pause_at_percent, config.usage_resume_below_percent, enabled=config.usage_guard_enabled)
+        # SCOPED WAKEFULNESS (GitHub #188 §3.3). Held only while at least one agent thread is
+        # alive, so an idle orchestrator lets the machine sleep exactly as it does today. Never a
+        # global power setting: `pmset` is not touched.
+        self.power = PowerAssertion(enabled=config.caffeinate_while_working and not dry_run)
+        # THE ANALYSIS LANE (GitHub #188 §5.1): read-only answers to a labelled Issue. A separate,
+        # much smaller task class that produces no branch, no commit and no PR — see
+        # `analysis_lane.py` for what it cannot do. `None` when disabled, and disabled by default.
+        self.analysis = (AnalysisLane(config, github, runner, self.store, dry_run=dry_run)
+                         if config.analysis_enabled else None)
         self.usage_prober = None          # callable() -> UsageSnapshot; None = the real `claude -p /usage`
         self._last_usage_probe = 0.0
         # Weekend / holiday integration mode (governance §26–§41). The active period is persisted in
@@ -124,6 +149,15 @@ class Orchestrator:
         self.period: Period | None = self._load_period()
         if self.period:
             self.worktrees.base_override = self.period.branch
+
+    def sync_period(self) -> Period | None:
+        """Adopt the persisted period state. The orchestrator process keeps `self.period` current in its
+        tick; a long-lived process that never ticks (the Telegram service) must call this before acting
+        on a base — the remote service once refused an owner merge with "base advanced by 56 commits"
+        because it still carried the ended period's (deleted) integration branch as `base_override`."""
+        self.period = self._load_period()
+        self.worktrees.base_override = self.period.branch if self.period else None
+        return self.period
 
     # -- process singleton --------------------------------------------------------------------
     def acquire_singleton(self) -> None:
@@ -180,7 +214,8 @@ class Orchestrator:
         if new_dict != rec.contract_dict():
             before = rec.contract_dict()
             store.track(rec.issue_id, title=live.title, risk=live.risk, resource_class=live.resource_class, domains=list(live.domains),
-                        dependencies=list(live.dependencies), contract=new_dict)
+                        dependencies=list(live.dependencies), contract=new_dict,
+                        root_issue=rec.root_issue, parent_issue=rec.parent_issue, kind=rec.kind)
             audit.write_contract_snapshot(self.config, rec.issue_id, live.to_dict(),
                                           verification_manifest(live, regression_domains=self.config.regression_domains))
             store.record_event(rec.issue_id, "contract_updated", {
@@ -254,6 +289,10 @@ class Orchestrator:
                 raise RuntimeError(f"{key} already running")
             t = threading.Thread(target=self._guard, args=(key, target, *args), name=key, daemon=True)
             self.threads[key] = t
+            # Acquired HERE and not inside the thread: between `t.start()` and the thread's first
+            # instruction the machine may already be idle, and an assertion taken a moment late is
+            # an assertion that did not prevent the sleep it existed to prevent.
+            self.power.acquire()
             t.start()
 
     def _guard(self, key: str, target, *args) -> None:
@@ -264,6 +303,10 @@ class Orchestrator:
             self._wake.set()
         except Exception:  # noqa: BLE001
             log.exception("thread %s crashed", key)
+        finally:
+            # Balanced with `_spawn` on every path, including a crashed target — otherwise one
+            # exception would hold the machine awake until the process exits.
+            self.power.release()
 
     def active_threads(self) -> list[str]:
         with self._threads_lock:
@@ -278,6 +321,41 @@ class Orchestrator:
     def attempts_remaining(self, rec: IssueRecord) -> bool:
         """attempt_number counts worker runs; repairs allowed on top of the first run."""
         return max(0, rec.attempt_number - 1) < self.config.max_repair_attempts
+
+    # -- analysis lane ------------------------------------------------------------------------
+    def schedule_analysis(self) -> list[int]:
+        """Start a read-only analysis per pending labelled Issue, bounded and non-blocking.
+
+        Deliberately gated on the same conditions as every other agent run — paused, draining,
+        stopping, usage-guard — so the owner's existing controls apply to this lane without it
+        having to know about them.
+        """
+        if self.analysis is None or self._draining or self._stop.is_set():
+            return []
+        # `paused()` is the orchestrator's own single source for this: the usage guard pauses by
+        # setting the SAME `scheduler_paused` meta, so one check covers both a manual
+        # `agentctl pause` and an automatic usage-guard pause. (An earlier version of this line
+        # read `self.usage.paused`, which does not exist — caught in production on the first tick
+        # after deployment, and now covered by a test that calls `schedule_analysis` on a real
+        # Orchestrator rather than exercising the lane in isolation.)
+        if self.paused():
+            return []
+        started: list[int] = []
+        for task in self.analysis.pending(limit=self.config.analysis_max_per_tick):
+            key = f"analysis-{task.issue_id}"
+            if self._thread_active(key):
+                continue
+            if len(self.active_threads()) >= self.config.max_worker_agents:
+                break        # analysis never starves engineering work of the machine
+            self._spawn(key, self._run_analysis, task)
+            started.append(task.issue_id)
+        return started
+
+    def _run_analysis(self, task) -> None:
+        outcome = self.analysis.analyze(task, self.config.repo_root)
+        log.info("analysis #%s: %s", outcome.issue_id, outcome.detail)
+        self.store.record_event(task.issue_id, "analysis_complete",
+                                {"ok": outcome.ok, "detail": outcome.detail[:400]})
 
     # -- tick ---------------------------------------------------------------------------------
     def tick(self) -> TickReport:
@@ -304,6 +382,14 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.exception("poll failed")
             report.errors[0] = f"poll: {exc}"
+        # Analysis tasks are independent of the engineering state machine: they hold no locks,
+        # consume no issue slot, and cannot block or be blocked by a worker. They are scheduled
+        # here so a drain/pause stops them like everything else.
+        try:
+            report.analysed = self.schedule_analysis()
+        except Exception as exc:  # noqa: BLE001
+            log.exception("analysis scheduling failed")
+            report.errors[1] = f"analysis: {exc}"
         # In-flight Issues first — a repair re-acquires its locks before new claims compete for them
         # (finish what was started); then new claims fill the remaining slots.
         for rec in self.store.list((sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.READY_FOR_OWNER, sm.MERGED)):
@@ -361,6 +447,11 @@ class Orchestrator:
                     continue
             self.store.set_meta(f"root_closed:{root_n}", "1")
             self.store.record_event(root_n, "root_done", {"children": [c.issue_id for c in children]})
+            root_rec = self.store.get(root_n)
+            if root_rec is not None and root_rec.state == sm.BLOCKED:
+                # a decomposed ROOT is tracked as BLOCKED ("executed through its children"); once closed it is
+                # DONE — otherwise reconciliation re-blocks the closed Issue every tick
+                self._set_state(self.store, root_n, sm.DONE, note="ROOT closed: every child done")
             out.append(f"ROOT #{root_n} closed: all {len(children)} children done")
         return out
 
@@ -424,6 +515,8 @@ class Orchestrator:
         if callable(term):
             term()
         self.wait_for_threads(timeout=10)
+        # Whatever the refcount says, the machine must be allowed to sleep once we are gone.
+        self.power.shutdown()
         self.release_singleton()
 
     # -- poll ---------------------------------------------------------------------------------
@@ -625,19 +718,28 @@ class Orchestrator:
     def rate_limited_run(self, result: AgentRunResult) -> bool:
         return (not result.ok) and looks_rate_limited(result.error or result.result_text)
 
-    ACTIVE_STATES = (sm.CLAIMED, sm.WORKING, sm.PR_OPEN, sm.CI, sm.REVIEW, sm.FIX_REQUIRED, sm.MERGED)
+    #: States that hold a worker slot or are about to: what `max_active_issues` bounds. A PR sitting in
+    #: CI/REVIEW/READY holds no worker and must never keep a free worker idle (owner rule).
+    ACTIVE_STATES = (sm.CLAIMED, sm.WORKING, sm.FIX_REQUIRED)
 
     def active_issue_count(self) -> int:
         return len(self.store.list(self.ACTIVE_STATES))
 
     def active_roots(self) -> set[int]:
-        """ROOT Issues with work in flight. Children count toward their ROOT; READY_FOR_OWNER does not
-        count — a PR waiting for the owner's merge must never stop unrelated work."""
+        """ROOT Issues with a worker in flight (or a repair pending). Children count toward their ROOT;
+        PRs in CI/REVIEW/READY_FOR_OWNER do not count — waiting on GitHub or on the owner must never
+        stop unrelated work."""
         return {r.root for r in self.store.list(self.ACTIVE_STATES)}
 
     def schedule(self) -> list[scheduler.Decision]:
         queued = []
         for rec in self.store.list((sm.QUEUED,)):
+            if rec.kind == "rollup":
+                # a rollup Issue is validated through its PR only — never claimed, never given a worker
+                self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="rollup Issue found QUEUED: it is never a worker task",
+                                failure_class="LEAD_BLOCKED")
+                self._blocked_notice(self.store.get(rec.issue_id), "ROLLUP_QUEUED", "a rollup is validated through its PR — resume it with agentctl resume-pr")
+                continue
             try:
                 queued.append((rec, self._contract(rec)))
             except ContractError as exc:
@@ -700,8 +802,10 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             log.warning("label for #%s failed: %s", rec.issue_id, exc)
         try:
-            info = self.worktrees.ensure(rec.issue_id, contract.slug)
-            self.store.update(rec.issue_id, branch=info.branch, worktree=str(info.path), base_sha=self.worktrees.base_sha())
+            ib = self.root_integration_for(rec)
+            info = self.worktrees.ensure(rec.issue_id, contract.slug, base=ib["branch"] if ib else None)
+            self.store.update(rec.issue_id, branch=info.branch, worktree=str(info.path),
+                              base_sha=self.worktrees.base_sha(ib["branch"] if ib else None))
             existing_pr = self.github.find_pr_for_branch(info.branch)
             if existing_pr:
                 self._set_state(self.store, rec.issue_id, sm.PR_OPEN, note="reconciled existing PR",
@@ -737,10 +841,12 @@ class Orchestrator:
         contract = self._contract(rec)
         src = sm.FIX_REQUIRED if repair else sm.CLAIMED
         attempt = rec.attempt_number + 1
+        role = FIXER if repair else WORKER
+        model = self.config.models["fixer" if repair else "worker"]
         try:
             rec = store.transition(issue_id, sm.WORKING, allowed_from=(src,), attempt_number=attempt,
-                                   assigned_agent=f"{WORKER}:{self.config.models['worker']}", started_at=self.clock(),
-                                   heartbeat_at=self.clock(), note=("repair" if repair else "worker") + f" attempt {attempt}")
+                                   assigned_agent=f"{role}:{model}", started_at=self.clock(),
+                                   heartbeat_at=self.clock(), note=("fix" if repair else "worker") + f" attempt {attempt}")
         except TransitionConflict as exc:
             log.warning("#%s worker not started: %s", issue_id, exc)
             return
@@ -750,12 +856,19 @@ class Orchestrator:
         except Exception:  # noqa: BLE001
             pass
         path = Path(rec.worktree)
-        base_ref = self.worktrees.base_ref()
+        ib = self.root_integration_for(rec)
+        base_ref = self.worktrees.base_ref(ib["branch"]) if ib else self.worktrees.base_ref()
         if repair:
-            prompt = prompts.repair_prompt(contract, worktree=str(path), branch=rec.branch, attempt=attempt - 1,
-                                           max_attempts=self.config.max_repair_attempts, failure_class=rec.failure_class or "UNKNOWN",
-                                           failure_summary=rec.last_error or "",
-                                           evidence=work_reports.load_latest_evidence_note(self.config, issue_id))
+            # The FIXER (owner rule 2026-09-20): a dedicated fix-and-resubmit worker — fresh context, the failure
+            # evidence, class-specific instructions and the LIVE contract (a contract amended after the first
+            # attempt started is what gate 1 validates against).
+            live = self.refresh_contract(store, rec)
+            if live is not None:
+                contract = live
+            prompt = prompts.fixer_prompt(contract, worktree=str(path), branch=rec.branch, attempt=attempt - 1,
+                                          max_attempts=self.config.max_repair_attempts, failure_class=rec.failure_class or "UNKNOWN",
+                                          failure_summary=rec.last_error or "",
+                                          evidence=work_reports.load_latest_evidence_note(self.config, issue_id))
             timeout = self.config.repair_timeout_seconds
         else:
             prompt = prompts.worker_prompt(contract, worktree=str(path), branch=rec.branch, base_ref=base_ref)
@@ -763,11 +876,11 @@ class Orchestrator:
                 prompt += "\n\nNOTE: this worktree may hold committed or uncommitted work from an earlier attempt that did not finish. Inspect `git log`, `git status` and `git diff` first and continue from it rather than starting over."
             timeout = self.config.worker_timeout_seconds
         spec = AgentRunSpec(
-            role=WORKER, issue_id=issue_id, attempt=attempt, model=self.config.models["worker"], cwd=path, prompt=prompt,
-            timeout_seconds=timeout, system_prompt=prompts.ROLE_SYSTEM_PROMPTS[WORKER], json_schema=WORKER_REPORT_SCHEMA,
+            role=role, issue_id=issue_id, attempt=attempt, model=model, cwd=path, prompt=prompt,
+            timeout_seconds=timeout, system_prompt=prompts.ROLE_SYSTEM_PROMPTS[role], json_schema=WORKER_REPORT_SCHEMA,
             allowed_tools=self.config.worker_allowed_tools, disallowed_tools=self.config.worker_disallowed_tools,
             permission_mode=self.config.worker_permission_mode, add_dirs=(path,), effort=self.config.claude_effort,
-            resume_session_id=rec.session_id if repair else None, session_name=f"agent-{issue_id}-worker-{attempt}",
+            resume_session_id=None, session_name=f"agent-{issue_id}-{role}-{attempt}",
             extra_env=tuple(self.config.command_env.items()),
         )
 
@@ -823,6 +936,8 @@ class Orchestrator:
                 attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=root_cause,
                 evidence_ref=run_record, next_action="blocked")
             self._milestone(issue_id, f"{text}\n\nBlockers:\n{blockers}")
+            self._blocked_notice(store.get(issue_id), "NEEDS_DECISION" if status == "needs_decision" else "WORKER_BLOCKED",
+                                 f"the {'fixer' if repair else 'worker'} reported {status}: {str(root_cause)[:120]}")
             return
         path = Path(rec.worktree)
         try:
@@ -838,7 +953,7 @@ class Orchestrator:
             body = render_pr_body(contract, report, model=spec.model, session_id=result.session_id, attempt=spec.attempt)
             pr = self.github.find_pr_for_branch(rec.branch)
             if pr is None:
-                pr = self.github.create_pr(head=rec.branch, base=self.worktrees.base_branch(), title=f"{contract.title} (#{issue_id})", body=body)
+                pr = self.github.create_pr(head=rec.branch, base=self._pr_base_for_worktree(path, rec), title=f"{contract.title} (#{issue_id})", body=body)
                 self._milestone(issue_id, f"PR opened: {pr.get('html_url', pr['number'])} (attempt {spec.attempt}, head `{head[:12]}`).")
             else:
                 self.github.update_pr(pr["number"], body=body)
@@ -863,7 +978,9 @@ class Orchestrator:
         rec = store.get(rec.issue_id) or rec
         store.update(rec.issue_id, agent_pid=None, assigned_agent=None)
         attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
-        if self.attempts_remaining(rec):
+        if self.attempts_remaining(rec) and rec.kind != "rollup":
+            # (a rollup is never a worker task: requeued, it would be CLAIMED like an Issue and a worker would
+            # squash the integration branch onto a fresh agent/ branch — 2026-09-22, PR #98. It blocks for the lead.)
             self.locks.release(rec.issue_id, "worker-failed-requeue")
             self._set_state(store, rec.issue_id, sm.QUEUED, note="requeued after worker failure", last_error=error)
             text = work_reports.record_failure(store, self.config, rec.issue_id, stage=stage, failure_class="WORKER_FAILED",
@@ -907,6 +1024,14 @@ class Orchestrator:
             return "CI -> BLOCKED (merged externally)"
         ev = ci_evidence.collect(self.github, self.config, head)
         if ev.status in (ci_evidence.PENDING, ci_evidence.MISSING):
+            if pr.get("mergeable") is False and pr.get("mergeable_state", "") == "dirty" and rec.worktree:
+                # GitHub never runs `pull_request` workflows for a PR whose merge commit cannot be built:
+                # waiting for CI would end in INFRA_FAILURE after ci_wait_seconds (#22, #38 on 2026-09-21).
+                # The base moved under the PR — start the merge and hand the conflict to the fixer now.
+                self._ci_started.pop(rec.issue_id, None)
+                pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+                self.store.record_event(rec.issue_id, "ci_failed", {"class": MERGE_CONFLICT, "summary": "PR conflicts with its base; CI cannot run", "head": head})
+                return self._merge_conflict(rec, Path(rec.worktree), pr_base, "the PR conflicts with its base and CI cannot run on it", from_state="CI")
             started = self._ci_started.setdefault(rec.issue_id, self.clock())
             if self.clock() - started > self.config.ci_wait_seconds:
                 cls = Classification(INFRA_FAILURE, "CI did not report within the configured wait", "", "")
@@ -954,21 +1079,43 @@ class Orchestrator:
             if rerun_ok:
                 self._ci_started[rec.issue_id] = self.clock()
                 return f"CI red ({cls.kind}) -> rerun requested"
-        if cls.repairable and self.attempts_remaining(rec):
+        fixable = cls.repairable
+        if cls.kind == MERGE_CONFLICT and rec.worktree:
+            # the fixer cannot run `git merge`: start the merge here, leave the markers, then dispatch
+            pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+            return self._merge_conflict(rec, Path(rec.worktree), pr_base, cls.summary, from_state="CI")
+        if cls.kind == SPEC_MISMATCH:
+            # the PR must catch up with the LIVE contract — unless the contract itself no longer parses
+            try:
+                issue = self.github.get_issue(rec.issue_id)
+                parse_contract(rec.issue_id, issue.get("title", ""), issue.get("body") or "", known_locks=self.config.known_locks,
+                               behavior_domains=self.config.behavior_domains)
+            except Exception:  # noqa: BLE001 — invalid live contract (or unreadable): a lead decision, not a fix
+                fixable = False
+        if fixable and self.attempts_remaining(rec):
             self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=cls.kind, failure_class=cls.kind, last_error=cls.summary[:1000])
             text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
                                                attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
                                                evidence_ref=evidence_ref, next_action="repair")
-            self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nDispatching the fixer: fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
             return f"CI -> FIX_REQUIRED ({cls.kind})"
         self.locks.release(rec.issue_id, "blocked")
         self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=cls.kind, failure_class=cls.kind, last_error=cls.summary[:1000])
-        why = "not automatically repairable" if not cls.repairable else "retry budget exhausted"
+        why = "not automatically fixable" if not fixable else "fix budget exhausted"
         text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="ci", failure_class=cls.kind,
                                            attempt=rec.attempt_number, attempts_left=0, root_cause=cls.summary,
                                            evidence_ref=evidence_ref, next_action="blocked")
         self._milestone(rec.issue_id, f"{text}\n\n{note}\n\nBlocked ({why}). Team Lead decision required.")
+        self._blocked_notice(rec, cls.kind, why)
         return f"CI -> BLOCKED ({cls.kind})"
+
+    def _blocked_notice(self, rec: IssueRecord, kind: str, why: str) -> None:
+        """ONE Telegram line when an Issue leaves the automatic fix loop — the owner asked to know when a
+        blockage needs a decision instead of another fixer run."""
+        fixes = max(0, rec.attempt_number - 1)
+        self._owner_notice(f"blocked:{rec.issue_id}:{rec.attempt_number}:{kind}",
+                           f"🧱 #{rec.issue_id} נחסם ({kind}) אחרי {fixes} תיקונים אוטומטיים — {why}. "
+                           f"נדרשת החלטה של ה-team lead (repair / requeue / block). {rec.title[:60]}")
 
     def _rerun_ci(self, ev: ci_evidence.CiEvidence) -> bool:
         ok = False
@@ -1037,13 +1184,40 @@ class Orchestrator:
             return "review started"
         verdict = rec.review_verdict.split("@", 1)[0]
         if verdict != "APPROVE":
+            # A non-APPROVE verdict for THIS head that never reached the fixer (recorded before a
+            # stale-recovery requeue, #22) is a review blockage like any other: dispatch the fixer
+            # while the budget lasts, else block for the lead.
+            if verdict in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec) and rec.kind != "rollup":
+                summary = f"independent review {verdict} on {head[:12]} (verdict recorded earlier; fixer dispatched)"
+                self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED,
+                                last_error=summary[:1000])
+                self._milestone(rec.issue_id, f"Independent review **{verdict}** for `{head[:12]}` was still pending a decision — dispatching the fixer "
+                                              f"(fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}).")
+                return f"REVIEW -> FIX_REQUIRED ({verdict} parked verdict)"
+            if not self.attempts_remaining(rec):
+                self.locks.release(rec.issue_id, "review-blocked")
+                self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=f"review {verdict}", failure_class=REVIEW_REJECTED,
+                                last_error=f"independent review {verdict}; fix budget exhausted"[:1000])
+                self._blocked_notice(self.store.get(rec.issue_id), REVIEW_REJECTED, "fix budget exhausted")
+                return f"REVIEW -> BLOCKED ({verdict}, budget exhausted)"
             return f"review verdict {verdict} (awaiting decision)"
         ev = ci_evidence.collect(self.github, self.config, head, fetch_logs=False)
         decision = merge_policy.decide(rec, ev, self.config, review_sha=reviewed_sha,
                                        lost_allowance=self._contract(rec).lost_allowance)
         if decision.ok:
-            if self.period is not None and rec.kind != "rollup":
-                return self._integrate(rec, head, ev, verdict)
+            pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
+            ib = self.root_integration_for(rec) if rec.kind != "rollup" else None
+            if ib:
+                # §42: a ROOT with its own integration branch — the Team Lead merges every fully validated
+                # child there; main is reached only through the ROOT's final rollup PR, which the owner merges.
+                return self._integrate(rec, head, ev, verdict, branch=ib["branch"], target=ib)
+            late_integration = rec.kind != "rollup" and self.period is None and pr_base.startswith("integration/") and \
+                bool(self.rollup()) and self.rollup().get("period", {}).get("branch") == pr_base
+            if (self.period is not None and rec.kind != "rollup") or late_integration:
+                # A PR opened during the period whose validation finished after it ended still targets the
+                # integration branch: it joins the pending rollup (which re-validates the combined head) —
+                # the owner merges main only through the rollup PR.
+                return self._integrate(rec, head, ev, verdict, branch=pr_base)
             self._set_state(self.store, rec.issue_id, sm.READY_FOR_OWNER, note=f"every gate green: {decision.describe()}")
             self.store.record_event(rec.issue_id, "ready_for_owner", {"head": head, "policy": decision.describe()})
             if self.config.release_locks_at in ("ready", "pr_open"):
@@ -1084,6 +1258,67 @@ class Orchestrator:
         raw = self.store.get_meta("rollup")
         return json.loads(raw) if raw else None
 
+    # -- ROOT-scoped integration branches (§42, owner 2026-09-20) ------------------------------
+    def root_integrations(self) -> dict[int, dict]:
+        raw = self.store.get_meta("root_integrations")
+        data = json.loads(raw) if raw else {}
+        return {int(k): v for k, v in data.items()}
+
+    def root_integration_for(self, rec: IssueRecord | int | None) -> dict | None:
+        """The integration branch of the Issue's ROOT (or of the Issue itself when it is the ROOT)."""
+        if rec is None:
+            return None
+        root = rec if isinstance(rec, int) else (rec.root or rec.issue_id)
+        info = self.root_integrations().get(int(root))
+        if info and not info.get("closed"):
+            return {**info, "root": int(root)}
+        return None
+
+    def set_root_integration(self, root: int, branch: str, *, from_ref: str | None = None, label: str | None = None) -> str:
+        """Register (and create on the remote if missing) the integration branch every child of `root`
+        starts from, targets with its PR and is merged into by the Team Lead once every gate is green.
+        Main is reached only through ONE final rollup PR (integration -> main) that the owner merges."""
+        if not branch.startswith("integration/"):
+            raise ValueError("a ROOT integration branch must be named integration/<slug>")
+        sha = self.worktrees.create_branch_from(branch, from_ref or self.worktrees.base_ref(self.config.base_branch))
+        data = {str(k): v for k, v in self.root_integrations().items()}
+        data[str(root)] = {"branch": branch, "label": label or branch.split("/", 1)[1], "created_from": sha,
+                           "created_at": self.clock(), "closed": False}
+        self.store.set_meta("root_integrations", json.dumps(data))
+        self.store.record_event(root, "ROOT_INTEGRATION_SET", {"branch": branch, "base_sha": sha, "label": data[str(root)]["label"]})
+        self._owner_notice(f"root_integration:{root}:{branch}",
+                           f"🌿 ROOT #{root} ({data[str(root)]['label']}) עובד מול ענף אינטגרציה ייעודי `{branch}` (נוצר מ-`{sha[:12]}`): "
+                           f"כל PR של ילד מכוון אליו ומתמזג על ידי ה-team lead אחרי כל השערים; main רק דרך rollup PR אחד באישורך.")
+        return sha
+
+    def close_root_integration(self, root: int) -> None:
+        data = {str(k): v for k, v in self.root_integrations().items()}
+        if str(root) in data:
+            data[str(root)]["closed"] = True
+            self.store.set_meta("root_integrations", json.dumps(data))
+            self.store.record_event(root, "ROOT_INTEGRATION_CLOSED", {"branch": data[str(root)]["branch"]})
+
+    def _pr_base_for_worktree(self, path: Path, rec: IssueRecord | None = None) -> str:
+        """The branch a new PR targets: a ROOT's own integration branch when the Issue belongs to one
+        (§42); else the current base (main, or the period's integration branch) — unless the worktree's
+        history already contains a pending rollup's integration branch (a child started on it, or the
+        period ended while the worker ran): then the PR targets that branch, because its commits exist
+        only there and the rollup re-validates the combined head."""
+        if rec is not None:
+            ib = self.root_integration_for(rec)
+            if ib:
+                return ib["branch"]
+        base = self.worktrees.base_branch()
+        info = self.rollup() or {}
+        ibranch = (info.get("period") or {}).get("branch")
+        if ibranch and ibranch != base:
+            try:
+                if run_git(["merge-base", "--is-ancestor", self.worktrees.base_ref(ibranch), "HEAD"], path, check=False).returncode == 0:
+                    return ibranch
+            except Exception:  # noqa: BLE001
+                pass
+        return base
+
     def _base_ref_for(self, rec: IssueRecord) -> str:
         """The base a record's PR targets: the rollup targets main; otherwise the PR's own base."""
         if rec.kind == "rollup":
@@ -1095,7 +1330,8 @@ class Orchestrator:
                     return self.worktrees.base_ref(base)
             except Exception:  # noqa: BLE001
                 pass
-        return self.worktrees.base_ref()
+        ib = self.root_integration_for(rec)
+        return self.worktrees.base_ref(ib["branch"]) if ib else self.worktrees.base_ref()
 
     def check_period(self) -> str | None:
         """Start the period when today is protected (Asia/Jerusalem), end it the day after it ends."""
@@ -1132,9 +1368,17 @@ class Orchestrator:
         log.info("protected period started: %s (%s)", p.label, p.branch)
         return f"protected period started: {p.label} -> {p.branch}"
 
-    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str) -> str:
-        """Team-Lead merge into the period's integration branch (never main) after every gate is green."""
-        p = self.period
+    def _integrate(self, rec: IssueRecord, head: str, ev, verdict: str, branch: str | None = None,
+                   target: dict | None = None) -> str:
+        """Team-Lead merge into an integration branch (never main) after every gate is green: the
+        period's branch (§26–§41) or a ROOT's own integration branch (§42, `target`)."""
+        if target is not None:
+            p = _RootIntegrationTarget(branch=target["branch"], label=target.get("label") or target["branch"], root=int(target["root"]))
+        else:
+            p = self.period
+            if p is None:
+                info = self.rollup() or {}
+                p = Period.from_dict(info["period"]) if info.get("period") else None
         assert p is not None
         pr = self.github.get_pr(rec.pr_number)
         if (pr.get("base") or {}).get("ref") != p.branch:
@@ -1152,17 +1396,58 @@ class Orchestrator:
         entry = {"issue": rec.issue_id, "pr": rec.pr_number, "sha": merge_sha, "head": head, "title": rec.title.replace("[agent] ", "", 1),
                  "root": rec.root, "review": verdict, "branch": p.branch, "ts": self.clock()}
         self._add_integration(entry)
+        if target is None:
+            info = self.rollup()
+            if info and info.get("period", {}).get("branch") == p.branch and rec.issue_id not in info.get("children", []):
+                # the period's rollup PR already exists (period re-opened / ended early): it carries this child too
+                info["children"] = info.get("children", []) + [rec.issue_id]
+                self.store.set_meta("rollup", json.dumps(info))
         self.store.record_event(rec.issue_id, "integrated", entry)
-        self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — {im.period_hebrew(p)} mode: "
-                                      f"CI, regression and independent review were green at `{head[:12]}`. Lands on main with the period's rollup PR.")
-        self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
-                           f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup בסוף {im.period_hebrew(p)}.")
+        if target is not None:
+            self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — ROOT #{p.root} integration branch: "
+                                          f"CI, regression and independent review were green at `{head[:12]}`. Lands on main only with ROOT #{p.root}'s final rollup PR.")
+            self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
+                               f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup של {p.label} (ROOT #{p.root}).")
+        else:
+            self._milestone(rec.issue_id, f"Integrated by the Team Lead into `{p.branch}` (`{merge_sha[:12]}`) — {im.period_hebrew(p)} mode: "
+                                          f"CI, regression and independent review were green at `{head[:12]}`. Lands on main with the period's rollup PR.")
+            self._owner_notice(f"integrated:{rec.issue_id}:{merge_sha[:8]}",
+                               f"🧩 #{rec.issue_id} אוחד ל-`{p.branch}` (PR #{rec.pr_number}, review {verdict}). main לא נגע; יגיע אליך ב-rollup בסוף {im.period_hebrew(p)}.")
         self._wake.set()
         if not self.dry_run:
             job = self.resources.try_acquire_heavy(rec.issue_id, "integration-smoke")
             if job is not None:
                 self._spawn(f"smoke:{rec.issue_id}", self._integration_smoke_run, rec.issue_id, job, p.branch, merge_sha)
         return f"REVIEW -> INTEGRATED ({p.branch})"
+
+    def adopt_integration_merge(self, rec: IssueRecord, pr: dict, *, by: str = "owner") -> str:
+        """A PR of a ROOT-integration child that was merged into the ROOT's integration branch (by the owner,
+        or before the orchestrator knew the linkage): record it as INTEGRATED — dependents may start — and run
+        the integration smoke on the branch head, exactly as `_integrate` does after its own merge."""
+        ib = self.root_integration_for(rec)
+        if not ib:
+            raise ValueError(f"#{rec.issue_id}: its ROOT has no integration branch")
+        base = (pr.get("base") or {}).get("ref")
+        if not pr.get("merged") or base != ib["branch"]:
+            raise ValueError(f"PR #{rec.pr_number} is not merged into {ib['branch']} (merged={pr.get('merged')}, base={base})")
+        merge_sha = pr.get("merge_commit_sha") or ""
+        head = (pr.get("head") or {}).get("sha") or rec.validated_commit or ""
+        verdict = (rec.review_verdict or "APPROVE").split("@", 1)[0]
+        self._set_state(self.store, rec.issue_id, sm.INTEGRATED, note=f"merged into {ib['branch']} by the {by}", validated_commit=merge_sha,
+                        failure_class=None)
+        self.locks.release(rec.issue_id, "integrated")
+        entry = {"issue": rec.issue_id, "pr": rec.pr_number, "sha": merge_sha, "head": head, "title": rec.title.replace("[agent] ", "", 1),
+                 "root": rec.root, "review": verdict, "branch": ib["branch"], "ts": self.clock(), "by": by}
+        self._add_integration(entry)
+        self.store.record_event(rec.issue_id, "integrated", entry)
+        self._milestone(rec.issue_id, f"PR #{rec.pr_number} merged into `{ib['branch']}` by the {by} (`{merge_sha[:12]}`) — recorded as INTEGRATED for "
+                                      f"ROOT #{ib['root']}; lands on main only with the ROOT's rollup PR. Running the integration smoke.")
+        self._wake.set()
+        if not self.dry_run:
+            job = self.resources.try_acquire_heavy(rec.issue_id, "integration-smoke")
+            if job is not None:
+                self._spawn(f"smoke:{rec.issue_id}", self._integration_smoke_run, rec.issue_id, job, ib["branch"], merge_sha)
+        return f"{rec.state} -> INTEGRATED ({ib['branch']}, merged by the {by})"
 
     def _integration_smoke_run(self, issue_id: int, job, branch: str, merge_sha: str) -> None:
         """Integration-aware validation (§30): smoke on the combined branch head right after the merge.
@@ -1230,6 +1515,13 @@ class Orchestrator:
         self.worktrees.base_override = None
         self._save_period(None)
         self.store.set_meta("period_closed_through", p.end.isoformat())
+        existing = self.rollup()
+        if existing and existing.get("period", {}).get("branch") == p.branch:
+            existing["children"] = [c["issue"] for c in children]
+            self.store.set_meta("rollup", json.dumps(existing))
+            self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": existing.get("pr"),
+                                                                      "rollup_issue": existing.get("issue"), "integrated": existing["children"], "reused": True})
+            return f"protected period ended: {p.label} -> existing rollup PR #{existing.get('pr')} refreshed"
         if not children:
             self.worktrees.delete_remote_branch(p.branch)
             self.store.record_event(None, "PROTECTED_PERIOD_ENDED", {"integration_branch": p.branch, "rollup_pr": None, "integrated": 0})
@@ -1292,9 +1584,12 @@ class Orchestrator:
                                      tests_ok=r.get("ci") == "PASS", review=r.get("review"), limitations=list(r.get("limitations") or []),
                                      recommendation="MERGE RECOMMENDED" if str(r.get("recommendation", "")).startswith("MERGE") else "CHANGES RECOMMENDED — " + str(r.get("recommendation", "")))
             try:
-                self.github.update_pr(rec.pr_number, body=f"Closes #{rec.issue_id}\n\n" + body)
+                # A COMMENT, not a body edit: editing the PR body fires `pull_request: edited`, which re-runs the
+                # whole CI (gate 4 included, ~1 h) on the very head that just went READY and stalls the merge
+                # (2026-09-22 05:16, PR #91). The body keeps the summary written when the PR was opened.
+                self.github.comment(rec.pr_number, "## סיכום rollup (מעודכן ב-READY)\n\n" + body)
             except Exception as exc:  # noqa: BLE001
-                log.warning("rollup PR body update failed: %s", exc)
+                log.warning("rollup PR ready summary comment failed: %s", exc)
             return im.rollup_notification(p, rec.pr_number, children, decisions=decisions, ci=r.get("ci", "?"), regression=r.get("regression", "?"),
                                           review=r.get("review", "?"), head=head, pr_url=r.get("pr_url") or "")
         return render_ready_notification(r)
@@ -1316,6 +1611,18 @@ class Orchestrator:
                     log.warning("could not close #%s: %s", n, exc)
         branch = info.get("period", {}).get("branch") or rec.branch
         if branch and not self.dry_run:
+            # Deleting the integration branch makes GitHub auto-close every open PR that still targets
+            # it (2026-09-20: #34/#36/#38 died that way). Retarget them to main first: their branches
+            # contain the rollup's content, so against the freshly merged main their diff is exactly
+            # their own change.
+            try:
+                for pr in self.github.open_prs_for_base(branch):
+                    if pr.get("number") == rec.pr_number:
+                        continue
+                    self.github.update_pr(pr["number"], base=self.config.base_branch)
+                    store.record_event(None, "pr_retargeted_after_rollup", {"pr": pr["number"], "from": branch, "to": self.config.base_branch})
+            except Exception as exc:  # noqa: BLE001
+                log.warning("could not retarget open PRs off %s: %s", branch, exc)
             try:
                 self.worktrees.delete_remote_branch(branch)
             except Exception as exc:  # noqa: BLE001
@@ -1397,6 +1704,20 @@ class Orchestrator:
             "recommendation": "MERGE — כל השערים ירוקים ל-SHA הזה בדיוק" if verdict == "APPROVE" and ev.status == ci_evidence.SUCCESS else "HOLD — ראה ראיות",
         }
 
+    def lead_merge_authorized(self) -> float:
+        """Unix ts until which the OWNER authorized the Team Lead to merge to main at its own
+        judgement (0 = not authorized). While it holds, a READY notification offers no Merge button:
+        the lead merges — the owner asked not to be handed buttons he no longer has to press."""
+        try:
+            until = float(self.store.get_meta("lead_merge_until") or 0)
+        except ValueError:
+            return 0.0
+        return until if until > self.clock() else 0.0
+
+    def authorize_lead_merge(self, until_ts: float, *, by: str = "owner") -> None:
+        self.store.set_meta("lead_merge_until", str(float(until_ts)))
+        self.store.record_event(None, "lead_merge_authorized", {"until": until_ts, "by": by})
+
     def _publish_ready_report(self, rec: IssueRecord, head: str, ev: ci_evidence.CiEvidence | None = None) -> None:
         r = self.ready_report(rec, head, ev)
         text = render_ready_report(r)
@@ -1406,9 +1727,15 @@ class Orchestrator:
             notification = self._rollup_ready(rec, r, head)
         if self.config.notify_ready_for_owner:
             key = f"pr:{rec.pr_number}:READY_FOR_OWNER:{head}"
-            buttons = [[{"text": "סיכום" if rec.kind == "rollup" else "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "מזג", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"},
-                        {"text": "בקש שינוי" if rec.kind == "rollup" else "דחה", "data": f"v1|{'OWNER_CHANGE_REQUEST' if rec.kind == 'rollup' else 'REJECT_PR'}|{rec.pr_number}|{head[:8]}|"}]]
+            authorized_until = self.lead_merge_authorized()
+            row = [{"text": "סיכום" if rec.kind == "rollup" else "פרטים", "data": f"v1|GET_PR_DETAILS|{rec.pr_number}|{head[:8]}|"}]
+            if not authorized_until:
+                row.append({"text": "מזג", "data": f"v1|MERGE_PR|{rec.pr_number}|{head[:8]}|"})
+            row.append({"text": "בקש שינוי" if rec.kind == "rollup" else "דחה", "data": f"v1|{'OWNER_CHANGE_REQUEST' if rec.kind == 'rollup' else 'REJECT_PR'}|{rec.pr_number}|{head[:8]}|"})
+            buttons = [row]
+            if authorized_until:
+                when = dt.datetime.fromtimestamp(authorized_until).strftime("%d/%m %H:%M")
+                notification += f"\n\n🤝 יש לי הרשאת מיזוג עד {when} — אני אמזג בעצמי; אין צורך בכפתור. ״דחה״ עוצר את המיזוג."
             created = self.store.enqueue_notification("ready_for_owner", key, rec.issue_id, notification, buttons)
             if not created:
                 log.info("#%s: READY notification for %s already queued/sent (dedup)", rec.issue_id, head[:12])
@@ -1507,12 +1834,16 @@ class Orchestrator:
         cls = Classification(REVIEW_REJECTED, f"independent review {v}: {verdict.get('summary', '')[:300]}", body[:3000], "review")
         evidence_ref = work_reports.save_evidence_note(self.config, issue_id, rec.attempt_number, body)
         attempts_left = self.config.max_repair_attempts - max(0, rec.attempt_number - 1)
-        if v == "REQUEST_CHANGES" and self.attempts_remaining(rec):
+        # Owner rule 2026-09-20: a review blockage (REQUEST_CHANGES or BLOCK) is fixed and resubmitted by the
+        # FIXER while the fix budget lasts; only an exhausted budget hands the Issue to the Team Lead.
+        if v in ("REQUEST_CHANGES", "BLOCK") and self.attempts_remaining(rec) and rec.kind != "rollup":
+            # (a rollup's combined review is the Team Lead's to act on — the integration branch is fixed by
+            # re-integrating a child or by a lead commit, never by a fixer editing the branch directly)
             self._set_state(store, issue_id, sm.FIX_REQUIRED, note=REVIEW_REJECTED, failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
             text = work_reports.record_failure(store, self.config, issue_id, stage="review", failure_class=REVIEW_REJECTED,
                                                attempt=rec.attempt_number, attempts_left=attempts_left, root_cause=cls.summary,
                                                evidence_ref=evidence_ref, next_action="repair")
-            self._milestone(issue_id, f"{text}\n\nIndependent review: **REQUEST_CHANGES** — {verdict.get('summary', '')[:400]}\n\nScheduling repair attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            self._milestone(issue_id, f"{text}\n\nIndependent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nDispatching the fixer: fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
         else:
             self.locks.release(issue_id, "review-blocked")
             self._set_state(store, issue_id, sm.BLOCKED, note=f"review {v}", failure_class=REVIEW_REJECTED, last_error=cls.summary[:1000])
@@ -1520,8 +1851,39 @@ class Orchestrator:
                                                attempt=rec.attempt_number, attempts_left=0, root_cause=cls.summary,
                                                evidence_ref=evidence_ref, next_action="blocked")
             self._milestone(issue_id, f"{text}\n\nIndependent review: **{v}** — {verdict.get('summary', '')[:400]}\n\nBlocked; Team Lead decision required.")
+            self._blocked_notice(store.get(issue_id), REVIEW_REJECTED, "fix budget exhausted")
 
     # -- ready / merge ------------------------------------------------------------------------
+    def _merge_conflict(self, rec: IssueRecord, path: Path, pr_base: str, detail: str, *, from_state: str) -> str:
+        """The base advanced and the branch conflicts: start the merge in the worktree, leave the conflict
+        markers, and dispatch the FIXER to resolve them (owner rule 2026-09-20) — the fixer's tools cannot
+        run `git merge` themselves. Out of budget -> BLOCKED for the Team Lead."""
+        conflicted: list[str] = []
+        if self.attempts_remaining(rec):
+            try:
+                conflicted = self.worktrees.begin_merge(path, pr_base)
+            except GitError as exc:
+                detail = f"{detail}; begin_merge failed: {str(exc)[:300]}"
+        if conflicted:
+            summary = f"base {pr_base} advanced and the merge conflicts in {len(conflicted)} file(s)"
+            evidence = (f"MERGE IN PROGRESS in the worktree (`git merge {pr_base}` started by the orchestrator). Conflicted files:\n"
+                        + "\n".join(f"- {f}" for f in conflicted)
+                        + "\n\nResolve every conflict marker keeping both sides' intent, run the relevant tests, then `git add -A && git commit`.")
+            evidence_ref = work_reports.save_evidence_note(self.config, rec.issue_id, rec.attempt_number, evidence)
+            self.store.record_event(rec.issue_id, "merge_conflict", {"base": pr_base, "files": conflicted})
+            self._set_state(self.store, rec.issue_id, sm.FIX_REQUIRED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT,
+                            last_error=summary, validated_commit=None)
+            text = work_reports.record_failure(self.store, self.config, rec.issue_id, stage="merge", failure_class=MERGE_CONFLICT,
+                                               attempt=rec.attempt_number, attempts_left=self.config.max_repair_attempts - max(0, rec.attempt_number - 1),
+                                               root_cause=summary, evidence_ref=evidence_ref, next_action="repair")
+            self._milestone(rec.issue_id, f"{text}\n\n{evidence}\n\nDispatching the fixer: fix attempt {rec.attempt_number} of {self.config.max_repair_attempts}.")
+            return f"{from_state} -> FIX_REQUIRED (merge conflict, fixer dispatched)"
+        self.locks.release(rec.issue_id, "merge-conflict")
+        self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT, last_error=detail[:1000])
+        self._milestone(rec.issue_id, f"Blocked: base advanced and the branch conflicts — {detail[:400]}")
+        self._blocked_notice(rec, MERGE_CONFLICT, "fix budget exhausted" if not self.attempts_remaining(rec) else "the merge could not be started")
+        return f"{from_state} -> BLOCKED (merge conflict)"
+
     def _step_ready_for_owner(self, rec: IssueRecord) -> str:
         """Wait for the owner. Keep the readiness honest: a moved head or an advanced base invalidates
         it (back to CI, new SHA -> new validation -> new notification); an owner merge on GitHub is
@@ -1529,6 +1891,9 @@ class Orchestrator:
         pr, head = self._pr_head(rec)
         if pr.get("merged"):
             self.audit_external_merge(rec, pr)
+            ib = self.root_integration_for(rec)
+            if ib and (pr.get("base") or {}).get("ref") == ib["branch"]:
+                return self.adopt_integration_merge(rec, pr, by="owner")
             self._set_state(self.store, rec.issue_id, sm.MERGED, note="merged by the owner on GitHub", validated_commit=pr.get("merge_commit_sha"))
             self._milestone(rec.issue_id, f"PR #{rec.pr_number} merged by the owner (`{str(pr.get('merge_commit_sha'))[:12]}`). Running post-merge smoke.")
             return "READY_FOR_OWNER -> MERGED (owner merged on GitHub)"
@@ -1553,10 +1918,7 @@ class Orchestrator:
                 self.worktrees.update_from_base(path, pr_base)
                 self.worktrees.push(path, rec.branch)
             except MergeConflict as exc:
-                self.locks.release(rec.issue_id, "merge-conflict")
-                self._set_state(self.store, rec.issue_id, sm.BLOCKED, note=MERGE_CONFLICT, failure_class=MERGE_CONFLICT, last_error=str(exc)[:1000])
-                self._milestone(rec.issue_id, f"Blocked: base advanced and the branch conflicts — {str(exc)[:400]}")
-                return "READY_FOR_OWNER -> BLOCKED (merge conflict)"
+                return self._merge_conflict(rec, path, pr_base, str(exc), from_state="READY_FOR_OWNER")
             new_head = self.worktrees.head_sha(path)
             self._invalidate_readiness(rec, new_head, f"base advanced by {behind} commit(s); merged base into the branch")
             return "READY_FOR_OWNER -> CI (base advanced, readiness invalidated)"
@@ -1604,13 +1966,16 @@ class Orchestrator:
                                        require_github_gates=True)
         if not decision.ok:
             return refuse(f"השערים אינם ירוקים ל-{head[:12]} (gates not green): {decision.describe()}")
+        self.sync_period()
         self.worktrees.fetch()
+        pr_base = (pr.get("base") or {}).get("ref") or self.config.base_branch
         try:
-            behind = self.worktrees.behind_base(Path(rec.worktree))
+            behind = self.worktrees.behind_base(Path(rec.worktree), pr_base)
         except GitError:
             behind = 0
         if behind > 0:
-            return refuse(f"ה-base התקדם ב-{behind} קומיט(ים) — נדרש אימות מחדש על base עדכני (base advanced; האורקסטרטור יעדכן את הענף)")
+            self._wake.set()
+            return refuse(f"ה-base ({pr_base}) התקדם ב-{behind} קומיט(ים) — האורקסטרטור מעדכן את הענף ומריץ שוב את השערים; תקבל הודעת READY חדשה (base advanced)")
         _, gate_states = ev.required_contexts_green(self.config.protection_required_contexts)
         try:
             res = self.github.merge_pr(rec.pr_number, method=self.config.merge_method, title=f"{rec.title} (#{rec.pr_number})", sha=head)
@@ -1799,6 +2164,10 @@ class Orchestrator:
                             json_schema=DOMAIN_LEAD_BRIEF_SCHEMA, tools=self.config.domain_lead_tools, restricted=True,
                             effort=self.config.claude_effort, session_name=f"agent-domain-lead-{domain}", persist_session=False)
         result = self.runner.run(spec)
+        if result.ok and _placeholder_brief(result.structured):
+            # seen twice on 2026-09-20 (knowledge domain): 40+ turns of reading, then a schema-shaped
+            # brief whose every field is "test"/"a" — a failed run, not a brief
+            result = dataclasses.replace(result, ok=False, error="placeholder brief (every field is filler text); treat as a failed run")
         audit.write_run_record(self.config, spec, result, extra={"domain": domain, "question": question})
         return result
 
@@ -1806,6 +2175,19 @@ class Orchestrator:
 # --------------------------------------------------------------------------------------------
 # module helpers
 # --------------------------------------------------------------------------------------------
+
+def _placeholder_brief(structured: dict | None) -> bool:
+    """A structured brief whose text fields are all filler (≤ 4 characters) is not an investigation."""
+    if not structured:
+        return False
+    texts: list[str] = []
+    for v in structured.values():
+        if isinstance(v, str):
+            texts.append(v)
+        elif isinstance(v, list):
+            texts.extend(x for x in v if isinstance(x, str))
+    return bool(texts) and all(len(x.strip()) <= 4 for x in texts)
+
 
 def _sh(cmd: str, cwd: Path, timeout: int, extra_env: dict[str, str] | None = None):
     import subprocess

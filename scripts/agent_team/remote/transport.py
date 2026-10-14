@@ -7,6 +7,7 @@ redactor knows the Telegram token shape.
 from __future__ import annotations
 
 import json
+import uuid
 import os
 import re
 import urllib.error
@@ -57,6 +58,7 @@ class TelegramTransport(Protocol):
     def answer_callback(self, callback_id: str, text: str = "") -> None: ...
     def send_chat_action(self, chat_id: int, action: str = "typing") -> None: ...
     def edit_buttons(self, chat_id: int, message_id: int, buttons: list[list[dict]] | None) -> None: ...
+    def send_photo(self, chat_id: int, image: bytes, caption: str = "", filename: str = "plan.png") -> dict: ...
     def get_file(self, file_id: str) -> bytes: ...
     def get_me(self) -> dict: ...
 
@@ -124,6 +126,30 @@ class HttpTelegramTransport:
                        reply_markup=_keyboard(buttons) or {"inline_keyboard": []})
         except TelegramError:
             pass
+
+    def send_photo(self, chat_id: int, image: bytes, caption: str = "", filename: str = "plan.png") -> dict:
+        """sendPhoto as multipart/form-data (the owner asked for plan IMAGES on Telegram, 2026-09-22).
+        Caption ≤ 1024 chars per Telegram; longer text goes in a separate message."""
+        boundary = "----agentteam" + uuid.uuid4().hex
+        def field(name: str, value: str) -> bytes:
+            return (f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").encode()
+        body = field("chat_id", str(chat_id))
+        if caption:
+            body += field("caption", caption[:1024])
+        body += (f"--{boundary}\r\nContent-Disposition: form-data; name=\"photo\"; filename=\"{filename}\"\r\n"
+                 f"Content-Type: image/png\r\n\r\n").encode() + image + b"\r\n" + f"--{boundary}--\r\n".encode()
+        req = urllib.request.Request(self._base + "sendPhoto", data=body, method="POST")
+        req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                payload = json.load(resp)
+        except urllib.error.HTTPError as exc:
+            raise TelegramError(f"sendPhoto -> HTTP {exc.code}: {agent_runner.redact(exc.read().decode('utf-8', 'replace')[:300])}") from exc
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise TelegramError(f"sendPhoto failed: {agent_runner.redact(str(exc))[:200]}") from exc
+        if not payload.get("ok"):
+            raise TelegramError(f"sendPhoto: {agent_runner.redact(str(payload.get('description')))[:200]}")
+        return payload["result"]
 
     def get_file(self, file_id: str) -> bytes:
         info = self._call("getFile", file_id=file_id)
@@ -207,6 +233,10 @@ class FakeTelegramTransport:
 
     def edit_buttons(self, chat_id: int, message_id: int, buttons: list[list[dict]] | None) -> None:
         pass
+
+    def send_photo(self, chat_id: int, image: bytes, caption: str = "", filename: str = "plan.png") -> dict:
+        self.photos = getattr(self, "photos", []); self.photos.append((chat_id, len(image), caption, filename))
+        return {"message_id": 900 + len(self.photos)}
 
     def get_file(self, file_id: str) -> bytes:
         return self.files.get(file_id, b"")

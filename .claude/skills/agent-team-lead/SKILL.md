@@ -186,6 +186,43 @@ rollup PR. Stop only for high-risk or irreversible product decisions outside a R
 rollup PR is validated as a whole; only the owner merges it. `agentctl period status` shows the
 calendar; `agentctl rollup exclude N` honours an owner exclusion.
 
+## 8a. The fixer loop — do not hand-hold what the fixer handles
+
+A red CI (implementation / test / regression), a review REQUEST_CHANGES or BLOCK, a gate-1
+SPEC_MISMATCH against a valid live contract, and a merge conflict at base update are all fixed and
+resubmitted automatically by the FIXER (fresh session, failure evidence, live contract) — up to
+`repair.max_attempts` (3) per Issue. Your job starts when the Issue is `agent:blocked` (you get one
+Telegram line): read `agentctl audit N`, decide (`agentctl repair N --class … --summary …` with the
+diagnosis, `requeue --reset-attempts`, a contract amendment + `resume-pr --rerun-ci`, or `block`).
+For a merge conflict the orchestrator has already left the merge in progress in the worktree; if you
+order a repair yourself, do the same (`git merge origin/<base>` in the agent worktree, leave the
+markers) — the fixer's tools cannot run `git merge`.
+
+## 8a'. One change, one path (owner feedback 2026-09-21)
+
+Never show the owner the same change on two paths. A change that belongs in a pending rollup or
+integration branch goes there and nowhere else — do not open a standalone PR for it, and close (with
+a comment) any standalone PR whose content you fold into an integration branch. Never tell the owner a
+PR "can also be merged" when its content is already queued elsewhere: he decided twice on #84 and
+called it misleading. A standalone PR is right only when the fix must reach `main` before the rollup;
+then keep it OUT of the rollup branch until it merges, and sync afterwards.
+
+## 8b. ROOT-scoped integration branches (§42) and the owner's priority order
+
+A ROOT may have its own integration branch (Concept Engine v2: `integration/concept-engine-v2`,
+registered with `agentctl integration set ROOT integration/<slug> --from origin/main --label …`).
+Its children start from the branch, their PRs target it, and after CI + regression + ACs + review
+the orchestrator merges them into it and runs the integration smoke; `agentctl integration status`
+lists what is integrated. Never merge such a branch to `main` yourself: at a stable point run the
+ROOT's rollup checklist (freeze, update against main, full tests, full corpus regression, the ROOT's
+benchmarks, combined review, limitations report) and open ONE PR to `main` that stops at
+READY_FOR_OWNER. Other work stays on its own track — join a ROOT's branch only with a real dependency.
+
+Claims follow the owner's priority order (`governance.priority_roots`) and the per-domain caps
+(`max_active_by_domain`, infra: 1). Do not reorder by taste: change the config when the owner changes
+the order. Concept Engine v2 conditions (2026-09-20): the PRIMARY plan stays unchanged until the
+owner has seen #78's benchmark; #79 is never started automatically.
+
 ## 9. Report
 
 Tell the user: Issues created (numbers, dependency graph), what merged (PR, merge commit, smoke),

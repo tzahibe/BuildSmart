@@ -46,6 +46,9 @@ class RemoteService:
     transcriber: Transcriber = field(default_factory=NullTranscriber)
     clock: object = time.time
     _stop: threading.Event = field(default_factory=threading.Event)
+    #: Consecutive `getUpdates` failures, for the backoff on `poll_once`. Reset on the first
+    #: success, so a transient blip never leaves the service in a slow mode.
+    _poll_failures: int = 0
     _lock_fh: object = None
     handled: int = 0
     # Updates are handled on one worker thread (in order) so a slow interpreter call never blocks
@@ -53,6 +56,8 @@ class RemoteService:
     threaded: bool = False
     _queue: "queue.Queue[dict]" = field(default_factory=queue.Queue)
     _worker: threading.Thread | None = None
+    _busy_since: float | None = None      # monotonic time the handler started the current update
+    _current: dict | None = None
 
     # -- singleton ------------------------------------------------------------------------
     def acquire_singleton(self) -> None:
@@ -94,14 +99,38 @@ class RemoteService:
                 log.warning("notification %s failed (%s): %s", note["dedup_key"], status, redact(str(exc)))
         return sent
 
+    #: Backoff after consecutive `getUpdates` failures, in seconds, then held at the last value.
+    #: THE DEFECT THIS FIXES (GitHub #188 §5, measured on 2026-10-04): `poll_once` swallowed the
+    #: error and returned, and the outer loop re-entered immediately. A long poll normally paces
+    #: this loop — it blocks for `telegram_poll_timeout_seconds` — but a DNS failure returns in
+    #: microseconds, so the pacing vanished with it. Measured result: 3,587 failures in ONE minute
+    #: (~60/s) while the machine had no DNS after waking from sleep, and 62,712 in the log overall.
+    #: The sleep is interruptible (`self._stop.wait`), so SIGTERM still stops the service at once.
+    POLL_BACKOFF_SECONDS = (0, 1, 2, 5, 10, 15, 30)
+
+    def _poll_backoff(self) -> float:
+        i = min(self._poll_failures, len(self.POLL_BACKOFF_SECONDS) - 1)
+        return float(self.POLL_BACKOFF_SECONDS[i])
+
     def poll_once(self, timeout: int | None = None) -> int:
         offset_raw = self.store.get_meta("telegram_offset")
         offset = int(offset_raw) if offset_raw else None
         try:
             updates = self.transport.get_updates(offset, self.config.telegram_poll_timeout_seconds if timeout is None else timeout)
         except TelegramError as exc:
-            log.warning("getUpdates failed: %s", redact(str(exc)))
+            self._poll_failures += 1
+            wait = self._poll_backoff()
+            # Log the first few in full, then once per escalation — 62,712 identical lines is not
+            # evidence, it is noise that buried the one fact that mattered (the machine had no DNS).
+            if self._poll_failures <= 3 or self._poll_failures % 50 == 0:
+                log.warning("getUpdates failed (%s consecutive, backing off %ss): %s",
+                            self._poll_failures, wait, redact(str(exc)))
+            if wait:
+                self._stop.wait(wait)
             return 0
+        if self._poll_failures:
+            log.info("getUpdates recovered after %s consecutive failure(s)", self._poll_failures)
+            self._poll_failures = 0
         n = 0
         for u in updates:
             uid = int(u.get("update_id", 0))
@@ -136,12 +165,45 @@ class RemoteService:
                 u = self._queue.get(timeout=1)
             except queue.Empty:
                 continue
+            self._busy_since = time.monotonic()
+            self._current = u
             try:
                 self.handle_update(u)
-            except Exception:  # noqa: BLE001
+            except BaseException:  # noqa: BLE001 — the handler thread must survive anything
                 log.exception("update handling failed")
+            finally:
+                self._busy_since = None
+                self._current = None
+
+    #: One update may legitimately take a couple of minutes (an Opus draft); beyond this the handler
+    #: is considered wedged (a hung subprocess) and is replaced so later presses get served.
+    HANDLER_STALL_SECONDS = 420
+
+    def _ensure_worker(self) -> None:
+        """Self-healing for the handler thread: restart it if it died; replace it when one update has
+        been stuck longer than HANDLER_STALL_SECONDS (the stuck thread is abandoned; the owner is told)."""
+        w = self._worker
+        stalled = self._busy_since is not None and time.monotonic() - self._busy_since > self.HANDLER_STALL_SECONDS
+        if w is not None and w.is_alive() and not stalled:
+            return
+        if w is not None and w.is_alive() and stalled:
+            cur = self._current or {}
+            log.error("telegram handler stalled on update %s for >%ss — replacing the handler thread", cur.get("update_id"), self.HANDLER_STALL_SECONDS)
+            self.store.record_event(None, "remote_handler_stalled", {"update_id": cur.get("update_id"), "seconds": self.HANDLER_STALL_SECONDS})
+            chat = self.gateway.owner_chat_id()
+            if chat:
+                self._reply(chat, "⚠️ פקודה קודמת נתקעה ונזנחה; ממשיך לטפל בפקודות הבאות. אם היא הייתה חשובה — שלח אותה שוב.")
+        elif w is not None:
+            log.error("telegram handler thread died — restarting it")
+            self.store.record_event(None, "remote_handler_restarted", {})
+        self._busy_since = None
+        self._current = None
+        self._worker = threading.Thread(target=self._worker_loop, name="telegram-handler", daemon=True)
+        self._worker.start()
 
     def tick(self) -> None:
+        if self.threaded:
+            self._ensure_worker()
         self.drain_outbox()
         self.poll_once()
 
@@ -153,8 +215,7 @@ class RemoteService:
                 previous[sig] = signal.signal(sig, lambda *_: self._stop.set())
             log.info("telegram service started (long polling, timeout %ss)", self.config.telegram_poll_timeout_seconds)
             self.threaded = True
-            self._worker = threading.Thread(target=self._worker_loop, name="telegram-handler", daemon=True)
-            self._worker.start()
+            self._ensure_worker()
             while not self._stop.is_set():
                 try:
                     self.tick()
