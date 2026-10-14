@@ -257,17 +257,26 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
                     add({**{t: 1.0 for t in ts}, v_out: -1.0}, 0, BIG)
                 add({v: 1.0 for v in choice_vars}, 1, 1)
 
+    binary_end = nvar
+    obj_c: dict[int, float] = {}
+    continuous: list[int] = []
+    if objective == "target":
+        nvar, obj_c, continuous = _target_objective(cells, zones, grids, z_idx, nvar, add, w_hi=envelope.width_u)
     A = lil_matrix((len(rows), nvar))
     for i, coefs in enumerate(rows):
         for v, cft in coefs.items():
             A[i, v] = cft
     integrality = np.ones(nvar)
+    for v in continuous:
+        integrality[v] = 0.0
     lb = np.zeros(nvar); ub = np.full(nvar, float(BIG))
     for v in list(z_idx.values()) + list(a_idx.values()) + list(b_idx.values()):
         ub[v] = 1.0
-    for v in range(first_align_var, nvar):
+    for v in range(first_align_var, binary_end):
         ub[v] = 1.0
     c = np.zeros(nvar)
+    for v, cft in obj_c.items():
+        c[v] = cft
     if objective == "area":
         # Gate 3's lever, not a shape: grow the HABITABLE rooms (a feasibility program leaves every
         # room at its minimum and hands the rest to circulation). Cell area is width x height and
@@ -294,6 +303,51 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     if res.status == 2:
         return OracleResult("INFEASIBLE", detail=f"HiGHS: {res.message}")
     return OracleResult("UNKNOWN", detail=f"HiGHS: {res.message}")
+
+
+def _target_objective(cells, zones, grids, z_idx, nvar, add, *, w_hi: int, extra=()):
+    """Objective "target" (A1): every room's EXACT net area tracks the programme's target.
+
+    Net area is (w - iw)(h - ih) with w = c1 - c0 and h a binary choice from the band's grid, so
+    w*h = sum_k H_k * p_k with p_k = w * z_k linearised exactly (McCormick with a binary). The
+    objective minimises the RELATIVE deviation |net - target| / target per habitable room, and the
+    relative overshoot (net - target)+ / target per circulation room — the hall is no longer the
+    sink, and rooms are pulled to their targets rather than to their maxima. `extra` carries cells
+    whose net-area expression is already linear (the spine): (zone_id, expr, const).
+
+    Returns (nvar, c, continuous): c the objective coefficients by variable; `continuous` the
+    product and deviation variables — p = w*z is exact for a binary z whatever p's integrality, and
+    leaving them continuous keeps the branch-and-bound on the heights and boundaries only."""
+    from app.vertical_slice.geometry_core.model import ProgramRole
+    circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}
+    c: dict[int, float] = {}
+    continuous: list[int] = []
+    terms = []
+    for cell in cells:
+        w = {cell.c1: 1.0, cell.c0: -1.0}
+        expr = {cell.c1: -float(cell.inset_h_u), cell.c0: float(cell.inset_h_u)}     # - ih * w
+        for kk, Hk in enumerate(grids[cell.r]):
+            zv = z_idx[(cell.r, kk)]
+            pv = nvar; nvar += 1; continuous.append(pv)
+            add({pv: 1.0, zv: -float(w_hi)}, -BIG, 0)                                  # p <= wh z
+            add({pv: 1.0, zv: -1.0}, 0, BIG)                                           # p >= 1 z
+            add({pv: 1.0, **{k: -v for k, v in w.items()}, zv: -1.0}, -BIG, -1)        # p <= w - 1(1-z)
+            add({pv: 1.0, **{k: -v for k, v in w.items()}, zv: -float(w_hi)}, -w_hi, BIG)   # p >= w - wh(1-z)
+            expr[pv] = float(Hk)
+            expr[zv] = expr.get(zv, 0.0) - float(cell.inset_w_u) * Hk                  # - iw * h
+        terms.append((cell.zone_id, expr, float(cell.inset_w_u * cell.inset_h_u)))
+    terms.extend(extra)
+    for zone_id, expr, const in terms:
+        z = zones[zone_id]
+        target = float(z.target_area_m2) / (UNIT_M * UNIT_M)
+        d = nvar; nvar += 1; continuous.append(d)
+        # d >= net - target  (net = expr + const). Areas are in u^2 (thousands), so "no bound" here
+        # must be a real -inf: BIG (10 000) is a node-position infinity and would bind.
+        add({**expr, d: -1.0}, -np.inf, target - const)
+        if getattr(z, "role", None) not in circ:
+            add({**{k: -v for k, v in expr.items()}, d: -1.0}, -np.inf, const - target)   # d >= target - net
+        c[d] = 1.0 / target
+    return nvar, c, continuous
 
 
 def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
@@ -616,17 +670,27 @@ def _spine_once(layout, zones, required, envelope: Envelope, *, min_contact_u, k
             add({**{t: 1.0 for t in ts}, v_out: -1.0}, 0, BIG)
             add({v: 1.0 for v in choice_vars}, 1, 1)
 
+    binary_end = nvar
+    obj_c: dict[int, float] = {}
+    continuous: list[int] = []
+    if objective == "target":
+        nvar, obj_c, continuous = _target_objective(cells, zones, grids, z_idx, nvar, add, w_hi=envelope.width_u,
+                                                    extra=[(spine, net_area, float(iw_s * ih_s))])
     A = lil_matrix((len(rows), nvar))
     for i, coefs in enumerate(rows):
         for v, cft in coefs.items():
             A[i, v] = cft
     integrality = np.ones(nvar)
+    for v in continuous:
+        integrality[v] = 0.0
     lb = np.zeros(nvar); ub = np.full(nvar, float(BIG))
     for v in list(z_idx.values()) + list(a_idx.values()) + list(b_idx.values()):
         ub[v] = 1.0
-    for v in range(first_align_var, nvar):
+    for v in range(first_align_var, binary_end):
         ub[v] = 1.0
     c = np.zeros(nvar)
+    for v, cft in obj_c.items():
+        c[v] = cft
     if objective == "area":
         from app.vertical_slice.geometry_core.model import ProgramRole
         circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}

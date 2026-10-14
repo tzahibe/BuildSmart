@@ -117,6 +117,9 @@ def _transpose_rects(rects: dict) -> dict:
     return {z: Rect(r.y, r.x, r.h, r.w) for z, r in rects.items()}
 
 
+#: "area" (Gate 3: grow habitable rooms, width x mid-height proxy) or "target" (A1: exact net areas
+#: track the programme targets, circulation overshoot penalised). Set SHAPE_AGNOSTIC_OBJECTIVE.
+OBJECTIVE = os.environ.get("SHAPE_AGNOSTIC_OBJECTIVE", "area")
 SPINE_MAX_LAYOUTS = 40
 SPINE_BUDGET_S = 90.0
 
@@ -129,6 +132,29 @@ def _dump_design(case: dict, prop, best, out_dir: str, family: str) -> None:
     with open(path, "w") as fh:
         json.dump(design.model_dump(mode="json"), fh)
     plan["render"] = os.path.basename(path)
+
+
+def _proportions(out, intents: dict) -> dict:
+    """Proportion metrics of a realized plan: mean relative |net - target| over habitable rooms,
+    circulation share of the net area, and the smallest bedroom as a share of its target."""
+    from app.vertical_slice.geometry_core.model import ProgramRole
+    circ = {ProgramRole.HALL.value, ProgramRole.CIRCULATION.value}
+    devs, beds, circ_net, total = [], [], 0.0, 0.0
+    for r in out.design.rooms:
+        z = intents.get(r.zone_id)
+        total += r.net_area_m2
+        if z is None:
+            continue
+        if set(r.roles) & circ:
+            circ_net += r.net_area_m2
+            continue
+        if z.target_area_m2 > 0:
+            devs.append(abs(r.net_area_m2 - z.target_area_m2) / z.target_area_m2)
+        if ProgramRole.BEDROOM.value in r.roles or ProgramRole.MASTER_BEDROOM.value in r.roles:
+            beds.append(r.net_area_m2 / z.target_area_m2 if z.target_area_m2 else 1.0)
+    return {"room_dev_pct": round(100 * sum(devs) / len(devs), 1) if devs else None,
+            "circ_pct": round(100 * circ_net / total, 1) if total else None,
+            "min_bed_pct": round(100 * min(beds), 1) if beds else None}
 
 
 def _spine_selection(layout, zones, orient_tag: str) -> list[str]:
@@ -212,7 +238,7 @@ def _spine_family(case, prop, zones, p, union, spatial, access, contacts, orient
                 continue
             for rung in AREA_BAND_LADDER:
                 zr = _rebanded(zones, p, rung) if rung != AREA_BAND_LADDER[0] else zones
-                o = milp_spine_placement(layout, zr, union, env_o, min_contact_u=contacts)
+                o = milp_spine_placement(layout, zr, union, env_o, min_contact_u=contacts, objective=OBJECTIVE)
                 reasons[f"SPINE_{o.status}"] += 1
                 if o.status != "FEASIBLE":
                     if o.status == "BAND_GAP":
@@ -249,7 +275,7 @@ def _spine_family(case, prop, zones, p, union, spatial, access, contacts, orient
                                    round(w.h * .05, 2)) for w in wing_rects],
                         "non_rectangular": len({(w.x, w.w) for w in wing_rects}) > 1,
                         "validators": len(out.report.checks),
-                        "counts": bool(full and verdict.acceptable)}
+                        "counts": bool(full and verdict.acceptable), **_proportions(out, zi)}
                 rec["plans"].append(plan)
                 if plan["counts"] and best is None:
                     best = (plan, out)
@@ -362,7 +388,8 @@ def run_case(case: dict, out_dir: str) -> dict:
                     if milp_placement is not None:
                         # the aligned oracle IS the sizer: heights and boundaries from one exact
                         # MILP, insets to a fixed point, no search left to fail
-                        sz = milp_placement(bands, zr, union, env_o, min_contact_u=contacts).as_sizing()
+                        sz = milp_placement(bands, zr, union, env_o, min_contact_u=contacts,
+                                            objective=OBJECTIVE).as_sizing()
                     else:
                         sz = solve_staircase_layout(bands, zr, union, env_o, min_contact_u=contacts,
                                                     node_limit=800, seed=seed)
@@ -398,7 +425,7 @@ def run_case(case: dict, out_dir: str) -> dict:
                                        round(w.h * .05, 2)) for w in wing_rects],
                             "non_rectangular": len({(w.x, w.w) for w in sz.band_rects(bands)}) > 1,
                             "validators": len(out.report.checks),
-                            "counts": bool(full and verdict.acceptable)}
+                            "counts": bool(full and verdict.acceptable), **_proportions(out, zr)}
                     rec["plans"].append(plan)
                     if plan["counts"] and best is None:
                         best = (plan, out)

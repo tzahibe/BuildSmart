@@ -4,12 +4,19 @@ import pytest
 
 pytest.importorskip("scipy")
 
-from app.ai_harness.shape_agnostic.milp_oracle import milp_placement  # noqa: E402
-from app.vertical_slice.band_sizing import contact_requirements  # noqa: E402
-from app.vertical_slice.envelope import Envelope  # noqa: E402
-from app.vertical_slice.rectilinear_realizer import RealizedLayout, realize_cells  # noqa: E402
-from app.vertical_slice.topology_preservation import measure_access_graph, measure_spatial_adjacency  # noqa: E402
-from tests.vertical_slice.test_staircase_sizing import ENTRY_COURT, L_ENVELOPE, _two_band_programme  # noqa: E402
+from app.ai_harness.shape_agnostic.milp_oracle import milp_placement
+from app.vertical_slice.band_sizing import contact_requirements
+from app.vertical_slice.envelope import Envelope
+from app.vertical_slice.rectilinear_realizer import RealizedLayout, realize_cells
+from app.vertical_slice.topology_preservation import (
+    measure_access_graph,
+    measure_spatial_adjacency,
+)
+from tests.vertical_slice.test_staircase_sizing import (
+    ENTRY_COURT,
+    L_ENVELOPE,
+    _two_band_programme,
+)
 
 
 @pytest.mark.parametrize("envelope", [Envelope.rectangle(10, 9), L_ENVELOPE, ENTRY_COURT])
@@ -39,3 +46,24 @@ def test_a_step_from_the_oracle_lands_on_a_cell_boundary_of_the_band_above():
     for endpoint in (below[0], below[-1]):
         inside = above[0] < endpoint < above[-1]
         assert not inside or endpoint in above, (endpoint, above)
+
+
+def test_the_target_objective_lands_rooms_on_their_targets_where_the_area_objective_grows_them():
+    """A1 (#197, path B day 3): with exact per-room net areas in the objective, each room tracks
+    the programme's target instead of its band maximum, and the hall stops being the sink."""
+    from app.vertical_slice.rectilinear_realizer import RealizedLayout, realize_cells
+    zones, bands, required, access = _two_band_programme()
+    union = sorted({tuple(sorted(e)) for e in required} | {tuple(sorted(e)) for e in access})
+    contacts = contact_requirements(zones, union, access)
+    nets = {}
+    for objective in ("area", "target"):
+        o = milp_placement(bands, zones, required, L_ENVELOPE, min_contact_u=contacts, objective=objective)
+        assert o.status == "FEASIBLE", (objective, o.detail)
+        s = o.as_sizing()
+        out = realize_cells(objective, s.rects(bands), zones, s.band_rects(bands), access)
+        assert isinstance(out, RealizedLayout), getattr(out, "detail", out)
+        nets[objective] = {r.zone_id: r.net_area_m2 for r in out.design.rooms}
+    dev = {obj: sum(abs(n - zones[z].target_area_m2) / zones[z].target_area_m2 for z, n in ns.items()) / len(ns)
+           for obj, ns in nets.items()}
+    assert dev["target"] < dev["area"], (dev, nets)
+    assert dev["target"] < 0.05, nets["target"]
