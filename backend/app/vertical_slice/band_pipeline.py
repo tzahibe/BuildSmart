@@ -59,6 +59,7 @@ Diagnosis codes (stage order):
 """
 from __future__ import annotations
 
+import copy
 import time
 from collections import Counter
 from dataclasses import dataclass, field
@@ -352,9 +353,35 @@ def _downstream_code(records: list[CandidateRecord]) -> tuple[str, str, str]:
 
 # ----------------------------------------------------------------------------- the pipeline
 
+def _success(res: RealizedLayout, sized: BandPlacement, idx: int, records: list,
+             inp: PipelineInput, warnings, t0: float, oriented: bool, funnel) -> PipelineSuccess:
+    """One accepted candidate, with the preservation measured off its realized geometry."""
+    sp = measure_spatial_adjacency(res.rects, frozenset(frozenset(e) for e in inp.required_edges))
+    ac = measure_access_graph(res.fixture.access.edges, list(inp.access_edges))
+    return PipelineSuccess(res, sized, idx, len(records), f"{sp.preserved}/{sp.requested}",
+                           f"{ac.preserved}/{ac.requested}", tuple(sorted(str(e) for e in ac.lost)),
+                           warnings, records, round(time.monotonic() - t0, 4),
+                           oriented=oriented, selection=dict(funnel))
+
+
 def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_CANDIDATES,
                       max_realizations: int = DEFAULT_MAX_REALIZATIONS,
-                      embed_node_limit: int | None = None) -> PipelineSuccess | PipelineDiagnosis:
+                      embed_node_limit: int | None = None,
+                      prefer=None) -> PipelineSuccess | PipelineDiagnosis:
+    """`prefer` (Issue #197) — an OPTIONAL architectural preference over the candidates that pass.
+
+    Without it the behaviour is exactly what it always was: candidates are realized in the
+    embedder's plausibility order and the FIRST one the validators accept is returned. That is
+    correct when every accepted candidate is equally good, and it is not: the #197 render audit
+    measured 22 of 23 brain plans putting circulation in an interior band, where it has no exterior
+    wall, so `resolve_entrance` could not place the front door in it even though HALL already
+    outranks LIVING in `ENTRANCE_ZONE_PRIORITY`. The arrival room was decided by candidate order,
+    not by architecture.
+
+    `prefer(realized, placement, inp) -> sortable key` (lower is better) makes every accepted
+    candidate comparable instead. Passing it costs latency — the loop no longer stops at the first
+    success — and changes nothing for a caller that does not pass it.
+    """
     t0 = time.monotonic()
     warnings = input_warnings(inp)
     kwargs = {"max_candidates": max_candidates}
@@ -386,7 +413,7 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
     hist: dict[str, Counter] = {s: Counter() for s in STAGES}
     funnel: Counter = Counter(candidates=len(emb.candidates))
     # stage 1 — SELECTION (placement only) + door-aware exact sizing; stage 2 — realize in order
-    sizable: list[tuple[int, BandPlacement, CandidateRecord, object]] = []
+    sizable: list[tuple[int, BandPlacement, CandidateRecord, object, bool]] = []
     for idx, placement in enumerate(emb.candidates):
         flags = placement_flags(placement, inp.zones, inp.wet_rooms, access)
         rec = CandidateRecord(idx, len(placement.rows), placement.n_cols, "EMBEDDING", flags=flags)
@@ -403,17 +430,36 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
             rec.flags = placement_flags(placement, inp.zones, inp.wet_rooms, access)
             funnel["oriented"] += 1
         rec.stage_reached = "SELECTION"
-        sz = solve_band_layout(placement.bands, inp.zones, union, w_max_m=bw, h_max_m=bd,
-                               min_contact_u=contacts)
-        if sz.status != "FEASIBLE":
-            rec.refusal = "GRID_INFEASIBLE" if sz.status == "INFEASIBLE" else "GRID_SIZING_UNKNOWN"
-            rec.refusal_detail = sz.detail
-            hist["SIZING"][rec.refusal] += 1
-            records.append(rec)
-            continue
-        funnel["sized"] += 1
-        sizable.append((idx, placement, rec, sz))
-    for idx, placement, rec, sz in sizable[:max_realizations]:
+        # A band layout carries the same contacts either way up, so the orientation is FREE. The
+        # default `orient` keeps it as-is the moment any allowed-entrance room fronts the street,
+        # which means a plan with LIVING in row 0 and the hall in the last band is never flipped —
+        # and the #197 audit found exactly that shape producing a landlocked hall and a living-room
+        # arrival. With a preference, offer BOTH orientations and let it choose architecturally.
+        variants = [(placement, rec.oriented, rec)]
+        if prefer is not None and flags["entrance_now"] and flags["entrance_flip"]:
+            # A top/bottom flip preserves every HARD flag — contacts are unchanged, and a room on
+            # the envelope stays on it — so the flipped candidate needs no re-filtering. Its
+            # `flags` are recomputed anyway so the diagnostics describe the placement that was
+            # actually sized rather than the one it came from.
+            flipped = placement.flipped()
+            alt = copy.copy(rec)
+            alt.oriented = not rec.oriented
+            alt.flags = placement_flags(flipped, inp.zones, inp.wet_rooms, access)
+            variants.append((flipped, alt.oriented, alt))
+            funnel["orientation_variants"] += 1
+        for pl, oriented_flag, prec in variants:
+            sz = solve_band_layout(pl.bands, inp.zones, union, w_max_m=bw, h_max_m=bd,
+                                   min_contact_u=contacts)
+            if sz.status != "FEASIBLE":
+                prec.refusal = "GRID_INFEASIBLE" if sz.status == "INFEASIBLE" else "GRID_SIZING_UNKNOWN"
+                prec.refusal_detail = sz.detail
+                hist["SIZING"][prec.refusal] += 1
+                records.append(prec)
+                continue
+            funnel["sized"] += 1
+            sizable.append((idx, pl, prec, sz, oriented_flag))
+    best: tuple | None = None                       # (key, idx, realized, sized, oriented) when `prefer`
+    for idx, placement, rec, sz, oriented_flag in sizable[:max_realizations]:
         # the solved interleaving becomes the GridWing's columns; the wing tiles exactly the solved size
         W_m = round(sum(sz.col_w_u) * 0.05, 2); H_m = round(sum(sz.row_h_u) * 0.05, 2)
         sized = BandPlacement(sz.rows, sz.n_cols, placement.score, placement.bands)
@@ -424,12 +470,12 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
             funnel["realized"] += 1; funnel["passed"] += 1
             rec.stage_reached = "VALIDATORS"
             records.append(rec)
-            sp = measure_spatial_adjacency(res.rects, frozenset(frozenset(e) for e in inp.required_edges))
-            ac = measure_access_graph(res.fixture.access.edges, list(inp.access_edges))
-            return PipelineSuccess(res, sized, idx, len(records), f"{sp.preserved}/{sp.requested}",
-                                   f"{ac.preserved}/{ac.requested}", tuple(sorted(str(e) for e in ac.lost)),
-                                   warnings, records, round(time.monotonic() - t0, 4),
-                                   oriented=rec.oriented, selection=dict(funnel))
+            if prefer is None:
+                return _success(res, sized, idx, records, inp, warnings, t0, oriented_flag, funnel)
+            key = (prefer(res, sized, inp), idx)     # idx keeps it deterministic on a tie
+            if best is None or key < best[0]:
+                best = (key, idx, res, sized, oriented_flag)
+            continue
         assert isinstance(res, Refusal)
         rec.refusal, rec.refusal_detail = res.constraint, res.detail[:300]
         if res.constraint in _SIZING_REFUSALS:
@@ -442,10 +488,13 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
         else:
             rec.stage_reached = "SIZING"; hist["REALIZATION"][res.constraint] += 1
         records.append(rec)
-    for idx, placement, rec, _sz in sizable[max_realizations:]:
+    for idx, placement, rec, _sz, _of in sizable[max_realizations:]:
         rec.stage_reached = "SIZING"; rec.refusal = "NOT_REALIZED_BUDGET"
         hist["REALIZATION"]["NOT_REALIZED_BUDGET"] += 1
         records.append(rec)
+    if best is not None:                             # `prefer` compared every accepted candidate
+        _key, idx, res, sized, oriented = best
+        return _success(res, sized, idx, records, inp, warnings, t0, oriented, funnel)
 
     # nothing passed: classify by the furthest stage reached
     order = {s: i for i, s in enumerate(STAGES)}

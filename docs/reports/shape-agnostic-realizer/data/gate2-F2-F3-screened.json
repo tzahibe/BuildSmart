@@ -1,0 +1,64 @@
+[
+  {
+    "id": "F2-L-envelope-fixed",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 42,
+      "SCREENED": 2400,
+      "ORACLE_INFEASIBLE": 2358,
+      "ORACLE_FEASIBLE": 42,
+      "UNKNOWN": 159,
+      "ALIGNMENT_UNSAT": 4,
+      "INFEASIBLE": 2,
+      "VALIDATION_FAILED": 1,
+      "NO_ENTRANCE": 1
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 148.1,
+    "solved": false,
+    "distinct_footprints": 0
+  },
+  {
+    "id": "F3-wide-shallow-free",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 14,
+      "SCREENED": 2226,
+      "ORACLE_INFEASIBLE": 2212,
+      "ORACLE_FEASIBLE": 14,
+      "INFEASIBLE": 28,
+      "ALIGNMENT_UNSAT": 20,
+      "VALIDATION_FAILED": 4
+    },
+    "plans": [],
+    "refusals": [],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL",
+      "SERVICE_CORE+FOYER",
+      "SERVICE_CORE"
+    ],
+    "seconds": 38.0,
+    "solved": false,
+    "distinct_footprints": 0
+  }
+]

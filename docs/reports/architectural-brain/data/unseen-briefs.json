@@ -1,0 +1,504 @@
+[
+  {
+    "brief": "U1-narrow",
+    "requested_m2": 160.0,
+    "bedrooms": 4,
+    "wet_rooms": 2,
+    "safe_room": true,
+    "open_plan": false,
+    "footprint_width_m": 8.0,
+    "footprint_depth_m": 20.0,
+    "production": {
+      "rooms": 10,
+      "gross_m2": 160.0,
+      "area_fidelity_pct": 100.0,
+      "public_on_garden": [],
+      "wet_on_garden": [
+        "BATH_2"
+      ],
+      "public_with_garden_window": [],
+      "circulation_share": 0.0781,
+      "circulation_aspect": [
+        7.75
+      ],
+      "worst_bedroom_aspect": 1.85,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [],
+      "circulation_area_m2": 11.2,
+      "net_m2": 142.91,
+      "net_fidelity_pct": 89.3,
+      "worst_wet_aspect": 2.24,
+      "kitchen_living_door": true,
+      "mean_faces": 1.2,
+      "arrival": "LIVING",
+      "validators": 28,
+      "seconds": 10.29
+    },
+    "brain": {
+      "rooms": 11,
+      "gross_m2": 175.95,
+      "area_fidelity_pct": 110.0,
+      "public_on_garden": [
+        "LIVING"
+      ],
+      "wet_on_garden": [
+        "BATH_1"
+      ],
+      "public_with_garden_window": [
+        "LIVING"
+      ],
+      "circulation_share": 0.1529,
+      "circulation_aspect": [
+        2.09,
+        2.35
+      ],
+      "worst_bedroom_aspect": 2.29,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [
+        "HALL"
+      ],
+      "circulation_area_m2": 24.5,
+      "net_m2": 159.89,
+      "net_fidelity_pct": 99.9,
+      "worst_wet_aspect": 2.98,
+      "kitchen_living_door": true,
+      "mean_faces": 1.27,
+      "arrival": "CIRCULATION",
+      "validators": 27,
+      "parti": "brain:HALL_SPINE+FOYER",
+      "alternatives": 2,
+      "partis": [
+        "brain:HALL_SPINE+FOYER",
+        "brain:HALL_SPINE",
+        "brain:PUBLIC_BAND+FOYER"
+      ],
+      "seconds": 16.38
+    },
+    "brain_alts": [
+      {
+        "parti": "brain:HALL_SPINE",
+        "rooms": 10,
+        "gross_m2": 158.1,
+        "area_fidelity_pct": 98.8,
+        "public_on_garden": [],
+        "wet_on_garden": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "public_with_garden_window": [],
+        "circulation_share": 0.1344,
+        "circulation_aspect": [
+          1.66
+        ],
+        "worst_bedroom_aspect": 1.38,
+        "rooms_no_window": [],
+        "wet_no_window": [],
+        "circulation_landlocked": [
+          "HALL"
+        ],
+        "circulation_area_m2": 19.2,
+        "net_m2": 142.94,
+        "net_fidelity_pct": 89.3,
+        "worst_wet_aspect": 2.31,
+        "kitchen_living_door": true,
+        "mean_faces": 1.3,
+        "arrival": "LIVING",
+        "validators": 27
+      },
+      {
+        "parti": "brain:PUBLIC_BAND+FOYER",
+        "rooms": 11,
+        "gross_m2": 163.53,
+        "area_fidelity_pct": 102.2,
+        "public_on_garden": [],
+        "wet_on_garden": [],
+        "public_with_garden_window": [],
+        "circulation_share": 0.1906,
+        "circulation_aspect": [
+          2.47,
+          3.47
+        ],
+        "worst_bedroom_aspect": 1.62,
+        "rooms_no_window": [],
+        "wet_no_window": [],
+        "circulation_landlocked": [
+          "HALL"
+        ],
+        "circulation_area_m2": 28.1,
+        "net_m2": 147.31,
+        "net_fidelity_pct": 92.1,
+        "worst_wet_aspect": 1.35,
+        "kitchen_living_door": true,
+        "mean_faces": 1.27,
+        "arrival": "CIRCULATION",
+        "validators": 27
+      }
+    ]
+  },
+  {
+    "brief": "U2-compact",
+    "requested_m2": 104.0,
+    "bedrooms": 3,
+    "wet_rooms": 2,
+    "safe_room": false,
+    "open_plan": false,
+    "footprint_width_m": 10.0,
+    "footprint_depth_m": 10.4,
+    "production": {
+      "rooms": 7,
+      "gross_m2": 102.96,
+      "area_fidelity_pct": 99.0,
+      "public_on_garden": [],
+      "wet_on_garden": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "public_with_garden_window": [],
+      "circulation_share": 0.1413,
+      "circulation_aspect": [
+        7.77
+      ],
+      "worst_bedroom_aspect": 1.64,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [],
+      "circulation_area_m2": 13.1,
+      "net_m2": 92.95,
+      "net_fidelity_pct": 89.4,
+      "worst_wet_aspect": 2.19,
+      "kitchen_living_door": null,
+      "mean_faces": 1.71,
+      "arrival": "HALL",
+      "validators": 27,
+      "seconds": 0.19
+    },
+    "brain": {
+      "rooms": 9,
+      "gross_m2": 98.5,
+      "area_fidelity_pct": 94.7,
+      "public_on_garden": [
+        "KITCHEN",
+        "LIVING"
+      ],
+      "wet_on_garden": [],
+      "public_with_garden_window": [
+        "KITCHEN",
+        "LIVING"
+      ],
+      "circulation_share": 0.1385,
+      "circulation_aspect": [
+        1.73,
+        2.0
+      ],
+      "worst_bedroom_aspect": 1.62,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [
+        "HALL"
+      ],
+      "circulation_area_m2": 12.3,
+      "net_m2": 88.82,
+      "net_fidelity_pct": 85.4,
+      "worst_wet_aspect": 1.49,
+      "kitchen_living_door": true,
+      "mean_faces": 1.33,
+      "arrival": "CIRCULATION",
+      "validators": 27,
+      "parti": "brain:HALL_SPINE+FOYER",
+      "alternatives": 2,
+      "partis": [
+        "brain:HALL_SPINE+FOYER",
+        "brain:HALL_SPINE",
+        "brain:PUBLIC_BAND"
+      ],
+      "seconds": 3.1
+    },
+    "brain_alts": [
+      {
+        "parti": "brain:HALL_SPINE",
+        "rooms": 8,
+        "gross_m2": 101.23,
+        "area_fidelity_pct": 97.3,
+        "public_on_garden": [],
+        "wet_on_garden": [
+          "BATH_1"
+        ],
+        "public_with_garden_window": [],
+        "circulation_share": 0.0836,
+        "circulation_aspect": [
+          1.13
+        ],
+        "worst_bedroom_aspect": 2.1,
+        "rooms_no_window": [],
+        "wet_no_window": [],
+        "circulation_landlocked": [
+          "HALL"
+        ],
+        "circulation_area_m2": 7.7,
+        "net_m2": 91.7,
+        "net_fidelity_pct": 88.2,
+        "worst_wet_aspect": 1.49,
+        "kitchen_living_door": true,
+        "mean_faces": 1.38,
+        "arrival": "LIVING",
+        "validators": 27
+      },
+      {
+        "parti": "brain:PUBLIC_BAND",
+        "rooms": 8,
+        "gross_m2": 99.32,
+        "area_fidelity_pct": 95.5,
+        "public_on_garden": [],
+        "wet_on_garden": [
+          "BATH_2"
+        ],
+        "public_with_garden_window": [],
+        "circulation_share": 0.1142,
+        "circulation_aspect": [
+          1.52
+        ],
+        "worst_bedroom_aspect": 1.53,
+        "rooms_no_window": [],
+        "wet_no_window": [],
+        "circulation_landlocked": [
+          "HALL"
+        ],
+        "circulation_area_m2": 10.3,
+        "net_m2": 89.94,
+        "net_fidelity_pct": 86.5,
+        "worst_wet_aspect": 1.88,
+        "kitchen_living_door": true,
+        "mean_faces": 1.38,
+        "arrival": "LIVING",
+        "validators": 27
+      }
+    ]
+  },
+  {
+    "brief": "U3-sixbed",
+    "requested_m2": 238.0,
+    "bedrooms": 6,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": false,
+    "footprint_width_m": 14.0,
+    "footprint_depth_m": 17.0,
+    "production": {
+      "rooms": 13,
+      "gross_m2": 185.3,
+      "area_fidelity_pct": 77.9,
+      "public_on_garden": [],
+      "wet_on_garden": [
+        "BATH_1",
+        "BATH_2"
+      ],
+      "public_with_garden_window": [],
+      "circulation_share": 0.0887,
+      "circulation_aspect": [
+        10.25
+      ],
+      "worst_bedroom_aspect": 1.87,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [],
+      "circulation_area_m2": 14.8,
+      "net_m2": 166.46,
+      "net_fidelity_pct": 69.9,
+      "worst_wet_aspect": 3.24,
+      "kitchen_living_door": true,
+      "mean_faces": 1.31,
+      "arrival": "LIVING",
+      "validators": 27,
+      "seconds": 14.77
+    },
+    "brain": {
+      "rooms": 14,
+      "gross_m2": 215.74,
+      "area_fidelity_pct": 90.6,
+      "public_on_garden": [],
+      "wet_on_garden": [
+        "TOILET_1"
+      ],
+      "public_with_garden_window": [],
+      "circulation_share": 0.1702,
+      "circulation_aspect": [
+        1.0,
+        6.43
+      ],
+      "worst_bedroom_aspect": 2.48,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [],
+      "circulation_area_m2": 33.2,
+      "net_m2": 194.96,
+      "net_fidelity_pct": 81.9,
+      "worst_wet_aspect": 3.04,
+      "kitchen_living_door": true,
+      "mean_faces": 1.29,
+      "arrival": "LIVING",
+      "validators": 27,
+      "parti": "brain:PUBLIC_BAND+FOYER",
+      "alternatives": 1,
+      "partis": [
+        "brain:PUBLIC_BAND+FOYER",
+        "brain:PUBLIC_BAND"
+      ],
+      "seconds": 39.4
+    },
+    "brain_alts": [
+      {
+        "parti": "brain:PUBLIC_BAND",
+        "rooms": 13,
+        "gross_m2": 220.32,
+        "area_fidelity_pct": 92.6,
+        "public_on_garden": [],
+        "wet_on_garden": [
+          "TOILET_1"
+        ],
+        "public_with_garden_window": [],
+        "circulation_share": 0.1279,
+        "circulation_aspect": [
+          7.08
+        ],
+        "worst_bedroom_aspect": 2.48,
+        "rooms_no_window": [],
+        "wet_no_window": [],
+        "circulation_landlocked": [],
+        "circulation_area_m2": 25.6,
+        "net_m2": 199.74,
+        "net_fidelity_pct": 83.9,
+        "worst_wet_aspect": 3.44,
+        "kitchen_living_door": true,
+        "mean_faces": 1.31,
+        "arrival": "LIVING",
+        "validators": 27
+      }
+    ]
+  },
+  {
+    "brief": "U4-wide",
+    "requested_m2": 187.0,
+    "bedrooms": 4,
+    "wet_rooms": 3,
+    "safe_room": true,
+    "open_plan": true,
+    "footprint_width_m": 22.0,
+    "footprint_depth_m": 8.5,
+    "production": {
+      "refused": "DemoGenerationError",
+      "detail": "\u05dc\u05d0 \u05d4\u05e6\u05dc\u05d7\u05e0\u05d5 \u05dc\u05d9\u05d9\u05e6\u05e8 \u05ea\u05d5\u05db\u05e0\u05d9\u05ea \u05ea\u05e7\u05d9\u05e0\u05d4 \u05e2\u05d1\u05d5\u05e8 \u05d4\u05d3\u05e8\u05d9\u05e9\u05d5\u05ea \u05e9\u05d1\u05d9\u05e7\u05e9\u05ea, \u05d1\u05d0\u05e3 \u05d0\u05d7\u05ea \u05de\u05e6\u05d5\u05e8\u05d5\u05ea \u05d4\u05d1\u05e0\u05d9\u05d9\u05df \u05d4\u05d0\u05e4\u05e9\u05e8\u05d9\u05d5\u05ea \u05d1\u05de\u05d2\u05e8\u05e9 \u05d4\u05d6\u05d4. \u05dc\u05d0 \u05e0\u05d9\u05ea\u05df \u05dc\u05d1\u05d9\u05e6\u05d5\u05e2 \u05e2\u05dd \u05d2\u05d0\u05d5\u05de\u05d8\u05e8\u05d9\u05d9\u05ea "
+    },
+    "brain": {
+      "refused": "PLAN_NOT_REALIZABLE",
+      "detail": "FRONT_PUBLIC_BAND/ROOM_SHAPE_INFEASIBLE: BEDROOM_1 at 10.15 m wide in the rear west column has no depth that keeps its 2.5 aspect ratio and 2.6 m short side und",
+      "seconds": 7.46
+    }
+  },
+  {
+    "brief": "U5-small",
+    "requested_m2": 72.0,
+    "bedrooms": 2,
+    "wet_rooms": 1,
+    "safe_room": false,
+    "open_plan": false,
+    "footprint_width_m": 8.0,
+    "footprint_depth_m": 9.0,
+    "production": {
+      "rooms": 5,
+      "gross_m2": 70.2,
+      "area_fidelity_pct": 97.5,
+      "public_on_garden": [
+        "LIVING+KITCHEN"
+      ],
+      "wet_on_garden": [
+        "BATH_1"
+      ],
+      "public_with_garden_window": [
+        "LIVING+KITCHEN"
+      ],
+      "circulation_share": 0.1806,
+      "circulation_aspect": [
+        6.69
+      ],
+      "worst_bedroom_aspect": 1.25,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [],
+      "circulation_area_m2": 11.3,
+      "net_m2": 62.61,
+      "net_fidelity_pct": 87.0,
+      "worst_wet_aspect": 1.88,
+      "kitchen_living_door": null,
+      "mean_faces": 2.0,
+      "arrival": "HALL",
+      "validators": 27,
+      "seconds": 0.05
+    },
+    "brain": {
+      "rooms": 6,
+      "gross_m2": 74.06,
+      "area_fidelity_pct": 102.9,
+      "public_on_garden": [
+        "KITCHEN",
+        "LIVING"
+      ],
+      "wet_on_garden": [],
+      "public_with_garden_window": [
+        "KITCHEN",
+        "LIVING"
+      ],
+      "circulation_share": 0.1281,
+      "circulation_aspect": [
+        1.13
+      ],
+      "worst_bedroom_aspect": 1.63,
+      "rooms_no_window": [],
+      "wet_no_window": [],
+      "circulation_landlocked": [],
+      "circulation_area_m2": 8.5,
+      "net_m2": 66.56,
+      "net_fidelity_pct": 92.4,
+      "worst_wet_aspect": 1.67,
+      "kitchen_living_door": true,
+      "mean_faces": 1.67,
+      "arrival": "HALL",
+      "validators": 27,
+      "parti": "brain:HALL_SPINE",
+      "alternatives": 1,
+      "partis": [
+        "brain:HALL_SPINE",
+        "brain:PUBLIC_BAND"
+      ],
+      "seconds": 0.41
+    },
+    "brain_alts": [
+      {
+        "parti": "brain:PUBLIC_BAND",
+        "rooms": 6,
+        "gross_m2": 69.6325,
+        "area_fidelity_pct": 96.7,
+        "public_on_garden": [],
+        "wet_on_garden": [],
+        "public_with_garden_window": [],
+        "circulation_share": 0.1232,
+        "circulation_aspect": [
+          3.0
+        ],
+        "worst_bedroom_aspect": 1.32,
+        "rooms_no_window": [],
+        "wet_no_window": [],
+        "circulation_landlocked": [],
+        "circulation_area_m2": 7.7,
+        "net_m2": 62.35,
+        "net_fidelity_pct": 86.6,
+        "worst_wet_aspect": 1.78,
+        "kitchen_living_door": true,
+        "mean_faces": 1.67,
+        "arrival": "LIVING",
+        "validators": 27
+      }
+    ]
+  }
+]

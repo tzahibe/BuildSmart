@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import math
 import time
+import dataclasses
 from dataclasses import dataclass, field
 
 from shapely.geometry import Polygon, box as _box
@@ -1217,6 +1218,164 @@ def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
     return out
 
 
+
+def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneIntent],
+                  wing_rects: tuple[Rect, ...], access_pairs,
+                  wet_rooms: tuple[ResolvedWetRoom, ...] = ()) -> RealizedLayout | Refusal:
+    """Realize an ALREADY-PLACED set of rectangular cells — the shape-agnostic entry (ADR-001,
+    #197). `realize_layout` above decides geometry per wing and composes wings side by side along
+    x; this entry takes the geometry as given (any arrangement of non-overlapping cells whose union
+    is the union of `wing_rects`) and runs the IDENTICAL downstream: wall typing from touching,
+    doors, entrance, windows, furniture, the unchanged `validate()`, displayed dimensions and
+    assembly. Nothing here is specific to a band, a staircase or a letter shape; it is the
+    construction Issue #108 proved the pipeline accepts for a hand-encoded non-guillotine layout,
+    given a function instead of a fixture.
+
+    `access_pairs` are the DOORS the intent asks for; a pair that does not actually touch is
+    dropped here and will be reported missing by `topology_preservation` — never patched. Seam
+    sides between wings are DECLARED from the real geometry (a cell side touching a cell of another
+    wing), on every axis, so C22 and `envelope_sides` see exactly what was built. No groups, so no
+    polygon rooms: that stays the notch-carve/`room_merge` mechanism."""
+    t0 = time.monotonic()
+    if not rects or not wing_rects:
+        return Refusal("EMPTY_LAYOUT", "a layout needs at least one cell and one wing")
+    # 2 m site margin, exactly as `realize_layout` places its own origin
+    off = m_to_u(2.0)
+    rects = {z: Rect(r.x + off, r.y + off, r.w, r.h) for z, r in rects.items()}
+    wing_rects = tuple(Rect(r.x + off, r.y + off, r.w, r.h) for r in wing_rects)
+    # PARTIAL ABUTMENTS. A cell side is ONE wall type (`WallMap[(zone, side)]`), so a cell whose
+    # side is abutted along only part of its length by cells of another wing — the step of a
+    # staircase landing inside it — cannot be typed: C22 rejects it as a PARTIAL seam, and the
+    # production L parti forces its slicing cuts to avoid exactly this. The general resolution,
+    # shape-free, is the notch-carve/`room_merge` precedent already in this module: split the cell
+    # at the abutment boundary into fragments of the SAME zone with an OPEN wall between them,
+    # give the fragments permissive per-cell specs and validate the zone on their union
+    # (`_group_checks`). Geometry does not move; only its cell decomposition does.
+    # (Splitting a partially-abutted cell into same-zone fragments was tried here and measured:
+    # C20/C9/C24/C31 run per cell and reject the fragments. Steps must land on cell boundaries —
+    # the sizer's alignment rule — and a layout that cannot is refused, never fragmented.)
+    zone_of_cell = {z: z for z in rects}
+    groups: dict[str, tuple[str, ...]] = {}
+    roles = {z: (intents[z].role,) for z in rects}
+    specs = {z: ZoneSpec(z, roles[z], intents[z].min_area_m2, intents[z].target_area_m2,
+                         intents[z].max_area_m2, intents[z].min_short_side_m,
+                         intents[z].max_aspect_ratio) for z in rects}
+    open_pairs: set[frozenset[str]] = set()
+    wing_of_cell: dict[str, int] = {}
+    for z, r in rects.items():
+        for i, w in enumerate(wing_rects):
+            if w.x <= r.x and w.y <= r.y and r.x2 <= w.x2 and r.y2 <= w.y2:
+                wing_of_cell[z] = i
+                break
+        else:
+            return Refusal("CELL_OUTSIDE_WINGS", f"cell {z} lies in no wing rectangle")
+
+    # walls — the same precedence as `realize_layout`: OPEN (none here) > RC > EXTERIOR > PARTITION
+    walls: WallMap = {}
+    safe_ids = {z for z, rs in roles.items() if ProgramRole.SAFE_ROOM in rs}
+    touching_all: dict[str, dict[Side, list[str]]] = {}
+    for zone_id, rect in rects.items():
+        touching: dict[Side, list[str]] = {}
+        for other_id, other in rects.items():
+            if other_id == zone_id or rect.shared_edge_len_u(other) <= 0:
+                continue
+            side = _side_between(rect, other)
+            if side is not None:
+                touching.setdefault(side, []).append(other_id)
+        touching_all[zone_id] = touching
+        for side in Side:
+            others = touching.get(side, [])
+            if others and any(frozenset((zone_id, o)) in open_pairs for o in others):
+                walls[(zone_id, side)] = WallType.OPEN
+            elif zone_id in safe_ids or any(o in safe_ids for o in others):
+                walls[(zone_id, side)] = WallType.RC_SAFE_ROOM
+            elif others:
+                walls[(zone_id, side)] = WallType.PARTITION
+            else:
+                walls[(zone_id, side)] = WallType.EXTERIOR
+
+    # seams, declared from geometry on every axis; doors only where the intent asked AND the cells touch
+    seam_sides: dict[int, list[tuple[str, Side]]] = {i: [] for i in range(len(wing_rects))}
+    for zone_id, touching in touching_all.items():
+        for side, others in touching.items():
+            if any(wing_of_cell[o] != wing_of_cell[zone_id] for o in others):
+                seam_sides[wing_of_cell[zone_id]].append((zone_id, side))
+    cells_of: dict[str, list[str]] = {}
+    for c, z in zone_of_cell.items():
+        cells_of.setdefault(z, []).append(c)
+    wanted: list[tuple[str, str]] = []
+    for a, b in access_pairs:
+        if a == b or a not in cells_of or b not in cells_of:
+            continue
+        # the fragment pair with the longest shared boundary carries the door; a pair with no
+        # touching fragments is dropped here and reported missing by topology_preservation
+        best = max(((rects[ca].shared_edge_len_u(rects[cb]), ca, cb)
+                    for ca in cells_of[a] for cb in cells_of[b]), default=(0, None, None))
+        if best[0] > 0:
+            wanted.append((best[1], best[2]))
+    realized_pairs = list(wanted)
+    declared = frozenset(frozenset(p) for p in wanted)
+    realized_pairs = _filter_wet_room_access(realized_pairs, roles, wet_rooms, declared)
+
+    wings_out = []
+    for i, w in enumerate(wing_rects):
+        zone_ids = tuple(z for z in rects if wing_of_cell[z] == i)
+        wings_out.append(GcWing(wing_id=f"W{i}", origin_x_u=w.x, origin_y_u=w.y, w_u=w.w, h_u=w.h,
+                                tree=_leaf_chain(zone_ids), seam_leaf_sides=tuple(seam_sides[i])))
+    zones = tuple(ZoneSpec(zid, roles[zid], specs[zid].net_area_min_m2, specs[zid].net_area_target_m2,
+                            specs[zid].net_area_max_m2, specs[zid].min_short_side_m,
+                            specs[zid].max_aspect_ratio) for zid in rects)
+    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in realized_pairs)
+    open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
+    fixture = Fixture(name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)
+
+    wing_builds = [_WingBuild(f"W{i}", (w.x, w.y), (w.w, w.h), {}, {}, {}, [], {}, {}, [])
+                   for i, w in enumerate(wing_rects)]
+    site = _build_site(wing_builds)
+    interior_doors = generate_interior_doors(fixture, rects)
+    resolved = resolve_entrance(fixture, rects, site.footprint, site.wings)
+    if resolved is None:
+        return Refusal("NO_ENTRANCE", "no zone with an ALLOWED_ENTRANCE role fronts the street")
+    entrance_zone_id, low, high = resolved
+    ex = (low + high) // 2
+    entrance = build_entrance(site.footprint, ex)
+    # the site was built with a placeholder walk at the footprint's centre; the walk the drawing,
+    # the validators and the payload see is the one to the door actually resolved
+    site = dataclasses.replace(site, entrance=entrance)
+    entrance_door = build_entrance_door(entrance, site.footprint, entrance_zone_id, site.wings)
+    windows = generate_windows(fixture, rects, site.footprint, site.wings)
+    furniture = check_furniture_feasibility(fixture, rects, walls)
+    report = validate(fixture, rects, walls, interior_doors, entrance_door, windows, furniture, site,
+                       wet_rooms=wet_rooms)
+    group_geometry: dict[str, MergedGeometry] = {}
+    group_checks: list[Check] = []
+    for zone_id, cell_ids in groups.items():
+        merged = _merged_geometry([rects[c] for c in cell_ids])
+        if merged is not None:
+            net_area = round(sum(net_rect_m(c, rects[c], walls)[2] for c in cell_ids), 4)
+            group_geometry[zone_id] = MergedGeometry(merged.polygon_m, merged.bbox_m,
+                                                     merged.gross_area_m2, net_area, merged.aspect)
+        group_checks.extend(_group_checks(zone_id, tuple(cell_ids), rects, walls, intents[zone_id]))
+    displayed_rows, c27 = _displayed_rows(fixture, rects, walls, groups, group_geometry)
+    design = assemble_design(fixture, rects, walls, 1, interior_doors, entrance_door, windows,
+                              furniture, site)
+    ok = report.ok and c27.passed and all(c.passed for c in group_checks)
+    if not ok:
+        failing = [c for c in report.checks if not c.passed] + [c for c in group_checks if not c.passed]
+        failing += [] if c27.passed else [c27]
+        return Refusal("VALIDATION_FAILED", "; ".join(f"{c.check_id}: {c.detail}" for c in failing[:5]))
+    for c in group_checks:
+        report.checks.append(c)
+    notes = ([f"split at a step: {sorted(groups)} — per-cell C3/C20/C21 are not authoritative for "
+              f"these zones; see GROUP-C2/GROUP-C3/GROUP-C20"] if groups else [])
+    return RealizedLayout(
+        name=name, fixture=fixture, rects=rects, walls=walls, site=site,
+        interior_doors=interior_doors, entrance_door=entrance_door, windows=windows,
+        furniture=furniture, report=report, c27=c27, design=design,
+        zone_of_cell=zone_of_cell, groups=group_geometry, wall_time_s=time.monotonic() - t0,
+        notes=notes,
+    )
+
 def _build_site(wings: list[_WingBuild]) -> SitePlan:
     wing_rects = tuple(Rect(*wb.origin, *wb.size) for wb in wings)
     footprint = footprint_module.bounding_box(wing_rects)
@@ -1364,6 +1523,9 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     entrance_zone_id, low, high = resolved
     ex = (low + high) // 2
     entrance = build_entrance(site.footprint, ex)
+    # the site was built with a placeholder walk at the footprint's centre; the walk the drawing,
+    # the validators and the payload see is the one to the door actually resolved
+    site = dataclasses.replace(site, entrance=entrance)
     entrance_door = build_entrance_door(entrance, site.footprint, entrance_zone_id, site.wings)
     windows = generate_windows(fixture, rects, site.footprint, site.wings)
     furniture = check_furniture_feasibility(fixture, rects, walls)

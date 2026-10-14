@@ -1,0 +1,326 @@
+{
+  "_frozen": "2026-10-13 — declared BEFORE any spike code. This set does not change to flatter results. Envelopes are orthogonal polygons in metres, origin at the north-west corner, y grows toward the garden; the street is the y = 0 edge unless stated. Areas are GROSS built area with the Stage 3 verdict tolerances (meets ≤10 %, disclosed ≤50 %). Rooms list is the net programme; roles follow ProgramRole.",
+  "_hard_constraints_every_case": [
+    "no cell overlap",
+    "every cell inside the envelope polygon",
+    "every listed contact is a positive-length shared wall",
+    "every listed access pair carries a door of its class width with corner margins",
+    "REQUIRED exposure rooms touch an exterior wall",
+    "every ZoneIntent bound (net area, min short side, max aspect) holds",
+    "wet-room entry policy (C17/C29)",
+    "entrance opens into an allowed arrival room that fronts the street",
+    "unchanged validate() passes",
+    "topology preservation n/n for contacts and doors"
+  ],
+  "cases": [
+    {
+      "id": "F1-rect-control",
+      "purpose": "Control. The rectangle the current band pipeline already plans; the general path must not do worse here.",
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          12,
+          0
+        ],
+        [
+          12,
+          18
+        ],
+        [
+          0,
+          18
+        ]
+      ],
+      "footprint": {
+        "mode": "FREE",
+        "gross_m2": 216,
+        "tolerance": 0.1
+      },
+      "programme": {
+        "bedrooms": 4,
+        "wet_rooms": 2,
+        "safe_room": false,
+        "open_plan": false
+      },
+      "contacts_extra": [],
+      "access_extra": [],
+      "expected": "FEASIBLE",
+      "baseline": "Stage 3 band pipeline: plans (B11-class brief), 89–91 % gross, arrival at circulation on ≥1 parti"
+    },
+    {
+      "id": "F2-L-envelope-fixed",
+      "purpose": "Exterior shape as an INPUT constraint: a corner of the parcel is unbuildable (easement). The building must be non-rectangular to use the area; the street edge is the short north edge.",
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          16
+        ]
+      ],
+      "footprint": {
+        "mode": "FREE",
+        "gross_m2": 190,
+        "tolerance": 0.1
+      },
+      "programme": {
+        "bedrooms": 4,
+        "wet_rooms": 3,
+        "safe_room": true,
+        "open_plan": false
+      },
+      "contacts_extra": [
+        [
+          "KITCHEN",
+          "LIVING"
+        ]
+      ],
+      "access_extra": [
+        [
+          "KITCHEN",
+          "LIVING"
+        ]
+      ],
+      "expected": "FEASIBLE",
+      "baseline": "no rectangle of 190 m2 fits this envelope (max inscribed rectangle 8x16 = 128 m2, 14x9 = 126 m2): the current pipeline cannot plan it at all"
+    },
+    {
+      "id": "F3-wide-shallow-free",
+      "purpose": "Exterior shape as a DESIGN VARIABLE: a wide, shallow buildable strip where a single rectangle leaves 5 bedrooms without exposure or produces the 14 m corridor. Offset/stepped wings are the architectural answer; nothing names them.",
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          24,
+          9.5
+        ],
+        [
+          0,
+          9.5
+        ]
+      ],
+      "footprint": {
+        "mode": "FREE",
+        "gross_m2": 175,
+        "tolerance": 0.1
+      },
+      "programme": {
+        "bedrooms": 5,
+        "wet_rooms": 3,
+        "safe_room": true,
+        "open_plan": true
+      },
+      "contacts_extra": [],
+      "access_extra": [],
+      "expected": "FEASIBLE",
+      "baseline": "unseen brief U4 (22x8.5) was REFUSED by production and by the brain (ROOM_SHAPE_INFEASIBLE); this case is the same failure mode with 1.5 m more depth"
+    },
+    {
+      "id": "F4-entry-court-notch",
+      "purpose": "A notch on the STREET side (entry court): the arrival room must front the street inside the notch's edges, and the public band must still face the garden. Tests frontage + notch together.",
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          11,
+          0
+        ],
+        [
+          17,
+          0
+        ],
+        [
+          17,
+          16
+        ],
+        [
+          0,
+          16
+        ]
+      ],
+      "footprint": {
+        "mode": "FREE",
+        "gross_m2": 215,
+        "tolerance": 0.1
+      },
+      "programme": {
+        "bedrooms": 5,
+        "wet_rooms": 3,
+        "safe_room": true,
+        "open_plan": false
+      },
+      "contacts_extra": [
+        [
+          "KITCHEN",
+          "LIVING"
+        ]
+      ],
+      "access_extra": [
+        [
+          "KITCHEN",
+          "LIVING"
+        ]
+      ],
+      "expected": "FEASIBLE",
+      "baseline": "not plannable today: every street-facing band would cross the notch"
+    },
+    {
+      "id": "F5-garden-court",
+      "purpose": "A rear notch (garden court) with an open-plan LDK that must wrap it: the row containing the court is TWO intervals. Under formulation A this is expected to REFUSE with a typed reason (a band with a gap); it is here to expose that limit, and B (MILP) is expected to solve it.",
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          16,
+          15
+        ],
+        [
+          11,
+          15
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          5,
+          9
+        ],
+        [
+          5,
+          15
+        ],
+        [
+          0,
+          15
+        ]
+      ],
+      "footprint": {
+        "mode": "FREE",
+        "gross_m2": 180,
+        "tolerance": 0.1
+      },
+      "programme": {
+        "bedrooms": 3,
+        "wet_rooms": 2,
+        "safe_room": false,
+        "open_plan": true
+      },
+      "contacts_extra": [],
+      "access_extra": [],
+      "expected": "FEASIBLE (exists) — A may refuse: EMBEDDING/BAND_GAP; that refusal must be typed, never a timeout or a distorted plan",
+      "baseline": "not plannable today"
+    },
+    {
+      "id": "F6-unsatisfiable-K4",
+      "purpose": "Deliberately unsatisfiable by REPRESENTATION: LIVING, KITCHEN, HALL and the MASTER bedroom all required to touch each other pairwise (a K4), which no rectangle dissection can carry. The correct answer is a typed refusal before any geometry, not a solver timeout, not a plan that drops a contact.",
+      "envelope": [
+        [
+          0,
+          0
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          13,
+          17
+        ],
+        [
+          0,
+          17
+        ]
+      ],
+      "footprint": {
+        "mode": "FREE",
+        "gross_m2": 200,
+        "tolerance": 0.1
+      },
+      "programme": {
+        "bedrooms": 3,
+        "wet_rooms": 2,
+        "safe_room": true,
+        "open_plan": false
+      },
+      "contacts_extra": [
+        [
+          "LIVING",
+          "KITCHEN"
+        ],
+        [
+          "LIVING",
+          "HALL"
+        ],
+        [
+          "LIVING",
+          "MASTER_BEDROOM"
+        ],
+        [
+          "KITCHEN",
+          "HALL"
+        ],
+        [
+          "KITCHEN",
+          "MASTER_BEDROOM"
+        ],
+        [
+          "HALL",
+          "MASTER_BEDROOM"
+        ]
+      ],
+      "access_extra": [],
+      "expected": "REFUSE: TOPOLOGY_REPRESENTATION_LIMIT (K4) — in < 1 s, with the four rooms named",
+      "baseline": "the current critic (I6) and band_embedding already detect K4 on a rectangle; the general path must keep that behaviour on any envelope"
+    }
+  ],
+  "_scoring": "Gate 2: ≥4/6 FEASIBLE cases solved with every hard constraint; F6 must refuse correctly (a plan here is a FAIL). Gate 3: ≥5/6 usable + ≤30 s per case on this machine + materially different alternatives where feasible.",
+  "_revision": "v1.1 (2026-10-13, after the first run, DECLARED): the first run showed the brain's programme carries no DINING room for these briefs, so F6's K4 silently collapsed into a triangle and 'solved' (a FAIL by this file's own rule) and F4's DINING contacts could not exist. F6's K4 is restated over roles every programme carries (LIVING, KITCHEN, HALL, MASTER_BEDROOM); F4's dining contacts become KITCHEN-LIVING. The harness now REFUSES a case naming a missing role instead of dropping the pair. Nothing else changed; the change makes the set stricter, not easier."
+}
