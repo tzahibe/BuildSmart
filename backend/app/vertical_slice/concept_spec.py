@@ -117,6 +117,35 @@ class EntranceSide(str, Enum):
     SIDE = "SIDE"
 
 
+class PublicOrientation(str, Enum):
+    """Which outdoor space the concept's PUBLIC zone is organised toward (Issue E1).
+
+    The first concept dimension in this module that a builder actually reads. The report that
+    proposed it (`docs/reports/architecture-direction/`) measured the defect it exists to address:
+    on 7 of 8 frozen briefs no public room touched the garden at all, while on 8 of 8 the bathrooms
+    did — because nothing in the pipeline ever decided it. The garden was the plot's leftover area
+    (`site.classify_garden`), computed after the footprint was already placed.
+
+    `STREET` is the behaviour every candidate on `main` has: `FRONT_PUBLIC_BAND` puts the public
+    band across the street elevation, and every column parti puts the public rooms in a column
+    whose orientation nothing chooses. `GARDEN` is E1's own value, carried only by a
+    `REAR_PUBLIC_BAND` candidate, which is produced ONLY when a caller asks for it explicitly
+    (`concept_generator.generate_concepts(public_orientation=...)`, default `STREET`).
+
+    This is deliberately NOT a `*_ENABLED` module constant: `tests/knowledge/
+    test_capability_wiring_table.py` reads every such constant off `origin/main` and requires a
+    matching row in `docs/PROJECT_STATE.md`, which a branch cannot satisfy before it merges (the
+    tripwire that turned `main` red in #176). An explicit default-off PARAMETER is both reversible
+    and invisible to production by construction — the same shape `general_pipeline.run_general`'s
+    own `concept_engine_v2_enabled` override already uses.
+    """
+
+    #: Public zone toward the street elevation — every candidate `main` produces today.
+    STREET = "STREET"
+    #: Public zone toward the dominant outdoor space, which the site decides, not this enum.
+    GARDEN = "GARDEN"
+
+
 #: `spec.CirculationStyle` (a PERSON's own stated preference on `HouseConcept`) -> `CirculationClass`
 #: (this module's authoritative vocabulary) — mapped, never duplicated. `ENGINE` ("no preference
 #: stated") has no class: `circulation_style_of` returns `None` for it, same as an unset field.
@@ -245,6 +274,9 @@ class ConceptSpec:
     programme_reference: tuple[str, ...]
     outline_reference: tuple[int, ...]
     entrance_strategy: str = ""
+    #: E1: which outdoor space the public zone is organised toward. `STREET` for every candidate
+    #: the generator produces by default, so an existing spec's value is unchanged.
+    public_orientation: PublicOrientation = PublicOrientation.STREET
     wet_core_strategy: str = "NONE"
     massing: str = "1W"
     relationships: tuple[str, ...] = ()
@@ -261,6 +293,10 @@ _ZONING_BY_STRATEGY_VALUE: dict[str, ZoningSplit] = {
     "SPINE_SERVICE_CLUSTER": ZoningSplit.SIDE_BY_SIDE,
     "BRANCHED_TWO_STACK": ZoningSplit.SIDE_BY_SIDE,
     "FRONT_PUBLIC_BAND": ZoningSplit.FRONT_REAR,
+    # E1: the same front/rear split, read the other way up — public at the garden, private at the
+    # street. The SPLIT is identical; what differs is which side the public half faces, and that is
+    # `public_orientation`'s own job, not this map's.
+    "REAR_PUBLIC_BAND": ZoningSplit.FRONT_REAR,
     "HUB_PRIVATE_WING": ZoningSplit.FRONT_REAR,
     "MULTI_WING_SPLIT": ZoningSplit.WRAPPED,
 }
@@ -315,6 +351,7 @@ def concept_spec_of(candidate) -> ConceptSpec:
         programme_reference=programme,
         outline_reference=tuple(candidate.wing_orders),
         entrance_strategy=candidate.concept.entrance_zone_id,
+        public_orientation=getattr(candidate, "public_orientation", PublicOrientation.STREET),
         wet_core_strategy=_wet_core_strategy(candidate.wet_rooms),
         massing=f"{len(candidate.concept.fixture.wings)}W",
         family=gp._family_signature(candidate.concept.fixture, candidate.strategy),

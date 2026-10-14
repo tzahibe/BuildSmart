@@ -1,0 +1,354 @@
+[
+  {
+    "brief": "B08",
+    "plot": [
+      19.0,
+      20.0
+    ],
+    "footprint": [
+      10.8,
+      12.0
+    ],
+    "footprint_origin": [
+      4.1,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 8.0,
+        "area_m2": 152.0,
+        "frontage_m": 19.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 4.1,
+        "area_m2": 49.2,
+        "frontage_m": 12.0
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 4.1,
+        "area_m2": 49.2,
+        "frontage_m": 12.0
+      }
+    ],
+    "rear_depth_m": 8.0,
+    "rear_area_m2": 152.0,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 152.0,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B20",
+    "plot": [
+      19.0,
+      20.0
+    ],
+    "footprint": [
+      10.9,
+      12.0
+    ],
+    "footprint_origin": [
+      4.05,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 8.0,
+        "area_m2": 152.0,
+        "frontage_m": 19.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 4.05,
+        "area_m2": 48.6,
+        "frontage_m": 12.0
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 4.05,
+        "area_m2": 48.6,
+        "frontage_m": 12.0
+      }
+    ],
+    "rear_depth_m": 8.0,
+    "rear_area_m2": 152.0,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 152.0,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B02",
+    "plot": [
+      20.0,
+      26.0
+    ],
+    "footprint": [
+      11.8,
+      11.45
+    ],
+    "footprint_origin": [
+      4.1,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 14.55,
+        "area_m2": 291.0,
+        "frontage_m": 20.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 4.1,
+        "area_m2": 46.94,
+        "frontage_m": 11.45
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 4.1,
+        "area_m2": 46.94,
+        "frontage_m": 11.45
+      }
+    ],
+    "rear_depth_m": 14.55,
+    "rear_area_m2": 291.0,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 291.0,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B11",
+    "plot": [
+      20.0,
+      26.0
+    ],
+    "footprint": [
+      11.9,
+      14.05
+    ],
+    "footprint_origin": [
+      4.05,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 11.95,
+        "area_m2": 239.0,
+        "frontage_m": 20.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 4.05,
+        "area_m2": 56.9,
+        "frontage_m": 14.05
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 4.05,
+        "area_m2": 56.9,
+        "frontage_m": 14.05
+      }
+    ],
+    "rear_depth_m": 11.95,
+    "rear_area_m2": 239.0,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 239.0,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B16",
+    "plot": [
+      26.0,
+      20.0
+    ],
+    "footprint": [
+      12.9,
+      14.6
+    ],
+    "footprint_origin": [
+      6.5,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 5.4,
+        "area_m2": 140.4,
+        "frontage_m": 26.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 6.5,
+        "area_m2": 94.9,
+        "frontage_m": 14.6
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 6.6,
+        "area_m2": 96.36,
+        "frontage_m": 14.6
+      }
+    ],
+    "rear_depth_m": 5.4,
+    "rear_area_m2": 140.4,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 140.4,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B19",
+    "plot": [
+      20.5,
+      22.5
+    ],
+    "footprint": [
+      11.9,
+      14.5
+    ],
+    "footprint_origin": [
+      4.3,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 8.0,
+        "area_m2": 164.0,
+        "frontage_m": 20.5
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 4.3,
+        "area_m2": 62.35,
+        "frontage_m": 14.5
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 4.3,
+        "area_m2": 62.35,
+        "frontage_m": 14.5
+      }
+    ],
+    "rear_depth_m": 8.0,
+    "rear_area_m2": 164.0,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 164.0,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B06",
+    "plot": [
+      21.0,
+      32.0
+    ],
+    "footprint": [
+      12.9,
+      13.75
+    ],
+    "footprint_origin": [
+      4.05,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 18.25,
+        "area_m2": 383.25,
+        "frontage_m": 21.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 4.05,
+        "area_m2": 55.69,
+        "frontage_m": 13.75
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 4.05,
+        "area_m2": 55.69,
+        "frontage_m": 13.75
+      }
+    ],
+    "rear_depth_m": 18.25,
+    "rear_area_m2": 383.25,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 383.25,
+    "garden_orientation_is_rear": true
+  },
+  {
+    "brief": "B09",
+    "plot": [
+      28.0,
+      30.0
+    ],
+    "footprint": [
+      15.4,
+      14.75
+    ],
+    "footprint_origin": [
+      6.3,
+      0.0
+    ],
+    "bands": [
+      {
+        "id": "garden_0",
+        "side": "REAR",
+        "depth_m": 15.25,
+        "area_m2": 427.0,
+        "frontage_m": 28.0
+      },
+      {
+        "id": "garden_1",
+        "side": "WEST",
+        "depth_m": 6.3,
+        "area_m2": 92.92,
+        "frontage_m": 14.75
+      },
+      {
+        "id": "garden_2",
+        "side": "EAST",
+        "depth_m": 6.3,
+        "area_m2": 92.92,
+        "frontage_m": 14.75
+      }
+    ],
+    "rear_depth_m": 15.25,
+    "rear_area_m2": 427.0,
+    "rear_is_usable": true,
+    "dominant_usable_side": "REAR",
+    "dominant_area_m2": 427.0,
+    "garden_orientation_is_rear": true
+  }
+]

@@ -179,17 +179,30 @@ def _failure_context(project_id: str, project, error=None) -> dict:
 #: that asks for the Concept Engine and fails returns that failure, not a production plan.
 ENGINE_PRODUCTION = "production"
 ENGINE_CONCEPT_V2 = "concept_engine_v2"
+#: E1 DEVELOPMENT PREVIEW. Generates the SAME brief with the public band organised toward the
+#: GARDEN instead of the street and shows it beside the production plan, drawn by the same
+#: renderer. Like the value above it is a per-request override of nothing but this request: no
+#: default moves, no candidate ranking changes, and a brief whose band parti cannot be planned
+#: returns ITS OWN refusal rather than quietly showing the production plan.
+ENGINE_E1_REAR_BAND = "e1_rear_band"
 
 
 def _engine_override(engine: str | None) -> bool | None:
     """`None` keeps the module flag (production). `True` runs the Concept Engine for this request
     only. An unknown value is refused rather than silently treated as production."""
-    if engine is None or engine == ENGINE_PRODUCTION:
+    if engine is None or engine in (ENGINE_PRODUCTION, ENGINE_E1_REAR_BAND):
         return None
     if engine == ENGINE_CONCEPT_V2:
         return True
     raise HTTPException(status_code=422, detail=(
-        f"unknown engine {engine!r}; expected {ENGINE_PRODUCTION!r} or {ENGINE_CONCEPT_V2!r}"))
+        f"unknown engine {engine!r}; expected {ENGINE_PRODUCTION!r}, {ENGINE_CONCEPT_V2!r} "
+        f"or {ENGINE_E1_REAR_BAND!r}"))
+
+
+def _rear_band_requested(engine: str | None) -> bool:
+    """Whether this request asked for E1's garden-facing band. Any value neither this nor
+    `_engine_override` knows was already refused by `_engine_override`."""
+    return engine == ENGINE_E1_REAR_BAND
 
 
 @router.post("/{project_id}/design/demo/stream")
@@ -208,6 +221,7 @@ def generate_demo_plan_streaming(project_id: str,
     # resolved HERE, in the request frame: a bad value must be a 422 on the request, not an error
     # event inside a stream that has already started.
     override = _engine_override(engine)
+    rear_band = _rear_band_requested(engine)
     total = len(PIPELINE_STAGES)
     labels = dict(PIPELINE_STAGES)
     order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
@@ -225,7 +239,8 @@ def generate_demo_plan_streaming(project_id: str,
         def run() -> None:
             try:
                 result = generate_demo_design(project, on_stage=updates.put,
-                                              concept_engine_v2=override)
+                                              concept_engine_v2=override,
+                                              rear_band_preview=rear_band)
                 outcome["value"] = DemoPlanSet(plan=result.design,
                                                alternatives=list(result.alternatives),
                                                search=result.search,
@@ -273,7 +288,8 @@ def generate_demo_plan(project_id: str, request: Request,
                        engine: str | None = Query(default=None)) -> DemoPlanSet:
     project = _project_or_404(project_id)
     try:
-        result = generate_demo_design(project, concept_engine_v2=_engine_override(engine))
+        result = generate_demo_design(project, concept_engine_v2=_engine_override(engine),
+                                      rear_band_preview=_rear_band_requested(engine))
         return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
                            search=result.search, building=result.building)
     except DemoGenerationError as error:
