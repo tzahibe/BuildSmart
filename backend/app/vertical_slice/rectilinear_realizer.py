@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import math
 import time
+import dataclasses
 from dataclasses import dataclass, field
 
 from shapely.geometry import Polygon, box as _box
@@ -1338,6 +1339,9 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
     entrance_zone_id, low, high = resolved
     ex = (low + high) // 2
     entrance = build_entrance(site.footprint, ex)
+    # the site was built with a placeholder walk at the footprint's centre; the walk the drawing,
+    # the validators and the payload see is the one to the door actually resolved
+    site = dataclasses.replace(site, entrance=entrance)
     entrance_door = build_entrance_door(entrance, site.footprint, entrance_zone_id, site.wings)
     windows = generate_windows(fixture, rects, site.footprint, site.wings)
     furniture = check_furniture_feasibility(fixture, rects, walls)
@@ -1519,6 +1523,9 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     entrance_zone_id, low, high = resolved
     ex = (low + high) // 2
     entrance = build_entrance(site.footprint, ex)
+    # the site was built with a placeholder walk at the footprint's centre; the walk the drawing,
+    # the validators and the payload see is the one to the door actually resolved
+    site = dataclasses.replace(site, entrance=entrance)
     entrance_door = build_entrance_door(entrance, site.footprint, entrance_zone_id, site.wings)
     windows = generate_windows(fixture, rects, site.footprint, site.wings)
     furniture = check_furniture_feasibility(fixture, rects, walls)

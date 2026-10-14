@@ -24,19 +24,31 @@ import sys
 import time
 from collections import Counter
 
+from app.ai_harness.shape_agnostic.spine import choose_spine, embed_spine
 from app.demo.contract import to_demo_design
 from app.demo.service import spec_for
-from app.vertical_slice.band_embedding import (BandEmbedding, BandEmbeddingRefusal, embed_band,
-                                               find_k4, find_triple_lens)
+from app.vertical_slice.band_embedding import (
+    BandEmbeddingRefusal,
+    embed_band,
+    find_k4,
+    find_triple_lens,
+)
 from app.vertical_slice.band_pipeline import hard_rejections, orient, placement_flags
 from app.vertical_slice.band_sizing import contact_requirements
 from app.vertical_slice.brain.area import assess_area
-from app.vertical_slice.brain.proposer import DeterministicProposer, _hall_intent, programme_from_spec
+from app.vertical_slice.brain.proposer import (
+    DeterministicProposer,
+    _hall_intent,
+    programme_from_spec,
+)
 from app.vertical_slice.brain.runner import AREA_BAND_LADDER, _arrival_zone, _rebanded
 from app.vertical_slice.envelope import Envelope
 from app.vertical_slice.rectilinear_realizer import RealizedLayout, realize_cells
 from app.vertical_slice.staircase_sizing import solve_staircase_layout
-from app.vertical_slice.topology_preservation import measure_access_graph, measure_spatial_adjacency
+from app.vertical_slice.topology_preservation import (
+    measure_access_graph,
+    measure_spatial_adjacency,
+)
 
 CASES_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "docs", "reports",
                           "shape-agnostic-realizer", "cases", "frozen-six.json")
@@ -44,9 +56,15 @@ MAX_CANDIDATES = 150         # embedder candidates examined per parti; the selec
 MAX_SIZINGS = 12             # candidates actually sized per parti (both orientations count)
 
 try:                         # the MILP oracle (formulation B) where scipy exists — research tooling:
-    from app.ai_harness.shape_agnostic.milp_oracle import milp_heights, milp_placement
+    from app.ai_harness.shape_agnostic.milp_oracle import (
+        milp_heights,
+        milp_placement,
+        milp_spine_placement,
+        spine_geometry,
+        spine_intents,
+    )
 except ImportError:          # pragma: no cover
-    milp_heights = milp_placement = None
+    milp_heights = milp_placement = milp_spine_placement = spine_geometry = spine_intents = None
 
 
 def _project_for(case: dict):
@@ -99,6 +117,154 @@ def _transpose_rects(rects: dict) -> dict:
     return {z: Rect(r.y, r.x, r.h, r.w) for z, r in rects.items()}
 
 
+SPINE_MAX_LAYOUTS = 40
+SPINE_BUDGET_S = 90.0
+
+
+def _dump_design(case: dict, prop, best, out_dir: str, family: str) -> None:
+    plan, out = best
+    design = to_demo_design(out.design, out.report, family=f"spike:{family}:{prop.name}",
+                            notes=[f"{case['id']} — {prop.name} ({family}); {plan['area']} {plan['gross_pct']}%"])
+    path = os.path.join(out_dir, "designs", f"{case['id']}__{prop.name}__{family}.json")
+    with open(path, "w") as fh:
+        json.dump(design.model_dump(mode="json"), fh)
+    plan["render"] = os.path.basename(path)
+
+
+def _spine_selection(layout, zones, orient_tag: str) -> list[str]:
+    """The production SELECTION questions for a spine layout, before any geometry is sized — the
+    HARD flags `placement_flags` asks of a band candidate, read off the layout's structure:
+
+    entrance_feasible — can an allowed arrival room front the street? Bands along the street (H):
+    the embedding already guarantees it (a spine that fronts is three door widths wide, else the
+    street band holds an arrival room). Bands across the street (V): the street wall is the layout's
+    LEFT edge, so the outermost-left cells front it — a section band with no left part puts the
+    spine's long wall there.
+    exposure_ok — every REQUIRED-exposure room (and the safe room) has an exterior wall: the outer
+    cell of a side row, any cell of the top/bottom plain band, the end cells of a plain band, or a
+    cell in the section's first/last row when nothing sits above/below it. A room inside a side row
+    of a middle band is buried, as in the band family; it is skipped, not sized and refused."""
+    from app.vertical_slice.doors import ALLOWED_ENTRANCE_ROLES
+    from app.vertical_slice.exposure_policy import REQUIRED_EXTERIOR_ROLES
+    from app.vertical_slice.geometry_core.model import ProgramRole
+    failed = []
+    role = lambda z: getattr(zones[z], "role", None)
+    if orient_tag == "V":
+        fronting = {band[0] for band in layout.top + layout.bottom}
+        for left, _right in layout.bands:
+            fronting.add(left[0] if left else layout.spine)
+        if not any(role(z) in ALLOWED_ENTRANCE_ROLES for z in fronting):
+            failed.append("entrance_feasible")
+    # a FOYER (a CIRCULATION room off the spine with at most one other neighbour — the brain's
+    # degree-2 ENTRY) exists to hold the front door: it must front the street, else the parti's
+    # point is lost (the door would open into the living room and the foyer float at the back)
+    foyers = [z for z in layout.cells if z != layout.spine and role(z) is ProgramRole.CIRCULATION]
+    if foyers:
+        if orient_tag == "H":
+            fronting = set(layout.top[0]) if layout.top else set()
+        if not any(z in fronting for z in foyers):
+            failed.append("foyer_fronts_street")
+    a, b = layout.section
+    exterior = {layout.spine}
+    for band in layout.top + layout.bottom:
+        exterior.update(band[0:1]); exterior.update(band[-1:])
+    if layout.top:
+        exterior.update(layout.top[0])
+    if layout.bottom:
+        exterior.update(layout.bottom[-1])
+    for r, (left, right) in enumerate(layout.bands):
+        exterior.update(left[0:1]); exterior.update(right[-1:])
+        if (r == 0 and not layout.top) or (r == len(layout.bands) - 1 and not layout.bottom):
+            exterior.update(left); exterior.update(right)
+    buried = [z for z in layout.cells
+              if (role(z) in REQUIRED_EXTERIOR_ROLES or role(z) is ProgramRole.SAFE_ROOM) and z not in exterior]
+    if buried:
+        failed.append("exposure_ok")
+    return failed
+
+
+def _spine_family(case, prop, zones, p, union, spatial, access, contacts, orientations, requested, rec):
+    """Path B for one proposal: embed around the hub, size every layout with the exact spine oracle
+    (both orientations, the Stage 3 ladder), realize through `realize_cells`. Returns the first plan
+    that counts, with its realization, or None; every refusal is recorded on `rec`."""
+    t0 = time.monotonic()
+    reasons: Counter = Counter()
+    spine = choose_spine(zones, union)
+    if spine is None:
+        rec["stages"]["SPINE_NO_CIRCULATION"] += 1
+        return None
+    layouts = embed_spine(zones, union, spine, max_candidates=SPINE_MAX_LAYOUTS)
+    rec["stages"]["SPINE_LAYOUTS"] += len(layouts)
+    if not layouts:
+        rec["refusals"].append({"parti": prop.name, "stage": "SPINE_EMBEDDING", "code": "NO_SPINE_LAYOUT",
+                                "detail": f"the contact graph does not split around {spine} into embeddable sides"})
+        return None
+    best = None
+    sized = 0
+    for layout in layouts:
+        if time.monotonic() - t0 > SPINE_BUDGET_S or sized >= MAX_SIZINGS:
+            break
+        for orient_tag, env_o in orientations:
+            rejected = _spine_selection(layout, zones, orient_tag)
+            if rejected:
+                for k in rejected:
+                    reasons[f"SPINE_SELECTION_{k}"] += 1
+                continue
+            for rung in AREA_BAND_LADDER:
+                zr = _rebanded(zones, p, rung) if rung != AREA_BAND_LADDER[0] else zones
+                o = milp_spine_placement(layout, zr, union, env_o, min_contact_u=contacts)
+                reasons[f"SPINE_{o.status}"] += 1
+                if o.status != "FEASIBLE":
+                    if o.status == "BAND_GAP":
+                        break
+                    continue
+                sized += 1
+                zi = spine_intents(layout, zr)
+                cell_rects, wing_rects = spine_geometry(layout, o)
+                if orient_tag == "V":
+                    cell_rects = _transpose_rects(cell_rects)
+                    wing_rects = tuple(_transpose_rects(dict(enumerate(wing_rects))).values())
+                out = realize_cells(f"{case['id']}:{prop.name}:spine", cell_rects, zi, wing_rects, access,
+                                    wet_rooms=p.resolved_wet)
+                if not isinstance(out, RealizedLayout):
+                    reasons[f"SPINE_{out.constraint}"] += 1
+                    rec["refusals"].append({"parti": prop.name, "stage": "SPINE_REALIZATION",
+                                            "code": out.constraint, "detail": out.detail[:200]})
+                    break
+                sp = measure_spatial_adjacency(out.rects, frozenset(frozenset(e) for e in spatial))
+                ac = measure_access_graph(out.fixture.access.edges, access)
+                gross = float(out.design.gross_area_m2)
+                net = float(out.design.net_area_m2 or 0.0)
+                verdict = assess_area(requested, gross, net, p.capacity_m2)
+                full = sp.preserved == sp.requested and ac.preserved == ac.requested
+                plan = {"family": "spine", "parti": prop.name, "spine": spine, "rows": layout.n_rows,
+                        "section": list(layout.section), "rung": rung, "orientation": orient_tag,
+                        "contacts": f"{sp.preserved}/{sp.requested}",
+                        "doors": f"{ac.preserved}/{ac.requested}",
+                        "lost_doors": sorted(str(e) for e in ac.lost),
+                        "arrival": _arrival_zone(out),
+                        "gross_m2": round(gross, 1), "net_m2": round(net, 1),
+                        "area": verdict.code, "gross_pct": verdict.gross_pct,
+                        "wings": [(round(w.x * .05, 2), round(w.y * .05, 2), round(w.w * .05, 2),
+                                   round(w.h * .05, 2)) for w in wing_rects],
+                        "non_rectangular": len({(w.x, w.w) for w in wing_rects}) > 1,
+                        "validators": len(out.report.checks),
+                        "counts": bool(full and verdict.acceptable)}
+                rec["plans"].append(plan)
+                if plan["counts"] and best is None:
+                    best = (plan, out)
+                break
+            if best is not None:
+                break
+        if best is not None:
+            break
+    rec["stages"]["SPINE_SIZED"] += sized
+    for k, v in reasons.items():
+        rec["stages"][k] += v
+    rec["stages"]["SPINE_SECONDS"] += round(time.monotonic() - t0, 1)
+    return best
+
+
 def run_case(case: dict, out_dir: str) -> dict:
     t0 = time.monotonic()
     rec: dict = {"id": case["id"], "expected": case["expected"], "stages": Counter(), "plans": [],
@@ -126,6 +292,11 @@ def run_case(case: dict, out_dir: str) -> dict:
         try:
             spatial = list(prop.spatial) + _extra(case, "contacts_extra", zones)
             access = [(a, b) for a, b in prop.access if a != "ENTRANCE"] + _extra(case, "access_extra", zones)
+            # one door per unordered pair: a case extra that repeats a parti pair the other way round
+            # (F4's KITCHEN-LIVING over LIVING-KITCHEN) is the same door, not a second one — two
+            # doors on one wall overlap and C28 refuses every plan (F4, day 2)
+            seen_pairs: set = set()
+            access = [e for e in access if not (frozenset(e) in seen_pairs or seen_pairs.add(frozenset(e)))]
         except InvalidCase as exc:
             rec["stages"]["INVALID_CASE"] += 1
             rec["refusals"].append({"parti": prop.name, "stage": "CASE", "code": "INVALID_CASE",
@@ -215,7 +386,8 @@ def run_case(case: dict, out_dir: str) -> dict:
                     net = float(out.design.net_area_m2 or 0.0)
                     verdict = assess_area(requested, gross, net, p.capacity_m2)
                     full = sp.preserved == sp.requested and ac.preserved == ac.requested
-                    plan = {"parti": prop.name, "bands": len(bands), "rung": rung, "orientation": orient_tag,
+                    plan = {"family": "band", "parti": prop.name, "bands": len(bands), "rung": rung,
+                            "orientation": orient_tag,
                             "contacts": f"{sp.preserved}/{sp.requested}",
                             "doors": f"{ac.preserved}/{ac.requested}",
                             "lost_doors": sorted(str(e) for e in ac.lost),
@@ -240,13 +412,16 @@ def run_case(case: dict, out_dir: str) -> dict:
         for k, v in reasons.items():
             rec["stages"][k] += v
         if best is not None:
-            plan, out = best
-            design = to_demo_design(out.design, out.report, family=f"spike:{prop.name}",
-                                    notes=[f"{case['id']} — {prop.name}; {plan['area']} {plan['gross_pct']}%"])
-            path = os.path.join(out_dir, "designs", f"{case['id']}__{prop.name}.json")
-            with open(path, "w") as fh:
-                json.dump(design.model_dump(mode="json"), fh)
-            plan["render"] = os.path.basename(path)
+            _dump_design(case, prop, best, out_dir, "band")
+
+        # 4. the SPINE family (ADR-001 path B): the same programme, contacts and envelope; a
+        # circulation cell spanning a run of bands, plain street/back bands around it. Same
+        # realizer, validators and area verdicts; plans are tagged by family.
+        if milp_spine_placement is not None:
+            spine_best = _spine_family(case, prop, zones, p, union, spatial, access, contacts,
+                                       orientations, requested, rec)
+            if spine_best is not None:
+                _dump_design(case, prop, spine_best, out_dir, "spine")
 
     rec["seconds"] = round(time.monotonic() - t0, 1)
     counted = [x for x in rec["plans"] if x["counts"]]

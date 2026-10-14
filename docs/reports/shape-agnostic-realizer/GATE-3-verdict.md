@@ -1,5 +1,8 @@
 # Gate 3 — day 5 verdict: **STOP at the time-box** — a working shape-agnostic realizer for three of five footprint classes, quality below the bar, two costed paths forward
 
+> **Correction (2026-10-14, day-2 of path B — see `DAY-2-spine-gate.md`):** the F2/F4 refusals attributed below to the band family's exposure/entrance limit were, for every candidate that survived selection, a **harness defect**: frozen-six v1.1's `access_extra` KITCHEN–LIVING duplicated the parti's LIVING–KITCHEN door, two doors overlapped, C28 refused. With one door per unordered pair the band family alone solves F2 (TWO_HALL) and F4; the spine family adds F1/F3/F4. The cases are unchanged. The STOP verdict's *quality* findings stand.
+
+
 Every number here is read off the product's own `DemoDesign` payload (`profile_designs.py`) or
 the harness's `results.json`, for plans that passed the 28 unchanged validators with every
 contact and door preserved.

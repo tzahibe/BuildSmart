@@ -18,6 +18,7 @@ has any solution at all; alignment is asked of the found heights afterwards.
 """
 from __future__ import annotations
 
+import itertools
 from dataclasses import dataclass
 
 import numpy as np
@@ -98,7 +99,7 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
     step_ys = sorted({y_start, y_start + h_cap} | {m_to_u(vy - miny) for _, vy in envelope.vertices_m
                                                     if y_start < m_to_u(vy - miny) < y_start + h_cap})
     segments = []                                     # (y0, y1, L, R) — one interval each (else BAND_GAP)
-    for y0, y1 in zip(step_ys, step_ys[1:]):
+    for y0, y1 in itertools.pairwise(step_ys):
         ivs = envelope.extent_u(y0, y1)
         if len(ivs) != 1:
             return OracleResult("BAND_GAP", detail=f"the envelope splits between depths {y0} and {y1} u")
@@ -313,3 +314,379 @@ def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u:
             return res
         sides, last = real, res
     return last
+
+
+# ----------------------------------------------------------------------------- the spine (path B)
+
+def milp_spine_placement(layout, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
+                         k: int = 12, tol_m2: float = 0.01, time_limit_s: float = 10.0,
+                         objective: str = "area", rounds: int = 3) -> OracleResult:
+    """The spine oracle as THE sizer, like `milp_placement`: solve, read the real wall types off the
+    placement, re-solve with exact insets until they stop changing."""
+    from app.vertical_slice.staircase_sizing import sides_from_rects
+    zones = spine_intents(layout, zones)
+    sides = None
+    last = None
+    for _ in range(rounds):
+        res = _spine_once(layout, zones, required, envelope, min_contact_u=min_contact_u, k=k, tol_m2=tol_m2,
+                          time_limit_s=time_limit_s, objective=objective, sides=sides)
+        if res.status != "FEASIBLE":
+            # an earlier round's placement was sized with ESTIMATED insets; the exact ones refuse it,
+            # and the realizer's C3 would too — so the refusal is the answer, not the estimate
+            return res
+        rects, _wings = spine_geometry(layout, res)
+        real = sides_from_rects(rects, zones)
+        if real == sides:
+            return res
+        sides, last = real, res
+    return last
+
+
+def spine_intents(layout, zones: dict) -> dict:
+    """The programme with the spine's intent declared as a corridor: a cell that spans every band
+    is long by nature, so its aspect bound is `SPINE_MAX_ASPECT` (never below the programme's own).
+    Everything else — areas, short sides, every other room — is the programme's, untouched; the
+    validators then hold the realized spine to exactly this declared intent."""
+    z = zones[layout.spine]
+    if z.max_aspect_ratio >= SPINE_MAX_ASPECT:
+        return zones
+    from dataclasses import replace
+    return {**zones, layout.spine: replace(z, max_aspect_ratio=SPINE_MAX_ASPECT)}
+
+
+def _spine_once(layout, zones, required, envelope: Envelope, *, min_contact_u, k, tol_m2, time_limit_s,
+                objective, sides, _skip: frozenset = frozenset()):
+    """The aligned oracle for a `SpineLayout` (path B): one circulation cell spans EVERY band
+    between a shared pair of column nodes (xa, xb); each band is left cells, the spine, right
+    cells. Per band the system is `milp_heights`' (cells, contacts, envelope extents, alignment
+    with the neighbouring band); the shared nodes make the alignment of a band edge that IS xa or
+    xb hold by identity. The spine's own area / short side / aspect are exact through the McCormick
+    products below. Returns FEASIBLE with heights and per-band boundaries, or INFEASIBLE/UNKNOWN."""
+    from app.vertical_slice.band_sizing import CellSpec
+    from app.vertical_slice.doors import ENTRANCE_DOOR_WIDTH_M
+    from app.vertical_slice.geometry_core.model import WallType, inset_u
+
+    spine = layout.spine
+    R = layout.n_rows
+    sec_a, sec_b = layout.section
+    ext_i, part_i = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION)
+
+    def spec(zid, r, c0, c1, first, last):
+        z = zones[zid]
+        known = (sides or {}).get(zid)
+        iw = (inset_u(known["W"]) + inset_u(known["E"])) if known else ((ext_i if first else part_i) + (ext_i if last else part_i))
+        ih = (inset_u(known["N"]) + inset_u(known["S"])) if known else ext_i * 2
+        return CellSpec(zid, r, c0, c1, z.min_area_m2, z.max_area_m2, z.min_short_side_m, z.max_aspect_ratio, iw, ih)
+
+    # ---- nodes: 0 = origin; xa/xb shared by the section's bands; per band s, boundaries..., e
+    xa, xb = 1, 2
+    nxt = 3
+    band_nodes: list[list[int]] = []
+    cells: list = []
+    plain_rows = [(r, b) for r, b in enumerate(layout.top)] + \
+                 [(sec_b + r, b) for r, b in enumerate(layout.bottom)]
+    for r, band in plain_rows:
+        ids = [nxt]; nxt += 1
+        for i, zid in enumerate(band):
+            nid = nxt; nxt += 1
+            cells.append(spec(zid, r, ids[-1], nid, i == 0, i == len(band) - 1))
+            ids.append(nid)
+        band_nodes.append((r, ids))
+    for rr, (left, right) in enumerate(layout.bands):
+        r = sec_a + rr
+        ids = []
+        if left:
+            ids.append(nxt); nxt += 1
+            for i, zid in enumerate(left):
+                nid = xa if i == len(left) - 1 else nxt
+                if nid != xa:
+                    nxt += 1
+                cells.append(spec(zid, r, ids[-1], nid, i == 0, False))
+                ids.append(nid)
+        else:
+            ids = [xa]
+        ids.append(xb)
+        for i, zid in enumerate(right):
+            nid = nxt; nxt += 1
+            cells.append(spec(zid, r, ids[-1], nid, False, i == len(right) - 1))
+            ids.append(nid)
+        band_nodes.append((r, ids))
+    band_nodes = [ids for _, ids in sorted(band_nodes, key=lambda t: t[0])]
+    N = nxt
+    s_nodes = [bn[0] for bn in band_nodes]
+    e_nodes = [bn[-1] for bn in band_nodes]
+    by_zone = {c.zone_id: c for c in cells}
+
+    # ---- depth
+    windows = envelope.split_depth_windows_u()
+    y_start = 0
+    while windows and windows[0][0] <= y_start:
+        y_start = windows[0][1]; windows = windows[1:]
+    h_cap = envelope.depth_u - y_start
+    if windows:
+        h_cap = min(h_cap, windows[0][0] - y_start)
+    hL0, hU0 = [0] * R, [h_cap] * R
+    # a spine neighbour's door sits on that band's height
+    for pair, need in (min_contact_u or {}).items():
+        a, b = tuple(pair)
+        if need > 1 and spine in (a, b):
+            other = b if a == spine else a
+            if other in by_zone and sec_a <= by_zone[other].r < sec_b:
+                hL0[by_zone[other].r] = max(hL0[by_zone[other].r], need)
+        elif need > 1 and a in by_zone and b in by_zone and by_zone[a].r == by_zone[b].r:
+            hL0[by_zone[a].r] = max(hL0[by_zone[a].r], need)
+    for c in cells:
+        lo, hi = _height_bounds(c, tol_m2, h_cap)
+        hL0[c.r] = max(hL0[c.r], lo); hU0[c.r] = min(hU0[c.r], hi)
+    if any(hL0[r] > hU0[r] for r in range(R)) or sum(hL0) > h_cap:
+        return OracleResult("INFEASIBLE", detail="no common feasible band depths under the spine")
+    grids = [_height_grid(hL0[r], hU0[r], k) for r in range(R)]
+
+    _, miny, _, _ = envelope.polygon.bounds
+    step_ys = sorted({y_start, y_start + h_cap} | {m_to_u(vy - miny) for _, vy in envelope.vertices_m
+                                                    if y_start < m_to_u(vy - miny) < y_start + h_cap})
+    segments = []
+    for y0, y1 in itertools.pairwise(step_ys):
+        ivs = envelope.extent_u(y0, y1)
+        if len(ivs) != 1:
+            return OracleResult("BAND_GAP", detail=f"the envelope splits between depths {y0} and {y1} u")
+        segments.append((y0, y1, ivs[0][0], ivs[0][1]))
+    inner_steps = step_ys[1:-1]
+
+    nx = N
+    z_idx = {}
+    for r in range(R):
+        for kk in range(len(grids[r])):
+            z_idx[(r, kk)] = nx; nx += 1
+    a_idx, b_idx = {}, {}
+    for r in range(R):
+        for d in inner_steps:
+            a_idx[(r, d)] = nx; nx += 1
+            b_idx[(r, d)] = nx; nx += 1
+    nvar = nx
+    rows, lbs, ubs = [], [], []
+
+    def add(coefs, lb, ub):
+        rows.append(coefs); lbs.append(lb); ubs.append(ub)
+
+    def h_expr(r):
+        return {z_idx[(r, kk)]: float(grids[r][kk]) for kk in range(len(grids[r]))}
+
+    def y_expr(r):
+        e = {}
+        for i in range(r):
+            for v, cft in h_expr(i).items():
+                e[v] = e.get(v, 0.0) + cft
+        return e
+
+    for r in range(R):
+        add({z_idx[(r, kk)]: 1.0 for kk in range(len(grids[r]))}, 1, 1)
+    tot = {}
+    for r in range(R):
+        for v, cft in h_expr(r).items():
+            tot[v] = tot.get(v, 0.0) + cft
+    add(tot, 0, h_cap)
+    add({0: 1.0}, 0, 0)
+    # ordinary cells, exactly as milp_heights
+    for c in (cells if "cells" not in _skip else ()):
+        w = {c.c1: 1.0, c.c0: -1.0}
+        add(dict(w), 1, BIG)
+        a_lo, a_hi = c.min_area_m2 / (UNIT_M * UNIT_M), c.max_area_m2 / (UNIT_M * UNIT_M)
+        ms = m_to_u(c.min_short_m)
+        for kk, H in enumerate(grids[c.r]):
+            hn = H - c.inset_h_u
+            zv = z_idx[(c.r, kk)]
+            if hn < 1 or hn < ms:
+                add({zv: 1.0}, 0, 0); continue
+            add({**w, zv: -BIG}, a_lo / hn + c.inset_w_u - BIG, BIG)
+            add({**w, zv: BIG}, -BIG, a_hi / hn + c.inset_w_u + BIG)
+            add({**w, zv: -BIG}, ms + c.inset_w_u - BIG, BIG)
+            add({**w, zv: BIG}, -BIG, c.max_aspect * hn + c.inset_w_u + BIG)
+            add({**w, zv: -BIG}, hn / c.max_aspect + c.inset_w_u - BIG, BIG)
+    # the spine: width w = xb - xa between the shared nodes, height H = the SUM of the band heights.
+    # Its net area (w - iw)(H - ih) is bilinear, but H is a sum of binary-selected grid heights, so
+    # p[r,kk] = w * z[r,kk] linearizes EXACTLY (McCormick with a binary): the spine's area, short
+    # side and aspect are then linear in (p, z, w) and hold exactly — no conservative bound, no
+    # height windows.
+    zs = zones[spine]
+    known_s = (sides or {}).get(spine)
+    ih_s = (inset_u(known_s["N"]) + inset_u(known_s["S"])) if known_s else ext_i * 2
+    iw_s = (inset_u(known_s["W"]) + inset_u(known_s["E"])) if known_s else part_i * 2
+    a_lo, a_hi = zs.min_area_m2 / (UNIT_M * UNIT_M), zs.max_area_m2 / (UNIT_M * UNIT_M)
+    H_lo = sum(hL0[r] for r in range(sec_a, sec_b))
+    wl = max(m_to_u(SPINE_MIN_WIDTH_M), m_to_u(zs.min_short_side_m)) + iw_s
+    wh = int(a_hi / max(1, H_lo - ih_s)) + iw_s + 1
+    if wl > wh:
+        return OracleResult("INFEASIBLE", detail="the spine's own bounds admit no width")
+    wvar = {xb: 1.0, xa: -1.0}
+    add(dict(wvar), wl, wh)
+    net_area = {xb: -float(ih_s), xa: float(ih_s)}          # - ih * w
+    hsum = {}                                                # H = sum H[r,kk] z[r,kk]
+    for r in range(sec_a, sec_b):
+        for kk, Hk in enumerate(grids[r]):
+            zv = z_idx[(r, kk)]
+            hsum[zv] = float(Hk)
+            pv = nvar; nvar += 1
+            add({pv: 1.0, zv: -float(wh)}, -BIG, 0)                       # p <= wh z
+            add({pv: 1.0, zv: -float(wl)}, 0, BIG)                        # p >= wl z
+            add({pv: 1.0, **{k: -v for k, v in wvar.items()}, zv: -float(wl)}, -BIG, -wl)   # p <= w - wl(1-z)
+            add({pv: 1.0, **{k: -v for k, v in wvar.items()}, zv: -float(wh)}, -wh, BIG)    # p >= w - wh(1-z)
+            net_area[pv] = float(Hk)                                      # + H w
+            net_area[zv] = net_area.get(zv, 0.0) - float(iw_s) * Hk       # - iw H
+    if "spine" not in _skip:
+        add(net_area, a_lo - iw_s * ih_s, a_hi - iw_s * ih_s)
+    asp = float(zs.max_aspect_ratio)
+    # (H - ih) <= asp (w - iw)   and   (w - iw) <= asp (H - ih)
+    if "spine" not in _skip:
+        add({**hsum, **{k: -asp * v for k, v in wvar.items()}}, -BIG, ih_s - asp * iw_s)
+        add({**{k: -asp * v for k, v in hsum.items()}, **wvar}, -BIG, iw_s - asp * ih_s)
+    # the front door: when the spine fronts the street it IS the arrival room (HALL outranks LIVING
+    # in `resolve_entrance`) and needs a door width of wall each side of a door — three door widths
+    if sec_a == 0 and "entrance" not in _skip:
+        add(dict(wvar), 3 * m_to_u(ENTRANCE_DOOR_WIDTH_M), BIG)
+    # required contacts: within a side as before; a contact with the spine holds by construction
+    # inside the section (innermost cells) and is an overlap with [xa, xb] from a plain band
+    for a, b in ([tuple(e) for e in required] if "contacts" not in _skip else ()):
+        if spine in (a, b):
+            other = by_zone[b if a == spine else a]
+            if sec_a <= other.r < sec_b:
+                continue
+            need = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
+            add({xb: 1.0, other.c0: -1.0}, need, BIG)
+            add({other.c1: 1.0, xa: -1.0}, need, BIG)
+            continue
+        ca, cb = by_zone[a], by_zone[b]
+        if ca.r == cb.r:
+            continue
+        if abs(ca.r - cb.r) != 1:
+            return OracleResult("INFEASIBLE", detail=f"{a}-{b} are not in consecutive bands")
+        need = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
+        add({cb.c1: 1.0, ca.c0: -1.0}, need, BIG)
+        add({ca.c1: 1.0, cb.c0: -1.0}, need, BIG)
+    # consecutive bands overlap (the section's do through the spine); envelope per band
+    Lbox, Rbox = min(sg[2] for sg in segments), max(sg[3] for sg in segments)
+    for r in range(R):
+        add({s_nodes[r]: 1.0}, Lbox, BIG); add({e_nodes[r]: 1.0}, -BIG, Rbox)
+        if r + 1 < R and not (sec_a <= r < sec_b and sec_a <= r + 1 < sec_b):
+            add({e_nodes[r + 1]: 1.0, s_nodes[r]: -1.0}, 1, BIG)
+            add({e_nodes[r]: 1.0, s_nodes[r + 1]: -1.0}, 1, BIG)
+    for d in (inner_steps if "envelope" not in _skip else ()):
+        above = [sg for sg in segments if sg[1] <= d]; below = [sg for sg in segments if sg[0] >= d]
+        La, Ra = max(sg[2] for sg in above), min(sg[3] for sg in above)
+        Lb, Rb = max(sg[2] for sg in below), min(sg[3] for sg in below)
+        for r in range(R):
+            s, e = s_nodes[r], e_nodes[r]
+            av, bv = a_idx[(r, d)], b_idx[(r, d)]
+            y = y_expr(r); hr = h_expr(r)
+            add({**y, av: BIG}, d, BIG + d + BIG)
+            yh = dict(y)
+            for v, cft in hr.items():
+                yh[v] = yh.get(v, 0.0) + cft
+            yh[bv] = yh.get(bv, 0.0) - BIG
+            add(yh, -BIG, d)
+            add({av: 1.0, bv: 1.0}, 1, 2)
+            add({s: 1.0, av: -BIG}, La - BIG, BIG); add({e: 1.0, av: BIG}, -BIG, Ra + BIG)
+            add({s: 1.0, bv: -BIG}, Lb - BIG, BIG); add({e: 1.0, bv: BIG}, -BIG, Rb + BIG)
+    # alignment per band, as in milp_heights (the spine's shared nodes align trivially)
+    first_align_var = nvar
+    for r in (range(R - 1) if "align" not in _skip else ()):
+        U, D = band_nodes[r], band_nodes[r + 1]
+        u0, uk = U[0], U[-1]
+        for endpoint, outside_is_left in ((D[0], True), (D[-1], False)):
+            choice_vars = []
+            for uj in U:
+                v = nvar; nvar += 1; choice_vars.append(v)
+                if uj == endpoint:
+                    continue            # the spine's shared node: coincidence holds by identity
+                add({endpoint: 1.0, uj: -1.0, v: BIG}, -BIG * 2, BIG)
+                add({endpoint: 1.0, uj: -1.0, v: -BIG}, -BIG, BIG * 2)
+            v_out = nvar; nvar += 1; choice_vars.append(v_out)
+            ref = u0 if outside_is_left else uk
+            if outside_is_left:
+                add({endpoint: 1.0, ref: -1.0, v_out: BIG}, -BIG, BIG)
+            else:
+                add({endpoint: 1.0, ref: -1.0, v_out: -BIG}, -BIG, BIG)
+            ts = []
+            for di in D[1:-1]:
+                t = nvar; nvar += 1; ts.append(t)
+                if di == ref:
+                    continue        # shared node: identity
+                add({di: 1.0, ref: -1.0, t: BIG}, -BIG * 2, BIG)
+                add({di: 1.0, ref: -1.0, t: -BIG}, -BIG, BIG * 2)
+            add({**{t: 1.0 for t in ts}, v_out: -1.0}, 0, BIG)
+            add({v: 1.0 for v in choice_vars}, 1, 1)
+
+    A = lil_matrix((len(rows), nvar))
+    for i, coefs in enumerate(rows):
+        for v, cft in coefs.items():
+            A[i, v] = cft
+    integrality = np.ones(nvar)
+    lb = np.zeros(nvar); ub = np.full(nvar, float(BIG))
+    for v in list(z_idx.values()) + list(a_idx.values()) + list(b_idx.values()):
+        ub[v] = 1.0
+    for v in range(first_align_var, nvar):
+        ub[v] = 1.0
+    c = np.zeros(nvar)
+    if objective == "area":
+        from app.vertical_slice.geometry_core.model import ProgramRole
+        circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}
+        for cell in cells:
+            if getattr(zones[cell.zone_id], "role", None) in circ:
+                continue
+            mid_h = grids[cell.r][len(grids[cell.r]) // 2]
+            c[cell.c1] -= float(mid_h); c[cell.c0] += float(mid_h)
+    res = milp(c=c, constraints=LinearConstraint(A.tocsr(), np.array(lbs, float), np.array(ubs, float)),
+               integrality=integrality, bounds=Bounds(lb, ub), options={"time_limit": time_limit_s})
+    if res.status == 0 and res.x is not None:
+        heights = []
+        for r in range(R):
+            kk = max(range(len(grids[r])), key=lambda j: res.x[z_idx[(r, j)]])
+            heights.append(grids[r][kk])
+        band_x = tuple(tuple(int(round(res.x[i])) for i in band_nodes[r]) for r in range(R))
+        return OracleResult("FEASIBLE", tuple(heights), detail=f"spine; {len(rows)} constraints, {nvar} variables",
+                            band_x_u=band_x, y_start_u=y_start)
+    if res.status == 2:
+        return OracleResult("INFEASIBLE", detail=f"spine; HiGHS: {res.message}")
+    return OracleResult("UNKNOWN", detail=f"spine; HiGHS: {res.message}")
+
+
+SPINE_MIN_WIDTH_M = 1.8
+SPINE_MAX_ASPECT = 6.0
+
+
+def spine_geometry(layout, res: OracleResult):
+    """Cell rects and wing rects from a spine placement: one wing per plain band, and in the
+    section each band's left part, each band's right part, and the spine — every cell inside
+    exactly one wing, seams declared from geometry by `realize_cells`."""
+    from app.vertical_slice.geometry_core.model import Rect
+    rects: dict[str, Rect] = {}
+    wings: list[Rect] = []
+    sec_a, sec_b = layout.section
+    y = res.y_start_u
+    xa = xb = None
+    for r in range(layout.n_rows):
+        xs = list(res.band_x_u[r]); h = res.heights_u[r]
+        if r < sec_a or r >= sec_b:
+            band = layout.top[r] if r < sec_a else layout.bottom[r - sec_b]
+            for i, zid in enumerate(band):
+                rects[zid] = Rect(xs[i], y, xs[i + 1] - xs[i], h)
+            wings.append(Rect(xs[0], y, xs[-1] - xs[0], h))
+        else:
+            left, right = layout.bands[r - sec_a]
+            i_a = len(left)                 # index of xa in xs (s + one boundary per left cell)
+            xa, xb = xs[i_a], xs[i_a + 1]
+            for i, zid in enumerate(left):
+                rects[zid] = Rect(xs[i], y, xs[i + 1] - xs[i], h)
+            if left:
+                wings.append(Rect(xs[0], y, xa - xs[0], h))
+            for i, zid in enumerate(right):
+                x0, x1 = xs[i_a + 1 + i], xs[i_a + 2 + i]
+                rects[zid] = Rect(x0, y, x1 - x0, h)
+            if right:
+                wings.append(Rect(xb, y, xs[-1] - xb, h))
+        y += h
+    y_a = res.y_start_u + sum(res.heights_u[:sec_a])
+    H = sum(res.heights_u[sec_a:sec_b])
+    rects[layout.spine] = Rect(xa, y_a, xb - xa, H)
+    wings.append(rects[layout.spine])
+    return rects, tuple(wings)
