@@ -20,17 +20,28 @@ from dataclasses import replace
 
 from app.vertical_slice.geometry_core.model import ProgramRole, Rect
 
-#: Rooms this small are the ones a band's depth wastes; circulation and the safe room never stack
-#: (a foyer must front the street; a safe room sits on the envelope behind RC walls).
-STACK_MAX_TARGET_M2 = 14.0
-STACKABLE_ROLES = frozenset({ProgramRole.BATHROOM, ProgramRole.TOILET, ProgramRole.STORAGE})
+#: Circulation and the safe room never stack (a foyer must front the street; a safe room sits on
+#: the envelope behind RC walls). Everything else may, in three tiers tried in order: the wet and
+#: service rooms a band's depth wastes most, then the public rooms (KITCHEN over DINING beside a
+#: LIVING that then gets a deep band), then bedroom pairs (at a band's end, so both keep an
+#: exterior wall — the exposure screen and C19 decide, not this list).
+STACK_MAX_TARGET_M2 = 32.0
+WET_ROLES = frozenset({ProgramRole.BATHROOM, ProgramRole.TOILET, ProgramRole.STORAGE})
+PUBLIC_ROLES = frozenset({ProgramRole.KITCHEN, ProgramRole.DINING})
+BED_ROLES = frozenset({ProgramRole.BEDROOM, ProgramRole.MASTER_BEDROOM})
+STACKABLE_ROLES = WET_ROLES | PUBLIC_ROLES | BED_ROLES
 PSEUDO_PREFIX = "STACK:"
 
 
+def _tier(role) -> int:
+    return 0 if role in WET_ROLES else 1 if role in PUBLIC_ROLES else 2
+
+
 def propose_stacks(zones: dict, edges) -> list[tuple[str, str]]:
-    """Candidate stacks, most plausible first: pairs of small stackable rooms, those sharing a
-    neighbour (one column serves both doors) before those that do not. Each pair is returned once
-    per vertical order (top, bottom) — the sizer decides nothing about order, the embedding does."""
+    """Candidate stacks, most plausible first: pairs of stackable rooms of the same tier (wet, then
+    public, then bedrooms), those sharing a neighbour (one column serves both doors) before those
+    that do not. Each pair is returned once per vertical order (top, bottom) — the sizer decides
+    nothing about order, the embedding does."""
     small = sorted(z for z, zi in zones.items()
                    if getattr(zi, "role", None) in STACKABLE_ROLES and zi.target_area_m2 <= STACK_MAX_TARGET_M2)
     nbrs: dict[str, set[str]] = {z: set() for z in zones}
@@ -39,10 +50,13 @@ def propose_stacks(zones: dict, edges) -> list[tuple[str, str]]:
     pairs = []
     for i, a in enumerate(small):
         for b in small[i + 1:]:
+            ta, tb = _tier(zones[a].role), _tier(zones[b].role)
+            if ta != tb:
+                continue                                   # a pair stacks within its own tier
             shared = len(nbrs[a] & nbrs[b])
-            pairs.append((-shared, a, b))
+            pairs.append((ta, -shared, a, b))
     out: list[tuple[str, str]] = []
-    for _, a, b in sorted(pairs):
+    for _, _, a, b in sorted(pairs):
         out.append((a, b)); out.append((b, a))
     return out
 

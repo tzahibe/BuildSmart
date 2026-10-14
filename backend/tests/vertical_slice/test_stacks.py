@@ -18,13 +18,18 @@ def _programme_with_wc():
     return zones, edges + [("HALL", "WC")]
 
 
-def test_only_small_stackable_rooms_are_proposed_both_orders_shared_neighbour_first():
+def test_stacks_are_proposed_within_tiers_wet_first_both_orders_shared_neighbour_first():
+    from app.ai_harness.shape_agnostic.stacks import _tier
     zones, edges = _programme_with_wc()
-    assert propose_stacks(zones, edges) == [("BATH", "WC"), ("WC", "BATH")]
-    zones["STORE"] = _z("STORE", R.STORAGE, 3, 2, 4, 1.2, 3.0)         # no neighbour shared with the wet rooms
     out = propose_stacks(zones, edges)
-    assert out[0] == ("BATH", "WC") and set(out) == {("BATH", "WC"), ("WC", "BATH"), ("BATH", "STORE"), ("STORE", "BATH"),
-                                                      ("WC", "STORE"), ("STORE", "WC")}
+    assert out[:2] == [("BATH", "WC"), ("WC", "BATH")]                     # the wet tier leads
+    assert all(_tier(zones[a].role) == _tier(zones[b].role) for a, b in out)   # never across tiers
+    assert all("HALL" not in p and "LIVING" not in p for p in out)         # circulation and the big room never stack
+    assert ("BED1", "BED2") in out and ("MASTER", "BED1") in out           # bedroom pairs follow
+    assert [p for p in out if "KITCHEN" in p] == []                        # a lone public room has no partner
+    zones["DINING"] = _z("DINING", R.DINING, 12, 9, 16, 2.4, 2.5)
+    out = propose_stacks(zones, edges + [("KITCHEN", "DINING")])
+    assert ("KITCHEN", "DINING") in out and out.index(("KITCHEN", "DINING")) < out.index(("BED1", "BED2"))
 
 
 def test_a_merged_stack_is_one_pseudo_zone_with_the_union_of_contacts_and_summed_bounds():

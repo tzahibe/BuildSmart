@@ -128,7 +128,7 @@ def _transpose_rects(rects: dict) -> dict:
 OBJECTIVE = os.environ.get("SHAPE_AGNOSTIC_OBJECTIVE", "area")
 SPINE_MAX_LAYOUTS = 40
 #: stacks (the 2D wing's minimal form): how many (pair, order) options a proposal tries
-STACK_MAX_OPTIONS = 2
+STACK_MAX_OPTIONS = 6
 STACK_BUDGET_S = 60.0
 SPINE_BUDGET_S = 90.0
 
@@ -173,7 +173,15 @@ def _stack_family(case, prop, zones, p, union, spatial, access, orientations, re
     family="stack"; the first plan that counts is returned with its realization."""
     t0 = time.monotonic()
     reasons: Counter = Counter()
-    options = propose_stacks(zones, union)[:STACK_MAX_OPTIONS]
+    # one pair per tier (both orders), wet -> public -> bedrooms, within the option cap
+    from app.ai_harness.shape_agnostic.stacks import _tier
+    options, seen_tiers = [], {}
+    for a, b in propose_stacks(zones, union):
+        t = _tier(zones[a].role)
+        if seen_tiers.setdefault(t, frozenset((a, b))) != frozenset((a, b)):
+            continue
+        options.append((a, b))
+    options = options[:STACK_MAX_OPTIONS]
     if not options:
         return None
     union_m = sorted({tuple(sorted(e)) for e in spatial} | {tuple(sorted(e)) for e in access})
