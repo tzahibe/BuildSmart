@@ -17,6 +17,10 @@ dependencies = [
     # hand-written implementation: robust boolean geometry is where hand-rolled code fails
     # silently, and it is not the problem this product exists to solve.
     "shapely>=2.0",
+    # app.vertical_slice.exact — the exact sizer of the shape-agnostic realizer (#197/#200) is a
+    # MILP solved by scipy.optimize.milp (HiGHS, bundled). Already in the lock transitively; declared
+    # so `uv sync` cannot drop it. Every caller falls back, typed, to the band sizer without it.
+    "scipy>=1.11,<2",
 ]
 
 [project.optional-dependencies]

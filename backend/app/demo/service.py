@@ -908,13 +908,22 @@ def _augment_cross_outline_classes(spec, project: Project, results: list[Outline
     return replace(selection, alternatives=alternatives)
 
 
+#: THE ARCHITECTURAL BRAIN's sizer and layout families for the `?engine=brain` preview (#197 item 4,
+#: 2026-10-15): the exact MILP placement with the target objective, and the cross-band layouts
+#: measured on the frozen six. Per request only; a missing solver falls back to production's
+#: sizer and the plan's notes say so.
+BRAIN_SIZER = "exact"
+BRAIN_FAMILIES = ("band", "spine", "stack", "cells")
+
+
 def _brain_result(project: Project, spec, selection: PlanSelection,
                   results: list[OutlineResult], preference_dropped: bool) -> DemoResult:
     """The brain's distinct plans as the demo payload — primary plus alternatives, every one drawn
     by the same `DemoPlan` the product already uses."""
     orr, _production = selection.primary
     outline = orr.outline
-    res = run_brain(spec, (outline.width_m, outline.depth_m), brief=getattr(project, "project_id", "brief"))
+    res = run_brain(spec, (outline.width_m, outline.depth_m), brief=getattr(project, "project_id", "brief"),
+                    sizer=BRAIN_SIZER, families=BRAIN_FAMILIES)
     if not res.distinct:
         detail = "; ".join(f"{p.parti} [{p.stage}]: {p.reason[:120]}" for p in res.plans) or "no parti applied"
         raise DemoGenerationError(
@@ -929,7 +938,8 @@ def _brain_result(project: Project, spec, selection: PlanSelection,
         layout = plan.realized
         notes = [f"{plan.parti}: {plan.rationale}",
                  f"requested graph preserved — contacts {plan.spatial_preserved}, "
-                 f"doors {plan.access_preserved}; {plan.bands} bands"]
+                 f"doors {plan.access_preserved}; {plan.bands} bands",
+                 f"sized by the {plan.sizer} sizer ({plan.family} layout)", *plan.notes]
         # #197: the area verdict travels WITH the plan. A plan that does not meet the requested
         # area must never be handed over as though it did, and the shortfall is a sentence with
         # the numbers in it rather than a figure the owner has to go and compute.
