@@ -184,3 +184,34 @@ def test_a_plan_whose_area_verdict_is_unacceptable_does_not_count():
     bad = BrainPlan("P", "r", True, bands=2, spatial_preserved="5/5", access_preserved="4/4",
                     area=assess_area(200, 85, 78, 260))      # below the 50% floor
     assert good.counts and not bad.counts
+
+
+def test_the_proportion_preference_never_reorders_the_architectural_priorities_and_prefers_rooms_on_target():
+    """Owner item 2 (#197, 2026-10-14): the proportion-aware key keeps `_entrance_preference`'s
+    three hard-priority keys first and unchanged, and between candidates that tie on them picks
+    the one whose rooms sit closer to their targets. Measured on the 8 real briefs: 16 of 44
+    parti pools change their pick, room deviation 17.0 -> 13.9 % on those, priorities identical
+    in all 44 (docs/reports/architectural-brain/SELECTION-proportion.md)."""
+    from app.vertical_slice.brain import runner as R
+    from app.vertical_slice.brain.proposer import programme_from_spec
+    from tests.vertical_slice.test_brain import SMALL, _spec_and_footprint
+    spec, fp = _spec_and_footprint(SMALL)
+    p = programme_from_spec(spec, fp)
+    prop = DeterministicProposer().propose(p)[0]
+    zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
+    seen = []
+    old, new = R._entrance_preference(prop, zones, p), R._proportion_preference(prop, zones, p)
+
+    def recording(realized, placement, inp):
+        ko, kn = old(realized, placement, inp), new(realized, placement, inp)
+        assert kn[:3] == ko[:3] and kn[5:] == ko[3:]          # the hard keys lead, the ornament trails
+        seen.append((realized, ko, kn))
+        return kn
+    out = R.run_band_pipeline(R.PipelineInput(
+        name=prop.name, zones=zones, required_edges=tuple(prop.spatial), footprint_m=p.footprint_m,
+        wet_rooms=p.resolved_wet, access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
+        max_candidates=60, max_realizations=8, prefer=recording)
+    assert isinstance(out, R.PipelineSuccess) and len(seen) >= 2
+    best_new = min(seen, key=lambda c: c[2])
+    ties = [c for c in seen if c[1][:3] == best_new[1][:3]]
+    assert R.proportion_metrics(best_new[0], zones)[0] == min(R.proportion_metrics(c[0], zones)[0] for c in ties)
