@@ -10,7 +10,7 @@ import pytest
 from app.ai_harness.topology_poc import briefs as briefs_mod
 from app.demo import service as svc
 from app.vertical_slice.band_embedding import find_k4, find_triple_lens
-from app.vertical_slice.brain.proposer import (DeterministicProposer, programme_from_spec)
+from app.vertical_slice.brain.proposer import DeterministicProposer, programme_from_spec
 from app.vertical_slice.brain.runner import run_brain
 from app.vertical_slice.proposal_critic import Proposal, criticize
 
@@ -129,3 +129,47 @@ def test_it_costs_nothing_and_calls_no_model(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", forbidden)
     res = run_brain(*_spec_and_footprint(SMALL), brief=SMALL)
     assert res.distinct
+
+
+# ----------------------------------------------------------------- the exact sizer seam (#197 item 4)
+
+def test_the_exact_sizer_plans_the_small_brief_within_the_request_budget():
+    pytest.importorskip("scipy")
+    import time
+    spec, fp = _spec_and_footprint(SMALL)
+    t = time.monotonic()
+    res = run_brain(spec, fp, brief=SMALL, sizer="exact", families=("band",), budget_s=30.0)
+    assert time.monotonic() - t < 45.0                      # the budget plus the last solve in flight
+    assert len(res.accepted) >= 5
+    exact = [p for p in res.accepted if p.sizer == "exact"]
+    assert exact and all(p.family == "band" for p in exact)
+    for p in res.accepted:
+        assert p.spatial_preserved.split("/")[0] == p.spatial_preserved.split("/")[1]
+
+
+def test_the_families_flag_can_produce_a_cross_band_plan_and_every_plan_names_its_maker():
+    pytest.importorskip("scipy")
+    spec, fp = _spec_and_footprint(SMALL)
+    res = run_brain(spec, fp, brief=SMALL, sizer="exact", families=("band", "spine", "stack", "cells"))
+    assert res.accepted
+    assert {p.sizer for p in res.accepted} <= {"exact", "production"}
+    assert all(p.family in ("band", "spine", "stack", "cells") for p in res.accepted)
+
+
+def test_without_a_solver_the_exact_sizer_falls_back_to_production_and_says_so(monkeypatch):
+    from app.vertical_slice.band_pipeline import PipelineDiagnosis
+    from app.vertical_slice.brain import exact_pipeline
+    monkeypatch.setattr(exact_pipeline, "run_exact_pipeline",
+                        lambda *a, **k: PipelineDiagnosis("EXACT_SIZER_UNAVAILABLE", "SIZING", "scipy missing"))
+    spec, fp = _spec_and_footprint(SMALL)
+    res = run_brain(spec, fp, brief=SMALL, sizer="exact")
+    assert res.accepted and all(p.sizer == "production" for p in res.accepted)
+    assert all(any("fell back to production" in n for n in p.notes) for p in res.accepted)
+
+
+def test_the_production_sizer_is_untouched_by_the_seam():
+    spec, fp = _spec_and_footprint(SMALL)
+    a = run_brain(spec, fp, brief=SMALL)
+    b = run_brain(spec, fp, brief=SMALL, sizer="production")
+    assert [p.geometry_signature for p in a.accepted] == [p.geometry_signature for p in b.accepted]
+    assert all(p.sizer == "production" and p.family == "band" and p.notes == () for p in a.accepted)

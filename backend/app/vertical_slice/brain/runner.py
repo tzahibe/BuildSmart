@@ -15,11 +15,21 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from app.vertical_slice.band_pipeline import PipelineInput, PipelineSuccess, run_band_pipeline
+from app.vertical_slice.band_pipeline import (
+    PipelineInput,
+    PipelineSuccess,
+    run_band_pipeline,
+)
 from app.vertical_slice.brain.area import AREA_TOLERANCE, AreaVerdict, assess_area
-from app.vertical_slice.brain.proposer import (AREA_BAND, HALL_CEILING_M2, DeterministicProposer,
-                                               Programme, TopologyProposal, band_around,
-                                               programme_from_spec)
+from app.vertical_slice.brain.proposer import (
+    AREA_BAND,
+    HALL_CEILING_M2,
+    DeterministicProposer,
+    Programme,
+    TopologyProposal,
+    band_around,
+    programme_from_spec,
+)
 from app.vertical_slice.geometry_core.model import ProgramRole
 from app.vertical_slice.proposal_critic import Proposal, criticize
 
@@ -40,6 +50,10 @@ class BrainPlan:
     seconds: float = 0.0
     critic_findings: tuple = ()
     area: AreaVerdict | None = None
+    #: which sizer made the plan ("production" | "exact") and which family of layout
+    sizer: str = "production"
+    family: str = "band"
+    notes: tuple = ()
     #: Which rung of `AREA_BAND_LADDER` produced this plan. `None` means the last rung — the full
     #: template range — so a loosely-proportioned result is visible rather than silently equal to
     #: a tight one.
@@ -299,21 +313,38 @@ def _rebanded(zones: dict, p: Programme, frac: float | None) -> dict:
         out[zone_id] = replace(zi, min_area_m2=lo, max_area_m2=hi)
     return out
 
+#: `run_brain(sizer=...)` (#197 item 4): "production" is `band_pipeline`'s own sizer, exactly as
+#: before; "exact" is the MILP placement with the target objective and, with `families`, the
+#: cross-band layouts measured on the frozen six. The exact path falls back to production, typed,
+#: when scipy is missing or every solve times out — the plan then says which sizer made it.
+SIZER_PRODUCTION, SIZER_EXACT = "production", "exact"
+#: one wall-clock budget per request, shared by every parti
+REQUEST_BUDGET_S = 30.0
+
+
 def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
               proposer=None, max_candidates: int = 80,
-              max_realizations: int = MAX_REALIZATIONS_PREFERRED) -> BrainResult:
+              max_realizations: int = MAX_REALIZATIONS_PREFERRED,
+              sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
+              budget_s: float = REQUEST_BUDGET_S) -> BrainResult:
     t0 = time.monotonic()
     programme = programme_from_spec(spec, footprint_m)
     proposals = (proposer or DeterministicProposer()).propose(programme)
     result = BrainResult(brief=brief)
-    for prop in proposals:
-        result.plans.append(_one(prop, programme, max_candidates, max_realizations))
+    deadline = t0 + budget_s
+    # every parti gets an equal share of what is left, so the last ones are not starved by the first
+    for i, prop in enumerate(proposals):
+        share = (deadline - time.monotonic()) / max(1, len(proposals) - i)
+        result.plans.append(_one(prop, programme, max_candidates, max_realizations,
+                                 sizer=sizer, families=families,
+                                 deadline=time.monotonic() + max(share, 0.0)))
     result.seconds = round(time.monotonic() - t0, 3)
     return result
 
 
 def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
-         max_realizations: int) -> BrainPlan:
+         max_realizations: int, *, sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
+         deadline: float | None = None) -> BrainPlan:
     t0 = time.monotonic()
     zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
     missing = [z for z in prop.rooms if z not in p.zones]
@@ -347,17 +378,39 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
     # the tight rung spreads it across the programme, and each looser rung trades proportion for
     # feasibility only when the tighter one could not plan at all.
     band = AREA_BAND_LADDER[0]
-    out = _pipeline(prop, zones, p, max_candidates, max_realizations)
-    for rung in AREA_BAND_LADDER[1:]:
-        if not _needs_more_room(out):
-            break
-        band = rung
-        out = _pipeline(prop, _rebanded(zones, p, rung), p, max_candidates, max_realizations)
+    made_by, family, notes = SIZER_PRODUCTION, "band", ()
+    out = None
+    if sizer == SIZER_EXACT:
+        from app.vertical_slice.brain.exact_pipeline import run_exact_pipeline
+        out = run_exact_pipeline(
+            PipelineInput(name=prop.name, zones=zones, required_edges=tuple(prop.spatial),
+                          footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
+                          access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
+            prefer=_preference(prop, zones, p), ladder=AREA_BAND_LADDER,
+            rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline)
+        if isinstance(out, PipelineSuccess):
+            made_by, family = SIZER_EXACT, getattr(out.placement, "family", "band")
+            band = None
+            notes = out.warnings
+        else:
+            # typed fallback: the preview never loses a parti production can plan. The reason the
+            # exact path gave up (no solver, every solve timed out, or nothing kept within the
+            # budget) travels with the plan.
+            notes = (f"exact sizer fell back to production: {getattr(out, 'code', '?')}: "
+                     f"{str(getattr(out, 'detail', ''))[:80]}",)
+            out = None
+    if out is None:
+        out = _pipeline(prop, zones, p, max_candidates, max_realizations)
+        for rung in AREA_BAND_LADDER[1:]:
+            if not _needs_more_room(out):
+                break
+            band = rung
+            out = _pipeline(prop, _rebanded(zones, p, rung), p, max_candidates, max_realizations)
     secs = round(time.monotonic() - t0, 3)
     if not isinstance(out, PipelineSuccess):
         return BrainPlan(prop.name, prop.rationale, False,
                          reason=f"{getattr(out, 'code', '?')}: {str(getattr(out, 'detail', ''))[:110]}",
-                         stage=getattr(out, "stage", "PIPELINE"), seconds=secs)
+                         stage=getattr(out, "stage", "PIPELINE"), seconds=secs, sizer=made_by, notes=tuple(notes))
     gross, net = _areas(out.realized)
     requested = p.requested_m2 or (p.footprint_m[0] * p.footprint_m[1])
     return BrainPlan(prop.name, prop.rationale, True, reason="realized",
@@ -365,7 +418,8 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                      access_preserved=out.access_preserved,
                      bands=len(getattr(out.placement, "bands", ()) or getattr(out.placement, "rows", ())),
                      realized=out.realized, seconds=secs, area_band=band,
-                     area=assess_area(requested, gross, net, p.capacity_m2))
+                     area=assess_area(requested, gross, net, p.capacity_m2),
+                     sizer=made_by, family=family, notes=tuple(notes))
 
 
 def _areas(realized) -> tuple[float, float]:
