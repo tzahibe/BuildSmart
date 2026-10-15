@@ -1,0 +1,13 @@
+# `?engine=brain` preview — integration plan (owner item 4, 2026-10-14; PREPARE, do not deploy)
+
+**Today.** `GET/POST …/design/demo?engine=brain` (`app/demo/router.py` → `service._brain_result`) runs `run_brain(spec, footprint)`: deterministic partis → critic → `run_band_pipeline` with production's own `solve_band_layout` → `realize_layout`/validators → the distinct plans as the demo payload, drawn by the same `DemoPlan`. Per request only; no default moves; its own typed refusal. The candidate preference is `SELECTION` (PR #201 makes it proportion-aware). The exact sizer and the new families (spine, stack, cross-band cells) live in `app/ai_harness/shape_agnostic/` and are not on this path.
+
+**What the preview needs to show the shape-agnostic work on real briefs (in order; each a PR, none merged without approval):**
+
+1. **A sizer seam in the brain** — `run_brain(..., sizer="production" | "exact")`: "exact" sizes each accepted band candidate with `milp_placement(objective="target")` (scipy; typed fallback to production's sizer on ImportError/UNKNOWN), then `realize_cells`; the rest unchanged. Gate: the 8 briefs' plans before/after with the proportion metrics (`SELECTION-proportion.md` method). Needs item 3's decision for the dependency.
+2. **Families behind one flag** — `run_brain(..., families=("band",) | ("band","spine","stack","cells"))`: each family yields candidates for the same preference; budgets as in the harness (cheap screen first, time inside the ladder, `MAX_SIZINGS`). The envelope is the rectangle footprint today; the polygon envelope (`Envelope`) enters when the product passes a polygon (the payload and renderer already take unions of rectangles).
+3. **Request budget** — one wall-clock budget per request (30 s), spent across families in the harness's order; what did not run is reported in the payload's notes, never silently skipped.
+4. **The visual comparison the owner asked for** — a script over the real briefs (the 8 of the brain's own corpus first) producing, per brief, production / brain-band / brain-exact / brain-families side by side through the existing `audit-render` → PNG pipeline, with the proportion metrics printed under each; delivered as figures + a table, before any default moves. (`render_spike.sh` and `_proportions` already do the two halves.)
+5. **Nothing deployed**: the preview is per-request, the live orchestrator is not involved; a restart is not needed for a merged backend change on a developer machine, and the live orchestrator is not touched by any of this.
+
+**Explicitly not in this plan:** changing the production engine's defaults, ranking or flags; `select_primary`; the guillotine engine.
