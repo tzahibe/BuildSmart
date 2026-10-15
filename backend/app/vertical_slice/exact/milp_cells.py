@@ -330,7 +330,7 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
 
 
 def cells_placement(layout: CellLayout, zones: dict, required, envelope: Envelope, *, min_contact_u=None,
-                    k: int = 12, rounds: int = 3, objective: str = "target") -> CellsResult:
+                    k: int = 12, rounds: int = 3, objective: str = "target", time_limit_s: float = 10.0) -> CellsResult:
     """The fixed point on wall types: solve, read the real sides off the placement, re-solve with
     exact insets; an exact-inset refusal is returned as such."""
     from app.vertical_slice.staircase_sizing import sides_from_rects
@@ -338,7 +338,7 @@ def cells_placement(layout: CellLayout, zones: dict, required, envelope: Envelop
     last = None
     for _ in range(rounds):
         res = milp_cells(layout, zones, required, envelope, min_contact_u=min_contact_u, k=k,
-                         objective=objective, sides=sides)
+                         objective=objective, sides=sides, time_limit_s=time_limit_s)
         if res.status != "FEASIBLE":
             return res
         real = sides_from_rects(cells_rects(layout, res), zones)

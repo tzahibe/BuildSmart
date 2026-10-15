@@ -124,6 +124,10 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
     def out_of_time():
         return time.monotonic() > deadline
 
+    def time_left() -> float:
+        # a solve never gets more than what is left of the request, and never less than a second
+        return max(1.0, min(10.0, deadline - time.monotonic()))
+
     def realize(name, rects, intents, wings, orient_tag, placement):
         nonlocal tried, unknown
         if orient_tag == "V":
@@ -157,7 +161,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                 for rung, zr in _ladder(zones, rebanded, ladder):
                     if out_of_time():
                         break
-                    o = milp_placement(cand.bands, zr, union, env_o, min_contact_u=contacts, objective=objective)
+                    o = milp_placement(cand.bands, zr, union, env_o, min_contact_u=contacts, objective=objective,
+                                       time_limit_s=time_left())
                     note("SIZING", f"band:{o.status}")
                     if o.status == "UNKNOWN":
                         unknown += 1
@@ -186,7 +191,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                     for rung, zr in _ladder(zones, rebanded, ladder):
                         if out_of_time():
                             break
-                        o = milp_spine_placement(layout, zr, union, env_o, min_contact_u=contacts, objective=objective)
+                        o = milp_spine_placement(layout, zr, union, env_o, min_contact_u=contacts, objective=objective,
+                                                 time_limit_s=time_left())
                         note("SIZING", f"spine:{o.status}")
                         if o.status != "FEASIBLE":
                             if o.status == "BAND_GAP":
@@ -236,7 +242,7 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                         z2r = {z: zr.get(z, zi) for z, zi in z2.items()}
                         stacks = {pid: tuple(zr[m] for m in stack)}
                         o = milp_placement(oriented.bands, z2r, union, env_o, min_contact_u=contacts,
-                                           objective=objective, stacks=stacks)
+                                           objective=objective, stacks=stacks, time_limit_s=time_left())
                         note("SIZING", f"stack:{o.status}")
                         if o.status != "FEASIBLE":
                             if o.status == "BAND_GAP":
@@ -281,7 +287,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                 for rung, zr in _ladder(zones, rebanded, ladder):
                     if out_of_time():
                         break
-                    o = cells_placement(lay, zr, union, env_o, min_contact_u=contacts, k=CELLS_K, objective=objective)
+                    o = cells_placement(lay, zr, union, env_o, min_contact_u=contacts, k=CELLS_K, objective=objective,
+                                        time_limit_s=time_left())
                     note("SIZING", f"cells:{o.status}")
                     if o.status != "FEASIBLE":
                         if o.status == "BAND_GAP":

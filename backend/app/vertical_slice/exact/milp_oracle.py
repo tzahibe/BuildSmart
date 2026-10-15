@@ -436,7 +436,8 @@ def _target_objective(items, zones, nvar, add, *, w_hi: int, extra=()):
 
 
 def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
-                   k: int = 12, rounds: int = 3, objective: str = "area", stacks: dict | None = None) -> OracleResult:
+                   k: int = 12, rounds: int = 3, objective: str = "area", stacks: dict | None = None,
+                   time_limit_s: float = 10.0) -> OracleResult:
     """The aligned oracle as THE sizer: solve, read the real wall types off the placement, re-solve
     with exact insets until they stop changing (the same fixed point the sizer runs), and hand the
     final placement to `realize_cells`. Every refusal downstream is then a validator's own."""
@@ -445,7 +446,7 @@ def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u:
     last = None
     for _ in range(rounds):
         res = milp_heights(bands, zones, required, envelope, min_contact_u=min_contact_u, k=k,
-                           align=True, sides=sides, objective=objective, stacks=stacks)
+                           align=True, sides=sides, objective=objective, stacks=stacks, time_limit_s=time_limit_s)
         if res.status != "FEASIBLE":
             return last if (last is not None and last.status == "FEASIBLE") else res
         real = sides_from_rects(*placement_rects(bands, zones, res, stacks))
