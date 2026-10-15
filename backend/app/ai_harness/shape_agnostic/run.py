@@ -24,6 +24,9 @@ import sys
 import time
 from collections import Counter
 
+from app.ai_harness.shape_agnostic.cells import CIRC as _CELL_CIRC
+from app.ai_harness.shape_agnostic.cells import PUBLIC as _CELL_PUBLIC
+from app.ai_harness.shape_agnostic.cells import duplicated_layouts, from_bands, moves
 from app.ai_harness.shape_agnostic.spine import choose_spine, embed_spine
 from app.ai_harness.shape_agnostic.stacks import (
     expand_wings,
@@ -61,6 +64,11 @@ MAX_CANDIDATES = 150         # embedder candidates examined per parti; the selec
 MAX_SIZINGS = 12             # candidates actually sized per parti (both orientations count)
 
 try:                         # the MILP oracle (formulation B) where scipy exists — research tooling:
+    from app.ai_harness.shape_agnostic.milp_cells import (
+        cells_placement,
+        cells_rects,
+        cells_wings,
+    )
     from app.ai_harness.shape_agnostic.milp_oracle import (
         milp_heights,
         milp_placement,
@@ -71,6 +79,7 @@ try:                         # the MILP oracle (formulation B) where scipy exist
     )
 except ImportError:          # pragma: no cover
     milp_heights = milp_placement = milp_spine_placement = spine_geometry = spine_intents = placement_rects = None
+    cells_placement = cells_rects = cells_wings = None
 
 
 def _project_for(case: dict):
@@ -129,6 +138,13 @@ OBJECTIVE = os.environ.get("SHAPE_AGNOSTIC_OBJECTIVE", "area")
 SPINE_MAX_LAYOUTS = 40
 #: stacks (the 2D wing's minimal form): how many (pair, order) options a proposal tries
 STACK_MAX_OPTIONS = 6
+#: cross-band cells (#200): which zones are tried two rows deep, layouts per zone, budgets
+CELLS_MAX_LAYOUTS = 24
+CELLS_MAX_PARTITIONS = 8
+CELLS_BUDGET_S = 60.0
+CELLS_K = 6
+#: moves (`cells.moves`) are applied to this many band candidates that pass the SELECTION screen
+CELLS_MOVE_SEEDS = 12
 STACK_BUDGET_S = 60.0
 SPINE_BUDGET_S = 90.0
 
@@ -283,6 +299,141 @@ def _stack_family(case, prop, zones, p, union, spatial, access, orientations, re
     for k, v in reasons.items():
         rec["stages"][k] += v
     rec["stages"]["STACK_SECONDS"] += round(time.monotonic() - t0, 1)
+    return best
+
+
+def _cells_selection(layout, zones, orient_tag: str) -> list[str]:
+    """Production's SELECTION questions for a cell layout (cf. `_spine_selection`): an arrival
+    room can front the street; every REQUIRED-exposure room and the safe room has an exterior
+    wall — a cell is exterior when it is first or last in one of its rows, in row 0, or in the
+    last row (bands along the street); across the street (V) the street wall is the left edge."""
+    from app.vertical_slice.doors import ALLOWED_ENTRANCE_ROLES
+    from app.vertical_slice.exposure_policy import REQUIRED_EXTERIOR_ROLES
+    from app.vertical_slice.geometry_core.model import ProgramRole
+    role = lambda z: getattr(zones[z], "role", None)
+    failed = []
+    R = layout.n_rows
+    fronting = set(layout.rows[0]) if orient_tag == "H" else {row[0] for row in layout.rows}
+    if not any(role(z) in ALLOWED_ENTRANCE_ROLES for z in fronting):
+        failed.append("entrance_feasible")
+    foyers = [z for z in layout.zones if role(z) is ProgramRole.CIRCULATION]
+    if foyers and not any(z in fronting for z in foyers):
+        failed.append("foyer_fronts_street")
+    exterior = set(layout.rows[0]) | set(layout.rows[-1])
+    for row in layout.rows:
+        exterior.add(row[0]); exterior.add(row[-1])
+    buried = [z for z in layout.zones
+              if (role(z) in REQUIRED_EXTERIOR_ROLES or role(z) is ProgramRole.SAFE_ROOM) and z not in exterior]
+    if buried:
+        failed.append("exposure_ok")
+    return failed
+
+
+def _cells_family(case, prop, zones, p, union, spatial, access, contacts, orientations, requested, rec):
+    """Cross-band cells (#200): a zone two rows deep — the hub hall, the living room, the kitchen
+    or dining room — found through the band embedding itself (`duplicated_layouts`), sized by the
+    unified exact sizer, realized as ordinary cells (each its own wing). Plans tagged
+    family="cells"; the first plan that counts is returned with its realization."""
+    t0 = time.monotonic()
+    reasons: Counter = Counter()
+    deep = [z for z in zones if getattr(zones[z], "role", None) in _CELL_CIRC] + \
+           [z for z in zones if getattr(zones[z], "role", None) in _CELL_PUBLIC]
+    best = None
+    sized = 0
+
+    def sources():
+        # 1. moves on the band family's own screened candidates: a public or circulation room
+        #    extended one row (cheap — no embedding), the stack as a split
+        emb = embed_band(zones, union, max_candidates=MAX_CANDIDATES)
+        seeds = []
+        if not isinstance(emb, BandEmbeddingRefusal):
+            for cand in emb.candidates:
+                if not hard_rejections(placement_flags(cand, zones, p.resolved_wet, tuple(access))):
+                    seeds.append(cand)
+                if len(seeds) >= CELLS_MOVE_SEEDS:
+                    break
+        moved = []
+        seen = set()
+        for cand in seeds:
+            for lay in moves(from_bands(cand.bands), zones, union):
+                if lay.rows not in seen and lay.spanning:
+                    seen.add(lay.rows); moved.append(lay)
+        yield "moves", moved
+        # 2. a zone two rows deep through the band embedding itself
+        for zone_id in deep:
+            yield zone_id, duplicated_layouts(zones, union, zone_id, max_candidates=CELLS_MAX_LAYOUTS,
+                                              max_partitions=CELLS_MAX_PARTITIONS)
+
+    for zone_id, layouts in sources():
+        if time.monotonic() - t0 > CELLS_BUDGET_S or sized >= MAX_SIZINGS:
+            break
+        rec["stages"]["CELLS_LAYOUTS"] += len(layouts)
+        for layout in layouts:
+            if time.monotonic() - t0 > CELLS_BUDGET_S or sized >= MAX_SIZINGS:
+                break
+            for orient_tag, env_o in orientations:
+                rejected = _cells_selection(layout, zones, orient_tag)
+                if rejected:
+                    for k in rejected:
+                        reasons[f"CELLS_SELECTION_{k}"] += 1
+                    continue
+                for rung in AREA_BAND_LADDER:
+                    if time.monotonic() - t0 > CELLS_BUDGET_S:
+                        break
+                    zr = _rebanded(zones, p, rung) if rung != AREA_BAND_LADDER[0] else zones
+                    o = cells_placement(layout, zr, union, env_o, min_contact_u=contacts, k=CELLS_K,
+                                        objective=OBJECTIVE)
+                    reasons[f"CELLS_{o.status}"] += 1
+                    if o.status != "FEASIBLE":
+                        if o.status == "BAND_GAP":
+                            break
+                        continue
+                    sized += 1
+                    cell_rects, wing_rects = cells_rects(layout, o), cells_wings(layout, o)
+                    if orient_tag == "V":
+                        cell_rects = _transpose_rects(cell_rects)
+                        wing_rects = tuple(_transpose_rects(dict(enumerate(wing_rects))).values())
+                    out = realize_cells(f"{case['id']}:{prop.name}:cells", cell_rects, zr, wing_rects, access,
+                                        wet_rooms=p.resolved_wet)
+                    if not isinstance(out, RealizedLayout):
+                        reasons[f"CELLS_{out.constraint}"] += 1
+                        rec["refusals"].append({"parti": prop.name, "stage": "CELLS_REALIZATION",
+                                                "code": out.constraint, "detail": out.detail[:200]})
+                        break
+                    sp = measure_spatial_adjacency(out.rects, frozenset(frozenset(e) for e in spatial))
+                    ac = measure_access_graph(out.fixture.access.edges, access)
+                    gross = float(out.design.gross_area_m2)
+                    net = float(out.design.net_area_m2 or 0.0)
+                    verdict = assess_area(requested, gross, net, p.capacity_m2)
+                    full = sp.preserved == sp.requested and ac.preserved == ac.requested
+                    plan = {"family": "cells", "parti": prop.name, "deep": zone_id, "spanning": list(layout.spanning),
+                            "rows": layout.n_rows,
+                            "layout": [list(r) for r in layout.rows], "rung": rung, "orientation": orient_tag,
+                            "contacts": f"{sp.preserved}/{sp.requested}",
+                            "doors": f"{ac.preserved}/{ac.requested}",
+                            "lost_doors": sorted(str(e) for e in ac.lost),
+                            "arrival": _arrival_zone(out),
+                            "gross_m2": round(gross, 1), "net_m2": round(net, 1),
+                            "area": verdict.code, "gross_pct": verdict.gross_pct,
+                            "wings": [(round(w.x * .05, 2), round(w.y * .05, 2), round(w.w * .05, 2),
+                                       round(w.h * .05, 2)) for w in wing_rects],
+                            "non_rectangular": True,
+                            "validators": len(out.report.checks),
+                            "counts": bool(full and verdict.acceptable), **_proportions(out, zr)}
+                    rec["plans"].append(plan)
+                    if plan["counts"] and best is None:
+                        best = (plan, out)
+                    break
+                if best is not None:
+                    break
+            if best is not None:
+                break
+        if best is not None:
+            break
+    rec["stages"]["CELLS_SIZED"] += sized
+    for k, v in reasons.items():
+        rec["stages"][k] += v
+    rec["stages"]["CELLS_SECONDS"] += round(time.monotonic() - t0, 1)
     return best
 
 
@@ -583,6 +734,13 @@ def run_case(case: dict, out_dir: str) -> dict:
             stack_best = _stack_family(case, prop, zones, p, union, spatial, access, orientations, requested, rec)
             if stack_best is not None:
                 _dump_design(case, prop, stack_best, out_dir, "stack")
+
+        # 6. cross-band cells (#200): a hub or public room two rows deep, the unified exact sizer
+        if cells_placement is not None:
+            cells_best = _cells_family(case, prop, zones, p, union, spatial, access, contacts, orientations,
+                                       requested, rec)
+            if cells_best is not None:
+                _dump_design(case, prop, cells_best, out_dir, "cells")
 
     rec["seconds"] = round(time.monotonic() - t0, 1)
     counted = [x for x in rec["plans"] if x["counts"]]
