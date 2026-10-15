@@ -348,8 +348,9 @@ def _cells_family(case, prop, zones, p, union, spatial, access, contacts, orient
         seeds = []
         if not isinstance(emb, BandEmbeddingRefusal):
             for cand in emb.candidates:
-                if not hard_rejections(placement_flags(cand, zones, p.resolved_wet, tuple(access))):
-                    seeds.append(cand)
+                flags = placement_flags(cand, zones, p.resolved_wet, tuple(access))
+                if not hard_rejections(flags):
+                    seeds.append(orient(cand, flags)[0])       # the street side the screen chose
                 if len(seeds) >= CELLS_MOVE_SEEDS:
                     break
         moved = []

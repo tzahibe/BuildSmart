@@ -84,7 +84,9 @@ def _insets(layout: CellLayout, zones: dict, sides: dict | None):
 
 def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *, min_contact_u: dict | None = None,
                k: int = 12, tol_m2: float = 0.01, time_limit_s: float = 10.0, objective: str = "target",
-               sides: dict | None = None) -> CellsResult:
+               sides: dict | None = None, _skip: frozenset = frozenset()) -> CellsResult:
+    """`_skip` is a diagnostic hook naming constraint groups to leave out ("cells", "contacts",
+    "envelope", "align", "entrance") — tests and diagnosis only."""
     problems = layout.problems()
     if problems:
         return CellsResult("INFEASIBLE", "; ".join(problems))
@@ -206,23 +208,24 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
                 area[zv] = area.get(zv, 0.0) - float(iw) * Hk                               # - iw * H
         const = float(iw * ih)
         a_lo, a_hi = zi.min_area_m2 / (UNIT_M * UNIT_M), zi.max_area_m2 / (UNIT_M * UNIT_M)
-        add(area, a_lo - const, a_hi - const)
-        ms = m_to_u(zi.min_short_side_m)
-        add(dict(w), ms + iw, BIG)                                                           # net width >= short side
-        add(dict(H), ms + ih, BIG)                                                           # net height >= short side
-        asp = float(zi.max_aspect_ratio)
-        add(merged(w, {v: -asp * c for v, c in H.items()}), -np.inf, iw - asp * ih)        # (w-iw) <= asp (H-ih)
-        add(merged(H, {v: -asp * c for v, c in w.items()}), -np.inf, ih - asp * iw)        # (H-ih) <= asp (w-iw)
+        if "cells" not in _skip:
+            add(area, a_lo - const, a_hi - const)
+            ms = m_to_u(zi.min_short_side_m)
+            add(dict(w), ms + iw, BIG)                                                       # net width >= short side
+            add(dict(H), ms + ih, BIG)                                                       # net height >= short side
+            asp = float(zi.max_aspect_ratio)
+            add(merged(w, {v: -asp * c for v, c in H.items()}), -np.inf, iw - asp * ih)    # (w-iw) <= asp (H-ih)
+            add(merged(H, {v: -asp * c for v, c in w.items()}), -np.inf, ih - asp * iw)    # (H-ih) <= asp (w-iw)
         net_expr[z] = (area, const)
         # a fronting circulation cell holds the front door (HALL outranks LIVING): three door widths
-        if getattr(zi, "role", None) in CIRC and r0 == 0:
+        if getattr(zi, "role", None) in CIRC and r0 == 0 and "entrance" not in _skip:
             from app.vertical_slice.doors import ENTRANCE_DOOR_WIDTH_M
             add(dict(w), 3 * m_to_u(ENTRANCE_DOOR_WIDTH_M), BIG)
         if getattr(zi, "role", None) in CIRC and r1 > r0:
             add(dict(w), m_to_u(HALL_MIN_WIDTH_M) + iw, BIG)
 
     # ---- contacts
-    for a, b in req:
+    for a, b in (req if "contacts" not in _skip else ()):
         need = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
         shared_rows = [r for r, row in enumerate(layout.rows)
                        if a in row and b in row and abs(row.index(a) - row.index(b)) == 1]
@@ -241,7 +244,7 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
         add({e_nodes[r]: 1.0, s_nodes[r + 1]: -1.0}, 1, BIG)
 
     # ---- envelope steps (a: some part above d, b: some part below d), as the band oracle
-    for d in inner_steps:
+    for d in (inner_steps if "envelope" not in _skip else ()):
         above = [sg for sg in segments if sg[1] <= d]; below = [sg for sg in segments if sg[0] >= d]
         La, Ra = max(sg[2] for sg in above), min(sg[3] for sg in above)
         Lb, Rb = max(sg[2] for sg in below), min(sg[3] for sg in below)
@@ -258,7 +261,7 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
 
     # ---- alignment (C22): a row's end coincides with a boundary of the row above or lies outside it,
     # and an end of the row above that falls inside this row is one of this row's boundaries
-    for r in range(R - 1):
+    for r in (range(R - 1) if "align" not in _skip else ()):
         U, D = row_nodes[r], row_nodes[r + 1]
         u0, uk = U[0], U[-1]
         for endpoint, outside_is_left in ((D[0], True), (D[-1], False)):
