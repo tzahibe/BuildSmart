@@ -191,6 +191,55 @@ def _entrance_preference(prop: TopologyProposal, zones: dict, programme: Program
     return prefer
 
 
+#: Which preference `run_brain` hands the pipeline (#197, owner item 2 — 2026-10-14):
+#: "entrance" is the preference above; "proportion" adds, BELOW its three hard-priority keys and
+#: ABOVE its ornament keys, the two measures the frozen-six work showed a plan is judged by —
+#: how far the rooms sit from their targets and how much floor circulation takes. Evaluated on the
+#: same candidate pool before it is made the default; see `proportion_metrics`.
+SELECTION = "proportion"
+
+
+def proportion_metrics(realized, zones: dict) -> tuple[float, float]:
+    """(mean relative |net - target| over habitable rooms in %, circulation share of net in %),
+    read off the realized design — the two numbers `_proportion_preference` ranks by."""
+    devs, circ_net, total = [], 0.0, 0.0
+    for r in realized.design.rooms:
+        zi = zones.get(r.zone_id)
+        total += r.net_area_m2
+        if zi is None:
+            continue
+        if zi.role in _CIRC_ROLES:
+            circ_net += r.net_area_m2
+        elif zi.target_area_m2 > 0:
+            devs.append(abs(r.net_area_m2 - zi.target_area_m2) / zi.target_area_m2)
+    return (100.0 * sum(devs) / len(devs) if devs else 0.0, 100.0 * circ_net / total if total else 0.0)
+
+
+def _proportion_preference(prop: TopologyProposal, zones: dict, programme: Programme):
+    """`_entrance_preference` with proportion decided before ornament (owner item 2):
+
+      0-2. unchanged — the parti's arrival room, the street elevation, the area tolerance. These are
+           the architectural priorities and a proportion never outranks them.
+      3. mean relative deviation of the habitable rooms from their targets (whole per cent)
+      4. circulation's share of the net floor (whole per cent)
+      5-7. unchanged — garden elevation, closest area, worst wet-room proportion.
+
+    Hard constraints are not in play here at all: the pipeline only ever offers candidates the
+    validators accepted, so no key of this function can trade one away."""
+    base = _entrance_preference(prop, zones, programme)
+
+    def prefer(realized, placement, inp):
+        k = base(realized, placement, inp)
+        dev, circ = proportion_metrics(realized, zones)
+        return k[:3] + (round(dev), round(circ)) + k[3:]
+
+    return prefer
+
+
+def _preference(prop: TopologyProposal, zones: dict, programme: Programme):
+    return (_proportion_preference if SELECTION == "proportion" else _entrance_preference)(prop, zones, programme)
+
+
 
 #: Sizing refusals that mean "the rooms do not fit the footprint under these bounds" — the ones a
 #: wider area band can resolve. A representation or access refusal is not one of them and is never
@@ -222,7 +271,7 @@ def _pipeline(prop: TopologyProposal, zones: dict, p: Programme,
         wet_rooms=p.resolved_wet,
         access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
         max_candidates=max_candidates, max_realizations=max_realizations,
-        prefer=_entrance_preference(prop, zones, p))
+        prefer=_preference(prop, zones, p))
 
 
 def _needs_more_room(out) -> bool:
