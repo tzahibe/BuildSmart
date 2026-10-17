@@ -133,18 +133,43 @@ def test_it_costs_nothing_and_calls_no_model(monkeypatch):
 
 # ----------------------------------------------------------------- the exact sizer seam (#197 item 4)
 
-def test_the_exact_sizer_plans_the_small_brief_within_the_request_budget():
+def test_the_exact_sizer_improves_partis_and_never_ranks_one_below_production():
+    """#197 (2026-10-16): production sizes every parti first and ranks them; the exact sizer gets
+    the remaining budget for the best-ranked partis and replaces a plan only when its own key is no
+    worse. So, parti by parti, the exact run is at least as good as the production run by the
+    brain's own preference, the request ends near its budget, and the sizer that made each plan is
+    named."""
     pytest.importorskip("scipy")
     import time
     spec, fp = _spec_and_footprint(SMALL)
+    prod = run_brain(spec, fp, brief=SMALL, sizer="production")
     t = time.monotonic()
     res = run_brain(spec, fp, brief=SMALL, sizer="exact", families=("band",), budget_s=30.0)
     assert time.monotonic() - t < 45.0                      # the budget plus the last solve in flight
     assert len(res.accepted) >= 5
-    exact = [p for p in res.accepted if p.sizer == "exact"]
-    assert exact and all(p.family == "band" for p in exact)
-    for p in res.accepted:
-        assert p.spatial_preserved.split("/")[0] == p.spatial_preserved.split("/")[1]
+    by_parti = {p.parti: p for p in prod.plans}
+    for plan in res.accepted:
+        assert plan.sizer in ("exact", "production")
+        assert plan.spatial_preserved.split("/")[0] == plan.spatial_preserved.split("/")[1]
+        before = by_parti[plan.parti]
+        if before.counts:
+            assert plan.rank_key <= before.rank_key, (plan.parti, plan.rank_key, before.rank_key)
+        if plan.sizer == "exact":
+            assert plan.family == "band"
+            assert any("improved on production" in n or "planned what production could not" in n
+                       for n in plan.notes)
+        else:
+            # a parti the exact sizer tried and lost on says why; one it never reached says nothing
+            assert all(("ranked below" in n) or ("fell back" in n) or ("did not count" in n) for n in plan.notes)
+
+
+def test_the_primary_is_the_best_ranked_plan_not_the_first_parti():
+    spec, fp = _spec_and_footprint(SMALL)
+    res = run_brain(spec, fp, brief=SMALL)
+    keys = [p.rank_key for p in res.distinct]
+    assert all(k is not None for k in keys)
+    assert keys == sorted(keys)
+    assert res.distinct[0].rank_key == min(p.rank_key for p in res.accepted)
 
 
 def test_the_families_flag_can_produce_a_cross_band_plan_and_every_plan_names_its_maker():

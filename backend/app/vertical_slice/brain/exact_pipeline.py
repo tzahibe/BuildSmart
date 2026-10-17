@@ -14,6 +14,7 @@ candidate, the caller runs the production sizer and says so.
 """
 from __future__ import annotations
 
+import itertools
 import time
 from dataclasses import dataclass, field
 
@@ -67,6 +68,23 @@ class _Best:
     warnings: list = field(default_factory=list)
 
 
+def _fronts(cand, zone_id: str | None) -> bool:
+    """Does `zone_id` sit in the candidate's street band (row 0)?"""
+    return zone_id is not None and any(z == zone_id for z, _ in cand.rows[0])
+
+
+def _orientations(cand, flags):
+    """The candidate as production orients it and, when an entrance room sits in BOTH the street
+    band and the last band, its top/bottom flip too — exactly the two variants `run_band_pipeline`
+    sizes when it has a preference (its #197 fix). Without this the exact path sized only the
+    as-is orientation, and on B08 every foyer parti arrived in the living room with the foyer at
+    the back while production's plan for the same candidate arrived in the foyer."""
+    first, _ = orient(cand, flags)
+    if flags["entrance_now"] and flags["entrance_flip"]:
+        return (first, first.flipped())
+    return (first,)
+
+
 def _ladder(zones, rebanded, ladder):
     for rung in ladder:
         yield rung, (rebanded(zones, rung) if rung != ladder[0] else zones)
@@ -74,10 +92,18 @@ def _ladder(zones, rebanded, ladder):
 
 def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families=("band",),
                        deadline: float | None = None, max_sizings: int = MAX_SIZINGS,
-                       objective: str = "target") -> PipelineSuccess | PipelineDiagnosis:
+                       objective: str = "target", arrival: str | None = None) -> PipelineSuccess | PipelineDiagnosis:
     """`prefer(realized, placement, inp) -> key` (lower is better) decides between everything that
     passes; `ladder`/`rebanded` are the brain's widening ladder; `deadline` is a `time.monotonic()`
-    instant after which nothing new is sized."""
+    instant after which nothing new is sized.
+
+    `arrival` is the parti's own arrival room. Candidates that put it in the street band are sized
+    FIRST: the brain's preference ranks "the front door opens into the room the parti nominated"
+    above every proportion, and with a handful of sizings per parti the order decides whether such
+    a candidate is ever sized at all. Measured on B08 before this: 89 exact realizations, 77 with
+    the arrival room interior (43 realized into a living-room arrival, 34 NO_ENTRANCE), 8 with it on
+    the street. No candidate is dropped or admitted by this — it is an order, not a screen.
+    """
     try:
         from app.vertical_slice.exact.milp_cells import (
             cells_placement,
@@ -151,7 +177,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
             for k in rejected:
                 note("SELECTION", k)
             continue
-        screened.append(orient(cand, flags)[0])
+        screened.extend(_orientations(cand, flags))
+    screened.sort(key=lambda c: 0 if _fronts(c, arrival) else 1)          # stable: embedder order within
     if "band" in families:
         sized = 0
         for cand in screened:
@@ -234,8 +261,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                 flags = placement_flags(cand, z2, inp.wet_rooms, tuple(a2))
                 if hard_rejections(flags):
                     continue
-                oriented = orient(cand, flags)[0]
-                for orient_tag, env_o in orientations:
+                variants = sorted(_orientations(cand, flags), key=lambda c: 0 if _fronts(c, arrival) else 1)
+                for oriented, (orient_tag, env_o) in itertools.product(variants, orientations):
                     for rung, zr in _ladder(zones, rebanded, ladder):
                         if out_of_time():
                             break

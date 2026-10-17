@@ -29,3 +29,7 @@ Branch `feature/brain-preview-exact`. Eight real briefs (the brain's own corpus)
 It is the preview the owner asked to see: real briefs, side by side, drawn by the product. It is not a change to the production engine: `?engine=brain` is per request, `select_primary` and the guillotine engine are untouched, and `run_brain(sizer="production")` is byte-for-byte what it was (test). `scipy` is now a declared dependency (the assessment in `docs/reports/shape-agnostic-realizer/SCIPY-assessment.md`); without it the brain says so and sizes with production's sizer.
 
 **Next, if the owner wants this in front of users:** rank partis before sizing and size the top three (the budget then buys 10 s each — the 12-room briefs would be sized exactly); the proportion-aware preference is already the brain's default (PR #201); the live orchestrator is not involved.
+
+---
+
+**Correction (2026-10-17, `PREVIEW-rank-then-size.md`).** The per-configuration plan in the table above is the one with the lowest room deviation, not the one the product shows first. Checked on the saved designs: every exact plan in the table (B08 1.4 %, B02 1.2 %, B06 0.7 %, …) puts the front door into the living room with the hall in an interior band — the defect the #197 entrance preference exists to prevent — so "the front door opens into the hall in B02 and B06" was wrong. Measured on the plan the product shows first, with the arrival in the parti's own room, the exact sizer's means are 14.8 % (band) and 13.2 % (all families) against production's 15.8 %; see the later report.

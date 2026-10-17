@@ -54,6 +54,9 @@ class BrainPlan:
     sizer: str = "production"
     family: str = "band"
     notes: tuple = ()
+    #: the brain's preference key for this plan (`_plan_key`), set by `run_brain` so partis can be
+    #: ranked against each other; `None` for a plan that did not realize
+    rank_key: tuple | None = None
     #: Which rung of `AREA_BAND_LADDER` produced this plan. `None` means the last rung — the full
     #: template range — so a loosely-proportioned result is visible rather than silently equal to
     #: a tight one.
@@ -109,9 +112,15 @@ class BrainResult:
         contacts. Offering the owner the same drawing twice under two names would be exactly the
         fake diversity this work exists to avoid, so distinctness is decided on the REALIZED
         rectangles, never on the parti's name.
+
+        The order is the brain's own preference (`BrainPlan.rank_key`, best first — the same key
+        that chose between candidates inside each parti), so the primary the product shows is the
+        best plan the brain made and not the first parti the proposer happened to list. Plans
+        without a key keep their arrival order after the ranked ones.
         """
         out, seen = [], set()
-        for plan in self.accepted:
+        ranked = sorted(self.accepted, key=lambda pl: (pl.rank_key is None, pl.rank_key or ()))
+        for plan in ranked:
             sig = plan.geometry_signature
             if sig in seen:
                 continue
@@ -320,31 +329,118 @@ def _rebanded(zones: dict, p: Programme, frac: float | None) -> dict:
 SIZER_PRODUCTION, SIZER_EXACT = "production", "exact"
 #: one wall-clock budget per request, shared by every parti
 REQUEST_BUDGET_S = 30.0
+#: How many partis the exact sizer is spent on per request (#197, 2026-10-16). The first preview
+#: shared the budget equally across every parti — 30 s / 8 partis — and on the 10–14-room briefs
+#: every exact solve timed out inside its 3–4 s share, so the request fell back to production AND
+#: took 38–43 s. Measured before this was chosen: a cheap unaligned MILP probe does NOT predict
+#: which parti the exact sizer makes the best plan from (B02: probe 0.2 % -> 21.6 % realized,
+#: probe 0.3 % -> 1.2 %), and on B16/B19 the exact band placement is INFEASIBLE for every parti,
+#: so no ranking can buy a plan there. What does rank is production's own plan for the parti — it
+#: is the fallback anyway, costs 0.2–6 s per brief on the briefs the exact sizer can improve, and
+#: yields the same preference key the exact plan is judged by. So: production sizes every parti
+#: first, the partis are ranked by that key, and the exact sizer gets the WHOLE remaining budget
+#: for the top few — a plan is replaced only when the exact one ranks at least as well, so the
+#: exact sizer can improve a parti and never worsen one (B20 was the case it worsened).
+EXACT_TOP = 3
+#: after the top partis, a further parti is sized exactly only if at least this much budget is left
+EXACT_EXTRA_MIN_S = 5.0
 
 
 def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
               proposer=None, max_candidates: int = 80,
               max_realizations: int = MAX_REALIZATIONS_PREFERRED,
               sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
-              budget_s: float = REQUEST_BUDGET_S) -> BrainResult:
+              budget_s: float = REQUEST_BUDGET_S, exact_top: int = EXACT_TOP) -> BrainResult:
     t0 = time.monotonic()
     programme = programme_from_spec(spec, footprint_m)
     proposals = (proposer or DeterministicProposer()).propose(programme)
     result = BrainResult(brief=brief)
     deadline = t0 + budget_s
-    # every parti gets an equal share of what is left, so the last ones are not starved by the first
-    for i, prop in enumerate(proposals):
-        share = (deadline - time.monotonic()) / max(1, len(proposals) - i)
-        result.plans.append(_one(prop, programme, max_candidates, max_realizations,
-                                 sizer=sizer, families=families,
-                                 deadline=time.monotonic() + max(share, 0.0)))
+    # 1. production sizes every parti — the ranking, and the plan the exact sizer must beat
+    for prop in proposals:
+        result.plans.append(_one(prop, programme, max_candidates, max_realizations))
+    _rank(result, proposals, programme)
+    if sizer == SIZER_EXACT:
+        _improve_exactly(result, proposals, programme, max_candidates, max_realizations,
+                         families=families, deadline=deadline, top=exact_top)
+        _rank(result, proposals, programme)
     result.seconds = round(time.monotonic() - t0, 3)
     return result
 
 
+def _rank(result: BrainResult, proposals, p: Programme) -> None:
+    for plan, prop in zip(result.plans, proposals):
+        plan.rank_key = _plan_key(plan, prop, p) if plan.realized is not None else None
+
+
+def _plan_key(plan: BrainPlan, prop: TopologyProposal, p: Programme):
+    """The brain's own preference, read off a finished plan, so a production plan and an exact
+    plan of the same parti compare on the one scale the pipeline already ranks candidates by."""
+    zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
+    return _preference(prop, zones, p)(plan.realized, None, None)
+
+
+def _key_text(key: tuple) -> str:
+    """The first five keys of a preference, named, for a plan's notes."""
+    arrived, street, area, dev, circ = key[:5]
+    return (f"arrival {'ok' if arrived == 0 else 'NOT the parti`s'}, street {'ok' if street == 0 else 'no'}, "
+            f"area {'in' if area == 0 else 'out of'} tolerance, rooms {dev} %, circulation {circ} %")
+
+
+def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidates: int,
+                     max_realizations: int, *, families, deadline: float, top: int) -> None:
+    """2. the exact sizer, on the best-ranked partis, with the whole remaining budget.
+
+    Order: partis production planned, best preference key first; then partis production could not
+    plan (the exact placement is the stronger sizer and may plan what the heuristic could not).
+    Each gets an equal share of what is left. The exact plan replaces production's only when it
+    counts and its key is no worse; otherwise the production plan stays and says why."""
+    ranked = sorted((i for i, pl in enumerate(result.plans) if pl.counts),
+                    key=lambda i: result.plans[i].rank_key)
+    ranked += [i for i, pl in enumerate(result.plans) if not pl.counts and pl.stage != "CRITIC"]
+    for n, i in enumerate(ranked):
+        remaining = deadline - time.monotonic()
+        if n < top:
+            share = remaining / (top - n)             # the top partis divide the budget
+        elif remaining >= EXACT_EXTRA_MIN_S:
+            share = remaining                         # a small brief finished early: keep improving
+        else:
+            break
+        if share <= 0:
+            break
+        prod, prop = result.plans[i], proposals[i]
+        exact = _one(prop, p, max_candidates, max_realizations, sizer=SIZER_EXACT, families=families,
+                     deadline=time.monotonic() + share, fallback=False)
+        if exact.sizer != SIZER_EXACT:
+            # typed: unavailable (no scipy), every solve timed out, or nothing kept
+            prod.notes = (*prod.notes, *exact.notes)
+            if exact.stage == "UNAVAILABLE":
+                for other in result.plans:
+                    if other is not prod and other.stage != "CRITIC":
+                        other.notes = (*other.notes, *exact.notes)
+                return
+            continue
+        if not exact.counts:
+            why = "area" if exact.area and not exact.area.acceptable else "preservation"
+            prod.notes = (*prod.notes, f"exact sizer's {exact.family} plan did not count ({why}); production kept")
+            continue
+        ek, pk = _plan_key(exact, prop, p), _plan_key(prod, prop, p)
+        if prod.counts and ek > pk:
+            prod.notes = (*prod.notes, (f"exact sizer's {exact.family} plan ranked below production's "
+                                        f"({_key_text(ek)} vs {_key_text(pk)}); production kept"))
+            continue
+        exact.notes = (*exact.notes, "exact sizer improved on production's plan" if prod.counts
+                       else f"exact sizer planned what production could not ({prod.reason[:60]})")
+        exact.seconds = round(exact.seconds + prod.seconds, 3)
+        result.plans[i] = exact
+
+
 def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
          max_realizations: int, *, sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
-         deadline: float | None = None) -> BrainPlan:
+         deadline: float | None = None, fallback: bool = True) -> BrainPlan:
+    """One parti to geometry. `fallback=False` returns the exact sizer's refusal as a plan that did
+    not realize (stage UNAVAILABLE / SIZING ...) instead of running the production sizer after it —
+    `_improve_exactly` already holds production's plan for that parti."""
     t0 = time.monotonic()
     zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
     missing = [z for z in prop.rooms if z not in p.zones]
@@ -387,7 +483,8 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                           footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
                           access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
             prefer=_preference(prop, zones, p), ladder=AREA_BAND_LADDER,
-            rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline)
+            rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline,
+            arrival=prop.arrival)
         if isinstance(out, PipelineSuccess):
             made_by, family = SIZER_EXACT, getattr(out.placement, "family", "band")
             band = None
@@ -396,8 +493,12 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
             # typed fallback: the preview never loses a parti production can plan. The reason the
             # exact path gave up (no solver, every solve timed out, or nothing kept within the
             # budget) travels with the plan.
-            notes = (f"exact sizer fell back to production: {getattr(out, 'code', '?')}: "
-                     f"{str(getattr(out, 'detail', ''))[:80]}",)
+            code = getattr(out, 'code', '?')
+            notes = (f"exact sizer fell back to production: {code}: {str(getattr(out, 'detail', ''))[:80]}",)
+            if not fallback:
+                return BrainPlan(prop.name, prop.rationale, False, reason=f"{code}: {str(getattr(out, 'detail', ''))[:110]}",
+                                 stage="UNAVAILABLE" if code == "EXACT_SIZER_UNAVAILABLE" else getattr(out, "stage", "SIZING"),
+                                 seconds=round(time.monotonic() - t0, 3), sizer=SIZER_PRODUCTION, notes=notes)
             out = None
     if out is None:
         out = _pipeline(prop, zones, p, max_candidates, max_realizations)
