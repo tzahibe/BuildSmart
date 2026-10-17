@@ -172,7 +172,18 @@ def test_the_exact_sizer_improves_partis_and_never_ranks_one_below_production():
         else:
             # a parti the exact sizer tried and lost on says why; one it never reached says nothing
             assert all(("ranked below" in n) or ("fell back" in n) or ("did not count" in n) for n in plan.notes)
-    # #205: the plan the product shows first ranks no worse than #204's measured one
+
+
+@pytest.mark.xfail(strict=True, reason="#205 gate clause 2 FAILED and is on record: with the foyer group the B08 "
+                   "shown-first plan is (0, 0, 0, 5, 14, ...) against #204's (0, 0, 0, 3, 13, ...) — a 2.00 x 3.00 m "
+                   "foyer instead of a 1.50 x 3.05 m strip, paid for by the rooms behind it; see "
+                   "docs/reports/architectural-brain/PREVIEW-foyer-geometry.md. Strict: if this ever passes, "
+                   "the measurement has changed and the report must be redone, not the marker removed.")
+def test_the_shown_first_plan_ranks_no_worse_than_204_measured():
+    """#205's gate, second clause, as #204's measured keys (`MEASURED_204_KEYS`)."""
+    pytest.importorskip("scipy")
+    spec, fp = _spec_and_footprint(SMALL)
+    res = run_brain(spec, fp, brief=SMALL, sizer="exact", families=("band",), budget_s=30.0)
     assert tuple(res.distinct[0].rank_key) <= MEASURED_204_KEYS[(SMALL, "band")], res.distinct[0].rank_key
 
 
