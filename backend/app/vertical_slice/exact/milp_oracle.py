@@ -27,10 +27,11 @@ from scipy.sparse import lil_matrix
 
 from app.vertical_slice.band_sizing import _height_bounds
 from app.vertical_slice.envelope import Envelope
-from app.vertical_slice.geometry_core.model import UNIT_M, m_to_u
+from app.vertical_slice.geometry_core.model import UNIT_M, ProgramRole, m_to_u
 from app.vertical_slice.staircase_sizing import _cells_and_nodes
 
 BIG = 10_000          # units; the envelope is never that wide
+_CIRC = frozenset({ProgramRole.HALL, ProgramRole.CIRCULATION})
 
 
 @dataclass(frozen=True)
@@ -66,11 +67,14 @@ def _height_grid(lo: int, hi: int, k: int) -> list[int]:
 def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
                  k: int = 10, tol_m2: float = 0.01, time_limit_s: float = 10.0,
                  align: bool = False, sides: dict | None = None,
-                 objective: str = "feasible", stacks: dict | None = None) -> OracleResult:
+                 objective: str = "feasible", stacks: dict | None = None,
+                 _skip: frozenset = frozenset()) -> OracleResult:
     """`align=True` adds the one-wall-type-per-side rule as a disjunction: a band's start/end
     either coincides with a cell boundary of the band above or lies outside it, and the band
     above's endpoint that falls strictly inside this band becomes one of this band's boundaries.
-    `sides` feeds back real wall types for exact insets (the fixed point `milp_placement` runs)."""
+    `sides` feeds back real wall types for exact insets (the fixed point `milp_placement` runs).
+    `_skip` is the diagnostic hook the other oracles have — the one group it names here is
+    "foyer" (#205); tests and diagnosis only."""
     cells, band_nodes, N = _cells_and_nodes(bands, zones, sides)
     R = len(bands)
     req = [tuple(e) for e in required]
@@ -211,6 +215,15 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
             # aspect: net width <= asp * hn ; net width >= hn / asp
             add({**w, zv: BIG}, -BIG, c.max_aspect * hn + c.inset_w_u + BIG)
             add({**w, zv: -BIG}, hn / c.max_aspect + c.inset_w_u - BIG, BIG)
+    # the "foyer" group (#205): the street band's circulation cell holds the front door and must
+    # be a room, not a strip — `FOYER_MIN_NET_M` / `FOYER_MAX_DEPTH_TO_WIDTH` below. Members never
+    # qualify (circulation never stacks).
+    if "foyer" not in _skip:
+        for c in cells:
+            role = getattr(zones_all.get(c.zone_id), "role", None)
+            if c.r == 0 and role in _CIRC:
+                _foyer_constraints(c, grids[0], [z_idx[(0, kk)] for kk in range(len(grids[0]))], add,
+                                   deeper_than_wide=role is ProgramRole.CIRCULATION)
     # members: one height each, the column's heights sum to the band's, own area / short / aspect
     def mh_expr(mid: str) -> dict[int, float]:
         return {mz_idx[(mid, j)]: float(H) for j, H in enumerate(mgrid[mid])}
@@ -369,7 +382,6 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
         # room at its minimum and hands the rest to circulation). Cell area is width x height and
         # height is a binary choice, so the linear proxy is width weighted by the band's mid-grid
         # height; circulation cells carry no weight and are held by their own bounds.
-        from app.vertical_slice.geometry_core.model import ProgramRole
         circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}
         for cell in cells:
             if getattr(zones[cell.zone_id], "role", None) in circ:
@@ -408,7 +420,6 @@ def _target_objective(items, zones, nvar, add, *, w_hi: int, extra=()):
     Returns (nvar, c, continuous): c the objective coefficients by variable; `continuous` the
     product and deviation variables — p = w*z is exact for a binary z whatever p's integrality, and
     leaving them continuous keeps the branch-and-bound on the heights and boundaries only."""
-    from app.vertical_slice.geometry_core.model import ProgramRole
     circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}
     c: dict[int, float] = {}
     continuous: list[int] = []
@@ -442,7 +453,7 @@ def _target_objective(items, zones, nvar, add, *, w_hi: int, extra=()):
 
 def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
                    k: int = 12, rounds: int = 3, objective: str = "area", stacks: dict | None = None,
-                   time_limit_s: float = 10.0) -> OracleResult:
+                   time_limit_s: float = 10.0, _skip: frozenset = frozenset()) -> OracleResult:
     """The aligned oracle as THE sizer: solve, read the real wall types off the placement, re-solve
     with exact insets until they stop changing (the same fixed point the sizer runs), and hand the
     final placement to `realize_cells`. Every refusal downstream is then a validator's own."""
@@ -451,7 +462,8 @@ def milp_placement(bands, zones, required, envelope: Envelope, *, min_contact_u:
     last = None
     for _ in range(rounds):
         res = milp_heights(bands, zones, required, envelope, min_contact_u=min_contact_u, k=k,
-                           align=True, sides=sides, objective=objective, stacks=stacks, time_limit_s=time_limit_s)
+                           align=True, sides=sides, objective=objective, stacks=stacks, time_limit_s=time_limit_s,
+                           _skip=_skip)
         if res.status != "FEASIBLE":
             return last if (last is not None and last.status == "FEASIBLE") else res
         real = sides_from_rects(*placement_rects(bands, zones, res, stacks))
@@ -480,7 +492,7 @@ def placement_rects(bands, zones, res: OracleResult, stacks: dict | None = None)
 
 def milp_spine_placement(layout, zones, required, envelope: Envelope, *, min_contact_u: dict | None = None,
                          k: int = 12, tol_m2: float = 0.01, time_limit_s: float = 10.0,
-                         objective: str = "area", rounds: int = 3) -> OracleResult:
+                         objective: str = "area", rounds: int = 3, _skip: frozenset = frozenset()) -> OracleResult:
     """The spine oracle as THE sizer, like `milp_placement`: solve, read the real wall types off the
     placement, re-solve with exact insets until they stop changing."""
     from app.vertical_slice.staircase_sizing import sides_from_rects
@@ -489,7 +501,7 @@ def milp_spine_placement(layout, zones, required, envelope: Envelope, *, min_con
     last = None
     for _ in range(rounds):
         res = _spine_once(layout, zones, required, envelope, min_contact_u=min_contact_u, k=k, tol_m2=tol_m2,
-                          time_limit_s=time_limit_s, objective=objective, sides=sides)
+                          time_limit_s=time_limit_s, objective=objective, sides=sides, _skip=_skip)
         if res.status != "FEASIBLE":
             # an earlier round's placement was sized with ESTIMATED insets; the exact ones refuse it,
             # and the realizer's C3 would too — so the refusal is the answer, not the estimate
@@ -663,6 +675,16 @@ def _spine_once(layout, zones, required, envelope: Envelope, *, min_contact_u, k
             add({**w, zv: -BIG}, ms + c.inset_w_u - BIG, BIG)
             add({**w, zv: BIG}, -BIG, c.max_aspect * hn + c.inset_w_u + BIG)
             add({**w, zv: -BIG}, hn / c.max_aspect + c.inset_w_u - BIG, BIG)
+    # the "foyer" group (#205) on a single-band circulation cell in the street band (a foyer in the
+    # top band, or beside the spine when the section starts at the street). The spine itself is
+    # exempt: it is a declared corridor (`spine_intents`, SPINE_MAX_ASPECT) and, when it fronts the
+    # street, the entrance rule below already gives it three door widths.
+    if "foyer" not in _skip:
+        for c in cells:
+            role = getattr(zones[c.zone_id], "role", None)
+            if c.r == 0 and role in _CIRC:
+                _foyer_constraints(c, grids[0], [z_idx[(0, kk)] for kk in range(len(grids[0]))], add,
+                                   deeper_than_wide=role is ProgramRole.CIRCULATION)
     # the spine: width w = xb - xa between the shared nodes, height H = the SUM of the band heights.
     # Its net area (w - iw)(H - ih) is bilinear, but H is a sum of binary-selected grid heights, so
     # p[r,kk] = w * z[r,kk] linearizes EXACTLY (McCormick with a binary): the spine's area, short
@@ -799,7 +821,6 @@ def _spine_once(layout, zones, required, envelope: Envelope, *, min_contact_u, k
     for v, cft in obj_c.items():
         c[v] = cft
     if objective == "area":
-        from app.vertical_slice.geometry_core.model import ProgramRole
         circ = {ProgramRole.HALL, ProgramRole.CIRCULATION}
         for cell in cells:
             if getattr(zones[cell.zone_id], "role", None) in circ:
@@ -823,6 +844,68 @@ def _spine_once(layout, zones, required, envelope: Envelope, *, min_contact_u, k
 
 SPINE_MIN_WIDTH_M = 1.8
 SPINE_MAX_ASPECT = 6.0
+
+#: The "foyer" group (#205) — the ONE place its constants live; `milp_cells` imports them. Applied
+#: by all three exact oracles to the single-row circulation cell in the street band: the cell
+#: `doors.resolve_entrance` hands the front door to (HALL / CIRCULATION outrank LIVING).
+#:
+#: FOYER_MIN_NET_M — the net width at the entrance wall AND the net depth, both derived from the
+#: swing geometry C28 measures (`door_clearance.swing_envelope_m`): a leaf sweeps a quarter-disc
+#: of radius its own width from its hinge, and `_door_wall_defects` needs that full radius of net
+#: room beyond the door's wall. The arrival room holds two such leaves — the front door's
+#: (`ENTRANCE_DOOR`, 1.0 m, hung at the jamb nearer the room's corner, swinging in) and the one
+#: interior door that leads on (`ROOM_DOOR`, 0.9 m; `doors._swing` hangs a door between two
+#: circulation zones into the SMALLER one, i.e. the foyer). With the onward door on the far wall
+#: the two quarter-discs lie in series along the depth and touch without overlapping at exactly
+#: 1.0 + 0.9 m of net depth; with it on a side wall they lie side by side along the entrance wall
+#: and need the same 1.9 m of net width. Below either, the envelopes overlap for SOME door position
+#: and C28 fails (#204's cells plans: a 1.6 m-deep foyer). Not a taste number: it is
+#: `access_rules.DOOR_WIDTH_M[ENTRANCE_DOOR] + DOOR_WIDTH_M[ROOM_DOOR]` (a test pins that).
+#:
+#: FOYER_MAX_DEPTH_TO_WIDTH — the strip cap, one-sided on purpose: net depth <= cap x net width.
+#: The strip #204 measured (B08 1.50 x 3.05 m, B11 1.70 x 4.25) is a slot entered LENGTHWISE
+#: through its narrow wall — C25's pocket runs along that depth (the onward door is on the far
+#: wall, the pocket IS the band's depth: 4.15 m failed on B08) and C28's two leaves stack along
+#: it. A hall that is wide along the street and shallow (B02: 6.15 x 2.35 m, entered through its
+#: long wall) is not that defect, and the zone's own `max_aspect_ratio` already bounds it the other
+#: way. The value is production's own line between a lobby and a corridor —
+#: `concept_spec._COMPACT_HALL_ASPECT_MAX` / `quality_metrics.COMPACT_HALL_ASPECT_MAX` /
+#: `concept_generator.HUB_TEMPLATE`'s max_aspect_ratio, all 1.5 — chosen over the brain's own
+#: foyer bound (`proposer._entry_intent`, 2.5) and hall bound (`HALL_MAX_ASPECT`, 3.0), which both
+#: admit the measured strips (2.03 and 2.5).
+#:
+#: And the floor of that band, for the foyer proper (role CIRCULATION — the brain's degree-2 ENTRY,
+#: street door and one onward door; a HALL is a hub with doors on several walls): net depth >
+#: net width, strictly. Derived from C26, not taste: `circulation_metrics._end_sides` takes a
+#: circulation room's dead-end candidates at the two ends of its LONGER axis, and a foyer's two
+#: doors sit on its street wall and its far wall. Wider than deep, both long-axis ends are unserved
+#: — two dead ends in the foyer, plus the hall's own accepted far end, is three, past
+#: `EXTREME_DEAD_END_COUNT` (2), and C26 fails the plan. Deeper than wide, the ends are the two
+#: door walls and the count is zero. A square foyer counts as wide (`net_w_m >= net_h_m`), hence
+#: the strict inequality (one grid unit).
+FOYER_MIN_NET_M = 1.9
+FOYER_MAX_DEPTH_TO_WIDTH = 1.5
+
+
+def _foyer_constraints(c, grid, zvars, add, *, deeper_than_wide: bool) -> None:
+    """The "foyer" group for one single-band cell whose height is a binary grid choice (`milp_heights`
+    and `_spine_once`'s plain cells): net width >= FOYER_MIN_NET_M unconditionally; a grid height
+    whose net depth is under FOYER_MIN_NET_M is switched off; and at every admissible height the
+    net width must be at least net depth / FOYER_MAX_DEPTH_TO_WIDTH and, for the foyer proper,
+    at most net depth - 1 u (big-M on the height's binary, the same form the cell's own aspect
+    bound takes)."""
+    w = {c.c1: 1.0, c.c0: -1.0}
+    f = m_to_u(FOYER_MIN_NET_M)
+    add(dict(w), f + c.inset_w_u, BIG)
+    for kk, H in enumerate(grid):
+        hn = H - c.inset_h_u
+        zv = zvars[kk]
+        if hn < f or (deeper_than_wide and hn - 1 < f):
+            add({zv: 1.0}, 0, 0)
+            continue
+        add({**w, zv: -BIG}, hn / FOYER_MAX_DEPTH_TO_WIDTH + c.inset_w_u - BIG, BIG)
+        if deeper_than_wide:
+            add({**w, zv: BIG}, -BIG, hn - 1 + c.inset_w_u + BIG)
 
 
 def spine_geometry(layout, res: OracleResult):
