@@ -43,6 +43,10 @@ class OracleResult:
     y_start_u: int = 0
     #: stacks (2D wing): each member's own height, top to bottom inside its column
     member_heights_u: dict = field(default_factory=dict)
+    #: the solver's objective value when FEASIBLE (`None` for a pure feasibility program); with
+    #: objective "target" it is the summed relative room deviation the placement reaches, which is
+    #: what lets a cheap unaligned solve RANK layouts before anything is sized for real
+    objective: float | None = None
 
     def as_sizing(self):
         """The oracle's placement in the exact sizer's own result type, so `rects()` /
@@ -384,7 +388,8 @@ def milp_heights(bands, zones, required, envelope: Envelope, *, min_contact_u: d
         mh = {m.zone_id: mgrid[m.zone_id][max(range(len(mgrid[m.zone_id])),
                                               key=lambda j: res.x[mz_idx[(m.zone_id, j)]])] for m in members}
         return OracleResult("FEASIBLE", tuple(heights), detail=f"{len(rows)} constraints, {nvar} variables",
-                            band_x_u=band_x, y_start_u=y_start, member_heights_u=mh)
+                            band_x_u=band_x, y_start_u=y_start, member_heights_u=mh,
+                            objective=float(res.fun) if objective != "feasible" else None)
     if res.status == 2:
         return OracleResult("INFEASIBLE", detail=f"HiGHS: {res.message}")
     return OracleResult("UNKNOWN", detail=f"HiGHS: {res.message}")
