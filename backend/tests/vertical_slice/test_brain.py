@@ -133,6 +133,17 @@ def test_it_costs_nothing_and_calls_no_model(monkeypatch):
 
 # ----------------------------------------------------------------- the exact sizer seam (#197 item 4)
 
+#: The shown-first plan's rank key per (brief, families) as #204 measured it on this machine
+#: (`docs/reports/architectural-brain/data/preview-compare-top3/metrics.json`, config
+#: brain-exact-band / brain-exact-all). #205's gate: no brief's shown-first plan ranks below these.
+#: Lower is better, lexicographic: (arrival, street, area tolerance, room deviation %, circulation %,
+#: -garden rooms, |gross - requested|, circulation m2, worst wet aspect).
+MEASURED_204_KEYS = {
+    ("B08", "band"): (0, 0, 0, 3, 13, -3, 1.1, 16.3, 1.04),
+    ("B08", "all"): (0, 0, 0, 1, 13, -2, 0.0, 16.8, 1.09),
+}
+
+
 def test_the_exact_sizer_improves_partis_and_never_ranks_one_below_production():
     """#197 (2026-10-16): production sizes every parti first and ranks them; the exact sizer gets
     the remaining budget for the best-ranked partis and replaces a plan only when its own key is no
@@ -161,6 +172,8 @@ def test_the_exact_sizer_improves_partis_and_never_ranks_one_below_production():
         else:
             # a parti the exact sizer tried and lost on says why; one it never reached says nothing
             assert all(("ranked below" in n) or ("fell back" in n) or ("did not count" in n) for n in plan.notes)
+    # #205: the plan the product shows first ranks no worse than #204's measured one
+    assert tuple(res.distinct[0].rank_key) <= MEASURED_204_KEYS[(SMALL, "band")], res.distinct[0].rank_key
 
 
 def test_the_primary_is_the_best_ranked_plan_not_the_first_parti():

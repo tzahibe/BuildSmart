@@ -23,9 +23,15 @@ from scipy.sparse import lil_matrix
 from app.vertical_slice.band_sizing import CellSpec, _height_bounds
 from app.vertical_slice.envelope import Envelope
 from app.vertical_slice.exact.cells import CIRC, CellLayout
-from app.vertical_slice.exact.milp_oracle import BIG, _height_grid
+from app.vertical_slice.exact.milp_oracle import (
+    BIG,
+    FOYER_MAX_DEPTH_TO_WIDTH,
+    FOYER_MIN_NET_M,
+    _height_grid,
+)
 from app.vertical_slice.geometry_core.model import (
     UNIT_M,
+    ProgramRole,
     Rect,
     WallType,
     inset_u,
@@ -64,7 +70,6 @@ def cells_wings(layout: CellLayout, res: CellsResult) -> tuple[Rect, ...]:
 
 def _insets(layout: CellLayout, zones: dict, sides: dict | None):
     ext_i, part_i, rc_i = inset_u(WallType.EXTERIOR), inset_u(WallType.PARTITION), inset_u(WallType.RC_SAFE_ROOM)
-    from app.vertical_slice.geometry_core.model import ProgramRole
     out = {}
     R = layout.n_rows
     for z in layout.zones:
@@ -86,7 +91,7 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
                k: int = 12, tol_m2: float = 0.01, time_limit_s: float = 10.0, objective: str = "target",
                sides: dict | None = None, _skip: frozenset = frozenset()) -> CellsResult:
     """`_skip` is a diagnostic hook naming constraint groups to leave out ("cells", "contacts",
-    "envelope", "align", "entrance") — tests and diagnosis only."""
+    "envelope", "align", "entrance", "foyer") — tests and diagnosis only."""
     problems = layout.problems()
     if problems:
         return CellsResult("INFEASIBLE", "; ".join(problems))
@@ -223,6 +228,20 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
             add(dict(w), 3 * m_to_u(ENTRANCE_DOOR_WIDTH_M), BIG)
         if getattr(zi, "role", None) in CIRC and r1 > r0:
             add(dict(w), m_to_u(HALL_MIN_WIDTH_M) + iw, BIG)
+        # the "foyer" group (#205) on the single-row circulation cell in the street band — the
+        # constants and their derivation live in `milp_oracle`. Here every cell's H is linear, so
+        # the three bounds are plain rows: net width and net depth >= FOYER_MIN_NET_M, and
+        # net depth <= FOYER_MAX_DEPTH_TO_WIDTH x net width, and for the foyer proper (CIRCULATION)
+        # net depth >= net width + 1 u. A circulation cell spanning rows is a corridor
+        # (HALL_MIN_WIDTH_M above), not a foyer.
+        if getattr(zi, "role", None) in CIRC and r0 == 0 and r1 == r0 and "foyer" not in _skip:
+            f = m_to_u(FOYER_MIN_NET_M)
+            cap = float(FOYER_MAX_DEPTH_TO_WIDTH)
+            add(dict(w), f + iw, BIG)
+            add(dict(H), f + ih, BIG)
+            add(merged(H, {v: -cap * cf for v, cf in w.items()}), -np.inf, ih - cap * iw)
+            if zi.role is ProgramRole.CIRCULATION:
+                add(merged(H, {v: -cf for v, cf in w.items()}), ih - iw + 1, BIG)
 
     # ---- contacts
     for a, b in (req if "contacts" not in _skip else ()):
@@ -330,7 +349,8 @@ def milp_cells(layout: CellLayout, zones: dict, required, envelope: Envelope, *,
 
 
 def cells_placement(layout: CellLayout, zones: dict, required, envelope: Envelope, *, min_contact_u=None,
-                    k: int = 12, rounds: int = 3, objective: str = "target", time_limit_s: float = 10.0) -> CellsResult:
+                    k: int = 12, rounds: int = 3, objective: str = "target", time_limit_s: float = 10.0,
+                    _skip: frozenset = frozenset()) -> CellsResult:
     """The fixed point on wall types: solve, read the real sides off the placement, re-solve with
     exact insets; an exact-inset refusal is returned as such."""
     from app.vertical_slice.staircase_sizing import sides_from_rects
@@ -338,7 +358,7 @@ def cells_placement(layout: CellLayout, zones: dict, required, envelope: Envelop
     last = None
     for _ in range(rounds):
         res = milp_cells(layout, zones, required, envelope, min_contact_u=min_contact_u, k=k,
-                         objective=objective, sides=sides, time_limit_s=time_limit_s)
+                         objective=objective, sides=sides, time_limit_s=time_limit_s, _skip=_skip)
         if res.status != "FEASIBLE":
             return res
         real = sides_from_rects(cells_rects(layout, res), zones)
