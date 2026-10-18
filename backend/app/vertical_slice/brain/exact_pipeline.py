@@ -127,6 +127,7 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
     contacts = contact_requirements(zones, union, access)
     env = Envelope.rectangle(*inp.footprint_m)
     orientations = (("H", env), ("V", transposed_envelope(env)))
+    street = {"H": "N", "V": "W"}            # the oracle's street edge per orientation (#207, `STREET_SIDES`)
     best: _Best | None = None
     tried = 0
     unknown = 0
@@ -189,7 +190,7 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                     if out_of_time():
                         break
                     o = milp_placement(cand.bands, zr, union, env_o, min_contact_u=contacts, objective=objective,
-                                       time_limit_s=time_left())
+                                       time_limit_s=time_left(), street=street[orient_tag])
                     note("SIZING", f"band:{o.status}")
                     if o.status == "UNKNOWN":
                         unknown += 1
@@ -219,7 +220,7 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                         if out_of_time():
                             break
                         o = milp_spine_placement(layout, zr, union, env_o, min_contact_u=contacts, objective=objective,
-                                                 time_limit_s=time_left())
+                                                 time_limit_s=time_left(), street=street[orient_tag])
                         note("SIZING", f"spine:{o.status}")
                         if o.status != "FEASIBLE":
                             if o.status == "BAND_GAP":
@@ -269,7 +270,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                         z2r = {z: zr.get(z, zi) for z, zi in z2.items()}
                         stacks = {pid: tuple(zr[m] for m in stack)}
                         o = milp_placement(oriented.bands, z2r, union, env_o, min_contact_u=contacts,
-                                           objective=objective, stacks=stacks, time_limit_s=time_left())
+                                           objective=objective, stacks=stacks, time_limit_s=time_left(),
+                                           street=street[orient_tag])
                         note("SIZING", f"stack:{o.status}")
                         if o.status != "FEASIBLE":
                             if o.status == "BAND_GAP":
@@ -315,7 +317,7 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                     if out_of_time():
                         break
                     o = cells_placement(lay, zr, union, env_o, min_contact_u=contacts, k=CELLS_K, objective=objective,
-                                        time_limit_s=time_left())
+                                        time_limit_s=time_left(), street=street[orient_tag])
                     note("SIZING", f"cells:{o.status}")
                     if o.status != "FEASIBLE":
                         if o.status == "BAND_GAP":
