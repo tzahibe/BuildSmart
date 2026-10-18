@@ -53,10 +53,19 @@ from app.vertical_slice.exact.screens import cells_selection
 from app.vertical_slice.exposure_policy import REQUIRED_EXTERIOR_ROLES
 from app.vertical_slice.geometry_core.model import UNIT_M, ProgramRole, m_to_u
 
-#: zones that may occupy two consecutive rows (a hub two rows deep, a living room across two
-#: bands) — `cells.moves` extends exactly these roles
+#: zones that may occupy consecutive rows: a public room across two bands (`cells.moves` extends
+#: exactly these roles), and a hub hall down a run of up to `HALL_MAX_SPAN` rows — the spine: a
+#: hall with a dozen required neighbours cannot be one row's cell in a narrow frame (its cover of
+#: the neighbours in the adjacent row exceeds the row), it has to run along several
 SPANNING_ROLES = CIRC | PUBLIC
-ROW_COUNTS = (2, 3, 4)
+HALL_MAX_SPAN = 4
+#: row counts searched when the caller names none: from 2 up to what the usable depth admits at
+#: `MIN_ROW_DEPTH_M` per row, capped — a strip across the street (the V frame of a 24 x 9.5 m
+#: site) needs five or six rows of two or three rooms, a 4-band layout with a stack is five
+ROW_COUNTS = None
+MAX_ROWS = 6
+MIN_ROW_DEPTH_M = 2.0
+TYPICAL_ROW_DEPTH_M = 4.0
 TOL_M2 = 0.01
 #: the height grid the pre-check walks — the unified sizer's own `k` (`exact_pipeline.CELLS_K`)
 PRECHECK_K = 6
@@ -128,6 +137,20 @@ class CellBounds:
         if self.deeper_than_wide:
             w = min(w, h_net - 1)
         return w
+
+    def w_min(self, lo_h: int | None = None, hi_h: int | None = None) -> float:
+        """The least net width over the gross depths [lo_h, hi_h] (default: the cell's own range):
+        the demand falls with depth (area) then rises (aspect), so the ends and the crossing."""
+        lo = max(self.lo_h, self.foyer_lo_h) if lo_h is None else max(lo_h, self.lo_h, self.foyer_lo_h)
+        hi = min(self.hi_h, self.foyer_hi_h) if hi_h is None else min(hi_h, self.hi_h, self.foyer_hi_h)
+        lo_n, hi_n = max(1, lo - self.ih), max(1, hi - self.ih)
+        if hi_n < lo_n:
+            return float("inf")
+        pts = {float(lo_n), float(hi_n)}
+        cross = math.sqrt(max(self.area_lo_u2 * self.aspect, 1.0))
+        if lo_n < cross < hi_n:
+            pts.add(cross)
+        return min(self.w_min_at(h) for h in pts)
 
 
 def _one_bounds(zi, z: str, r0: int, r1: int, iw: int, ih: int, h_cap: int) -> CellBounds:
@@ -457,7 +480,7 @@ def _row_orders(members: list[str], es: frozenset, must_end: set, anchor: dict |
     units = _units(members, es)
     if units is None:
         return
-    ends_in = {u: [z for z in (u[0], u[-1]) if z in must_end] for u in units}
+    ends_in = {u: [z for z in dict.fromkeys((u[0], u[-1])) if z in must_end] for u in units}
     if any(z in must_end and z not in (u[0], u[-1]) for u in units for z in u):
         return
     if sum(len(v) for v in ends_in.values()) > 2 or (first is not None and sum(len(ends_in[u]) for u in units if first not in u) > 1):
@@ -529,7 +552,7 @@ def _comparable(pairs: list[tuple[int, int]]) -> bool:
 
 
 def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, arrival: str | None,
-             orient_tag: str = "H", row_counts=ROW_COUNTS, max_layouts: int = 200,
+             orient_tag: str = "H", row_counts=None, max_layouts: int = 200,
              node_limit: int = 20_000, orders_per_labeling: int = 16, orders_per_row: int = 40,
              deadline: float | None = None, stacks: bool = True, min_contact_u: dict | None = None,
              stats: dict | None = None):
@@ -541,6 +564,7 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
     if frame is None:
         return
     y_start, h_cap, _segments = frame
+    widest = max(R_ - L_ for (_y0, _y1, L_, R_) in _segments)
     req = [tuple(e) for e in required]
     es = frozenset(frozenset(e) for e in req)
     adj: dict[str, set[str]] = {z: set() for z in zones}
@@ -551,6 +575,23 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
     must_exterior = {z for z in zones if role(z) in REQUIRED_EXTERIOR_ROLES or role(z) is ProgramRole.SAFE_ROOM}
     halls = [z for z in zones if role(z) is ProgramRole.HALL]
     foyer_parti = arrival is not None and arrival in zones and role(arrival) is ProgramRole.CIRCULATION
+    # interchangeable rooms (four bedrooms off the hall: same role, bounds and required
+    # neighbours) are assigned in non-decreasing row order — one representative per permutation
+    twin_of: dict[str, str] = {}
+    signature = lambda z: (role(z), zones[z].min_area_m2, zones[z].max_area_m2, zones[z].min_short_side_m,
+                           zones[z].max_aspect_ratio, frozenset(adj[z]))
+    for z in order:
+        for w in order:
+            if w == z:
+                break
+            if signature(w) == signature(z) and w not in twin_of.values():
+                twin_of[z] = w
+                break
+    # every room's narrowest gross width (single row, at its deepest): the capacity bound below
+    narrowest = {}
+    for z in zones:
+        b = _one_bounds(zones[z], z, 1, 1, 2, 2, h_cap)
+        narrowest[z] = min(b.w_min() + b.iw, float(widest))
     # single-row depth bounds per zone, position-independent (partition insets: the loosest the
     # sizer can assign a middle cell; exterior/RC insets only widen them, so this is a relaxation)
     relaxed: dict[tuple[str, bool, bool], CellBounds] = {}
@@ -562,9 +603,19 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
         return relaxed[key]
 
     widest = max(R_ - L_ for (_y0, _y1, L_, R_) in _segments)
+    if row_counts is None:
+        # the most plausible row count first — the programme's area over the frame's width at a
+        # typical row depth — then outward from it, so a strip across the street (six rows of two
+        # or three rooms) is not reached only after the budgets of 2, 3, 4 and 5 rows are spent
+        most = max(2, min(MAX_ROWS, h_cap // m_to_u(MIN_ROW_DEPTH_M)))
+        total_m2 = sum(zi.target_area_m2 for zi in zones.values())
+        guess = round(total_m2 / max(widest * UNIT_M * TYPICAL_ROW_DEPTH_M, 1.0))
+        guess = max(2, min(most, guess))
+        row_counts = tuple(sorted(range(2, most + 1), key=lambda r: (abs(r - guess), r)))
     stats = stats if stats is not None else {}
     stats.update({"nodes": 0, "labelings": 0, "labelings_refused": 0, "layouts": 0, "screened_out": 0,
-                  "prechecked_out": 0, "emitted": 0})
+                  "prechecked_out": 0, "emitted": 0, "row_counts": row_counts, "sample_labelings": [],
+                  "refusals": {}, "sample_refused": []})
     emitted = 0
     seen: set = set()
 
@@ -580,9 +631,12 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
             nbrs = [f[w] for w in adj[v] if w in f]
             opts = [(r, r) for r in range(R)]
             if role(v) in SPANNING_ROLES and not (foyer_parti and v == arrival):
-                opts += [(r, r + 1) for r in range(R - 1)]
+                longest = HALL_MAX_SPAN if role(v) is ProgramRole.HALL else 2
+                opts += [(r, r + d) for d in range(1, longest) for r in range(R - d)]
             for iv in opts:
                 if any(not _touching(iv, n) for n in nbrs):
+                    continue
+                if v in twin_of and twin_of[v] in f and iv < f[twin_of[v]]:
                     continue
                 if orient_tag == "H":
                     if v == arrival and iv[0] != 0:
@@ -598,8 +652,10 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
             # largest common depth (where every cell is narrowest) the cells assigned so far must
             # fit the widest cross-section — a relaxation that prunes most dead assignments early
             ends_needed = [0] * R
+            members = [[] for _ in range(R)]
             for z, (r0, r1) in f.items():
                 for r in range(r0, r1 + 1):
+                    members[r].append(z)
                     same = sum(1 for w in adj[z] if w in f and f[w][0] <= r <= f[w][1])
                     if same > 2:
                         return False
@@ -608,6 +664,10 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
                         ends_needed[r] += 1
             if any(n > 2 for n in ends_needed):
                 return False
+            # a row's induced required graph must be a linear forest (no cycle: a triangle of a
+            # hub and two chained bedrooms has no consecutive order)
+            if any(len(m) >= 3 and _units(m, es) is None for m in members):
+                return False
             hL, hU = [1] * R, [h_cap] * R
             for z, (r0, r1) in f.items():
                 if r0 == r1:
@@ -615,15 +675,23 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
                     hL[r0] = max(hL[r0], b.lo_h); hU[r0] = min(hU[r0], b.hi_h)
             if any(hL[r] > hU[r] for r in range(R)) or sum(hL) > h_cap:
                 return False
+            room_left = [0.0] * R
             for r in range(R):
                 tot = 0.0
                 for z, (r0, r1) in f.items():
                     if r0 == r == r1:
                         b = rb(z, r0 == 0, False)
-                        tot += b.w_min_at(float(hU[r] - b.ih)) + b.iw
+                        tot += b.w_min(hL[r], hU[r]) + b.iw
+                    elif r0 <= r <= r1:
+                        b = rb(z, r0 == 0, True)
+                        tot += b.w_min(sum(hL[r0:r1 + 1]), sum(hU[r0:r1 + 1])) + b.iw
                 if tot > widest + 1e-9:
                     return False
-            return True
+                room_left[r] = widest - tot
+            # what is not assigned yet must still fit somewhere: its narrowest widths against the
+            # rows' remaining width
+            unassigned = sum(narrowest[z] for z in zones if z not in f)
+            return unassigned <= sum(room_left) + 1e-9
 
         nodes = 0
 
@@ -641,11 +709,18 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
                     rows = tuple(tuple(z for z in order if f[z][0] <= r <= f[z][1]) for r in range(R))
                     lay = CellLayout(rows)
                     loose = cell_bounds(lay, zones, h_cap, insets={z: (2, 2) for z in zones})
-                    if precheck(lay, zones, envelope, frame=frame, bounds=loose, required=req,
-                                min_contact_u=min_contact_u, ordered=False) is None:
+                    why = precheck(lay, zones, envelope, frame=frame, bounds=loose, required=req,
+                                   min_contact_u=min_contact_u, ordered=False)
+                    if why is None:
+                        if len(stats["sample_labelings"]) < 3:
+                            stats["sample_labelings"].append(rows)
                         yield from orders_of(dict(f))
                     else:
                         stats["labelings_refused"] += 1
+                        key = why.split(":")[0] if why.startswith("row") else why[:60]
+                        stats["refusals"][key] = stats["refusals"].get(key, 0) + 1
+                        if len(stats["sample_refused"]) < 3:
+                            stats["sample_refused"].append((rows, why))
                 return
             v = order[i]
             for iv in choices(v):
