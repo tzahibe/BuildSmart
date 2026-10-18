@@ -148,6 +148,11 @@ CELLS_K = 6
 CELLS_MOVE_SEEDS = 12
 STACK_BUDGET_S = 60.0
 SPINE_BUDGET_S = 90.0
+#: the screen-aware, bound-aware generator (#208): ON in the harness (the preview keeps it OFF
+#: until the day-3 gate); layouts per orientation per parti and its budget
+GENERATOR_ON = os.environ.get("SHAPE_AGNOSTIC_GENERATOR", "1") != "0"
+GENERATOR_MAX_LAYOUTS = 120
+GENERATOR_BUDGET_S = 60.0
 
 
 def _dump_design(case: dict, prop, best, out_dir: str, family: str) -> None:
@@ -416,6 +421,86 @@ def _cells_family(case, prop, zones, p, union, spatial, access, contacts, orient
 
 
 
+def _generator_family(case, prop, zones, p, union, spatial, access, contacts, orientations, requested, rec):
+    """The screen-aware, bound-aware generator (#208, `exact/generator.py`): layouts enumerated
+    WITH production's screens and the room bounds, screened by the 15 ms feasibility MILP at the
+    loosest rung, sized by the unified exact sizer up the ladder, realized as ordinary cells. Plans
+    tagged family="generator"; the first plan that counts is returned with its realization."""
+    from app.vertical_slice.exact.generator import generate
+    from app.vertical_slice.exact.milp_cells import milp_cells
+    t0 = time.monotonic()
+    reasons: Counter = Counter()
+    best = None
+    sized = 0
+    loosest = _rebanded(zones, p, None)
+    deadline = t0 + GENERATOR_BUDGET_S
+    for orient_tag, env_o in orientations:
+        if time.monotonic() > deadline or sized >= MAX_SIZINGS:
+            break
+        for layout in generate(loosest, union, access, p.resolved_wet, env_o, arrival=prop.arrival,
+                               orient_tag=orient_tag, max_layouts=GENERATOR_MAX_LAYOUTS, deadline=deadline,
+                               min_contact_u=contacts):
+            if time.monotonic() > deadline or sized >= MAX_SIZINGS:
+                break
+            rec["stages"]["GENERATOR_LAYOUTS"] += 1
+            screen = milp_cells(layout, loosest, union, env_o, min_contact_u=contacts, k=CELLS_K,
+                                objective="feasible", time_limit_s=2.0)
+            reasons[f"GENERATOR_SCREEN_{screen.status}"] += 1
+            if screen.status != "FEASIBLE":
+                continue
+            for rung in AREA_BAND_LADDER:
+                if time.monotonic() > deadline:
+                    break
+                zr = _rebanded(zones, p, rung) if rung != AREA_BAND_LADDER[0] else zones
+                o = cells_placement(layout, zr, union, env_o, min_contact_u=contacts, k=CELLS_K, objective=OBJECTIVE)
+                reasons[f"GENERATOR_{o.status}"] += 1
+                if o.status != "FEASIBLE":
+                    if o.status == "BAND_GAP":
+                        break
+                    continue
+                sized += 1
+                cell_rects, wing_rects = cells_rects(layout, o), cells_wings(layout, o)
+                if orient_tag == "V":
+                    cell_rects = transpose_rects(cell_rects)
+                    wing_rects = tuple(transpose_rects(dict(enumerate(wing_rects))).values())
+                out = realize_cells(f"{case['id']}:{prop.name}:generator", cell_rects, zr, wing_rects, access,
+                                    wet_rooms=p.resolved_wet)
+                if not isinstance(out, RealizedLayout):
+                    reasons[f"GENERATOR_{out.constraint}"] += 1
+                    rec["refusals"].append({"parti": prop.name, "stage": "GENERATOR_REALIZATION",
+                                            "code": out.constraint, "detail": out.detail[:200]})
+                    break
+                sp = measure_spatial_adjacency(out.rects, frozenset(frozenset(e) for e in spatial))
+                ac = measure_access_graph(out.fixture.access.edges, access)
+                gross = float(out.design.gross_area_m2)
+                net = float(out.design.net_area_m2 or 0.0)
+                verdict = assess_area(requested, gross, net, p.capacity_m2)
+                full = sp.preserved == sp.requested and ac.preserved == ac.requested
+                plan = {"family": "generator", "parti": prop.name, "spanning": list(layout.spanning),
+                        "rows": layout.n_rows,
+                        "layout": [list(r) for r in layout.rows], "rung": rung, "orientation": orient_tag,
+                        "contacts": f"{sp.preserved}/{sp.requested}",
+                        "doors": f"{ac.preserved}/{ac.requested}",
+                        "lost_doors": sorted(str(e) for e in ac.lost),
+                        "arrival": _arrival_zone(out),
+                        "gross_m2": round(gross, 1), "net_m2": round(net, 1),
+                        "area": verdict.code, "gross_pct": verdict.gross_pct,
+                        "wings": [(round(w.x * .05, 2), round(w.y * .05, 2), round(w.w * .05, 2),
+                                   round(w.h * .05, 2)) for w in wing_rects],
+                        "non_rectangular": len({(w.x, w.w) for w in wing_rects}) > 1,
+                        "validators": len(out.report.checks),
+                        "counts": bool(full and verdict.acceptable), **_proportions(out, zr)}
+                rec["plans"].append(plan)
+                if plan["counts"] and (best is None or (plan["room_dev_pct"] or 99) < (best[0]["room_dev_pct"] or 99)):
+                    best = (plan, out)
+                break
+    rec["stages"]["GENERATOR_SIZED"] += sized
+    for k, v in reasons.items():
+        rec["stages"][k] += v
+    rec["stages"]["GENERATOR_SECONDS"] += round(time.monotonic() - t0, 1)
+    return best
+
+
 def _spine_family(case, prop, zones, p, union, spatial, access, contacts, orientations, requested, rec):
     """Path B for one proposal: embed around the hub, size every layout with the exact spine oracle
     (both orientations, the Stage 3 ladder), realize through `realize_cells`. Returns the first plan
@@ -669,6 +754,14 @@ def run_case(case: dict, out_dir: str) -> dict:
                                        requested, rec)
             if cells_best is not None:
                 _dump_design(case, prop, cells_best, out_dir, "cells")
+
+        # 7. the screen-aware, bound-aware generator (#208): layouts built with the screens and the
+        # room bounds, where the embedder's order does not look
+        if cells_placement is not None and GENERATOR_ON:
+            gen_best = _generator_family(case, prop, zones, p, union, spatial, access, contacts, orientations,
+                                         requested, rec)
+            if gen_best is not None:
+                _dump_design(case, prop, gen_best, out_dir, "generator")
 
     rec["seconds"] = round(time.monotonic() - t0, 1)
     counted = [x for x in rec["plans"] if x["counts"]]

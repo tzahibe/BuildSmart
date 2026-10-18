@@ -41,14 +41,13 @@ import math
 import time
 from dataclasses import dataclass
 
-from app.vertical_slice.band_embedding import _linear_orders
 from app.vertical_slice.band_pipeline import _legal
 from app.vertical_slice.band_sizing import CellSpec, _height_bounds
 from app.vertical_slice.doors import ALLOWED_ENTRANCE_ROLES, ENTRANCE_DOOR_WIDTH_M
 from app.vertical_slice.envelope import Envelope
 from app.vertical_slice.exact.cells import CIRC, PUBLIC, STACKABLE, CellLayout, split
 from app.vertical_slice.exact.milp_cells import HALL_MIN_WIDTH_M, _insets
-from app.vertical_slice.exact.milp_oracle import FOYER_MAX_DEPTH_TO_WIDTH, FOYER_MIN_NET_M
+from app.vertical_slice.exact.milp_oracle import FOYER_MAX_DEPTH_TO_WIDTH, FOYER_MIN_NET_M, _height_grid
 from app.vertical_slice.exact.stacks import STACK_MAX_TARGET_M2, _tier
 from app.vertical_slice.exact.screens import cells_selection
 from app.vertical_slice.exposure_policy import REQUIRED_EXTERIOR_ROLES
@@ -59,6 +58,8 @@ from app.vertical_slice.geometry_core.model import UNIT_M, ProgramRole, m_to_u
 SPANNING_ROLES = CIRC | PUBLIC
 ROW_COUNTS = (2, 3, 4)
 TOL_M2 = 0.01
+#: the height grid the pre-check walks — the unified sizer's own `k` (`exact_pipeline.CELLS_K`)
+PRECHECK_K = 6
 #: the screens a generated layout claims to pass, in the order they are asked
 SCREENS = ("arrival_fronts_street", "foyer_holds_the_door", "entrance_feasible", "foyer_fronts_street",
            "exposure_ok", "access_contact_ok", "reachable_from_entrance")
@@ -107,6 +108,11 @@ class CellBounds:
     w_floor_u: int = 0          # entrance / foyer: unconditional net width floor
     strip_cap: float = 0.0      # foyer: net height <= strip_cap x net width (0 = none)
     deeper_than_wide: bool = False
+    #: the foyer group's own depth window (gross units) — a CONSTRAINT in the sizer, not a grid
+    #: bound: the row's height grid is spanned by `lo_h`/`hi_h` alone, exactly as `milp_cells`
+    #: spans it, and a grid height outside this window simply admits no width for the cell
+    foyer_lo_h: int = 0
+    foyer_hi_h: int = 10 ** 9
 
     def net_h_range(self) -> tuple[int, int]:
         return self.lo_h - self.ih, self.hi_h - self.ih
@@ -123,16 +129,6 @@ class CellBounds:
             w = min(w, h_net - 1)
         return w
 
-    def w_min(self) -> float:
-        """The least net width over the admissible heights (the sum of the cell's demands is
-        decreasing then increasing in h: evaluate the ends and the crossing)."""
-        lo, hi = self.net_h_range()
-        pts = {lo, hi}
-        cross = math.sqrt(max(self.area_lo_u2 * self.aspect, 1.0))
-        if lo < cross < hi:
-            pts.add(cross)
-        return min(self.w_min_at(float(h)) for h in pts)
-
 
 def _one_bounds(zi, z: str, r0: int, r1: int, iw: int, ih: int, h_cap: int) -> CellBounds:
     u2 = UNIT_M * UNIT_M
@@ -140,6 +136,7 @@ def _one_bounds(zi, z: str, r0: int, r1: int, iw: int, ih: int, h_cap: int) -> C
     lo, hi = _height_bounds(c, TOL_M2, h_cap)
     role = getattr(zi, "role", None)
     w_floor, strip_cap, deeper = 0, 0.0, False
+    f_lo, f_hi = 0, 10 ** 9
     if role in CIRC and r0 == 0:
         w_floor = max(w_floor, 3 * m_to_u(ENTRANCE_DOOR_WIDTH_M) - iw)
     if role in CIRC and r1 > r0:
@@ -148,16 +145,16 @@ def _one_bounds(zi, z: str, r0: int, r1: int, iw: int, ih: int, h_cap: int) -> C
         f = m_to_u(FOYER_MIN_NET_M)
         w_floor = max(w_floor, f)
         strip_cap = float(FOYER_MAX_DEPTH_TO_WIDTH)
-        lo = max(lo, ih + f)
+        f_lo = max(f_lo, ih + f)
         a_hi = (zi.max_area_m2 + TOL_M2) / u2
-        hi = min(hi, ih + int(math.floor(math.sqrt(strip_cap * a_hi) + 1e-9)))
+        f_hi = min(f_hi, ih + int(math.floor(math.sqrt(strip_cap * a_hi) + 1e-9)))
         if role is ProgramRole.CIRCULATION:
             deeper = True
-            lo = max(lo, ih + w_floor + 1)
-            hi = min(hi, ih + int(math.floor(a_hi / max(w_floor, 1) + 1e-9)))
+            f_lo = max(f_lo, ih + w_floor + 1)
+            f_hi = min(f_hi, ih + int(math.floor(a_hi / max(w_floor, 1) + 1e-9)))
     return CellBounds(z, lo, hi, iw, ih, m_to_u(zi.min_short_side_m),
                       zi.min_area_m2 / u2, (zi.max_area_m2 + TOL_M2) / u2, float(zi.max_aspect_ratio),
-                      w_floor, strip_cap, deeper)
+                      w_floor, strip_cap, deeper, f_lo, f_hi)
 
 
 def cell_bounds(layout: CellLayout, zones: dict, h_cap: int, insets: dict | None = None) -> dict[str, CellBounds]:
@@ -180,27 +177,45 @@ def cell_bounds(layout: CellLayout, zones: dict, h_cap: int, insets: dict | None
 
 # --------------------------------------------------------------------------- the pre-check
 
-def precheck(layout: CellLayout, zones: dict, envelope: Envelope, *, frame=None, bounds=None) -> str | None:
+def precheck(layout: CellLayout, zones: dict, envelope: Envelope, *, frame=None, bounds=None,
+             k: int = PRECHECK_K, required=(), min_contact_u: dict | None = None,
+             ordered: bool = True) -> str | None:
     """The cheap feasibility question per row, before any MILP. None when nothing refuses; else
-    the reason. A RELAXATION of `milp_cells`: a layout this refuses has no sizing at all.
+    the reason. A RELAXATION of `milp_cells` (its "cells" and "envelope" groups, without the
+    contacts, the alignment and the x-positions): a layout this refuses has no sizing at all.
 
-    * every single-row cell admits some depth, and the cells of a row admit a common one;
-    * the rows' minimum depths fit the usable depth; a spanning cell's rows can reach its range;
-    * per row, the sum of its cells' least gross widths fits the widest cross-section among the
-      depths the row can lie at (its top is at least the rows above it at their minimum depths,
-      at most the usable depth minus the rows below at theirs)."""
+    The sizer chooses every row's depth from the k-point grid `_height_grid` spans between the
+    row's cells' common depth range; a cell's net width at that depth must lie between what its
+    short side, minimum area and aspect demand and what its maximum area and aspect allow (plus
+    the oracle's entrance/foyer bounds on a fronting circulation cell); a spanning cell's depth is
+    the sum of its rows'. This walks the same grids: for every combination of row depths that fits
+    the usable depth, every row's cells get their least gross widths at that depth and the sum is
+    held to the width the envelope offers at every depth the row covers (the intersection of the
+    cross-sections it overlaps — the sizer's own step rule). One combination that fits is enough.
+    With `required` (and `min_contact_u`, `band_sizing.contact_requirements`), the sizer's contact
+    rule is relaxed in too: two sequence-neighbours' shared wall is the depth of the rows they
+    share, so those rows' depths sum to at least the door's need; and a cell whose required
+    neighbours in the adjacent row are n_1..n_k (consecutive there — the staircase) reaches from
+    `need` inside n_1 to `need` inside n_k, so it is at least the interior neighbours' least
+    widths plus two needs wide — which its own area and aspect must allow at that depth. With
+    `ordered=False` (a zone-to-row assignment whose orders are not chosen yet) the same two facts
+    hold order-free: required pairs sharing a row WILL be sequence-neighbours there (the row's
+    induced required graph is a linear forest), and of k neighbours in the adjacent row at least
+    the k - 2 narrowest lie between the two ends.
+    Costs microseconds to a few milliseconds (k^rows combinations, pruned row by row)."""
     frame = frame or depth_frame(envelope)
     if frame is None:
         return "the envelope splits inside the usable depth window"
     y_start, h_cap, segments = frame
     R = layout.n_rows
     bounds = bounds or cell_bounds(layout, zones, h_cap)
+    span = {z: layout.span(z) for z in layout.zones}
     hL, hU = [1] * R, [h_cap] * R
     for z in layout.zones:
         b = bounds[z]
         if b.lo_h > b.hi_h:
             return f"{z}: no admissible depth"
-        r0, r1 = layout.span(z)
+        r0, r1 = span[z]
         if r0 == r1:
             hL[r0] = max(hL[r0], b.lo_h); hU[r0] = min(hU[r0], b.hi_h)
     for r in range(R):
@@ -208,20 +223,115 @@ def precheck(layout: CellLayout, zones: dict, envelope: Envelope, *, frame=None,
             return f"row {r}: its cells have no common depth"
     if sum(hL) > h_cap:
         return f"the rows' minimum depths ({sum(hL)} u) exceed the usable depth ({h_cap} u)"
+    grids = [_height_grid(hL[r], hU[r], k) for r in range(R)]
+    singles = [[z for z in row if span[z] == (r, r)] for r, row in enumerate(layout.rows)]
+    spanning = [z for z in layout.zones if span[z][1] > span[z][0]]
+
+    def need(z: str, H: int) -> float | None:
+        """The least gross width of cell `z` at gross depth `H`, or None when no integer width
+        satisfies its bounds there (the sizer's boundaries are integer grid units)."""
+        b = bounds[z]
+        hn = H - b.ih
+        if hn < 1 or H < b.foyer_lo_h or H > b.foyer_hi_h:
+            return None
+        lo = math.ceil(b.w_min_at(float(hn)) - 1e-9)
+        hi = math.floor(b.w_max_at(float(hn)) + 1e-9)
+        return None if lo > hi else float(lo + b.iw)
+
+    # per row, the admissible grid depths with the single-row cells' summed least widths
+    options: list[list[tuple[int, float]]] = []
+    for r in range(R):
+        opts = []
+        for H in grids[r]:
+            tot = 0.0
+            for z in singles[r]:
+                n = need(z, H)
+                if n is None:
+                    break
+                tot += n
+            else:
+                opts.append((H, tot))
+        if not opts:
+            return f"row {r}: no grid depth admits every cell"
+        options.append(opts)
+
+    def avail(y0: int, y1: int) -> float:
+        touched = [(L_, R_) for (s0, s1, L_, R_) in segments if s0 < y1 and s1 > y0]
+        if not touched:
+            return 0.0
+        return float(min(R_ for _, R_ in touched) - max(L_ for L_, _ in touched))
+
+    min_rest = [sum(hL[r:]) for r in range(R + 1)]
+    heights: list[int] = []
+    reason = [f"no combination of row depths fits the rows' widths inside the envelope"]
+    # the contact rule, relaxed: same-row pairs -> shared rows' depth; cross-row -> interior cover
+    req = [tuple(e) for e in required]
+    pos = [{z: i for i, z in enumerate(row)} for row in layout.rows]
+    same_row: list[tuple[list[int], int]] = []
+    cover: dict[str, list[tuple[int, list[str], int]]] = {z: [] for z in layout.zones}
+    req_set = {frozenset(e) for e in req}
+    for a, b in req:
+        need_u = max(1, (min_contact_u or {}).get(frozenset((a, b)), 1))
+        shared = [r for r in range(R) if a in pos[r] and b in pos[r] and (not ordered or abs(pos[r][a] - pos[r][b]) == 1)]
+        if shared:
+            same_row.append((shared, need_u))
     for z in layout.zones:
-        r0, r1 = layout.span(z)
-        if r1 > r0:
-            b = bounds[z]
-            if sum(hL[r0:r1 + 1]) > b.hi_h or sum(hU[r0:r1 + 1]) < b.lo_h:
-                return f"{z}: its rows cannot reach its depth range"
-    for r, row in enumerate(layout.rows):
-        need = sum(bounds[z].w_min() + bounds[z].iw for z in row)
-        top_min = y_start + sum(hL[:r])
-        bottom_max = y_start + h_cap - sum(hL[r + 1:])
-        avail = max((R_ - L_ for (y0, y1, L_, R_) in segments if y0 < bottom_max and y1 > top_min), default=0)
-        if need > avail + 1e-9:
-            return f"row {r}: its cells need {need:.0f} u of width, the envelope offers {avail} u there"
-    return None
+        r0, r1 = span[z]
+        for rr in (r0 - 1, r1 + 1):
+            if not (0 <= rr < R) or z in pos[rr]:
+                continue
+            nbrs = sorted((n for n in layout.rows[rr] if frozenset((z, n)) in req_set and n not in pos[r0]),
+                          key=lambda n: pos[rr][n])
+            if len(nbrs) >= 2:
+                interior = layout.rows[rr][pos[rr][nbrs[0]] + 1:pos[rr][nbrs[-1]]] if ordered else nbrs
+                needs = sorted(max(1, (min_contact_u or {}).get(frozenset((z, n)), 1)) for n in nbrs)
+                cover[z].append((rr, list(interior), needs[0] + needs[1], ordered))
+
+    def h_of(z: str) -> int:
+        r0, r1 = span[z]
+        return sum(heights[r0:r1 + 1])
+
+    def walk(r: int, y: int) -> bool:
+        if r == R:
+            for z in spanning:
+                b = bounds[z]
+                Ht = h_of(z)
+                if Ht < b.lo_h or Ht > b.hi_h or need(z, Ht) is None:
+                    return False
+            for shared, need_u in same_row:
+                if sum(heights[rr] for rr in shared) < need_u:
+                    return False
+            ys = [y_start]
+            for H in heights:
+                ys.append(ys[-1] + H)
+            # every cell's gross width floor: its own least width, raised by what it must cover
+            wl = {z: need(z, h_of(z)) for z in layout.zones}
+            for z, covers in cover.items():
+                for _rr, interior, ends, is_ordered in covers:
+                    inner = [wl[n] for n in interior] if is_ordered else sorted(wl[n] for n in interior)[:-2]
+                    must = sum(inner) + ends
+                    if must > wl[z]:
+                        b = bounds[z]
+                        if must - b.iw > math.floor(b.w_max_at(float(h_of(z) - b.ih)) + 1e-9):
+                            return False
+                        wl[z] = float(must)
+            for rr in range(R):
+                tot = sum(wl[z] for z in layout.rows[rr])
+                if tot > avail(ys[rr], ys[rr + 1]) + 1e-9:
+                    return False
+            return True
+        for H, tot in options[r]:
+            if y + H + min_rest[r + 1] > y_start + h_cap:
+                continue
+            if tot > avail(y, y + H) + 1e-9:
+                continue
+            heights.append(H)
+            if walk(r + 1, y + H):
+                return True
+            heights.pop()
+        return False
+
+    return None if walk(0, y_start) else reason[0]
 
 
 # ------------------------------------------------------------------------------- the screens
@@ -296,6 +406,120 @@ def _touching(a: tuple[int, int], b: tuple[int, int]) -> bool:
     return (a0 <= b1 and b0 <= a1) or a1 + 1 == b0 or b1 + 1 == a0
 
 
+def _units(members: list[str], es: frozenset) -> list[tuple[str, ...]] | None:
+    """The paths of the row's induced required graph (a linear forest), as `_linear_orders`
+    derives them; None when a room has three required neighbours in the row or a cycle exists."""
+    inner = {e for e in es if e <= set(members)}
+    deg = {m: 0 for m in members}
+    adj = {m: [] for m in members}
+    for e in inner:
+        a, b = tuple(e)
+        deg[a] += 1; deg[b] += 1
+        adj[a].append(b); adj[b].append(a)
+    if any(d > 2 for d in deg.values()):
+        return None
+    seen: set = set()
+    paths = []
+    for m in sorted(members):
+        if m in seen:
+            continue
+        comp, stack = [], [m]
+        while stack:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x); comp.append(x)
+            stack.extend(adj[x])
+        ends = [x for x in comp if deg[x] <= 1]
+        if len(comp) > 1 and len(ends) != 2:
+            return None
+        if len(comp) == 1:
+            paths.append((m,)); continue
+        start = sorted(ends)[0]
+        path, prev, cur = [start], None, start
+        while True:
+            nxt = [y for y in adj[cur] if y != prev]
+            if not nxt:
+                break
+            prev, cur = cur, nxt[0]
+            path.append(cur)
+        paths.append(tuple(path))
+    return paths
+
+
+def _row_orders(members: list[str], es: frozenset, must_end: set, anchor: dict | None, *, first=None,
+                middle_perms: int = 6):
+    """Orders of a row: its path units concatenated, built WITH the end constraints — a unit that
+    holds a must-end room is placed first or last with that room outward — and the middle units
+    ordered by `anchor` (a room -> position hint from the row above, so the staircase with it is
+    met early) with a few permutations around that order. `first` pins one room to position 0
+    (the arrival room across the street). Lazy and deterministic."""
+    units = _units(members, es)
+    if units is None:
+        return
+    ends_in = {u: [z for z in (u[0], u[-1]) if z in must_end] for u in units}
+    if any(z in must_end and z not in (u[0], u[-1]) for u in units for z in u):
+        return
+    if sum(len(v) for v in ends_in.values()) > 2 or (first is not None and sum(len(ends_in[u]) for u in units if first not in u) > 1):
+        return
+
+    def oriented(u, outward_at_start: str | None, outward_at_end: str | None):
+        """The orientations of `u` whose first/last room is the one asked for."""
+        for seq in ((u, tuple(reversed(u))) if len(u) > 1 else (u,)):
+            if outward_at_start is not None and seq[0] != outward_at_start:
+                continue
+            if outward_at_end is not None and seq[-1] != outward_at_end:
+                continue
+            yield seq
+
+    def key(u):
+        if anchor:
+            hints = [anchor[z] for z in u if z in anchor]
+            if hints:
+                return (0, sum(hints) / len(hints), u)
+        return (1, 0.0, u)
+
+    seen: set = set()
+    n = len(units)
+    if n == 1:
+        u = units[0]
+        for seq in oriented(u, first, None):
+            if all(z in (seq[0], seq[-1]) for z in ends_in[u]) and (seq[0] not in must_end or True):
+                yield seq
+        return
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            uf, ul = units[i], units[j]
+            middle = sorted((u for k, u in enumerate(units) if k not in (i, j)), key=key)
+            # every must-end room must be outward: in uf's first position or ul's last
+            if any(ends_in[u] for u in middle):
+                continue
+            for sf in oriented(uf, first, None):
+                if any(z != sf[0] for z in ends_in[uf]) or (first is not None and sf[0] != first):
+                    continue
+                for sl in oriented(ul, None, None):
+                    if any(z != sl[-1] for z in ends_in[ul]):
+                        continue
+                    perms = [middle]
+                    for perm in itertools.permutations(middle):
+                        if len(perms) >= middle_perms:
+                            break
+                        if list(perm) != middle:
+                            perms.append(list(perm))
+                    for mid in perms:
+                        for bits in range(1 << len(mid)):
+                            seq = list(sf)
+                            for k, u in enumerate(mid):
+                                seq.extend(reversed(u) if (bits >> k) & 1 and len(u) > 1 else u)
+                            seq.extend(sl)
+                            t = tuple(seq)
+                            if t not in seen:
+                                seen.add(t)
+                                yield t
+
+
 def _comparable(pairs: list[tuple[int, int]]) -> bool:
     """Cross-row contacts along one seam must form a staircase: no two pairs crossing."""
     for (i, j), (i2, j2) in itertools.combinations(pairs, 2):
@@ -307,7 +531,8 @@ def _comparable(pairs: list[tuple[int, int]]) -> bool:
 def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, arrival: str | None,
              orient_tag: str = "H", row_counts=ROW_COUNTS, max_layouts: int = 200,
              node_limit: int = 20_000, orders_per_labeling: int = 16, orders_per_row: int = 40,
-             deadline: float | None = None, stacks: bool = True):
+             deadline: float | None = None, stacks: bool = True, min_contact_u: dict | None = None,
+             stats: dict | None = None):
     """Yield `CellLayout`s that pass `layout_rejections` and `precheck`, deterministically: row
     counts in order, labelings in DFS order from the hub, orders row by row. Every layout yielded
     claims `SCREENS`; the pre-check has been applied in the oracle's frame (`envelope` is already
@@ -328,12 +553,18 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
     foyer_parti = arrival is not None and arrival in zones and role(arrival) is ProgramRole.CIRCULATION
     # single-row depth bounds per zone, position-independent (partition insets: the loosest the
     # sizer can assign a middle cell; exterior/RC insets only widen them, so this is a relaxation)
-    lo_single: dict[str, int] = {}
-    u2 = UNIT_M * UNIT_M
-    for z, zi in zones.items():
-        c = CellSpec(z, 0, 0, 0, zi.min_area_m2, zi.max_area_m2, zi.min_short_side_m, zi.max_aspect_ratio, 2, 2)
-        lo_single[z] = _height_bounds(c, TOL_M2, h_cap)[0]
-    nodes = 0
+    relaxed: dict[tuple[str, bool, bool], CellBounds] = {}
+
+    def rb(z: str, fronting: bool, spanning: bool) -> CellBounds:
+        key = (z, fronting, spanning)
+        if key not in relaxed:
+            relaxed[key] = _one_bounds(zones[z], z, 0 if fronting else 1, (1 if fronting else 2) if spanning else (0 if fronting else 1), 2, 2, h_cap)
+        return relaxed[key]
+
+    widest = max(R_ - L_ for (_y0, _y1, L_, R_) in _segments)
+    stats = stats if stats is not None else {}
+    stats.update({"nodes": 0, "labelings": 0, "labelings_refused": 0, "layouts": 0, "screened_out": 0,
+                  "prechecked_out": 0, "emitted": 0})
     emitted = 0
     seen: set = set()
 
@@ -363,7 +594,9 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
         def consistent() -> bool:
             # same-row required neighbours: at most two per zone per row (a row's induced required
             # graph is a linear forest); exposure: a middle-row REQUIRED-exposure room must be a row
-            # end, at most two per row; depth: the rows' minimum depths fit
+            # end, at most two per row; depth: the rows' minimum depths fit; width: at the row's
+            # largest common depth (where every cell is narrowest) the cells assigned so far must
+            # fit the widest cross-section — a relaxation that prunes most dead assignments early
             ends_needed = [0] * R
             for z, (r0, r1) in f.items():
                 for r in range(r0, r1 + 1):
@@ -375,26 +608,44 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
                         ends_needed[r] += 1
             if any(n > 2 for n in ends_needed):
                 return False
-            hL = [1] * R
+            hL, hU = [1] * R, [h_cap] * R
             for z, (r0, r1) in f.items():
                 if r0 == r1:
-                    hL[r0] = max(hL[r0], lo_single[z])
-            return sum(hL) <= h_cap
+                    b = rb(z, r0 == 0, False)
+                    hL[r0] = max(hL[r0], b.lo_h); hU[r0] = min(hU[r0], b.hi_h)
+            if any(hL[r] > hU[r] for r in range(R)) or sum(hL) > h_cap:
+                return False
+            for r in range(R):
+                tot = 0.0
+                for z, (r0, r1) in f.items():
+                    if r0 == r == r1:
+                        b = rb(z, r0 == 0, False)
+                        tot += b.w_min_at(float(hU[r] - b.ih)) + b.iw
+                if tot > widest + 1e-9:
+                    return False
+            return True
+
+        nodes = 0
 
         def rec(i: int):
             nonlocal nodes
             if emitted >= max_layouts or out_of_time():
                 return
             nodes += 1
+            stats["nodes"] += 1
             if nodes > node_limit:
                 return
             if i == len(order):
                 if all(any(r0 <= r <= r1 for (r0, r1) in f.values()) for r in range(R)):
+                    stats["labelings"] += 1
                     rows = tuple(tuple(z for z in order if f[z][0] <= r <= f[z][1]) for r in range(R))
                     lay = CellLayout(rows)
-                    relaxed = cell_bounds(lay, zones, h_cap, insets={z: (2, 2) for z in zones})
-                    if precheck(lay, zones, envelope, frame=frame, bounds=relaxed) is None:
+                    loose = cell_bounds(lay, zones, h_cap, insets={z: (2, 2) for z in zones})
+                    if precheck(lay, zones, envelope, frame=frame, bounds=loose, required=req,
+                                min_contact_u=min_contact_u, ordered=False) is None:
                         yield from orders_of(dict(f))
+                    else:
+                        stats["labelings_refused"] += 1
                 return
             v = order[i]
             for iv in choices(v):
@@ -412,13 +663,18 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
 
             def row_options(r: int, prev: tuple[str, ...] | None):
                 given = 0
-                for k, o in enumerate(_linear_orders(sorted(members[r]), es)):
+                anchor = None
+                if prev is not None:
+                    pos_prev = {z: k for k, z in enumerate(prev)}
+                    anchor = {}
+                    for z in members[r]:
+                        hints = [pos_prev[w] for w in adj[z] if w in pos_prev] + ([pos_prev[z]] if z in pos_prev else [])
+                        if hints:
+                            anchor[z] = sum(hints) / len(hints)
+                pin = arrival if (orient_tag == "V" and arrival in members[r]) else None
+                for k, o in enumerate(_row_orders(members[r], es, must_end & set(members[r]), anchor, first=pin)):
                     if given >= orders_per_row or (k & 255 == 255 and out_of_time()):
                         return
-                    if any(z in must_end and z not in (o[0], o[-1]) for z in o):
-                        continue
-                    if orient_tag == "V" and arrival in o and o[0] != arrival:
-                        continue
                     if prev is not None:
                         # C22 for a zone in both rows: first in both or neither, last in both or neither
                         ok = True
@@ -467,11 +723,15 @@ def generate(zones: dict, required, access, wet_rooms, envelope: Envelope, *, ar
                             yield cand
 
         for lay in rec(0):
+            stats["layouts"] += 1
             if layout_rejections(lay, zones, wet_rooms, access, arrival=arrival, orient_tag=orient_tag):
+                stats["screened_out"] += 1
                 continue
-            if precheck(lay, zones, envelope, frame=frame) is not None:
+            if precheck(lay, zones, envelope, frame=frame, required=req, min_contact_u=min_contact_u) is not None:
+                stats["prechecked_out"] += 1
                 continue
             emitted += 1
+            stats["emitted"] = emitted
             yield lay
             if emitted >= max_layouts:
                 return
