@@ -1,0 +1,9489 @@
+[
+  {
+    "id": "F1-rect-control",
+    "expected": "FEASIBLE",
+    "stages": {
+      "SIZED_CANDIDATES": 16,
+      "SCREENED": 33,
+      "SELECTION_entrance_feasible": 40,
+      "SELECTION_exposure_ok": 58,
+      "ORACLE_INFEASIBLE": 17,
+      "ORACLE_FEASIBLE": 16,
+      "INFEASIBLE": 31,
+      "NO_ENTRANCE": 7,
+      "SPINE_LAYOUTS": 297,
+      "SPINE_SIZED": 10,
+      "SPINE_SELECTION_exposure_ok": 194,
+      "SPINE_INFEASIBLE": 449,
+      "SPINE_FEASIBLE": 10,
+      "SPINE_SECONDS": 39.2,
+      "STACK_CANDIDATES": 1500,
+      "STACK_SIZED": 8,
+      "STACK_SELECTION_entrance_feasible": 209,
+      "STACK_SELECTION_exposure_ok": 231,
+      "STACK_SCREEN_INFEASIBLE": 584,
+      "STACK_SCREEN_FEASIBLE": 27,
+      "STACK_INFEASIBLE": 66,
+      "STACK_UNKNOWN": 17,
+      "STACK_SECONDS": 296.7,
+      "CELLS_LAYOUTS": 403,
+      "CELLS_SIZED": 10,
+      "CELLS_SELECTION_foyer_fronts_street": 286,
+      "CELLS_SELECTION_exposure_ok": 140,
+      "CELLS_SELECTION_entrance_feasible": 157,
+      "CELLS_INFEASIBLE": 420,
+      "CELLS_FEASIBLE": 10,
+      "CELLS_SECONDS": 27.6,
+      "GENERATOR_LAYOUTS": 733,
+      "GENERATOR_SIZED": 96,
+      "GENERATOR_SCREEN_INFEASIBLE": 563,
+      "GENERATOR_SCREEN_FEASIBLE": 170,
+      "GENERATOR_INFEASIBLE": 564,
+      "GENERATOR_FEASIBLE": 96,
+      "GENERATOR_SECONDS": 63.69999999999999,
+      "SPINE_SELECTION_entrance_feasible": 116,
+      "STACK_FEASIBLE": 8,
+      "STACK_NO_ENTRANCE": 2,
+      "GENERATOR_NO_ENTRANCE": 20,
+      "SPINE_SELECTION_foyer_fronts_street": 75,
+      "SPINE_NO_ENTRANCE": 6,
+      "CELLS_VALIDATION_FAILED": 3,
+      "GENERATOR_VALIDATION_FAILED": 5
+    },
+    "plans": [
+      {
+        "family": "band",
+        "parti": "HALL_SPINE+FOYER",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 171.0,
+        "net_m2": 157.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.2,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            6.4
+          ],
+          [
+            0.0,
+            6.4,
+            12.0,
+            3.95
+          ],
+          [
+            0.0,
+            10.35,
+            12.0,
+            3.9
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 19.2,
+        "circ_pct": 14.7,
+        "min_bed_pct": 78.0,
+        "render": "F1-rect-control__HALL_SPINE+FOYER__band.json"
+      },
+      {
+        "family": "spine",
+        "parti": "HALL_SPINE+FOYER",
+        "spine": "HALL",
+        "rows": 5,
+        "section": [
+          1,
+          5
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 164.8,
+        "net_m2": 150.9,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.3,
+        "wings": [
+          [
+            4.3,
+            0.0,
+            2.3,
+            2.5
+          ],
+          [
+            0.0,
+            2.5,
+            4.3,
+            2.8
+          ],
+          [
+            6.6,
+            2.5,
+            5.4,
+            2.8
+          ],
+          [
+            0.0,
+            5.3,
+            4.3,
+            3.5
+          ],
+          [
+            6.6,
+            5.3,
+            5.4,
+            3.5
+          ],
+          [
+            0.0,
+            8.8,
+            4.3,
+            4.15
+          ],
+          [
+            6.6,
+            8.8,
+            5.4,
+            4.15
+          ],
+          [
+            0.0,
+            12.95,
+            4.3,
+            2.8
+          ],
+          [
+            6.6,
+            12.95,
+            5.4,
+            2.8
+          ],
+          [
+            4.3,
+            2.5,
+            2.3,
+            13.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.3,
+        "circ_pct": 22.1,
+        "min_bed_pct": 69.7,
+        "render": "F1-rect-control__HALL_SPINE+FOYER__spine.json"
+      },
+      {
+        "family": "cells",
+        "parti": "HALL_SPINE+FOYER",
+        "deep": "HALL",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "ENTRY",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1",
+            "BATH_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 154.3,
+        "net_m2": 141.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.4,
+        "wings": [
+          [
+            2.15,
+            0.0,
+            3.1,
+            3.3
+          ],
+          [
+            5.25,
+            0.0,
+            6.75,
+            3.3
+          ],
+          [
+            0.0,
+            3.3,
+            2.15,
+            4.25
+          ],
+          [
+            2.15,
+            3.3,
+            2.0,
+            4.25
+          ],
+          [
+            4.15,
+            3.3,
+            2.55,
+            7.35
+          ],
+          [
+            6.7,
+            3.3,
+            5.3,
+            4.25
+          ],
+          [
+            0.0,
+            7.55,
+            4.15,
+            3.1
+          ],
+          [
+            6.7,
+            7.55,
+            5.3,
+            3.1
+          ],
+          [
+            0.0,
+            10.65,
+            5.6,
+            2.8
+          ],
+          [
+            5.6,
+            10.65,
+            6.4,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.2,
+        "circ_pct": 18.9,
+        "min_bed_pct": 59.2,
+        "render": "F1-rect-control__HALL_SPINE+FOYER__cells.json"
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 146.9,
+        "net_m2": 133.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            1.8,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.6,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            4.25,
+            3.65
+          ],
+          [
+            4.25,
+            3.2,
+            5.45,
+            3.65
+          ],
+          [
+            9.7,
+            3.2,
+            2.3,
+            3.65
+          ],
+          [
+            4.25,
+            6.85,
+            2.8,
+            5.5
+          ],
+          [
+            7.05,
+            6.85,
+            4.95,
+            5.5
+          ],
+          [
+            7.05,
+            12.35,
+            4.95,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.5,
+        "circ_pct": 20.7,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 164.8,
+        "net_m2": 151.5,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            1.8,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.6,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            4.3,
+            3.55
+          ],
+          [
+            4.3,
+            3.2,
+            5.4,
+            3.55
+          ],
+          [
+            9.7,
+            3.2,
+            2.3,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            6.85,
+            5.5
+          ],
+          [
+            6.85,
+            6.75,
+            2.85,
+            5.5
+          ],
+          [
+            0.0,
+            12.25,
+            6.85,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.0,
+        "circ_pct": 17.8,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "BATH_1",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 160.8,
+        "net_m2": 147.5,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 74.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.2
+          ],
+          [
+            3.95,
+            0.0,
+            1.7,
+            3.2
+          ],
+          [
+            5.65,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.65,
+            0.0,
+            3.35,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.85,
+            3.65
+          ],
+          [
+            2.85,
+            3.2,
+            6.9,
+            3.65
+          ],
+          [
+            9.75,
+            3.2,
+            2.25,
+            3.65
+          ],
+          [
+            2.85,
+            6.85,
+            2.8,
+            5.5
+          ],
+          [
+            5.65,
+            6.85,
+            6.35,
+            5.5
+          ],
+          [
+            5.65,
+            12.35,
+            6.35,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.1,
+        "circ_pct": 22.3,
+        "min_bed_pct": 56.2
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "BATH_1",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 165.1,
+        "net_m2": 151.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.2
+          ],
+          [
+            3.95,
+            0.0,
+            1.7,
+            3.2
+          ],
+          [
+            5.65,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.65,
+            0.0,
+            3.35,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.85,
+            3.55
+          ],
+          [
+            2.85,
+            3.2,
+            6.9,
+            3.55
+          ],
+          [
+            9.75,
+            3.2,
+            2.25,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            6.85,
+            5.5
+          ],
+          [
+            6.85,
+            6.75,
+            2.9,
+            5.5
+          ],
+          [
+            0.0,
+            12.25,
+            6.85,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.6,
+        "circ_pct": 21.2,
+        "min_bed_pct": 56.2
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "BEDROOM_1",
+            "ENTRY"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 141.4,
+        "net_m2": 128.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 65.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.1,
+            3.2
+          ],
+          [
+            2.1,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.9,
+            0.0,
+            3.1,
+            3.2
+          ],
+          [
+            9.0,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            4.6,
+            2.8
+          ],
+          [
+            4.6,
+            3.2,
+            5.5,
+            2.8
+          ],
+          [
+            10.1,
+            3.2,
+            1.9,
+            2.8
+          ],
+          [
+            4.6,
+            6.0,
+            2.85,
+            5.5
+          ],
+          [
+            7.45,
+            6.0,
+            4.55,
+            5.5
+          ],
+          [
+            7.45,
+            11.5,
+            4.55,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 32.8,
+        "circ_pct": 17.9,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "BEDROOM_1",
+            "ENTRY"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 163.4,
+        "net_m2": 150.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 75.6,
+        "wings": [
+          [
+            0.15,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            1.95,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.75,
+            0.0,
+            3.1,
+            3.2
+          ],
+          [
+            8.85,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            0.15,
+            3.2,
+            4.3,
+            3.55
+          ],
+          [
+            4.45,
+            3.2,
+            5.5,
+            3.55
+          ],
+          [
+            9.95,
+            3.2,
+            1.9,
+            3.55
+          ],
+          [
+            0.15,
+            6.75,
+            6.85,
+            5.5
+          ],
+          [
+            7.0,
+            6.75,
+            2.95,
+            5.5
+          ],
+          [
+            0.15,
+            12.25,
+            6.85,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 28.4,
+        "circ_pct": 18.0,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "BATH_1",
+            "BEDROOM_1",
+            "ENTRY"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 158.3,
+        "net_m2": 145.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 73.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            4.2,
+            0.0,
+            1.7,
+            3.2
+          ],
+          [
+            5.9,
+            0.0,
+            3.1,
+            3.2
+          ],
+          [
+            9.0,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.1,
+            3.65
+          ],
+          [
+            3.1,
+            3.2,
+            7.0,
+            3.65
+          ],
+          [
+            10.1,
+            3.2,
+            1.9,
+            3.65
+          ],
+          [
+            3.1,
+            6.85,
+            2.8,
+            5.5
+          ],
+          [
+            5.9,
+            6.85,
+            6.1,
+            5.5
+          ],
+          [
+            5.9,
+            12.35,
+            6.1,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 31.4,
+        "circ_pct": 22.7,
+        "min_bed_pct": 60.0
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "BATH_1",
+            "BEDROOM_1",
+            "ENTRY"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 158.7,
+        "net_m2": 145.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 73.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            4.2,
+            0.0,
+            1.7,
+            3.2
+          ],
+          [
+            5.9,
+            0.0,
+            3.1,
+            3.2
+          ],
+          [
+            9.0,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.1,
+            3.55
+          ],
+          [
+            3.1,
+            3.2,
+            7.0,
+            3.55
+          ],
+          [
+            10.1,
+            3.2,
+            1.9,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            6.8,
+            4.7
+          ],
+          [
+            6.8,
+            6.75,
+            3.3,
+            4.7
+          ],
+          [
+            0.0,
+            11.45,
+            6.8,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 32.2,
+        "circ_pct": 22.1,
+        "min_bed_pct": 60.0
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 160.8,
+        "net_m2": 147.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 74.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.2
+          ],
+          [
+            3.95,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            6.95,
+            0.0,
+            5.05,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.85,
+            3.65
+          ],
+          [
+            2.85,
+            3.2,
+            5.2,
+            3.65
+          ],
+          [
+            8.05,
+            3.2,
+            1.75,
+            3.65
+          ],
+          [
+            9.8,
+            3.2,
+            2.2,
+            3.65
+          ],
+          [
+            2.85,
+            6.85,
+            2.8,
+            5.5
+          ],
+          [
+            5.65,
+            6.85,
+            6.35,
+            5.5
+          ],
+          [
+            5.65,
+            12.35,
+            6.35,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.5,
+        "circ_pct": 18.2,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [
+          "BEDROOM_2",
+          "HALL"
+        ],
+        "rows": 5,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 172.7,
+        "net_m2": 158.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.9,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            4.2,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.2,
+            0.0,
+            4.8,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.1,
+            4.85
+          ],
+          [
+            3.1,
+            3.2,
+            5.2,
+            4.85
+          ],
+          [
+            8.3,
+            3.2,
+            3.7,
+            1.7
+          ],
+          [
+            8.3,
+            4.9,
+            3.7,
+            3.15
+          ],
+          [
+            3.1,
+            8.05,
+            2.8,
+            5.5
+          ],
+          [
+            5.9,
+            8.05,
+            6.1,
+            5.5
+          ],
+          [
+            5.9,
+            13.55,
+            6.1,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 18.9,
+        "circ_pct": 20.7,
+        "min_bed_pct": 69.0,
+        "render": "F1-rect-control__HALL_SPINE+FOYER__generator.json"
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2",
+            "BATH_1"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 165.1,
+        "net_m2": 151.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.2
+          ],
+          [
+            3.95,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            6.95,
+            0.0,
+            5.05,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.85,
+            3.55
+          ],
+          [
+            2.85,
+            3.2,
+            5.2,
+            3.55
+          ],
+          [
+            8.05,
+            3.2,
+            1.7,
+            3.55
+          ],
+          [
+            9.75,
+            3.2,
+            2.25,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            6.85,
+            5.5
+          ],
+          [
+            6.85,
+            6.75,
+            2.9,
+            5.5
+          ],
+          [
+            0.0,
+            12.25,
+            6.85,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.2,
+        "circ_pct": 17.3,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE+FOYER",
+        "spanning": [
+          "BEDROOM_2",
+          "HALL"
+        ],
+        "rows": 5,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 157.0,
+        "net_m2": 143.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 72.7,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.85,
+            3.2
+          ],
+          [
+            4.85,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.85,
+            0.0,
+            4.15,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.75,
+            3.5
+          ],
+          [
+            3.75,
+            3.2,
+            5.2,
+            3.5
+          ],
+          [
+            8.95,
+            3.2,
+            3.05,
+            1.7
+          ],
+          [
+            8.95,
+            4.9,
+            3.05,
+            1.8
+          ],
+          [
+            0.0,
+            6.7,
+            6.15,
+            5.5
+          ],
+          [
+            6.15,
+            6.7,
+            2.8,
+            5.5
+          ],
+          [
+            0.0,
+            12.2,
+            6.15,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.9,
+        "circ_pct": 18.1,
+        "min_bed_pct": 59.2
+      },
+      {
+        "family": "band",
+        "parti": "HALL_SPINE",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 169.2,
+        "net_m2": 156.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 78.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            5.3
+          ],
+          [
+            0.0,
+            5.3,
+            12.0,
+            5.2
+          ],
+          [
+            0.0,
+            10.5,
+            12.0,
+            3.6
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.5,
+        "circ_pct": 15.8,
+        "min_bed_pct": 64.4,
+        "render": "F1-rect-control__HALL_SPINE__band.json"
+      },
+      {
+        "family": "stack",
+        "parti": "HALL_SPINE",
+        "stack": [
+          "BATH_2",
+          "BATH_1"
+        ],
+        "bands": 3,
+        "rung": 0.3,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 168.8,
+        "net_m2": 155.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 78.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            4.6
+          ],
+          [
+            0.0,
+            4.6,
+            5.0,
+            6.35
+          ],
+          [
+            5.0,
+            4.6,
+            3.8,
+            6.35
+          ],
+          [
+            8.8,
+            4.6,
+            3.2,
+            6.35
+          ],
+          [
+            0.0,
+            10.95,
+            8.8,
+            4.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 13.5,
+        "circ_pct": 8.4,
+        "min_bed_pct": 95.2,
+        "render": "F1-rect-control__HALL_SPINE__stack.json"
+      },
+      {
+        "family": "cells",
+        "parti": "HALL_SPINE",
+        "deep": "moves",
+        "spanning": [
+          "MASTER",
+          "BEDROOM_3"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "MASTER",
+            "BATH_2",
+            "BEDROOM_3"
+          ],
+          [
+            "MASTER",
+            "BATH_1",
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 182.2,
+        "net_m2": 168.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 84.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.25,
+            6.65
+          ],
+          [
+            4.25,
+            0.0,
+            7.75,
+            6.65
+          ],
+          [
+            0.0,
+            6.65,
+            2.8,
+            3.65
+          ],
+          [
+            2.8,
+            6.65,
+            6.35,
+            3.65
+          ],
+          [
+            9.15,
+            6.65,
+            2.85,
+            3.65
+          ],
+          [
+            0.0,
+            10.3,
+            3.9,
+            6.4
+          ],
+          [
+            3.9,
+            10.3,
+            2.45,
+            3.15
+          ],
+          [
+            6.35,
+            10.3,
+            2.8,
+            6.4
+          ],
+          [
+            3.9,
+            13.45,
+            2.45,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.2,
+        "circ_pct": 13.1,
+        "min_bed_pct": 65.3,
+        "render": "F1-rect-control__HALL_SPINE__cells.json"
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_3",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 143.2,
+        "net_m2": 130.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 66.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.85,
+            4.75
+          ],
+          [
+            2.85,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            5.85,
+            0.0,
+            6.15,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            2.85,
+            3.55
+          ],
+          [
+            5.85,
+            4.75,
+            2.05,
+            3.55
+          ],
+          [
+            7.9,
+            4.75,
+            4.1,
+            3.55
+          ],
+          [
+            0.0,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            3.95,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            3.95,
+            12.2,
+            3.95,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.5,
+        "circ_pct": 18.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "MASTER",
+            "BEDROOM_3"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 151.5,
+        "net_m2": 138.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 70.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.05,
+            4.75
+          ],
+          [
+            3.05,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            6.05,
+            0.0,
+            5.95,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            3.05,
+            3.55
+          ],
+          [
+            6.05,
+            4.75,
+            1.85,
+            3.55
+          ],
+          [
+            7.9,
+            4.75,
+            4.1,
+            3.55
+          ],
+          [
+            0.0,
+            8.3,
+            4.55,
+            4.7
+          ],
+          [
+            4.55,
+            8.3,
+            3.35,
+            4.7
+          ],
+          [
+            0.0,
+            13.0,
+            4.55,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.6,
+        "circ_pct": 16.9,
+        "min_bed_pct": 70.2
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 151.5,
+        "net_m2": 138.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 70.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.95,
+            4.75
+          ],
+          [
+            5.95,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            8.95,
+            0.0,
+            3.05,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            4.1,
+            3.55
+          ],
+          [
+            4.1,
+            4.75,
+            1.85,
+            3.55
+          ],
+          [
+            8.95,
+            4.75,
+            3.05,
+            3.55
+          ],
+          [
+            4.1,
+            8.3,
+            3.35,
+            4.7
+          ],
+          [
+            7.45,
+            8.3,
+            4.55,
+            4.7
+          ],
+          [
+            7.45,
+            13.0,
+            4.55,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.6,
+        "circ_pct": 16.9,
+        "min_bed_pct": 70.2
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "MASTER",
+            "BEDROOM_3"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 143.2,
+        "net_m2": 130.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 66.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            6.15,
+            4.75
+          ],
+          [
+            6.15,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            9.15,
+            0.0,
+            2.85,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            4.1,
+            3.55
+          ],
+          [
+            4.1,
+            4.75,
+            2.05,
+            3.55
+          ],
+          [
+            9.15,
+            4.75,
+            2.85,
+            3.55
+          ],
+          [
+            4.1,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            8.05,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            4.1,
+            12.2,
+            3.95,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.5,
+        "circ_pct": 18.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BEDROOM_3"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 153.6,
+        "net_m2": 140.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.1,
+        "wings": [
+          [
+            0.2,
+            0.0,
+            3.25,
+            4.5
+          ],
+          [
+            3.45,
+            0.0,
+            3.1,
+            9.15
+          ],
+          [
+            6.55,
+            0.0,
+            2.3,
+            4.5
+          ],
+          [
+            8.85,
+            0.0,
+            2.6,
+            4.5
+          ],
+          [
+            0.2,
+            4.5,
+            3.25,
+            4.65
+          ],
+          [
+            6.55,
+            4.5,
+            4.9,
+            4.65
+          ],
+          [
+            0.2,
+            9.15,
+            4.85,
+            3.1
+          ],
+          [
+            5.05,
+            9.15,
+            6.4,
+            3.1
+          ],
+          [
+            0.2,
+            12.25,
+            4.85,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.1,
+        "circ_pct": 19.1,
+        "min_bed_pct": 69.8
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 153.6,
+        "net_m2": 140.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.1,
+        "wings": [
+          [
+            0.1,
+            0.0,
+            2.6,
+            4.5
+          ],
+          [
+            2.7,
+            0.0,
+            2.3,
+            4.5
+          ],
+          [
+            5.0,
+            0.0,
+            3.1,
+            9.15
+          ],
+          [
+            8.1,
+            0.0,
+            3.25,
+            4.5
+          ],
+          [
+            0.1,
+            4.5,
+            4.9,
+            4.65
+          ],
+          [
+            8.1,
+            4.5,
+            3.25,
+            4.65
+          ],
+          [
+            0.1,
+            9.15,
+            6.4,
+            3.1
+          ],
+          [
+            6.5,
+            9.15,
+            4.85,
+            3.1
+          ],
+          [
+            6.5,
+            12.25,
+            4.85,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.1,
+        "circ_pct": 19.1,
+        "min_bed_pct": 69.8
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BATH_2"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.3,
+        "net_m2": 137.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.25,
+            4.5
+          ],
+          [
+            3.25,
+            0.0,
+            3.1,
+            9.2
+          ],
+          [
+            6.35,
+            0.0,
+            3.05,
+            4.5
+          ],
+          [
+            9.4,
+            0.0,
+            2.6,
+            4.5
+          ],
+          [
+            0.0,
+            4.5,
+            3.25,
+            4.7
+          ],
+          [
+            6.35,
+            4.5,
+            5.65,
+            4.7
+          ],
+          [
+            0.0,
+            9.2,
+            4.35,
+            4.05
+          ],
+          [
+            4.35,
+            9.2,
+            2.0,
+            4.05
+          ],
+          [
+            0.0,
+            13.25,
+            4.35,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.3,
+        "circ_pct": 19.7,
+        "min_bed_pct": 82.0
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_1",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BATH_2"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.3,
+        "net_m2": 137.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.25,
+            4.5
+          ],
+          [
+            3.25,
+            0.0,
+            3.1,
+            9.2
+          ],
+          [
+            6.35,
+            0.0,
+            3.05,
+            4.5
+          ],
+          [
+            9.4,
+            0.0,
+            2.6,
+            4.5
+          ],
+          [
+            0.0,
+            4.5,
+            3.25,
+            4.7
+          ],
+          [
+            6.35,
+            4.5,
+            5.65,
+            4.7
+          ],
+          [
+            0.0,
+            9.2,
+            4.35,
+            4.05
+          ],
+          [
+            4.35,
+            9.2,
+            2.0,
+            4.05
+          ],
+          [
+            0.0,
+            13.25,
+            4.35,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.3,
+        "circ_pct": 19.7,
+        "min_bed_pct": 82.0
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.3,
+        "net_m2": 137.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.6,
+            4.5
+          ],
+          [
+            2.6,
+            0.0,
+            3.05,
+            4.5
+          ],
+          [
+            5.65,
+            0.0,
+            3.1,
+            9.2
+          ],
+          [
+            8.75,
+            0.0,
+            3.25,
+            4.5
+          ],
+          [
+            0.0,
+            4.5,
+            5.65,
+            4.7
+          ],
+          [
+            8.75,
+            4.5,
+            3.25,
+            4.7
+          ],
+          [
+            5.65,
+            9.2,
+            2.0,
+            4.05
+          ],
+          [
+            7.65,
+            9.2,
+            4.35,
+            4.05
+          ],
+          [
+            7.65,
+            13.25,
+            4.35,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.3,
+        "circ_pct": 19.7,
+        "min_bed_pct": 82.0
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.3,
+        "net_m2": 137.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.6,
+            4.5
+          ],
+          [
+            2.6,
+            0.0,
+            3.05,
+            4.5
+          ],
+          [
+            5.65,
+            0.0,
+            3.1,
+            9.2
+          ],
+          [
+            8.75,
+            0.0,
+            3.25,
+            4.5
+          ],
+          [
+            0.0,
+            4.5,
+            5.65,
+            4.7
+          ],
+          [
+            8.75,
+            4.5,
+            3.25,
+            4.7
+          ],
+          [
+            5.65,
+            9.2,
+            2.0,
+            4.05
+          ],
+          [
+            7.65,
+            9.2,
+            4.35,
+            4.05
+          ],
+          [
+            7.65,
+            13.25,
+            4.35,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.3,
+        "circ_pct": 19.7,
+        "min_bed_pct": 82.0
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 168.5,
+        "net_m2": 155.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 78.0,
+        "wings": [
+          [
+            0.05,
+            0.0,
+            3.25,
+            3.65
+          ],
+          [
+            3.3,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            6.3,
+            0.0,
+            5.4,
+            3.65
+          ],
+          [
+            0.05,
+            3.65,
+            3.25,
+            4.65
+          ],
+          [
+            6.3,
+            3.65,
+            5.4,
+            4.65
+          ],
+          [
+            0.05,
+            8.3,
+            4.35,
+            4.95
+          ],
+          [
+            4.4,
+            8.3,
+            2.6,
+            4.95
+          ],
+          [
+            7.0,
+            8.3,
+            4.7,
+            4.95
+          ],
+          [
+            0.05,
+            13.25,
+            4.35,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.6,
+        "circ_pct": 15.1,
+        "min_bed_pct": 75.2,
+        "render": "F1-rect-control__HALL_SPINE__generator.json"
+      },
+      {
+        "family": "generator",
+        "parti": "HALL_SPINE",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "8/8",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 168.5,
+        "net_m2": 155.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 78.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.4,
+            3.65
+          ],
+          [
+            5.4,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            8.4,
+            0.0,
+            3.25,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            5.4,
+            4.65
+          ],
+          [
+            8.4,
+            3.65,
+            3.25,
+            4.65
+          ],
+          [
+            0.0,
+            8.3,
+            4.7,
+            4.95
+          ],
+          [
+            4.7,
+            8.3,
+            2.6,
+            4.95
+          ],
+          [
+            7.3,
+            8.3,
+            4.35,
+            4.95
+          ],
+          [
+            7.3,
+            13.25,
+            4.35,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.6,
+        "circ_pct": 15.1,
+        "min_bed_pct": 75.2
+      },
+      {
+        "family": "band",
+        "parti": "PUBLIC_BAND+FOYER",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 155.8,
+        "net_m2": 142.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 72.1,
+        "wings": [
+          [
+            2.75,
+            0.0,
+            9.25,
+            6.4
+          ],
+          [
+            0.0,
+            6.4,
+            12.0,
+            2.7
+          ],
+          [
+            0.0,
+            9.1,
+            12.0,
+            5.35
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 20.3,
+        "circ_pct": 16.3,
+        "min_bed_pct": 94.0,
+        "render": "F1-rect-control__PUBLIC_BAND+FOYER__band.json"
+      },
+      {
+        "family": "spine",
+        "parti": "PUBLIC_BAND+FOYER",
+        "spine": "HALL",
+        "rows": 5,
+        "section": [
+          1,
+          5
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 164.8,
+        "net_m2": 150.9,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.3,
+        "wings": [
+          [
+            4.3,
+            0.0,
+            2.3,
+            2.5
+          ],
+          [
+            0.0,
+            2.5,
+            4.3,
+            2.8
+          ],
+          [
+            6.6,
+            2.5,
+            5.4,
+            2.8
+          ],
+          [
+            0.0,
+            5.3,
+            4.3,
+            3.5
+          ],
+          [
+            6.6,
+            5.3,
+            5.4,
+            3.5
+          ],
+          [
+            0.0,
+            8.8,
+            4.3,
+            4.15
+          ],
+          [
+            6.6,
+            8.8,
+            5.4,
+            4.15
+          ],
+          [
+            0.0,
+            12.95,
+            4.3,
+            2.8
+          ],
+          [
+            6.6,
+            12.95,
+            5.4,
+            2.8
+          ],
+          [
+            4.3,
+            2.5,
+            2.3,
+            13.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.3,
+        "circ_pct": 22.1,
+        "min_bed_pct": 69.7,
+        "render": "F1-rect-control__PUBLIC_BAND+FOYER__spine.json"
+      },
+      {
+        "family": "cells",
+        "parti": "PUBLIC_BAND+FOYER",
+        "deep": "moves",
+        "spanning": [
+          "LIVING"
+        ],
+        "rows": 3,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "BEDROOM_3",
+            "KITCHEN",
+            "LIVING"
+          ],
+          [
+            "ENTRY",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BATH_1",
+            "BATH_2",
+            "BEDROOM_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "V",
+        "contacts": "10/10",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 161.1,
+        "net_m2": 148.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 74.6,
+        "wings": [
+          [
+            0.0,
+            0.55,
+            4.5,
+            3.45
+          ],
+          [
+            0.0,
+            4.0,
+            4.5,
+            3.35
+          ],
+          [
+            0.0,
+            7.35,
+            4.5,
+            3.8
+          ],
+          [
+            0.0,
+            11.15,
+            7.55,
+            3.35
+          ],
+          [
+            4.5,
+            0.55,
+            3.05,
+            1.9
+          ],
+          [
+            4.5,
+            2.45,
+            3.05,
+            8.7
+          ],
+          [
+            7.55,
+            0.55,
+            4.0,
+            3.2
+          ],
+          [
+            7.55,
+            3.75,
+            4.0,
+            3.25
+          ],
+          [
+            7.55,
+            7.0,
+            4.0,
+            3.05
+          ],
+          [
+            7.55,
+            10.05,
+            4.0,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 19.3,
+        "circ_pct": 20.5,
+        "min_bed_pct": 57.0,
+        "render": "F1-rect-control__PUBLIC_BAND+FOYER__cells.json"
+      },
+      {
+        "family": "band",
+        "parti": "PUBLIC_BAND",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 154.2,
+        "net_m2": 142.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            5.3
+          ],
+          [
+            0.0,
+            5.3,
+            12.0,
+            3.95
+          ],
+          [
+            0.0,
+            9.25,
+            12.0,
+            3.6
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.9,
+        "circ_pct": 14.5,
+        "min_bed_pct": 58.7,
+        "render": "F1-rect-control__PUBLIC_BAND__band.json"
+      },
+      {
+        "family": "stack",
+        "parti": "PUBLIC_BAND",
+        "stack": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 162.0,
+        "net_m2": 149.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 75.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            5.8
+          ],
+          [
+            0.0,
+            5.8,
+            9.2,
+            5.1
+          ],
+          [
+            9.2,
+            5.8,
+            2.8,
+            5.1
+          ],
+          [
+            4.3,
+            10.9,
+            7.7,
+            4.05
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 20.5,
+        "circ_pct": 16.1,
+        "min_bed_pct": 99.0,
+        "render": "F1-rect-control__PUBLIC_BAND__stack.json"
+      },
+      {
+        "family": "cells",
+        "parti": "PUBLIC_BAND",
+        "deep": "moves",
+        "spanning": [
+          "KITCHEN"
+        ],
+        "rows": 3,
+        "layout": [
+          [
+            "LIVING",
+            "BATH_2",
+            "BEDROOM_3",
+            "BATH_1"
+          ],
+          [
+            "KITCHEN",
+            "HALL",
+            "MASTER"
+          ],
+          [
+            "KITCHEN",
+            "BEDROOM_1",
+            "BEDROOM_2"
+          ]
+        ],
+        "rung": 0.3,
+        "orientation": "V",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 172.5,
+        "net_m2": 159.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.9,
+        "wings": [
+          [
+            0.0,
+            0.1,
+            4.75,
+            7.45
+          ],
+          [
+            0.0,
+            7.55,
+            4.75,
+            2.75
+          ],
+          [
+            0.0,
+            10.3,
+            4.75,
+            3.15
+          ],
+          [
+            0.0,
+            13.45,
+            4.75,
+            2.85
+          ],
+          [
+            4.75,
+            0.1,
+            5.9,
+            4.75
+          ],
+          [
+            4.75,
+            4.85,
+            3.1,
+            6.55
+          ],
+          [
+            4.75,
+            11.4,
+            3.1,
+            4.9
+          ],
+          [
+            7.85,
+            4.85,
+            2.8,
+            5.45
+          ],
+          [
+            7.85,
+            10.3,
+            2.8,
+            6.0
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 8.5,
+        "circ_pct": 12.1,
+        "min_bed_pct": 70.5,
+        "render": "F1-rect-control__PUBLIC_BAND__cells.json"
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "KITCHEN"
+          ],
+          [
+            "MASTER",
+            "BATH_2",
+            "LIVING"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.2,
+        "net_m2": 137.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.4,
+            3.65
+          ],
+          [
+            3.4,
+            0.0,
+            4.1,
+            7.2
+          ],
+          [
+            7.5,
+            0.0,
+            4.5,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            3.4,
+            3.55
+          ],
+          [
+            7.5,
+            3.65,
+            4.5,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            4.5,
+            4.1
+          ],
+          [
+            4.5,
+            7.2,
+            1.9,
+            4.1
+          ],
+          [
+            6.4,
+            7.2,
+            5.6,
+            4.1
+          ],
+          [
+            0.0,
+            11.3,
+            4.5,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.0,
+        "circ_pct": 20.3,
+        "min_bed_pct": 78.9
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "KITCHEN",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.2,
+        "net_m2": 137.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.5,
+            3.65
+          ],
+          [
+            4.5,
+            0.0,
+            4.1,
+            7.2
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            4.5,
+            3.55
+          ],
+          [
+            8.6,
+            3.65,
+            3.4,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            5.6,
+            4.1
+          ],
+          [
+            5.6,
+            7.2,
+            1.9,
+            4.1
+          ],
+          [
+            7.5,
+            7.2,
+            4.5,
+            4.1
+          ],
+          [
+            7.5,
+            11.3,
+            4.5,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.0,
+        "circ_pct": 20.3,
+        "min_bed_pct": 78.9
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "KITCHEN"
+          ],
+          [
+            "MASTER",
+            "BATH_2",
+            "LIVING"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.2,
+        "net_m2": 137.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.4,
+            3.65
+          ],
+          [
+            3.4,
+            0.0,
+            4.1,
+            7.2
+          ],
+          [
+            7.5,
+            0.0,
+            4.5,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            3.4,
+            3.55
+          ],
+          [
+            7.5,
+            3.65,
+            4.5,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            4.5,
+            4.1
+          ],
+          [
+            4.5,
+            7.2,
+            1.9,
+            4.1
+          ],
+          [
+            6.4,
+            7.2,
+            5.6,
+            4.1
+          ],
+          [
+            0.0,
+            11.3,
+            4.5,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.0,
+        "circ_pct": 20.3,
+        "min_bed_pct": 78.9
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "KITCHEN",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 150.2,
+        "net_m2": 137.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 69.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.5,
+            3.65
+          ],
+          [
+            4.5,
+            0.0,
+            4.1,
+            7.2
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            4.5,
+            3.55
+          ],
+          [
+            8.6,
+            3.65,
+            3.4,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            5.6,
+            4.1
+          ],
+          [
+            5.6,
+            7.2,
+            1.9,
+            4.1
+          ],
+          [
+            7.5,
+            7.2,
+            4.5,
+            4.1
+          ],
+          [
+            7.5,
+            11.3,
+            4.5,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.0,
+        "circ_pct": 20.3,
+        "min_bed_pct": 78.9
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 153.6,
+        "net_m2": 141.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            3.7,
+            0.0,
+            3.0,
+            7.45
+          ],
+          [
+            6.7,
+            0.0,
+            5.3,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            3.7,
+            4.65
+          ],
+          [
+            6.7,
+            2.8,
+            5.3,
+            4.65
+          ],
+          [
+            0.0,
+            7.45,
+            4.8,
+            4.05
+          ],
+          [
+            4.8,
+            7.45,
+            1.85,
+            4.05
+          ],
+          [
+            6.65,
+            7.45,
+            5.35,
+            4.05
+          ],
+          [
+            0.0,
+            11.5,
+            4.8,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 24.3,
+        "circ_pct": 14.9,
+        "min_bed_pct": 65.0
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 153.6,
+        "net_m2": 141.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.3,
+            2.8
+          ],
+          [
+            5.3,
+            0.0,
+            3.0,
+            7.45
+          ],
+          [
+            8.3,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            5.3,
+            4.65
+          ],
+          [
+            8.3,
+            2.8,
+            3.7,
+            4.65
+          ],
+          [
+            0.0,
+            7.45,
+            5.35,
+            4.05
+          ],
+          [
+            5.35,
+            7.45,
+            1.85,
+            4.05
+          ],
+          [
+            7.2,
+            7.45,
+            4.8,
+            4.05
+          ],
+          [
+            7.2,
+            11.5,
+            4.8,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 24.3,
+        "circ_pct": 14.9,
+        "min_bed_pct": 65.0
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 153.6,
+        "net_m2": 141.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            3.7,
+            0.0,
+            3.0,
+            7.45
+          ],
+          [
+            6.7,
+            0.0,
+            5.3,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            3.7,
+            4.65
+          ],
+          [
+            6.7,
+            2.8,
+            5.3,
+            4.65
+          ],
+          [
+            0.0,
+            7.45,
+            4.8,
+            4.05
+          ],
+          [
+            4.8,
+            7.45,
+            1.85,
+            4.05
+          ],
+          [
+            6.65,
+            7.45,
+            5.35,
+            4.05
+          ],
+          [
+            0.0,
+            11.5,
+            4.8,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 24.3,
+        "circ_pct": 14.9,
+        "min_bed_pct": 65.0
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 153.6,
+        "net_m2": 141.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.3,
+            2.8
+          ],
+          [
+            5.3,
+            0.0,
+            3.0,
+            7.45
+          ],
+          [
+            8.3,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            5.3,
+            4.65
+          ],
+          [
+            8.3,
+            2.8,
+            3.7,
+            4.65
+          ],
+          [
+            0.0,
+            7.45,
+            5.35,
+            4.05
+          ],
+          [
+            5.35,
+            7.45,
+            1.85,
+            4.05
+          ],
+          [
+            7.2,
+            7.45,
+            4.8,
+            4.05
+          ],
+          [
+            7.2,
+            11.5,
+            4.8,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 24.3,
+        "circ_pct": 14.9,
+        "min_bed_pct": 65.0
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL",
+          "KITCHEN",
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN",
+            "LIVING",
+            "MASTER"
+          ],
+          [
+            "KITCHEN",
+            "LIVING",
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 169.7,
+        "net_m2": 156.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 78.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.8,
+            3.65
+          ],
+          [
+            3.8,
+            0.0,
+            4.25,
+            7.2
+          ],
+          [
+            8.05,
+            0.0,
+            3.65,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            3.8,
+            3.55
+          ],
+          [
+            8.05,
+            3.65,
+            3.65,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            3.85,
+            7.3
+          ],
+          [
+            3.85,
+            7.2,
+            3.1,
+            7.3
+          ],
+          [
+            6.95,
+            7.2,
+            4.75,
+            4.05
+          ],
+          [
+            6.95,
+            11.25,
+            4.75,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.6,
+        "circ_pct": 18.5,
+        "min_bed_pct": 85.0
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL",
+          "KITCHEN",
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "MASTER",
+            "KITCHEN",
+            "LIVING"
+          ],
+          [
+            "BATH_1",
+            "KITCHEN",
+            "LIVING"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 163.8,
+        "net_m2": 151.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 75.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.05,
+            2.8
+          ],
+          [
+            3.05,
+            0.0,
+            4.7,
+            6.35
+          ],
+          [
+            7.75,
+            0.0,
+            4.25,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            3.05,
+            3.55
+          ],
+          [
+            7.75,
+            2.8,
+            4.25,
+            3.55
+          ],
+          [
+            0.0,
+            6.35,
+            4.15,
+            4.05
+          ],
+          [
+            4.15,
+            6.35,
+            2.5,
+            7.3
+          ],
+          [
+            6.65,
+            6.35,
+            5.35,
+            7.3
+          ],
+          [
+            0.0,
+            10.4,
+            4.15,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 21.3,
+        "circ_pct": 18.7,
+        "min_bed_pct": 70.2
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL",
+          "LIVING",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "MASTER",
+            "LIVING",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1",
+            "LIVING",
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 173.3,
+        "net_m2": 160.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 80.2,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.65,
+            3.65
+          ],
+          [
+            3.65,
+            0.0,
+            4.25,
+            7.2
+          ],
+          [
+            7.9,
+            0.0,
+            4.05,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            3.65,
+            3.55
+          ],
+          [
+            7.9,
+            3.65,
+            4.05,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            4.75,
+            4.05
+          ],
+          [
+            4.75,
+            7.2,
+            3.1,
+            7.3
+          ],
+          [
+            7.85,
+            7.2,
+            4.1,
+            7.3
+          ],
+          [
+            0.0,
+            11.25,
+            4.75,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 14.0,
+        "circ_pct": 18.1,
+        "min_bed_pct": 85.0,
+        "render": "F1-rect-control__PUBLIC_BAND__generator.json"
+      },
+      {
+        "family": "generator",
+        "parti": "PUBLIC_BAND",
+        "spanning": [
+          "HALL",
+          "KITCHEN",
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "KITCHEN",
+            "LIVING",
+            "MASTER"
+          ],
+          [
+            "KITCHEN",
+            "LIVING",
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 169.7,
+        "net_m2": 156.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 78.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.8,
+            3.65
+          ],
+          [
+            3.8,
+            0.0,
+            4.25,
+            7.2
+          ],
+          [
+            8.05,
+            0.0,
+            3.65,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            3.8,
+            3.55
+          ],
+          [
+            8.05,
+            3.65,
+            3.65,
+            3.55
+          ],
+          [
+            0.0,
+            7.2,
+            3.85,
+            7.3
+          ],
+          [
+            3.85,
+            7.2,
+            3.1,
+            7.3
+          ],
+          [
+            6.95,
+            7.2,
+            4.75,
+            4.05
+          ],
+          [
+            6.95,
+            11.25,
+            4.75,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.6,
+        "circ_pct": 18.5,
+        "min_bed_pct": 85.0
+      },
+      {
+        "family": "band",
+        "parti": "BEDROOM_WING+FOYER",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "V",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 154.9,
+        "net_m2": 142.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.7,
+        "wings": [
+          [
+            0.0,
+            0.75,
+            3.4,
+            14.4
+          ],
+          [
+            3.4,
+            0.75,
+            4.35,
+            14.4
+          ],
+          [
+            7.75,
+            4.2,
+            3.95,
+            10.95
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 21.5,
+        "circ_pct": 19.2,
+        "min_bed_pct": 63.7,
+        "render": "F1-rect-control__BEDROOM_WING+FOYER__band.json"
+      },
+      {
+        "family": "stack",
+        "parti": "BEDROOM_WING+FOYER",
+        "stack": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "bands": 3,
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 151.8,
+        "net_m2": 139.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 70.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            6.2,
+            6.25
+          ],
+          [
+            6.2,
+            0.0,
+            1.9,
+            6.25
+          ],
+          [
+            8.1,
+            0.0,
+            3.9,
+            6.25
+          ],
+          [
+            0.0,
+            6.25,
+            12.0,
+            3.65
+          ],
+          [
+            1.7,
+            9.9,
+            10.3,
+            3.2
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 33.4,
+        "circ_pct": 22.6,
+        "min_bed_pct": 65.9,
+        "render": "F1-rect-control__BEDROOM_WING+FOYER__stack.json"
+      },
+      {
+        "family": "cells",
+        "parti": "BEDROOM_WING+FOYER",
+        "deep": "HALL",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "ENTRY",
+            "KITCHEN"
+          ],
+          [
+            "BATH_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "BEDROOM_1",
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 161.0,
+        "net_m2": 147.9,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 74.6,
+        "wings": [
+          [
+            3.2,
+            0.0,
+            3.0,
+            3.3
+          ],
+          [
+            6.2,
+            0.0,
+            5.8,
+            3.3
+          ],
+          [
+            0.0,
+            3.3,
+            3.2,
+            4.25
+          ],
+          [
+            3.2,
+            3.3,
+            2.55,
+            7.35
+          ],
+          [
+            5.75,
+            3.3,
+            6.25,
+            4.25
+          ],
+          [
+            0.0,
+            7.55,
+            3.2,
+            3.1
+          ],
+          [
+            5.75,
+            7.55,
+            6.25,
+            3.1
+          ],
+          [
+            0.0,
+            10.65,
+            4.3,
+            3.65
+          ],
+          [
+            4.3,
+            10.65,
+            4.05,
+            3.65
+          ],
+          [
+            8.35,
+            10.65,
+            3.65,
+            3.65
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 16.2,
+        "circ_pct": 17.9,
+        "min_bed_pct": 64.3,
+        "render": "F1-rect-control__BEDROOM_WING+FOYER__cells.json"
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "ENTRY",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 145.4,
+        "net_m2": 132.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 67.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            1.8,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.6,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            4.15,
+            4.65
+          ],
+          [
+            4.15,
+            3.2,
+            2.55,
+            7.35
+          ],
+          [
+            6.7,
+            3.2,
+            5.3,
+            4.65
+          ],
+          [
+            0.0,
+            7.85,
+            4.15,
+            2.7
+          ],
+          [
+            6.7,
+            7.85,
+            5.3,
+            2.7
+          ],
+          [
+            0.0,
+            10.55,
+            6.7,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 37.2,
+        "circ_pct": 19.9,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "ENTRY",
+            "MASTER",
+            "BATH_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 145.4,
+        "net_m2": 132.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 67.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.4,
+            3.2
+          ],
+          [
+            3.4,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            6.4,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            10.2,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            5.3,
+            4.65
+          ],
+          [
+            5.3,
+            3.2,
+            2.55,
+            7.35
+          ],
+          [
+            7.85,
+            3.2,
+            4.15,
+            4.65
+          ],
+          [
+            0.0,
+            7.85,
+            5.3,
+            2.7
+          ],
+          [
+            7.85,
+            7.85,
+            4.15,
+            2.7
+          ],
+          [
+            5.3,
+            10.55,
+            6.7,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 37.2,
+        "circ_pct": 19.9,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "ENTRY"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 145.3,
+        "net_m2": 132.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 67.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            1.8,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.6,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.85,
+            3.55
+          ],
+          [
+            3.85,
+            3.2,
+            2.85,
+            8.25
+          ],
+          [
+            6.7,
+            3.2,
+            1.9,
+            3.55
+          ],
+          [
+            8.6,
+            3.2,
+            3.4,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            3.85,
+            4.7
+          ],
+          [
+            6.7,
+            6.75,
+            5.3,
+            4.7
+          ],
+          [
+            0.0,
+            11.45,
+            6.7,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 38.8,
+        "circ_pct": 23.2,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "ENTRY",
+            "MASTER",
+            "BATH_1"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 145.3,
+        "net_m2": 132.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 67.3,
+        "wings": [
+          [
+            3.4,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            6.4,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            10.2,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.4,
+            3.55
+          ],
+          [
+            3.4,
+            3.2,
+            1.9,
+            3.55
+          ],
+          [
+            5.3,
+            3.2,
+            2.85,
+            8.25
+          ],
+          [
+            8.15,
+            3.2,
+            3.85,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            5.3,
+            4.7
+          ],
+          [
+            8.15,
+            6.75,
+            3.85,
+            4.7
+          ],
+          [
+            5.3,
+            11.45,
+            6.7,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 38.8,
+        "circ_pct": 23.2,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "KITCHEN",
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "ENTRY",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 156.2,
+        "net_m2": 143.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 72.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            1.8,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.6,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            6.75
+          ],
+          [
+            0.0,
+            3.2,
+            3.85,
+            3.55
+          ],
+          [
+            3.85,
+            3.2,
+            2.85,
+            8.25
+          ],
+          [
+            6.7,
+            3.2,
+            1.9,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            3.85,
+            4.7
+          ],
+          [
+            6.7,
+            6.75,
+            5.3,
+            4.7
+          ],
+          [
+            0.0,
+            11.45,
+            6.7,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 33.9,
+        "circ_pct": 21.7,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "KITCHEN",
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "ENTRY",
+            "MASTER",
+            "BATH_1"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 156.2,
+        "net_m2": 143.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 72.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.4,
+            6.75
+          ],
+          [
+            3.4,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            6.4,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            10.2,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            3.4,
+            3.2,
+            1.9,
+            3.55
+          ],
+          [
+            5.3,
+            3.2,
+            2.85,
+            8.25
+          ],
+          [
+            8.15,
+            3.2,
+            3.85,
+            3.55
+          ],
+          [
+            0.0,
+            6.75,
+            5.3,
+            4.7
+          ],
+          [
+            8.15,
+            6.75,
+            3.85,
+            4.7
+          ],
+          [
+            5.3,
+            11.45,
+            6.7,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 33.9,
+        "circ_pct": 21.7,
+        "min_bed_pct": 55.5
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING+FOYER",
+        "spanning": [
+          "HALL",
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "ENTRY",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_3",
+            "BATH_2"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "12/12",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 154.6,
+        "net_m2": 141.9,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 71.6,
+        "wings": [
+          [
+            0.2,
+            0.0,
+            1.8,
+            3.2
+          ],
+          [
+            2.0,
+            0.0,
+            3.8,
+            3.2
+          ],
+          [
+            5.8,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.8,
+            0.0,
+            3.2,
+            3.2
+          ],
+          [
+            0.2,
+            3.2,
+            4.3,
+            3.55
+          ],
+          [
+            4.5,
+            3.2,
+            3.05,
+            7.1
+          ],
+          [
+            7.55,
+            3.2,
+            4.45,
+            7.1
+          ],
+          [
+            0.2,
+            6.75,
+            4.3,
+            3.55
+          ],
+          [
+            0.2,
+            10.3,
+            6.25,
+            2.8
+          ],
+          [
+            6.45,
+            10.3,
+            5.55,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 29.4,
+        "circ_pct": 20.7,
+        "min_bed_pct": 55.5,
+        "render": "F1-rect-control__BEDROOM_WING+FOYER__generator.json"
+      },
+      {
+        "family": "band",
+        "parti": "BEDROOM_WING",
+        "bands": 3,
+        "rung": 0.3,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 171.6,
+        "net_m2": 158.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            4.6
+          ],
+          [
+            0.0,
+            4.6,
+            12.0,
+            5.45
+          ],
+          [
+            0.0,
+            10.05,
+            12.0,
+            4.25
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 9.4,
+        "circ_pct": 7.6,
+        "min_bed_pct": 98.2,
+        "render": "F1-rect-control__BEDROOM_WING__band.json"
+      },
+      {
+        "family": "spine",
+        "parti": "BEDROOM_WING",
+        "spine": "HALL",
+        "rows": 3,
+        "section": [
+          1,
+          2
+        ],
+        "rung": 0.3,
+        "orientation": "V",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 176.1,
+        "net_m2": 162.5,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 81.5,
+        "wings": [
+          [
+            0.0,
+            1.0,
+            4.0,
+            15.05
+          ],
+          [
+            4.0,
+            1.0,
+            2.35,
+            5.15
+          ],
+          [
+            6.35,
+            1.0,
+            5.35,
+            15.05
+          ],
+          [
+            4.0,
+            6.15,
+            2.35,
+            9.9
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 6.3,
+        "circ_pct": 13.4,
+        "min_bed_pct": 99.3,
+        "render": "F1-rect-control__BEDROOM_WING__spine.json"
+      },
+      {
+        "family": "stack",
+        "parti": "BEDROOM_WING",
+        "stack": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "bands": 3,
+        "rung": 0.3,
+        "orientation": "V",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 185.0,
+        "net_m2": 171.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 85.7,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.2,
+            9.4
+          ],
+          [
+            0.0,
+            9.4,
+            5.2,
+            4.0
+          ],
+          [
+            0.0,
+            13.4,
+            5.2,
+            4.6
+          ],
+          [
+            5.2,
+            0.0,
+            3.3,
+            18.0
+          ],
+          [
+            8.5,
+            8.3,
+            3.3,
+            9.7
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 10.6,
+        "circ_pct": 11.4,
+        "min_bed_pct": 75.4,
+        "render": "F1-rect-control__BEDROOM_WING__stack.json"
+      },
+      {
+        "family": "cells",
+        "parti": "BEDROOM_WING",
+        "deep": "moves",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 3,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_1",
+            "MASTER",
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 147.6,
+        "net_m2": 135.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.85,
+            4.75
+          ],
+          [
+            2.85,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            5.85,
+            0.0,
+            6.15,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            2.85,
+            3.55
+          ],
+          [
+            5.85,
+            4.75,
+            2.15,
+            3.55
+          ],
+          [
+            8.0,
+            4.75,
+            4.0,
+            3.55
+          ],
+          [
+            0.0,
+            8.3,
+            3.95,
+            4.0
+          ],
+          [
+            3.95,
+            8.3,
+            4.7,
+            4.0
+          ],
+          [
+            8.65,
+            8.3,
+            3.35,
+            4.0
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 24.4,
+        "circ_pct": 17.3,
+        "min_bed_pct": 65.3,
+        "render": "F1-rect-control__BEDROOM_WING__cells.json"
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_1",
+            "MASTER"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 143.2,
+        "net_m2": 130.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 66.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.85,
+            4.75
+          ],
+          [
+            2.85,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            5.85,
+            0.0,
+            6.15,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            2.85,
+            3.55
+          ],
+          [
+            5.85,
+            4.75,
+            2.05,
+            3.55
+          ],
+          [
+            7.9,
+            4.75,
+            4.1,
+            3.55
+          ],
+          [
+            0.0,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            3.95,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            3.95,
+            12.2,
+            3.95,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.5,
+        "circ_pct": 18.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "MASTER",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 143.2,
+        "net_m2": 130.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 66.3,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            6.15,
+            4.75
+          ],
+          [
+            6.15,
+            0.0,
+            3.0,
+            8.3
+          ],
+          [
+            9.15,
+            0.0,
+            2.85,
+            4.75
+          ],
+          [
+            0.0,
+            4.75,
+            4.1,
+            3.55
+          ],
+          [
+            4.1,
+            4.75,
+            2.05,
+            3.55
+          ],
+          [
+            9.15,
+            4.75,
+            2.85,
+            3.55
+          ],
+          [
+            4.1,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            8.05,
+            8.3,
+            3.95,
+            3.9
+          ],
+          [
+            4.1,
+            12.2,
+            3.95,
+            3.25
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.5,
+        "circ_pct": 18.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "LIVING",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_1",
+            "MASTER",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_3",
+            "BATH_2",
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 148.2,
+        "net_m2": 136.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.25,
+            4.15
+          ],
+          [
+            2.25,
+            0.0,
+            3.1,
+            4.15
+          ],
+          [
+            5.35,
+            0.0,
+            3.25,
+            9.55
+          ],
+          [
+            8.6,
+            0.0,
+            3.4,
+            6.85
+          ],
+          [
+            0.0,
+            4.15,
+            5.35,
+            2.7
+          ],
+          [
+            0.0,
+            6.85,
+            5.35,
+            2.7
+          ],
+          [
+            8.6,
+            6.85,
+            3.4,
+            5.5
+          ],
+          [
+            0.0,
+            9.55,
+            6.45,
+            2.8
+          ],
+          [
+            6.45,
+            9.55,
+            2.15,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.3,
+        "circ_pct": 21.7,
+        "min_bed_pct": 59.2
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "LIVING",
+          "HALL",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "LIVING",
+            "HALL",
+            "MASTER",
+            "BATH_1"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "KITCHEN",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 148.2,
+        "net_m2": 136.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.4,
+            6.85
+          ],
+          [
+            3.4,
+            0.0,
+            3.25,
+            9.55
+          ],
+          [
+            6.65,
+            0.0,
+            3.1,
+            4.15
+          ],
+          [
+            9.75,
+            0.0,
+            2.25,
+            4.15
+          ],
+          [
+            6.65,
+            4.15,
+            5.35,
+            2.7
+          ],
+          [
+            0.0,
+            6.85,
+            3.4,
+            5.5
+          ],
+          [
+            6.65,
+            6.85,
+            5.35,
+            2.7
+          ],
+          [
+            3.4,
+            9.55,
+            2.15,
+            2.8
+          ],
+          [
+            5.55,
+            9.55,
+            6.45,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.3,
+        "circ_pct": 21.7,
+        "min_bed_pct": 59.2
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "KITCHEN",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "LIVING",
+            "MASTER",
+            "BATH_1"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 159.0,
+        "net_m2": 146.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 73.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.45,
+            2.8
+          ],
+          [
+            3.45,
+            0.0,
+            3.0,
+            8.2
+          ],
+          [
+            6.45,
+            0.0,
+            5.55,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            3.45,
+            5.4
+          ],
+          [
+            6.45,
+            2.8,
+            5.55,
+            2.7
+          ],
+          [
+            6.45,
+            5.5,
+            5.55,
+            2.7
+          ],
+          [
+            0.0,
+            8.2,
+            5.15,
+            5.05
+          ],
+          [
+            5.15,
+            8.2,
+            4.2,
+            5.05
+          ],
+          [
+            9.35,
+            8.2,
+            2.65,
+            5.05
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 14.3,
+        "circ_pct": 15.8,
+        "min_bed_pct": 99.4,
+        "render": "F1-rect-control__BEDROOM_WING__generator.json"
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "KITCHEN"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1",
+            "MASTER",
+            "LIVING"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 159.0,
+        "net_m2": 146.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 73.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.55,
+            2.8
+          ],
+          [
+            5.55,
+            0.0,
+            3.0,
+            8.2
+          ],
+          [
+            8.55,
+            0.0,
+            3.45,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            5.55,
+            2.7
+          ],
+          [
+            8.55,
+            2.8,
+            3.45,
+            5.4
+          ],
+          [
+            0.0,
+            5.5,
+            5.55,
+            2.7
+          ],
+          [
+            0.0,
+            8.2,
+            2.65,
+            5.05
+          ],
+          [
+            2.65,
+            8.2,
+            4.2,
+            5.05
+          ],
+          [
+            6.85,
+            8.2,
+            5.15,
+            5.05
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 14.3,
+        "circ_pct": 15.8,
+        "min_bed_pct": 99.4
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1",
+            "MASTER"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 144.2,
+        "net_m2": 132.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 66.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.0,
+            2.8
+          ],
+          [
+            4.0,
+            0.0,
+            3.05,
+            9.05
+          ],
+          [
+            7.05,
+            0.0,
+            4.95,
+            5.5
+          ],
+          [
+            0.0,
+            2.8,
+            4.0,
+            2.7
+          ],
+          [
+            0.0,
+            5.5,
+            4.0,
+            3.55
+          ],
+          [
+            7.05,
+            5.5,
+            2.05,
+            3.55
+          ],
+          [
+            9.1,
+            5.5,
+            2.9,
+            3.55
+          ],
+          [
+            0.0,
+            9.05,
+            2.7,
+            5.05
+          ],
+          [
+            2.7,
+            9.05,
+            4.35,
+            5.05
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.9,
+        "circ_pct": 19.8,
+        "min_bed_pct": 70.6
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "MASTER",
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 145.9,
+        "net_m2": 133.9,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 67.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.25,
+            2.8
+          ],
+          [
+            4.25,
+            0.0,
+            3.05,
+            9.05
+          ],
+          [
+            7.3,
+            0.0,
+            4.7,
+            5.5
+          ],
+          [
+            0.0,
+            2.8,
+            4.25,
+            2.7
+          ],
+          [
+            0.0,
+            5.5,
+            4.25,
+            3.55
+          ],
+          [
+            7.3,
+            5.5,
+            1.7,
+            3.55
+          ],
+          [
+            9.0,
+            5.5,
+            3.0,
+            3.55
+          ],
+          [
+            0.0,
+            9.05,
+            5.75,
+            4.15
+          ],
+          [
+            5.75,
+            9.05,
+            3.25,
+            4.15
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 28.2,
+        "circ_pct": 19.5,
+        "min_bed_pct": 75.2
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "LIVING",
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "MASTER"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 145.9,
+        "net_m2": 133.9,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 67.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.7,
+            5.5
+          ],
+          [
+            4.7,
+            0.0,
+            3.05,
+            9.05
+          ],
+          [
+            7.75,
+            0.0,
+            4.25,
+            2.8
+          ],
+          [
+            7.75,
+            2.8,
+            4.25,
+            2.7
+          ],
+          [
+            0.0,
+            5.5,
+            3.0,
+            3.55
+          ],
+          [
+            3.0,
+            5.5,
+            1.7,
+            3.55
+          ],
+          [
+            7.75,
+            5.5,
+            4.25,
+            3.55
+          ],
+          [
+            3.0,
+            9.05,
+            3.25,
+            4.15
+          ],
+          [
+            6.25,
+            9.05,
+            5.75,
+            4.15
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 28.2,
+        "circ_pct": 19.5,
+        "min_bed_pct": 75.2
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "LIVING",
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "HALL",
+            "BEDROOM_2"
+          ],
+          [
+            "KITCHEN",
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1"
+          ],
+          [
+            "MASTER",
+            "BATH_1"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 144.2,
+        "net_m2": 132.0,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 66.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.95,
+            5.5
+          ],
+          [
+            4.95,
+            0.0,
+            3.05,
+            9.05
+          ],
+          [
+            8.0,
+            0.0,
+            4.0,
+            2.8
+          ],
+          [
+            8.0,
+            2.8,
+            4.0,
+            2.7
+          ],
+          [
+            0.0,
+            5.5,
+            2.9,
+            3.55
+          ],
+          [
+            2.9,
+            5.5,
+            2.05,
+            3.55
+          ],
+          [
+            8.0,
+            5.5,
+            4.0,
+            3.55
+          ],
+          [
+            4.95,
+            9.05,
+            4.35,
+            5.05
+          ],
+          [
+            9.3,
+            9.05,
+            2.7,
+            5.05
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 27.9,
+        "circ_pct": 19.8,
+        "min_bed_pct": 70.6
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "LIVING",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "BATH_1",
+            "MASTER",
+            "KITCHEN"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 148.2,
+        "net_m2": 136.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            3.7,
+            0.0,
+            3.0,
+            8.2
+          ],
+          [
+            6.7,
+            0.0,
+            5.3,
+            5.5
+          ],
+          [
+            0.0,
+            2.8,
+            3.7,
+            2.7
+          ],
+          [
+            0.0,
+            5.5,
+            3.7,
+            2.7
+          ],
+          [
+            6.7,
+            5.5,
+            2.45,
+            2.7
+          ],
+          [
+            9.15,
+            5.5,
+            2.85,
+            6.85
+          ],
+          [
+            0.0,
+            8.2,
+            3.25,
+            4.15
+          ],
+          [
+            3.25,
+            8.2,
+            5.9,
+            4.15
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.3,
+        "circ_pct": 17.0,
+        "min_bed_pct": 65.0
+      },
+      {
+        "family": "generator",
+        "parti": "BEDROOM_WING",
+        "spanning": [
+          "HALL",
+          "LIVING",
+          "KITCHEN"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_3",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL",
+            "LIVING"
+          ],
+          [
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2",
+            "KITCHEN"
+          ],
+          [
+            "MASTER",
+            "BATH_1",
+            "KITCHEN"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "11/11",
+        "doors": "8/8",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 148.2,
+        "net_m2": 136.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 68.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            3.7,
+            0.0,
+            3.0,
+            8.2
+          ],
+          [
+            6.7,
+            0.0,
+            5.3,
+            5.5
+          ],
+          [
+            0.0,
+            2.8,
+            3.7,
+            2.7
+          ],
+          [
+            0.0,
+            5.5,
+            3.7,
+            2.7
+          ],
+          [
+            6.7,
+            5.5,
+            2.45,
+            2.7
+          ],
+          [
+            9.15,
+            5.5,
+            2.85,
+            6.85
+          ],
+          [
+            0.0,
+            8.2,
+            6.0,
+            4.15
+          ],
+          [
+            6.0,
+            8.2,
+            3.15,
+            4.15
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 30.3,
+        "circ_pct": 17.0,
+        "min_bed_pct": 65.0
+      },
+      {
+        "family": "band",
+        "parti": "TWO_HALL+FOYER",
+        "bands": 4,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 165.0,
+        "net_m2": 151.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 76.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            3.4
+          ],
+          [
+            0.0,
+            3.4,
+            12.0,
+            3.35
+          ],
+          [
+            0.0,
+            6.75,
+            12.0,
+            3.4
+          ],
+          [
+            0.0,
+            10.15,
+            12.0,
+            3.6
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 21.0,
+        "circ_pct": 22.6,
+        "min_bed_pct": 70.7,
+        "render": "F1-rect-control__TWO_HALL+FOYER__band.json"
+      },
+      {
+        "family": "stack",
+        "parti": "TWO_HALL+FOYER",
+        "stack": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "bands": 4,
+        "rung": 0.3,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 180.3,
+        "net_m2": 165.8,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 83.5,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            7.1,
+            5.3
+          ],
+          [
+            7.1,
+            3.2,
+            4.9,
+            5.3
+          ],
+          [
+            0.0,
+            8.5,
+            12.0,
+            4.2
+          ],
+          [
+            3.9,
+            12.7,
+            8.1,
+            3.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 9.4,
+        "circ_pct": 16.5,
+        "min_bed_pct": 79.3,
+        "render": "F1-rect-control__TWO_HALL+FOYER__stack.json"
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_2",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 160.8,
+        "net_m2": 147.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 74.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.2
+          ],
+          [
+            3.95,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            6.95,
+            0.0,
+            5.05,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.85,
+            3.65
+          ],
+          [
+            2.85,
+            3.2,
+            2.05,
+            3.65
+          ],
+          [
+            4.9,
+            3.2,
+            3.15,
+            3.65
+          ],
+          [
+            8.05,
+            3.2,
+            1.75,
+            3.65
+          ],
+          [
+            9.8,
+            3.2,
+            2.2,
+            3.65
+          ],
+          [
+            2.85,
+            6.85,
+            2.8,
+            5.5
+          ],
+          [
+            5.65,
+            6.85,
+            6.35,
+            5.5
+          ],
+          [
+            5.65,
+            12.35,
+            6.35,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.5,
+        "circ_pct": 18.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "BEDROOM_2",
+          "HALL_B",
+          "HALL"
+        ],
+        "rows": 5,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 172.7,
+        "net_m2": 158.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.9,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            4.2,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.2,
+            0.0,
+            4.8,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.1,
+            4.85
+          ],
+          [
+            3.1,
+            3.2,
+            1.9,
+            4.85
+          ],
+          [
+            5.0,
+            3.2,
+            3.3,
+            4.85
+          ],
+          [
+            8.3,
+            3.2,
+            3.7,
+            3.15
+          ],
+          [
+            8.3,
+            6.35,
+            3.7,
+            1.7
+          ],
+          [
+            3.1,
+            8.05,
+            2.8,
+            5.5
+          ],
+          [
+            5.9,
+            8.05,
+            6.1,
+            5.5
+          ],
+          [
+            5.9,
+            13.55,
+            6.1,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 18.9,
+        "circ_pct": 20.5,
+        "min_bed_pct": 69.0
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "BATH_2",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 160.8,
+        "net_m2": 147.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 74.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            5.05,
+            3.2
+          ],
+          [
+            5.05,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            8.05,
+            0.0,
+            3.95,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            1.85,
+            3.65
+          ],
+          [
+            1.85,
+            3.2,
+            2.1,
+            3.65
+          ],
+          [
+            3.95,
+            3.2,
+            3.15,
+            3.65
+          ],
+          [
+            7.1,
+            3.2,
+            2.05,
+            3.65
+          ],
+          [
+            9.15,
+            3.2,
+            2.85,
+            3.65
+          ],
+          [
+            0.0,
+            6.85,
+            6.35,
+            5.5
+          ],
+          [
+            6.35,
+            6.85,
+            2.8,
+            5.5
+          ],
+          [
+            0.0,
+            12.35,
+            6.35,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.5,
+        "circ_pct": 18.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "HALL",
+          "HALL_B",
+          "BEDROOM_2"
+        ],
+        "rows": 5,
+        "layout": [
+          [
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "BATH_2",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 172.7,
+        "net_m2": 158.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.9,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.8,
+            3.2
+          ],
+          [
+            4.8,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.8,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.7,
+            3.15
+          ],
+          [
+            3.7,
+            3.2,
+            3.3,
+            4.85
+          ],
+          [
+            7.0,
+            3.2,
+            1.9,
+            4.85
+          ],
+          [
+            8.9,
+            3.2,
+            3.1,
+            4.85
+          ],
+          [
+            0.0,
+            6.35,
+            3.7,
+            1.7
+          ],
+          [
+            0.0,
+            8.05,
+            6.1,
+            5.5
+          ],
+          [
+            6.1,
+            8.05,
+            2.8,
+            5.5
+          ],
+          [
+            0.0,
+            13.55,
+            6.1,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 18.9,
+        "circ_pct": 20.5,
+        "min_bed_pct": 69.0
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_3",
+            "BATH_2",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 171.4,
+        "net_m2": 157.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.85,
+            3.2
+          ],
+          [
+            4.85,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.85,
+            0.0,
+            4.15,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.8,
+            4.4
+          ],
+          [
+            2.8,
+            3.2,
+            1.7,
+            4.4
+          ],
+          [
+            4.5,
+            3.2,
+            4.5,
+            4.4
+          ],
+          [
+            9.0,
+            3.2,
+            3.0,
+            4.4
+          ],
+          [
+            0.0,
+            7.6,
+            3.9,
+            4.7
+          ],
+          [
+            3.9,
+            7.6,
+            2.75,
+            4.7
+          ],
+          [
+            6.65,
+            7.6,
+            5.35,
+            4.7
+          ],
+          [
+            6.65,
+            12.3,
+            5.35,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 18.4,
+        "circ_pct": 21.9,
+        "min_bed_pct": 59.2
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "BATH_2",
+            "BEDROOM_3"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 171.4,
+        "net_m2": 157.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.4,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.15,
+            3.2
+          ],
+          [
+            4.15,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.15,
+            0.0,
+            4.85,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.0,
+            4.4
+          ],
+          [
+            3.0,
+            3.2,
+            4.5,
+            4.4
+          ],
+          [
+            7.5,
+            3.2,
+            1.7,
+            4.4
+          ],
+          [
+            9.2,
+            3.2,
+            2.8,
+            4.4
+          ],
+          [
+            0.0,
+            7.6,
+            5.35,
+            4.7
+          ],
+          [
+            5.35,
+            7.6,
+            2.75,
+            4.7
+          ],
+          [
+            8.1,
+            7.6,
+            3.9,
+            4.7
+          ],
+          [
+            0.0,
+            12.3,
+            5.35,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 18.4,
+        "circ_pct": 21.9,
+        "min_bed_pct": 59.2
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_2",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN",
+            "LIVING"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 172.3,
+        "net_m2": 158.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.1,
+            3.2
+          ],
+          [
+            4.1,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.1,
+            0.0,
+            4.9,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.85,
+            3.65
+          ],
+          [
+            2.85,
+            3.2,
+            2.05,
+            3.65
+          ],
+          [
+            4.9,
+            3.2,
+            3.3,
+            3.65
+          ],
+          [
+            8.2,
+            3.2,
+            1.75,
+            3.65
+          ],
+          [
+            9.95,
+            3.2,
+            2.05,
+            3.65
+          ],
+          [
+            2.85,
+            6.85,
+            4.25,
+            3.55
+          ],
+          [
+            7.1,
+            6.85,
+            4.9,
+            9.85
+          ],
+          [
+            2.85,
+            10.4,
+            4.25,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.0,
+        "circ_pct": 17.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "BEDROOM_2",
+          "HALL_B",
+          "HALL",
+          "LIVING"
+        ],
+        "rows": 5,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "LIVING"
+          ],
+          [
+            "KITCHEN",
+            "LIVING"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 185.7,
+        "net_m2": 171.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 86.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            4.2,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.2,
+            0.0,
+            4.8,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            2.95,
+            4.85
+          ],
+          [
+            2.95,
+            3.2,
+            1.9,
+            4.85
+          ],
+          [
+            4.85,
+            3.2,
+            3.45,
+            4.85
+          ],
+          [
+            8.3,
+            3.2,
+            3.7,
+            3.15
+          ],
+          [
+            8.3,
+            6.35,
+            3.7,
+            1.7
+          ],
+          [
+            2.95,
+            8.05,
+            4.25,
+            3.55
+          ],
+          [
+            7.2,
+            8.05,
+            4.8,
+            9.85
+          ],
+          [
+            2.95,
+            11.6,
+            4.25,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.9,
+        "circ_pct": 19.4,
+        "min_bed_pct": 69.0
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "BATH_2",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 172.3,
+        "net_m2": 158.4,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 79.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.9,
+            3.2
+          ],
+          [
+            4.9,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.9,
+            0.0,
+            4.1,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            1.85,
+            3.65
+          ],
+          [
+            1.85,
+            3.2,
+            1.95,
+            3.65
+          ],
+          [
+            3.8,
+            3.2,
+            3.3,
+            3.65
+          ],
+          [
+            7.1,
+            3.2,
+            2.05,
+            3.65
+          ],
+          [
+            9.15,
+            3.2,
+            2.85,
+            3.65
+          ],
+          [
+            0.0,
+            6.85,
+            4.9,
+            9.85
+          ],
+          [
+            4.9,
+            6.85,
+            4.25,
+            3.55
+          ],
+          [
+            4.9,
+            10.4,
+            4.25,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 23.0,
+        "circ_pct": 17.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "HALL",
+          "HALL_B",
+          "BEDROOM_2",
+          "LIVING"
+        ],
+        "rows": 5,
+        "layout": [
+          [
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "BATH_2",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 185.7,
+        "net_m2": 171.1,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 86.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.8,
+            3.2
+          ],
+          [
+            4.8,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.8,
+            0.0,
+            4.2,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.7,
+            3.15
+          ],
+          [
+            3.7,
+            3.2,
+            3.45,
+            4.85
+          ],
+          [
+            7.15,
+            3.2,
+            1.9,
+            4.85
+          ],
+          [
+            9.05,
+            3.2,
+            2.95,
+            4.85
+          ],
+          [
+            0.0,
+            6.35,
+            3.7,
+            1.7
+          ],
+          [
+            0.0,
+            8.05,
+            4.8,
+            9.85
+          ],
+          [
+            4.8,
+            8.05,
+            4.25,
+            3.55
+          ],
+          [
+            4.8,
+            11.6,
+            4.25,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 15.9,
+        "circ_pct": 19.4,
+        "min_bed_pct": 69.0
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "ENTRY",
+            "MASTER"
+          ],
+          [
+            "BEDROOM_2",
+            "HALL_B",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "BEDROOM_3",
+            "BATH_2",
+            "LIVING"
+          ],
+          [
+            "KITCHEN",
+            "LIVING"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 183.2,
+        "net_m2": 168.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 84.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.85,
+            3.2
+          ],
+          [
+            4.85,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.85,
+            0.0,
+            4.15,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.25,
+            4.4
+          ],
+          [
+            3.25,
+            3.2,
+            1.7,
+            4.4
+          ],
+          [
+            4.95,
+            3.2,
+            4.05,
+            4.4
+          ],
+          [
+            9.0,
+            3.2,
+            3.0,
+            4.4
+          ],
+          [
+            0.0,
+            7.6,
+            4.35,
+            3.65
+          ],
+          [
+            4.35,
+            7.6,
+            3.5,
+            3.65
+          ],
+          [
+            7.85,
+            7.6,
+            4.15,
+            9.95
+          ],
+          [
+            4.35,
+            11.25,
+            3.5,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 11.2,
+        "circ_pct": 19.3,
+        "min_bed_pct": 59.2,
+        "render": "F1-rect-control__TWO_HALL+FOYER__generator.json"
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL+FOYER",
+        "spanning": [
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "MASTER",
+            "ENTRY",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "LIVING",
+            "BATH_2",
+            "BEDROOM_3"
+          ],
+          [
+            "LIVING",
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "10/10",
+        "doors": "10/10",
+        "lost_doors": [],
+        "arrival": "ENTRY",
+        "gross_m2": 183.2,
+        "net_m2": 168.6,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 84.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.15,
+            3.2
+          ],
+          [
+            4.15,
+            0.0,
+            3.0,
+            3.2
+          ],
+          [
+            7.15,
+            0.0,
+            4.85,
+            3.2
+          ],
+          [
+            0.0,
+            3.2,
+            3.0,
+            4.4
+          ],
+          [
+            3.0,
+            3.2,
+            4.05,
+            4.4
+          ],
+          [
+            7.05,
+            3.2,
+            1.7,
+            4.4
+          ],
+          [
+            8.75,
+            3.2,
+            3.25,
+            4.4
+          ],
+          [
+            0.0,
+            7.6,
+            4.15,
+            9.95
+          ],
+          [
+            4.15,
+            7.6,
+            3.5,
+            3.65
+          ],
+          [
+            7.65,
+            7.6,
+            4.35,
+            3.65
+          ],
+          [
+            4.15,
+            11.25,
+            3.5,
+            6.3
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 11.2,
+        "circ_pct": 19.3,
+        "min_bed_pct": 59.2
+      },
+      {
+        "family": "band",
+        "parti": "TWO_HALL",
+        "bands": 3,
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 163.2,
+        "net_m2": 150.2,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 75.6,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            5.3
+          ],
+          [
+            0.0,
+            5.3,
+            12.0,
+            4.7
+          ],
+          [
+            0.0,
+            10.0,
+            12.0,
+            3.6
+          ]
+        ],
+        "non_rectangular": false,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 17.9,
+        "circ_pct": 16.5,
+        "min_bed_pct": 69.0,
+        "render": "F1-rect-control__TWO_HALL__band.json"
+      },
+      {
+        "family": "spine",
+        "parti": "TWO_HALL",
+        "spine": "HALL_B",
+        "rows": 4,
+        "section": [
+          0,
+          1
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "HALL_B",
+        "gross_m2": 177.1,
+        "net_m2": 163.5,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 82.0,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.7,
+            2.8
+          ],
+          [
+            7.75,
+            0.0,
+            4.25,
+            2.8
+          ],
+          [
+            0.0,
+            2.8,
+            12.0,
+            3.85
+          ],
+          [
+            0.0,
+            6.65,
+            12.0,
+            5.75
+          ],
+          [
+            0.0,
+            12.4,
+            8.2,
+            3.45
+          ],
+          [
+            3.7,
+            0.0,
+            4.05,
+            2.8
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 19.2,
+        "circ_pct": 12.1,
+        "min_bed_pct": 65.0,
+        "render": "F1-rect-control__TWO_HALL__spine.json"
+      },
+      {
+        "family": "stack",
+        "parti": "TWO_HALL",
+        "stack": [
+          "BATH_1",
+          "BATH_2"
+        ],
+        "bands": 3,
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 175.1,
+        "net_m2": 161.7,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 81.1,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            12.0,
+            5.75
+          ],
+          [
+            0.0,
+            5.75,
+            9.7,
+            5.0
+          ],
+          [
+            9.7,
+            5.75,
+            2.3,
+            5.0
+          ],
+          [
+            0.0,
+            10.75,
+            9.7,
+            4.75
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 26.9,
+        "circ_pct": 20.9,
+        "min_bed_pct": 84.5,
+        "render": "F1-rect-control__TWO_HALL__stack.json"
+      },
+      {
+        "family": "cells",
+        "parti": "TWO_HALL",
+        "deep": "moves",
+        "spanning": [
+          "LIVING"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "KITCHEN",
+            "LIVING"
+          ],
+          [
+            "BATH_1",
+            "LIVING"
+          ],
+          [
+            "MASTER",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_2"
+          ],
+          [
+            "BATH_2",
+            "BEDROOM_1",
+            "BEDROOM_3"
+          ]
+        ],
+        "rung": 0.5,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "LIVING",
+        "gross_m2": 173.3,
+        "net_m2": 159.5,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 80.2,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            4.15,
+            6.3
+          ],
+          [
+            4.15,
+            0.0,
+            5.05,
+            9.45
+          ],
+          [
+            0.0,
+            6.3,
+            4.15,
+            3.15
+          ],
+          [
+            0.0,
+            9.45,
+            3.2,
+            3.9
+          ],
+          [
+            3.2,
+            9.45,
+            3.8,
+            3.9
+          ],
+          [
+            7.0,
+            9.45,
+            2.2,
+            3.9
+          ],
+          [
+            9.2,
+            9.45,
+            2.8,
+            3.9
+          ],
+          [
+            3.2,
+            13.35,
+            2.2,
+            4.5
+          ],
+          [
+            5.4,
+            13.35,
+            2.7,
+            4.5
+          ],
+          [
+            8.1,
+            13.35,
+            3.9,
+            4.5
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 18.5,
+        "circ_pct": 13.8,
+        "min_bed_pct": 55.5,
+        "render": "F1-rect-control__TWO_HALL__cells.json"
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_2",
+            "BEDROOM_1"
+          ],
+          [
+            "BATH_1",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_3"
+          ],
+          [
+            "MASTER",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 168.1,
+        "net_m2": 154.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 77.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.3,
+            3.65
+          ],
+          [
+            2.3,
+            0.0,
+            3.0,
+            7.3
+          ],
+          [
+            5.3,
+            0.0,
+            2.75,
+            3.65
+          ],
+          [
+            8.05,
+            0.0,
+            3.95,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            2.3,
+            3.65
+          ],
+          [
+            5.3,
+            3.65,
+            3.85,
+            3.65
+          ],
+          [
+            9.15,
+            3.65,
+            2.85,
+            3.65
+          ],
+          [
+            0.0,
+            7.3,
+            3.4,
+            6.0
+          ],
+          [
+            3.4,
+            7.3,
+            5.75,
+            6.0
+          ],
+          [
+            3.4,
+            13.3,
+            5.75,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.2,
+        "circ_pct": 22.0,
+        "min_bed_pct": 65.3,
+        "render": "F1-rect-control__TWO_HALL__generator.json"
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BATH_2",
+            "HALL",
+            "BEDROOM_1",
+            "BEDROOM_2"
+          ],
+          [
+            "BATH_1",
+            "HALL",
+            "HALL_B",
+            "BEDROOM_3"
+          ],
+          [
+            "MASTER",
+            "LIVING"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 168.1,
+        "net_m2": 154.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 77.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            2.3,
+            3.65
+          ],
+          [
+            2.3,
+            0.0,
+            3.0,
+            7.3
+          ],
+          [
+            5.3,
+            0.0,
+            2.75,
+            3.65
+          ],
+          [
+            8.05,
+            0.0,
+            3.95,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            2.3,
+            3.65
+          ],
+          [
+            5.3,
+            3.65,
+            3.85,
+            3.65
+          ],
+          [
+            9.15,
+            3.65,
+            2.85,
+            3.65
+          ],
+          [
+            0.0,
+            7.3,
+            3.4,
+            6.0
+          ],
+          [
+            3.4,
+            7.3,
+            5.75,
+            6.0
+          ],
+          [
+            3.4,
+            13.3,
+            5.75,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.2,
+        "circ_pct": 22.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_1",
+            "BEDROOM_2",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL_B",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "LIVING",
+            "MASTER"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 168.1,
+        "net_m2": 154.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 77.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.65
+          ],
+          [
+            3.95,
+            0.0,
+            2.75,
+            3.65
+          ],
+          [
+            6.7,
+            0.0,
+            3.0,
+            7.3
+          ],
+          [
+            9.7,
+            0.0,
+            2.3,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            2.85,
+            3.65
+          ],
+          [
+            2.85,
+            3.65,
+            3.85,
+            3.65
+          ],
+          [
+            9.7,
+            3.65,
+            2.3,
+            3.65
+          ],
+          [
+            2.85,
+            7.3,
+            5.75,
+            6.0
+          ],
+          [
+            8.6,
+            7.3,
+            3.4,
+            6.0
+          ],
+          [
+            2.85,
+            13.3,
+            5.75,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.2,
+        "circ_pct": 22.0,
+        "min_bed_pct": 65.3
+      },
+      {
+        "family": "generator",
+        "parti": "TWO_HALL",
+        "spanning": [
+          "HALL"
+        ],
+        "rows": 4,
+        "layout": [
+          [
+            "BEDROOM_2",
+            "BEDROOM_1",
+            "HALL",
+            "BATH_2"
+          ],
+          [
+            "BEDROOM_3",
+            "HALL_B",
+            "HALL",
+            "BATH_1"
+          ],
+          [
+            "LIVING",
+            "MASTER"
+          ],
+          [
+            "KITCHEN"
+          ]
+        ],
+        "rung": null,
+        "orientation": "H",
+        "contacts": "9/9",
+        "doors": "9/9",
+        "lost_doors": [],
+        "arrival": "HALL",
+        "gross_m2": 168.1,
+        "net_m2": 154.3,
+        "area": "BELOW_TARGET_DISCLOSED",
+        "gross_pct": 77.8,
+        "wings": [
+          [
+            0.0,
+            0.0,
+            3.95,
+            3.65
+          ],
+          [
+            3.95,
+            0.0,
+            2.75,
+            3.65
+          ],
+          [
+            6.7,
+            0.0,
+            3.0,
+            7.3
+          ],
+          [
+            9.7,
+            0.0,
+            2.3,
+            3.65
+          ],
+          [
+            0.0,
+            3.65,
+            2.85,
+            3.65
+          ],
+          [
+            2.85,
+            3.65,
+            3.85,
+            3.65
+          ],
+          [
+            9.7,
+            3.65,
+            2.3,
+            3.65
+          ],
+          [
+            2.85,
+            7.3,
+            5.75,
+            6.0
+          ],
+          [
+            8.6,
+            7.3,
+            3.4,
+            6.0
+          ],
+          [
+            2.85,
+            13.3,
+            5.75,
+            4.45
+          ]
+        ],
+        "non_rectangular": true,
+        "validators": 28,
+        "counts": true,
+        "room_dev_pct": 25.2,
+        "circ_pct": 22.0,
+        "min_bed_pct": 65.3
+      }
+    ],
+    "refusals": [
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "STACK_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "STACK_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "PUBLIC_BAND+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "SPINE_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "SPINE_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "SPINE_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "SPINE_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "SPINE_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "SPINE_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "CELLS_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 26% exceeds 24%"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 28% exceeds 24%"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 28% exceeds 24%"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 25% exceeds 24%"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 25% exceeds 24%"
+      },
+      {
+        "parti": "BEDROOM_WING+FOYER",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 25% exceeds 24%"
+      },
+      {
+        "parti": "TWO_HALL+FOYER",
+        "stage": "CELLS_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 28% exceeds 24%; 3 corridor dead ends exceeds 2"
+      },
+      {
+        "parti": "TWO_HALL+FOYER",
+        "stage": "CELLS_REALIZATION",
+        "code": "VALIDATION_FAILED",
+        "detail": "C26: circulation ratio 28% exceeds 24%; 3 corridor dead ends exceeds 2"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      },
+      {
+        "parti": "TWO_HALL",
+        "stage": "GENERATOR_REALIZATION",
+        "code": "NO_ENTRANCE",
+        "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street"
+      }
+    ],
+    "partis": [
+      "HALL_SPINE+FOYER",
+      "HALL_SPINE",
+      "PUBLIC_BAND+FOYER",
+      "PUBLIC_BAND",
+      "BEDROOM_WING+FOYER",
+      "BEDROOM_WING",
+      "TWO_HALL+FOYER",
+      "TWO_HALL"
+    ],
+    "seconds": 475.7,
+    "solved": true,
+    "distinct_footprints": 84
+  }
+]
