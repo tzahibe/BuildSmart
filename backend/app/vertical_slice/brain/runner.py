@@ -238,14 +238,43 @@ def proportion_metrics(realized, zones: dict) -> tuple[float, float]:
     return (100.0 * sum(devs) / len(devs) if devs else 0.0, 100.0 * circ_net / total if total else 0.0)
 
 
+def arrival_usability(realized) -> tuple[int, tuple[float, float] | None]:
+    """(0 if the arrival room is usable, else 1; its (net width, net depth) in metres, or `None`
+    when no door opens into a drawn room) — the term `_proportion_preference` ranks by (#207).
+
+    THE DEFECT THIS FIXES. #205 measured the key blind to the shape of the room the front door
+    opens into: a 1.50 x 3.05 m foyer ranked above a 2.00 x 3.00 m one because only room deviation
+    was counted, and with the exact sizer now refusing strips (#205's "foyer" group) a
+    production-sized strip could out-rank an exact plan for the wrong reason (B08, B11). "Usable"
+    is what that group enforces, read off the realized geometry (`RoomOut.net_w_m` / `net_h_m`:
+    the rect as drawn, net of walls, width along the street wall and depth away from it — the
+    realizer always puts the street at y = min, whichever orientation the oracle solved in):
+    net width >= `FOYER_MIN_NET_M` and net depth / net width <= `FOYER_MAX_DEPTH_TO_WIDTH`, the
+    constants imported from `exact.milp_oracle` so there is one source of truth. Coarse (0 / 1)
+    on purpose: it is a line between a lobby and a strip, not a size to optimise."""
+    from app.vertical_slice.exact.milp_oracle import FOYER_MAX_DEPTH_TO_WIDTH, FOYER_MIN_NET_M
+    zone = _arrival_zone(realized)
+    room = next((r for r in realized.design.rooms if r.zone_id == zone), None) if zone else None
+    if room is None:
+        return 1, None
+    w, h = float(room.net_w_m), float(room.net_h_m)
+    usable = w >= FOYER_MIN_NET_M - 1e-9 and h <= FOYER_MAX_DEPTH_TO_WIDTH * w + 1e-9
+    return (0 if usable else 1), (round(w, 2), round(h, 2))
+
+
 def _proportion_preference(prop: TopologyProposal, zones: dict, programme: Programme):
     """`_entrance_preference` with proportion decided before ornament (owner item 2):
 
       0-2. unchanged — the parti's arrival room, the street elevation, the area tolerance. These are
            the architectural priorities and a proportion never outranks them.
-      3. mean relative deviation of the habitable rooms from their targets (whole per cent)
-      4. circulation's share of the net floor (whole per cent)
-      5-7. unchanged — garden elevation, closest area, worst wet-room proportion.
+      3. the arrival room is usable — not a strip (#207, `arrival_usability`): placed after the
+         three priorities (the owner's 2026-10-14 order is kept verbatim, and area tolerance is
+         a promise to the brief) and before every proportion, so a plan whose front door opens
+         into a strip ranks below one whose arrival room is a lobby whatever the rooms behind
+         them measure; between two lobbies, or two strips, the deviation decides as before.
+      4. mean relative deviation of the habitable rooms from their targets (whole per cent)
+      5. circulation's share of the net floor (whole per cent)
+      6-8. unchanged — garden elevation, closest area, worst wet-room proportion.
 
     Hard constraints are not in play here at all: the pipeline only ever offers candidates the
     validators accepted, so no key of this function can trade one away."""
@@ -254,7 +283,8 @@ def _proportion_preference(prop: TopologyProposal, zones: dict, programme: Progr
     def prefer(realized, placement, inp):
         k = base(realized, placement, inp)
         dev, circ = proportion_metrics(realized, zones)
-        return k[:3] + (round(dev), round(circ)) + k[3:]
+        usable, _dims = arrival_usability(realized)
+        return k[:3] + (usable, round(dev), round(circ)) + k[3:]
 
     return prefer
 
@@ -380,11 +410,25 @@ def _plan_key(plan: BrainPlan, prop: TopologyProposal, p: Programme):
     return _preference(prop, zones, p)(plan.realized, None, None)
 
 
+#: The leading keys of `_proportion_preference`, in order, as a plan's notes name them.
+_KEY_NAMES = ("arrival", "street", "area", "arrival room", "rooms", "circulation")
+
+
 def _key_text(key: tuple) -> str:
-    """The first five keys of a preference, named, for a plan's notes."""
-    arrived, street, area, dev, circ = key[:5]
+    """The first six keys of a preference, named, for a plan's notes."""
+    arrived, street, area, usable, dev, circ = key[:6]
     return (f"arrival {'ok' if arrived == 0 else 'NOT the parti`s'}, street {'ok' if street == 0 else 'no'}, "
-            f"area {'in' if area == 0 else 'out of'} tolerance, rooms {dev} %, circulation {circ} %")
+            f"area {'in' if area == 0 else 'out of'} tolerance, arrival room {'usable' if usable == 0 else 'a STRIP'}, "
+            f"rooms {dev} %, circulation {circ} %")
+
+
+def _decided_by(a: tuple, b: tuple) -> str:
+    """Which named key separates two preference keys — the term that decided (the notes must say
+    when the arrival room's usability did)."""
+    for i, (x, y) in enumerate(zip(a, b)):
+        if x != y:
+            return _KEY_NAMES[i] if i < len(_KEY_NAMES) else f"key {i}"
+    return "nothing"
 
 
 def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidates: int,
@@ -426,11 +470,12 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
             continue
         ek, pk = _plan_key(exact, prop, p), _plan_key(prod, prop, p)
         if prod.counts and ek > pk:
-            prod.notes = (*prod.notes, (f"exact sizer's {exact.family} plan ranked below production's "
-                                        f"({_key_text(ek)} vs {_key_text(pk)}); production kept"))
+            prod.notes = (*prod.notes, (f"exact sizer's {exact.family} plan ranked below production's on "
+                                        f"{_decided_by(ek, pk)} ({_key_text(ek)} vs {_key_text(pk)}); production kept"))
             continue
-        exact.notes = (*exact.notes, "exact sizer improved on production's plan" if prod.counts
-                       else f"exact sizer planned what production could not ({prod.reason[:60]})")
+        exact.notes = (*exact.notes, (f"exact sizer improved on production's plan on {_decided_by(ek, pk)}"
+                                      if prod.counts else
+                                      f"exact sizer planned what production could not ({prod.reason[:60]})"))
         exact.seconds = round(exact.seconds + prod.seconds, 3)
         result.plans[i] = exact
 
