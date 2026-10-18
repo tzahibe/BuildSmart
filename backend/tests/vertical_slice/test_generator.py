@@ -87,13 +87,19 @@ def test_every_emitted_layout_passes_the_screens_it_claims(cid, parti):
     assert n > 0, "the generator emitted nothing"
 
 
-def test_the_generator_is_deterministic_and_searches_more_than_one_row_count():
+def test_the_generator_is_deterministic_and_searches_several_row_counts_from_its_estimate_outward():
     zones, union, access, wet, env, arrival = _problem("F2-L-envelope-fixed", "HALL_SPINE+FOYER")
-    a = [lay.rows for lay in generate(zones, union, access, wet, env, arrival=arrival, max_layouts=40)]
-    b = [lay.rows for lay in generate(zones, union, access, wet, env, arrival=arrival, max_layouts=40)]
-    assert a == b and len(a) == 40
-    assert len({len(rows) for rows in a}) >= 2
-    assert len(set(a)) == 40
+    sa, sb = {}, {}
+    a = [lay.rows for lay in generate(zones, union, access, wet, env, arrival=arrival, max_layouts=40, stats=sa)]
+    b = [lay.rows for lay in generate(zones, union, access, wet, env, arrival=arrival, max_layouts=40, stats=sb)]
+    assert a == b and len(a) == 40 and len(set(a)) == 40
+    counts = sa["row_counts"]
+    assert len(counts) >= 3 and set(counts) >= {2, 3, 4}
+    # the most plausible count first (F2: 172 m2 over a 14 m frame at ~4 m per row -> 3), then outward
+    assert counts[0] == 3 and sorted(counts[1:3]) == [2, 4]
+    # a caller may pin the row count; every layout then has it
+    four = [lay for lay in generate(zones, union, access, wet, env, arrival=arrival, row_counts=(4,), max_layouts=5)]
+    assert four and all(lay.n_rows in (4, 5) for lay in four)      # 5: a stack splits one row
 
 
 def test_a_foyer_parti_keeps_the_hall_off_the_street_and_a_hall_parti_puts_it_there():
