@@ -1,0 +1,83 @@
+warning: `VIRTUAL_ENV=/Users/mymacbook/projects/sddproject/backend/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+B08 production 0.3 s dev 3.9 circ 12.7
+B08 brain-production 1.7 s TWO_HALL band production dev 9.0 circ 9.0 arrival HALL plans 8
+B08 brain-production-bydev 1.7 s HALL_SPINE band production dev 8.7 circ 8.3 arrival LIVING plans 8
+B08 brain-exact-band 30.3 s PUBLIC_BAND+FOYER band exact dev 5.1 circ 14.1 arrival CIRCULATION plans 8
+B08 brain-exact-band-bydev 30.3 s HALL_SPINE band exact dev 1.4 circ 8.2 arrival LIVING plans 8
+B08 brain-exact-all 25.1 s PUBLIC_BAND+FOYER band exact dev 5.1 circ 14.1 arrival CIRCULATION plans 8
+B08 brain-exact-all-bydev 25.1 s PUBLIC_BAND+FOYER band exact dev 5.1 circ 14.1 arrival CIRCULATION plans 8
+B20 production 0.2 s dev 12.5 circ 12.0
+B20 brain-production 7.3 s SERVICE_CORE+FOYER band production dev 22.2 circ 15.8 arrival CIRCULATION plans 5
+B20 brain-production-bydev 7.3 s HALL_SPINE band production dev 13.3 circ 13.8 arrival LIVING plans 5
+B20 brain-exact-band 22.4 s PUBLIC_BAND band exact dev 16.2 circ 23.7 arrival HALL plans 5
+B20 brain-exact-band-bydev 22.4 s HALL_SPINE band production dev 13.3 circ 13.8 arrival LIVING plans 5
+B20 brain-exact-all 31.1 s SERVICE_CORE+FOYER band production dev 22.2 circ 15.8 arrival CIRCULATION plans 5
+B20 brain-exact-all-bydev 31.1 s HALL_SPINE stack exact dev 9.7 circ 8.7 arrival LIVING_KITCHEN plans 5
+B02 production 3.1 s dev 23.6 circ 11.5
+B02 brain-production 0.5 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL plans 4
+B02 brain-production-bydev 0.5 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL plans 4
+B02 brain-exact-band 16.1 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL plans 4
+B02 brain-exact-band-bydev 16.1 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL plans 4
+B02 brain-exact-all 30.1 s HALL_SPINE stack exact dev 2.0 circ 9.4 arrival HALL plans 4
+B02 brain-exact-all-bydev 30.1 s HALL_SPINE stack exact dev 2.0 circ 9.4 arrival HALL plans 4
+B11 production 10.2 s dev 22.0 circ 10.9
+B11 brain-production 17.2 s HALL_SPINE+FOYER band production dev 28.4 circ 19.4 arrival CIRCULATION plans 6
+B11 brain-production-bydev 17.2 s HALL_SPINE band production dev 17.9 circ 12.4 arrival LIVING plans 6
+B11 brain-exact-band 26.3 s HALL_SPINE+FOYER band exact dev 22.9 circ 13.8 arrival CIRCULATION plans 6
+B11 brain-exact-band-bydev 26.3 s HALL_SPINE band production dev 17.9 circ 12.4 arrival LIVING plans 6
+B11 brain-exact-all 30.9 s HALL_SPINE+FOYER band exact dev 22.9 circ 13.8 arrival CIRCULATION plans 6
+B11 brain-exact-all-bydev 30.9 s HALL_SPINE band production dev 17.9 circ 12.4 arrival LIVING plans 6
+B16 production 10.0 s dev 14.4 circ 10.1
+B16 brain-production 26.3 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING plans 2
+B16 brain-production-bydev 26.3 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING plans 2
+B16 brain-exact-band 30.2 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING plans 2
+B16 brain-exact-band-bydev 30.2 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING plans 2
+B16 brain-exact-all 30.0 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING plans 2
+B16 brain-exact-all-bydev 30.0 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING plans 2
+B19 production 0.8 s dev 21.8 circ 8.4
+B19 brain-production 20.3 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING plans 2
+B19 brain-production-bydev 20.3 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING plans 2
+B19 brain-exact-band 26.9 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING plans 2
+B19 brain-exact-band-bydev 26.9 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING plans 2
+B19 brain-exact-all 30.1 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING plans 2
+B19 brain-exact-all-bydev 30.1 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING plans 2
+B06 production 0.7 s dev 18.1 circ 10.7
+B06 brain-production 1.9 s BEDROOM_WING+FOYER band production dev 8.6 circ 12.1 arrival CIRCULATION plans 8
+B06 brain-production-bydev 1.9 s TWO_HALL band production dev 8.4 circ 9.7 arrival HALL plans 8
+B06 brain-exact-band 30.1 s BEDROOM_WING+FOYER band production dev 8.6 circ 12.1 arrival CIRCULATION plans 8
+B06 brain-exact-band-bydev 30.1 s TWO_HALL band production dev 8.4 circ 9.7 arrival HALL plans 8
+B06 brain-exact-all 30.7 s TWO_HALL+FOYER band exact dev 3.8 circ 10.7 arrival CIRCULATION plans 8
+B06 brain-exact-all-bydev 30.7 s TWO_HALL+FOYER band exact dev 3.8 circ 10.7 arrival CIRCULATION plans 8
+B09 production 1.2 s dev 9.8 circ 8.9
+B09 brain-production 5.2 s BEDROOM_WING+FOYER band production dev 13.1 circ 14.9 arrival CIRCULATION plans 9
+B09 brain-production-bydev 5.2 s PUBLIC_BAND band production dev 8.4 circ 11.4 arrival LIVING plans 9
+B09 brain-exact-band 30.0 s BEDROOM_WING+FOYER band production dev 13.1 circ 14.9 arrival CIRCULATION plans 9
+B09 brain-exact-band-bydev 30.0 s PUBLIC_BAND band production dev 8.4 circ 11.4 arrival LIVING plans 9
+B09 brain-exact-all 30.0 s BEDROOM_WING+FOYER band production dev 13.1 circ 14.9 arrival CIRCULATION plans 9
+B09 brain-exact-all-bydev 30.0 s PUBLIC_BAND band production dev 8.4 circ 11.4 arrival LIVING plans 9
+DONE
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+FINISHED
