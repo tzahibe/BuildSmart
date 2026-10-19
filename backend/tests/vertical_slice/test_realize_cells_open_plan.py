@@ -251,6 +251,31 @@ def test_the_realized_group_is_the_component_that_was_actually_opened():
     assert _open_components({frozenset(("A", "B")), frozenset(("X", "Y"))}) == (("A", "B"), ("X", "Y"))
 
 
+# ------------------------------- AC-4 (payload half): the demo contract carries the open interface
+
+def test_the_demo_payload_carries_the_open_interface_and_drops_its_wall(placed):
+    """The renderer draws open plan by the ABSENCE of a wall segment (`DemoPlan.tsx`: "an OPEN
+    interface has no wall segment at all, so open-plan reads as one continuous space"), and names
+    it in `open_interfaces` for the legend. Both are checked here on the real geometry."""
+    from app.demo.contract import to_demo_design
+
+    out = _opened(placed, LIVING_KITCHEN)
+    payload = to_demo_design(out.design, out.report)
+    named = [sorted(o.room_ids) for o in payload.open_interfaces]
+    assert ["KITCHEN", "LIVING"] in named, named
+
+    iface = next(o for o in payload.open_interfaces if sorted(o.room_ids) == ["KITCHEN", "LIVING"])
+    overlapping = [w for w in payload.walls
+                   if w.orientation == iface.orientation and abs(w.coord - iface.coord) < 1e-6
+                   and min(w.end, iface.end) - max(w.start, iface.start) > 1e-6]
+    assert not overlapping, overlapping                       # no wall is drawn across it
+    assert not [d for d in payload.doors if {d.a, d.b} == {"LIVING", "KITCHEN"}]
+
+    closed_payload = to_demo_design(placed["closed"].design, placed["closed"].report)
+    assert not closed_payload.open_interfaces                 # the defect, for contrast
+    assert [d for d in closed_payload.doors if {d.a, d.b} == {"LIVING", "KITCHEN"}]
+
+
 # --------------------------------------------------- the whole brain path, on one open-plan brief
 
 def test_the_brain_delivers_the_open_plan_an_open_plan_brief_asked_for():

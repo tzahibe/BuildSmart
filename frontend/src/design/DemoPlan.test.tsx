@@ -50,6 +50,33 @@ function design(overrides: Partial<DemoDesign> = {}): DemoDesign {
   }
 }
 
+// Issue #221: the brain's own payloads now carry an open interface. The geometry below is the
+// shape `realize_cells` produces for a declared open-plan pair — LIVING and KITCHEN side by
+// side, the shared side typed OPEN, so the payload lists it in `open_interfaces` and supplies
+// NO wall segment and NO door for it. Before #221 every brain payload had the wall and the door
+// instead (0 open interfaces in 56 of 56, #213), which is what this pins.
+const openPlanPair = (): DemoDesign => {
+  const base = design()
+  const living = { ...base.rooms[0], id: 'LIVING', x: 3, y: 5.5, width_m: 5, depth_m: 6,
+    walls: { ...base.rooms[0].walls,
+      E: { construction: 'NONE', boundary_context: 'INTERIOR', can_take_a_window: false } } }
+  const kitchen = { ...base.rooms[0], id: 'KITCHEN', type: 'KITCHEN', name: 'מטבח',
+    x: 8, y: 5.5, width_m: 4, depth_m: 6, area_m2: 22.4, gross_width_m: 4, gross_depth_m: 6,
+    gross_area_m2: 24,
+    walls: { ...base.rooms[0].walls,
+      W: { construction: 'NONE', boundary_context: 'INTERIOR', can_take_a_window: false } } }
+  return design({
+    rooms: [living, kitchen] as DemoDesign['rooms'],
+    walls: [],
+    doors: [],
+    windows: [],
+    open_interfaces: [
+      { orientation: 'vertical', coord: 8, start: 5.5, end: 11.5, room_ids: ['LIVING', 'KITCHEN'] },
+    ],
+  })
+}
+
+
 describe('DemoPlan', () => {
   it('frames the drawing on the building, not on a vast parcel', () => {
     // 400 x 200 m of land around a 19 x 10.5 m house: framing the plot draws a stamp.
@@ -88,6 +115,19 @@ describe('DemoPlan', () => {
       (line) => line.getAttribute('y1') === '11.5',
     )
     expect(horizontals).toHaveLength(0)
+  })
+
+  it('draws one open space, not a wall and a door, for an open-plan pair (#221)', () => {
+    const { container, getByText } = render(<DemoPlan design={openPlanPair()} />)
+    getByText(/סלון/)                                           // both rooms are drawn...
+    getByText(/מטבח/)
+    // ...and nothing at all is drawn on the boundary they share: no wall line, and no door
+    // leaf or swing arc, so the two read as one continuous space.
+    const onTheInterface = Array.from(container.querySelectorAll('line')).filter(
+      (line) => line.getAttribute('x1') === '8' && line.getAttribute('x2') === '8',
+    )
+    expect(onTheInterface).toHaveLength(0)
+    expect(container.querySelectorAll('path')).toHaveLength(0)
   })
 
   it('weights an RC safe-room wall differently from a partition', () => {
@@ -419,6 +459,12 @@ describe('DemoWorkspace — the outline each plan occupies (feature 006)', () =>
 })
 
 describe('PlanLegend', () => {
+  it('names the open passage when the payload carries one (#221)', () => {
+    const { getByText } = render(
+      <DemoWorkspace plans={{ plan: openPlanPair(), alternatives: [] }} onChangeRequirements={() => {}} />)
+    getByText('מעבר פתוח — אין קיר כלל')
+  })
+
   it('names every colour the plan actually used', () => {
     const full = design({
       walls: [
