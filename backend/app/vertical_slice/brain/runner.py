@@ -291,7 +291,7 @@ def _pipeline(prop: TopologyProposal, zones: dict, p: Programme,
     return run_band_pipeline(PipelineInput(
         name=prop.name, zones=zones,
         required_edges=tuple(prop.spatial), footprint_m=p.footprint_m,
-        wet_rooms=p.resolved_wet,
+        wet_rooms=p.resolved_wet, site_frame=p.site_frame,
         access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
         max_candidates=max_candidates, max_realizations=max_realizations,
         prefer=_preference(prop, zones, p))
@@ -481,6 +481,7 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
         out = run_exact_pipeline(
             PipelineInput(name=prop.name, zones=zones, required_edges=tuple(prop.spatial),
                           footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
+                          site_frame=p.site_frame,
                           access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
             prefer=_preference(prop, zones, p), ladder=AREA_BAND_LADDER,
             rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline,

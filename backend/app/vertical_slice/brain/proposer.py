@@ -35,6 +35,7 @@ from app.vertical_slice.concept_generator import (ASSUMED_EFFICIENCY, ZoneGroup,
                                                    build_room_program,
                                                    program_capacity_gross_m2, scale_program)
 from app.vertical_slice.geometry_core.model import ProgramRole
+from app.vertical_slice.site import SiteFrame, site_frame_for
 from app.vertical_slice.stage2.contract import ZoneIntent
 from app.vertical_slice.wet_rooms import ResolvedWetRoom
 
@@ -163,6 +164,13 @@ class Programme:
     #: between production and a brain that dropped FLEX on the floor. Treated here as what it is:
     #: a spare room off the circulation, like a bedroom without a bed.
     flex: tuple[str, ...] = ()
+    #: THE PERSON'S OWN PARCEL (Issue #223). `footprint_m` above is the BUILDING; this is the land
+    #: it stands on — the parcel the person entered, the setbacks already applied to it, the bays
+    #: their brief asked for. Carried, not derived: it is `site.site_frame_for(spec)` and nothing
+    #: in the brain may compute a plot from a footprint. `None` for a `Programme` built by a
+    #: harness with no parcel, and a plan realized from such a programme discloses the absence
+    #: rather than drawing a rectangle that looks like a boundary.
+    site_frame: SiteFrame | None = None
 
     @property
     def private(self) -> tuple[str, ...]:
@@ -259,6 +267,7 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
                      net_available_m2=round(net_available, 2),
                      capacity_m2=round(capacity + HALL_CEILING_M2, 2),
                      requested_m2=float(getattr(spec.program, "target_built_area_m2", 0.0) or 0.0),
+                     site_frame=site_frame_for(spec),
                      full_bounds=full_bounds)
 
 

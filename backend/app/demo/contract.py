@@ -1447,7 +1447,11 @@ def to_demo_design(design: SolvedDesign, report: ValidationReport,
                             strength=o.requirement.strength.value,
                             source_text=o.requirement.source_text)
             for o in relationships],
-        validation=summarize(report, unsupported, relationships, notes),
+        # Issue #223: the SITE disclosure travels with the plan, in the person's own words, through
+        # the channel #180's capacity notice already uses for "something true about THIS plan you
+        # must read before the drawing". A payload whose plot is not the client's parcel says so.
+        validation=summarize(report, unsupported, relationships,
+                             [*(notes or []), *([design.site_notice] if design.site_notice else [])]),
         quality=quality_of(design, capacity_notice),
         outline=outline,
         family=family,
