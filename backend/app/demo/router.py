@@ -185,6 +185,11 @@ def _failure_context(project_id: str, project, error=None) -> dict:
 #: and an absent/`production` value reads the module flag exactly as the endpoint always did, so
 #: normal production behaviour is unchanged. There is deliberately no silent fallback: a request
 #: that asks for the Concept Engine and fails returns that failure, not a production plan.
+#:
+#: TWO of the values below are GATED (Issue #212): asking for them by name used to be the whole
+#: authorization, so `?engine=brain` and `?engine=e1_rear_band` now also need a server-side flag
+#: and a shared secret, both read per request by `preview_gate`. Without them the request gets the
+#: same refusal as an engine that does not exist. See `docs/wiki/architecture/engine-preview-gate.md`.
 ENGINE_PRODUCTION = "production"
 ENGINE_CONCEPT_V2 = "concept_engine_v2"
 #: THE ARCHITECTURAL BRAIN (#197), development preview. Proposes several distinct spatial concepts,
@@ -214,7 +219,7 @@ _OPEN_ENGINES = (ENGINE_PRODUCTION, ENGINE_CONCEPT_V2)
 class EngineChoice:
     """What this ONE request runs. Resolved in the request frame, from the request alone."""
 
-    #: `_engine_override`'s value: `None` keeps the module flag (production), `True` runs Concept v2
+    #: `None` keeps the module flag (production), `True` runs Concept Engine v2 for this request
     concept_engine_v2: bool | None = None
     brain: bool = False
     rear_band: bool = False
@@ -250,13 +255,6 @@ def _resolve_engine(engine: str | None, token: str | None = None) -> EngineChoic
         return EngineChoice(brain=engine == ENGINE_BRAIN,
                             rear_band=engine == ENGINE_E1_REAR_BAND)
     raise _unknown_engine(engine, authorized=authorized)
-
-
-def _engine_override(engine: str | None, token: str | None = None) -> bool | None:
-    """`None` keeps the module flag (production). `True` runs the Concept Engine for this request
-    only. An unknown — or unauthorized — value is refused rather than silently treated as
-    production."""
-    return _resolve_engine(engine, token).concept_engine_v2
 
 
 @router.post("/{project_id}/design/demo/stream")
