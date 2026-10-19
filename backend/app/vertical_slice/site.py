@@ -38,6 +38,9 @@ PARKING_BAY_WIDTH_M = 2.5
 PARKING_BAY_DEPTH_M = 5.0   # PARAMETER · UNVERIFIED — plausible standard bay, not a sourced code value
 PARKING_GAP_M = 0.3
 ENTRANCE_SETBACK_FROM_SIDE_M = 1.0  # keep the front door off the very corner of the facade
+#: The pedestrian walk's own width, shared by `build_entrance` and `entrance_x_clear_of_parking`
+#: so the path that is DRAWN and the path that is kept off a bay are the same path.
+_WALK_WIDTH_M = 1.2
 
 
 @dataclass(frozen=True)
@@ -193,7 +196,7 @@ def build_entrance(footprint: Rect, entrance_x_u: int) -> EntranceWalk:
     """A door point centered on the given x within the footprint's street-facing (N, y=min)
     edge, plus a thin walk rect from the street to that point."""
     door_point = (entrance_x_u, footprint.y)
-    walk_width_u = m_to_u(1.2)
+    walk_width_u = m_to_u(_WALK_WIDTH_M)
     path = Rect(entrance_x_u - walk_width_u // 2, 0, walk_width_u, footprint.y)
     return EntranceWalk(door_point, path)
 
@@ -255,9 +258,6 @@ def build_site_plan(spec: ArchitecturalSpec, footprint_w_m: float, footprint_h_m
     garden = classify_garden(spec, plot, footprint, parking)
     return SitePlan(plot, footprint, offset_u, parking, entrance, garden)
 
-
-#: The pedestrian walk's own width, shared by `build_entrance` and the scan below.
-_WALK_WIDTH_M = 1.2
 
 
 def entrance_x_clear_of_parking(span: tuple[int, int], parking: tuple[Rect, ...],
