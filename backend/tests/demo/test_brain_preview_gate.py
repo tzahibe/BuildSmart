@@ -71,7 +71,8 @@ def _project(ctx: dict) -> Project:
 def clean_env(monkeypatch):
     """Nothing about the preview may be inherited from the machine running the tests."""
     for name in (preview_gate.FLAG_ENV, preview_gate.TOKEN_ENV,
-                 preview_gate.FAMILIES_ENV, preview_gate.SIZER_ENV):
+                 preview_gate.FAMILIES_ENV, preview_gate.SIZER_ENV,
+                 preview_gate.KILL_FILE_ENV):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -440,6 +441,32 @@ def _code_strings(module) -> list[str]:
             and id(node) not in doc_nodes]
 
 
+#: Every name that touches the filesystem, so the pin below names what it forbids rather than
+#: guessing from a word in a docstring. `preview_gate` may use exactly one of these.
+_FILESYSTEM_CALLS = frozenset({
+    "lstat", "stat", "exists", "is_file", "is_dir", "access", "listdir", "scandir", "walk",
+    "read_text", "read_bytes", "write_text", "write_bytes", "unlink", "remove", "rmdir", "mkdir",
+    "makedirs", "rename", "replace", "symlink", "link", "chmod", "chown", "truncate", "utime",
+    "touch", "run", "Popen", "system",
+})
+
+
+def _called_names(module) -> set[str]:
+    """Every function/attribute name this module actually CALLS."""
+    import ast
+    import inspect
+
+    names = set()
+    for node in ast.walk(ast.parse(inspect.getsource(module))):
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Attribute):
+                names.add(func.attr)
+            elif isinstance(func, ast.Name):
+                names.add(func.id)
+    return names
+
+
 def test_nothing_that_writes_a_log_line_is_even_given_the_token():
     """A structural pin rather than a string search over one captured run: the modules that write a
     preview request down are never HANDED the secret, so no future line can leak it by accident.
@@ -456,11 +483,49 @@ def test_nothing_that_writes_a_log_line_is_even_given_the_token():
     # Only a fixed, named field list may reach a line, so widening it is a reviewable edit here.
     assert "token" not in preview_log.FIELDS and "secret" not in preview_log.FIELDS
 
-    # The gate HOLDS the secret, so it must have no way to write anything down at all.
+    # The gate HOLDS the secret, so it must have no way to write anything down at all. #231 gave
+    # it a filesystem call (`os.lstat`, the kill switch), which is the obvious way this pin could
+    # have been weakened — so it stays as it was: the gate may ASK the filesystem a question and
+    # may not write, anywhere, by any means.
     gate_source = inspect.getsource(preview_gate)
     for forbidden in ("logging", "print(", "failure_log", "preview_log", "open("):
         assert forbidden not in gate_source, (
             f"preview_gate reads the secret and now also {forbidden} — it must stay write-free")
+    # And structurally, not by prose: #231's kill switch is the gate's only contact with the
+    # outside world, and it is one READ. `os.lstat` is the whole of it — nothing creates, writes,
+    # moves or deletes a path, so the gate cannot be the thing that turns the preview back on
+    # either.
+    assert _called_names(preview_gate) & _FILESYSTEM_CALLS == {"lstat"}
+
+
+def test_the_kill_switch_path_is_not_a_place_the_secret_can_be_smuggled_out(client, brain_spy,
+                                                                            monkeypatch, caplog,
+                                                                            tmp_path):
+    """#231 AC-7. The kill switch is the only thing in the gate that touches the outside world, so
+    it is the one new way the secret could leave: a path built from it, a line explaining why a
+    request was killed. Neither exists — the gate consults two paths it did not derive from any
+    request, and a killed request is answered by the ordinary refusal with nothing written down.
+    """
+    kill = tmp_path / "DISABLE_BRAIN_PREVIEW"
+    monkeypatch.setenv(preview_gate.KILL_FILE_ENV, str(kill))
+    _open("1", TOKEN, monkeypatch)
+    kill.write_text("")
+
+    seen: list[str] = []
+    real = preview_gate.os.lstat
+    monkeypatch.setattr(preview_gate.os, "lstat",
+                        lambda path: (seen.append(str(path)), real(path))[1])
+    with caplog.at_level(logging.DEBUG):
+        response = _post(client, ENGINE_BRAIN, token=TOKEN)
+
+    assert response.status_code == 422 and not brain_spy
+    assert seen and not [path for path in seen if TOKEN in path], (
+        "a path the gate asked about was built out of the secret")
+    text = _every_log_text(caplog) + response.text
+    assert TOKEN not in text
+    from app.observability import preview_log
+
+    assert preview_gate.KILL_FILE_ENV not in _code_strings(preview_log)
 
 
 def test_a_preview_request_is_recorded_once_with_the_facts_an_operator_needs(client, monkeypatch,

@@ -9,3 +9,7 @@ app/knowledge/data/
 tests/ai_harness/.cache/
 tests/ai_harness/reports/*
 !tests/ai_harness/reports/.gitkeep
+
+# The internal preview's kill switch (#231): an operator creates this to close the preview on the
+# next request. It is machine state during an incident, not something to commit.
+DISABLE_BRAIN_PREVIEW
