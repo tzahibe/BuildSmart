@@ -140,12 +140,17 @@ def update_requirements_review(project_id: str, body: ReviewEdit) -> Requirement
     return review_of(updated)
 
 
-def _failure_context(project_id: str, project, error=None) -> dict:
+def _failure_context(project_id: str, project, error=None, engine: str | None = None) -> dict:
     """Everything needed to reproduce a refusal, from the one frame that still has it.
 
     Shared by both generation routes on purpose: the streaming route is what the UI calls now, and a
     failure log that grew thinner the moment the UI changed would be a diagnostic that quietly
     stopped working.
+
+    `engine` is WHICH ENGINE SERVED THE REQUEST (#214). Only this frame knows it — the resolution
+    happens here — and without it a crash on a preview path is indistinguishable in the log from a
+    crash in production, which is precisely the question an operator asks first. It is the engine
+    NAME and never the preview token, which this function is not given.
     """
     footprint = project.selected_footprint
     context: dict = {
@@ -174,6 +179,8 @@ def _failure_context(project_id: str, project, error=None) -> dict:
     diagnostics = getattr(error, "diagnostics", None)
     if diagnostics:
         context["diagnostics"] = diagnostics
+    if engine:
+        context["engine"] = engine
     return context
 
 
@@ -223,6 +230,17 @@ class EngineChoice:
     concept_engine_v2: bool | None = None
     brain: bool = False
     rear_band: bool = False
+
+    @property
+    def name(self) -> str:
+        """The engine's NAME, for the failure log (#214) — never the token that authorized it."""
+        if self.brain:
+            return ENGINE_BRAIN
+        if self.rear_band:
+            return ENGINE_E1_REAR_BAND
+        if self.concept_engine_v2:
+            return ENGINE_CONCEPT_V2
+        return ENGINE_PRODUCTION
 
 
 def _unknown_engine(engine: str, *, authorized: bool) -> HTTPException:
@@ -304,11 +322,13 @@ def generate_demo_plan_streaming(
                 outcome["error"] = error
                 failure_log.refusal(error.code, error.message, error.detail,
                                     where="POST /projects/{id}/design/demo/stream",
-                                    context=_failure_context(project_id, project, error))
+                                    context=_failure_context(project_id, project, error,
+                                                             engine=choice.name))
             except Exception as error:            # noqa: BLE001 - reported, never swallowed
                 outcome["crash"] = error
                 failure_log.crash(error, where="POST /projects/{id}/design/demo/stream",
-                                  context=_failure_context(project_id, project))
+                                  context=_failure_context(project_id, project,
+                                                           engine=choice.name))
             finally:
                 updates.put(None)
 
@@ -359,7 +379,7 @@ def generate_demo_plan(project_id: str, request: Request,
         failure_log.refusal(
             error.code, error.message, error.detail,
             where="POST /projects/{id}/design/demo",
-            context=_failure_context(project_id, project, error))
+            context=_failure_context(project_id, project, error, engine=choice.name))
         # Tell the generic handler this one is already in the log WITH its context, so the same
         # failure is not counted twice — once richly here and once bare there.
         request.state.failure_recorded = True
