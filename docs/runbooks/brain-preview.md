@@ -52,11 +52,14 @@ Optional, and only ever *narrowing*:
 |---|---|---|
 | `BRAIN_PREVIEW_FAMILIES` | `band,spine,stack,cells` | comma-separated. A name outside the allow-list is **dropped**, not honoured. Narrow to `band` to make the preview cheaper. |
 | `BRAIN_PREVIEW_SIZER` | `exact` | `production` turns the brain's own sizer off while keeping its concepts. |
+| `BRAIN_PREVIEW_KILL_FILE` | unset | an **extra** path whose existence closes the preview. Only for a host where `backend/` is not writable; `backend/DISABLE_BRAIN_PREVIEW` works whatever this says. See §3. |
 
-**Put them in `backend/.env`, not in your shell.** This matters, and it is the one thing in this
-runbook that is easy to get wrong: a variable exported in the shell that started the server
-**cannot be removed without stopping the process**, which makes the emergency disable in §3
-unavailable to you. A variable that lives only in `.env` can be removed without a restart.
+**Prefer `backend/.env` to your shell.** A variable exported in the shell that started the server
+**cannot be removed without stopping the process** — a process's environment cannot be changed from
+outside it — so a variable in `.env` is the one you can also *change* later. It no longer decides
+whether you can **close** the preview: §3's kill switch closes it either way, and that is the lever
+to reach for first. (Before #231 it did decide, and the preview could not be closed at all in the
+exported case. See §3.)
 
 ```bash
 cd backend
@@ -64,6 +67,7 @@ cat >> .env <<'EOF'
 BRAIN_PREVIEW_TOKEN=<the secret you just generated>
 BRAIN_PREVIEW_ENABLED=1
 EOF
+ls DISABLE_BRAIN_PREVIEW    # must be "No such file": the kill switch (§3) overrides both variables
 ```
 
 Then make the server pick them up:
@@ -127,49 +131,91 @@ reading `sized by the production sizer (band layout)`.
 
 ---
 
-## 3. EMERGENCY DISABLE — the fastest path, no deployment
+## 3. EMERGENCY DISABLE — one command, no deployment
 
-**Lever A — close the preview** (use this by default):
+**Lever A — the kill switch. Create a file. This is the one to use.**
 
 ```bash
 cd backend
-# blank the line; do not just delete it, so the next person sees that it exists
-sed -i '' 's/^BRAIN_PREVIEW_ENABLED=.*/BRAIN_PREVIEW_ENABLED=/' .env
-touch app/main.py          # --reload respawns the worker, which re-reads .env
+touch DISABLE_BRAIN_PREVIEW
 ```
 
-**Lever B — revoke the secret** (use this instead if the token may have leaked):
+That is the whole procedure. The **next request** is refused, in the **same process**: no restart,
+no reload, no redeploy, no variable unset, and **no cooperation from however the preview was
+switched on**. It works when the variables were exported in the shell that started the server,
+which is the case where nothing else does (see "Read this before you need it"). `backend/` here is
+the directory that holds `.env` — the same one you were in for §1 — and the path the running server
+checks is derived from its own code's location, so it is that directory whatever the server's
+working directory is. To print it from the server's own environment:
+
+```bash
+cd backend && uv run python -c "from app.demo import preview_gate as g; print(g.kill_file_paths())"
+```
+
+Nothing reads the file's **contents**; its existence is the signal, so an empty file, a note to the
+next person, or a directory all work. If `backend/` is read-only on this host, set
+`BRAIN_PREVIEW_KILL_FILE` to a path you can write and `touch` that instead — it **adds** a
+location, it does not move the built-in one, so `backend/DISABLE_BRAIN_PREVIEW` keeps working
+whatever that variable says.
+
+**If the check cannot decide, the preview is closed.** An unreadable path, a permission error, a
+stale mount, a mis-set `BRAIN_PREVIEW_KILL_FILE`: every one of them refuses. You can over-apply
+this lever; you cannot break it open.
+
+**To re-open:** `rm backend/DISABLE_BRAIN_PREVIEW`. Nothing is remembered, so the next request is
+served again — provided the flag and the token are still set. Deleting the file grants nothing on
+its own.
+
+**Lever B — revoke the secret** (do this *as well*, if the token may have leaked — lever A closes
+the door, it does not change the lock):
 
 ```bash
 sed -i '' 's/^BRAIN_PREVIEW_TOKEN=.*/BRAIN_PREVIEW_TOKEN=/' .env
+touch app/main.py          # --reload respawns the worker, which re-reads .env
+```
+
+**Lever C — blank the flag** (the tidy, non-urgent close, once the incident is over):
+
+```bash
+sed -i '' 's/^BRAIN_PREVIEW_ENABLED=.*/BRAIN_PREVIEW_ENABLED=/' .env
 touch app/main.py
 ```
 
-An unset or empty token authorizes **nobody**, so lever B also closes the preview — and it
-invalidates the leaked secret, which lever A does not. Either way the very next request gets the
-ordinary unknown-engine 422. Nothing caches the decision; there is no third state and no grace
-period.
+Levers B and C depend on the variables living in `.env` **and** on the worker re-reading it; lever
+A depends on neither. Use A first, always. Follow with B if the secret is the problem.
 
-Confirm:
+Confirm, whichever you used:
 
 ```bash
 curl -s -X POST ".../design/demo?engine=brain" -H "X-Brain-Preview-Token: $OLD" | head -c 120
 # expect: unknown engine 'brain'; expected 'production' or 'concept_engine_v2'
 ```
 
+That refusal is the ordinary unknown-engine 422 — identical, byte for byte, to what
+`?engine=banana` gets. A closed preview and a kill-switched preview are indistinguishable from
+outside, on purpose: the refusal must not tell a prober that there is something here to come back
+for.
+
 ### Read this before you need it
 
-- **Editing `.env` alone is not enough.** A running worker does not re-read it. Measured: blanking
-  both lines and waiting left the preview fully open on the same pid. The `touch` is what closes
-  it, because it makes the reloader start a worker that re-reads `.env`.
-- **If the variables were exported in the shell that started the server, neither lever works.**
-  Measured: removing them from `.env` and forcing a reload left the preview open, because
-  `load_dotenv()` does not override what the process already has, and a respawned worker inherits
-  the parent's environment. The only disable is then **stopping the process** — an owner decision
-  under ROOT #211. This is why §1 says to put the variables in `.env`.
-- **The absolute fallback, if you cannot wait for an owner:** the preview cannot serve a request a
-  request cannot reach. Blocking the port, or stopping the process, are the only levers that do not
-  depend on how the variables were set. Both are owner decisions. Say which one you need and why.
+- **The kill switch is the only lever that does not depend on how the preview was turned on.** Use
+  it first. The two `.env` levers are for tidying up and for revoking a leaked secret.
+- **Editing `.env` alone is not enough.** A running worker does not re-read it. Measured (#214):
+  blanking both lines and waiting left the preview fully open on the same pid. The `touch` is what
+  closes it, because it makes the reloader start a worker that re-reads `.env`.
+- **If the variables were exported in the shell that started the server, neither `.env` lever
+  works at all.** Measured (#214): removing them from `.env` *and* forcing a reload left the
+  preview **open**, because `load_dotenv()` does not override what the process already has and a
+  respawned worker inherits its parent's environment. A process's `os.environ` cannot be changed
+  from outside the process by anything. **Before #231 the only disable in that configuration was
+  stopping the process** — an owner decision under ROOT #211, and the reason PR #224's "unset
+  either variable and it closes" was wrong. The kill switch in lever A is what replaced it: it
+  beats an exported, truthy `BRAIN_PREVIEW_ENABLED`, measured on a running server in
+  `docs/reports/architectural-brain/PREVIEW-killswitch-proof.md` (same pid throughout).
+- **If the server is not running `--reload`**, levers B and C cannot take effect at all without a
+  restart. Lever A still can. This is the configuration a real deployment is most likely to be in.
+- **The absolute fallback:** blocking the port or stopping the process. Both are owner decisions,
+  and after #231 neither should be necessary to close the preview. Say which one you need and why.
 
 ---
 
@@ -179,7 +225,7 @@ In increasing order of cost. Stop at the first one that fixes your problem.
 
 | # | action | what it costs | when |
 |---|---|---|---|
-| 1 | **Close the preview** (§3). | nothing. Production is unaffected — it never reads these variables. | anything wrong with the preview |
+| 1 | **Close the preview** — `touch backend/DISABLE_BRAIN_PREVIEW` (§3). | nothing. Production is unaffected — it never reads these variables, and never consults the kill switch. | anything wrong with the preview |
 | 2 | **Narrow it.** `BRAIN_PREVIEW_FAMILIES=band`, then `touch app/main.py`. | the cross-band families are not shown | the preview is too slow, or a non-band family produces bad plans |
 | 3 | **Turn the brain's own sizer off.** `BRAIN_PREVIEW_SIZER=production`, then `touch`. | the brain's concepts stay, its geometry does not | the exact sizer is refusing or misbehaving and you still want the concepts |
 | 4 | **Revert the code.** Revert PR #224 and the brain's preview seam. | a merge and a deploy — **owner decision** | a defect in the gate itself, or in `_resolve_engine` |
@@ -226,7 +272,7 @@ production one.
 | `exact_refusal=EMBEDDING_SEARCH_EXHAUSTED` | the embedder's node bound stopped the search. **Not** a proof of impossibility. | Nothing to do operationally; report the brief if its plans look impoverished. |
 | `exact_refusal=INVALID_INPUT` | a malformed parti (an edge naming a room that is not in the programme, a self-adjacency). | **Report it** — this is a defect in the proposer, not a configuration problem. |
 | `code=BRAIN_NO_PLAN` + HTTP **422** | no parti produced a plan at all. The response's `detail` leads with the exact sizer's code and then names each parti, its stage and its reason. The failure log has the whole brief. | Read the first code in `detail`: if it is `EXACT_SIZER_UNAVAILABLE`, see row 1 — the real cause is the environment. Otherwise it is a brief the brain cannot plan; production's own engine is unaffected and can still serve it (just omit `?engine=brain`). |
-| HTTP **422** `unknown engine 'brain'` when you expected 200 | the preview is **closed**: the flag is off, or the token is missing/wrong/stale. Indistinguishable, on purpose, from an engine that does not exist. | Re-do §1. Check the `pid` changed after the `touch`. |
+| HTTP **422** `unknown engine 'brain'` when you expected 200 | the preview is **closed**: the kill switch is on, or the flag is off, or the token is missing/wrong/stale. Indistinguishable, on purpose, from an engine that does not exist. | First `ls backend/DISABLE_BRAIN_PREVIEW` — somebody closed the preview, or a crashed run left the file behind. Then re-do §1, and check the `pid` changed after the `touch`. |
 | HTTP **500** | a defect. The failure log has the traceback and an `engine` field naming the preview. | Close the preview (§3) and report with the failure-log entry. |
 | a slow request | the preview's budget is **30 s of wall clock by design**, against production's sub-second path. | Not a defect by itself. Latency, CPU and concurrency are measured in Issue #226, not here — do not draw conclusions from a stopwatch on a busy host. |
 
@@ -254,3 +300,4 @@ production one.
 | design of the gate | `docs/wiki/architecture/engine-preview-gate.md` |
 | the evidence behind this runbook | `docs/reports/architectural-brain/PREVIEW-operational-readiness.md` |
 | the variables, with empty values | `backend/.env.example` |
+| the kill switch's own evidence, on a running server | `docs/reports/architectural-brain/PREVIEW-killswitch-proof.md` |

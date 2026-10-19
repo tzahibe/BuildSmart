@@ -213,6 +213,14 @@ no credential, no configuration.**
 
 ## 5. The emergency-disable mechanics, as actually observed
 
+> **Superseded as a procedure by #231, kept as the measurement.** Everything in this section was
+> observed and is still true of the two `.env` levers. What it concludes — that in step 4's shape
+> the only disable is stopping the process — is no longer the situation: #231 added a kill switch
+> inside `preview_gate` (`touch backend/DISABLE_BRAIN_PREVIEW`) that closes the preview on the next
+> request in the same process, beating an exported `BRAIN_PREVIEW_ENABLED`, and fails closed on any
+> ambiguity. See `PREVIEW-killswitch-proof.md` and `docs/runbooks/brain-preview.md` §3. Read this
+> section for *why* the environment alone could not do it.
+
 #212's promise is that unsetting either half **closes the preview on the next request, with no
 redeploy and no restart**, because `preview_gate` reads `os.environ` per request and caches no
 decision. That is true of the decision. It is **not** the whole operational story, and the
@@ -241,11 +249,13 @@ What this means, stated plainly:
 - The genuinely restart-free lever on a `--reload` server is therefore **blank the `.env` line and
   touch a `.py` file**: the reloader respawns the worker, which re-reads `.env`. That is a worker
   respawn, not a service restart — no redeploy, no port drop, in-flight requests finish.
-- On a server **not** running `--reload`, and in step 4's shape, the only disable is **stopping the
-  process**. #211 forbids a restart without owner approval, so the runbook's first lever is the
-  `.env` one and the second is an explicit owner decision.
+- On a server **not** running `--reload`, and in step 4's shape, the only disable **was** stopping
+  the process. #211 forbids a restart without owner approval, which is what made this a GO blocker
+  rather than a documentation defect — and what #231 closed: the kill switch needs neither the
+  environment's cooperation nor a respawn, so the runbook's first lever is now a file, and the two
+  `.env` levers below it are for revoking a leaked secret and for tidying up.
 
-Both steps are in `docs/runbooks/brain-preview.md`, in that order.
+All three levers are in `docs/runbooks/brain-preview.md` §3, in that order.
 
 ---
 
@@ -259,7 +269,7 @@ session; **LOW** = annoyance or an already-mitigated edge.
 |---|---|---|---|---|
 | R1 | **The preview silently serves production's geometry.** scipy absent, or every solve refusing, returns 200 with plans whose only tell is a sentence on the caller's screen. An owner judges "the brain" and is looking at the band sizer. | **HIGH** | observed in §3: 8/8 partis, 200 OK | **closed by this branch** on the detection side: `exact_refusal=` and `plan_sizer=` in every request line, §2. Verification step 3 of the runbook makes the operator look. Not closed on the *interface* side — the response still reads as a brain plan. |
 | R2 | **The preview is enabled on a pre-#224 server**, where `?engine=brain` alone is the authorization. | **HIGH** | `origin/main` is exactly this state today (§4) | #224 must merge **before** the preview is used anywhere reachable. Named as a precondition in the runbook's enable section, and the single owner gate. |
-| R3 | **The emergency disable does not work the way it reads.** An operator unsets the variable, serves the next request, and the preview is still open (§5 steps 2 and 4). | **HIGH** | observed | the runbook gives the two levers in order, says which one is restart-free, and says plainly that an exported variable can only be closed by stopping the process — an owner decision under #211. |
+| R3 | **The emergency disable does not work the way it reads.** An operator unsets the variable, serves the next request, and the preview is still open (§5 steps 2 and 4). | **HIGH** → **CLOSED by #231** | observed | **Closed, not documented around.** #231 added a kill switch inside `preview_gate`: `touch backend/DISABLE_BRAIN_PREVIEW` closes the preview on the next request, same process, beating an exported `BRAIN_PREVIEW_ENABLED` — measured on a running server in `PREVIEW-killswitch-proof.md`. It fails closed on any ambiguity. The runbook's §3 now leads with it; §5 below records what was observed BEFORE that fix and is kept as the measurement it was. |
 | R4 | **The token leaks** (a shell history, a `curl` in a shared terminal, a screenshot). The secret is shared, not per-user, and there is no audit trail. | **HIGH** | #212's own stated limits | blank `BRAIN_PREVIEW_TOKEN` (the leaked-secret lever, §5) and reissue. No log line can contain it (AC-4, §2). Per-user identity and an audit trail were deliberately out of #212's scope. |
 | R5 | **An unfinished layout family reaches the owner.** | **LOW** | mitigated at the source | `preview_gate.ALLOWED_FAMILIES` is an allow-list configuration can only *narrow*; #208's `generator` is in `GATE_FAILED_FAMILIES` and no environment variable can add it. Pinned by four tests. |
 | R6 | **A refusal becomes an oracle** — a prober learns a hidden engine exists. | **LOW** | mitigated at the source | identical 422, identical work before the answer, `hmac.compare_digest`; the preview line does not record *refused* gate decisions, so the log is not an oracle either. |
