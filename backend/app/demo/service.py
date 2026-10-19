@@ -66,6 +66,7 @@ from app.vertical_slice.spec import (
     PublicOpenSide,
     RelationStrength,
 )
+from app.observability import preview_log
 from app.vertical_slice.wet_privacy import candidate_privacy_key
 
 from . import preview_gate, site_geometry
@@ -926,14 +927,33 @@ def _brain_result(project: Project, spec, selection: PlanSelection,
     by the same `DemoPlan` the product already uses."""
     orr, _production = selection.primary
     outline = orr.outline
+    sizer, families = preview_gate.sizer(), preview_gate.families()
     res = run_brain(spec, (outline.width_m, outline.depth_m), brief=getattr(project, "project_id", "brief"),
-                    sizer=preview_gate.sizer(), families=preview_gate.families())
+                    sizer=sizer, families=families)
+    # ONE LINE PER REQUEST (#214). Emitted on BOTH paths, before the refusal is raised, because a
+    # preview whose exact sizer is refusing every brief looks identical from outside to a healthy
+    # one: the sizer that made the shown plan reached only the caller's own notes before this.
+    def observe(**extra) -> None:
+        preview_log.brain_request(
+            engine="brain", sizer=sizer, families=families, solves=res.solves,
+            budget_expired=res.budget_expired,
+            exact_refusal=",".join(res.exact_refusals) or None,
+            plans=len(res.distinct), partis=len(res.plans), seconds=res.seconds, **extra)
+
     if not res.distinct:
         detail = "; ".join(f"{p.parti} [{p.stage}]: {p.reason[:120]}" for p in res.plans) or "no parti applied"
+        # The exact sizer's own typed refusal, FIRST. Without this a `BRAIN_NO_PLAN` entry in the
+        # failure log never said that there had been no solver at all: `reason` carries the
+        # production pipeline's verdict and the exact sizer's code lived only in `notes`.
+        if res.exact_refusals:
+            detail = f"exact sizer: {', '.join(res.exact_refusals)} | {detail}"
+        observe(code="BRAIN_NO_PLAN")
         raise DemoGenerationError(
             "BRAIN_NO_PLAN",
             "המוח האדריכלי לא הצליח לתכנן תוכנית עבור הבקשה הזו.",
             detail)
+    shown = res.distinct[0]
+    observe(plan_sizer=shown.sizer, plan_family=shown.family)
     unsupported = _set_aside(project, spec, preference_dropped)
     capacity_notice = capacity_notice_text(spec.program.target_built_area_m2,
                                            program_capacity_gross_m2(build_room_program(spec)))
