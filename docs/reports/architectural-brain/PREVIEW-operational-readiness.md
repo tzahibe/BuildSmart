@@ -292,3 +292,22 @@ illustrations of a field's shape, not measurements of performance.
 | `docs/runbooks/brain-preview.md` | the operator's procedure |
 | §3's transcript | the scipy-absent path, in a virtualenv that genuinely lacks it |
 | §5's table | the disable mechanics, under a real `uvicorn --reload` |
+
+Suites run on this branch, verbatim:
+
+- `tests/vertical_slice/test_brain_fallbacks.py` — **26 passed** (50 s).
+- `tests/demo/test_brain_preview_gate.py` — **49 passed** (5.5 s); 42 on PR #224.
+- `tests/demo/ tests/test_engine_preview.py tests/test_demo_p0.py tests/vertical_slice/test_brain.py
+  tests/vertical_slice/test_brain_fallbacks.py tests/knowledge/test_capability_wiring_table.py -n 4`
+  — **249 passed, 1 xfailed** (2:14).
+- Fast suite, `WALLCLOCK_BUDGETS=off … -n 4` — **2521 passed, 883 skipped, 10 xfailed, 0 failed**
+  (6:42). PR #224 reported 2484 passed with 4 failures in `tests/test_local_gateway.py` on a
+  missing `torch`; those four pass here because the environment was built with
+  `uv sync --group dev --extra local-model`, which is the difference, not a change in this branch.
+  2488 + 26 + 7 = 2521 exactly.
+- **The corpus snapshot suite was deliberately NOT run**: #209 measured it at 55 minutes and #212
+  proved the gate cannot affect it, since `corpus_snapshot.py` calls `generate_demo_design(project)`
+  with no engine keyword and so never reaches the router. Nothing in this branch is reachable from
+  it either: `preview_log` is called only from `_brain_result`, and `_failure_context`'s new field
+  is set only in the two demo routes. `agent-regression.yml`'s base-vs-head comparison on the PR is
+  the authoritative check.
