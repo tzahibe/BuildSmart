@@ -1,6 +1,6 @@
 # Engine Preview Gate (`?engine=`)
 
-Status: IMPLEMENTED (Issue #212, ROOT #211) — the preview ships **DEFAULT OFF**
+Status: IMPLEMENTED (Issue #212, ROOT #211; the kill switch #231) — the preview ships **DEFAULT OFF**
 
 ## Current behavior
 
@@ -26,10 +26,49 @@ every request**:
 | `BRAIN_PREVIEW_TOKEN` | unset = **nobody** | the shared secret. An unset or empty value authorizes nobody, so a deployment that forgets it is closed rather than open. |
 | `BRAIN_PREVIEW_FAMILIES` | the measured four | comma-separated; may only NARROW the layout families (see below). |
 | `BRAIN_PREVIEW_SIZER` | `exact` | the brain's sizer. |
+| `BRAIN_PREVIEW_KILL_FILE` | unset | an **additional** path whose existence closes the preview. `preview_gate.DEFAULT_KILL_FILE` (`backend/DISABLE_BRAIN_PREVIEW`) is checked whatever this says, so configuration can add a kill location and can never move or remove the built-in one. |
 
 The secret is presented in the **`X-Brain-Preview-Token`** request header and compared with
 `hmac.compare_digest`. It is never logged, never echoed in a response, and no value is committed to
 this repository — `.env.example` carries the name with an empty value only.
+
+### The kill switch, and why reading the environment per request was not enough (#231)
+
+`preview_gate.killed()`, consulted by `enabled()` and therefore by the single `authorized()` call
+`_resolve_engine` already makes: **the existence of `backend/DISABLE_BRAIN_PREVIEW` closes the
+preview**, resolved per request, overriding every other signal.
+
+#212 read both halves of the gate per request, and PR #224 concluded from that that blanking either
+variable closes the preview on the next request. #214 measured the claim against a running server
+and it is **false** in the configuration that matters:
+
+| what was done | what happened |
+| --- | --- |
+| blanked both lines in `.env`, waited | preview **open**, same pid — a worker does not re-read `.env`, and a process's `os.environ` cannot be changed from outside the process |
+| `touch app/main.py` | closed — but only because `--reload` respawns the worker |
+| the variables **exported** in the starting shell, removed from `.env`, reload forced | preview **open**: `load_dotenv()` does not override, and a respawned worker inherits its parent's environment |
+
+In the third case the only disable was stopping the process — an owner action under ROOT #211 and
+the opposite of "immediately, without a new deployment". A file is the one signal an operator can
+change from **outside** the process, that needs no cooperation from the environment that enabled the
+preview, and that the next request sees.
+
+- **Resolved per request, never cached.** Create the file and the next request refuses; remove it
+  and the next request is served (if the flag and token are still set — removing it grants nothing).
+- **It beats an exported, truthy `BRAIN_PREVIEW_ENABLED`.** Proven on a running server, same pid
+  throughout: `docs/reports/architectural-brain/PREVIEW-killswitch-proof.md`.
+- **It fails closed.** `os.lstat`, not an existence helper: `Path.exists()` swallows every `OSError`
+  and answers "keep serving" for a permission error or a broken mount. Exactly one outcome means
+  not killed — `FileNotFoundError`. A permission error, an unusable path, a `TypeError`, a
+  `KeyboardInterrupt` mid-check: **disabled**. A gate that cannot decide refuses.
+- **The path is derived from the module's own location**, not from the working directory, so the
+  path the runbook names is the path the running process checks however it was started.
+- **It adds no refusal, no status and no message of its own**, and the `lstat` runs for every
+  `?engine=` value because `authorized()` is still consulted first and unconditionally — so a
+  killed preview is byte-identical to one that does not exist, and there is no new timing oracle.
+- **The gate stays write-free.** Its only contact with the outside world is one read; nothing in
+  `preview_gate` creates, writes, moves or deletes a path, so the gate cannot be what re-opens the
+  preview either.
 
 ### Why the environment and not a module constant
 
@@ -82,19 +121,25 @@ variable can show an owner a plan it made. Widening the set is a code change wit
    <secret>"`. The frontend's engine switch does not send the header, so the preview is reachable
    from a tool that can set one, not from the UI as it stands (deliberately out of #212's scope).
 
-**To emergency-disable**, either lever closes it on the NEXT request, with no redeploy and no
-restart:
+**To emergency-disable**, in this order:
 
-- unset or blank `BRAIN_PREVIEW_ENABLED` (the flag), **or**
-- unset or blank `BRAIN_PREVIEW_TOKEN` (revoke the secret; use this if the secret leaked).
+1. **`touch backend/DISABLE_BRAIN_PREVIEW`** — the kill switch. Closes the preview on the NEXT
+   request with no redeploy, no restart and no variable unset, and it is the only lever that works
+   when the variables were exported in the starting shell. Use this first, always. `rm` re-opens.
+2. **unset or blank `BRAIN_PREVIEW_TOKEN`** — additionally, if the secret leaked: the kill switch
+   closes the door, it does not change the lock.
+3. **unset or blank `BRAIN_PREVIEW_ENABLED`** — the tidy close once the incident is over.
 
-Both are read per request, nothing caches the decision, and the next `?engine=brain` becomes the
-ordinary unknown-engine 422. There is no third state and no grace period.
+Levers 2 and 3 are read per request, but only reach the process if the variables live in `.env`
+**and** the worker re-reads it; lever 1 depends on neither. Nothing caches any of the three
+decisions, and the next `?engine=brain` becomes the ordinary unknown-engine 422. There is no third
+state and no grace period. The runbook is `docs/runbooks/brain-preview.md` §3.
 
 ## Authoritative implementation
 
-- `app/demo/preview_gate.py` — `enabled()`, `authorized()`, `sizer()`, `families()`, the
-  environment-variable names, `ALLOWED_FAMILIES`, `GATE_FAILED_FAMILIES`.
+- `app/demo/preview_gate.py` — `enabled()`, `authorized()`, `killed()`, `kill_file_paths()`,
+  `DEFAULT_KILL_FILE`, `sizer()`, `families()`, the environment-variable names,
+  `ALLOWED_FAMILIES`, `GATE_FAILED_FAMILIES`.
 - `app/demo/router.py` — `_resolve_engine`/`EngineChoice` (the single resolution point for both
   endpoints), `_unknown_engine` (the one refusal), the `X-Brain-Preview-Token` header parameter.
 - `app/demo/service.py` — `_brain_result` reads `preview_gate.sizer()`/`families()`.
@@ -102,6 +147,11 @@ ordinary unknown-engine 422. There is no third state and no grace period.
 
 ## Tests
 
+- `backend/tests/demo/test_brain_preview_killswitch.py` — #231's AC-1..AC-4 and AC-7: the file
+  beats every truthy spelling of an exported flag, both gated engines and both routes, removal
+  re-enables with no restart, nothing is cached, a real `PermissionError` and any other exception
+  refuse, configuration cannot move the built-in path, the refusal is identical to both the
+  unknown-engine and the flag-off refusal, and the kill check is counted on every engine name.
 - `backend/tests/demo/test_brain_preview_gate.py` — AC-1..AC-5 and AC-7 on the wire: OFF by
   default, only an explicit true opens it, the identical refusal, both endpoints gated, nothing
   request-shaped standing in for the header, a runtime flip between two requests in one process,
