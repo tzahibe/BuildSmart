@@ -481,7 +481,8 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
         out = run_exact_pipeline(
             PipelineInput(name=prop.name, zones=zones, required_edges=tuple(prop.spatial),
                           footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
-                          access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
+                          access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE"),
+                          open_groups=(p.open_group,) if p.open_group else ()),
             prefer=_preference(prop, zones, p), ladder=AREA_BAND_LADDER,
             rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline,
             arrival=prop.arrival)
@@ -514,6 +515,15 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                          stage=getattr(out, "stage", "PIPELINE"), seconds=secs, sizer=made_by, notes=tuple(notes))
     gross, net = _areas(out.realized)
     requested = p.requested_m2 or (p.footprint_m[0] * p.footprint_m[1])
+    # OPEN PLAN, DISCLOSED (Issue #221). The brief asked for it and the delivered plan does not
+    # have it: either the production sizer realized this parti (`realize_layout` cannot express a
+    # join between two different zones) or the placement left no member pair fully adjacent, in
+    # which case `realize_cells` already said which pair and why. Never silent.
+    if p.open_group and not getattr(out.realized.design, "open_groups", ()):
+        notes = (*notes, "open plan was requested and is NOT expressed in this plan: "
+                         f"{'/'.join(p.open_group)} are walled"
+                         + (f" (the {made_by} sizer cannot type an interface OPEN)"
+                            if made_by == SIZER_PRODUCTION else ""))
     return BrainPlan(prop.name, prop.rationale, True, reason="realized",
                      stage="REALIZED", spatial_preserved=out.spatial_preserved,
                      access_preserved=out.access_preserved,

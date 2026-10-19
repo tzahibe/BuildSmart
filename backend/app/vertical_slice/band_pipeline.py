@@ -100,6 +100,13 @@ class PipelineInput:
     #: (a door needs a shared wall), a door-width sizing requirement, and a legality requirement —
     #: no longer diagnostics only.
     access_edges: tuple[tuple[str, str], ...] = ()
+    #: The brief's DECLARED open-plan groups (Issue #221) — the caller's own programme fact, the
+    #: same thing production compiles into `Fixture.open_groups`. Honoured by the EXACT pipeline,
+    #: whose `realize_cells` types a fully-adjacent member pair's interface OPEN; `run_band_pipeline`
+    #: below passes it nowhere, because `realize_layout`'s `open_pairs` is the same-zone notch-carve
+    #: mechanism and cannot express a join between two different zones. A caller that sets this and
+    #: takes the production sizer is told so by `brain.runner` rather than quietly given a walled plan.
+    open_groups: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass

@@ -159,7 +159,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
         if orient_tag == "V":
             rects = transpose_rects(rects)
             wings = tuple(transpose_rects(dict(enumerate(wings))).values())
-        out = realize_cells(name, rects, intents, wings, access, wet_rooms=inp.wet_rooms)
+        out = realize_cells(name, rects, intents, wings, access, wet_rooms=inp.wet_rooms,
+                            open_groups=inp.open_groups)
         tried += 1
         if not isinstance(out, RealizedLayout):
             note("REALIZATION", out.constraint); return False
@@ -340,5 +341,6 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
     return PipelineSuccess(realized=best.realized, placement=best.placement, candidate_index=0,
                            candidates_tried=tried, spatial_preserved=f"{sp.preserved}/{sp.requested}",
                            access_preserved=f"{ac.preserved}/{ac.requested}",
-                           access_lost=tuple(str(e) for e in ac.lost), warnings=tuple(warnings),
+                           access_lost=tuple(str(e) for e in ac.lost),
+                           warnings=tuple(warnings) + tuple(best.realized.notes),
                            seconds=secs, selection={"histogram": histogram})
