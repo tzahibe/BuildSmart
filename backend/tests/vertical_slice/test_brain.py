@@ -135,12 +135,15 @@ def test_it_costs_nothing_and_calls_no_model(monkeypatch):
 
 #: The shown-first plan's rank key per (brief, families) as #204 measured it on this machine
 #: (`docs/reports/architectural-brain/data/preview-compare-top3/metrics.json`, config
-#: brain-exact-band / brain-exact-all). #205's gate: no brief's shown-first plan ranks below these.
-#: Lower is better, lexicographic: (arrival, street, area tolerance, room deviation %, circulation %,
-#: -garden rooms, |gross - requested|, circulation m2, worst wet aspect).
+#: brain-exact-band / brain-exact-all), carried into the #207 key: both plans arrived in a
+#: 1.50 x 3.05 m foyer (`preview-compare-top3/designs/B08__brain-exact-*.json`), a strip by the
+#: sizer's own line (`FOYER_MIN_NET_M`), so their arrival-room key is 1. #205's gate: no brief's
+#: shown-first plan ranks below these. Lower is better, lexicographic: (arrival, street, area
+#: tolerance, arrival room usable, room deviation %, circulation %, -garden rooms,
+#: |gross - requested|, circulation m2, worst wet aspect).
 MEASURED_204_KEYS = {
-    ("B08", "band"): (0, 0, 0, 3, 13, -3, 1.1, 16.3, 1.04),
-    ("B08", "all"): (0, 0, 0, 1, 13, -2, 0.0, 16.8, 1.09),
+    ("B08", "band"): (0, 0, 0, 1, 3, 13, -3, 1.1, 16.3, 1.04),
+    ("B08", "all"): (0, 0, 0, 1, 1, 13, -2, 0.0, 16.8, 1.09),
 }
 
 
@@ -174,17 +177,22 @@ def test_the_exact_sizer_improves_partis_and_never_ranks_one_below_production():
             assert all(("ranked below" in n) or ("fell back" in n) or ("did not count" in n) for n in plan.notes)
 
 
-@pytest.mark.xfail(strict=True, reason="#205 gate clause 2 FAILED and is on record: with the foyer group the B08 "
-                   "shown-first plan is (0, 0, 0, 5, 14, ...) against #204's (0, 0, 0, 3, 13, ...) — a 2.00 x 3.00 m "
-                   "foyer instead of a 1.50 x 3.05 m strip, paid for by the rooms behind it; see "
-                   "docs/reports/architectural-brain/PREVIEW-foyer-geometry.md. Strict: if this ever passes, "
-                   "the measurement has changed and the report must be redone, not the marker removed.")
 def test_the_shown_first_plan_ranks_no_worse_than_204_measured():
-    """#205's gate, second clause, as #204's measured keys (`MEASURED_204_KEYS`)."""
+    """#205's gate, second clause, as #204's measured keys (`MEASURED_204_KEYS`).
+
+    History, because this test's marker moved: under #205 it was `xfail(strict=True)` — the B08
+    shown-first plan (0, 0, 0, 5, 14, ...) ranked below #204's (0, 0, 0, 3, 13, ...), a 2.00 x 3.00 m
+    foyer paid for by the rooms behind it (PREVIEW-foyer-geometry.md). #207 put the arrival room's
+    usability in the key before room deviation, and the measured fact changed: #204's plan is a
+    1.50 x 3.05 m strip (key 1) and the 2.00 x 3.00 m foyer (key 0) now ranks above it,
+    (0, 0, 0, 0, 5, 14, ...) < (0, 0, 0, 1, 3, 13, ...) — see PREVIEW-foyer-preference.md. The
+    marker is gone for that reason and no other; the deviation it costs is still 5 vs 3."""
     pytest.importorskip("scipy")
     spec, fp = _spec_and_footprint(SMALL)
     res = run_brain(spec, fp, brief=SMALL, sizer="exact", families=("band",), budget_s=30.0)
-    assert tuple(res.distinct[0].rank_key) <= MEASURED_204_KEYS[(SMALL, "band")], res.distinct[0].rank_key
+    key = tuple(res.distinct[0].rank_key)
+    assert key <= MEASURED_204_KEYS[(SMALL, "band")], key
+    assert key[3] == 0 and key[4] >= MEASURED_204_KEYS[(SMALL, "band")][4]      # usable, and it still costs deviation
 
 
 def test_the_primary_is_the_best_ranked_plan_not_the_first_parti():
