@@ -171,7 +171,10 @@ def test_the_exact_sizer_improves_partis_and_never_ranks_one_below_production():
                        for n in plan.notes)
         else:
             # a parti the exact sizer tried and lost on says why; one it never reached says nothing
-            assert all(("ranked below" in n) or ("fell back" in n) or ("did not count" in n) for n in plan.notes)
+            # "open plan ..." is Issue #221's brief-delivery disclosure, not a statement about
+            # this parti's ranking.
+            assert all(("ranked below" in n) or ("fell back" in n) or ("did not count" in n)
+                       or ("open plan" in n) for n in plan.notes), plan.notes
 
 
 @pytest.mark.xfail(strict=True, reason="#205 gate clause 2 FAILED and is on record: with the foyer group the B08 "
@@ -221,4 +224,9 @@ def test_the_production_sizer_is_untouched_by_the_seam():
     a = run_brain(spec, fp, brief=SMALL)
     b = run_brain(spec, fp, brief=SMALL, sizer="production")
     assert [p.geometry_signature for p in a.accepted] == [p.geometry_signature for p in b.accepted]
-    assert all(p.sizer == "production" and p.family == "band" and p.notes == () for p in a.accepted)
+    assert all(p.sizer == "production" and p.family == "band" for p in a.accepted)
+    # Issue #221 names what MAY appear here instead of asserting nothing does: on an open-plan
+    # brief a plan with no open interface carries that brief-delivery disclosure (and the
+    # realizer's own per-pair measurement). Nothing about the exact-sizer seam may appear.
+    assert all(all(n.startswith("open plan was requested") or "open plan not expressed" in n
+                   for n in p.notes) for p in a.accepted), [p.notes for p in a.accepted]

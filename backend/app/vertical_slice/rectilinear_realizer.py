@@ -272,6 +272,12 @@ class RealizationIntent:
     entrance_hint_zone_id: str | None = None
     declared_adjacency: tuple[tuple[str, str], ...] = ()
     declared_exposure: tuple[str, ...] = ()
+    #: The brief's DECLARED open-plan groups (Issue #221) — the same fact `realize_cells` takes,
+    #: handled by the same `_open_cell_pairs` rule. A group member that this layout realized as
+    #: SEVERAL cells (a notch-carve zone) is not a cell id and is simply not opened: `open_pairs`
+    #: here already means "two cells with no wall between them", and a fragment's own seams are
+    #: not the brief's open plan.
+    open_groups: tuple[tuple[str, ...], ...] = ()
     #: Every BATHROOM/TOILET zone's own access kind (Issue #162/#142A) — C17 ("bathroom access
     #: matches the requirements", `validation.py`) FAILS CLOSED on any wet zone not covered here
     #: (by design: "a wet zone the requirements do not cover... is a failure, never a pass by
@@ -1543,6 +1549,12 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     for wb in wing_builds:
         for a, b in wb.same_zone_edges:
             open_pairs.add(frozenset((a, b)))
+    # The brief's own open plan (Issue #221), by the same rule and the same precondition
+    # `realize_cells` uses: two WHOLE cells, a shared boundary covering the full side of both.
+    # These two sources of OPEN are kept apart below — a same-zone seam is one room, a declared
+    # pair is two rooms with no wall between them.
+    declared_open, open_notes = _open_cell_pairs(tuple(layout.open_groups), rects, roles)
+    open_pairs |= declared_open
     # SAFE_ROOM (Issue #142G): the same precedence `geometry_core.engine` applies —
     #   OPEN  >  RC_SAFE_ROOM  >  EXTERIOR  >  PARTITION
     # — a safe room's own four sides are RC (its exterior side is still a safe-room wall: C4 reads
@@ -1608,8 +1620,14 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
                             specs[zid].max_aspect_ratio) for zid in rects)
     declared = frozenset(frozenset(p) for w in layout.wings if isinstance(w, GridWing) for p in w.access_pairs)
     access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms, declared)
-    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in access_pairs)
-    open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
+    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION
+                                    if frozenset((a, b)) in declared_open else ConnectionKind.DOOR)
+                  for a, b in access_pairs)
+    asked = {frozenset(p) for p in access_pairs}
+    edges += tuple(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION)
+                   for a, b in sorted(tuple(sorted(p)) for p in declared_open if p not in asked))
+    open_groups = (tuple(tuple(sorted(pair)) for pair in open_pairs - declared_open)
+                   + _open_components(declared_open))
     fixture = Fixture(layout.name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)
 
     site = _build_site(wing_builds)
@@ -1639,7 +1657,7 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
             group_geometry[group_id] = MergedGeometry(
                 merged.polygon_m, merged.bbox_m, merged.gross_area_m2, net_area, merged.aspect)
 
-    notes: list[str] = []
+    notes: list[str] = list(open_notes)
     if groups:
         notes.append(
             f"NEEDS-POLYGON-VARIANT: C3/C20/C21 ran at cell granularity for "
