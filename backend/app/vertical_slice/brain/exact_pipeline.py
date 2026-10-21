@@ -42,10 +42,18 @@ from app.vertical_slice.topology_preservation import (
 )
 
 ALL_FAMILIES = ("band", "spine", "stack", "cells")
+#: the screen-aware, bound-aware generator (#208, `exact/generator.py`) as a family of its own —
+#: NOT in `ALL_FAMILIES`: the preview stays as it was until the day-3 gate says otherwise, and
+#: `service.BRAIN_FAMILIES` is where that decision is recorded
+GENERATOR_FAMILY = "generator"
 #: candidates actually sized per parti per family; a product request sizes a handful, never hundreds
 MAX_SIZINGS = 6
 MAX_CANDIDATES = 60
 CELLS_K = 6
+#: layouts the generator may emit per orientation per parti, and the time the cheap feasibility
+#: MILP (no objective, the loosest rung) gets per layout before the exact sizing is attempted
+GENERATOR_MAX_LAYOUTS = 120
+GENERATOR_SCREEN_S = 2.0
 
 
 @dataclass
@@ -324,6 +332,45 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
                     sized += 1
                     realize(f"{inp.name}:cells", cells_rects(lay, o), zr, cells_wings(lay, o), orient_tag,
                             ExactPlacement("cells", rows=tuple(lay.rows), label=f"{lay.spanning} {orient_tag}"))
+                    break
+
+    # ---- the generator family (#208): layouts built WITH the screens and the room bounds, where
+    # the embedder's order does not look — row counts and zone-to-row assignments it ranks deep
+    if GENERATOR_FAMILY in families and not out_of_time():
+        from app.vertical_slice.exact.generator import generate
+        from app.vertical_slice.exact.milp_cells import milp_cells
+        # the loosest rung's bounds decide what is enumerated: a layout no rung can size is never
+        # worth an order, and the oracle's entrance/foyer rules need the foyer's full template range
+        loosest = rebanded(zones, ladder[-1]) if ladder[-1] != ladder[0] else zones
+        sized = 0
+        for orient_tag, env_o in orientations:
+            if sized >= max_sizings or out_of_time():
+                break
+            for lay in generate(loosest, union, access, inp.wet_rooms, env_o, arrival=arrival, orient_tag=orient_tag,
+                                max_layouts=GENERATOR_MAX_LAYOUTS, deadline=deadline, min_contact_u=contacts):
+                if sized >= max_sizings or out_of_time():
+                    break
+                screen = milp_cells(lay, loosest, union, env_o, min_contact_u=contacts, k=CELLS_K, objective="feasible",
+                                    time_limit_s=min(GENERATOR_SCREEN_S, time_left()))
+                note("SCREEN", f"generator:{screen.status}")
+                if screen.status != "FEASIBLE":
+                    continue
+                for rung, zr in _ladder(zones, rebanded, ladder):
+                    if out_of_time():
+                        break
+                    o = cells_placement(lay, zr, union, env_o, min_contact_u=contacts, k=CELLS_K, objective=objective,
+                                        time_limit_s=time_left())
+                    note("SIZING", f"generator:{o.status}")
+                    if o.status == "UNKNOWN":
+                        unknown += 1
+                    if o.status != "FEASIBLE":
+                        if o.status == "BAND_GAP":
+                            break
+                        continue
+                    sized += 1
+                    realize(f"{inp.name}:generator", cells_rects(lay, o), zr, cells_wings(lay, o), orient_tag,
+                            ExactPlacement(GENERATOR_FAMILY, rows=tuple(lay.rows),
+                                           label=f"{lay.n_rows} rows {lay.spanning} {orient_tag} rung {rung}"))
                     break
 
     secs = round(time.monotonic() - t0, 3)
