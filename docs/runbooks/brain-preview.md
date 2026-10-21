@@ -114,15 +114,21 @@ is the one that catches a preview that is quietly serving production's geometry.
 
 ```bash
 # in the server's output
-grep "engine=brain" <the server's log> | tail -5
+grep "buildsmart.preview" <the server's log> | tail -5
 ```
 
-A healthy line:
+A healthy line, as it appears among uvicorn's own:
 
 ```
-engine=brain sizer=exact families=band,spine,stack,cells plan_sizer=exact plan_family=spine \
-  budget_expired=false solves=14 plans=3 partis=8 seconds=24.1
+INFO     buildsmart.preview engine=brain sizer=exact families=band,spine,stack,cells \
+  plan_sizer=exact plan_family=spine budget_expired=false solves=14 plans=3 partis=8 seconds=24.1
+INFO:     127.0.0.1:54670 - "POST /projects/P/design/demo?engine=brain HTTP/1.1" 200 OK
 ```
+
+Nothing has to be passed to `uvicorn` to get this — no `--log-config`, no flag. The application
+configures it at import (`app/observability/log_output.py`). **If you see no `buildsmart.preview`
+line at all for a request that returned 200, check first that the server's code has that file**: on
+a server from before #233 the line was emitted and dropped, and its absence meant nothing.
 
 **`plan_sizer=exact` is the health signal.** `plan_sizer=production` with an `exact_refusal=…`
 field means the brain's *concepts* are being shown with the *production* sizer's geometry — see §5
@@ -239,12 +245,21 @@ Closing the preview is a complete rollback of its behaviour.
 ## 5. What to watch, and what to do about each failure
 
 One line is written per brain request, to the logger `buildsmart.preview`, in the server's own
-output. Served requests are **INFO**; a request that produced **no plan** is **WARNING**.
+output — stderr, the same stream uvicorn's own lines use, so it sits beside the access line for the
+same request. Served requests are **INFO**; a request that produced **no plan** is **WARNING**.
 
 ```
-engine=brain sizer=exact families=… plan_sizer=… plan_family=… [exact_refusal=…] \
-  budget_expired=… solves=N plans=N partis=N seconds=N [code=…]
+INFO     buildsmart.preview engine=brain sizer=exact families=… plan_sizer=… plan_family=… \
+  [exact_refusal=…] budget_expired=… solves=N plans=N partis=N seconds=N
+WARNING  buildsmart.preview engine=brain sizer=exact families=… … code=…
 ```
+
+**This only became true in #233.** #214 wrote the line and the application had no logging
+configuration at all, so under `uvicorn app.main:app` the INFO record found no handler and was
+dropped — the no-plan WARNING was the only one that got out, through Python's handler of last
+resort, as a bare line with nothing marking it a warning. Measured both ways against a running
+server in `docs/reports/architectural-brain/PREVIEW-logging-proof.md`. On a server whose code
+predates #233 a silent log means nothing at all, and Verify step 3 cannot be done.
 
 | field | watch for |
 |---|---|
@@ -273,7 +288,7 @@ production one.
 | `exact_refusal=INVALID_INPUT` | a malformed parti (an edge naming a room that is not in the programme, a self-adjacency). | **Report it** — this is a defect in the proposer, not a configuration problem. |
 | `code=BRAIN_NO_PLAN` + HTTP **422** | no parti produced a plan at all. The response's `detail` leads with the exact sizer's code and then names each parti, its stage and its reason. The failure log has the whole brief. | Read the first code in `detail`: if it is `EXACT_SIZER_UNAVAILABLE`, see row 1 — the real cause is the environment. Otherwise it is a brief the brain cannot plan; production's own engine is unaffected and can still serve it (just omit `?engine=brain`). |
 | HTTP **422** `unknown engine 'brain'` when you expected 200 | the preview is **closed**: the kill switch is on, or the flag is off, or the token is missing/wrong/stale. Indistinguishable, on purpose, from an engine that does not exist. | First `ls backend/DISABLE_BRAIN_PREVIEW` — somebody closed the preview, or a crashed run left the file behind. Then re-do §1, and check the `pid` changed after the `touch`. |
-| HTTP **500** | a defect. The failure log has the traceback and an `engine` field naming the preview. | Close the preview (§3) and report with the failure-log entry. |
+| HTTP **500** | a defect. The failure log has the traceback (under `exception.traceback`) and, **if the request got as far as resolving an engine**, an `engine` field naming the preview — a crash before that, e.g. on a stored project that no longer validates, has no `engine` and the `where` field is what identifies it. The traceback is also in the server's own output, as uvicorn's `ERROR: Exception in ASGI application`. | Close the preview (§3) and report with the failure-log entry. |
 | a slow request | the preview's budget is **30 s of wall clock by design**, against production's sub-second path. | Not a defect by itself. Latency, CPU and concurrency are measured in Issue #226, not here — do not draw conclusions from a stopwatch on a busy host. |
 
 ### Never do these
@@ -296,8 +311,10 @@ production one.
 | the one call site | `backend/app/demo/router.py::_resolve_engine` |
 | the brain | `backend/app/vertical_slice/brain/` (`runner.py`, `exact_pipeline.py`) |
 | the preview's log line | `backend/app/observability/preview_log.py` |
+| what makes it reach the output | `backend/app/observability/log_output.py` (#233) |
 | the failure log | `backend/app/observability/failure_log.py` |
 | design of the gate | `docs/wiki/architecture/engine-preview-gate.md` |
 | the evidence behind this runbook | `docs/reports/architectural-brain/PREVIEW-operational-readiness.md` |
 | the variables, with empty values | `backend/.env.example` |
 | the kill switch's own evidence, on a running server | `docs/reports/architectural-brain/PREVIEW-killswitch-proof.md` |
+| the four operational signals, at the process level | `docs/reports/architectural-brain/PREVIEW-logging-proof.md` (#233) |
