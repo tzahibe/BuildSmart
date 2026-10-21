@@ -124,6 +124,14 @@ def realize(name: str, layout: Layout, intents: dict[str, ZoneIntent]) -> Outcom
                 break
         else:
             return Outcome(False, code="CELL_OUTSIDE_WINGS")
+    # `realize_cells` builds a leaf chain per wing and raises IndexError on a wing that holds no
+    # cell (found on the first run: arm 1 leaves such wings when its inscribed rectangle sits in
+    # another wing). A wing with no cell is footprint no room covers — residual interior area, the
+    # thing C2 judges — so it is a refusal here, named as what it is, before any validator runs.
+    empty = [i for i in range(len(wing_rects)) if i not in set(wing_of_cell.values())]
+    if empty:
+        return Outcome(False, code="EMPTY_WING", details={
+            "EMPTY_WING": f"{len(empty)} of {len(wing_rects)} wings hold no cell: footprint no room covers"})
 
     walls: WallMap = {}
     safe_ids = {z for z, rs in roles.items() if ProgramRole.SAFE_ROOM in rs}

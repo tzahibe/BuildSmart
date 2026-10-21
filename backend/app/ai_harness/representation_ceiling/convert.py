@@ -62,7 +62,8 @@ class Layout:
 
 # --------------------------------------------------------------------------- snapping
 
-def _cluster_map(values: list[float]) -> dict[float, float]:
+def _cluster_map(values: list[float], gap: float = frozen.SNAP_GAP_M,
+                 span: float = frozen.SNAP_SPAN_M) -> dict[float, float]:
     vs = sorted({round(v, 4) for v in values})
     out: dict[float, float] = {}
     cur = [vs[0]]
@@ -73,7 +74,7 @@ def _cluster_map(values: list[float]) -> dict[float, float]:
             out[c] = val
 
     for v in vs[1:]:
-        if v - cur[-1] <= frozen.SNAP_GAP_M and v - cur[0] <= frozen.SNAP_SPAN_M:
+        if v - cur[-1] <= gap and v - cur[0] <= span:
             cur.append(v)
         else:
             flush()
@@ -101,7 +102,16 @@ def _is_rectilinear(p: Polygon) -> bool:
     return True
 
 
-def convert(plan_id: str, plan_ref: dict) -> ConvertedPlan | ReprRefusal:
+def convert(plan_id: str, plan_ref: dict, all_door_pairs: bool = False,
+            snap: tuple[float, float] | None = None) -> ConvertedPlan | ReprRefusal:
+    """`all_door_pairs=False` is the pre-registered pipeline A (doors = the fixture's `access_edges`).
+    Pipeline B (`True`) adds the pairs of every `doors[].room_ids` list: the fixture's
+    `access_edges` carries only two-room doors, so a wide opening listing LIVING, KITCHEN and the
+    sliver rooms (an open living-kitchen connection) contributes NO edge and leaves the kitchen
+    unreachable — a defect of pipeline A found by reading the first run's C5 details.
+
+    `snap=(gap, span)` overrides the frozen wall-face snapping tolerance (metres) for the post-run
+    sensitivity pipeline C only; `None` is the frozen 0.30 / 0.60."""
     notes: list[str] = []
     rooms_in = sorted(plan_ref["rooms"], key=lambda r: r["id"])
     dropped = [r["id"] for r in rooms_in if r["area_m2"] < frozen.SLIVER_MIN_M2]
@@ -112,8 +122,9 @@ def convert(plan_id: str, plan_ref: dict) -> ConvertedPlan | ReprRefusal:
     if unmapped:
         return ReprRefusal("REPR-ROLE", f"labels with no entry in the role-mapping table: {unmapped}")
 
-    mx = _cluster_map([p[0] for r in kept for p in r["polygon"]])
-    my = _cluster_map([p[1] for r in kept for p in r["polygon"]])
+    gap, span = snap if snap is not None else (frozen.SNAP_GAP_M, frozen.SNAP_SPAN_M)
+    mx = _cluster_map([p[0] for r in kept for p in r["polygon"]], gap, span)
+    my = _cluster_map([p[1] for r in kept for p in r["polygon"]], gap, span)
     snapped: dict[str, Polygon] = {}
     placed = None
     for r in kept:
@@ -154,8 +165,14 @@ def convert(plan_id: str, plan_ref: dict) -> ConvertedPlan | ReprRefusal:
         roles[bedrooms[0]["id"]] = ProgramRole.MASTER_BEDROOM
 
     access: list[tuple[str, str]] = []
-    for e in plan_ref["access_edges"]:
-        a, b = e["room_a"], e["room_b"]
+    candidates = [(e["room_a"], e["room_b"]) for e in plan_ref["access_edges"]]
+    if all_door_pairs:
+        for d in plan_ref["doors"]:
+            if d.get("is_exterior"):
+                continue
+            ids = sorted(set(d["room_ids"]))
+            candidates += [(a, b) for i, a in enumerate(ids) for b in ids[i + 1:]]
+    for a, b in candidates:
         if a in snapped and b in snapped and a != b:
             pair = tuple(sorted((a, b)))
             if pair not in access:

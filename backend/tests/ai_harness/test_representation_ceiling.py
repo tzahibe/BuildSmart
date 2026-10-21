@@ -22,7 +22,9 @@ from app.ai_harness.representation_ceiling.convert import (
     convert,
     rotate,
 )
+from app.ai_harness.representation_ceiling.oracle import partition_exists
 from app.ai_harness.representation_ceiling.realize import realize
+from app.ai_harness.representation_ceiling.run import PIPELINES
 from app.vertical_slice.geometry_core.model import ProgramRole as R
 from app.vertical_slice.geometry_core.model import Rect, m_to_u
 from app.vertical_slice.rectilinear_realizer import RealizedLayout, realize_cells
@@ -203,8 +205,9 @@ def test_the_harness_modifies_no_validator_or_production_module():
         assert "monkeypatch" not in text and "setattr(" not in text, p.name
 
 
-def test_the_committed_results_are_consistent():
-    path = REPORT_DIR / "data" / "R1-results.json"
+@pytest.mark.parametrize("name", ["R1-results.json", "R1-results-B.json", "R1-results-C.json", "R1-results-D.json"])
+def test_the_committed_results_are_consistent(name):
+    path = REPORT_DIR / "data" / name
     if not path.exists():
         pytest.skip("the experiment has not been run yet")
     data = json.loads(path.read_text())
@@ -218,3 +221,25 @@ def test_the_committed_results_are_consistent():
     word, _ = frozen.verdict(data["arm1_carried"], data["arm2_carried"],
                              data["aggregate"][frozen.ARM_2]["plans_failing_check"])
     assert data["verdict"] == word
+
+
+def test_the_default_pipeline_is_the_pre_registered_one():
+    assert PIPELINES["A"] == (False, None)           # doors = the fixture's access_edges, frozen snapping
+    plans = frozen.load_real_plans()
+    a = convert("24", plans["24"])
+    b = convert("24", plans["24"], all_door_pairs=True)
+    assert isinstance(a, ConvertedPlan) and isinstance(b, ConvertedPlan)
+    # the 4-room door LIVING_2/KITCHEN_0/LIVING_0/LIVING_1 is no `access_edge`; pipeline B reads it
+    assert ("KITCHEN_0", "LIVING_2") not in a.access and ("KITCHEN_0", "LIVING_2") in b.access
+    assert set(a.access) <= set(b.access)
+
+
+# --------------------------------------------------------------------------- the fragment oracle
+
+def test_the_fragment_oracle_separates_a_real_ell_from_a_rectangle_with_a_notch():
+    from shapely.geometry import Polygon
+    ell = Polygon([(0, 0), (8, 0), (8, 3.2), (3.2, 3.2), (3.2, 6.4), (0, 6.4)])          # two 3.2 m arms
+    notched = Polygon([(0, 0), (4, 0), (4, 3.6), (3.6, 3.6), (3.6, 4), (0, 4)])           # 4 x 4 less a 0.4 corner
+    assert partition_exists(ell, R.LIVING)
+    assert not partition_exists(notched, R.BEDROOM)      # every partition holds a strip no bed fits
+    assert partition_exists(notched, R.HALL)             # circulation is exempt from C20/C9
