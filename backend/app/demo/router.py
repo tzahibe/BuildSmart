@@ -28,7 +28,7 @@ from app.projects.models import (
 from app.projects.routes import base_routes as project_routes
 from app.vertical_slice.general_pipeline import PIPELINE_STAGES
 
-from . import preview_gate, site_geometry
+from . import preview_gate, preview_limit, site_geometry
 from .contract import DemoPlanSet
 from .requirements_view import RequirementsReview, ReviewEdit, review_of
 from .service import DemoGenerationError, generate_demo_design
@@ -257,6 +257,30 @@ def _resolve_engine(engine: str | None, token: str | None = None) -> EngineChoic
     raise _unknown_engine(engine, authorized=authorized)
 
 
+def _preview_busy(error: preview_limit.PreviewBusy) -> HTTPException:
+    """The typed refusal for a second simultaneous preview request (#246): 429, a code, and a
+    `Retry-After`. Raised only AFTER `_resolve_engine` has authorized the caller."""
+    return HTTPException(
+        status_code=429,
+        detail={"code": preview_limit.BUSY_CODE, "message": preview_limit.BUSY_MESSAGE,
+                "detail": f"{error.in_flight} of {error.limit} preview slot(s) in use"},
+        headers={"Retry-After": str(preview_limit.RETRY_AFTER_S)})
+
+
+def _take_preview_slot(choice: EngineChoice) -> bool:
+    """Take the preview's slot if this request is a gated preview; say whether one is now held.
+
+    Production and `concept_engine_v2` never queue behind it — the limit exists to protect them.
+    """
+    if not (choice.brain or choice.rear_band):
+        return False
+    try:
+        preview_limit.acquire()
+    except preview_limit.PreviewBusy as busy:
+        raise _preview_busy(busy) from busy
+    return True
+
+
 @router.post("/{project_id}/design/demo/stream")
 def generate_demo_plan_streaming(
         project_id: str,
@@ -281,39 +305,56 @@ def generate_demo_plan_streaming(
     labels = dict(PIPELINE_STAGES)
     order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
 
+    # The slot (gated previews only) is taken HERE, in the request frame, so a second simultaneous
+    # preview is a typed 429 on the request rather than an error event inside a started stream.
+    holds_slot = _take_preview_slot(choice)
+
+    # The queue, the outcome and the worker are created HERE and not inside `events()`: a generator
+    # that is never iterated (the client left before the first byte) would otherwise never start
+    # the worker and never give the slot back. The worker releases the slot itself, when the work
+    # is actually over — which is also what keeps the slot held if the client disconnects
+    # mid-solve, because the solver keeps running either way.
+    updates: queue.Queue = queue.Queue()
+    outcome: dict = {}
+
+    def run() -> None:
+        try:
+            result = generate_demo_design(project, on_stage=updates.put,
+                                          concept_engine_v2=override, brain=brain,
+                                          rear_band_preview=rear_band)
+            outcome["value"] = DemoPlanSet(plan=result.design,
+                                           alternatives=list(result.alternatives),
+                                           search=result.search,
+                                           building=result.building)
+        except DemoGenerationError as error:
+            outcome["error"] = error
+            failure_log.refusal(error.code, error.message, error.detail,
+                                where="POST /projects/{id}/design/demo/stream",
+                                context=_failure_context(project_id, project, error))
+        except Exception as error:            # noqa: BLE001 - reported, never swallowed
+            outcome["crash"] = error
+            failure_log.crash(error, where="POST /projects/{id}/design/demo/stream",
+                              context=_failure_context(project_id, project))
+        finally:
+            if holds_slot:
+                preview_limit.release()
+            updates.put(None)
+
+    worker = threading.Thread(target=run, daemon=True)
+    try:
+        worker.start()
+    except BaseException:
+        if holds_slot:
+            preview_limit.release()
+        raise
+
     def events():
-        """Run the pipeline on a worker thread and forward each stage the moment it starts.
+        """Forward each stage the moment it starts, then the outcome.
 
         Collecting the stages and replaying them at the end would be a faithful record and a useless
         indicator — the reader would see nothing, then everything. The queue is what makes the
         percentage arrive while the work is still happening.
         """
-        updates: queue.Queue = queue.Queue()
-        outcome: dict = {}
-
-        def run() -> None:
-            try:
-                result = generate_demo_design(project, on_stage=updates.put,
-                                              concept_engine_v2=override, brain=brain,
-                                              rear_band_preview=rear_band)
-                outcome["value"] = DemoPlanSet(plan=result.design,
-                                               alternatives=list(result.alternatives),
-                                               search=result.search,
-                                               building=result.building)
-            except DemoGenerationError as error:
-                outcome["error"] = error
-                failure_log.refusal(error.code, error.message, error.detail,
-                                    where="POST /projects/{id}/design/demo/stream",
-                                    context=_failure_context(project_id, project, error))
-            except Exception as error:            # noqa: BLE001 - reported, never swallowed
-                outcome["crash"] = error
-                failure_log.crash(error, where="POST /projects/{id}/design/demo/stream",
-                                  context=_failure_context(project_id, project))
-            finally:
-                updates.put(None)
-
-        worker = threading.Thread(target=run, daemon=True)
-        worker.start()
         while True:
             name = updates.get()
             if name is None:
@@ -346,6 +387,8 @@ def generate_demo_plan(project_id: str, request: Request,
     # Resolved BEFORE the pipeline: an unauthorized or unknown engine is a 422 on the request, and
     # costs no generation at all.
     choice = _resolve_engine(engine, x_brain_preview_token)
+    # A second simultaneous gated preview is refused here, typed, before any work (#246).
+    holds_slot = _take_preview_slot(choice)
     try:
         result = generate_demo_design(project, concept_engine_v2=choice.concept_engine_v2,
                                       brain=choice.brain,
@@ -367,6 +410,9 @@ def generate_demo_plan(project_id: str, request: Request,
             status_code=422,
             detail={"code": error.code, "message": error.message, "detail": error.detail},
         )
+    finally:
+        if holds_slot:
+            preview_limit.release()
 
 
 # --------------------------------------------------------- site-aware footprint options
