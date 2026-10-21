@@ -117,6 +117,25 @@ that already existed, and `site_notice` is `None` for every plan built from a re
 * **Production's payload is byte-identical** on the same briefs before and after
   (`engines-{before,after}.json`); the only production file touched rebinds
   `_entrance_x_clear_of_parking` to the function moved into `site.py`.
+* **The frozen regression corpus**, which is what `primary_signature_changes: none` is actually
+  measured against: `TEST_MODE=REGRESSION pytest -q tests/regression_corpus` —
+  **`856 passed in 5918.71s (1:38:38)`**, 0 failures, run at commit `3f8b0f1` with no commit made
+  during the run (`corpus_snapshot` records `git rev-parse HEAD`). **No primary plan changed.** The
+  only commit after it adds one test and this section — no product code was touched.
+
+### The rest of the evidence
+
+| suite | result |
+|---|---|
+| `backend/tests/demo/test_site_from_brief.py` | 17 passed |
+| backend fast suite (`WALLCLOCK_BUDGETS=off pytest -q -n 4`) | 2463 passed, 883 skipped, 10 xfailed, 0 failed |
+| frontend renderer (`npx vitest run src/design`) | 189 passed, 2 skipped |
+| whole frontend suite (`npx vitest run`) | 242 passed, 2 skipped |
+| regression corpus (`TEST_MODE=REGRESSION`) | 856 passed, 0 failed |
+
+**CI did not run on this branch.** `.github/workflows/agent-ci.yml` gates every job on `head_ref`
+starting with `agent/` or `integration/`, and #223 specified `feature/site-real-parcel`, so all five
+gates reported `skipping`. The table above is the local equivalent, run in full.
 
 ## 6. The figures
 

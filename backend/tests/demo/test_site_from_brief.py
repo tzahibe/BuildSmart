@@ -317,3 +317,21 @@ def test_ac5_carrying_the_parcel_moves_the_site_and_not_the_plan(brain_payloads,
             "the footprint; only where the footprint stands in the parcel may differ")
         assert (with_parcel.footprint.x, with_parcel.footprint.y) != (without.footprint.x,
                                                                       without.footprint.y)
+
+
+def test_bays_that_do_not_fit_the_parcel_width_are_disclosed_not_hidden():
+    """The other half of `_parcel_notice`. `site.build_parking` lays the bays out from the side
+    setback without consulting the plot's width — production's own behaviour, unchanged — so a
+    narrow parcel can end up with a bay past its edge. The plan says so rather than drawing it as
+    though the land were there."""
+    from app.vertical_slice.rectilinear_realizer import _parcel_notice
+
+    narrow = PlotSpec(width_m=6.0, depth_m=18.0, front_setback_m=0.0, side_setback_m=0.0,
+                      rear_setback_m=0.0)
+    house = Rect(0, m_to_u(5.0), m_to_u(6.0), m_to_u(10.0))   # fits the parcel; only bays overflow
+    three = site_frame_for(ArchitecturalSpec(plot=narrow,
+                                             program=ProgramSpec(parking_spaces=3)))
+    notice = _parcel_notice(three, house)
+    assert notice is not None and "3" in notice
+    one = site_frame_for(ArchitecturalSpec(plot=narrow, program=ProgramSpec(parking_spaces=1)))
+    assert _parcel_notice(one, house) is None
