@@ -12,12 +12,14 @@ brain itself still plans, is the existing brain suite's job and is untouched by 
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.demo import preview_gate, service as svc
+from app.observability import failure_log
 from app.demo.router import (
     ENGINE_BRAIN,
     ENGINE_CONCEPT_V2,
@@ -36,7 +38,7 @@ from app.projects.models import (
 )
 from app.projects.repository import JsonFileProjectRepository
 from app.projects.routes import base_routes as project_base_routes
-from app.vertical_slice.brain.runner import BrainResult
+from app.vertical_slice.brain.runner import BrainPlan, BrainResult
 
 TOKEN = "preview-token-for-tests-only"
 BRIEF = dict(bedrooms=3, wet_rooms=1, safe_room=False, open_plan=True, built_area_m2=132.0,
@@ -376,3 +378,105 @@ def test_no_module_level_constant_enables_the_preview_at_import_time(clean_env):
     for name in ("BRAIN_SIZER", "BRAIN_FAMILIES"):
         assert not hasattr(svc, name), (
             f"service.{name} is back as a module constant — the family list must stay configuration")
+
+
+# ========================================= #214 AC-4: no log line can ever contain the token
+#
+# The gate's own evidence now has to cover the OBSERVABILITY #214 added, because that is the work
+# that created new places a secret could leak into: one `buildsmart.preview` line per brain
+# request, and an `engine` field in the failure log's context. Both are additive, and neither is
+# given the token — these tests are the pin that keeps it that way, on the wire, where the header
+# actually exists.
+
+def _every_log_text(caplog, log=failure_log) -> str:
+    """Everything this request wrote down: the captured log records (at DEBUG, every logger) and
+    the failure log's own entries. One string, so the assertion cannot miss a place."""
+    return caplog.text + "\n" + str(log.read_all())
+
+
+def test_an_authorized_request_writes_the_token_into_no_log_at_all(client, brain_spy, monkeypatch,
+                                                                   caplog):
+    """The authorized path: the header is present, the brain is reached, the request is logged —
+    and the secret appears in none of it. `?engine=brain` is in the log (that is the point of the
+    `engine` field) and the token is not."""
+    _open("1", TOKEN, monkeypatch)
+    with caplog.at_level(logging.DEBUG):
+        response = _post(client, ENGINE_BRAIN, token=TOKEN)
+    assert response.json()["detail"]["code"] == "BRAIN_NO_PLAN"      # the brain WAS reached
+    text = _every_log_text(caplog)
+    assert TOKEN not in text
+    assert TOKEN not in response.text
+    assert "engine=brain" in caplog.text or "'engine': 'brain'" in str(failure_log.read_all()), (
+        "the engine that served the request has to be recorded — that is #214's AC-3")
+
+
+@pytest.mark.parametrize("token", [None, "wrong-token-entirely", TOKEN[:-1], TOKEN.upper()])
+def test_an_unauthorized_request_writes_no_token_and_no_near_miss(client, monkeypatch, caplog,
+                                                                  token):
+    """The refused path. A rejected credential is the one most likely to be logged "for
+    debugging", and a wrong token is still a secret — somebody's typo of the real one."""
+    _open("1", TOKEN, monkeypatch)
+    with caplog.at_level(logging.DEBUG):
+        response = _post(client, ENGINE_BRAIN, token=token)
+    assert response.status_code == 422
+    text = _every_log_text(caplog) + response.text
+    assert TOKEN not in text
+    if token:
+        assert token not in text
+
+
+def _code_strings(module) -> list[str]:
+    """Every string literal the module EXECUTES, docstrings and comments excluded — so a module may
+    explain in prose that it must not touch the secret without that prose failing the pin."""
+    import ast
+    import inspect
+
+    tree = ast.parse(inspect.getsource(module))
+    doc_nodes = {id(node.value) for node in ast.walk(tree)
+                 if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                 and isinstance(node.value.value, str)}
+    return [node.value for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+            and id(node) not in doc_nodes]
+
+
+def test_nothing_that_writes_a_log_line_is_even_given_the_token():
+    """A structural pin rather than a string search over one captured run: the modules that write a
+    preview request down are never HANDED the secret, so no future line can leak it by accident.
+    `preview_gate` is the only module that reads `BRAIN_PREVIEW_TOKEN` — and it writes nothing."""
+    import inspect
+
+    from app.observability import preview_log
+
+    for module in (preview_log, svc, failure_log):
+        assert preview_gate.TOKEN_ENV not in _code_strings(module), (
+            f"{module.__name__} names the secret's variable in executed code")
+    params = inspect.signature(preview_log.brain_request).parameters
+    assert not [n for n in params if "token" in n or "secret" in n]
+    # Only a fixed, named field list may reach a line, so widening it is a reviewable edit here.
+    assert "token" not in preview_log.FIELDS and "secret" not in preview_log.FIELDS
+
+    # The gate HOLDS the secret, so it must have no way to write anything down at all.
+    gate_source = inspect.getsource(preview_gate)
+    for forbidden in ("logging", "print(", "failure_log", "preview_log", "open("):
+        assert forbidden not in gate_source, (
+            f"preview_gate reads the secret and now also {forbidden} — it must stay write-free")
+
+
+def test_a_preview_request_is_recorded_once_with_the_facts_an_operator_needs(client, monkeypatch,
+                                                                             caplog):
+    """#214 AC-3 on the wire: the line names the engine, the configured sizer and families, and the
+    typed refusal — the minimum for "is the preview healthy?"."""
+    _open("1", TOKEN, monkeypatch)
+    monkeypatch.setenv(preview_gate.FAMILIES_ENV, "band,spine")
+    plans = [BrainPlan("P1", "r", False, reason="BAND_UNSAT: none", stage="EMBEDDING",
+                       exact_refusal="EXACT_SIZER_UNKNOWN", solves=11, budget_expired=True)]
+    monkeypatch.setattr(svc, "run_brain", lambda *a, **k: BrainResult(brief="b", plans=plans))
+    with caplog.at_level(logging.INFO, logger="buildsmart.preview"):
+        _post(client, ENGINE_BRAIN, token=TOKEN)
+    lines = [r.message for r in caplog.records if r.name == "buildsmart.preview"]
+    assert len(lines) == 1, lines
+    for fact in ("engine=brain", "sizer=exact", "families=band,spine",
+                 "exact_refusal=EXACT_SIZER_UNKNOWN", "budget_expired=true", "solves=11",
+                 "code=BRAIN_NO_PLAN"):
+        assert fact in lines[0], lines[0]

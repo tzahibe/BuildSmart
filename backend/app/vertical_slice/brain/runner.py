@@ -54,6 +54,15 @@ class BrainPlan:
     sizer: str = "production"
     family: str = "band"
     notes: tuple = ()
+    #: OBSERVABILITY (#214). What the exact sizer actually DID for this parti, so an operator does
+    #: not have to read the plan's prose to find out. `solves` is how many MILP solves ran (0 for a
+    #: plan the production sizer made, which runs no MILP at all), `budget_expired` whether the
+    #: request's wall-clock budget ran out before every candidate was sized, and `exact_refusal`
+    #: the typed code the exact sizer returned when it refused. None of these changes a plan, a
+    #: ranking or a geometry; they are the facts `app/observability/preview_log.py` reports.
+    solves: int = 0
+    budget_expired: bool = False
+    exact_refusal: str = ""
     #: the brain's preference key for this plan (`_plan_key`), set by `run_brain` so partis can be
     #: ranked against each other; `None` for a plan that did not realize
     rank_key: tuple | None = None
@@ -102,6 +111,23 @@ class BrainResult:
     @property
     def accepted(self) -> list[BrainPlan]:
         return [p for p in self.plans if p.counts]
+
+    @property
+    def solves(self) -> int:
+        """How many exact MILP solves this request ran, across every parti (#214). 0 means the
+        exact sizer never got as far as a solve — no solver, no budget, or no candidate."""
+        return sum(p.solves for p in self.plans)
+
+    @property
+    def budget_expired(self) -> bool:
+        """Whether the wall-clock request budget stopped the search for ANY parti (#214)."""
+        return any(p.budget_expired for p in self.plans)
+
+    @property
+    def exact_refusals(self) -> tuple[str, ...]:
+        """The distinct typed codes the exact sizer returned this request, sorted (#214). Empty
+        on a request where the exact sizer refused nothing."""
+        return tuple(sorted({p.exact_refusal for p in self.plans if p.exact_refusal}))
 
     @property
     def distinct(self) -> list[BrainPlan]:
@@ -414,12 +440,15 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
         if exact.sizer != SIZER_EXACT:
             # typed: unavailable (no scipy), every solve timed out, or nothing kept
             prod.notes = (*prod.notes, *exact.notes)
+            _carry(prod, exact)
             if exact.stage == "UNAVAILABLE":
                 for other in result.plans:
                     if other is not prod and other.stage != "CRITIC":
                         other.notes = (*other.notes, *exact.notes)
+                        _carry(other, exact)
                 return
             continue
+        _carry(prod, exact)
         if not exact.counts:
             why = "area" if exact.area and not exact.area.acceptable else "preservation"
             prod.notes = (*prod.notes, f"exact sizer's {exact.family} plan did not count ({why}); production kept")
@@ -433,6 +462,37 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
                        else f"exact sizer planned what production could not ({prod.reason[:60]})")
         exact.seconds = round(exact.seconds + prod.seconds, 3)
         result.plans[i] = exact
+
+
+#: The warning `run_exact_pipeline` appends when the wall-clock budget stopped the search; matched
+#: as a prefix so the sentence can be reworded without silently turning the signal off.
+_BUDGET_WARNING = "request budget reached"
+
+
+def _exact_counters(out) -> tuple[int, bool]:
+    """(MILP solves run, budget expired) read off whatever `run_exact_pipeline` returned.
+
+    The counts already exist — `PipelineSuccess.selection["histogram"]` and
+    `PipelineDiagnosis.stage_histogram` both hold the SIZING tallies — and were simply thrown away
+    before #214, which is why "how many solves ran" was unanswerable from outside the process.
+    """
+    histogram = (getattr(out, "selection", None) or {}).get("histogram") or getattr(out, "stage_histogram", {}) or {}
+    solves = sum((histogram.get("SIZING") or {}).values())
+    expired = any(str(w).startswith(_BUDGET_WARNING) for w in (getattr(out, "warnings", ()) or ()))
+    return solves, expired
+
+
+def _carry(kept: BrainPlan, attempt: BrainPlan) -> None:
+    """Move the exact attempt's OBSERVABILITY onto the plan that was kept (#214).
+
+    When production's plan stays, the work the exact sizer did for that parti — its solves, its
+    budget expiry, its typed refusal — would otherwise be discarded with the attempt, and a log
+    line built from the kept plans would under-report every one of them. Only the counters move;
+    no geometry, no ranking and no note ordering changes.
+    """
+    kept.solves += attempt.solves
+    kept.budget_expired = kept.budget_expired or attempt.budget_expired
+    kept.exact_refusal = kept.exact_refusal or attempt.exact_refusal
 
 
 def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
@@ -475,6 +535,7 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
     # feasibility only when the tighter one could not plan at all.
     band = AREA_BAND_LADDER[0]
     made_by, family, notes = SIZER_PRODUCTION, "band", ()
+    solves, budget_expired, refusal = 0, False, ""
     out = None
     if sizer == SIZER_EXACT:
         from app.vertical_slice.brain.exact_pipeline import run_exact_pipeline
@@ -485,6 +546,7 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
             prefer=_preference(prop, zones, p), ladder=AREA_BAND_LADDER,
             rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline,
             arrival=prop.arrival)
+        solves, budget_expired = _exact_counters(out)
         if isinstance(out, PipelineSuccess):
             made_by, family = SIZER_EXACT, getattr(out.placement, "family", "band")
             band = None
@@ -494,11 +556,13 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
             # exact path gave up (no solver, every solve timed out, or nothing kept within the
             # budget) travels with the plan.
             code = getattr(out, 'code', '?')
+            refusal = code
             notes = (f"exact sizer fell back to production: {code}: {str(getattr(out, 'detail', ''))[:80]}",)
             if not fallback:
                 return BrainPlan(prop.name, prop.rationale, False, reason=f"{code}: {str(getattr(out, 'detail', ''))[:110]}",
                                  stage="UNAVAILABLE" if code == "EXACT_SIZER_UNAVAILABLE" else getattr(out, "stage", "SIZING"),
-                                 seconds=round(time.monotonic() - t0, 3), sizer=SIZER_PRODUCTION, notes=notes)
+                                 seconds=round(time.monotonic() - t0, 3), sizer=SIZER_PRODUCTION, notes=notes,
+                                 solves=solves, budget_expired=budget_expired, exact_refusal=refusal)
             out = None
     if out is None:
         out = _pipeline(prop, zones, p, max_candidates, max_realizations)
@@ -511,7 +575,8 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
     if not isinstance(out, PipelineSuccess):
         return BrainPlan(prop.name, prop.rationale, False,
                          reason=f"{getattr(out, 'code', '?')}: {str(getattr(out, 'detail', ''))[:110]}",
-                         stage=getattr(out, "stage", "PIPELINE"), seconds=secs, sizer=made_by, notes=tuple(notes))
+                         stage=getattr(out, "stage", "PIPELINE"), seconds=secs, sizer=made_by, notes=tuple(notes),
+                         solves=solves, budget_expired=budget_expired, exact_refusal=refusal)
     gross, net = _areas(out.realized)
     requested = p.requested_m2 or (p.footprint_m[0] * p.footprint_m[1])
     return BrainPlan(prop.name, prop.rationale, True, reason="realized",
@@ -520,7 +585,8 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                      bands=len(getattr(out.placement, "bands", ()) or getattr(out.placement, "rows", ())),
                      realized=out.realized, seconds=secs, area_band=band,
                      area=assess_area(requested, gross, net, p.capacity_m2),
-                     sizer=made_by, family=family, notes=tuple(notes))
+                     sizer=made_by, family=family, notes=tuple(notes),
+                     solves=solves, budget_expired=budget_expired, exact_refusal=refusal)
 
 
 def _areas(realized) -> tuple[float, float]:
