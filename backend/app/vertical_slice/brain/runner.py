@@ -292,7 +292,8 @@ def _pipeline(prop: TopologyProposal, zones: dict, p: Programme,
         name=prop.name, zones=zones,
         required_edges=tuple(prop.spatial), footprint_m=p.footprint_m,
         wet_rooms=p.resolved_wet,
-        access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
+        access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE"),
+        open_groups=(p.open_group,) if p.open_group else ()),
         max_candidates=max_candidates, max_realizations=max_realizations,
         prefer=_preference(prop, zones, p))
 
@@ -481,7 +482,8 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
         out = run_exact_pipeline(
             PipelineInput(name=prop.name, zones=zones, required_edges=tuple(prop.spatial),
                           footprint_m=p.footprint_m, wet_rooms=p.resolved_wet,
-                          access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
+                          access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE"),
+                          open_groups=(p.open_group,) if p.open_group else ()),
             prefer=_preference(prop, zones, p), ladder=AREA_BAND_LADDER,
             rebanded=lambda zs, rung: _rebanded(zs, p, rung), families=families, deadline=deadline,
             arrival=prop.arrival)
@@ -514,6 +516,21 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                          stage=getattr(out, "stage", "PIPELINE"), seconds=secs, sizer=made_by, notes=tuple(notes))
     gross, net = _areas(out.realized)
     requested = p.requested_m2 or (p.footprint_m[0] * p.footprint_m[1])
+    # OPEN PLAN, DISCLOSED (Issue #221). The brief asked for it and the delivered plan does not
+    # have it, because no declared member pair ended up sharing a full side in this placement.
+    # Both realizers already name the pair and the measurement in `RealizedLayout.notes`; this is
+    # the one line that says the BRIEF was not delivered, so a walled plan is never shipped as if
+    # it answered an open-plan brief.
+    #
+    # On EVERY path, and deliberately NOT gated on which sizer ran: the plan the product shows
+    # first is often the one production sized in `run_brain`'s step 1 (`_one` with its default
+    # sizer), so gating on `sizer == SIZER_EXACT` would silence exactly the plans that need this.
+    # `run_band_pipeline` does not carry `RealizedLayout.notes` into its own warnings, so the
+    # realizer's per-pair measurement is attached here as well.
+    if p.open_group and not getattr(out.realized.design, "open_groups", ()):
+        notes = (*notes, "open plan was requested and is NOT expressed in this plan: "
+                         f"{'/'.join(p.open_group)} are walled",
+                 *getattr(out.realized, "notes", ()))
     return BrainPlan(prop.name, prop.rationale, True, reason="realized",
                      stage="REALIZED", spatial_preserved=out.spatial_preserved,
                      access_preserved=out.access_preserved,

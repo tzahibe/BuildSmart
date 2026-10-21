@@ -163,10 +163,27 @@ class Programme:
     #: between production and a brain that dropped FLEX on the floor. Treated here as what it is:
     #: a spare room off the circulation, like a bedroom without a bed.
     flex: tuple[str, ...] = ()
+    #: The BRIEF's own `ProgramSpec.open_plan_living` (Issue #221) — the same bit production reads
+    #: to compile its open group. Carried here so the parti and the realizer can express it;
+    #: nothing in the brain's own proposing or ranking reads it.
+    open_plan: bool = False
 
     @property
     def private(self) -> tuple[str, ...]:
         return self.bedrooms + ((self.safe_room,) if self.safe_room else ()) + self.flex
+
+    @property
+    def open_group(self) -> tuple[str, ...]:
+        """The one open-plan group this brief asks for, by the brief's OWN semantics — the public
+        chain, when the brief asked for open-plan living and there is more than one public room.
+
+        This is production's rule (`concept_generator._build_access`: `groups.append(tuple(
+        public_ids))` under `open_plan and len(public_ids) > 1`), applied to the brain's own
+        `public`. No room is named here: the group is whatever `programme_from_spec` put in the
+        public chain (LIVING/DINING/KITCHEN on today's briefs). It differs from production's list
+        in one documented way — the brain treats FLEX as a spare room off the circulation
+        (`private` above), so a FLEX room never joins the open group."""
+        return tuple(self.public) if self.open_plan and len(self.public) > 1 else ()
 
 
 def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
@@ -252,6 +269,7 @@ def programme_from_spec(spec, footprint_m: tuple[float, float]) -> Programme:
     zones[ENTRY] = _replace(entry, min_area_m2=entry_lo, max_area_m2=entry_hi)
 
     return Programme(public=tuple(public), bedrooms=tuple(bedrooms), ensuites=ensuites, flex=tuple(flex),
+                     open_plan=bool(getattr(spec.program, "open_plan_living", False)),
                      shared_wet=tuple(shared_wet), safe_room=safe_room, zones=zones,
                      wet_rooms=tuple(spec.program.wet_room_kinds or ()),
                      footprint_m=footprint_m,

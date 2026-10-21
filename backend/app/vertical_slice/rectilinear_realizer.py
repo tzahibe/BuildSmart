@@ -272,6 +272,12 @@ class RealizationIntent:
     entrance_hint_zone_id: str | None = None
     declared_adjacency: tuple[tuple[str, str], ...] = ()
     declared_exposure: tuple[str, ...] = ()
+    #: The brief's DECLARED open-plan groups (Issue #221) — the same fact `realize_cells` takes,
+    #: handled by the same `_open_cell_pairs` rule. A group member that this layout realized as
+    #: SEVERAL cells (a notch-carve zone) is not a cell id and is simply not opened: `open_pairs`
+    #: here already means "two cells with no wall between them", and a fragment's own seams are
+    #: not the brief's open plan.
+    open_groups: tuple[tuple[str, ...], ...] = ()
     #: Every BATHROOM/TOILET zone's own access kind (Issue #162/#142A) — C17 ("bathroom access
     #: matches the requirements", `validation.py`) FAILS CLOSED on any wet zone not covered here
     #: (by design: "a wet zone the requirements do not cover... is a failure, never a pass by
@@ -1219,9 +1225,84 @@ def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
 
 
 
+#: DECLARED open-plan groups -> the CELL PAIRS a placed layout can actually express as a wall-less
+#: join, plus one typed note per pair it cannot (Issue #221).
+#:
+#: This mirrors `geometry_core.engine._discover_open_interfaces` rule for rule, including its
+#: non-optional precondition: the shared boundary must cover the FULL side of BOTH cells. A
+#: `WallMap` side carries exactly ONE type, so a partial overlap would have to be part open and
+#: part solid; such a pair STAYS WALLED and is reported. Nothing here splits a room — the two
+#: members of a pair are whole, separate cells that already share a complete wall segment, which
+#: is why this is NOT the fragmentation `realize_cells`'s own PARTIAL ABUTMENTS comment refuses
+#: (C20/C9/C24/C31 run per cell and reject same-zone fragments; no cell is created, removed or
+#: subdivided here, and `zone_of_cell`/`groups` are untouched).
+def _open_cell_pairs(open_groups: tuple[tuple[str, ...], ...], rects: dict[str, Rect],
+                     roles: dict[str, tuple[ProgramRole, ...]],
+                     ) -> tuple[set[frozenset[str]], list[str]]:
+    pairs: set[frozenset[str]] = set()
+    notes: list[str] = []
+    for group in open_groups:
+        members = [z for z in group if z in rects]
+        for i in range(len(members)):
+            for j in range(i + 1, len(members)):
+                a, b = members[i], members[j]
+                # A safe room's own envelope is RC on every side (C4/C33) — never opened, exactly
+                # as `_discover_open_interfaces` skips it.
+                if (ProgramRole.SAFE_ROOM in roles.get(a, ())
+                        or ProgramRole.SAFE_ROOM in roles.get(b, ())):
+                    continue
+                ra, rb = rects[a], rects[b]
+                shared = ra.shared_edge_len_u(rb)
+                if shared <= 0:
+                    continue                    # not neighbours in this placement: nothing to open
+                side = _side_between(ra, rb)
+                if side is None:
+                    continue
+                horizontal = side in (Side.E, Side.W)
+                full_a = ra.h if horizontal else ra.w
+                full_b = rb.h if horizontal else rb.w
+                if shared != full_a or shared != full_b:
+                    notes.append(
+                        f"open plan not expressed between {a} and {b}: they share "
+                        f"{u_to_m(shared):.2f} m of a {u_to_m(full_a):.2f} m / {u_to_m(full_b):.2f} m "
+                        f"side, and a wall side carries one type — the pair stays walled")
+                    continue
+                pairs.add(frozenset((a, b)))
+    return pairs, notes
+
+
+def _open_components(pairs: set[frozenset[str]]) -> tuple[tuple[str, ...], ...]:
+    """The REALIZED open groups: connected components of the pairs actually opened.
+
+    Reported instead of the declared group, so `Fixture.open_groups` names only zones that truly
+    share a wall-less join — which is what keeps C6 (no door inside an open group) and C13 (a
+    declared OPEN_CONNECTION is physically realized) both true without relaxing either."""
+    adj: dict[str, set[str]] = {}
+    for pair in pairs:
+        a, b = sorted(pair)
+        adj.setdefault(a, set()).add(b)
+        adj.setdefault(b, set()).add(a)
+    seen: set[str] = set()
+    out: list[tuple[str, ...]] = []
+    for start in sorted(adj):
+        if start in seen:
+            continue
+        comp, frontier = {start}, [start]
+        seen.add(start)
+        while frontier:
+            for nxt in sorted(adj[frontier.pop()]):
+                if nxt not in comp:
+                    comp.add(nxt)
+                    seen.add(nxt)
+                    frontier.append(nxt)
+        out.append(tuple(sorted(comp)))
+    return tuple(sorted(out))
+
+
 def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneIntent],
                   wing_rects: tuple[Rect, ...], access_pairs,
-                  wet_rooms: tuple[ResolvedWetRoom, ...] = ()) -> RealizedLayout | Refusal:
+                  wet_rooms: tuple[ResolvedWetRoom, ...] = (),
+                  open_groups: tuple[tuple[str, ...], ...] = ()) -> RealizedLayout | Refusal:
     """Realize an ALREADY-PLACED set of rectangular cells — the shape-agnostic entry (ADR-001,
     #197). `realize_layout` above decides geometry per wing and composes wings side by side along
     x; this entry takes the geometry as given (any arrangement of non-overlapping cells whose union
@@ -1235,7 +1316,15 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
     dropped here and will be reported missing by `topology_preservation` — never patched. Seam
     sides between wings are DECLARED from the real geometry (a cell side touching a cell of another
     wing), on every axis, so C22 and `envelope_sides` see exactly what was built. No groups, so no
-    polygon rooms: that stays the notch-carve/`room_merge` mechanism."""
+    polygon rooms: that stays the notch-carve/`room_merge` mechanism.
+
+    `open_groups` are the OPEN-PLAN groups the brief declared (the caller's own programme fact —
+    production's `(("LIVING", "KITCHEN"),) if open_plan`; the brain's `Programme.open_group`, its
+    public chain). Issue #221: a pair of group members that are adjacent cells sharing a FULL side
+    gets its interface typed `OPEN` — no wall, no door, no interior window — and the realized
+    groups land on `Fixture.open_groups` for the payload and the renderer. A member pair the
+    placement did not make fully adjacent stays walled and says so in `notes`; a group is never
+    forced, and no room is ever split to make one fit (`_open_cell_pairs`)."""
     t0 = time.monotonic()
     if not rects or not wing_rects:
         return Refusal("EMPTY_LAYOUT", "a layout needs at least one cell and one wing")
@@ -1260,7 +1349,7 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
     specs = {z: ZoneSpec(z, roles[z], intents[z].min_area_m2, intents[z].target_area_m2,
                          intents[z].max_area_m2, intents[z].min_short_side_m,
                          intents[z].max_aspect_ratio) for z in rects}
-    open_pairs: set[frozenset[str]] = set()
+    open_pairs, open_notes = _open_cell_pairs(tuple(open_groups), rects, roles)
     wing_of_cell: dict[str, int] = {}
     for z, r in rects.items():
         for i, w in enumerate(wing_rects):
@@ -1270,7 +1359,10 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
         else:
             return Refusal("CELL_OUTSIDE_WINGS", f"cell {z} lies in no wing rectangle")
 
-    # walls — the same precedence as `realize_layout`: OPEN (none here) > RC > EXTERIOR > PARTITION
+    # walls — the same precedence as `realize_layout`: OPEN > RC > EXTERIOR > PARTITION. OPEN is
+    # only ever a declared open-plan pair whose two cells share a FULL side (`_open_cell_pairs`),
+    # so the single side this types OPEN has exactly that one neighbour on it and nothing else is
+    # exposed by removing the wall.
     walls: WallMap = {}
     safe_ids = {z for z, rs in roles.items() if ProgramRole.SAFE_ROOM in rs}
     touching_all: dict[str, dict[Side, list[str]]] = {}
@@ -1325,9 +1417,19 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
     zones = tuple(ZoneSpec(zid, roles[zid], specs[zid].net_area_min_m2, specs[zid].net_area_target_m2,
                             specs[zid].net_area_max_m2, specs[zid].min_short_side_m,
                             specs[zid].max_aspect_ratio) for zid in rects)
-    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in realized_pairs)
-    open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
-    fixture = Fixture(name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)
+    # An opened interface carries its traffic without a leaf, so its edge is declared
+    # OPEN_CONNECTION — `generate_interior_doors` places nothing on it (C6), `realized_connections`
+    # still sees it as a real connection through the two OPEN sides (C5/C13/C24), and a pair the
+    # placement left only partially adjacent keeps the ordinary DOOR it asked for.
+    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION
+                                    if frozenset((a, b)) in open_pairs else ConnectionKind.DOOR)
+                  for a, b in realized_pairs)
+    asked = {frozenset(p) for p in realized_pairs}
+    edges += tuple(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION)
+                   for a, b in sorted(tuple(sorted(p)) for p in open_pairs if p not in asked))
+    realized_open_groups = _open_components(open_pairs)
+    fixture = Fixture(name, tuple(wings_out), zones, DesiredAccessTopology(edges),
+                      realized_open_groups)
 
     wing_builds = [_WingBuild(f"W{i}", (w.x, w.y), (w.w, w.h), {}, {}, {}, [], {}, {}, [])
                    for i, w in enumerate(wing_rects)]
@@ -1368,6 +1470,7 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
         report.checks.append(c)
     notes = ([f"split at a step: {sorted(groups)} — per-cell C3/C20/C21 are not authoritative for "
               f"these zones; see GROUP-C2/GROUP-C3/GROUP-C20"] if groups else [])
+    notes += open_notes
     return RealizedLayout(
         name=name, fixture=fixture, rects=rects, walls=walls, site=site,
         interior_doors=interior_doors, entrance_door=entrance_door, windows=windows,
@@ -1446,6 +1549,12 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     for wb in wing_builds:
         for a, b in wb.same_zone_edges:
             open_pairs.add(frozenset((a, b)))
+    # The brief's own open plan (Issue #221), by the same rule and the same precondition
+    # `realize_cells` uses: two WHOLE cells, a shared boundary covering the full side of both.
+    # These two sources of OPEN are kept apart below — a same-zone seam is one room, a declared
+    # pair is two rooms with no wall between them.
+    declared_open, open_notes = _open_cell_pairs(tuple(layout.open_groups), rects, roles)
+    open_pairs |= declared_open
     # SAFE_ROOM (Issue #142G): the same precedence `geometry_core.engine` applies —
     #   OPEN  >  RC_SAFE_ROOM  >  EXTERIOR  >  PARTITION
     # — a safe room's own four sides are RC (its exterior side is still a safe-room wall: C4 reads
@@ -1511,8 +1620,14 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
                             specs[zid].max_aspect_ratio) for zid in rects)
     declared = frozenset(frozenset(p) for w in layout.wings if isinstance(w, GridWing) for p in w.access_pairs)
     access_pairs = _filter_wet_room_access(access_pairs, roles, layout.wet_rooms, declared)
-    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.DOOR) for a, b in access_pairs)
-    open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
+    edges = tuple(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION
+                                    if frozenset((a, b)) in declared_open else ConnectionKind.DOOR)
+                  for a, b in access_pairs)
+    asked = {frozenset(p) for p in access_pairs}
+    edges += tuple(DesiredAccessEdge(a, b, ConnectionKind.OPEN_CONNECTION)
+                   for a, b in sorted(tuple(sorted(p)) for p in declared_open if p not in asked))
+    open_groups = (tuple(tuple(sorted(pair)) for pair in open_pairs - declared_open)
+                   + _open_components(declared_open))
     fixture = Fixture(layout.name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)
 
     site = _build_site(wing_builds)
@@ -1542,7 +1657,7 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
             group_geometry[group_id] = MergedGeometry(
                 merged.polygon_m, merged.bbox_m, merged.gross_area_m2, net_area, merged.aspect)
 
-    notes: list[str] = []
+    notes: list[str] = list(open_notes)
     if groups:
         notes.append(
             f"NEEDS-POLYGON-VARIANT: C3/C20/C21 ran at cell granularity for "

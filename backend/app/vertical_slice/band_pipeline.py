@@ -100,6 +100,12 @@ class PipelineInput:
     #: (a door needs a shared wall), a door-width sizing requirement, and a legality requirement —
     #: no longer diagnostics only.
     access_edges: tuple[tuple[str, str], ...] = ()
+    #: The brief's DECLARED open-plan groups (Issue #221) — the caller's own programme fact, the
+    #: same thing production compiles into `Fixture.open_groups`. Both realizers honour it by the
+    #: same rule: `realize_cells` (the exact pipeline) and `realize_layout` (this pipeline) type a
+    #: declared member pair's shared interface OPEN when it covers the FULL side of both cells, and
+    #: report the pair in `RealizedLayout.notes` when it does not.
+    open_groups: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass
@@ -464,7 +470,8 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
         W_m = round(sum(sz.col_w_u) * 0.05, 2); H_m = round(sum(sz.row_h_u) * 0.05, 2)
         sized = BandPlacement(sz.rows, sz.n_cols, placement.score, placement.bands)
         wing = sized.to_grid_wing(inp.name, W_m, H_m, inp.zones, envelope_is_bound=False, access_pairs=access)
-        res = realize_layout(RealizationIntent(name=inp.name, wings=(wing,), wet_rooms=inp.wet_rooms),
+        res = realize_layout(RealizationIntent(name=inp.name, wings=(wing,), wet_rooms=inp.wet_rooms,
+                                               open_groups=inp.open_groups),
                              buildable=buildable)
         if isinstance(res, RealizedLayout):
             funnel["realized"] += 1; funnel["passed"] += 1
