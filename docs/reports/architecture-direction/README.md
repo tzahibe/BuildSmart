@@ -249,10 +249,26 @@ quality from validator PASS — is the correct reading of this table.
 - **H1.** Making orientation an explicit concept dimension changes the delivered plan on a majority
   of briefs. *(This is what §10 tests.)*
 - **H2.** `rectilinear_realizer` can carry a real brief end to end. It is gate-passed on its own
-  constructions and on hand-encoded layouts; **no brief has ever been realized through it.**
+  constructions and on hand-encoded layouts; ~~**no brief has ever been realized through it.**~~
+  **Correction (2026-10-21, #243) — this half of H2 is falsified.** See the note below the list.
 - **H3.** The courtyard partis in §9 are realizable at these areas and envelopes. Untested; a
   courtyard removes area from the programme and the engine has no outdoor-room type.
 - **H4.** A Pareto profile would surface plans a person prefers. Needs the calibration set in §8.
+
+> **Correction (2026-10-21, #243 — evidence: #238's
+> `docs/reports/architectural-intelligence/ROOT-CAUSE-diagnosis.md`, branch
+> `investigate/architectural-intelligence`, PR #241):** H2's second clause — *"no brief has ever
+> been realized through it"* — was already false when this report was written, and is false at
+> `5b155d1`. `app/vertical_slice/brain/exact_pipeline.py:38` imports `realize_cells` **unflagged**
+> and calls it at `exact_pipeline.py:162`; every `?engine=brain` request reaches it through
+> `app/demo/router.py:193` → `app/demo/service.py:327`/`:925` (`BRAIN_SIZER = "exact"`) →
+> `app/vertical_slice/brain/runner.py:480`. There is no flag on that chain, so
+> `RECTILINEAR_REALIZER_ENABLED` gates nothing. H2's first clause is therefore no longer a
+> hypothesis: real briefs are realized through `rectilinear_realizer` today. The consequence for
+> anyone reading this report to decide where to spend effort: **the guillotine slicing tree is no
+> longer what binds the brain path** — the binding constraint has moved to layout generation.
+> `docs/PROJECT_STATE.md`'s wiring table carried the same false premise and is corrected in the
+> same commit. Nothing else in this report is changed by this correction.
 
 ---
 
@@ -607,7 +623,7 @@ phase that E1's result should inform.
 | risk | severity | mitigation |
 |---|---|---|
 | **The guillotine constraint is not removable incrementally.** Courtyard and C-plan partis need a hole in the envelope; pinwheel/notch help, a true court does not follow from them. | **high** | treat courtyards as a *later, separate* decision with its own evidence; do not let E1 or Phase 1 depend on it |
-| **Wiring `rectilinear_realizer` is a bigger integration than it looks.** It is gate-passed on its own constructions; no brief has ever gone through it (H2), and notch-carve produces L-shaped rooms the owner has excluded. | **high** | wire **pinwheel and GridWing only**, on one brief, behind the existing flag, measured — never as a default |
+| **Wiring `rectilinear_realizer` is a bigger integration than it looks.** It is gate-passed on its own constructions; ~~no brief has ever gone through it (H2)~~ — **corrected 2026-10-21 (#243): real briefs go through it today on the `?engine=brain` path, unflagged; see the correction under §2's hypotheses** — and notch-carve produces L-shaped rooms the owner has excluded. | **high** | wire **pinwheel and GridWing only**, on one brief, behind the existing flag, measured — never as a default |
 | **A profile without calibration is just more numbers.** §8's measures could all be plausible and none predictive. | medium | build the calibration set *before* any measure is promoted to a ranking key; delete measures that predict nothing |
 | **Explicit concepts increase refusals.** A concept the engine cannot host becomes a typed refusal where today something always comes out. | medium | concepts are *additive candidates*; the existing pool stays. Never refuse because a preferred concept failed |
 | **The person's outline short-circuit (P6) defeats massing work.** Any massing-level concept is unreachable while one outline is planned on 6/8 briefs. | medium | this is a product decision, not a bug — but it must be made consciously before Phase 2 |
