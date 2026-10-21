@@ -1,8 +1,12 @@
 """GATE 1 — contract validation for agent PRs.
 
 Verifies, deterministically:
-- the PR targets the base branch from `agent/<issue>-<slug>` (never from main, never elsewhere);
-- the PR body links exactly that Issue (`Closes #<issue>`);
+- the PR targets the base branch (never from main, never elsewhere);
+- the PR is bound to exactly one Issue: an `agent/<issue>-<slug>` branch is bound by its name and
+  the body must link that same Issue (`Closes #<issue>`); any other branch name (`feature/`,
+  `fix/`, `infra/`, ...) is bound by the body's single `Closes #<issue>` line, the same way an
+  `integration/` rollup PR already is. Every check below is then applied to that Issue, whatever
+  the branch is called;
 - the Issue exists, is open, was opened by a trusted author association, carries an executable
   `agent:*` label (not draft) and parses as a valid contract (acceptance criteria, verification
   plan, risk/resource, budget);
@@ -32,6 +36,27 @@ _CLOSES = re.compile(r"(?i)\b(?:closes|fixes|resolves)\s+#(\d+)")
 _EVIDENCE_ROW = re.compile(r"^\|\s*(AC-\d+)\s*\|", re.M)
 
 
+def resolve_issue_number(config, pr: dict) -> int | None:
+    """The one Issue this PR is bound to, or None when nothing binds it unambiguously.
+
+    Three bindings, in order of specificity:
+    - `agent/<issue>-<slug>`: the orchestrator's own branch — the name carries the Issue number;
+    - `integration/<period>`: a rollup PR — its Issue is the first one the body closes;
+    - anything else (`feature/`, `fix/`, `infra/`, `experiment/`, ...): the body's `Closes #<n>`
+      link, which must be unambiguous (exactly one distinct Issue). A human-named branch is a
+      legitimate delivery path for this repo's work; what it is called is not evidence, so the
+      link is the binding and every Issue/PR-body check still applies to that Issue.
+    """
+    head = pr.get("head", {}).get("ref", "")
+    linked = [int(n) for n in _CLOSES.findall(pr.get("body") or "")]
+    if head.startswith(config.branch_prefix):
+        return issue_from_branch(config, head)
+    if head.startswith("integration/"):
+        return linked[0] if linked else None
+    unique = sorted(set(linked))
+    return unique[0] if len(unique) == 1 else None
+
+
 def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None = None) -> GateReport:
     rep = GateReport("gate-1-contract")
     head = pr.get("head", {}).get("ref", "")
@@ -49,10 +74,23 @@ def evaluate(pr: dict, issue: dict | None, config, *, contract_out: dict | None 
         issue_no = linked[0] if linked else None
         rep.add("rollup PR targets main", base == config.base_branch, f"base={base!r}")
         rep.add("rollup PR closes its rollup Issue", issue_no is not None, f"Closes: {linked or 'none'}")
-    else:
+    elif head.startswith(config.branch_prefix):
         issue_no = issue_from_branch(config, head)
         rep.add("branch naming agent/<issue>-<slug>", issue_no is not None and bool(re.fullmatch(rf"{re.escape(config.branch_prefix)}\d+-[a-z0-9\-]+", head)), f"head={head!r}")
         rep.add("PR body links its Issue", issue_no is not None and issue_no in linked, f"Closes: {linked or 'none'}; branch issue: {issue_no}")
+    else:
+        # A branch outside `agent/` (feature/, fix/, infra/, experiment/ ...): the PR body's
+        # `Closes #<issue>` line is the binding, exactly as it already is for an `integration/`
+        # rollup PR. It must name exactly one Issue, because every check below — Issue open,
+        # trusted author, executable `agent:*` label, contract validates, labels match, PR body
+        # sections, AC evidence rows, risk — is then applied to that Issue. Nothing about what
+        # gate 1 accepts is relaxed here; only the way the contract is located.
+        issue_no = resolve_issue_number(config, pr)
+        rep.add("PR body links exactly one Issue", issue_no is not None,
+                f"Closes: {linked or 'none'}; head={head!r} — a branch outside "
+                f"{config.branch_prefix!r} must bind its contract with exactly one "
+                f"`Closes #<issue>` line in the PR body (or be named "
+                f"{config.branch_prefix}<issue>-<slug>)")
 
     if issue is None:
         rep.add("Issue exists", False, f"#{issue_no} not found")
@@ -109,11 +147,7 @@ def main() -> int:
         print("no pull_request in the event payload", file=sys.stderr)
         return 2
     client = GitHubClient(config.repo, TokenTransport())
-    head = pr.get("head", {}).get("ref", "")
-    issue_no = issue_from_branch(config, head)
-    if issue_no is None and head.startswith("integration/"):
-        closes = _CLOSES.findall(pr.get("body") or "")
-        issue_no = int(closes[0]) if closes else None
+    issue_no = resolve_issue_number(config, pr)
     issue = None
     if issue_no is not None:
         try:
