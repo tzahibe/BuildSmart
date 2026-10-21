@@ -156,3 +156,121 @@ def test_the_constants_are_the_door_swings_and_the_compact_hall_threshold():
     from app.vertical_slice.concept_spec import _COMPACT_HALL_ASPECT_MAX
     assert FOYER_MIN_NET_M == DOOR_WIDTH_M[DoorKind.ENTRANCE_DOOR] + DOOR_WIDTH_M[DoorKind.ROOM_DOOR]
     assert FOYER_MAX_DEPTH_TO_WIDTH == _COMPACT_HALL_ASPECT_MAX
+
+
+# ------------------------------------------------------- the V orientation (#207): the street is the west edge
+#
+# `exact_pipeline` sizes every layout twice: as production orients it ("H") and on the TRANSPOSED
+# envelope ("V"), transposing the rects back. In V the oracle's row 0 lands on the house's west side
+# and the cells that front the street are each band's FIRST cell. #205 measured the street rules
+# applied to the wrong cells there (every fronting V placement failed C25/C26/C28); `street="W"`
+# tells each oracle which edge is the street. These pin, per oracle, that in the W frame the
+# fronting foyer is sized to the group and holds the door after transposition — read off the
+# REALIZED room, the way the preference reads it (`runner.arrival_usability`) — and what the
+# N rule did to the same case.
+
+from app.vertical_slice.brain.runner import arrival_usability
+from app.vertical_slice.exact.screens import transpose_rects, transposed_envelope
+from app.vertical_slice.rectilinear_realizer import RealizedLayout, realize_cells
+
+ENV_V = transposed_envelope(ENV)          # the oracle's frame for the V orientation: 11 wide, 14 deep
+
+
+def _v_programme():
+    """A foyer beside the living room in the first band (a V band is a column of the house), a
+    small study before the hub hall so the foyer's depth reaches the hall, and a kitchen and the
+    master bedroom behind — enough habitable floor for C26's circulation share. Every contact is
+    a door, so the foyer opens to the living room (C25) and every room has a way in (C24)."""
+    zones = {"ENTRY": _z("ENTRY", R.CIRCULATION, 5, 3.5, 12, 1.5, 2.5),
+             "LIVING": _z("LIVING", R.LIVING, 20, 16, 26, 3.0, 2.5),
+             "HALL": _z("HALL", R.HALL, 6, 5, 9, 1.8, 3.0),
+             "STUDY": _z("STUDY", R.STUDY, 6, 4, 8, 2.0, 2.0),
+             "BED1": _z("BED1", R.BEDROOM, 12, 10, 15, 2.6, 1.8),
+             "KITCHEN": _z("KITCHEN", R.KITCHEN, 12, 10, 16, 2.4, 2.5),
+             "MASTER": _z("MASTER", R.MASTER_BEDROOM, 15, 13, 19, 3.0, 1.8)}
+    required = [("ENTRY", "LIVING"), ("ENTRY", "HALL"), ("HALL", "STUDY"), ("HALL", "BED1"),
+                ("HALL", "KITCHEN"), ("HALL", "MASTER")]
+    access = list(required)
+    union = sorted({tuple(sorted(e)) for e in required})
+    return zones, union, access, contact_requirements(zones, union, access)
+
+
+def _realized_v(name, rects, wings, zones, access):
+    """What `exact_pipeline.realize` does for a V placement: transpose, then the unchanged realizer."""
+    rects = transpose_rects(rects)
+    wings = tuple(transpose_rects(dict(enumerate(wings))).values())
+    return realize_cells(name, rects, zones, wings, access)
+
+
+def _assert_v_foyer_holds_the_door(out, oracle_rect, band_start_u):
+    assert isinstance(out, RealizedLayout), getattr(out, "detail", out)
+    assert oracle_rect.x == band_start_u                         # first in its band: it fronts
+    assert out.entrance_door.b == "ENTRY", out.entrance_door
+    usable, (net_w, net_h) = arrival_usability(out)
+    assert usable == 0, (net_w, net_h)
+    _assert_room_not_strip(net_w, net_h)                         # frontage, depth, cap, deeper than wide
+    assert out.ok, out.report
+
+
+V_BANDS = (("ENTRY", "LIVING"), ("STUDY", "HALL", "BED1"), ("KITCHEN", "MASTER"))
+
+
+def test_in_the_v_orientation_the_band_oracle_sizes_the_fronting_foyer_and_it_holds_the_door():
+    zones, union, access, con = _v_programme()
+    o = milp_placement(V_BANDS, zones, union, ENV_V, min_contact_u=con, objective="target", street="W")
+    assert o.status == "FEASIBLE", o.detail
+    sz = o.as_sizing()
+    _assert_v_foyer_holds_the_door(_realized_v("v-band", sz.rects(V_BANDS), sz.band_rects(V_BANDS), zones, access),
+                                   sz.rects(V_BANDS)["ENTRY"], o.band_x_u[0][0])
+    # the N rule on the same case (what every V placement got before #207): the foyer's band
+    # starts past the street line, nothing with an allowed role fronts it, no door can be placed
+    old = milp_placement(V_BANDS, zones, union, ENV_V, min_contact_u=con, objective="target", street="N")
+    assert old.status == "FEASIBLE", old.detail
+    assert old.band_x_u[0][0] > min(x[0] for x in old.band_x_u)
+    before = _realized_v("v-band-before", old.as_sizing().rects(V_BANDS), old.as_sizing().band_rects(V_BANDS), zones, access)
+    assert not isinstance(before, RealizedLayout) and "fronts the street" in before.detail, before
+
+
+V_SPINE = SpineLayout("HALL", ((("STUDY",), ("BED1",)),), top=(("ENTRY", "LIVING"),), bottom=(("KITCHEN", "MASTER"),))
+
+
+def test_in_the_v_orientation_the_spine_oracle_sizes_the_fronting_foyer_and_it_holds_the_door():
+    zones, union, access, con = _v_programme()
+    o = milp_spine_placement(V_SPINE, zones, union, ENV_V, min_contact_u=con, objective="target", street="W")
+    assert o.status == "FEASIBLE", o.detail
+    rects, wings = spine_geometry(V_SPINE, o)
+    _assert_v_foyer_holds_the_door(_realized_v("v-spine", rects, wings, zones, access), rects["ENTRY"], o.band_x_u[0][0])
+    old = milp_spine_placement(V_SPINE, zones, union, ENV_V, min_contact_u=con, objective="target", street="N")
+    assert old.status == "FEASIBLE", old.detail
+    assert old.band_x_u[0][0] > min(x[0] for x in old.band_x_u)      # the foyer's band is off the street line
+    before = _realized_v("v-spine-before", *spine_geometry(V_SPINE, old), zones, access)
+    assert not isinstance(before, RealizedLayout) and "fronts the street" in before.detail, before
+
+
+V_CELLS = CellLayout(V_BANDS)
+
+
+def test_in_the_v_orientation_the_cells_oracle_sizes_the_fronting_foyer_and_it_holds_the_door():
+    zones, union, access, con = _v_programme()
+    o = cells_placement(V_CELLS, zones, union, ENV_V, min_contact_u=con, objective="target", k=12, street="W")
+    assert o.status == "FEASIBLE", o.detail
+    rects = cells_rects(V_CELLS, o)
+    _assert_v_foyer_holds_the_door(_realized_v("v-cells", rects, tuple(rects.values()), zones, access),
+                                   rects["ENTRY"], o.x_u["ENTRY"][0])
+    # the N rule shaped this foyer for a NORTH street — deeper than wide in the oracle's frame —
+    # which after transposition is a foyer WIDER along the street than deep: C26's shape
+    old = cells_placement(V_CELLS, zones, union, ENV_V, min_contact_u=con, objective="target", k=12, street="N")
+    assert old.status == "FEASIBLE", old.detail
+    before = _realized_v("v-cells-before", cells_rects(V_CELLS, old), tuple(cells_rects(V_CELLS, old).values()), zones, access)
+    if isinstance(before, RealizedLayout) and before.entrance_door.b == "ENTRY":
+        _u, (w, h) = arrival_usability(before)
+        assert w >= h, (w, h)
+
+
+def test_the_oracles_refuse_an_unknown_street_side():
+    zones, union, _access, con = _v_programme()
+    for call in (lambda: milp_placement(V_BANDS, zones, union, ENV_V, min_contact_u=con, street="E"),
+                 lambda: milp_spine_placement(V_SPINE, zones, union, ENV_V, min_contact_u=con, street="E"),
+                 lambda: cells_placement(V_CELLS, zones, union, ENV_V, min_contact_u=con, street="E")):
+        with pytest.raises(ValueError):
+            call()

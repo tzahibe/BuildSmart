@@ -1,0 +1,84 @@
+load before: 21:51  up 75 days, 22:57, 2 users, load averages: 2.32 2.84 3.05
+B08 production 0.4 s dev 3.9 circ 12.7
+B08 brain-production 2.3 s TWO_HALL band production dev 9.0 circ 9.0 arrival HALL (2.3, 4.65) STRIP plans 8 key [0, 0, 0, 9, 9, -1, 2.1, 11.6, 1.88]
+B08 brain-production-bydev 2.3 s HALL_SPINE band production dev 8.7 circ 8.3 arrival LIVING (6.9, 3.9) usable plans 8 key [1, 1, 0, 9, 8, -1, 9.9, 9.9, 2.1]
+B08 brain-exact-band 27.1 s PUBLIC_BAND+FOYER band exact dev 5.1 circ 14.1 arrival CIRCULATION (2.0, 3.0) usable plans 8 key [0, 0, 0, 5, 14, -3, 0.6, 18.3, 1.04]
+B08 brain-exact-band-bydev 27.1 s HALL_SPINE band exact dev 1.4 circ 8.2 arrival LIVING (7.3, 3.75) usable plans 8 key [1, 1, 0, 1, 8, -1, 5.0, 10.2, 1.46]
+B08 brain-exact-all 30.1 s PUBLIC_BAND+FOYER band exact dev 5.1 circ 14.1 arrival CIRCULATION (2.0, 3.0) usable plans 8 key [0, 0, 0, 5, 14, -3, 0.6, 18.3, 1.04]
+B08 brain-exact-all-bydev 30.1 s PUBLIC_BAND+FOYER band exact dev 5.1 circ 14.1 arrival CIRCULATION (2.0, 3.0) usable plans 8 key [0, 0, 0, 5, 14, -3, 0.6, 18.3, 1.04]
+B20 production 0.2 s dev 12.5 circ 12.0
+B20 brain-production 9.8 s SERVICE_CORE+FOYER band production dev 22.2 circ 15.8 arrival CIRCULATION (1.5, 3.4) STRIP plans 5 key [0, 0, 0, 22, 16, -1, 1.5, 20.9, 2.06]
+B20 brain-production-bydev 9.8 s HALL_SPINE band production dev 13.3 circ 13.8 arrival LIVING (4.4, 4.7) usable plans 5 key [1, 1, 0, 13, 14, 0, 3.2, 17.3, 2.03]
+B20 brain-exact-band 26.3 s PUBLIC_BAND band exact dev 16.2 circ 23.7 arrival HALL (3.4, 8.15) STRIP plans 5 key [0, 0, 0, 16, 24, -1, 0.6, 30.1, 2.07]
+B20 brain-exact-band-bydev 26.3 s HALL_SPINE band production dev 13.3 circ 13.8 arrival LIVING (4.4, 4.7) usable plans 5 key [1, 1, 0, 13, 14, 0, 3.2, 17.3, 2.03]
+B20 brain-exact-all 30.6 s SERVICE_CORE+FOYER band production dev 22.2 circ 15.8 arrival CIRCULATION (1.5, 3.4) STRIP plans 5 key [0, 0, 0, 22, 16, -1, 1.5, 20.9, 2.06]
+B20 brain-exact-all-bydev 30.6 s HALL_SPINE band production dev 13.3 circ 13.8 arrival LIVING (4.4, 4.7) usable plans 5 key [1, 1, 0, 13, 14, 0, 3.2, 17.3, 2.03]
+B02 production 4.1 s dev 23.6 circ 11.5
+B02 brain-production 0.8 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL (4.9, 3.0) usable plans 4 key [0, 0, 1, 7, 10, -2, 62.9, 16.3, 2.04]
+B02 brain-production-bydev 0.8 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL (4.9, 3.0) usable plans 4 key [0, 0, 1, 7, 10, -2, 62.9, 16.3, 2.04]
+B02 brain-exact-band 22.1 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL (4.9, 3.0) usable plans 4 key [0, 0, 1, 7, 10, -2, 62.9, 16.3, 2.04]
+B02 brain-exact-band-bydev 22.1 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL (4.9, 3.0) usable plans 4 key [0, 0, 1, 7, 10, -2, 62.9, 16.3, 2.04]
+B02 brain-exact-all 30.1 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL (4.9, 3.0) usable plans 4 key [0, 0, 1, 7, 10, -2, 62.9, 16.3, 2.04]
+B02 brain-exact-all-bydev 30.1 s HALL_SPINE band production dev 7.4 circ 10.3 arrival HALL (4.9, 3.0) usable plans 4 key [0, 0, 1, 7, 10, -2, 62.9, 16.3, 2.04]
+B11 production 13.8 s dev 22.0 circ 10.9
+B11 brain-production 23.7 s HALL_SPINE+FOYER band production dev 28.4 circ 19.4 arrival CIRCULATION (1.7, 4.25) STRIP plans 6 key [0, 0, 1, 28, 19, 0, 45.6, 32.3, 2.13]
+B11 brain-production-bydev 23.7 s HALL_SPINE band production dev 17.9 circ 12.4 arrival LIVING (8.3, 4.8) usable plans 6 key [1, 1, 0, 18, 12, -1, 15.3, 24.3, 2.17]
+B11 brain-exact-band 28.8 s HALL_SPINE+FOYER band exact dev 22.9 circ 13.8 arrival CIRCULATION (1.95, 2.9) usable plans 6 key [0, 0, 1, 23, 14, -1, 33.6, 25.1, 2.1]
+B11 brain-exact-band-bydev 28.8 s HALL_SPINE band production dev 17.9 circ 12.4 arrival LIVING (8.3, 4.8) usable plans 6 key [1, 1, 0, 18, 12, -1, 15.3, 24.3, 2.17]
+B11 brain-exact-all 30.1 s HALL_SPINE+FOYER band exact dev 22.9 circ 13.8 arrival CIRCULATION (1.95, 2.9) usable plans 6 key [0, 0, 1, 23, 14, -1, 33.6, 25.1, 2.1]
+B11 brain-exact-all-bydev 30.1 s HALL_SPINE band production dev 17.9 circ 12.4 arrival LIVING (8.3, 4.8) usable plans 6 key [1, 1, 0, 18, 12, -1, 15.3, 24.3, 2.17]
+B16 production 14.2 s dev 14.4 circ 10.1
+B16 brain-production 36.5 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING (7.95, 4.9) usable plans 2 key [1, 1, 0, 21, 13, -1, 2.8, 28.1, 2.09]
+B16 brain-production-bydev 36.5 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING (7.95, 4.9) usable plans 2 key [1, 1, 0, 21, 13, -1, 2.8, 28.1, 2.09]
+B16 brain-exact-band 39.1 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING (7.95, 4.9) usable plans 2 key [1, 1, 0, 21, 13, -1, 2.8, 28.1, 2.09]
+B16 brain-exact-band-bydev 39.1 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING (7.95, 4.9) usable plans 2 key [1, 1, 0, 21, 13, -1, 2.8, 28.1, 2.09]
+B16 brain-exact-all 36.7 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING (7.95, 4.9) usable plans 2 key [1, 1, 0, 21, 13, -1, 2.8, 28.1, 2.09]
+B16 brain-exact-all-bydev 36.7 s SERVICE_CORE band production dev 21.4 circ 13.5 arrival LIVING (7.95, 4.9) usable plans 2 key [1, 1, 0, 21, 13, -1, 2.8, 28.1, 2.09]
+B19 production 1.1 s dev 21.8 circ 8.4
+B19 brain-production 28.4 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING (4.2, 4.75) usable plans 2 key [1, 1, 0, 20, 13, 0, 1.0, 22.4, 2.13]
+B19 brain-production-bydev 28.4 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING (4.2, 4.75) usable plans 2 key [1, 1, 0, 20, 13, 0, 1.0, 22.4, 2.13]
+B19 brain-exact-band 30.9 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING (4.2, 4.75) usable plans 2 key [1, 1, 0, 20, 13, 0, 1.0, 22.4, 2.13]
+B19 brain-exact-band-bydev 30.9 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING (4.2, 4.75) usable plans 2 key [1, 1, 0, 20, 13, 0, 1.0, 22.4, 2.13]
+B19 brain-exact-all 30.7 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING (4.2, 4.75) usable plans 2 key [1, 1, 0, 20, 13, 0, 1.0, 22.4, 2.13]
+B19 brain-exact-all-bydev 30.7 s BEDROOM_WING band production dev 19.9 circ 12.8 arrival LIVING (4.2, 4.75) usable plans 2 key [1, 1, 0, 20, 13, 0, 1.0, 22.4, 2.13]
+B06 production 1.0 s dev 18.1 circ 10.7
+B06 brain-production 2.7 s BEDROOM_WING+FOYER band production dev 8.6 circ 12.1 arrival CIRCULATION (1.6, 3.15) STRIP plans 8 key [0, 0, 1, 9, 12, 0, 146.9, 19.9, 1.16]
+B06 brain-production-bydev 2.7 s TWO_HALL band production dev 8.4 circ 9.7 arrival HALL (2.9, 2.6) usable plans 8 key [1, 1, 1, 8, 10, -1, 144.9, 15.8, 2.1]
+B06 brain-exact-band 30.5 s BEDROOM_WING+FOYER band production dev 8.6 circ 12.1 arrival CIRCULATION (1.6, 3.15) STRIP plans 8 key [0, 0, 1, 9, 12, 0, 146.9, 19.9, 1.16]
+B06 brain-exact-band-bydev 30.5 s TWO_HALL band production dev 8.4 circ 9.7 arrival HALL (2.9, 2.6) usable plans 8 key [1, 1, 1, 8, 10, -1, 144.9, 15.8, 2.1]
+B06 brain-exact-all 31.1 s BEDROOM_WING+FOYER band production dev 8.6 circ 12.1 arrival CIRCULATION (1.6, 3.15) STRIP plans 8 key [0, 0, 1, 9, 12, 0, 146.9, 19.9, 1.16]
+B06 brain-exact-all-bydev 31.1 s TWO_HALL band production dev 8.4 circ 9.7 arrival HALL (2.9, 2.6) usable plans 8 key [1, 1, 1, 8, 10, -1, 144.9, 15.8, 2.1]
+B09 production 1.7 s dev 9.8 circ 8.9
+B09 brain-production 7.0 s BEDROOM_WING+FOYER band production dev 13.1 circ 14.9 arrival CIRCULATION (1.95, 2.6) usable plans 9 key [0, 0, 1, 13, 15, -1, 261.2, 26.3, 1.59]
+B09 brain-production-bydev 7.0 s PUBLIC_BAND band production dev 8.4 circ 11.4 arrival LIVING (8.2, 5.4) usable plans 9 key [1, 1, 1, 8, 11, 0, 264.0, 19.5, 2.09]
+B09 brain-exact-band 30.0 s BEDROOM_WING+FOYER band production dev 13.1 circ 14.9 arrival CIRCULATION (1.95, 2.6) usable plans 9 key [0, 0, 1, 13, 15, -1, 261.2, 26.3, 1.59]
+B09 brain-exact-band-bydev 30.0 s PUBLIC_BAND band production dev 8.4 circ 11.4 arrival LIVING (8.2, 5.4) usable plans 9 key [1, 1, 1, 8, 11, 0, 264.0, 19.5, 2.09]
+B09 brain-exact-all 30.0 s BEDROOM_WING+FOYER band production dev 13.1 circ 14.9 arrival CIRCULATION (1.95, 2.6) usable plans 9 key [0, 0, 1, 13, 15, -1, 261.2, 26.3, 1.59]
+B09 brain-exact-all-bydev 30.0 s PUBLIC_BAND band production dev 8.4 circ 11.4 arrival LIVING (8.2, 5.4) usable plans 9 key [1, 1, 1, 8, 11, 0, 264.0, 19.5, 2.09]
+DONE
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+HighsMipSolverData::transformNewIntegerFeasibleSolution tmpSolver.run();
+load after: 22:01  up 75 days, 23:08, 2 users, load averages: 9.01 8.94 6.00
+EXIT 0

@@ -204,7 +204,7 @@ def test_the_proportion_preference_never_reorders_the_architectural_priorities_a
 
     def recording(realized, placement, inp):
         ko, kn = old(realized, placement, inp), new(realized, placement, inp)
-        assert kn[:3] == ko[:3] and kn[5:] == ko[3:]          # the hard keys lead, the ornament trails
+        assert kn[:3] == ko[:3] and kn[6:] == ko[3:]          # the hard keys lead, the ornament trails (#207 adds the arrival-room key at 3)
         seen.append((realized, ko, kn))
         return kn
     out = R.run_band_pipeline(R.PipelineInput(
@@ -215,3 +215,69 @@ def test_the_proportion_preference_never_reorders_the_architectural_priorities_a
     best_new = min(seen, key=lambda c: c[2])
     ties = [c for c in seen if c[1][:3] == best_new[1][:3]]
     assert R.proportion_metrics(best_new[0], zones)[0] == min(R.proportion_metrics(c[0], zones)[0] for c in ties)
+
+
+# ----------------------------------------------------------------- the arrival room's usability (#207)
+
+def _fake_plan(zones, intent_rect_u, *, net_w, net_h, rooms_dev):
+    """A realized plan reduced to what the preference reads: the parti's arrival room fronting the
+    street at `intent_rect_u`, its drawn net size, and every habitable room at `rooms_dev` from
+    its own target."""
+    from types import SimpleNamespace as NS
+    from app.vertical_slice.geometry_core.model import Rect
+    fp = Rect(0, 0, 240, 280)
+    rects = {"ENTRY": intent_rect_u, "LIVING": Rect(0, 60, 240, 100), "HALL": Rect(0, 160, 80, 120),
+             "BEDROOM_1": Rect(80, 160, 160, 120)}
+    rooms = [NS(zone_id="ENTRY", net_w_m=net_w, net_h_m=net_h, net_area_m2=net_w * net_h),
+             NS(zone_id="HALL", net_w_m=3.7, net_h_m=5.7, net_area_m2=10.0)]
+    for z in ("LIVING", "BEDROOM_1"):
+        a = zones[z].target_area_m2 * (1 + rooms_dev)
+        rooms.append(NS(zone_id=z, net_w_m=round(a / 4.0, 2), net_h_m=4.0, net_area_m2=a))
+    return NS(rects=rects, site=NS(footprint=fp), entrance_door=NS(a="OUTSIDE", b="ENTRY"),
+              design=NS(rooms=rooms, gross_area_m2=168.0, net_area_m2=sum(r.net_area_m2 for r in rooms)),
+              fixture=None)
+
+
+def test_a_strip_arrival_room_ranks_below_a_usable_one_with_equal_arrival_and_street():
+    """#207: the key saw only room deviation and ranked B08's 1.50 x 3.05 m foyer above a
+    2.00 x 3.00 m one. The usability term sits after arrival / street / area and before deviation,
+    so the strip loses even with better rooms behind it, and names itself in the notes."""
+    from app.vertical_slice.brain import runner as Rn
+    from app.vertical_slice.brain.proposer import programme_from_spec
+    from app.vertical_slice.exact.milp_oracle import FOYER_MAX_DEPTH_TO_WIDTH, FOYER_MIN_NET_M
+    from app.vertical_slice.geometry_core.model import Rect
+    spec, fp = _spec()
+    p = programme_from_spec(spec, fp)
+    prop = next(x for x in DeterministicProposer().propose(p) if x.name.endswith("+FOYER"))
+    assert prop.arrival == ENTRY
+    zones = {z: p.zones[z] for z in ("ENTRY", "LIVING", "HALL", "BEDROOM_1")}
+    prefer = Rn._proportion_preference(prop, zones, p)
+    strip = _fake_plan(zones, Rect(100, 0, 40, 60), net_w=1.5, net_h=3.05, rooms_dev=0.02)     # better rooms
+    usable = _fake_plan(zones, Rect(100, 0, 50, 60), net_w=2.0, net_h=3.0, rooms_dev=0.05)
+    ks, ku = prefer(strip, None, None), prefer(usable, None, None)
+    assert ks[:3] == ku[:3] == (0, 0, ks[2])                     # same arrival, same street, same area verdict
+    assert ks[3] == 1 and ku[3] == 0                             # the term
+    assert ks[4] < ku[4]                                         # the strip's rooms ARE closer to target...
+    assert ku < ks                                               # ...and it still ranks below
+    assert Rn.arrival_usability(strip) == (1, (1.5, 3.05)) and Rn.arrival_usability(usable) == (0, (2.0, 3.0))
+    assert Rn._decided_by(ks, ku) == "arrival room"
+    assert "arrival room a STRIP" in Rn._key_text(ks) and "arrival room usable" in Rn._key_text(ku)
+    # the line is the sizer's own: the constants come from the exact oracle, one source of truth
+    deep = _fake_plan(zones, Rect(100, 0, 50, 60), net_w=FOYER_MIN_NET_M, net_h=FOYER_MIN_NET_M * FOYER_MAX_DEPTH_TO_WIDTH + 0.1, rooms_dev=0.0)
+    assert Rn.arrival_usability(deep)[0] == 1
+    assert Rn.arrival_usability(_fake_plan(zones, Rect(100, 0, 50, 60), net_w=FOYER_MIN_NET_M, net_h=FOYER_MIN_NET_M * FOYER_MAX_DEPTH_TO_WIDTH, rooms_dev=0.0))[0] == 0
+
+
+def test_between_two_usable_or_two_strip_arrival_rooms_the_deviation_decides_as_before():
+    from app.vertical_slice.brain import runner as Rn
+    from app.vertical_slice.brain.proposer import programme_from_spec
+    from app.vertical_slice.geometry_core.model import Rect
+    spec, fp = _spec()
+    p = programme_from_spec(spec, fp)
+    prop = next(x for x in DeterministicProposer().propose(p) if x.name.endswith("+FOYER"))
+    zones = {z: p.zones[z] for z in ("ENTRY", "LIVING", "HALL", "BEDROOM_1")}
+    prefer = Rn._proportion_preference(prop, zones, p)
+    for w, h in ((2.0, 3.0), (1.5, 3.05)):
+        close = prefer(_fake_plan(zones, Rect(100, 0, 50, 60), net_w=w, net_h=h, rooms_dev=0.02), None, None)
+        far = prefer(_fake_plan(zones, Rect(100, 0, 50, 60), net_w=w, net_h=h, rooms_dev=0.08), None, None)
+        assert close < far and close[3] == far[3]

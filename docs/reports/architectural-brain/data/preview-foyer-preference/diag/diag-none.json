@@ -1,0 +1,8747 @@
+{
+ "skip": "none",
+ "rows": [
+  {
+   "brief": "B11",
+   "config": "brain-production",
+   "seconds": 24.0,
+   "parti": "HALL_SPINE+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    1,
+    28,
+    19,
+    0,
+    45.6,
+    32.3,
+    2.13
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      28,
+      19,
+      0,
+      45.6,
+      32.3,
+      2.13
+     ],
+     "usable": 1,
+     "dims": [
+      1.7,
+      4.25
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      18,
+      12,
+      -1,
+      15.3,
+      24.3,
+      2.17
+     ],
+     "usable": 0,
+     "dims": [
+      8.3,
+      4.8
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      23,
+      16,
+      0,
+      21.7,
+      31.4,
+      1.49
+     ],
+     "usable": 0,
+     "dims": [
+      5.3,
+      6.1
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      35,
+      20,
+      0,
+      50.4,
+      31.9,
+      1.4
+     ],
+     "usable": 0,
+     "dims": [
+      4.75,
+      3.75
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      36,
+      21,
+      0,
+      35.8,
+      36.6,
+      2.18
+     ],
+     "usable": 1,
+     "dims": [
+      1.85,
+      4.6
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      19,
+      13,
+      -1,
+      18.6,
+      24.0,
+      2.18
+     ],
+     "usable": 0,
+     "dims": [
+      7.9,
+      4.7
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B11",
+   "config": "brain-exact-band",
+   "seconds": 28.4,
+   "parti": "HALL_SPINE+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    1,
+    28,
+    19,
+    0,
+    45.6,
+    32.3,
+    2.13
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      28,
+      19,
+      0,
+      45.6,
+      32.3,
+      2.13
+     ],
+     "usable": 1,
+     "dims": [
+      1.7,
+      4.25
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 29, 'expos"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      18,
+      12,
+      -1,
+      15.3,
+      24.3,
+      2.17
+     ],
+     "usable": 0,
+     "dims": [
+      8.3,
+      4.8
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 60, 'expos"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      23,
+      16,
+      0,
+      21.7,
+      31.4,
+      1.49
+     ],
+     "usable": 0,
+     "dims": [
+      5.3,
+      6.1
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      35,
+      20,
+      0,
+      50.4,
+      31.9,
+      1.4
+     ],
+     "usable": 0,
+     "dims": [
+      4.75,
+      3.75
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      36,
+      21,
+      0,
+      35.8,
+      36.6,
+      2.18
+     ],
+     "usable": 1,
+     "dims": [
+      1.85,
+      4.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'exposure_ok': 44, 'safe_room_o"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      19,
+      13,
+      -1,
+      18.6,
+      24.0,
+      2.18
+     ],
+     "usable": 0,
+     "dims": [
+      7.9,
+      4.7
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B11",
+   "config": "brain-exact-all",
+   "seconds": 30.6,
+   "parti": "HALL_SPINE+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    1,
+    28,
+    19,
+    0,
+    45.6,
+    32.3,
+    2.13
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      28,
+      19,
+      0,
+      45.6,
+      32.3,
+      2.13
+     ],
+     "usable": 1,
+     "dims": [
+      1.7,
+      4.25
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 29, 'expos"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      18,
+      12,
+      -1,
+      15.3,
+      24.3,
+      2.17
+     ],
+     "usable": 0,
+     "dims": [
+      8.3,
+      4.8
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer's spine plan ranked below production's on area (arrival NOT the parti`s, street no, area out of tolerance, arrival room usable, rooms 17 %, circulation 12 % vs arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 18 %, circulation 12 %); production kept"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      23,
+      16,
+      0,
+      21.7,
+      31.4,
+      1.49
+     ],
+     "usable": 0,
+     "dims": [
+      5.3,
+      6.1
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      35,
+      20,
+      0,
+      50.4,
+      31.9,
+      1.4
+     ],
+     "usable": 0,
+     "dims": [
+      4.75,
+      3.75
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      36,
+      21,
+      0,
+      35.8,
+      36.6,
+      2.18
+     ],
+     "usable": 1,
+     "dims": [
+      1.85,
+      4.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'exposure_ok': 44, 'safe_room_o"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      19,
+      13,
+      -1,
+      18.6,
+      24.0,
+      2.18
+     ],
+     "usable": 0,
+     "dims": [
+      7.9,
+      4.7
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B20",
+   "config": "brain-production",
+   "seconds": 9.6,
+   "parti": "SERVICE_CORE+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    0,
+    1,
+    22,
+    16,
+    -1,
+    1.5,
+    20.9,
+    2.06
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      29,
+      17,
+      -2,
+      5.0,
+      21.8,
+      2.17
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      2.5
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      13,
+      14,
+      0,
+      3.2,
+      17.3,
+      2.03
+     ],
+     "usable": 0,
+     "dims": [
+      4.4,
+      4.7
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      15,
+      13,
+      0,
+      1.2,
+      16.7,
+      1.52
+     ],
+     "usable": 0,
+     "dims": [
+      5.45,
+      4.75
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      22,
+      16,
+      -1,
+      1.5,
+      20.9,
+      2.06
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.4
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      15,
+      12,
+      -1,
+      5.6,
+      15.2,
+      1.69
+     ],
+     "usable": 0,
+     "dims": [
+      6.65,
+      3.2
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "seconds": 25.9,
+   "parti": "SERVICE_CORE+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    0,
+    1,
+    22,
+    16,
+    -1,
+    1.5,
+    20.9,
+    2.06
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      29,
+      17,
+      -2,
+      5.0,
+      21.8,
+      2.17
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      2.5
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'exposure_ok': 36, 'safe_room_o"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      13,
+      14,
+      0,
+      3.2,
+      17.3,
+      2.03
+     ],
+     "usable": 0,
+     "dims": [
+      4.4,
+      4.7
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer's band plan ranked below production's on rooms (arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 15 %, circulation 7 % vs arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 13 %, circulation 14 %); production kept"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      15,
+      13,
+      0,
+      1.2,
+      16.7,
+      1.52
+     ],
+     "usable": 0,
+     "dims": [
+      5.45,
+      4.75
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer's band plan ranked below production's on rooms (arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 17 %, circulation 18 % vs arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 15 %, circulation 13 %); production kept"
+     ]
+    },
+    {
+     "parti": "SERVICE_CORE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      22,
+      16,
+      -1,
+      1.5,
+      20.9,
+      2.06
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.4
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 4 placements realized, none kept; {'SELECTION': {'exposure_ok': 38, 'safe_room_o"
+     ]
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      15,
+      12,
+      -1,
+      5.6,
+      15.2,
+      1.69
+     ],
+     "usable": 0,
+     "dims": [
+      6.65,
+      3.2
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 3 placements realized, none kept; {'SELECTION': {'entrance_feasible': 40, 'expos"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "seconds": 30.7,
+   "parti": "SERVICE_CORE+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    0,
+    1,
+    22,
+    16,
+    -1,
+    1.5,
+    20.9,
+    2.06
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      29,
+      17,
+      -2,
+      5.0,
+      21.8,
+      2.17
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      2.5
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer's stack plan ranked below production's on arrival (arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 21 %, circulation 12 % vs arrival ok, street ok, area in tolerance, arrival room a STRIP, rooms 29 %, circulation 17 %); production kept"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      13,
+      14,
+      0,
+      3.2,
+      17.3,
+      2.03
+     ],
+     "usable": 0,
+     "dims": [
+      4.4,
+      4.7
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer's band plan ranked below production's on rooms (arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 15 %, circulation 7 % vs arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 13 %, circulation 14 %); production kept"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      15,
+      13,
+      0,
+      1.2,
+      16.7,
+      1.52
+     ],
+     "usable": 0,
+     "dims": [
+      5.45,
+      4.75
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      22,
+      16,
+      -1,
+      1.5,
+      20.9,
+      2.06
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.4
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer's stack plan ranked below production's on arrival (arrival NOT the parti`s, street no, area in tolerance, arrival room usable, rooms 21 %, circulation 12 % vs arrival ok, street ok, area in tolerance, arrival room a STRIP, rooms 22 %, circulation 16 %); production kept"
+     ]
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      15,
+      12,
+      -1,
+      5.6,
+      15.2,
+      1.69
+     ],
+     "usable": 0,
+     "dims": [
+      6.65,
+      3.2
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B02",
+   "config": "brain-production",
+   "seconds": 0.7,
+   "parti": "HALL_SPINE",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    7,
+    10,
+    -2,
+    62.9,
+    16.3,
+    2.04
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      13,
+      -1,
+      61.0,
+      20.4,
+      1.62
+     ],
+     "usable": 1,
+     "dims": [
+      1.9,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      7,
+      10,
+      -2,
+      62.9,
+      16.3,
+      2.04
+     ],
+     "usable": 0,
+     "dims": [
+      4.9,
+      3.0
+     ],
+     "arrival": "HALL",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      15,
+      -1,
+      61.6,
+      23.5,
+      1.03
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.25
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      11,
+      11,
+      -3,
+      65.9,
+      16.9,
+      1.28
+     ],
+     "usable": 0,
+     "dims": [
+      4.3,
+      3.65
+     ],
+     "arrival": "HALL",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "seconds": 25.3,
+   "parti": "HALL_SPINE",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    7,
+    10,
+    -2,
+    62.9,
+    16.3,
+    2.04
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      13,
+      -1,
+      61.0,
+      20.4,
+      1.62
+     ],
+     "usable": 1,
+     "dims": [
+      1.9,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer's band plan ranked below production's on arrival (arrival NOT the parti`s, street no, area out of tolerance, arrival room a STRIP, rooms 22 %, circulation 17 % vs arrival ok, street ok, area out of tolerance, arrival room a STRIP, rooms 11 %, circulation 13 %); production kept"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      7,
+      10,
+      -2,
+      62.9,
+      16.3,
+      2.04
+     ],
+     "usable": 0,
+     "dims": [
+      4.9,
+      3.0
+     ],
+     "arrival": "HALL",
+     "notes": [
+      "exact sizer's band plan ranked below production's on rooms (arrival ok, street ok, area out of tolerance, arrival room usable, rooms 14 %, circulation 11 % vs arrival ok, street ok, area out of tolerance, arrival room usable, rooms 7 %, circulation 10 %); production kept"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      15,
+      -1,
+      61.6,
+      23.5,
+      1.03
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.25
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      8,
+      11,
+      -3,
+      63.0,
+      17.2,
+      1.31
+     ],
+     "usable": 0,
+     "dims": [
+      4.15,
+      3.85
+     ],
+     "arrival": "HALL",
+     "notes": [
+      "request budget reached after 13.738 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on rooms"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "seconds": 32.5,
+   "parti": "HALL_SPINE",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    7,
+    10,
+    -2,
+    62.9,
+    16.3,
+    2.04
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "exact",
+     "family": "spine",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      9,
+      18,
+      -1,
+      61.2,
+      28.6,
+      1.5
+     ],
+     "usable": 0,
+     "dims": [
+      2.8,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 11.762 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      7,
+      10,
+      -2,
+      62.9,
+      16.3,
+      2.04
+     ],
+     "usable": 0,
+     "dims": [
+      4.9,
+      3.0
+     ],
+     "arrival": "HALL",
+     "notes": [
+      "exact sizer's band plan ranked below production's on rooms (arrival ok, street ok, area out of tolerance, arrival room usable, rooms 14 %, circulation 11 % vs arrival ok, street ok, area out of tolerance, arrival room usable, rooms 7 %, circulation 10 %); production kept"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      15,
+      -1,
+      61.6,
+      23.5,
+      1.03
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.25
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      8,
+      11,
+      -3,
+      63.0,
+      17.2,
+      1.31
+     ],
+     "usable": 0,
+     "dims": [
+      4.15,
+      3.85
+     ],
+     "arrival": "HALL",
+     "notes": [
+      "request budget reached after 9.321 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on rooms"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 2,
+    "ok": 2,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B06",
+   "config": "brain-production",
+   "seconds": 2.6,
+   "parti": "PUBLIC_BAND+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    13,
+    15,
+    -2,
+    138.8,
+    25.2,
+    2.11
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      14,
+      -1,
+      144.9,
+      23.7,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.65,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      10,
+      10,
+      0,
+      152.0,
+      16.3,
+      1.27
+     ],
+     "usable": 0,
+     "dims": [
+      7.2,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      13,
+      15,
+      -2,
+      138.8,
+      25.2,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      2.15,
+      2.65
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      12,
+      0,
+      145.0,
+      18.7,
+      1.82
+     ],
+     "usable": 0,
+     "dims": [
+      7.35,
+      5.35
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      9,
+      12,
+      0,
+      146.9,
+      19.9,
+      1.16
+     ],
+     "usable": 1,
+     "dims": [
+      1.6,
+      3.15
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      9,
+      0,
+      152.0,
+      14.1,
+      1.27
+     ],
+     "usable": 0,
+     "dims": [
+      8.0,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      14,
+      -1,
+      136.0,
+      24.9,
+      2.18
+     ],
+     "usable": 1,
+     "dims": [
+      1.9,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      8,
+      10,
+      -1,
+      144.9,
+      15.8,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      2.9,
+      2.6
+     ],
+     "arrival": "HALL_B",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "seconds": 30.3,
+   "parti": "TWO_HALL+FOYER",
+   "sizer": "exact",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    4,
+    11,
+    -1,
+    132.3,
+    19.1,
+    1.76
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      14,
+      -1,
+      144.9,
+      23.7,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.65,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      10,
+      10,
+      0,
+      152.0,
+      16.3,
+      1.27
+     ],
+     "usable": 0,
+     "dims": [
+      7.2,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      12,
+      15,
+      -2,
+      161.2,
+      22.2,
+      2.08
+     ],
+     "usable": 0,
+     "dims": [
+      1.9,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 9.038 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on rooms"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      12,
+      0,
+      145.0,
+      18.7,
+      1.82
+     ],
+     "usable": 0,
+     "dims": [
+      7.35,
+      5.35
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      14,
+      16,
+      -1,
+      146.2,
+      26.8,
+      2.08
+     ],
+     "usable": 0,
+     "dims": [
+      1.9,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 8.915 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      9,
+      0,
+      152.0,
+      14.1,
+      1.27
+     ],
+     "usable": 0,
+     "dims": [
+      8.0,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      4,
+      11,
+      -1,
+      132.3,
+      19.1,
+      1.76
+     ],
+     "usable": 0,
+     "dims": [
+      2.0,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 9.098 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      8,
+      10,
+      -1,
+      144.9,
+      15.8,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      2.9,
+      2.6
+     ],
+     "arrival": "HALL_B",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "seconds": 30.2,
+   "parti": "TWO_HALL+FOYER",
+   "sizer": "exact",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    4,
+    11,
+    -1,
+    132.3,
+    19.1,
+    1.76
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      1,
+      11,
+      14,
+      -1,
+      144.9,
+      23.7,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.65,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      10,
+      10,
+      0,
+      152.0,
+      16.3,
+      1.27
+     ],
+     "usable": 0,
+     "dims": [
+      7.2,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      12,
+      15,
+      -2,
+      161.2,
+      22.2,
+      2.08
+     ],
+     "usable": 0,
+     "dims": [
+      1.9,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 9.073 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on rooms"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      12,
+      0,
+      145.0,
+      18.7,
+      1.82
+     ],
+     "usable": 0,
+     "dims": [
+      7.35,
+      5.35
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      14,
+      16,
+      -1,
+      146.2,
+      26.8,
+      2.08
+     ],
+     "usable": 0,
+     "dims": [
+      1.9,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 8.952 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      9,
+      0,
+      152.0,
+      14.1,
+      1.27
+     ],
+     "usable": 0,
+     "dims": [
+      8.0,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      4,
+      11,
+      -1,
+      132.3,
+      19.1,
+      1.76
+     ],
+     "usable": 0,
+     "dims": [
+      2.0,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 9.061 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      8,
+      10,
+      -1,
+      144.9,
+      15.8,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      2.9,
+      2.6
+     ],
+     "arrival": "HALL_B",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B08",
+   "config": "brain-production",
+   "seconds": 2.3,
+   "parti": "TWO_HALL",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    0,
+    1,
+    9,
+    9,
+    -1,
+    2.1,
+    11.6,
+    1.88
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      11,
+      13,
+      -1,
+      8.8,
+      15.6,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.75,
+      2.65
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      9,
+      8,
+      -1,
+      9.9,
+      9.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      6.9,
+      3.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      9,
+      14,
+      -3,
+      4.9,
+      17.7,
+      1.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.5,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      10,
+      11,
+      -1,
+      8.4,
+      13.0,
+      1.84
+     ],
+     "usable": 0,
+     "dims": [
+      7.2,
+      3.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      11,
+      15,
+      -1,
+      2.7,
+      18.9,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.85,
+      3.05
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      9,
+      8,
+      -1,
+      9.9,
+      9.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      6.9,
+      3.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      13,
+      11,
+      -1,
+      11.9,
+      15.3,
+      1.45
+     ],
+     "usable": 0,
+     "dims": [
+      7.9,
+      3.55
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      9,
+      9,
+      -1,
+      2.1,
+      11.6,
+      1.88
+     ],
+     "usable": 1,
+     "dims": [
+      2.3,
+      4.65
+     ],
+     "arrival": "HALL",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "seconds": 25.3,
+   "parti": "PUBLIC_BAND+FOYER",
+   "sizer": "exact",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    0,
+    0,
+    5,
+    14,
+    -3,
+    0.6,
+    18.3,
+    1.04
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      0,
+      8,
+      12,
+      -1,
+      5.5,
+      15.8,
+      2.13
+     ],
+     "usable": 0,
+     "dims": [
+      1.9,
+      2.8
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      1,
+      8,
+      -1,
+      5.0,
+      10.2,
+      1.46
+     ],
+     "usable": 0,
+     "dims": [
+      7.3,
+      3.75
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer improved on production's plan on rooms"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      0,
+      5,
+      14,
+      -3,
+      0.6,
+      18.3,
+      1.04
+     ],
+     "usable": 0,
+     "dims": [
+      2.0,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      10,
+      11,
+      -1,
+      8.4,
+      13.0,
+      1.84
+     ],
+     "usable": 0,
+     "dims": [
+      7.2,
+      3.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      11,
+      15,
+      -1,
+      2.7,
+      18.9,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.85,
+      3.05
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer's band plan ranked below production's on area (arrival ok, street ok, area out of tolerance, arrival room usable, rooms 13 %, circulation 14 % vs arrival ok, street ok, area in tolerance, arrival room a STRIP, rooms 11 %, circulation 15 %); production kept"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      9,
+      8,
+      -1,
+      9.9,
+      9.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      6.9,
+      3.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      13,
+      11,
+      -1,
+      11.9,
+      15.3,
+      1.45
+     ],
+     "usable": 0,
+     "dims": [
+      7.9,
+      3.55
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      0,
+      11,
+      9,
+      -1,
+      11.5,
+      10.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      2.6,
+      3.85
+     ],
+     "arrival": "HALL",
+     "notes": [
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "seconds": 30.1,
+   "parti": "PUBLIC_BAND+FOYER",
+   "sizer": "exact",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    0,
+    0,
+    5,
+    14,
+    -3,
+    0.6,
+    18.3,
+    1.04
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "exact",
+     "family": "stack",
+     "key": [
+      0,
+      0,
+      0,
+      0,
+      6,
+      14,
+      -2,
+      2.2,
+      18.3,
+      1.04
+     ],
+     "usable": 0,
+     "dims": [
+      2.0,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 8.339 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      9,
+      8,
+      -1,
+      9.9,
+      9.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      6.9,
+      3.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      0,
+      5,
+      14,
+      -3,
+      0.6,
+      18.3,
+      1.04
+     ],
+     "usable": 0,
+     "dims": [
+      2.0,
+      3.0
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "request budget reached after 8.932 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      10,
+      11,
+      -1,
+      8.4,
+      13.0,
+      1.84
+     ],
+     "usable": 0,
+     "dims": [
+      7.2,
+      3.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      1,
+      11,
+      15,
+      -1,
+      2.7,
+      18.9,
+      2.1
+     ],
+     "usable": 1,
+     "dims": [
+      1.85,
+      3.05
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      9,
+      8,
+      -1,
+      9.9,
+      9.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      6.9,
+      3.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      13,
+      11,
+      -1,
+      11.9,
+      15.3,
+      1.45
+     ],
+     "usable": 0,
+     "dims": [
+      7.9,
+      3.55
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "exact",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      0,
+      0,
+      11,
+      9,
+      -1,
+      11.5,
+      10.9,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      2.6,
+      3.85
+     ],
+     "arrival": "HALL",
+     "notes": [
+      "request budget reached after 10.246 s; later candidates and families were not sized",
+      "exact sizer improved on production's plan on arrival room"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B16",
+   "config": "brain-production",
+   "seconds": 35.2,
+   "parti": "SERVICE_CORE",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    1,
+    1,
+    0,
+    0,
+    21,
+    13,
+    -1,
+    2.8,
+    28.1,
+    2.09
+   ],
+   "accepted": [
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      38,
+      17,
+      0,
+      18.7,
+      31.8,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      4.4,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      21,
+      13,
+      -1,
+      2.8,
+      28.1,
+      2.09
+     ],
+     "usable": 0,
+     "dims": [
+      7.95,
+      4.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B16",
+   "config": "brain-exact-band",
+   "seconds": 35.1,
+   "parti": "SERVICE_CORE",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    1,
+    1,
+    0,
+    0,
+    21,
+    13,
+    -1,
+    2.8,
+    28.1,
+    2.09
+   ],
+   "accepted": [
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      38,
+      17,
+      0,
+      18.7,
+      31.8,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      4.4,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      21,
+      13,
+      -1,
+      2.8,
+      28.1,
+      2.09
+     ],
+     "usable": 0,
+     "dims": [
+      7.95,
+      4.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B16",
+   "config": "brain-exact-all",
+   "seconds": 35.1,
+   "parti": "SERVICE_CORE",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    1,
+    1,
+    0,
+    0,
+    21,
+    13,
+    -1,
+    2.8,
+    28.1,
+    2.09
+   ],
+   "accepted": [
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      38,
+      17,
+      0,
+      18.7,
+      31.8,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      4.4,
+      5.5
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      21,
+      13,
+      -1,
+      2.8,
+      28.1,
+      2.09
+     ],
+     "usable": 0,
+     "dims": [
+      7.95,
+      4.9
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B19",
+   "config": "brain-production",
+   "seconds": 27.2,
+   "parti": "BEDROOM_WING",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    1,
+    1,
+    0,
+    0,
+    20,
+    13,
+    0,
+    1.0,
+    22.4,
+    2.13
+   ],
+   "accepted": [
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      20,
+      15,
+      -1,
+      13.7,
+      28.1,
+      2.18
+     ],
+     "usable": 0,
+     "dims": [
+      7.55,
+      3.95
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      20,
+      13,
+      0,
+      1.0,
+      22.4,
+      2.13
+     ],
+     "usable": 0,
+     "dims": [
+      4.2,
+      4.75
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B19",
+   "config": "brain-exact-band",
+   "seconds": 29.8,
+   "parti": "BEDROOM_WING",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    1,
+    1,
+    0,
+    0,
+    20,
+    13,
+    0,
+    1.0,
+    22.4,
+    2.13
+   ],
+   "accepted": [
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      20,
+      15,
+      -1,
+      13.7,
+      28.1,
+      2.18
+     ],
+     "usable": 0,
+     "dims": [
+      7.55,
+      3.95
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 20, 'expos"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      20,
+      13,
+      0,
+      1.0,
+      22.4,
+      2.13
+     ],
+     "usable": 0,
+     "dims": [
+      4.2,
+      4.75
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 37, 'expos"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B19",
+   "config": "brain-exact-all",
+   "seconds": 30.2,
+   "parti": "BEDROOM_WING",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    1,
+    1,
+    0,
+    0,
+    20,
+    13,
+    0,
+    1.0,
+    22.4,
+    2.13
+   ],
+   "accepted": [
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      20,
+      15,
+      -1,
+      13.7,
+      28.1,
+      2.18
+     ],
+     "usable": 0,
+     "dims": [
+      7.55,
+      3.95
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 20, 'expos"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      0,
+      0,
+      20,
+      13,
+      0,
+      1.0,
+      22.4,
+      2.13
+     ],
+     "usable": 0,
+     "dims": [
+      4.2,
+      4.75
+     ],
+     "arrival": "LIVING",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 37, 'expos"
+     ]
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B09",
+   "config": "brain-production",
+   "seconds": 7.0,
+   "parti": "BEDROOM_WING+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    13,
+    15,
+    -1,
+    261.2,
+    26.3,
+    1.59
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      20,
+      17,
+      -2,
+      267.0,
+      28.7,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      2.4,
+      2.5
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      10,
+      11,
+      0,
+      266.0,
+      19.4,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      8.25,
+      5.25
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      13,
+      14,
+      0,
+      265.8,
+      24.6,
+      1.76
+     ],
+     "usable": 0,
+     "dims": [
+      7.85,
+      5.0
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      8,
+      11,
+      0,
+      264.0,
+      19.5,
+      2.09
+     ],
+     "usable": 0,
+     "dims": [
+      8.2,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      13,
+      15,
+      -1,
+      261.2,
+      26.3,
+      1.59
+     ],
+     "usable": 0,
+     "dims": [
+      1.95,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      11,
+      0,
+      262.7,
+      19.5,
+      2.03
+     ],
+     "usable": 0,
+     "dims": [
+      8.3,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      20,
+      13,
+      0,
+      265.4,
+      21.9,
+      1.7
+     ],
+     "usable": 0,
+     "dims": [
+      8.7,
+      5.05
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      21,
+      21,
+      -1,
+      256.6,
+      37.9,
+      1.86
+     ],
+     "usable": 0,
+     "dims": [
+      3.45,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      11,
+      12,
+      0,
+      267.1,
+      19.5,
+      2.0
+     ],
+     "usable": 0,
+     "dims": [
+      8.1,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B09",
+   "config": "brain-exact-band",
+   "seconds": 30.0,
+   "parti": "BEDROOM_WING+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    13,
+    15,
+    -1,
+    261.2,
+    26.3,
+    1.59
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      20,
+      17,
+      -2,
+      267.0,
+      28.7,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      2.4,
+      2.5
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 13, 'expos"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      10,
+      11,
+      0,
+      266.0,
+      19.4,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      8.25,
+      5.25
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      13,
+      14,
+      0,
+      265.8,
+      24.6,
+      1.76
+     ],
+     "usable": 0,
+     "dims": [
+      7.85,
+      5.0
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      8,
+      11,
+      0,
+      264.0,
+      19.5,
+      2.09
+     ],
+     "usable": 0,
+     "dims": [
+      8.2,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      13,
+      15,
+      -1,
+      261.2,
+      26.3,
+      1.59
+     ],
+     "usable": 0,
+     "dims": [
+      1.95,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: EXACT_SIZER_UNKNOWN: every exact solve hit its time limit"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      11,
+      0,
+      262.7,
+      19.5,
+      2.03
+     ],
+     "usable": 0,
+     "dims": [
+      8.3,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      20,
+      13,
+      0,
+      265.4,
+      21.9,
+      1.7
+     ],
+     "usable": 0,
+     "dims": [
+      8.7,
+      5.05
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      21,
+      21,
+      -1,
+      256.6,
+      37.9,
+      1.86
+     ],
+     "usable": 0,
+     "dims": [
+      3.45,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'exposure_ok': 44, 'entrance_fe"
+     ]
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      11,
+      12,
+      0,
+      267.1,
+      19.5,
+      2.0
+     ],
+     "usable": 0,
+     "dims": [
+      8.1,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  },
+  {
+   "brief": "B09",
+   "config": "brain-exact-all",
+   "seconds": 30.0,
+   "parti": "BEDROOM_WING+FOYER",
+   "sizer": "production",
+   "family": "band",
+   "key": [
+    0,
+    0,
+    1,
+    0,
+    13,
+    15,
+    -1,
+    261.2,
+    26.3,
+    1.59
+   ],
+   "accepted": [
+    {
+     "parti": "HALL_SPINE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      20,
+      17,
+      -2,
+      267.0,
+      28.7,
+      2.11
+     ],
+     "usable": 0,
+     "dims": [
+      2.4,
+      2.5
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'entrance_feasible': 13, 'expos"
+     ]
+    },
+    {
+     "parti": "HALL_SPINE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      10,
+      11,
+      0,
+      266.0,
+      19.4,
+      2.1
+     ],
+     "usable": 0,
+     "dims": [
+      8.25,
+      5.25
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      13,
+      14,
+      0,
+      265.8,
+      24.6,
+      1.76
+     ],
+     "usable": 0,
+     "dims": [
+      7.85,
+      5.0
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "PUBLIC_BAND",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      8,
+      11,
+      0,
+      264.0,
+      19.5,
+      2.09
+     ],
+     "usable": 0,
+     "dims": [
+      8.2,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "BEDROOM_WING+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      13,
+      15,
+      -1,
+      261.2,
+      26.3,
+      1.59
+     ],
+     "usable": 0,
+     "dims": [
+      1.95,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: EXACT_SIZER_UNKNOWN: every exact solve hit its time limit"
+     ]
+    },
+    {
+     "parti": "BEDROOM_WING",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      9,
+      11,
+      0,
+      262.7,
+      19.5,
+      2.03
+     ],
+     "usable": 0,
+     "dims": [
+      8.3,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "TWO_HALL",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      20,
+      13,
+      0,
+      265.4,
+      21.9,
+      1.7
+     ],
+     "usable": 0,
+     "dims": [
+      8.7,
+      5.05
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    },
+    {
+     "parti": "SERVICE_CORE+FOYER",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      0,
+      0,
+      1,
+      0,
+      21,
+      21,
+      -1,
+      256.6,
+      37.9,
+      1.86
+     ],
+     "usable": 0,
+     "dims": [
+      3.45,
+      2.6
+     ],
+     "arrival": "ENTRY",
+     "notes": [
+      "exact sizer fell back to production: NO_EXACT_PLAN: 0 placements realized, none kept; {'SELECTION': {'exposure_ok': 44, 'entrance_fe"
+     ]
+    },
+    {
+     "parti": "SERVICE_CORE",
+     "sizer": "production",
+     "family": "band",
+     "key": [
+      1,
+      1,
+      1,
+      0,
+      11,
+      12,
+      0,
+      267.1,
+      19.5,
+      2.0
+     ],
+     "usable": 0,
+     "dims": [
+      8.1,
+      5.4
+     ],
+     "arrival": "LIVING",
+     "notes": []
+    }
+   ],
+   "v_fronting": {
+    "n": 0,
+    "ok": 0,
+    "codes": {
+     "C25": 0,
+     "C26": 0,
+     "C28": 0
+    }
+   }
+  }
+ ],
+ "records": [
+  {
+   "brief": "B11",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.1,
+     11.35,
+     6.85,
+     6.4
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    5.2,
+    6.2
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.65,
+     1.7,
+     0.0,
+     4.3
+    ],
+    "HALL": [
+     3.9,
+     4.1,
+     3.65,
+     3.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.7,
+     1.7,
+     0.0,
+     7.25
+    ],
+    "HALL": [
+     3.95,
+     5.15,
+     3.7,
+     3.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.9,
+     4.1,
+     3.35,
+     3.2
+    ],
+    "ENTRY": [
+     3.65,
+     1.7,
+     7.25,
+     4.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.95,
+     5.15,
+     3.2,
+     3.2
+    ],
+    "ENTRY": [
+     3.7,
+     1.7,
+     7.15,
+     7.25
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.6,
+     2.8,
+     6.6,
+     3.5
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.85,
+    3.3
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.2,
+     3.7,
+     5.45,
+     4.65
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.85,
+    4.45
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.7,
+     2.8,
+     3.8,
+     5.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.4,
+     2.45,
+     4.3,
+     5.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.55,
+     3.4,
+     1.8,
+     4.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.5,
+    4.75
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.4,
+     2.8,
+     4.2,
+     1.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.6,
+     4.75,
+     4.25,
+     3.8
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.05,
+     4.9,
+     3.8,
+     1.8
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "SERVICE_CORE:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.6,
+     2.2,
+     4.25,
+     6.05
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     6.15,
+     3.7,
+     1.8,
+     4.25
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    4.05
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.7,
+     6.1,
+     4.05,
+     1.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     6.95,
+     3.1,
+     1.8,
+     4.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.1,
+    4.55
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.45,
+     6.85,
+     3.9,
+     2.15
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     6.85,
+     3.1,
+     1.95,
+     4.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.1,
+    4.55
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.45,
+     6.85,
+     3.9,
+     2.15
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.65,
+     1.7,
+     0.0,
+     4.3
+    ],
+    "HALL": [
+     3.9,
+     4.1,
+     3.65,
+     3.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.7,
+     1.7,
+     0.0,
+     7.25
+    ],
+    "HALL": [
+     3.95,
+     5.15,
+     3.7,
+     3.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.9,
+     4.1,
+     3.35,
+     3.2
+    ],
+    "ENTRY": [
+     3.65,
+     1.7,
+     7.25,
+     4.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.95,
+     5.15,
+     3.2,
+     3.2
+    ],
+    "ENTRY": [
+     3.7,
+     1.7,
+     7.15,
+     7.25
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.75,
+     1.6,
+     0.0,
+     7.7
+    ],
+    "HALL": [
+     4.15,
+     2.2,
+     3.75,
+     6.6
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') H",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     1.6,
+     3.8,
+     1.9,
+     4.8
+    ],
+    "HALL": [
+     2.2,
+     3.8,
+     3.5,
+     4.8
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.5,
+    4.6
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "SERVICE_CORE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.75,
+     1.6,
+     4.45,
+     1.9
+    ],
+    "HALL": [
+     3.75,
+     2.35,
+     4.45,
+     3.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.75,
+     1.6,
+     0.0,
+     7.7
+    ],
+    "HALL": [
+     4.15,
+     2.2,
+     3.75,
+     6.6
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') H",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     1.6,
+     3.8,
+     1.9,
+     4.8
+    ],
+    "HALL": [
+     2.2,
+     3.8,
+     3.5,
+     4.8
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.5,
+    4.6
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.75,
+     1.6,
+     4.45,
+     1.9
+    ],
+    "HALL": [
+     3.75,
+     2.35,
+     4.45,
+     3.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.0,
+     3.45,
+     0.0,
+     3.9
+    ],
+    "HALL": [
+     3.8,
+     2.2,
+     3.0,
+     6.25
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     2.2,
+     3.9,
+     6.25
+    ],
+    "ENTRY": [
+     3.0,
+     3.45,
+     7.7,
+     3.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.6,
+     2.8,
+     6.6,
+     3.5
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.85,
+    3.3
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.2,
+     3.7,
+     5.45,
+     4.65
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.85,
+    4.45
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.7,
+     2.8,
+     3.8,
+     5.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.4,
+     2.45,
+     4.3,
+     5.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.55,
+     3.4,
+     1.8,
+     4.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.5,
+    4.75
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.4,
+     2.8,
+     4.2,
+     1.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:stack",
+   "label": "('BATH_2', 'TOILET_1') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.2,
+     4.6,
+     5.6,
+     4.25
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    6.25,
+    4.05
+   ]
+  },
+  {
+   "brief": "B20",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:stack",
+   "label": "('BATH_2', 'TOILET_1') V",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.25,
+     2.2,
+     3.65,
+     6.6
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.25,
+     "h": 4.9,
+     "x": 6.1
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.25,
+     4.9,
+     6.1,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    3.15,
+    4.7
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     5.3,
+     2.6,
+     0.0,
+     11.95
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.25,
+     "h": 4.9,
+     "x": 2.65
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.25,
+     4.9,
+     2.65,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    3.15,
+    4.7
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     5.3,
+     2.6,
+     0.0,
+     5.15
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    5.4,
+    8.5
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.15,
+     "h": 4.75,
+     "x": 2.35
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.15,
+     4.75,
+     2.35,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    3.05,
+    4.55
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.75,
+     2.95,
+     0.0,
+     3.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.25,
+     "h": 4.05,
+     "x": 3.1
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.25,
+     4.05,
+     3.1,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    3.85
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.2,
+     5.75,
+     0.0,
+     4.45
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.25,
+     "h": 4.05,
+     "x": 4.65
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.25,
+     4.05,
+     4.65,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    3.85
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.2,
+     5.75,
+     0.0,
+     8.05
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    6.15,
+    7.75
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.25,
+     "h": 4.45,
+     "x": 4.7
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.25,
+     4.45,
+     4.7,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    4.25
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.7,
+     5.3,
+     0.0,
+     7.35
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.2,
+     "h": 3.3,
+     "x": 9.8
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.2,
+     3.3,
+     9.8,
+     0.0
+    ],
+    "HALL": [
+     4.15,
+     5.15,
+     7.85,
+     3.3
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C3: BATH_1 net 14.3925 m2 outside [8.4,14.0]; HALL net 19.9475 m2 outside [10.33,19.19]; C21: BATH_1 realized 14.39 m2 past its BATHROOM template's 14 m2 hard maximum",
+   "codes": [
+    "C21",
+    "C3"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.4,
+     1.7,
+     0.0,
+     14.5
+    ],
+    "HALL": [
+     3.85,
+     4.45,
+     3.4,
+     11.75
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 5.1,
+     "h": 2.8,
+     "x": 4.8
+    },
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 2.8,
+     "x": 9.9
+    }
+   ],
+   "circ": {
+    "HALL": [
+     5.1,
+     2.8,
+     4.8,
+     0.0
+    ],
+    "ENTRY": [
+     2.1,
+     2.8,
+     9.9,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C25: 1.75 m of unserved corridor beside the entrance in ENTRY exceeds 0.60 m",
+   "codes": [
+    "C25"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.4,
+     6.7,
+     0.0,
+     8.85
+    ],
+    "ENTRY": [
+     2.4,
+     2.45,
+     0.0,
+     15.55
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.1,
+    7.75
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 2.4,
+     "h": 3.45,
+     "x": 7.2
+    },
+    {
+     "zone": "ENTRY",
+     "w": 2.4,
+     "h": 3.45,
+     "x": 9.6
+    }
+   ],
+   "circ": {
+    "HALL": [
+     2.4,
+     3.45,
+     7.2,
+     0.0
+    ],
+    "ENTRY": [
+     2.4,
+     3.45,
+     9.6,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C25: 2.08 m of unserved corridor beside the entrance in ENTRY exceeds 0.60 m",
+   "codes": [
+    "C25"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.65,
+     3.8,
+     0.0,
+     12.5
+    ],
+    "ENTRY": [
+     3.65,
+     1.7,
+     0.0,
+     16.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.25,
+     "h": 4.9,
+     "x": 6.1
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.25,
+     4.9,
+     6.1,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    3.15,
+    4.7
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     5.3,
+     2.6,
+     0.0,
+     11.95
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.25,
+     "h": 4.9,
+     "x": 2.65
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.25,
+     4.9,
+     2.65,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    3.15,
+    4.7
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     5.3,
+     2.6,
+     0.0,
+     5.15
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    5.4,
+    8.5
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.15,
+     "h": 4.75,
+     "x": 2.35
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.15,
+     4.75,
+     2.35,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    3.05,
+    4.55
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.75,
+     2.95,
+     0.0,
+     3.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung None",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.0,
+     "h": 10.05,
+     "x": 3.45
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.0,
+     10.05,
+     3.45,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C26: circulation ratio 25% exceeds 24%; C31: KITCHEN: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+   "codes": [
+    "C26",
+    "C31"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung None",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.0,
+     "h": 10.05,
+     "x": 3.45
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.0,
+     10.05,
+     3.45,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C26: circulation ratio 25% exceeds 24%; C31: KITCHEN: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+   "codes": [
+    "C26",
+    "C31"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung None",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.0,
+     "h": 10.4,
+     "x": 3.2
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.0,
+     10.4,
+     3.2,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C26: circulation ratio 26% exceeds 24%",
+   "codes": [
+    "C26"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung None",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.0,
+     "h": 10.4,
+     "x": 3.2
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.0,
+     10.4,
+     3.2,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C26: circulation ratio 26% exceeds 24%",
+   "codes": [
+    "C26"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung None",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 3.0,
+     "h": 10.35,
+     "x": 3.2
+    }
+   ],
+   "circ": {
+    "HALL": [
+     3.0,
+     10.35,
+     3.2,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C26: circulation ratio 26% exceeds 24%",
+   "codes": [
+    "C26"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE:spine",
+   "label": "H rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.4,
+     4.05,
+     5.3,
+     8.7
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.95,
+    8.5
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.25,
+     "h": 4.05,
+     "x": 3.1
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.25,
+     4.05,
+     3.1,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    3.85
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.2,
+     5.75,
+     0.0,
+     4.45
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.25,
+     "h": 4.05,
+     "x": 4.65
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.25,
+     4.05,
+     4.65,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    3.85
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.2,
+     5.75,
+     0.0,
+     8.05
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    6.15,
+    7.75
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.25,
+     "h": 4.45,
+     "x": 4.7
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.25,
+     4.45,
+     4.7,
+     0.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    4.15,
+    4.25
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.2,
+     "h": 3.3,
+     "x": 9.8
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.2,
+     3.3,
+     9.8,
+     0.0
+    ],
+    "HALL": [
+     4.15,
+     5.15,
+     7.85,
+     3.3
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C3: BATH_1 net 14.3925 m2 outside [8.4,14.0]; HALL net 19.9475 m2 outside [10.33,19.19]; C21: BATH_1 realized 14.39 m2 past its BATHROOM template's 14 m2 hard maximum",
+   "codes": [
+    "C21",
+    "C3"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.4,
+     1.7,
+     0.0,
+     14.5
+    ],
+    "HALL": [
+     3.85,
+     4.45,
+     3.4,
+     11.75
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 5.1,
+     "h": 2.8,
+     "x": 4.8
+    },
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 2.8,
+     "x": 9.9
+    }
+   ],
+   "circ": {
+    "HALL": [
+     5.1,
+     2.8,
+     4.8,
+     0.0
+    ],
+    "ENTRY": [
+     2.1,
+     2.8,
+     9.9,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C25: 1.75 m of unserved corridor beside the entrance in ENTRY exceeds 0.60 m",
+   "codes": [
+    "C25"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.4,
+     6.7,
+     0.0,
+     8.85
+    ],
+    "ENTRY": [
+     2.4,
+     2.45,
+     0.0,
+     15.55
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.1,
+    7.75
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 2.4,
+     "h": 3.45,
+     "x": 7.2
+    },
+    {
+     "zone": "ENTRY",
+     "w": 2.4,
+     "h": 3.45,
+     "x": 9.6
+    }
+   ],
+   "circ": {
+    "HALL": [
+     2.4,
+     3.45,
+     7.2,
+     0.0
+    ],
+    "ENTRY": [
+     2.4,
+     3.45,
+     9.6,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C25: 2.08 m of unserved corridor beside the entrance in ENTRY exceeds 0.60 m",
+   "codes": [
+    "C25"
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.65,
+     3.8,
+     0.0,
+     12.5
+    ],
+    "ENTRY": [
+     3.65,
+     1.7,
+     0.0,
+     16.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:spine",
+   "label": "V rung None",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 3.0,
+     "h": 3.2,
+     "x": 7.0
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     3.0,
+     3.2,
+     7.0,
+     0.0
+    ],
+    "HALL": [
+     10.0,
+     1.9,
+     0.0,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.8,
+    3.0
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:spine",
+   "label": "V rung None",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 3.0,
+     "h": 3.2,
+     "x": 0.0
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     3.0,
+     3.2,
+     0.0,
+     0.0
+    ],
+    "HALL": [
+     10.0,
+     1.9,
+     0.0,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.8,
+    3.0
+   ]
+  },
+  {
+   "brief": "B02",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 4.95,
+     "h": 2.8,
+     "x": 4.95
+    },
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 2.8,
+     "x": 9.9
+    }
+   ],
+   "circ": {
+    "HALL": [
+     4.95,
+     2.8,
+     4.95,
+     0.0
+    ],
+    "ENTRY": [
+     2.1,
+     2.8,
+     9.9,
+     0.0
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C25: 1.75 m of unserved corridor beside the entrance in ENTRY exceeds 0.60 m",
+   "codes": [
+    "C25"
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 2.8,
+     "x": 5.6
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     2.8,
+     5.6,
+     0.0
+    ],
+    "HALL": [
+     4.75,
+     3.5,
+     4.5,
+     2.8
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.6
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 2.8,
+     "x": 5.45
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     2.8,
+     5.45,
+     0.0
+    ],
+    "HALL": [
+     4.55,
+     4.65,
+     4.0,
+     2.8
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.6
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.35,
+     "h": 3.4,
+     "x": 0.95
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.35,
+     3.4,
+     0.95,
+     0.0
+    ],
+    "HALL": [
+     5.8,
+     3.35,
+     0.95,
+     3.4
+    ],
+    "HALL_B": [
+     2.2,
+     3.75,
+     3.45,
+     6.75
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.15,
+    3.2
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.35,
+     "h": 3.4,
+     "x": 1.55
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.35,
+     3.4,
+     1.55,
+     0.0
+    ],
+    "HALL": [
+     5.8,
+     3.35,
+     1.55,
+     3.4
+    ],
+    "HALL_B": [
+     2.2,
+     3.75,
+     4.05,
+     6.75
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.15,
+    3.2
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 4.35
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     4.35,
+     0.0
+    ],
+    "HALL_B": [
+     1.7,
+     4.75,
+     3.25,
+     3.2
+    ],
+    "HALL": [
+     2.6,
+     4.75,
+     4.95,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     7.85
+    ],
+    "HALL_B": [
+     3.95,
+     1.7,
+     3.2,
+     6.6
+    ],
+    "HALL": [
+     3.95,
+     2.4,
+     3.2,
+     8.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 4.35
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     4.35,
+     0.0
+    ],
+    "HALL_B": [
+     1.7,
+     4.75,
+     3.25,
+     3.2
+    ],
+    "HALL": [
+     2.6,
+     4.75,
+     4.95,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     7.85
+    ],
+    "HALL_B": [
+     3.95,
+     1.7,
+     3.2,
+     6.6
+    ],
+    "HALL": [
+     3.95,
+     2.4,
+     3.2,
+     8.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 2.8,
+     "x": 5.6
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     2.8,
+     5.6,
+     0.0
+    ],
+    "HALL": [
+     4.75,
+     3.5,
+     4.5,
+     2.8
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.6
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 2.8,
+     "x": 5.45
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     2.8,
+     5.45,
+     0.0
+    ],
+    "HALL": [
+     4.55,
+     4.65,
+     4.0,
+     2.8
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.6
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.35,
+     "h": 3.4,
+     "x": 0.95
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.35,
+     3.4,
+     0.95,
+     0.0
+    ],
+    "HALL": [
+     5.8,
+     3.35,
+     0.95,
+     3.4
+    ],
+    "HALL_B": [
+     2.2,
+     3.75,
+     3.45,
+     6.75
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.15,
+    3.2
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.35,
+     "h": 3.4,
+     "x": 1.55
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.35,
+     3.4,
+     1.55,
+     0.0
+    ],
+    "HALL": [
+     5.8,
+     3.35,
+     1.55,
+     3.4
+    ],
+    "HALL_B": [
+     2.2,
+     3.75,
+     4.05,
+     6.75
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.15,
+    3.2
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 4.35
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     4.35,
+     0.0
+    ],
+    "HALL_B": [
+     1.7,
+     4.75,
+     3.25,
+     3.2
+    ],
+    "HALL": [
+     2.6,
+     4.75,
+     4.95,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     7.85
+    ],
+    "HALL_B": [
+     3.95,
+     1.7,
+     3.2,
+     6.6
+    ],
+    "HALL": [
+     3.95,
+     2.4,
+     3.2,
+     8.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 4.35
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     4.35,
+     0.0
+    ],
+    "HALL_B": [
+     1.7,
+     4.75,
+     3.25,
+     3.2
+    ],
+    "HALL": [
+     2.6,
+     4.75,
+     4.95,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B06",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     7.85
+    ],
+    "HALL_B": [
+     3.95,
+     1.7,
+     3.2,
+     6.6
+    ],
+    "HALL": [
+     3.95,
+     2.4,
+     3.2,
+     8.3
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 2.7,
+     "h": 4.05,
+     "x": 3.7
+    }
+   ],
+   "circ": {
+    "HALL": [
+     2.7,
+     4.05,
+     3.7,
+     0.0
+    ],
+    "HALL_B": [
+     1.7,
+     4.1,
+     3.1,
+     4.05
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    2.6,
+    3.85
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.3,
+     2.2,
+     0.0,
+     4.0
+    ],
+    "HALL_B": [
+     3.75,
+     1.7,
+     4.3,
+     3.4
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "HALL_B",
+     "w": 2.5,
+     "h": 3.1,
+     "x": 5.1
+    }
+   ],
+   "circ": {
+    "HALL_B": [
+     2.5,
+     3.1,
+     5.1,
+     0.0
+    ],
+    "HALL": [
+     4.5,
+     3.25,
+     6.5,
+     3.1
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL_B",
+   "codes": [],
+   "arrival_net": [
+    2.4,
+    2.9
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL_B": [
+     2.8,
+     2.8,
+     0.0,
+     5.5
+    ],
+    "HALL": [
+     2.7,
+     4.8,
+     2.8,
+     7.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL:band",
+   "label": "H rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.5,
+     3.25,
+     6.5,
+     5.35
+    ],
+    "HALL_B": [
+     2.5,
+     3.1,
+     5.1,
+     8.6
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.45,
+    5.15
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "TWO_HALL:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.7,
+     4.8,
+     5.35,
+     7.2
+    ],
+    "HALL_B": [
+     2.8,
+     2.8,
+     8.05,
+     5.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.75,
+     1.6,
+     0.0,
+     7.0
+    ],
+    "HALL": [
+     3.1,
+     6.5,
+     3.75,
+     3.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.3,
+     2.7,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     4.1
+    ],
+    "HALL": [
+     2.7,
+     4.2,
+     3.2,
+     2.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.3,
+     2.7,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     4.1
+    ],
+    "HALL": [
+     2.7,
+     4.2,
+     3.2,
+     2.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 2.8,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     2.8,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.45,
+     3.1,
+     2.55,
+     2.8
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.6
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     2.8,
+     1.6,
+     0.0,
+     4.5
+    ],
+    "HALL": [
+     3.1,
+     4.7,
+     2.8,
+     2.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.45,
+     1.6,
+     0.0,
+     4.0
+    ],
+    "HALL": [
+     3.55,
+     3.8,
+     3.45,
+     2.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.45,
+     1.6,
+     0.0,
+     6.5
+    ],
+    "HALL": [
+     3.85,
+     3.8,
+     3.45,
+     5.4
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.25,
+    6.3
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.25,
+     1.7,
+     0.0,
+     7.0
+    ],
+    "HALL": [
+     3.8,
+     2.95,
+     3.25,
+     5.75
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 3.0,
+     "x": 4.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     3.0,
+     4.9,
+     0.0
+    ],
+    "HALL": [
+     2.35,
+     4.15,
+     5.8,
+     3.0
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.8
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     2.9,
+     1.7,
+     0.0,
+     5.8
+    ],
+    "HALL": [
+     3.95,
+     2.5,
+     2.9,
+     6.3
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.85,
+    7.45
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.9,
+     3.7,
+     2.1,
+     3.95
+    ],
+    "ENTRY": [
+     1.6,
+     3.7,
+     5.0,
+     3.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    7.5,
+    3.75
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.45,
+     3.3,
+     3.6,
+     2.25
+    ],
+    "ENTRY": [
+     3.45,
+     1.6,
+     3.6,
+     5.55
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.2,
+     "h": 3.2,
+     "x": 2.8
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.2,
+     3.2,
+     2.8,
+     0.0
+    ],
+    "HALL": [
+     3.3,
+     3.8,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.9,
+     1.6,
+     0.0,
+     3.9
+    ],
+    "HALL": [
+     3.75,
+     3.8,
+     3.9,
+     2.8
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.9,
+     1.6,
+     0.0,
+     6.5
+    ],
+    "HALL": [
+     3.75,
+     3.8,
+     3.9,
+     5.4
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.7,
+    6.3
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.9,
+     1.6,
+     0.0,
+     6.5
+    ],
+    "HALL": [
+     3.7,
+     3.2,
+     3.9,
+     6.0
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.5,
+    5.8
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.9,
+     1.6,
+     0.0,
+     6.5
+    ],
+    "HALL": [
+     3.7,
+     3.2,
+     3.9,
+     6.0
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.5,
+    5.8
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.95
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.95,
+     0.0
+    ],
+    "HALL": [
+     2.25,
+     4.05,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "BEDROOM_WING+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     4.8
+    ],
+    "HALL": [
+     3.95,
+     2.85,
+     3.2,
+     3.05
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.05,
+     3.35,
+     2.3,
+     3.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    7.3,
+    3.75
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.1,
+     3.45,
+     3.75,
+     2.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.6,
+     2.7,
+     2.8,
+     5.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.85,
+    5.75
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.7,
+     4.4,
+     5.1,
+     2.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.9,
+    4.85
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "H rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.35,
+     3.35,
+     2.1,
+     3.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    7.5,
+    3.75
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-band",
+   "name": "HALL_SPINE:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.1,
+     3.65,
+     3.75,
+     2.25
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:band",
+   "label": "H rung 0.5",
+   "fronting": [
+    {
+     "zone": "HALL",
+     "w": 2.7,
+     "h": 4.05,
+     "x": 3.7
+    }
+   ],
+   "circ": {
+    "HALL": [
+     2.7,
+     4.05,
+     3.7,
+     0.0
+    ],
+    "HALL_B": [
+     1.7,
+     4.1,
+     3.1,
+     4.05
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL",
+   "codes": [],
+   "arrival_net": [
+    2.6,
+    3.85
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.3,
+     2.2,
+     0.0,
+     4.0
+    ],
+    "HALL_B": [
+     3.75,
+     1.7,
+     4.3,
+     3.4
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "HALL_B",
+     "w": 2.5,
+     "h": 3.1,
+     "x": 5.1
+    }
+   ],
+   "circ": {
+    "HALL_B": [
+     2.5,
+     3.1,
+     5.1,
+     0.0
+    ],
+    "HALL": [
+     4.5,
+     3.25,
+     6.5,
+     3.1
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL_B",
+   "codes": [],
+   "arrival_net": [
+    2.4,
+    2.9
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL_B": [
+     2.8,
+     2.8,
+     0.0,
+     5.5
+    ],
+    "HALL": [
+     2.7,
+     4.8,
+     2.8,
+     7.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:band",
+   "label": "H rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.5,
+     3.25,
+     6.5,
+     5.35
+    ],
+    "HALL_B": [
+     2.5,
+     3.1,
+     5.1,
+     8.6
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.45,
+    5.15
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.7,
+     4.8,
+     5.35,
+     7.2
+    ],
+    "HALL_B": [
+     2.8,
+     2.8,
+     8.05,
+     5.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.6,
+     2.7,
+     2.75,
+     5.85
+    ],
+    "HALL_B": [
+     2.25,
+     3.4,
+     5.2,
+     8.55
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.75,
+    5.65
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [
+    {
+     "zone": "HALL_B",
+     "w": 2.25,
+     "h": 3.4,
+     "x": 5.2
+    }
+   ],
+   "circ": {
+    "HALL_B": [
+     2.25,
+     3.4,
+     5.2,
+     0.0
+    ],
+    "HALL": [
+     3.6,
+     2.7,
+     2.75,
+     3.4
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL_B",
+   "codes": [],
+   "arrival_net": [
+    2.15,
+    3.2
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.6,
+     2.7,
+     2.75,
+     5.85
+    ],
+    "HALL_B": [
+     2.25,
+     3.4,
+     5.2,
+     8.55
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.75,
+    5.65
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [
+    {
+     "zone": "HALL_B",
+     "w": 2.25,
+     "h": 3.4,
+     "x": 5.2
+    }
+   ],
+   "circ": {
+    "HALL_B": [
+     2.25,
+     3.4,
+     5.2,
+     0.0
+    ],
+    "HALL": [
+     3.6,
+     2.7,
+     2.75,
+     3.4
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL_B",
+   "codes": [],
+   "arrival_net": [
+    2.15,
+    3.2
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.15,
+     3.1,
+     2.45,
+     5.85
+    ],
+    "HALL_B": [
+     2.3,
+     3.0,
+     4.35,
+     8.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.75,
+    5.65
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "TWO_HALL:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [
+    {
+     "zone": "HALL_B",
+     "w": 2.3,
+     "h": 3.0,
+     "x": 4.35
+    }
+   ],
+   "circ": {
+    "HALL_B": [
+     2.3,
+     3.0,
+     4.35,
+     0.0
+    ],
+    "HALL": [
+     3.15,
+     3.1,
+     2.45,
+     3.0
+    ]
+   },
+   "ok": true,
+   "arrival": "HALL_B",
+   "codes": [],
+   "arrival_net": [
+    2.2,
+    2.8
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung None",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.75,
+     1.6,
+     0.0,
+     7.0
+    ],
+    "HALL": [
+     3.1,
+     6.5,
+     3.75,
+     3.2
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.3,
+     2.7,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     4.1
+    ],
+    "HALL": [
+     2.7,
+     4.2,
+     3.2,
+     2.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.3,
+     2.7,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.2,
+     1.75,
+     0.0,
+     4.1
+    ],
+    "HALL": [
+     2.7,
+     4.2,
+     3.2,
+     2.85
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "H rung 0.3",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 2.8,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     2.8,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.45,
+     3.1,
+     2.55,
+     2.8
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.6
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     2.8,
+     1.6,
+     0.0,
+     4.5
+    ],
+    "HALL": [
+     3.1,
+     4.7,
+     2.8,
+     2.5
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     5.2,
+     2.55,
+     3.55
+    ],
+    "ENTRY": [
+     1.6,
+     3.2,
+     3.65,
+     8.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    7.15,
+    3.35
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     5.2,
+     2.55,
+     3.55
+    ],
+    "ENTRY": [
+     1.6,
+     3.2,
+     3.65,
+     8.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    7.15,
+    3.35
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     5.2,
+     2.8,
+     3.2
+    ],
+    "ENTRY": [
+     1.6,
+     3.2,
+     3.9,
+     8.4
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    5.55,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     5.2,
+     2.8,
+     3.2
+    ],
+    "ENTRY": [
+     1.6,
+     3.2,
+     3.9,
+     8.4
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    5.55,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     5.2,
+     2.8,
+     3.55
+    ],
+    "ENTRY": [
+     1.6,
+     3.2,
+     3.9,
+     8.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    6.9,
+    3.35
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "PUBLIC_BAND+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.8,
+     5.2,
+     2.8,
+     3.55
+    ],
+    "ENTRY": [
+     1.6,
+     3.2,
+     3.9,
+     8.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    6.9,
+    3.35
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.45,
+     1.6,
+     0.0,
+     4.0
+    ],
+    "HALL": [
+     3.55,
+     3.8,
+     3.45,
+     2.9
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.3",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.45,
+     1.6,
+     0.0,
+     6.5
+    ],
+    "HALL": [
+     3.85,
+     3.8,
+     3.45,
+     5.4
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.25,
+    6.3
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.5",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     3.25,
+     1.7,
+     0.0,
+     7.0
+    ],
+    "HALL": [
+     3.8,
+     2.95,
+     3.25,
+     5.75
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.15",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.0,
+     "h": 3.0,
+     "x": 4.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.0,
+     3.0,
+     4.9,
+     0.0
+    ],
+    "HALL": [
+     2.35,
+     4.15,
+     5.8,
+     3.0
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    1.9,
+    2.8
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "ENTRY": [
+     2.9,
+     1.7,
+     0.0,
+     5.8
+    ],
+    "HALL": [
+     3.95,
+     2.5,
+     2.9,
+     6.3
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    3.85,
+    7.45
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "H rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     2.9,
+     3.7,
+     2.1,
+     3.95
+    ],
+    "ENTRY": [
+     1.6,
+     3.7,
+     5.0,
+     3.95
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    7.5,
+    3.75
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:band",
+   "label": "V rung 0.15",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     3.45,
+     3.3,
+     3.6,
+     2.25
+    ],
+    "ENTRY": [
+     3.45,
+     1.6,
+     3.6,
+     5.55
+    ]
+   },
+   "ok": false,
+   "constraint": "NO_ENTRANCE",
+   "detail": "no zone with an ALLOWED_ENTRANCE role fronts the street",
+   "codes": []
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.3,
+     2.7,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.0,
+     2.9,
+     2.65,
+     5.85
+    ],
+    "ENTRY": [
+     1.6,
+     3.25,
+     3.95,
+     8.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.75,
+    5.65
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [
+    {
+     "zone": "ENTRY",
+     "w": 2.1,
+     "h": 3.2,
+     "x": 3.9
+    }
+   ],
+   "circ": {
+    "ENTRY": [
+     2.1,
+     3.2,
+     3.9,
+     0.0
+    ],
+    "HALL": [
+     4.3,
+     2.7,
+     2.8,
+     3.2
+    ]
+   },
+   "ok": true,
+   "arrival": "ENTRY",
+   "codes": [],
+   "arrival_net": [
+    2.0,
+    3.0
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     4.0,
+     2.9,
+     2.65,
+     5.85
+    ],
+    "ENTRY": [
+     1.6,
+     3.25,
+     3.95,
+     8.75
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.75,
+    5.65
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') H",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     5.65,
+     2.3,
+     2.85,
+     5.85
+    ],
+    "ENTRY": [
+     2.5,
+     2.3,
+     8.5,
+     5.85
+    ]
+   },
+   "ok": true,
+   "arrival": "LIVING",
+   "codes": [],
+   "arrival_net": [
+    4.75,
+    5.65
+   ]
+  },
+  {
+   "brief": "B08",
+   "config": "brain-exact-all",
+   "name": "HALL_SPINE+FOYER:stack",
+   "label": "('DINING', 'KITCHEN') V",
+   "fronting": [],
+   "circ": {
+    "HALL": [
+     1.95,
+     5.65,
+     5.8,
+     3.0
+    ],
+    "ENTRY": [
+     1.95,
+     2.9,
+     5.8,
+     8.65
+    ]
+   },
+   "ok": false,
+   "constraint": "VALIDATION_FAILED",
+   "detail": "C31: KITCHEN: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+   "codes": [
+    "C31"
+   ]
+  }
+ ]
+}
