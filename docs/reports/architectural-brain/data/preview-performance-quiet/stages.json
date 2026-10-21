@@ -1,0 +1,426 @@
+{
+ "rows": [
+  {
+   "brief": "B02",
+   "engine": "production",
+   "total_s": 4.21,
+   "plans": 2,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.01,
+     "n": 2
+    }
+   },
+   "accounted_s": 0.01,
+   "cpu_s": 4.15,
+   "maxrss_mb_after": 148.1
+  },
+  {
+   "brief": "B02",
+   "engine": "brain",
+   "total_s": 34.44,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 0.18,
+     "n": 5
+    },
+    "milp": {
+     "s": 29.01,
+     "n": 259,
+     "status": {
+      "INFEASIBLE": 213,
+      "FEASIBLE": 26,
+      "UNKNOWN": 20
+     }
+    },
+    "payload": {
+     "s": 0.05,
+     "n": 4
+    },
+    "production_sizer": {
+     "s": 0.53,
+     "n": 4
+    },
+    "realization": {
+     "s": 0.08,
+     "n": 26
+    },
+    "screens": {
+     "s": 0.01,
+     "n": 366
+    }
+   },
+   "accounted_s": 29.86,
+   "cpu_s": 37.09,
+   "maxrss_mb_after": 215.0
+  },
+  {
+   "brief": "B06",
+   "engine": "production",
+   "total_s": 0.99,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.02,
+     "n": 3
+    }
+   },
+   "accounted_s": 0.02,
+   "cpu_s": 0.99,
+   "maxrss_mb_after": 218.4
+  },
+  {
+   "brief": "B06",
+   "engine": "brain",
+   "total_s": 31.18,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 0.5,
+     "n": 3
+    },
+    "milp": {
+     "s": 26.37,
+     "n": 81,
+     "status": {
+      "INFEASIBLE": 48,
+      "FEASIBLE": 11,
+      "UNKNOWN": 22
+     }
+    },
+    "payload": {
+     "s": 0.08,
+     "n": 8
+    },
+    "production_sizer": {
+     "s": 1.59,
+     "n": 8
+    },
+    "realization": {
+     "s": 0.05,
+     "n": 11
+    },
+    "screens": {
+     "s": 0.01,
+     "n": 360
+    }
+   },
+   "accounted_s": 28.61,
+   "cpu_s": 32.99,
+   "maxrss_mb_after": 225.8
+  },
+  {
+   "brief": "B08",
+   "engine": "production",
+   "total_s": 0.44,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.02,
+     "n": 3
+    }
+   },
+   "accounted_s": 0.02,
+   "cpu_s": 0.44,
+   "maxrss_mb_after": 226.2
+  },
+  {
+   "brief": "B08",
+   "engine": "brain",
+   "total_s": 30.53,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 0.46,
+     "n": 6
+    },
+    "milp": {
+     "s": 20.87,
+     "n": 807,
+     "status": {
+      "INFEASIBLE": 769,
+      "FEASIBLE": 38
+     }
+    },
+    "payload": {
+     "s": 0.05,
+     "n": 8
+    },
+    "production_sizer": {
+     "s": 1.45,
+     "n": 8
+    },
+    "realization": {
+     "s": 0.14,
+     "n": 38
+    },
+    "screens": {
+     "s": 0.02,
+     "n": 540
+    }
+   },
+   "accounted_s": 22.98,
+   "cpu_s": 32.69,
+   "maxrss_mb_after": 229.8
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "total_s": 1.64,
+   "plans": 2,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.01,
+     "n": 2
+    }
+   },
+   "accounted_s": 0.01,
+   "cpu_s": 1.64,
+   "maxrss_mb_after": 230.3
+  },
+  {
+   "brief": "B09",
+   "engine": "brain",
+   "total_s": 31.87,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 0.74,
+     "n": 3
+    },
+    "milp": {
+     "s": 21.64,
+     "n": 37,
+     "status": {
+      "UNKNOWN": 28,
+      "INFEASIBLE": 9
+     }
+    },
+    "payload": {
+     "s": 0.08,
+     "n": 9
+    },
+    "production_sizer": {
+     "s": 5.0,
+     "n": 19
+    },
+    "screens": {
+     "s": 0.01,
+     "n": 360
+    }
+   },
+   "accounted_s": 27.48,
+   "cpu_s": 33.32,
+   "maxrss_mb_after": 236.0
+  },
+  {
+   "brief": "B11",
+   "engine": "production",
+   "total_s": 13.74,
+   "plans": 2,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.01,
+     "n": 2
+    }
+   },
+   "accounted_s": 0.01,
+   "cpu_s": 13.6,
+   "maxrss_mb_after": 236.3
+  },
+  {
+   "brief": "B11",
+   "engine": "brain",
+   "total_s": 43.76,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 1.17,
+     "n": 3
+    },
+    "milp": {
+     "s": 4.39,
+     "n": 74,
+     "status": {
+      "INFEASIBLE": 63,
+      "UNKNOWN": 11
+     }
+    },
+    "payload": {
+     "s": 0.06,
+     "n": 6
+    },
+    "production_sizer": {
+     "s": 17.04,
+     "n": 22
+    },
+    "screens": {
+     "s": 0.02,
+     "n": 360
+    }
+   },
+   "accounted_s": 22.67,
+   "cpu_s": 44.0,
+   "maxrss_mb_after": 238.7
+  },
+  {
+   "brief": "B16",
+   "engine": "production",
+   "total_s": 13.36,
+   "plans": 1,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.01,
+     "n": 1
+    }
+   },
+   "accounted_s": 0.01,
+   "cpu_s": 13.34,
+   "maxrss_mb_after": 241.0
+  },
+  {
+   "brief": "B16",
+   "engine": "brain",
+   "total_s": 48.92,
+   "plans": 2,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.02,
+     "n": 2
+    },
+    "production_sizer": {
+     "s": 26.43,
+     "n": 30
+    }
+   },
+   "accounted_s": 26.45,
+   "cpu_s": 48.68,
+   "maxrss_mb_after": 246.0
+  },
+  {
+   "brief": "B19",
+   "engine": "production",
+   "total_s": 1.12,
+   "plans": 2,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.01,
+     "n": 2
+    }
+   },
+   "accounted_s": 0.01,
+   "cpu_s": 1.12,
+   "maxrss_mb_after": 246.0
+  },
+  {
+   "brief": "B19",
+   "engine": "brain",
+   "total_s": 31.31,
+   "plans": 2,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 1.25,
+     "n": 3
+    },
+    "milp": {
+     "s": 0.12,
+     "n": 5,
+     "status": {
+      "INFEASIBLE": 5
+     }
+    },
+    "payload": {
+     "s": 0.02,
+     "n": 2
+    },
+    "production_sizer": {
+     "s": 20.24,
+     "n": 21
+    },
+    "screens": {
+     "s": 0.02,
+     "n": 360
+    }
+   },
+   "accounted_s": 21.64,
+   "cpu_s": 31.21,
+   "maxrss_mb_after": 246.0
+  },
+  {
+   "brief": "B20",
+   "engine": "production",
+   "total_s": 0.22,
+   "plans": 1,
+   "error": null,
+   "stages": {
+    "payload": {
+     "s": 0.01,
+     "n": 1
+    }
+   },
+   "accounted_s": 0.01,
+   "cpu_s": 0.21,
+   "maxrss_mb_after": 246.0
+  },
+  {
+   "brief": "B20",
+   "engine": "brain",
+   "total_s": 30.31,
+   "plans": 3,
+   "error": null,
+   "stages": {
+    "embedding": {
+     "s": 1.22,
+     "n": 6
+    },
+    "milp": {
+     "s": 18.22,
+     "n": 618,
+     "status": {
+      "INFEASIBLE": 597,
+      "FEASIBLE": 18,
+      "UNKNOWN": 3
+     }
+    },
+    "payload": {
+     "s": 0.04,
+     "n": 5
+    },
+    "production_sizer": {
+     "s": 7.52,
+     "n": 17
+    },
+    "realization": {
+     "s": 0.04,
+     "n": 18
+    },
+    "screens": {
+     "s": 0.02,
+     "n": 582
+    }
+   },
+   "accounted_s": 27.06,
+   "cpu_s": 31.79,
+   "maxrss_mb_after": 246.0
+  }
+ ],
+ "final": {
+  "maxrss_mb": 246.0,
+  "cpu_s": 328.16
+ }
+}

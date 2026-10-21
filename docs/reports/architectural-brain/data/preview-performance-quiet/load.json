@@ -1,0 +1,586 @@
+{
+ "rss_after_warmup_mb": 242.5,
+ "production_quiet": [
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.71,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.65,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.67,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.65,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.66,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.65,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  }
+ ],
+ "brain_concurrency": [
+  {
+   "n": 1,
+   "engine": "brain",
+   "wall_s": 43.48,
+   "rss_peak_mb": 246.1,
+   "rss_start_mb": 241.5,
+   "results": [
+    {
+     "brief": "B11",
+     "engine": "brain",
+     "seconds": 43.48,
+     "code": 200,
+     "bytes": 128004,
+     "error": null
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "engine": "brain",
+   "wall_s": 85.11,
+   "rss_peak_mb": 259.5,
+   "rss_start_mb": 246.1,
+   "results": [
+    {
+     "brief": "B11",
+     "engine": "brain",
+     "seconds": 85.11,
+     "code": 200,
+     "bytes": 127465,
+     "error": null
+    },
+    {
+     "brief": "B16",
+     "engine": "brain",
+     "seconds": 67.8,
+     "code": 200,
+     "bytes": 105109,
+     "error": null
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "engine": "brain",
+   "wall_s": 122.81,
+   "rss_peak_mb": 266.0,
+   "rss_start_mb": 259.5,
+   "results": [
+    {
+     "brief": "B11",
+     "engine": "brain",
+     "seconds": 122.8,
+     "code": 200,
+     "bytes": 127465,
+     "error": null
+    },
+    {
+     "brief": "B16",
+     "engine": "brain",
+     "seconds": 105.33,
+     "code": 200,
+     "bytes": 105113,
+     "error": null
+    },
+    {
+     "brief": "B19",
+     "engine": "brain",
+     "seconds": 55.7,
+     "code": 200,
+     "bytes": 99318,
+     "error": null
+    },
+    {
+     "brief": "B09",
+     "engine": "brain",
+     "seconds": 77.76,
+     "code": 200,
+     "bytes": 119928,
+     "error": null
+    }
+   ]
+  },
+  {
+   "n": 8,
+   "engine": "brain",
+   "wall_s": 146.79,
+   "rss_peak_mb": 272.5,
+   "rss_start_mb": 265.6,
+   "results": [
+    {
+     "brief": "B11",
+     "engine": "brain",
+     "seconds": 146.79,
+     "code": 200,
+     "bytes": 127467,
+     "error": null
+    },
+    {
+     "brief": "B16",
+     "engine": "brain",
+     "seconds": 134.0,
+     "code": 200,
+     "bytes": 105113,
+     "error": null
+    },
+    {
+     "brief": "B19",
+     "engine": "brain",
+     "seconds": 76.15,
+     "code": 200,
+     "bytes": 99320,
+     "error": null
+    },
+    {
+     "brief": "B09",
+     "engine": "brain",
+     "seconds": 96.04,
+     "code": 200,
+     "bytes": 119930,
+     "error": null
+    },
+    {
+     "brief": "B02",
+     "engine": "brain",
+     "seconds": 111.97,
+     "code": 200,
+     "bytes": 84497,
+     "error": null
+    },
+    {
+     "brief": "B06",
+     "engine": "brain",
+     "seconds": 92.13,
+     "code": 200,
+     "bytes": 113626,
+     "error": null
+    },
+    {
+     "brief": "B08",
+     "engine": "brain",
+     "seconds": 79.53,
+     "code": 200,
+     "bytes": 98887,
+     "error": null
+    },
+    {
+     "brief": "B20",
+     "engine": "brain",
+     "seconds": 72.95,
+     "code": 200,
+     "bytes": 117299,
+     "error": null
+    }
+   ]
+  }
+ ],
+ "production_under_brain_load_2": {
+  "probes": [
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 7.5,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 9.24,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.75,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 2.71,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.73,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 8.39,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 8.97,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 7.2,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 8.07,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 9.66,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 11.51,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.06,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.23,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.65,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.7,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.89,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 1.68,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   }
+  ],
+  "brain": [
+   {
+    "brief": "B16",
+    "engine": "brain",
+    "seconds": 89.88,
+    "code": 200,
+    "bytes": 105111,
+    "error": null
+   },
+   {
+    "brief": "B11",
+    "engine": "brain",
+    "seconds": 114.93,
+    "code": 200,
+    "bytes": 127465,
+    "error": null
+   }
+  ]
+ },
+ "production_under_brain_load_4": {
+  "probes": [
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 15.38,
+    "code": 200,
+    "bytes": 87733,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 16.87,
+    "code": 200,
+    "bytes": 87733,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 15.42,
+    "code": 200,
+    "bytes": 87733,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 14.04,
+    "code": 200,
+    "bytes": 87733,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 4.85,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 10.23,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 10.52,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 6.49,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 9.67,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 11.65,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 7.22,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 8.92,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.02,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 5.69,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 6.39,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "production",
+    "seconds": 1.75,
+    "code": 200,
+    "bytes": 87731,
+    "error": null
+   }
+  ],
+  "brain": [
+   {
+    "brief": "B19",
+    "engine": "brain",
+    "seconds": 63.01,
+    "code": 200,
+    "bytes": 99318,
+    "error": null
+   },
+   {
+    "brief": "B09",
+    "engine": "brain",
+    "seconds": 81.26,
+    "code": 200,
+    "bytes": 119928,
+    "error": null
+   },
+   {
+    "brief": "B16",
+    "engine": "brain",
+    "seconds": 132.27,
+    "code": 200,
+    "bytes": 105113,
+    "error": null
+   },
+   {
+    "brief": "B11",
+    "engine": "brain",
+    "seconds": 151.12,
+    "code": 200,
+    "bytes": 127465,
+    "error": null
+   }
+  ]
+ },
+ "production_quiet_after": [
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.66,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.69,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.62,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.63,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.63,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  },
+  {
+   "brief": "B09",
+   "engine": "production",
+   "seconds": 1.63,
+   "code": 200,
+   "bytes": 87731,
+   "error": null
+  }
+ ],
+ "rss_final_mb": 271.1
+}

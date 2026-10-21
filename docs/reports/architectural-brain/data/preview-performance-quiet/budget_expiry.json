@@ -1,0 +1,157 @@
+[
+ {
+  "brief": "B11",
+  "budget_s": 0.2,
+  "seconds": 23.03,
+  "distinct": 6,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B11",
+  "budget_s": 1.0,
+  "seconds": 22.76,
+  "distinct": 6,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B11",
+  "budget_s": 3.0,
+  "seconds": 22.94,
+  "distinct": 6,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B11",
+  "budget_s": 10.0,
+  "seconds": 22.76,
+  "distinct": 6,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B11",
+  "budget_s": 30.0,
+  "seconds": 30.08,
+  "distinct": 6,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B16",
+  "budget_s": 0.2,
+  "seconds": 34.84,
+  "distinct": 2,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION",
+   "SIZING"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B16",
+  "budget_s": 1.0,
+  "seconds": 34.93,
+  "distinct": 2,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION",
+   "SIZING"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B16",
+  "budget_s": 3.0,
+  "seconds": 34.75,
+  "distinct": 2,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION",
+   "SIZING"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B16",
+  "budget_s": 10.0,
+  "seconds": 34.67,
+  "distinct": 2,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION",
+   "SIZING"
+  ],
+  "notes": [],
+  "error": null
+ },
+ {
+  "brief": "B16",
+  "budget_s": 30.0,
+  "seconds": 34.75,
+  "distinct": 2,
+  "sizers": [
+   "production"
+  ],
+  "stages": [
+   "REALIZED",
+   "SELECTION",
+   "SIZING"
+  ],
+  "notes": [],
+  "error": null
+ }
+]
