@@ -222,3 +222,27 @@ like the other three, not to widen this handler to the root.
 - no `DISABLE_BRAIN_PREVIEW` file was created at any point;
 - the development server on port 8000 (**pid 79460**) still running, untouched, and never requested;
   the live `backend/.env` never read or written — this worktree has none.
+
+## Suites, verbatim
+
+| suite | result |
+| --- | --- |
+| `tests/test_log_output.py` (new) | **9 passed** |
+| `tests/demo/test_brain_preview_gate.py` | **53 passed** (50 after #231, 49 after #214, 42 before) |
+| `tests/demo` + `tests/architectural_brain` + `test_brain_fallbacks.py` + `test_engine_preview.py` + `test_demo_p0.py` + `test_log_output.py` | **277 passed, 1 skipped** (5:34) |
+| fast suite, `WALLCLOCK_BUDGETS=off … -n 4` | **2557 passed, 884 skipped, 10 xfailed, 0 failed** (7:16) |
+
+#231 reported **2545 passed, 884 skipped, 10 xfailed**. 2545 + 9 (`test_log_output.py`) + 3 (the
+gate's new AC-3 tests) = **2557** exactly, and the skip count is unchanged.
+
+**The corpus snapshot suite was deliberately not run** — the same reasoning #214 and #231 recorded:
+#209 measured it at ~55 min, #212 proved the gate cannot reach it (`corpus_snapshot.py` calls
+`generate_demo_design(project)` with no engine keyword), and a logging handler is reachable from it
+only as output nobody asserts on. `agent-regression.yml` on the PR is the authoritative check — see
+the PR's note about when CI can first run on this stack.
+
+One observation, not a change: the fast suite rewrites this worktree's own git-ignored
+`backend/app/data/design_versions.json` (`tests/test_chat.py` / `tests/test_project_update.py` use
+the default path). Pre-existing suite behaviour, unrelated to this Issue, and it happened in the
+branch worktree only — the owner's checkout was never touched. The **probe** left it byte-identical,
+which is the claim that matters for this report's clean-up.
