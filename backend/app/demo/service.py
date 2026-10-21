@@ -68,7 +68,7 @@ from app.vertical_slice.spec import (
 )
 from app.vertical_slice.wet_privacy import candidate_privacy_key
 
-from . import site_geometry
+from . import preview_gate, site_geometry
 from .contract import (
     ConceptOut,
     DemoBuilding,
@@ -910,10 +910,14 @@ def _augment_cross_outline_classes(spec, project: Project, results: list[Outline
 
 #: THE ARCHITECTURAL BRAIN's sizer and layout families for the `?engine=brain` preview (#197 item 4,
 #: 2026-10-15): the exact MILP placement with the target objective, and the cross-band layouts
-#: measured on the frozen six. Per request only; a missing solver falls back to production's
-#: sizer and the plan's notes say so.
-BRAIN_SIZER = "exact"
-BRAIN_FAMILIES = ("band", "spine", "stack", "cells")
+#: measured on the frozen six. Per request only; a missing solver falls back to production's sizer
+#: and the plan's notes say so.
+#:
+#: Issue #212 moved both out of this module and into `preview_gate`, read per request. They used to
+#: be constants here, which made "enable a family" a one-word edit to a line of production source —
+#: exactly how work in flight becomes visible in a preview an owner is judging. `preview_gate`
+#: filters whatever configuration asks for through its own allow-list, so a family that has not
+#: passed its gate (#208's `generator`) stays unreachable whatever the environment says.
 
 
 def _brain_result(project: Project, spec, selection: PlanSelection,
@@ -923,7 +927,7 @@ def _brain_result(project: Project, spec, selection: PlanSelection,
     orr, _production = selection.primary
     outline = orr.outline
     res = run_brain(spec, (outline.width_m, outline.depth_m), brief=getattr(project, "project_id", "brief"),
-                    sizer=BRAIN_SIZER, families=BRAIN_FAMILIES)
+                    sizer=preview_gate.sizer(), families=preview_gate.families())
     if not res.distinct:
         detail = "; ".join(f"{p.parti} [{p.stage}]: {p.reason[:120]}" for p in res.plans) or "no parti applied"
         raise DemoGenerationError(

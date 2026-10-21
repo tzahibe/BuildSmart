@@ -9,8 +9,9 @@ from __future__ import annotations
 import json
 import queue
 import threading
+from dataclasses import dataclass
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -27,7 +28,7 @@ from app.projects.models import (
 from app.projects.routes import base_routes as project_routes
 from app.vertical_slice.general_pipeline import PIPELINE_STAGES
 
-from . import site_geometry
+from . import preview_gate, site_geometry
 from .contract import DemoPlanSet
 from .requirements_view import RequirementsReview, ReviewEdit, review_of
 from .service import DemoGenerationError, generate_demo_design
@@ -184,6 +185,11 @@ def _failure_context(project_id: str, project, error=None) -> dict:
 #: and an absent/`production` value reads the module flag exactly as the endpoint always did, so
 #: normal production behaviour is unchanged. There is deliberately no silent fallback: a request
 #: that asks for the Concept Engine and fails returns that failure, not a production plan.
+#:
+#: TWO of the values below are GATED (Issue #212): asking for them by name used to be the whole
+#: authorization, so `?engine=brain` and `?engine=e1_rear_band` now also need a server-side flag
+#: and a shared secret, both read per request by `preview_gate`. Without them the request gets the
+#: same refusal as an engine that does not exist. See `docs/wiki/architecture/engine-preview-gate.md`.
 ENGINE_PRODUCTION = "production"
 ENGINE_CONCEPT_V2 = "concept_engine_v2"
 #: THE ARCHITECTURAL BRAIN (#197), development preview. Proposes several distinct spatial concepts,
@@ -199,33 +205,64 @@ ENGINE_BRAIN = "brain"
 ENGINE_E1_REAR_BAND = "e1_rear_band"
 
 
-def _engine_override(engine: str | None) -> bool | None:
-    """`None` keeps the module flag (production). `True` runs the Concept Engine for this request
-    only. An unknown value is refused rather than silently treated as production."""
-    if engine is None or engine in (ENGINE_PRODUCTION, ENGINE_BRAIN, ENGINE_E1_REAR_BAND):
-        return None
+#: THE GATED ENGINES. Both are DEVELOPMENT previews reachable only by name, and asking for one by
+#: name used to be the whole authorization (Issue #212). They are gated together, by the same
+#: `preview_gate` check, because gating only the brain would still leak it: the refusal below names
+#: the engines the caller may ask for, so an ungated `e1_rear_band` in that list would tell an
+#: unauthorized prober that a second, hidden preview exists.
+_GATED_ENGINES = (ENGINE_BRAIN, ENGINE_E1_REAR_BAND)
+#: what anyone may ask for, with no token
+_OPEN_ENGINES = (ENGINE_PRODUCTION, ENGINE_CONCEPT_V2)
+
+
+@dataclass(frozen=True)
+class EngineChoice:
+    """What this ONE request runs. Resolved in the request frame, from the request alone."""
+
+    #: `None` keeps the module flag (production), `True` runs Concept Engine v2 for this request
+    concept_engine_v2: bool | None = None
+    brain: bool = False
+    rear_band: bool = False
+
+
+def _unknown_engine(engine: str, *, authorized: bool) -> HTTPException:
+    """The ONE refusal an unacceptable `?engine=` gets.
+
+    It lists only the engines this caller may ask for, so `?engine=brain` without a token and
+    `?engine=banana` are the same 422 with the same message. Naming the previews unconditionally
+    would make the error message itself the disclosure the gate exists to prevent.
+    """
+    allowed = (*_OPEN_ENGINES, *_GATED_ENGINES) if authorized else _OPEN_ENGINES
+    expected = ", ".join(repr(name) for name in allowed[:-1]) + f" or {allowed[-1]!r}"
+    return HTTPException(status_code=422,
+                         detail=f"unknown engine {engine!r}; expected {expected}")
+
+
+def _resolve_engine(engine: str | None, token: str | None = None) -> EngineChoice:
+    """Which engine this request runs, and whether it is allowed to.
+
+    `preview_gate.authorized` is consulted FIRST and unconditionally, for every value including a
+    plainly unknown one, so the work done — and therefore the time taken — is the same whatever was
+    asked for. A gated engine without authorization falls through to the same refusal as a name
+    that does not exist; it is never served, and never acknowledged.
+    """
+    authorized = preview_gate.authorized(token)
+    if engine is None or engine == ENGINE_PRODUCTION:
+        return EngineChoice()
     if engine == ENGINE_CONCEPT_V2:
-        return True
-    raise HTTPException(status_code=422, detail=(
-        f"unknown engine {engine!r}; expected {ENGINE_PRODUCTION!r}, {ENGINE_CONCEPT_V2!r}, "
-        f"{ENGINE_BRAIN!r} or {ENGINE_E1_REAR_BAND!r}"))
-
-
-def _brain_requested(engine: str | None) -> bool:
-    """Whether this request asked for the architectural brain. Any value neither this nor
-    `_engine_override` knows was already refused by `_engine_override`."""
-    return engine == ENGINE_BRAIN
-
-
-def _rear_band_requested(engine: str | None) -> bool:
-    """Whether this request asked for E1's garden-facing band. Any value neither this nor
-    `_engine_override` knows was already refused by `_engine_override`."""
-    return engine == ENGINE_E1_REAR_BAND
+        return EngineChoice(concept_engine_v2=True)
+    if engine in _GATED_ENGINES and authorized:
+        return EngineChoice(brain=engine == ENGINE_BRAIN,
+                            rear_band=engine == ENGINE_E1_REAR_BAND)
+    raise _unknown_engine(engine, authorized=authorized)
 
 
 @router.post("/{project_id}/design/demo/stream")
-def generate_demo_plan_streaming(project_id: str,
-                                 engine: str | None = Query(default=None)) -> StreamingResponse:
+def generate_demo_plan_streaming(
+        project_id: str,
+        engine: str | None = Query(default=None),
+        x_brain_preview_token: str | None = Header(default=None),
+) -> StreamingResponse:
     """The same generation, reporting each stage AS IT HAPPENS.
 
     The loading screen needs a percentage that means something. A timer would produce one with no
@@ -238,9 +275,8 @@ def generate_demo_plan_streaming(project_id: str,
     project = _project_or_404(project_id)
     # resolved HERE, in the request frame: a bad value must be a 422 on the request, not an error
     # event inside a stream that has already started.
-    override = _engine_override(engine)
-    brain = _brain_requested(engine)
-    rear_band = _rear_band_requested(engine)
+    choice = _resolve_engine(engine, x_brain_preview_token)
+    override, brain, rear_band = choice.concept_engine_v2, choice.brain, choice.rear_band
     total = len(PIPELINE_STAGES)
     labels = dict(PIPELINE_STAGES)
     order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
@@ -304,12 +340,16 @@ def generate_demo_plan_streaming(project_id: str,
 
 @router.post("/{project_id}/design/demo", response_model=DemoPlanSet)
 def generate_demo_plan(project_id: str, request: Request,
-                       engine: str | None = Query(default=None)) -> DemoPlanSet:
+                       engine: str | None = Query(default=None),
+                       x_brain_preview_token: str | None = Header(default=None)) -> DemoPlanSet:
     project = _project_or_404(project_id)
+    # Resolved BEFORE the pipeline: an unauthorized or unknown engine is a 422 on the request, and
+    # costs no generation at all.
+    choice = _resolve_engine(engine, x_brain_preview_token)
     try:
-        result = generate_demo_design(project, concept_engine_v2=_engine_override(engine),
-                                      brain=_brain_requested(engine),
-                                      rear_band_preview=_rear_band_requested(engine))
+        result = generate_demo_design(project, concept_engine_v2=choice.concept_engine_v2,
+                                      brain=choice.brain,
+                                      rear_band_preview=choice.rear_band)
         return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
                            search=result.search, building=result.building)
     except DemoGenerationError as error:
