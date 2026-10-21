@@ -1,0 +1,136 @@
+{
+  "B-parking2": {
+    "brief": {
+      "plot": [
+        23.0,
+        20.0
+      ],
+      "parking_spaces": 2,
+      "footprint": [
+        15.0,
+        12.0
+      ]
+    },
+    "production": {
+      "outcome": "PLAN",
+      "plot": [
+        0.0,
+        0.0,
+        23.0,
+        20.0
+      ],
+      "plot_area_m2": 460.0,
+      "footprint": [
+        4.05,
+        5.0,
+        14.9,
+        12.0
+      ],
+      "parking_bays": 2,
+      "garden_rects": 4,
+      "garden_area_m2": 219.4,
+      "walk": [
+        12.85,
+        0.0,
+        1.2,
+        5.0
+      ],
+      "site_warnings": [],
+      "seconds": 1.0
+    },
+    "brain": {
+      "outcome": "PLAN",
+      "plot": [
+        0.0,
+        0.0,
+        19.3,
+        15.95
+      ],
+      "plot_area_m2": 307.8,
+      "footprint": [
+        2.0,
+        2.0,
+        15.3,
+        11.95
+      ],
+      "parking_bays": 0,
+      "garden_rects": 0,
+      "garden_area_m2": 0,
+      "walk": [
+        11.9,
+        0.0,
+        1.2,
+        2.0
+      ],
+      "site_warnings": [],
+      "seconds": 31.4
+    }
+  },
+  "B-noparking": {
+    "brief": {
+      "plot": [
+        23.0,
+        20.0
+      ],
+      "parking_spaces": 0,
+      "footprint": [
+        15.0,
+        12.0
+      ]
+    },
+    "production": {
+      "outcome": "PLAN",
+      "plot": [
+        0.0,
+        0.0,
+        23.0,
+        20.0
+      ],
+      "plot_area_m2": 460.0,
+      "footprint": [
+        4.05,
+        0.0,
+        14.9,
+        12.0
+      ],
+      "parking_bays": 0,
+      "garden_rects": 3,
+      "garden_area_m2": 281.2,
+      "walk": [
+        12.85,
+        0.0,
+        1.2,
+        0.0
+      ],
+      "site_warnings": [],
+      "seconds": 1.0
+    },
+    "brain": {
+      "outcome": "PLAN",
+      "plot": [
+        0.0,
+        0.0,
+        19.3,
+        15.95
+      ],
+      "plot_area_m2": 307.8,
+      "footprint": [
+        2.0,
+        2.0,
+        15.3,
+        11.95
+      ],
+      "parking_bays": 0,
+      "garden_rects": 0,
+      "garden_area_m2": 0,
+      "walk": [
+        11.9,
+        0.0,
+        1.2,
+        2.0
+      ],
+      "site_warnings": [],
+      "seconds": 31.2
+    }
+  }
+}

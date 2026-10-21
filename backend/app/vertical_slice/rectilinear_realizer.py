@@ -90,7 +90,15 @@ from .geometry_core.model import (
     u_to_m,
 )
 from .geometry_core.model import Wing as GcWing
-from .site import EntranceWalk, SitePlan, build_entrance
+from .site import (
+    NO_PARCEL_NOTICE,
+    EntranceWalk,
+    SiteFrame,
+    SitePlan,
+    build_entrance,
+    classify_garden,
+    entrance_x_clear_of_parking,
+)
 from .spec import WetRoomKind
 from .validation import Check, ValidationReport, check_realized_dimensions, validate
 from .wet_rooms import ResolvedWetRoom
@@ -1221,7 +1229,8 @@ def _filter_wet_room_access(access_pairs: list[tuple[str, str]],
 
 def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneIntent],
                   wing_rects: tuple[Rect, ...], access_pairs,
-                  wet_rooms: tuple[ResolvedWetRoom, ...] = ()) -> RealizedLayout | Refusal:
+                  wet_rooms: tuple[ResolvedWetRoom, ...] = (),
+                  site_frame: SiteFrame | None = None) -> RealizedLayout | Refusal:
     """Realize an ALREADY-PLACED set of rectangular cells — the shape-agnostic entry (ADR-001,
     #197). `realize_layout` above decides geometry per wing and composes wings side by side along
     x; this entry takes the geometry as given (any arrangement of non-overlapping cells whose union
@@ -1231,6 +1240,11 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
     construction Issue #108 proved the pipeline accepts for a hand-encoded non-guillotine layout,
     given a function instead of a fixture.
 
+    `site_frame` is the person's own parcel (Issue #223): with it the cells are placed in that
+    parcel — a rigid translation, nothing about the layout changes — and the plot, the bays and the
+    garden the payload carries are the brief's own. Without it the site is a disclosed 2 m drawing
+    margin (see `_build_site`).
+
     `access_pairs` are the DOORS the intent asks for; a pair that does not actually touch is
     dropped here and will be reported missing by `topology_preservation` — never patched. Seam
     sides between wings are DECLARED from the real geometry (a cell side touching a cell of another
@@ -1239,10 +1253,17 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
     t0 = time.monotonic()
     if not rects or not wing_rects:
         return Refusal("EMPTY_LAYOUT", "a layout needs at least one cell and one wing")
-    # 2 m site margin, exactly as `realize_layout` places its own origin
-    off = m_to_u(2.0)
-    rects = {z: Rect(r.x + off, r.y + off, r.w, r.h) for z, r in rects.items()}
-    wing_rects = tuple(Rect(r.x + off, r.y + off, r.w, r.h) for r in wing_rects)
+    # Into the site's own frame. With a parcel that is where the parcel puts the footprint
+    # (centred across the buildable width, flush to the street band); without one it is the same
+    # 2 m drawing margin `realize_layout` places its own origin at.
+    if site_frame is None:
+        dx = dy = m_to_u(2.0)
+    else:
+        bbox = footprint_module.bounding_box(wing_rects)
+        tx, ty = site_frame.place(bbox.w, bbox.h)
+        dx, dy = tx - bbox.x, ty - bbox.y
+    rects = {z: Rect(r.x + dx, r.y + dy, r.w, r.h) for z, r in rects.items()}
+    wing_rects = tuple(Rect(r.x + dx, r.y + dy, r.w, r.h) for r in wing_rects)
     # PARTIAL ABUTMENTS. A cell side is ONE wall type (`WallMap[(zone, side)]`), so a cell whose
     # side is abutted along only part of its length by cells of another wing — the step of a
     # staircase landing inside it — cannot be typed: C22 rejects it as a PARTIAL seam, and the
@@ -1331,13 +1352,14 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
 
     wing_builds = [_WingBuild(f"W{i}", (w.x, w.y), (w.w, w.h), {}, {}, {}, [], {}, {}, [])
                    for i, w in enumerate(wing_rects)]
-    site = _build_site(wing_builds)
+    site = _build_site(wing_builds, site_frame)
     interior_doors = generate_interior_doors(fixture, rects)
     resolved = resolve_entrance(fixture, rects, site.footprint, site.wings)
     if resolved is None:
         return Refusal("NO_ENTRANCE", "no zone with an ALLOWED_ENTRANCE role fronts the street")
     entrance_zone_id, low, high = resolved
-    ex = (low + high) // 2
+    # the walk must not cross a bay (C11) — with no bays this IS `(low + high) // 2`
+    ex = entrance_x_clear_of_parking((low, high), site.parking, (low + high) // 2)
     entrance = build_entrance(site.footprint, ex)
     # the site was built with a placeholder walk at the footprint's centre; the walk the drawing,
     # the validators and the payload see is the one to the door actually resolved
@@ -1376,28 +1398,102 @@ def realize_cells(name: str, rects: dict[str, Rect], intents: dict[str, ZoneInte
         notes=notes,
     )
 
-def _build_site(wings: list[_WingBuild]) -> SitePlan:
+def _parcel_notice(frame: SiteFrame, footprint: Rect) -> str | None:
+    """What this plan must say about the person's OWN parcel, or `None` when there is nothing to
+    say (Issue #223). Never a reason to refuse and never a silent clamp: the geometry is drawn as
+    realized, and anything about it the parcel does not support is stated on the plan."""
+    parts: list[str] = []
+    over_w, over_h = frame.overflow_m(footprint.w, footprint.h)
+    if over_w or over_h:
+        axes = []
+        if over_w:
+            axes.append(f"{over_w:.2f} מ׳ לרוחב")
+        if over_h:
+            axes.append(f"{over_h:.2f} מ׳ לעומק")
+        parts.append("הבית שתוכנן חורג משטח הבנייה שנותר במגרש אחרי הנסיגות ב"
+                     + " וב".join(axes) + ". המלבן שמוצג הוא המגרש שהוזן, והבית מצויר כפי שתוכנן.")
+    outside = [p for p in frame.parking
+               if p.x < frame.plot.x or p.x2 > frame.plot.x2 or p.y2 > frame.plot.y2]
+    if outside:
+        parts.append(f"{len(outside)} מתוך {frame.parking_spaces_requested} מקומות החניה שביקשת "
+                     f"אינם נכנסים לרוחב המגרש והם מצוירים מחוצה לו.")
+    return " ".join(parts) or None
+
+
+def _build_site(wings: list[_WingBuild], frame: SiteFrame | None = None) -> SitePlan:
+    """The site this plan stands on.
+
+    `frame` is THE PERSON'S OWN PARCEL (Issue #223). With it, the plot is the parcel they entered,
+    the bays are the ones their brief asked for, and the garden is what is genuinely left of the
+    parcel once the house and the bays are taken out — `site.classify_garden`, the same function
+    production's own site stage uses, not a second opinion about leftover land.
+
+    Without it there is no parcel to draw, and this says so instead of inventing one. The rectangle
+    it returns is a DRAWING MARGIN (2 m around the footprint, which is what this function always
+    produced), the garden is only the crook a multi-wing footprint leaves inside its own bounding
+    box, and `SitePlan.notice` carries `NO_PARCEL_NOTICE` so the payload states the absence rather
+    than presenting the margin as a boundary. The product never reaches this branch:
+    `demo.scope.check_supported` refuses a project with no authoritative parcel before planning.
+
+    `footprint_offset_u` is `(0, 0)` either way: unlike the guillotine pipeline's site, the rects
+    this realizer produces are ALREADY in the plot-absolute frame, so there is nothing left to
+    translate (`site.translate_rects` is never applied to them).
+    """
     wing_rects = tuple(Rect(*wb.origin, *wb.size) for wb in wings)
     footprint = footprint_module.bounding_box(wing_rects)
-    plot = Rect(0, 0, footprint.x2 + m_to_u(2.0), footprint.y2 + m_to_u(2.0))
+    from .geometry_core.model import OutdoorClassification, OutdoorRegion
+    if frame is None:
+        plot = Rect(0, 0, footprint.x2 + m_to_u(2.0), footprint.y2 + m_to_u(2.0))
+        parking: tuple[Rect, ...] = ()
+        crook = [r for r in footprint_module.remainder_within_bbox(wing_rects) if r.w > 0 and r.h > 0]
+        garden = tuple(OutdoorRegion(f"garden_{i}", (r,), OutdoorClassification.GARDEN)
+                        for i, r in enumerate(crook))
+        notice: str | None = NO_PARCEL_NOTICE
+    else:
+        plot = frame.plot
+        parking = frame.parking
+        garden = classify_garden(None, plot, footprint, parking, wing_rects)
+        notice = _parcel_notice(frame, footprint)
     entrance_x = footprint.x + footprint.w // 2
     entrance = build_entrance(footprint, entrance_x)
-    crook = [r for r in footprint_module.remainder_within_bbox(wing_rects) if r.w > 0 and r.h > 0]
-    from .geometry_core.model import OutdoorClassification, OutdoorRegion
-    garden = tuple(OutdoorRegion(f"garden_{i}", (r,), OutdoorClassification.GARDEN)
-                    for i, r in enumerate(crook))
-    return SitePlan(plot=plot, footprint=footprint, footprint_offset_u=(0, 0), parking=(),
-                     entrance=entrance, garden=garden, wings=wing_rects)
+    return SitePlan(plot=plot, footprint=footprint, footprint_offset_u=(0, 0), parking=parking,
+                     entrance=entrance, garden=garden, wings=wing_rects, notice=notice)
+
+
+def _reframed(wing_builds: list[_WingBuild], frame: SiteFrame) -> list[_WingBuild]:
+    """The same wings, standing where the PARCEL puts them (Issue #223).
+
+    A rigid translation and nothing else: every cell keeps its size, its neighbours, its wall
+    types, its doors and its windows, because all of those are derived from the rects AFTER this
+    runs. What changes is only where the footprint sits in the plot — centred across the buildable
+    width and flush to the street-side band, which is `site.place_footprint`'s own convention, the
+    one production's plans already stand by. The 2 m margin this realizer used to build around
+    itself was never a parcel position; it was the absence of one.
+    """
+    bbox = footprint_module.bounding_box(tuple(Rect(*wb.origin, *wb.size) for wb in wing_builds))
+    tx, ty = frame.place(bbox.w, bbox.h)
+    dx, dy = tx - bbox.x, ty - bbox.y
+    if (dx, dy) == (0, 0):
+        return wing_builds
+    return [dataclasses.replace(
+        wb, origin=(wb.origin[0] + dx, wb.origin[1] + dy),
+        rects={z: Rect(r.x + dx, r.y + dy, r.w, r.h) for z, r in wb.rects.items()})
+        for wb in wing_builds]
 
 
 def realize_layout(layout: RealizationIntent, programme: object | None = None,
-                    buildable: Rect | None = None) -> RealizedLayout | Refusal:
+                    buildable: Rect | None = None,
+                    site_frame: SiteFrame | None = None) -> RealizedLayout | Refusal:
     """Realize a PLACED layout into real, axis-aligned, rectilinear geometry, or REFUSE naming the
     failing constraint. `programme`/`buildable` complete the mandated signature; every area/aspect/
     short-side bound this realizer honours already lives on `layout`'s own `ZoneIntent`s (the same
     way `Fixture.zones` already IS the programme for the existing guillotine engine), so `programme`
     is accepted but not read; `buildable`, if given, is a sanity check against `layout.wings`'
-    own combined footprint rather than a second source of truth."""
+    own combined footprint rather than a second source of truth.
+
+    `site_frame` is the person's own parcel (Issue #223). See `realize_cells` and `_build_site`:
+    the layout is identical either way, and the frame decides only where it stands and what land
+    is drawn around it."""
     t0 = time.monotonic()
     if not layout.wings:
         return Refusal("EMPTY_LAYOUT", "a layout needs at least one wing")
@@ -1424,6 +1520,12 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
             return Refusal("ENVELOPE_TOO_LARGE",
                             f"realized footprint {u_to_m(total_w)}x{u_to_m(total_h)} m exceeds the "
                             f"buildable envelope {u_to_m(buildable.w)}x{u_to_m(buildable.h)} m")
+
+    # Into the parcel, before anything is derived from the rects: walls, doors, windows, the
+    # validators and the payload all read what comes out of this, so the translation can never
+    # disagree with any of them.
+    if site_frame is not None:
+        wing_builds = _reframed(wing_builds, site_frame)
 
     rects: dict[str, Rect] = {}
     roles: dict[str, tuple[ProgramRole, ...]] = {}
@@ -1515,13 +1617,14 @@ def realize_layout(layout: RealizationIntent, programme: object | None = None,
     open_groups = tuple(tuple(sorted(pair)) for pair in open_pairs)
     fixture = Fixture(layout.name, tuple(wings_out), zones, DesiredAccessTopology(edges), open_groups)
 
-    site = _build_site(wing_builds)
+    site = _build_site(wing_builds, site_frame)
     interior_doors = generate_interior_doors(fixture, rects)
     resolved = resolve_entrance(fixture, rects, site.footprint, site.wings)
     if resolved is None:
         return Refusal("NO_ENTRANCE", "no zone with an ALLOWED_ENTRANCE role fronts the street")
     entrance_zone_id, low, high = resolved
-    ex = (low + high) // 2
+    # the walk must not cross a bay (C11) — with no bays this IS `(low + high) // 2`
+    ex = entrance_x_clear_of_parking((low, high), site.parking, (low + high) // 2)
     entrance = build_entrance(site.footprint, ex)
     # the site was built with a placeholder walk at the footprint's centre; the walk the drawing,
     # the validators and the payload see is the one to the door actually resolved

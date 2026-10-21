@@ -307,29 +307,10 @@ def _place_footprint(candidate: Rect, w_m: float, h_m: float) -> tuple[int, int]
     return candidate.x + (candidate.w - w_u) // 2, candidate.y
 
 
-def _entrance_x_clear_of_parking(span: tuple[int, int], parking: tuple[Rect, ...],
-                                 fallback: int) -> int:
-    """A point in the acceptable span whose WALK does not cross a parking bay.
-
-    The walk runs straight from the street to the door, so a door chosen purely from the rooms can
-    still put the path through a bay — which is exactly what C11 caught the moment the entrance
-    stopped defaulting to the footprint's centre. Both constraints are real, so the point is chosen
-    against both: scan the span at 5 cm and take the first clear position, preferring the middle so
-    the walk stays central when nothing is in the way.
-    """
-    low, high = span
-    walk_half = round(1.2 / UNIT_M) // 2
-
-    def clear(x: int) -> bool:
-        walk = Rect(x - walk_half, 0, walk_half * 2, 1)
-        return not any(walk.overlap_area_u(Rect(bay.x, 0, bay.w, 1)) > 0 for bay in parking)
-
-    middle = (low + high) // 2
-    for offset in range(0, high - low + 1):
-        for x in (middle + offset, middle - offset):
-            if low <= x <= high and clear(x):
-                return x
-    return fallback
+#: Moved to `site.py` (Issue #223) so the shape-agnostic realizer uses THIS implementation rather
+#: than a second opinion about where a walk may cross. Same function, same behaviour; the name
+#: stays bound here because this module's own call site reads better with it.
+_entrance_x_clear_of_parking = site_stage.entrance_x_clear_of_parking
 
 
 def _site_plan_for(spec: ArchitecturalSpec, footprint: Rect,

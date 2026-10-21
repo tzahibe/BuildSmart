@@ -1,0 +1,65 @@
+{
+  "B-parking2": {
+    "plan_identical_up_to_translation": true,
+    "alternatives": [
+      2,
+      2
+    ],
+    "alt_families": [
+      [
+        "brain:PUBLIC_BAND+FOYER",
+        "brain:BEDROOM_WING+FOYER"
+      ],
+      [
+        "brain:PUBLIC_BAND+FOYER",
+        "brain:BEDROOM_WING+FOYER"
+      ]
+    ],
+    "translation_m": [
+      1.85,
+      3.0
+    ]
+  },
+  "B-noparking": {
+    "plan_identical_up_to_translation": true,
+    "alternatives": [
+      2,
+      2
+    ],
+    "alt_families": [
+      [
+        "brain:PUBLIC_BAND+FOYER",
+        "brain:BEDROOM_WING+FOYER"
+      ],
+      [
+        "brain:PUBLIC_BAND+FOYER",
+        "brain:BEDROOM_WING+FOYER"
+      ]
+    ],
+    "translation_m": [
+      1.85,
+      -2.0
+    ]
+  },
+  "B-square": {
+    "plan_identical_up_to_translation": true,
+    "alternatives": [
+      2,
+      2
+    ],
+    "alt_families": [
+      [
+        "brain:SERVICE_CORE+FOYER",
+        "brain:SERVICE_CORE"
+      ],
+      [
+        "brain:SERVICE_CORE+FOYER",
+        "brain:SERVICE_CORE"
+      ]
+    ],
+    "translation_m": [
+      0.0,
+      3.0
+    ]
+  }
+}

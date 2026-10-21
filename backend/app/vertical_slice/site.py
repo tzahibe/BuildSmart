@@ -30,6 +30,7 @@ from .geometry_core.model import (
     OutdoorRegion,
     Rect,
     m_to_u,
+    u_to_m,
 )
 from .spec import ArchitecturalSpec
 
@@ -37,6 +38,9 @@ PARKING_BAY_WIDTH_M = 2.5
 PARKING_BAY_DEPTH_M = 5.0   # PARAMETER · UNVERIFIED — plausible standard bay, not a sourced code value
 PARKING_GAP_M = 0.3
 ENTRANCE_SETBACK_FROM_SIDE_M = 1.0  # keep the front door off the very corner of the facade
+#: The pedestrian walk's own width, shared by `build_entrance` and `entrance_x_clear_of_parking`
+#: so the path that is DRAWN and the path that is kept off a bay are the same path.
+_WALK_WIDTH_M = 1.2
 
 
 @dataclass(frozen=True)
@@ -44,6 +48,64 @@ class EntranceWalk:
     """A straight pedestrian path from the street edge to the entrance door point."""
     door_point_u: tuple[int, int]
     path_rect: Rect  # a thin corridor from the street to the door, used for the connectivity check
+
+
+#: WHAT THE DRAWING SAYS WHEN THE PARCEL IS NOT THERE (Issue #223). A plot rectangle drawn around
+#: a house that nobody entered a parcel for is the most visible untruth a sheet can carry: it looks
+#: exactly like a surveyed boundary. The product itself never gets here — `demo.scope.check_supported`
+#: refuses a project with no authoritative parcel before anything is planned — so this is the
+#: sentence for a caller that realizes geometry WITHOUT a parcel (a harness, a frozen case): the
+#: rectangle is named a drawing margin, out loud, rather than passed off as the client's land.
+NO_PARCEL_NOTICE = (
+    "לא הוזן מגרש עבור התכנון הזה, ולכן המלבן שמסביב לבית הוא שולי שרטוט בלבד ואינו גבול מגרש. "
+    "גם הגינה והחניה אינן מוצגות — אין מגרש שמהם לגזור אותן.")
+
+
+@dataclass(frozen=True)
+class SiteFrame:
+    """THE PERSON'S OWN PARCEL, carried into a realizer (Issue #223).
+
+    `site.build_site_plan` and `general_pipeline._site_plan_for` already build the production
+    site from the brief's `ArchitecturalSpec` — the parcel the person entered, the setbacks that
+    were applied to it, their parking count. The shape-agnostic realizer
+    (`rectilinear_realizer._build_site`) had no way to be told any of it and so SYNTHESISED a plot
+    from the footprint plus a 2 m skirt, with no parking and a garden that was only the crook of an
+    L. This is the one value that closes the gap: the same four numbers, in grid units, in the one
+    coordinate frame everything else already uses (y=0 at the street edge).
+
+    `front_band_u` is `front_band_m` already resolved — the depth the house must leave at the
+    street, which is the front setback or one parking bay, whichever is deeper. It is passed
+    resolved rather than as a setback so this type never has to know about parking geometry.
+    """
+
+    plot: Rect
+    front_band_u: int
+    side_setback_u: int
+    rear_setback_u: int
+    parking: tuple[Rect, ...] = ()
+    #: what the brief asked for, so a plan can disclose bays it could not draw
+    parking_spaces_requested: int = 0
+
+    def buildable_u(self) -> tuple[int, int]:
+        """The land left for the building: the parcel minus the side setbacks, minus the street
+        band and the rear setback. The SAME subtraction `spec.PlotSpec.buildable_size_m` and
+        `buildable_size_with_parking_m` make, in units."""
+        return (self.plot.w - 2 * self.side_setback_u,
+                self.plot.h - self.front_band_u - self.rear_setback_u)
+
+    def place(self, w_u: int, h_u: int) -> tuple[int, int]:
+        """Where a `w_u` x `h_u` footprint sits in the parcel: centred across the buildable
+        width, flush to the street-side band — `place_footprint`'s own convention, so a plan
+        realized through this frame stands exactly where production would stand it."""
+        buildable_w, _ = self.buildable_u()
+        return (self.side_setback_u + max(0, (buildable_w - w_u) // 2), self.front_band_u)
+
+    def overflow_m(self, w_u: int, h_u: int) -> tuple[float, float]:
+        """How far a footprint of this size runs past the buildable envelope, in metres — (0, 0)
+        when it fits. Disclosed on the plan rather than silently clamped away."""
+        buildable_w, buildable_h = self.buildable_u()
+        return (round(u_to_m(max(0, w_u - buildable_w)), 2),
+                round(u_to_m(max(0, h_u - buildable_h)), 2))
 
 
 @dataclass(frozen=True)
@@ -60,6 +122,12 @@ class SitePlan:
     #: The footprint as the wings that make it up (`footprint.py`). Defaults to the one rectangle
     #: `footprint` names, so every existing constructor call describes the same site.
     wings: tuple[Rect, ...] = ()
+    #: Something about THIS site the person must read before the drawing (Issue #223) — a plot
+    #: that is a drawing margin rather than their parcel, a footprint that runs past the buildable
+    #: envelope, parking the brief asked for that this site could not seat. `None` — the default,
+    #: and what every site built from a real `ArchitecturalSpec` carries — means the drawing shows
+    #: the parcel, the setbacks and the parking the brief actually gave.
+    notice: str | None = None
 
     def __post_init__(self) -> None:
         if not self.wings:
@@ -128,12 +196,12 @@ def build_entrance(footprint: Rect, entrance_x_u: int) -> EntranceWalk:
     """A door point centered on the given x within the footprint's street-facing (N, y=min)
     edge, plus a thin walk rect from the street to that point."""
     door_point = (entrance_x_u, footprint.y)
-    walk_width_u = m_to_u(1.2)
+    walk_width_u = m_to_u(_WALK_WIDTH_M)
     path = Rect(entrance_x_u - walk_width_u // 2, 0, walk_width_u, footprint.y)
     return EntranceWalk(door_point, path)
 
 
-def classify_garden(spec: ArchitecturalSpec, plot: Rect, footprint: Rect,
+def classify_garden(spec: ArchitecturalSpec | None, plot: Rect, footprint: Rect,
                      parking: tuple[Rect, ...],
                      wings: tuple[Rect, ...] = ()) -> tuple[OutdoorRegion, ...]:
     """The plot's leftover area, EXPLICITLY classified GARDEN (Correction 3) — not because it
@@ -148,6 +216,11 @@ def classify_garden(spec: ArchitecturalSpec, plot: Rect, footprint: Rect,
     crook of an L — is appended as garden too, so the plot is still accounted for to the last
     cell. Classifying that crook as a terrace or an entry court is a site decision for the parti
     that produces it; until then it is garden, said explicitly, never "left over".
+
+    `spec` is accepted and read by nothing here — the bands are a function of the plot, the
+    footprint, the wings and the bays alone. It stays in the signature because every existing
+    caller passes it positionally; `None` is the honest value for a caller that has the parcel
+    (as a `SiteFrame`) but not the whole spec.
     """
     regions = []
     # Rear yard: full plot width, from the footprint's south edge to the plot's south edge.
@@ -184,3 +257,46 @@ def build_site_plan(spec: ArchitecturalSpec, footprint_w_m: float, footprint_h_m
     entrance = build_entrance(footprint, offset_u[0] + entrance_local_x_u)
     garden = classify_garden(spec, plot, footprint, parking)
     return SitePlan(plot, footprint, offset_u, parking, entrance, garden)
+
+
+
+def entrance_x_clear_of_parking(span: tuple[int, int], parking: tuple[Rect, ...],
+                                fallback: int) -> int:
+    """A point in the acceptable span whose WALK does not cross a parking bay.
+
+    The walk runs straight from the street to the door, so a door chosen purely from the rooms can
+    still put the path through a bay — which is exactly what C11 caught the moment the entrance
+    stopped defaulting to the footprint's centre. Both constraints are real, so the point is chosen
+    against both: scan the span at 5 cm and take the first clear position, preferring the middle so
+    the walk stays central when nothing is in the way.
+
+    With no bays the middle is always clear, so this returns the midpoint — byte-identical to the
+    `(low + high) // 2` every caller used before it existed.
+    """
+    low, high = span
+    walk_half = m_to_u(_WALK_WIDTH_M) // 2
+
+    def clear(x: int) -> bool:
+        walk = Rect(x - walk_half, 0, walk_half * 2, 1)
+        return not any(walk.overlap_area_u(Rect(bay.x, 0, bay.w, 1)) > 0 for bay in parking)
+
+    middle = (low + high) // 2
+    for offset in range(0, high - low + 1):
+        for x in (middle + offset, middle - offset):
+            if low <= x <= high and clear(x):
+                return x
+    return fallback
+
+
+def site_frame_for(spec: ArchitecturalSpec) -> SiteFrame:
+    """The brief's own parcel as a `SiteFrame` (Issue #223) — the ONE place the spec's plot,
+    setbacks and parking count become the frame a realizer can carry. Nothing is derived from the
+    building: the same reason `demo.site_geometry.derive` takes no footprint argument."""
+    return SiteFrame(
+        plot=Rect(0, 0, m_to_u(spec.plot.width_m), m_to_u(spec.plot.depth_m)),
+        front_band_u=m_to_u(front_band_m(spec)),
+        side_setback_u=m_to_u(spec.plot.side_setback_m),
+        rear_setback_u=m_to_u(spec.plot.rear_setback_m),
+        parking=build_parking(spec),
+        parking_spaces_requested=spec.program.parking_spaces,
+    )

@@ -71,6 +71,7 @@ from .doors import ALLOWED_ENTRANCE_ROLES
 from .exposure_policy import EXPOSURE_POLICY, REQUIRED_EXTERIOR_ROLES, ExposureRequirement
 from .geometry_core.model import ProgramRole, Rect, m_to_u
 from .rectilinear_realizer import RealizationIntent, RealizedLayout, Refusal, ZoneIntent, realize_layout
+from .site import SiteFrame
 from .topology_preservation import measure_access_graph, measure_spatial_adjacency
 from .wet_rooms import ResolvedWetRoom
 
@@ -100,6 +101,11 @@ class PipelineInput:
     #: (a door needs a shared wall), a door-width sizing requirement, and a legality requirement —
     #: no longer diagnostics only.
     access_edges: tuple[tuple[str, str], ...] = ()
+    #: THE PERSON'S OWN PARCEL (Issue #223) — `site.site_frame_for(spec)`, carried unchanged to
+    #: the realizer so the plot, the setbacks, the garden and the bays the payload draws are the
+    #: brief's own rather than a rectangle synthesised around the footprint. `None` (the default,
+    #: and what every harness caller passes) means there is no parcel, and the plan says so.
+    site_frame: SiteFrame | None = None
 
 
 @dataclass
@@ -465,7 +471,7 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
         sized = BandPlacement(sz.rows, sz.n_cols, placement.score, placement.bands)
         wing = sized.to_grid_wing(inp.name, W_m, H_m, inp.zones, envelope_is_bound=False, access_pairs=access)
         res = realize_layout(RealizationIntent(name=inp.name, wings=(wing,), wet_rooms=inp.wet_rooms),
-                             buildable=buildable)
+                             buildable=buildable, site_frame=inp.site_frame)
         if isinstance(res, RealizedLayout):
             funnel["realized"] += 1; funnel["passed"] += 1
             rec.stage_reached = "VALIDATORS"

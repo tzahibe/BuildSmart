@@ -120,6 +120,11 @@ class GeometricDesign:
     #: Plumbing-efficiency standing (Issue #44), additive. `None` only for a `GeometricDesign`
     #: built before this field existed — `assemble` always computes one.
     wet_core: WetCore | None = None
+    #: `SitePlan.notice` (Issue #223), carried verbatim: what the person must read about the SITE
+    #: this drawing shows — a plot that is a drawing margin and not their parcel, a footprint past
+    #: the buildable envelope, parking the brief asked for that could not be seated. `None` means
+    #: the plot, the setbacks, the garden and the bays are the brief's own.
+    site_notice: str | None = None
 
     def __post_init__(self) -> None:
         if not self.footprints_m:
@@ -194,4 +199,5 @@ def assemble(fixture: Fixture, rects: dict[str, Rect], walls: WallMap, wall_iter
         footprints_m=tuple(_rect_m(w) for w in site.wings),
         wet_privacy=compute_wet_privacy(fixture, rects, walls, interior_doors, wet_rooms),
         wet_core=compute_wet_core(fixture, rects, walls),
+        site_notice=site.notice,
     )

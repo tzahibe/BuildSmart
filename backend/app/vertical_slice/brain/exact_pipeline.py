@@ -159,7 +159,8 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
         if orient_tag == "V":
             rects = transpose_rects(rects)
             wings = tuple(transpose_rects(dict(enumerate(wings))).values())
-        out = realize_cells(name, rects, intents, wings, access, wet_rooms=inp.wet_rooms)
+        out = realize_cells(name, rects, intents, wings, access, wet_rooms=inp.wet_rooms,
+                            site_frame=inp.site_frame)
         tried += 1
         if not isinstance(out, RealizedLayout):
             note("REALIZATION", out.constraint); return False
