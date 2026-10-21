@@ -9,6 +9,7 @@ below fails — the table cannot rot silently the way `docs/wiki/INDEX.md`'s lau
 from __future__ import annotations
 
 import ast
+import functools
 import re
 import subprocess
 from pathlib import Path
@@ -20,78 +21,31 @@ from app.knowledge.indexer import repo_root_from_here
 REPO_ROOT = Path(repo_root_from_here())
 PROJECT_STATE = REPO_ROOT / "docs" / "PROJECT_STATE.md"
 
-# Every production file under `backend/app/{vertical_slice,demo}` that could plausibly import one
-# of the gated capabilities below, as last enumerated from this worktree's own `app/vertical_slice`
-# + `app/demo` directories. Kept as an explicit list (not a live tree walk) because this worktree's
-# own checkout may lag or lead `origin/main` by a handful of unrelated commits — every path here is
-# read from `origin/main` itself via `git show`, never from local disk, so that does not matter.
-_CANDIDATE_CALLER_PATHS = [
-    "backend/app/demo/__init__.py",
-    "backend/app/demo/contract.py",
-    "backend/app/demo/requirements_view.py",
-    "backend/app/demo/router.py",
-    "backend/app/demo/scope.py",
-    "backend/app/demo/service.py",
-    "backend/app/demo/site_geometry.py",
-    "backend/app/vertical_slice/__init__.py",
-    "backend/app/vertical_slice/access_rules.py",
-    "backend/app/vertical_slice/adjacency_priors.py",
-    "backend/app/vertical_slice/building.py",
-    "backend/app/vertical_slice/building_coordinator.py",
-    "backend/app/vertical_slice/building_validation.py",
-    "backend/app/vertical_slice/circulation_metrics.py",
-    "backend/app/vertical_slice/concept.py",
-    "backend/app/vertical_slice/concept_compilers.py",
-    "backend/app/vertical_slice/concept_engine_v2.py",
-    "backend/app/vertical_slice/concept_generator.py",
-    "backend/app/vertical_slice/concept_patterns.py",
-    "backend/app/vertical_slice/concept_score.py",
-    "backend/app/vertical_slice/concept_spec.py",
-    "backend/app/vertical_slice/constraints.py",
-    "backend/app/vertical_slice/design_output.py",
-    "backend/app/vertical_slice/door_clearance.py",
-    "backend/app/vertical_slice/doors.py",
-    "backend/app/vertical_slice/entrance_sequence.py",
-    "backend/app/vertical_slice/exposure_policy.py",
-    "backend/app/vertical_slice/footprint.py",
-    "backend/app/vertical_slice/furnishability.py",
-    "backend/app/vertical_slice/furniture.py",
-    "backend/app/vertical_slice/general_pipeline.py",
-    "backend/app/vertical_slice/geometry_adapter.py",
-    "backend/app/vertical_slice/geometry_core/__init__.py",
-    "backend/app/vertical_slice/geometry_core/engine.py",
-    "backend/app/vertical_slice/geometry_core/model.py",
-    "backend/app/vertical_slice/geometry_fixtures.py",
-    "backend/app/vertical_slice/hub_guard.py",
-    "backend/app/vertical_slice/interior_layout.py",
-    "backend/app/vertical_slice/l_massing_guard.py",
-    "backend/app/vertical_slice/l_parti.py",
-    "backend/app/vertical_slice/level_planner.py",
-    "backend/app/vertical_slice/level_program.py",
-    "backend/app/vertical_slice/master_suite.py",
-    "backend/app/vertical_slice/pipeline.py",
-    "backend/app/vertical_slice/primary_selection.py",
-    "backend/app/vertical_slice/public_composition.py",
-    "backend/app/vertical_slice/quality_metrics.py",
-    "backend/app/vertical_slice/rectilinear_realizer.py",
-    "backend/app/vertical_slice/reference_benchmark.py",
-    "backend/app/vertical_slice/relationships.py",
-    "backend/app/vertical_slice/renderer.py",
-    "backend/app/vertical_slice/room_merge.py",
-    "backend/app/vertical_slice/room_proportion_priors.py",
-    "backend/app/vertical_slice/safe_adapter.py",
-    "backend/app/vertical_slice/site.py",
-    "backend/app/vertical_slice/spec.py",
-    "backend/app/vertical_slice/stage2/__init__.py",
-    "backend/app/vertical_slice/stage2/contract.py",
-    "backend/app/vertical_slice/validation.py",
-    "backend/app/vertical_slice/vertical.py",
-    "backend/app/vertical_slice/walls.py",
-    "backend/app/vertical_slice/wet_core.py",
-    "backend/app/vertical_slice/wet_privacy.py",
-    "backend/app/vertical_slice/wet_rooms.py",
-    "backend/app/vertical_slice/windows.py",
+# The production roots whose Python files could plausibly import one of the gated capabilities
+# below. The scan WALKS these roots recursively (every subpackage, at any depth) instead of
+# enumerating files: a hand-kept list silently missed `app/vertical_slice/brain/` — where the
+# architectural-brain work lives — which is how two rows (rectilinear realizer, Stage 2 contract)
+# sat on `main` documented as unreachable while the `?engine=brain` preview called them on every
+# request (#243 corrected the rows by hand; #245 closed the blind spot). A new subpackage is
+# covered without another edit here. Paths are listed from `origin/main`'s object store, never from
+# local disk, so a checkout that lags or leads `main` does not matter.
+_CANDIDATE_CALLER_ROOTS = [
+    "backend/app/demo",
+    "backend/app/vertical_slice",
 ]
+
+
+def _walk_python_files(ref: str, roots: list[str], cwd: Path) -> list[str]:
+    """Every `.py` file under `roots` at git `ref`, at any depth."""
+    result = subprocess.run(["git", "ls-tree", "-r", "--name-only", ref, "--", *roots],
+                             cwd=cwd, capture_output=True, text=True)
+    assert result.returncode == 0, f"git ls-tree {ref} failed: {result.stderr.strip()}"
+    return sorted(line for line in result.stdout.splitlines() if line.endswith(".py"))
+
+
+@functools.lru_cache(maxsize=1)
+def _candidate_caller_paths() -> tuple[str, ...]:
+    return tuple(_walk_python_files("origin/main", _CANDIDATE_CALLER_ROOTS, REPO_ROOT))
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -160,7 +114,7 @@ def _imports(rel_path: str, dotted_target: str) -> bool:
 
 
 def _has_production_caller(dotted_targets: list[str], own_paths: set[str]) -> bool:
-    for rel_path in _CANDIDATE_CALLER_PATHS:
+    for rel_path in _candidate_caller_paths():
         if rel_path in own_paths:
             continue
         if any(_imports(rel_path, target) for target in dotted_targets):
@@ -371,12 +325,58 @@ def test_concept_engine_v2_rollup_landed_and_the_row_was_rewritten():
     )
 
 
+def test_walk_descends_into_subpackages_at_any_depth(tmp_path):
+    """The walk itself, on a throwaway repo whose layout this test controls: a subpackage nobody
+    has ever listed anywhere — at depth 1 and depth 3 — is found, and non-Python files and files
+    outside the roots are not. A regression to a flat or hand-kept list fails here."""
+    def git(*args):
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=tmp_path,
+                       check=True, capture_output=True)
+
+    files = ["root/top.py", "root/newpkg/__init__.py", "root/newpkg/mod.py",
+             "root/newpkg/deeper/still/leaf.py", "root/newpkg/data.json", "outside/other.py"]
+    for rel in files:
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("x = 1\n" if rel.endswith(".py") else "{}\n")
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-q", "-m", "fixture")
+
+    assert _walk_python_files("HEAD", ["root"], tmp_path) == [
+        "root/newpkg/__init__.py", "root/newpkg/deeper/still/leaf.py", "root/newpkg/mod.py",
+        "root/top.py",
+    ]
+
+
+def test_scan_reaches_subpackages_of_both_roots_on_main():
+    """The scan's real output on `origin/main` — not the literal contents of any list — covers the
+    `brain/` subpackage (the blind spot #243 found) and every other subpackage under the roots."""
+    paths = set(_candidate_caller_paths())
+    assert paths, "the scan found no files on origin/main"
+    assert all(p.endswith(".py") for p in paths)
+    assert all(any(p.startswith(root + "/") for root in _CANDIDATE_CALLER_ROOTS) for p in paths)
+
+    nested = {p for p in paths for root in _CANDIDATE_CALLER_ROOTS
+              if p.startswith(root + "/") and "/" in p[len(root) + 1:]}
+    assert any(p.startswith("backend/app/vertical_slice/brain/") for p in nested), (
+        "the scan does not reach app/vertical_slice/brain/ — the blind spot that hid two production "
+        "callers (#243) is back"
+    )
+    # The two files #243 found calling the "unreachable" capabilities, plus the other pre-existing
+    # subpackages, must all be in the scan.
+    for expected in ("backend/app/vertical_slice/brain/exact_pipeline.py",
+                     "backend/app/vertical_slice/brain/proposer.py",
+                     "backend/app/vertical_slice/geometry_core/engine.py",
+                     "backend/app/vertical_slice/stage2/contract.py"):
+        assert expected in paths, f"{expected} is on origin/main but the scan does not reach it"
+
+
 def test_every_enabled_constant_on_main_has_a_row():
     """AC-1/AC-3's real teeth: every `*_ENABLED` module-level constant that exists on `main` today
     must have a row above with a matching flag name, or the table is incomplete by construction."""
     documented_flags = {flag for _, _, flag, _, _ in _FLAG_ROWS}
     found_on_main: set[str] = set()
-    for rel_path in _CANDIDATE_CALLER_PATHS:
+    for rel_path in _candidate_caller_paths():
         text = _read_from_main(rel_path)
         if text is None:
             continue
