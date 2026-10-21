@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 
 from app.demo import service as svc
-from app.demo.router import ENGINE_CONCEPT_V2, ENGINE_PRODUCTION, _engine_override
+from app.demo.router import ENGINE_CONCEPT_V2, ENGINE_PRODUCTION, _resolve_engine
 from app.vertical_slice import general_pipeline as gp
 from tests.vertical_slice.test_hub_guard import _project
 
@@ -25,18 +25,18 @@ def _payload(**kwargs):
 # ------------------------------------------------------------------ the override, resolved
 
 def test_no_engine_parameter_means_no_override_at_all():
-    assert _engine_override(None) is None
-    assert _engine_override(ENGINE_PRODUCTION) is None
+    assert _resolve_engine(None).concept_engine_v2 is None
+    assert _resolve_engine(ENGINE_PRODUCTION).concept_engine_v2 is None
 
 
 def test_the_concept_engine_is_an_explicit_true():
-    assert _engine_override(ENGINE_CONCEPT_V2) is True
+    assert _resolve_engine(ENGINE_CONCEPT_V2).concept_engine_v2 is True
 
 
 def test_an_unknown_engine_is_refused_rather_than_treated_as_production():
     from fastapi import HTTPException
     with pytest.raises(HTTPException) as caught:
-        _engine_override("something_else")
+        _resolve_engine("something_else")
     assert caught.value.status_code == 422
     assert "something_else" in str(caught.value.detail)
 

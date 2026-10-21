@@ -1,4 +1,8 @@
-# The staged, fail-fast pipeline for agent PRs (branches agent/<issue>-<slug> -> main or -> integration/<period>).
+# The staged, fail-fast pipeline for every PR into main (or into an integration/<period> branch),
+# whatever the head branch is called: agent/<issue>-<slug>, feature/..., fix/..., infra/... .
+# Until Issue #209 the gates below ran only for agent/ and integration/ heads, so the whole
+# #197 series (#198-#206) was merged with all four gates reported as "skipping". The trigger is
+# the PR's BASE, never the head's name; what each gate accepts is unchanged.
 #
 #   gate-1-contract  -> gate-2-static -> gate-3-verification -> gate-4-regression (when required)
 #                                                                     \-> agent-ci-result
@@ -25,8 +29,11 @@ permissions:
   pull-requests: read
 
 jobs:
+  # No `if:` on purpose — `on.pull_request.branches` above is the only filter, so every PR targeting
+  # main (or an integration branch) is gated. gate-1 locates the contract from the branch name for
+  # agent/<issue>-<slug> and from the PR body's single `Closes #<issue>` link for any other branch
+  # (ci/contract_check.py: resolve_issue_number).
   gate-1-contract:
-    if: startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'integration/')
     uses: ./.github/workflows/agent-contract.yml
     secrets: inherit
 
@@ -165,7 +172,10 @@ jobs:
 
   agent-ci-result:
     needs: [gate-1-contract, gate-2-static, gate-3-verification, gate-4-regression]
-    if: always() && (startsWith(github.head_ref, 'agent/') || startsWith(github.head_ref, 'integration/'))
+    # `always()` alone: this is the status check branch protection requires, so it must report a real
+    # conclusion for every gated PR — a branch-name condition here is what let the required check be
+    # satisfied by "skipping" (#209).
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Aggregate
