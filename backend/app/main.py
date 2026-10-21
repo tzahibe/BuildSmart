@@ -1,6 +1,14 @@
 from dotenv import load_dotenv
 
+from app.observability import log_output
+
 load_dotenv()
+# THE APPLICATION'S LOG LINES REACH THE SERVER'S OUTPUT FROM HERE (#233). Before this there was no
+# logging configuration at all, so #214's one-line-per-preview-request record found no handler under
+# `uvicorn app.main:app` and was dropped — #231 measured exactly that against a running server.
+# Configured at import, beside `load_dotenv()`, because this is the module uvicorn imports: there is
+# no `--log-config` for an operator to remember and it works with or without `--reload`.
+log_output.configure()
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse

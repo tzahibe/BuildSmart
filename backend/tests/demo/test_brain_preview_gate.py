@@ -545,3 +545,97 @@ def test_a_preview_request_is_recorded_once_with_the_facts_an_operator_needs(cli
                  "exact_refusal=EXACT_SIZER_UNKNOWN", "budget_expired=true", "solves=11",
                  "code=BRAIN_NO_PLAN"):
         assert fact in lines[0], lines[0]
+
+
+# ============================================ #233: the line an operator ACTUALLY SEES, and AC-3
+#
+# #214 proved the token reaches no log RECORD. That was the right claim at the time and it is now
+# only half of one: #231 found no record reached any output at all, so "nothing leaked" was partly
+# "nothing arrived". #233 delivers the lines, which makes the secret's absence a claim about a real
+# stream — the text that would be on an operator's screen — for the first time.
+
+def _preview_output(stream):
+    """`log_output.configure()` on the real `buildsmart` logger, writing to `stream`. Returns a
+    restore callable; the surrounding session's own configuration is put back exactly."""
+    import logging as _logging
+
+    from app.observability import log_output
+
+    logger = _logging.getLogger(log_output.LOGGER_NAME)
+    handlers, level = list(logger.handlers), logger.level
+    logger.handlers.clear()
+    logger.setLevel(_logging.NOTSET)
+    log_output.configure(stream=stream)
+
+    def restore() -> None:
+        logger.handlers[:] = handlers
+        logger.setLevel(level)
+
+    return restore
+
+
+def test_the_delivered_line_carries_no_secret_with_the_token_set(client, brain_spy, monkeypatch):
+    """#233 AC-3. The authorized path, through the real handler into a real stream: the preview's
+    line is THERE (which is the whole of #233) and the token is not, nor is the header's name."""
+    import io
+
+    _open("1", TOKEN, monkeypatch)
+    stream = io.StringIO()
+    restore = _preview_output(stream)
+    try:
+        response = _post(client, ENGINE_BRAIN, token=TOKEN)
+    finally:
+        restore()
+
+    output = stream.getvalue()
+    assert brain_spy, "the request did not reach the brain, so nothing was logged to look at"
+    assert "buildsmart.preview engine=brain" in output, output
+    assert TOKEN not in output
+    assert TOKEN.lower() not in output.lower()
+    assert preview_gate.TOKEN_ENV not in output and preview_gate.TOKEN_HEADER not in output
+
+
+def test_no_shape_of_unauthorized_request_puts_anything_in_the_output(client, brain_spy,
+                                                                      monkeypatch):
+    """A refused request must not become the disclosure the refusal itself avoids. Four shapes —
+    absent, wrong, truncated, wrong case — write NOTHING to the operator's stream (they never
+    reach the brain), so neither the real secret nor the near-miss can appear there."""
+    import io
+
+    _open("1", TOKEN, monkeypatch)
+    near = TOKEN[:-1]
+    for token in (None, "not-the-token", near, TOKEN.upper()):
+        stream = io.StringIO()
+        restore = _preview_output(stream)
+        try:
+            response = _post(client, ENGINE_BRAIN, token=token)
+        finally:
+            restore()
+        assert response.status_code == 422
+        assert stream.getvalue() == "", (token, stream.getvalue())
+    assert not brain_spy
+
+
+def test_the_whole_captured_output_of_a_mixed_run_holds_no_secret(client, brain_spy, monkeypatch):
+    """One stream across a served request, a refused one and a no-plan one — the shape of a real
+    session — searched once. The no-plan line is the one that DID arrive before #233, through
+    `logging.lastResort` and unlabelled; it must now say WARNING and still say nothing else."""
+    import io
+
+    _open("1", TOKEN, monkeypatch)
+    stream = io.StringIO()
+    restore = _preview_output(stream)
+    try:
+        _post(client, ENGINE_BRAIN, token=TOKEN)        # reaches the brain -> a line
+        _post(client, ENGINE_BRAIN)                     # refused -> nothing
+        _post(client, "banana", token=TOKEN)            # unknown engine -> nothing
+    finally:
+        restore()
+
+    output = stream.getvalue()
+    # The spy returns a result with no plans, so the one line is the no-plan WARNING.
+    assert output.count("buildsmart.preview") == 1, output
+    assert output.startswith("WARNING ") and "code=BRAIN_NO_PLAN" in output
+    assert TOKEN not in output and TOKEN[:-1] not in output
+    for fragment in ("brain-preview-token", "X-Brain-Preview", "BRAIN_PREVIEW_TOKEN"):
+        assert fragment not in output
