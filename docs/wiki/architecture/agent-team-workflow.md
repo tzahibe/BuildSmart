@@ -160,12 +160,21 @@ for the verification of these flags against the real binary.
 
 ## CI gates (`.github/workflows/agent-ci.yml`)
 
-Fail-fast, for PRs from `agent/**` to `main`:
+Fail-fast, for **every** PR into `main` or `integration/**`, whatever the head branch is called.
+The trigger is the PR's base: until Issue #209 `gate-1-contract` and `agent-ci-result` also required
+a head of `agent/**` or `integration/**`, so the whole #197 series (#198–#206, all from `feature/`
+branches) was merged with all four gates reported as "skipping" and the two required status contexts
+never reported at all (branch protection was satisfied only by `enforce_admins: false`). No job keys
+off the branch name any more — see `docs/reports/ci/feature-branch-gates.md`.
 
-1. **gate-1-contract** (`ci/contract_check.py`) — branch naming, `Closes #n` linkage, Issue open
-   + trusted author + executable label, contract validates, Issue labels match the contract, PR
-   body has every template section and an evidence row per AC, PR risk = Issue risk. Emits the
-   machine-readable verification manifest for the later gates.
+1. **gate-1-contract** (`ci/contract_check.py`) — the PR is bound to exactly one Issue, then that
+   Issue is validated. The binding (`resolve_issue_number`) is the branch name for
+   `agent/<issue>-<slug>` (which must also be linked by the body), the first `Closes #n` for an
+   `integration/<period>` rollup, and the body's single `Closes #n` for any other branch name
+   (`feature/`, `fix/`, `infra/`, …) — an ambiguous or missing link fails the gate with the fix in
+   the message. Then: Issue open + trusted author + executable label, contract validates, Issue
+   labels match the contract, PR body has every template section and an evidence row per AC, PR
+   risk = Issue risk. Emits the machine-readable verification manifest for the later gates.
 2. **gate-2-static** — backend `compileall` + `import app.main` + the FAST tier (`pytest -x -n 4`),
    frontend `oxlint` + `tsc -b && vite build` + `vitest` when frontend files changed, the
    orchestrator's own tests when `scripts/agent_team` changed (`ci/plan.py` decides).

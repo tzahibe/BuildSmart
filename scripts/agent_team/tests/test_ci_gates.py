@@ -70,9 +70,60 @@ def test_gate1_passes_for_a_well_formed_agent_pr(repo_config):
 
 
 def test_gate1_rejects_bad_branch_and_missing_link(repo_config):
-    rep = contract_check.evaluate(_pr(head="feature/x", body=PR_BODY.replace("Closes #42", "no link")), _issue(), repo_config)
+    # an `agent/` branch whose name does not carry its Issue number, and no link in the body either
+    rep = contract_check.evaluate(_pr(head="agent/doc", body=PR_BODY.replace("Closes #42", "no link")), _issue(), repo_config)
     failed = {c["name"] for c in rep.checks if not c["ok"]}
     assert "branch naming agent/<issue>-<slug>" in failed and "PR body links its Issue" in failed
+
+
+def test_gate1_binds_a_non_agent_branch_through_its_single_closes_link(repo_config):
+    """Issue #209: work is also delivered from feature/ fix/ infra/ branches. The branch name is
+    not the binding there — the body's one `Closes #<issue>` link is — and every other check is
+    unchanged."""
+    rep = contract_check.evaluate(_pr(head="feature/x"), _issue(), repo_config)
+    assert rep.ok, [c for c in rep.checks if not c["ok"]]
+    assert rep.extra["manifest"]["issue"] == 42
+    assert contract_check.resolve_issue_number(repo_config, _pr(head="feature/x")) == 42
+
+
+def test_gate1_rejects_a_non_agent_branch_with_no_or_ambiguous_link(repo_config):
+    for body, why in ((PR_BODY.replace("Closes #42", "no link"), "none"),
+                      (PR_BODY.replace("Closes #42", "Closes #42\nCloses #43"), "ambiguous")):
+        pr = _pr(head="feature/x", body=body)
+        assert contract_check.resolve_issue_number(repo_config, pr) is None, why
+        rep = contract_check.evaluate(pr, _issue(), repo_config)
+        failed = {c["name"] for c in rep.checks if not c["ok"]}
+        assert not rep.ok and "PR body links exactly one Issue" in failed, why
+
+
+def test_gate1_applies_every_issue_check_to_a_non_agent_branch_too(repo_config):
+    """The widened binding must not become a bypass: the same Issue-side rejections still fire."""
+    rep = contract_check.evaluate(_pr(head="feature/x"), _issue(assoc="NONE"), repo_config)
+    assert any(c["name"] == "Issue author is trusted" and not c["ok"] for c in rep.checks)
+    rep = contract_check.evaluate(_pr(head="feature/x"),
+                                  _issue(labels=["agent:draft", *metadata_labels(("knowledge", "backend"), "LOW", "LIGHT")]),
+                                  repo_config)
+    assert any(c["name"] == "Issue carries an executable agent:* label" and not c["ok"] for c in rep.checks)
+    rep = contract_check.evaluate(_pr(head="feature/x", body=PR_BODY.replace("## Tests", "## Testing")), _issue(), repo_config)
+    assert any(c["name"] == "PR body has all required sections" and not c["ok"] for c in rep.checks)
+    rep = contract_check.evaluate(_pr(head="feature/x"), _issue(state="closed"), repo_config)
+    assert any(c["name"] == "Issue exists and is open" and not c["ok"] for c in rep.checks)
+
+
+def test_agent_ci_gates_every_pull_request_to_main_whatever_the_branch_is_called(repo_config):
+    """Issue #209: `agent-ci.yml` used to run its gates only for agent/ and integration/ heads, so
+    every feature/ PR (#198-#206) was merged with all four gates skipped. The trigger is the PR's
+    base, not the head's name — and the rollup/risk-tier policy is untouched."""
+    wf = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "agent-ci.yml").read_text())
+    on = wf[True] if True in wf else wf["on"]   # YAML 1.1: a bare `on:` key parses as True
+    assert on["pull_request"]["branches"] == ["main", "integration/**"]
+    jobs = wf["jobs"]
+    assert "if" not in jobs["gate-1-contract"], "gate 1 must run for every PR to a gated base"
+    assert jobs["agent-ci-result"]["if"].strip() == "always()"
+    for job in ("gate-1-contract", "gate-2-static", "gate-3-verification", "agent-ci-result"):
+        assert "head_ref" not in yaml.dump(jobs[job]), f"{job} still keys off the branch name"
+    # the risk-tier policy that decides gate 4 stays exactly where it was
+    assert jobs["gate-4-regression"]["if"] == "needs.gate-2-static.outputs.regression_required == 'true'"
 
 
 def test_gate1_rejects_untrusted_author_and_draft_label(repo_config):
