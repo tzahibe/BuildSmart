@@ -21,6 +21,15 @@ be enough (#214 measured it, #231 fixes it):
                                  so configuration can add a kill location but can never move or
                                  remove the one an operator is told about.
 
+And one that bounds what the preview may COST, because #226 measured that an unbounded preview
+degrades production traffic:
+
+    BRAIN_PREVIEW_MAX_CONCURRENCY  how many preview requests may run at once. 1 by default and 1 at
+                                 most — `max_concurrency()` clamps, so this may only ever make the
+                                 preview smaller than the measurement supports. Enforced in
+                                 `app/demo/preview_isolation.py`, at the one seam the gated engines
+                                 run through.
+
 **Why a file.** `BRAIN_PREVIEW_ENABLED` and `BRAIN_PREVIEW_TOKEN` are read per request, which was
 meant to make the preview "disablable immediately, without a new deployment". #214 tested that
 claim against a running server and it is false in the configuration that matters: a process's
@@ -57,6 +66,10 @@ Refusal codes a preview request can get:
                                    byte-identical to the refusal for a genuinely unknown engine
                                    name. The kill switch adds no code and no new message of its
                                    own: a killed preview is a preview that does not exist.
+    503 PREVIEW_BUSY              authorized, and another preview request is already running
+                                   (`app/demo/preview_isolation.py`). Only an AUTHORIZED request
+                                   can ever see this code, so it tells an unauthorized prober
+                                   nothing it did not already know.
     422 BRAIN_NO_PLAN              authorized and reached the brain, which could not plan the
                                    brief (`app/demo/service.py`).
     422 E1_REAR_BAND_UNAVAILABLE / E1_REAR_BAND_NOT_PLANNABLE
@@ -77,6 +90,7 @@ TOKEN_ENV = "BRAIN_PREVIEW_TOKEN"
 FAMILIES_ENV = "BRAIN_PREVIEW_FAMILIES"
 SIZER_ENV = "BRAIN_PREVIEW_SIZER"
 KILL_FILE_ENV = "BRAIN_PREVIEW_KILL_FILE"
+MAX_CONCURRENCY_ENV = "BRAIN_PREVIEW_MAX_CONCURRENCY"
 
 #: THE KILL SWITCH's built-in location: `backend/DISABLE_BRAIN_PREVIEW`, derived from this module's
 #: own path rather than from the working directory, so the path an operator is told in the runbook
@@ -107,6 +121,23 @@ ALLOWED_FAMILIES: frozenset[str] = frozenset(DEFAULT_FAMILIES)
 #: of a string. Kept separate from `ALLOWED_FAMILIES` on purpose: "not allowed yet" and "refused by
 #: a gate verdict" are different facts and the second one is worth saying out loud.
 GATE_FAILED_FAMILIES: frozenset[str] = frozenset({"generator"})
+
+#: HOW MANY PREVIEW REQUESTS MAY RUN AT ONCE (#246, from #226's measurement).
+#:
+#: #226 measured production's own latency beside N concurrent brain requests, alone on an idle
+#: machine with a same-session control: 1.65 s median quiet, 5.89 s at N=2, 9.29 s at N=4, 16.87 s
+#: worst case, and 1.63 s again once the load stopped. `scipy.optimize.milp` holds the GIL, so the
+#: requests serialize on one saturated core (107.3 % CPU with one, 100.2 % with four) and Starlette's
+#: threadpool buys nothing. #226's own conclusion was "safe limit: one concurrent brain request,
+#: enforced server-side".
+#:
+#: So 1 is the default AND the ceiling. The asymmetry is the same one `ALLOWED_FAMILIES` has and it
+#: is deliberate: configuration may make the preview *smaller* than the measurement supports and can
+#: never make it bigger. #226 measured N=2 and N=4 as harmful and measured no N above 1 as safe, so
+#: there is no number above 1 an environment variable could be *entitled* to ask for. Raising this
+#: is a new measurement and a code change with a review, not a variable someone sets at 2 a.m.
+DEFAULT_MAX_CONCURRENCY = 1
+MAX_CONCURRENCY_CEILING = 1
 
 
 def _env(name: str) -> str:
@@ -185,6 +216,26 @@ def authorized(token: str | None) -> bool:
     matches = hmac.compare_digest((presented or "\0").encode("utf-8"),
                                   (expected or "\0\0").encode("utf-8"))
     return enabled() and bool(expected) and matches
+
+
+def max_concurrency() -> int:
+    """How many preview requests may run at once — configuration, clamped to what was measured.
+
+    Read per call, like everything else here, so a narrowing takes effect on the next request.
+
+    The clamp has a floor as well as a ceiling. 0 or a negative value would *close* the preview,
+    and closing it is the kill switch's job (`DISABLE_BRAIN_PREVIEW`), not this variable's: two
+    different ways to turn the preview off is one way too many, and an operator who meant to
+    disable it must reach for the switch the runbook names. An unparseable value is the default,
+    for the same reason an unparseable flag is OFF — the dangerous direction of a misread number is
+    the one that lets more work in.
+    """
+    raw = _env(MAX_CONCURRENCY_ENV)
+    try:
+        asked = int(raw)
+    except ValueError:
+        return DEFAULT_MAX_CONCURRENCY
+    return max(1, min(MAX_CONCURRENCY_CEILING, asked))
 
 
 def sizer() -> str:

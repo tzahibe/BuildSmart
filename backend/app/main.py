@@ -22,6 +22,7 @@ from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 
 from app.chat.router import router as chat_router
+from app.demo import preview_isolation
 from app.demo.router import router as demo_router
 from app.design.router import router as design_router
 from app.localities.router import router as localities_router
@@ -114,5 +115,23 @@ def report_failure(body: ClientFailure) -> dict:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict[str, object]:
+    """Liveness, AND what the preview is doing — because the first alone was dishonest (#246).
+
+    #226 found the failure mode: while four brain preview requests saturated the GIL and real
+    requests took up to 16.87 s, `/docs` still answered in **26 ms median over 315 samples**. The
+    event loop was never the thing that was blocked, so every probe stayed green and the alarm that
+    existed to catch exactly this stayed silent. A probe that cannot see the harm suppresses it.
+
+    `preview` is the smallest honest addition: how many preview requests are in flight, what the
+    enforced limit is, and **how long the oldest one has been running** — the number a count alone
+    cannot give, and the one an operator or an alert rule can threshold.
+
+    `status` deliberately stays `"ok"` and the response deliberately stays **200** while the preview
+    is busy. A liveness probe that failed under preview load would hand a supervisor an instruction
+    to restart the process serving production — destroying the traffic the probe exists to protect,
+    for a condition that, after #246, no longer slows that traffic down at all. The honest signal
+    here is the disclosure, not the failure; `docs/reports/architectural-brain/PREVIEW-isolation-proof.md`
+    records that choice as an accepted risk with this reason.
+    """
+    return {"status": "ok", "preview": preview_isolation.occupancy()}

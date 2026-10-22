@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 import pytest
 from fastapi.testclient import TestClient
 
-from app.demo import preview_gate, service as svc
+from app.demo import preview_gate, preview_isolation, service as svc
 from app.observability import failure_log
 from app.demo.router import (
     ENGINE_BRAIN,
@@ -72,7 +72,7 @@ def clean_env(monkeypatch):
     """Nothing about the preview may be inherited from the machine running the tests."""
     for name in (preview_gate.FLAG_ENV, preview_gate.TOKEN_ENV,
                  preview_gate.FAMILIES_ENV, preview_gate.SIZER_ENV,
-                 preview_gate.KILL_FILE_ENV):
+                 preview_gate.KILL_FILE_ENV, preview_gate.MAX_CONCURRENCY_ENV):
         monkeypatch.delenv(name, raising=False)
 
 
@@ -85,7 +85,24 @@ def client(tmp_path, monkeypatch, clean_env):
 
 
 @pytest.fixture()
-def brain_spy(monkeypatch):
+def in_this_process(monkeypatch):
+    """Runs a gated preview request HERE, which is the only way a fake brain can be observed.
+
+    #246 moved a gated preview into a child process so that it cannot take the GIL from the
+    process serving production. A child cannot see a `monkeypatch` of `run_brain`, so without this
+    every test below would reach the real brain and pay a real 30-second solver run — the opposite
+    of what this file is for. The dispatch is swapped for the in-process call it wraps
+    (`_in_this_process`, deliberately the same signature), so what is tested here stays WHICH
+    requests reach the brain. That the real dispatch IS a separate process is proven in
+    `tests/demo/test_brain_preview_concurrency.py` and measured at the process level in
+    `docs/reports/architectural-brain/PREVIEW-isolation-proof.md`.
+    """
+    monkeypatch.setattr(preview_isolation, "_in_child_process",
+                        preview_isolation._in_this_process)
+
+
+@pytest.fixture()
+def brain_spy(monkeypatch, in_this_process):
     """Records every call that reaches the brain, and returns a result with no plans so the
     service answers with its own `BRAIN_NO_PLAN` — proof of arrival that costs no solver time."""
     calls: list[dict] = []
@@ -529,7 +546,8 @@ def test_the_kill_switch_path_is_not_a_place_the_secret_can_be_smuggled_out(clie
 
 
 def test_a_preview_request_is_recorded_once_with_the_facts_an_operator_needs(client, monkeypatch,
-                                                                             caplog):
+                                                                             caplog,
+                                                                             in_this_process):
     """#214 AC-3 on the wire: the line names the engine, the configured sizer and families, and the
     typed refusal — the minimum for "is the preview healthy?"."""
     _open("1", TOKEN, monkeypatch)

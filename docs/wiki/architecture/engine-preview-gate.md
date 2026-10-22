@@ -108,6 +108,43 @@ than silently sizing nothing. **#208's `generator` family took a day-2 gate verd
 not in the allow-list** (`preview_gate.GATE_FAILED_FAMILIES` says so by name), so no environment
 variable can show an owner a plan it made. Widening the set is a code change with a review.
 
+### One preview request at a time, in a process of its own (#246)
+
+A gated preview is not only *authorized* at the gate, it is *admitted*. `preview_isolation.plan_set`
+is the one seam either endpoint runs an engine through, and a gated engine there takes one of
+`preview_gate.max_concurrency()` slots — **1 by default and 1 at most** — and runs in a **child
+process** (`python -m app.demo.preview_isolation`) at +10 niceness. Production and Concept Engine v2
+run where they always ran, in this process, with no admission check and no child.
+
+**Why.** #226 measured production's own latency going 1.65 s quiet → 5.89 s beside two brain
+requests → 9.29 s beside four, worst case 16.87 s, recovering fully afterwards. #246 repeated that
+protocol with a same-session control: the unchanged code moved production's median ×1.98 and its
+worst case ×7.67, and a *single* brain request moved the worst case ×6.04. With the limit and the
+child process production measures **0.337–0.338 s at 0, 2 and 4 requested brain requests** against a
+0.333–0.347 s quiet baseline (`PREVIEW-isolation-proof.md`).
+
+Four properties worth knowing:
+
+- **The primitive is a `threading.Lock` around a counter, not an `asyncio.Semaphore`**, which would
+  have bounded nothing: the route handlers are plain `def`, so Starlette runs them on a worker
+  thread with no event loop, and the streaming endpoint does the work on its own bare thread. Making
+  the handler `async def` to await a semaphore would have put a 30-second solver on the event loop
+  thread.
+- **A second simultaneous request is refused, not queued** — `PREVIEW_BUSY`, HTTP 503,
+  `Retry-After`, measured at 2.5–9 ms. A brain request costs 31.6 s median, so queueing would make
+  the second caller wait up to 49 s before their own work started.
+- **Admission is checked after authorization**, so only an authorized caller can ever see
+  `PREVIEW_BUSY`; with the only slot taken an unauthorized `?engine=brain` still gets the one 422
+  that names no hidden engine. The new code is not a new oracle.
+- **The child is not given `BRAIN_PREVIEW_TOKEN`** — the authorization decision was taken in the
+  parent's request frame and is finished — but it does inherit the rest of the configuration and it
+  calls `log_output.configure()` itself, so #233's one line per request still reaches the server's
+  own output from inside the child.
+
+`BRAIN_PREVIEW_MAX_CONCURRENCY` has the same asymmetry as `BRAIN_PREVIEW_FAMILIES`: it may narrow
+the preview and can never widen it. `0` and a negative value are the default too, because closing
+the preview is the kill switch's job and two ways to turn it off is one way too many.
+
 ## Operating it
 
 **To enable** (owner action; the preview ships off and the owner turns it on):
@@ -142,7 +179,11 @@ state and no grace period. The runbook is `docs/runbooks/brain-preview.md` §3.
   `ALLOWED_FAMILIES`, `GATE_FAILED_FAMILIES`.
 - `app/demo/router.py` — `_resolve_engine`/`EngineChoice` (the single resolution point for both
   endpoints), `_unknown_engine` (the one refusal), the `X-Brain-Preview-Token` header parameter.
+- `app/demo/preview_isolation.py` (#246) — `plan_set` (the one seam either endpoint runs an engine
+  through), `admitted()`, `occupancy()`, `PreviewBusy`, `PreviewProcessError`, `_in_this_process` /
+  `_in_child_process` (deliberately the same signature), and the `__main__` guard the child runs as.
 - `app/demo/service.py` — `_brain_result` reads `preview_gate.sizer()`/`families()`.
+- `app/main.py` — `/health` reports `preview_isolation.occupancy()`.
 - `backend/.env.example` — the variable names, with no values.
 
 ## Tests
@@ -157,6 +198,11 @@ state and no grace period. The runbook is `docs/runbooks/brain-preview.md` §3.
   request-shaped standing in for the header, a runtime flip between two requests in one process,
   production and `concept_engine_v2` untouched, and `generator` absent from what `run_brain` is
   handed even when the environment asks for it.
+- `backend/tests/demo/test_brain_preview_concurrency.py` — #246: two concurrent requests admit
+  exactly one (two real threads, two real children), the ceiling cannot be raised, the slot is
+  released on success/refusal/crash/watchdog, the refusal is typed and reaches the failure log, an
+  unauthorized caller can never see it, production never leaves this process, the child is not given
+  the token, and the real `python -m app.demo.preview_isolation` answers the protocol end to end.
 - `backend/tests/test_engine_preview.py` — the pre-existing per-request-override invariants, still
   green: the global Concept Engine v2 flag is never written.
 
