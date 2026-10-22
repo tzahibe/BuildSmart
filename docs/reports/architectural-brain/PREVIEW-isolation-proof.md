@@ -278,7 +278,33 @@ true — and not for this one.
 
 ---
 
-## 8. Not verified, and not claimed
+## 8. Suites run, verbatim
+
+| suite | result |
+|---|---|
+| `tests/demo/test_brain_preview_concurrency.py` (new) | **36 passed** (3.5 s) |
+| `tests/demo/test_brain_preview_gate.py` | **53 passed** (6.0 s) — the same 53 as #233 |
+| `tests/demo/test_brain_preview_killswitch.py` | **23 passed, 1 skipped** (2.1 s) — the same skip as #231, a `/proc` row macOS answers differently |
+| `tests/vertical_slice/test_brain_fallbacks.py` | **26 passed** (51.7 s) |
+| `tests/test_engine_preview.py` | **13 passed** (4.9 s) |
+| `tests/test_demo_p0.py` | **126 passed** (3:31) |
+| fast suite, `WALLCLOCK_BUDGETS=off … -q -p no:cacheprovider -n 4` | **2593 passed, 884 skipped, 10 xfailed, 0 failed** (6:59) |
+
+2593 is #233's 2557 plus **exactly** the 36 new tests.
+
+**One existing test had to change and it is worth naming.** The full run — not the demo directory —
+caught `tests/test_demo_p0.py::test_a_validation_failure_records_which_checks_failed`, which
+simulated a validation failure by replacing `app.demo.router.generate_demo_design`. The router no
+longer imports that name: it calls `preview_isolation.plan_set`. The double is patched on
+`preview_isolation` instead and asserts exactly what it asserted before. It was the only such double
+in the suite.
+
+**The corpus regression was not run.** It needs `TEST_MODE=REGRESSION` and is the owner's gate on a
+behavioural change; this change is confined to `app/demo/` and `app/main.py`, adds no engine call
+and alters no geometry, and the measurement in §3 recorded the same plan
+(`brain:PUBLIC_BAND+FOYER`) from both trees in every phase. Stated rather than implied.
+
+## 9. Not verified, and not claimed
 
 1. **Why #226 measured one saturated core and this measured two to five** (§4). Both readings are
    reported; the cause is not established. The conclusion does not depend on it, and the
@@ -301,7 +327,7 @@ true — and not for this one.
 
 ---
 
-## 9. Everything this measurement started, and that it is gone
+## 10. Everything this measurement started, and that it is gone
 
 * **The live server (pid 79460, port 8000) was never touched.** Confirmed still running at
   **0.0 % CPU**, up 27 days, from its own checkout `/Users/mymacbook/projects/sddproject/backend` —
