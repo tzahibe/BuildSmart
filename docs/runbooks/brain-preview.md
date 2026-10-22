@@ -53,6 +53,7 @@ Optional, and only ever *narrowing*:
 | `BRAIN_PREVIEW_FAMILIES` | `band,spine,stack,cells` | comma-separated. A name outside the allow-list is **dropped**, not honoured. Narrow to `band` to make the preview cheaper. |
 | `BRAIN_PREVIEW_SIZER` | `exact` | `production` turns the brain's own sizer off while keeping its concepts. |
 | `BRAIN_PREVIEW_KILL_FILE` | unset | an **extra** path whose existence closes the preview. Only for a host where `backend/` is not writable; `backend/DISABLE_BRAIN_PREVIEW` works whatever this says. See §3. |
+| `BRAIN_PREVIEW_MAX_CONCURRENCY` | `1` | how many preview requests may run **at once**. 1 is also the **maximum**: anything higher is clamped to 1, and `0` or a negative value is treated as 1 because closing the preview is §3's job, not this variable's. See §5, "The concurrency limit". |
 
 **Prefer `backend/.env` to your shell.** A variable exported in the shell that started the server
 **cannot be removed without stopping the process** — a process's environment cannot be changed from
@@ -270,9 +271,50 @@ predates #233 a silent log means nothing at all, and Verify step 3 cannot be don
 | `code` | present at all; the request returned no plan |
 | `plans` | `1` where you expect several — the partis are converging on one geometry |
 
+Two more signals live on `GET /health`, which since #246 reports what the preview is doing:
+
+```bash
+curl -s http://HOST:8000/health
+{"status":"ok","preview":{"in_flight":1,"limit":1,"slots_free":0,"oldest_running_s":6.009}}
+```
+
+| field | watch for |
+|---|---|
+| `preview.oldest_running_s` | **above ~60** — a preview request has been running far longer than the 26–33 s a real one costs, and it is holding the only slot. Close the preview (§3) and report it. |
+| `preview.in_flight` | `1` for a long stretch while nobody is using the preview on purpose |
+| `preview.limit` | anything other than `1`; it cannot be raised, so a different number means a different build |
+
+**`status` stays `"ok"` and the response stays 200 even while the preview is busy, on purpose.** A
+liveness probe that went red here would tell a supervisor to restart the process serving
+production, which is the traffic the probe exists to protect — and since #246 a busy preview does
+not slow production down at all. The honest part is the three numbers above, not a red light. This
+is recorded as an accepted risk in `PREVIEW-isolation-proof.md` §6: **nothing raises an alarm for
+you**, so if you want one, threshold `oldest_running_s`.
+
 Refusals also land in the product's failure log (`backend/app/data/failures.json`, summary via
 `failure_log.summary()`), now with an `engine` field, so a preview refusal can be told apart from a
 production one.
+
+### The concurrency limit
+
+**One preview request runs at a time, and the second one is refused.** Not advice — it is enforced
+in the server (`app/demo/preview_isolation.py`, #246) and `BRAIN_PREVIEW_MAX_CONCURRENCY` cannot
+raise it. #226 measured production's own latency going from 1.65 s quiet to 5.89 s beside two brain
+requests and 9.29 s beside four, and measured no value above 1 as safe; the variable exists so a
+deployment can *narrow* the preview, never widen it.
+
+Two consequences an operator should expect rather than report:
+
+- **A second person asking for a preview at the same moment gets HTTP 503 `PREVIEW_BUSY` in a few
+  milliseconds.** They retry. This is better than the alternative: queueing would make them wait up
+  to 49 s before their own work even started.
+- **The preview now runs in its own child process**, visible as `python -m
+  app.demo.preview_isolation` in `ps`, at 10 higher niceness than the server. It appears when a
+  preview request starts and exits when it finishes. One of them at a time is normal; **two at once
+  is not**, and would mean the limit is not working — report it.
+
+The preview's one log line per request is written by that child and still lands in the server's own
+output, so Verify step 3 works exactly as described above.
 
 ### The typed failures, and the action for each
 
@@ -287,9 +329,11 @@ production one.
 | `exact_refusal=EMBEDDING_SEARCH_EXHAUSTED` | the embedder's node bound stopped the search. **Not** a proof of impossibility. | Nothing to do operationally; report the brief if its plans look impoverished. |
 | `exact_refusal=INVALID_INPUT` | a malformed parti (an edge naming a room that is not in the programme, a self-adjacency). | **Report it** — this is a defect in the proposer, not a configuration problem. |
 | `code=BRAIN_NO_PLAN` + HTTP **422** | no parti produced a plan at all. The response's `detail` leads with the exact sizer's code and then names each parti, its stage and its reason. The failure log has the whole brief. | Read the first code in `detail`: if it is `EXACT_SIZER_UNAVAILABLE`, see row 1 — the real cause is the environment. Otherwise it is a brief the brain cannot plan; production's own engine is unaffected and can still serve it (just omit `?engine=brain`). |
+| HTTP **503** `code=PREVIEW_BUSY` | **somebody else's preview request is already running.** The preview serves exactly one request at a time (#246), and a second one is refused immediately rather than queued — a 30-second wait behind another request is itself a bad answer. `detail` names the limit and how long the request ahead has been running, and `Retry-After` says when to come back. | Wait for it, and retry. Nothing is wrong. Two people cannot compare the preview at the same moment, which is deliberate: #226 measured that two concurrent brain requests change the plan the product shows. If it persists with nobody else using the preview, check `/health`'s `preview.oldest_running_s` — see the table above. |
 | HTTP **422** `unknown engine 'brain'` when you expected 200 | the preview is **closed**: the kill switch is on, or the flag is off, or the token is missing/wrong/stale. Indistinguishable, on purpose, from an engine that does not exist. | First `ls backend/DISABLE_BRAIN_PREVIEW` — somebody closed the preview, or a crashed run left the file behind. Then re-do §1, and check the `pid` changed after the `touch`. |
 | HTTP **500** | a defect. The failure log has the traceback (under `exception.traceback`) and, **if the request got as far as resolving an engine**, an `engine` field naming the preview — a crash before that, e.g. on a stored project that no longer validates, has no `engine` and the `where` field is what identifies it. The traceback is also in the server's own output, as uvicorn's `ERROR: Exception in ASGI application`. | Close the preview (§3) and report with the failure-log entry. |
-| a slow request | the preview's budget is **30 s of wall clock by design**, against production's sub-second path. | Not a defect by itself. Latency, CPU and concurrency are measured in Issue #226, not here — do not draw conclusions from a stopwatch on a busy host. |
+| a slow request | **measured** (#226): a brain request costs **31.6 s median and 48.9 s max**, against production's 1.38 s median. The stated 30 s budget bounds one stage, not the request — `budget_s=0.2` still cost 23.0 s on one brief and 34.8 s on another. | Not a defect by itself; this is what a preview request costs. A bound on the whole request is Issue **#247** and is not in the server you are running unless that has merged. Do not draw conclusions from a stopwatch on a busy host. |
+| **production** feeling slow while the preview is in use | **measured, and closed** (#246). It used to be real: with the preview in the server's own process, production's median went 1.65 s quiet → 5.89 s beside two brain requests → 9.29 s beside four, worst case 16.87 s, recovering fully afterwards. The preview now runs in a **child process** at +10 niceness with a concurrency limit of **1**, and production measured **0.337–0.338 s at 0, 2 and 4 requested brain requests** against a 0.333–0.347 s quiet baseline. | Nothing, if the server's code has `backend/app/demo/preview_isolation.py`. **If that file is missing, this server predates #246** and a preview request can still slow production down by a factor of two to six — do not run the preview beside traffic anybody is using. Evidence both ways: `PREVIEW-isolation-proof.md`. |
 
 ### Never do these
 
@@ -309,6 +353,7 @@ production one.
 |---|---|
 | the gate | `backend/app/demo/preview_gate.py` |
 | the one call site | `backend/app/demo/router.py::_resolve_engine` |
+| the concurrency limit and the child process | `backend/app/demo/preview_isolation.py` (#246) |
 | the brain | `backend/app/vertical_slice/brain/` (`runner.py`, `exact_pipeline.py`) |
 | the preview's log line | `backend/app/observability/preview_log.py` |
 | what makes it reach the output | `backend/app/observability/log_output.py` (#233) |
@@ -318,3 +363,4 @@ production one.
 | the variables, with empty values | `backend/.env.example` |
 | the kill switch's own evidence, on a running server | `docs/reports/architectural-brain/PREVIEW-killswitch-proof.md` |
 | the four operational signals, at the process level | `docs/reports/architectural-brain/PREVIEW-logging-proof.md` (#233) |
+| that the preview cannot slow production down, measured with a control | `docs/reports/architectural-brain/PREVIEW-isolation-proof.md` (#246) |
