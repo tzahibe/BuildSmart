@@ -1934,13 +1934,16 @@ def test_a_validation_failure_records_which_checks_failed(client):
                                                            "detail": "HALL-KITCHEN"}],
                                         "checks_run": ["C1", "C13"]}})
 
-    import app.demo.router as demo_router
-    original = demo_router.generate_demo_design
-    demo_router.generate_demo_design = failing
+    # Patched on `preview_isolation`, which is where the router reaches the engine since #246:
+    # `plan_set` is the one seam either endpoint runs an engine through, and production still runs
+    # in this process. The router itself no longer holds the name.
+    from app.demo import preview_isolation
+    original = preview_isolation.generate_demo_design
+    preview_isolation.generate_demo_design = failing
     try:
         assert client.post(f"/projects/{project_id}/design/demo").status_code == 422
     finally:
-        demo_router.generate_demo_design = original
+        preview_isolation.generate_demo_design = original
         service.generate_demo_design = real
 
     entry = failure_log.read_all()[-1]
