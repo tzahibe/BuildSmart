@@ -1,0 +1,100 @@
+{
+  "shape": "enforced",
+  "cpu_count": 10,
+  "load_average_before": [
+    3.57,
+    3.56,
+    3.9
+  ],
+  "load_average_after": [
+    3.54,
+    3.53,
+    3.85
+  ],
+  "production_refuses_brain": {
+    "started": 3342977.617060125,
+    "seconds": 0.007,
+    "status": 422,
+    "code": null
+  },
+  "phases": [
+    {
+      "concurrent_brain_requests": 0,
+      "wall_seconds": 16.4,
+      "production": {
+        "n": 10,
+        "median": 1.637,
+        "worst": 1.674,
+        "best": 1.626,
+        "non_200": 0
+      },
+      "health": {
+        "n": 13,
+        "median": 0.202,
+        "worst": 0.265,
+        "best": 0.008,
+        "non_200": 0
+      },
+      "brain": []
+    },
+    {
+      "concurrent_brain_requests": 4,
+      "wall_seconds": 49.1,
+      "production": {
+        "n": 29,
+        "median": 1.634,
+        "worst": 1.707,
+        "best": 1.621,
+        "non_200": 0
+      },
+      "health": {
+        "n": 38,
+        "median": 0.19,
+        "worst": 0.331,
+        "best": 0.008,
+        "non_200": 0
+      },
+      "brain": [
+        {
+          "seconds": 0.018,
+          "status": 429,
+          "code": "BRAIN_PREVIEW_BUSY"
+        },
+        {
+          "seconds": 0.019,
+          "status": 429,
+          "code": "BRAIN_PREVIEW_BUSY"
+        },
+        {
+          "seconds": 0.019,
+          "status": 429,
+          "code": "BRAIN_PREVIEW_BUSY"
+        },
+        {
+          "seconds": 47.822,
+          "status": 200,
+          "code": null
+        }
+      ]
+    },
+    {
+      "concurrent_brain_requests": 0,
+      "wall_seconds": 16.3,
+      "production": {
+        "n": 10,
+        "median": 1.631,
+        "worst": 1.667,
+        "best": 1.622,
+        "non_200": 0
+      },
+      "health": {
+        "n": 13,
+        "median": 0.183,
+        "worst": 0.325,
+        "best": 0.007,
+        "non_200": 0
+      },
+      "brain": []
+    }
+  ]
+}

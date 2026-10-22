@@ -1,0 +1,125 @@
+{
+  "shape": "single",
+  "cpu_count": 10,
+  "load_average_before": [
+    2.04,
+    3.32,
+    4.34
+  ],
+  "load_average_after": [
+    3.73,
+    3.28,
+    3.95
+  ],
+  "production_refuses_brain": null,
+  "phases": [
+    {
+      "concurrent_brain_requests": 0,
+      "wall_seconds": 16.9,
+      "production": {
+        "n": 10,
+        "median": 1.636,
+        "worst": 1.796,
+        "best": 1.631,
+        "non_200": 0
+      },
+      "health": {
+        "n": 13,
+        "median": 0.307,
+        "worst": 0.387,
+        "best": 0.006,
+        "non_200": 0
+      },
+      "brain": []
+    },
+    {
+      "concurrent_brain_requests": 2,
+      "wall_seconds": 113.1,
+      "production": {
+        "n": 15,
+        "median": 6.838,
+        "worst": 26.078,
+        "best": 1.643,
+        "non_200": 0
+      },
+      "health": {
+        "n": 76,
+        "median": 0.376,
+        "worst": 0.921,
+        "best": 0.043,
+        "non_200": 0
+      },
+      "brain": [
+        {
+          "seconds": 71.898,
+          "status": 200,
+          "code": null
+        },
+        {
+          "seconds": 110.455,
+          "status": 200,
+          "code": null
+        }
+      ]
+    },
+    {
+      "concurrent_brain_requests": 4,
+      "wall_seconds": 148.2,
+      "production": {
+        "n": 13,
+        "median": 7.084,
+        "worst": 26.619,
+        "best": 1.666,
+        "non_200": 0
+      },
+      "health": {
+        "n": 95,
+        "median": 0.424,
+        "worst": 1.117,
+        "best": 0.061,
+        "non_200": 0
+      },
+      "brain": [
+        {
+          "seconds": 51.045,
+          "status": 200,
+          "code": null
+        },
+        {
+          "seconds": 110.936,
+          "status": 200,
+          "code": null
+        },
+        {
+          "seconds": 112.501,
+          "status": 200,
+          "code": null
+        },
+        {
+          "seconds": 145.487,
+          "status": 200,
+          "code": null
+        }
+      ]
+    },
+    {
+      "concurrent_brain_requests": 0,
+      "wall_seconds": 17.1,
+      "production": {
+        "n": 10,
+        "median": 1.654,
+        "worst": 1.701,
+        "best": 1.646,
+        "non_200": 0
+      },
+      "health": {
+        "n": 12,
+        "median": 0.399,
+        "worst": 0.498,
+        "best": 0.007,
+        "non_200": 0
+      },
+      "brain": []
+    }
+  ]
+}
