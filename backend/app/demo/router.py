@@ -28,10 +28,10 @@ from app.projects.models import (
 from app.projects.routes import base_routes as project_routes
 from app.vertical_slice.general_pipeline import PIPELINE_STAGES
 
-from . import preview_gate, site_geometry
+from . import preview_gate, preview_isolation, site_geometry
 from .contract import DemoPlanSet
 from .requirements_view import RequirementsReview, ReviewEdit, review_of
-from .service import DemoGenerationError, generate_demo_design
+from .service import DemoGenerationError
 
 
 def _sse(event: str, payload: dict) -> str:
@@ -294,7 +294,6 @@ def generate_demo_plan_streaming(
     # resolved HERE, in the request frame: a bad value must be a 422 on the request, not an error
     # event inside a stream that has already started.
     choice = _resolve_engine(engine, x_brain_preview_token)
-    override, brain, rear_band = choice.concept_engine_v2, choice.brain, choice.rear_band
     total = len(PIPELINE_STAGES)
     labels = dict(PIPELINE_STAGES)
     order = {name: i for i, (name, _) in enumerate(PIPELINE_STAGES)}
@@ -311,13 +310,11 @@ def generate_demo_plan_streaming(
 
         def run() -> None:
             try:
-                result = generate_demo_design(project, on_stage=updates.put,
-                                              concept_engine_v2=override, brain=brain,
-                                              rear_band_preview=rear_band)
-                outcome["value"] = DemoPlanSet(plan=result.design,
-                                               alternatives=list(result.alternatives),
-                                               search=result.search,
-                                               building=result.building)
+                # The ONE seam either endpoint runs an engine through (#246). A gated preview takes
+                # the single admission slot and runs in a child process; production and Concept
+                # Engine v2 run here, exactly where they ran before.
+                outcome["value"] = preview_isolation.plan_set(project, choice,
+                                                              on_stage=updates.put)
             except DemoGenerationError as error:
                 outcome["error"] = error
                 failure_log.refusal(error.code, error.message, error.detail,
@@ -367,11 +364,7 @@ def generate_demo_plan(project_id: str, request: Request,
     # costs no generation at all.
     choice = _resolve_engine(engine, x_brain_preview_token)
     try:
-        result = generate_demo_design(project, concept_engine_v2=choice.concept_engine_v2,
-                                      brain=choice.brain,
-                                      rear_band_preview=choice.rear_band)
-        return DemoPlanSet(plan=result.design, alternatives=list(result.alternatives),
-                           search=result.search, building=result.building)
+        return preview_isolation.plan_set(project, choice)
     except DemoGenerationError as error:
         # Recorded HERE rather than only in the generic handler, because this is the failure that
         # matters most — somebody who described a house and did not get a drawing — and only this
@@ -383,9 +376,15 @@ def generate_demo_plan(project_id: str, request: Request,
         # Tell the generic handler this one is already in the log WITH its context, so the same
         # failure is not counted twice — once richly here and once bare there.
         request.state.failure_recorded = True
+        # 422 for every refusal about the BRIEF, and whatever the error itself says otherwise. Only
+        # `preview_isolation.PreviewBusy` differs today (503 + `Retry-After`): "another preview
+        # request is already running" is a statement about the server's capacity, not a verdict on
+        # the house, and a client can act on the retry without reading the Hebrew message.
+        retry_after = getattr(error, "retry_after", None)
         raise HTTPException(
-            status_code=422,
+            status_code=getattr(error, "http_status", 422),
             detail={"code": error.code, "message": error.message, "detail": error.detail},
+            headers={"Retry-After": str(retry_after)} if retry_after else None,
         )
 
 
