@@ -21,6 +21,7 @@ from app.vertical_slice.band_pipeline import (
     run_band_pipeline,
 )
 from app.vertical_slice.brain.area import AREA_TOLERANCE, AreaVerdict, assess_area
+from app.vertical_slice.brain.budget import RequestBudget
 from app.vertical_slice.brain.proposer import (
     AREA_BAND,
     HALL_CEILING_M2,
@@ -98,6 +99,14 @@ class BrainResult:
     brief: str
     plans: list[BrainPlan] = field(default_factory=list)
     seconds: float = 0.0
+    #: What the request budget refused to START, as sentences (`RequestBudget.notes`). Empty when
+    #: the request finished inside its budget. These belong to the REQUEST, not to one plan, so
+    #: they are carried here and the payload attaches them to every plan it returns — a response
+    #: that is smaller because time ran out has to say so rather than quietly be smaller (#247).
+    notes: tuple[str, ...] = ()
+    #: `True` when the budget expired before every stage had run. The response is still a 200 with
+    #: a production-sized plan set; expiry is not an error, and only a genuine no-plan is.
+    budget_expired: bool = False
 
     @property
     def accepted(self) -> list[BrainPlan]:
@@ -317,14 +326,14 @@ SECOND_CORRIDOR_TARGET_M2 = 7.0
 
 
 def _pipeline(prop: TopologyProposal, zones: dict, p: Programme,
-              max_candidates: int, max_realizations: int):
+              max_candidates: int, max_realizations: int, budget=None):
     return run_band_pipeline(PipelineInput(
         name=prop.name, zones=zones,
         required_edges=tuple(prop.spatial), footprint_m=p.footprint_m,
         wet_rooms=p.resolved_wet,
         access_edges=tuple((a, b) for a, b in prop.access if a != "ENTRANCE")),
         max_candidates=max_candidates, max_realizations=max_realizations,
-        prefer=_preference(prop, zones, p))
+        prefer=_preference(prop, zones, p), budget=budget)
 
 
 def _needs_more_room(out) -> bool:
@@ -380,20 +389,61 @@ def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
               proposer=None, max_candidates: int = 80,
               max_realizations: int = MAX_REALIZATIONS_PREFERRED,
               sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
-              budget_s: float = REQUEST_BUDGET_S, exact_top: int = EXACT_TOP) -> BrainResult:
+              budget_s: float = REQUEST_BUDGET_S, exact_top: int = EXACT_TOP,
+              request_started: float | None = None,
+              exact_stage_budget_s: float = REQUEST_BUDGET_S) -> BrainResult:
+    """`budget_s` bounds the WHOLE request, not one stage of it (#247).
+
+    `request_started` is the `time.monotonic()` instant the REQUEST began, which is earlier than
+    this call: a brain request first runs production's own outline search and selection, and the
+    brain is handed the outline that came out of it. Passing it puts that prefix inside the
+    accounting, which is the only way the stated number can describe what a caller waits. It
+    defaults to now, so a direct caller of `run_brain` budgets `run_brain`.
+
+    THE FLOOR, and it is the honest part of this. The budget may not empty the result, so the
+    partis are sized with NO deadline until one of them produces a plan that counts, and only the
+    partis after that one are bounded. A brief therefore always gets at least the first plan it
+    would have got before #247, however small the budget — and a request whose budget is smaller
+    than that first plan costs will overrun it by exactly that, which is measured and stated rather
+    than hidden. What a small budget gives up is the partis after the first, which are the
+    ALTERNATIVES the response offers; the request says so in `notes`.
+
+    A brief the brain cannot plan at all is the one path this does not bound to `budget_s`: with no
+    counting plan the floor never lifts, so every parti is tried. That path returns `BRAIN_NO_PLAN`,
+    the genuine no-plan refusal, and it is bounded by the proposer's parti count instead.
+
+    `exact_stage_budget_s` IS NOT A SECOND BUDGET and exists so that this Issue changes no plan.
+    The exact sizer's share has always been `REQUEST_BUDGET_S` measured from THIS call, and #205,
+    #207, #216 and #204's gate figures were all calibrated against that share. Widening the request
+    would widen it too and buy exact plans that replace production's — a primary-signature change
+    this Issue is not allowed to make — and narrowing the request would starve it. So the exact
+    stage keeps its own instant, `t0 + exact_stage_budget_s`, capped by the request deadline, and a
+    caller that passes neither gets byte-identical behaviour because the two coincide.
+    """
     t0 = time.monotonic()
+    budget = RequestBudget(budget_s=budget_s,
+                          started=request_started if request_started is not None else t0)
+    exact_deadline = t0 + exact_stage_budget_s
     programme = programme_from_spec(spec, footprint_m)
     proposals = (proposer or DeterministicProposer()).propose(programme)
     result = BrainResult(brief=brief)
-    deadline = t0 + budget_s
     # 1. production sizes every parti — the ranking, and the plan the exact sizer must beat
-    for prop in proposals:
-        result.plans.append(_one(prop, programme, max_candidates, max_realizations))
+    for n, prop in enumerate(proposals):
+        floor_met = any(pl.counts for pl in result.plans)
+        if floor_met and budget.expired():
+            budget.gave_up(f"{len(proposals) - n} of {len(proposals)} partis were not sized, "
+                           f"so the request offers fewer alternatives")
+            break
+        result.plans.append(_one(prop, programme, max_candidates, max_realizations,
+                                 budget=budget if floor_met else None))
     _rank(result, proposals, programme)
     if sizer == SIZER_EXACT:
         _improve_exactly(result, proposals, programme, max_candidates, max_realizations,
-                         families=families, deadline=deadline, top=exact_top)
+                         families=families, budget=budget, top=exact_top,
+                         exact_deadline=exact_deadline)
         _rank(result, proposals, programme)
+    result.notes = budget.notes()
+    result.budget_expired = bool(budget.given_up)
     result.seconds = round(time.monotonic() - t0, 3)
     return result
 
@@ -432,7 +482,8 @@ def _decided_by(a: tuple, b: tuple) -> str:
 
 
 def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidates: int,
-                     max_realizations: int, *, families, deadline: float, top: int) -> None:
+                     max_realizations: int, *, families, budget: RequestBudget, top: int,
+                     exact_deadline: float) -> None:
     """2. the exact sizer, on the best-ranked partis, with the whole remaining budget.
 
     Order: partis production planned, best preference key first; then partis production could not
@@ -443,14 +494,30 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
                     key=lambda i: result.plans[i].rank_key)
     ranked += [i for i, pl in enumerate(result.plans) if not pl.counts and pl.stage != "CRITIC"]
     for n, i in enumerate(ranked):
-        remaining = deadline - time.monotonic()
+        # the SMALLER of what the request has left and what this stage's own share has left, so a
+        # wider request budget can never buy the exact sizer more search than it had before #247
+        remaining = min(budget.left(), exact_deadline - time.monotonic())
         if n < top:
             share = remaining / (top - n)             # the top partis divide the budget
         elif remaining >= EXACT_EXTRA_MIN_S:
             share = remaining                         # a small brief finished early: keep improving
         else:
+            # Only the REQUEST running out is a request-budget note. This stage exhausting its own
+            # `exact_stage_budget_s` is the behaviour that existed before #247 and is already
+            # reported by `run_exact_pipeline`'s own warnings — claiming the request budget ran out
+            # when it has 9,970 s left would be a false sentence on a true plan.
+            if budget.expired():
+                budget.gave_up(f"the exact sizer was not run on the last {len(ranked) - n} parti(s)")
             break
         if share <= 0:
+            # Nothing is left of the request, so the exact sizer does not start. This is the path
+            # #226 measured as silent: with `budget_s=0.2` the loop broke here and the response
+            # said nothing about an exact sizer that had never run, while still costing 23-35 s in
+            # the stages above. It now says so, and the plans are production's, which is what the
+            # typed fallback has always returned on expiry — a 200, never an error.
+            if budget.expired():
+                budget.gave_up(f"the exact sizer did not run on any of the {len(ranked)} ranked "
+                               f"parti(s); every plan is production-sized")
             break
         prod, prop = result.plans[i], proposals[i]
         exact = _one(prop, p, max_candidates, max_realizations, sizer=SIZER_EXACT, families=families,
@@ -482,10 +549,15 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
 
 def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
          max_realizations: int, *, sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
-         deadline: float | None = None, fallback: bool = True) -> BrainPlan:
+         deadline: float | None = None, fallback: bool = True, budget=None) -> BrainPlan:
     """One parti to geometry. `fallback=False` returns the exact sizer's refusal as a plan that did
     not realize (stage UNAVAILABLE / SIZING ...) instead of running the production sizer after it —
-    `_improve_exactly` already holds production's plan for that parti."""
+    `_improve_exactly` already holds production's plan for that parti.
+
+    `budget` (#247) is the request's `RequestBudget`, or `None` to read no clock. `run_brain` passes
+    it only for the partis AFTER the one that met the floor, so the plan a brief would have got
+    before #247 is never the one a deadline cuts. Inside, it bounds the production sizer's two
+    candidate loops and the widening ladder below."""
     t0 = time.monotonic()
     zones = {z: p.zones[z] for z in prop.rooms if z in p.zones}
     missing = [z for z in prop.rooms if z not in p.zones]
@@ -546,12 +618,21 @@ def _one(prop: TopologyProposal, p: Programme, max_candidates: int,
                                  seconds=round(time.monotonic() - t0, 3), sizer=SIZER_PRODUCTION, notes=notes)
             out = None
     if out is None:
-        out = _pipeline(prop, zones, p, max_candidates, max_realizations)
-        for rung in AREA_BAND_LADDER[1:]:
+        out = _pipeline(prop, zones, p, max_candidates, max_realizations, budget)
+        for n, rung in enumerate(AREA_BAND_LADDER[1:]):
             if not _needs_more_room(out):
                 break
+            # A looser rung is this parti's only remaining chance of a plan, so cutting it costs a
+            # plan rather than a quality search. `run_brain` has already decided that is allowed
+            # here — it passes a budget only once another parti counts — so the rung is skipped and
+            # named, never cancelled half way through.
+            if budget is not None and budget.expired():
+                budget.gave_up(f"{len(AREA_BAND_LADDER) - 1 - n} widening rung(s) were not tried "
+                               f"for {prop.name}")
+                break
             band = rung
-            out = _pipeline(prop, _rebanded(zones, p, rung), p, max_candidates, max_realizations)
+            out = _pipeline(prop, _rebanded(zones, p, rung), p, max_candidates, max_realizations,
+                            budget)
     secs = round(time.monotonic() - t0, 3)
     if not isinstance(out, PipelineSuccess):
         return BrainPlan(prop.name, prop.rationale, False,

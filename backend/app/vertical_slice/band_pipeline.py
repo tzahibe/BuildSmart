@@ -367,7 +367,7 @@ def _success(res: RealizedLayout, sized: BandPlacement, idx: int, records: list,
 def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_CANDIDATES,
                       max_realizations: int = DEFAULT_MAX_REALIZATIONS,
                       embed_node_limit: int | None = None,
-                      prefer=None) -> PipelineSuccess | PipelineDiagnosis:
+                      prefer=None, budget=None) -> PipelineSuccess | PipelineDiagnosis:
     """`prefer` (Issue #197) — an OPTIONAL architectural preference over the candidates that pass.
 
     Without it the behaviour is exactly what it always was: candidates are realized in the
@@ -381,6 +381,28 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
     `prefer(realized, placement, inp) -> sortable key` (lower is better) makes every accepted
     candidate comparable instead. Passing it costs latency — the loop no longer stops at the first
     success — and changes nothing for a caller that does not pass it.
+
+    `budget` (#247) — an OPTIONAL `brain.budget.RequestBudget` whose deadline bounds the two loops
+    below. `None`, which is what production passes and what every caller passed before #247, reads
+    no clock and behaves byte for byte as before.
+
+    What the deadline may and may NOT cut is the whole correctness of it, because the latency it
+    bounds was bought with candidates:
+
+    * It never cuts work that could produce this parti's FIRST plan. The sizing loop runs until at
+      least one candidate is sizable whatever the clock says, and the realization loop runs until at
+      least one candidate is accepted. A deadline that could empty the result would trade a slow
+      plan for no plan, which is the one fix this Issue was told not to reach for.
+    * Past that floor it cuts the PREFERENCE SEARCH — the extra candidates `prefer` compares in
+      order to choose a better one. That is exactly the latency #197 bought knowingly ("passing it
+      costs latency — the loop no longer stops at the first success"), so giving it back under time
+      pressure returns this parti to the pre-#197 first-accepted behaviour rather than to nothing.
+    * It is asked BEFORE a candidate is started and never during one, so the pipeline may overrun
+      by the duration of the last sizing or realization it had already begun. Nothing is cancelled
+      in flight.
+
+    Whatever it cuts is named in the returned `warnings`, and the budget records it too, so the
+    response can say what did not run instead of quietly being smaller.
     """
     t0 = time.monotonic()
     warnings = input_warnings(inp)
@@ -414,7 +436,16 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
     funnel: Counter = Counter(candidates=len(emb.candidates))
     # stage 1 — SELECTION (placement only) + door-aware exact sizing; stage 2 — realize in order
     sizable: list[tuple[int, BandPlacement, CandidateRecord, object, bool]] = []
+    #: candidates never screened/sized, and candidates never realized, because the budget expired
+    unscreened = unrealized = 0
     for idx, placement in enumerate(emb.candidates):
+        # THE FLOOR, stated once: `sizable` must hold something before the clock may stop this
+        # loop, and it must hold `max_realizations` of them before stopping costs anything at all
+        # — everything past that index is already recorded NOT_REALIZED_BUDGET below and never
+        # realized, so cutting it removes wasted work, not a candidate.
+        if budget is not None and len(sizable) >= max_realizations and budget.expired():
+            unscreened = len(emb.candidates) - idx
+            break
         flags = placement_flags(placement, inp.zones, inp.wet_rooms, access)
         rec = CandidateRecord(idx, len(placement.rows), placement.n_cols, "EMBEDDING", flags=flags)
         rejected = hard_rejections(flags)
@@ -459,7 +490,14 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
             funnel["sized"] += 1
             sizable.append((idx, pl, prec, sz, oriented_flag))
     best: tuple | None = None                       # (key, idx, realized, sized, oriented) when `prefer`
-    for idx, placement, rec, sz, oriented_flag in sizable[:max_realizations]:
+    realizable = sizable[:max_realizations]
+    for n, (idx, placement, rec, sz, oriented_flag) in enumerate(realizable):
+        # Past the deadline, keep the plan already in hand and stop comparing further candidates to
+        # it (see the contract above). `best is not None` is the floor: with nothing accepted yet
+        # this parti has no plan, so the loop runs on regardless of the clock.
+        if budget is not None and best is not None and budget.expired():
+            unrealized = len(realizable) - n
+            break
         # the solved interleaving becomes the GridWing's columns; the wing tiles exactly the solved size
         W_m = round(sum(sz.col_w_u) * 0.05, 2); H_m = round(sum(sz.row_h_u) * 0.05, 2)
         sized = BandPlacement(sz.rows, sz.n_cols, placement.score, placement.bands)
@@ -492,6 +530,15 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
         rec.stage_reached = "SIZING"; rec.refusal = "NOT_REALIZED_BUDGET"
         hist["REALIZATION"]["NOT_REALIZED_BUDGET"] += 1
         records.append(rec)
+    if unscreened or unrealized:
+        what = " and ".join(
+            p for p in ((f"{unscreened} candidate(s) were not sized" if unscreened else ""),
+                        (f"{unrealized} sized candidate(s) were not realized" if unrealized else ""))
+            if p)
+        warnings = (*warnings, f"request budget reached: {what} for {inp.name}")   # the REQUEST's
+        if budget is not None:
+            budget.gave_up(what + f" for {inp.name}")
+
     if best is not None:                             # `prefer` compared every accepted candidate
         _key, idx, res, sized, oriented = best
         return _success(res, sized, idx, records, inp, warnings, t0, oriented, funnel)

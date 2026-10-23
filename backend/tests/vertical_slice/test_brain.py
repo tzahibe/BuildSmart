@@ -81,9 +81,18 @@ def test_a_door_is_never_declared_without_a_contact_to_carry_it():
 
 # ------------------------------------------------------------- the delivered plans count
 
+#: What these tests assert is what the brain CAN PLAN, so they must not also be a stopwatch. #247
+#: made `budget_s` a real bound on the parti loop, and B16's loop legitimately needs more than the
+#: 30 s default on a loaded machine: the test failed with "4 of 10 partis were not sized" at a
+#: 1-minute load average of 10. Pinning a budget none of these briefs can exhaust keeps the
+#: assertion about planning, exactly as it was when the loop read no clock at all. The bound itself
+#: is asserted in `test_brain_request_bound.py`, by counting what it refused rather than by timing.
+NO_BUDGET_BOUND_S = 10_000.0
+
+
 @pytest.mark.parametrize("bid", [SMALL, MEDIUM, LARGE])
 def test_the_brain_delivers_at_least_two_genuinely_distinct_plans(bid):
-    res = run_brain(*_spec_and_footprint(bid), brief=bid)
+    res = run_brain(*_spec_and_footprint(bid), brief=bid, budget_s=NO_BUDGET_BOUND_S)
     assert len(res.distinct) >= 2, [f"{p.parti}:{p.stage}:{p.reason[:60]}" for p in res.plans]
 
 
@@ -116,8 +125,11 @@ def test_a_failing_parti_is_reported_not_silently_dropped():
 
 
 def test_the_brain_is_deterministic():
-    a = run_brain(*_spec_and_footprint(MEDIUM), brief=MEDIUM)
-    b = run_brain(*_spec_and_footprint(MEDIUM), brief=MEDIUM)
+    # A wall-clock bound makes determinism conditional on timing BY CONSTRUCTION — two runs that
+    # expire at different partis are legitimately different — so the budget is pinned and what is
+    # asserted stays what it was: the PLANNING is deterministic (#247).
+    a = run_brain(*_spec_and_footprint(MEDIUM), brief=MEDIUM, budget_s=NO_BUDGET_BOUND_S)
+    b = run_brain(*_spec_and_footprint(MEDIUM), brief=MEDIUM, budget_s=NO_BUDGET_BOUND_S)
     assert [p.geometry_signature for p in a.distinct] == [p.geometry_signature for p in b.distinct]
 
 

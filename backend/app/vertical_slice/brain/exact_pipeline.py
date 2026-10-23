@@ -365,7 +365,10 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
 
     secs = round(time.monotonic() - t0, 3)
     if out_of_time():
-        warnings.append(f"request budget reached after {secs} s; later candidates and families were not sized")
+        # NOT "request budget" (#247): this is the share THIS STAGE was given, which runs out on a
+        # normal 30 s request with 9,970 s of a long request budget still left. Two different
+        # budgets reading the same sentence is what made #226's measurement hard to attribute.
+        warnings.append(f"exact-sizer budget reached after {secs} s; later candidates and families were not sized")
     if best is None:
         if tried == 0 and unknown and unknown == sum(histogram.get("SIZING", {}).values()):
             return PipelineDiagnosis("EXACT_SIZER_UNKNOWN", "SIZING", "every exact solve hit its time limit",
