@@ -1055,6 +1055,10 @@ class Orchestrator:
         if pr.get("merged"):
             self._set_state(self.store, rec.issue_id, sm.BLOCKED, note="PR merged outside the workflow", failure_class="EXTERNAL_MERGE")
             return "CI -> BLOCKED (merged externally)"
+        # A head with no review status at all is the one thing a human cannot read (#252): it looks
+        # exactly like a check that will never report. Publishing is idempotent and can only ever
+        # write `pending` here — a verdict already published for this SHA is left alone.
+        self.ensure_pending_review_status(head, "independent review not yet run (awaiting CI gates)", issue_id=rec.issue_id)
         ev = ci_evidence.collect(self.github, self.config, head)
         if ev.status in (ci_evidence.PENDING, ci_evidence.MISSING):
             if pr.get("mergeable") is False and pr.get("mergeable_state", "") == "dirty" and rec.worktree:

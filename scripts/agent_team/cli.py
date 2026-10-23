@@ -849,7 +849,16 @@ def cmd_adopt_prs(config: Config, args) -> int:
     try:
         if args.pr:
             pr = _github(config, require_auth=not args.dry_run).get_pr(args.pr)
-            out = [adopt_pr(orch, pr) or f"PR #{args.pr}: nothing to do (already recognised, or not open into {config.base_branch})"]
+            note = adopt_pr(orch, pr)
+            if not note:
+                # already recognised: make GitHub's status for the CURRENT head agree with the
+                # store, exactly as a restart does (`_ensure_review_status`) — never a new verdict
+                rec = next((r for r in orch.store.list() if r.pr_number == args.pr), None)
+                head = (pr.get("head") or {}).get("sha") or ""
+                if rec is not None and head and not args.dry_run:
+                    state = orch._ensure_review_status(orch.store, rec, head)
+                    note = f"PR #{args.pr}: already adopted for #{rec.issue_id}; {config.review_status_context}={state} on {head[:12]}"
+            out = [note or f"PR #{args.pr}: nothing to do (not open into {config.base_branch}, or nothing binds it)"]
         else:
             out = adopt_open_prs(orch) or [f"no unrecognised open pull request into {config.base_branch}"]
         for line in out:

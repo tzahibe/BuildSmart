@@ -240,6 +240,25 @@ def test_a_new_commit_on_an_adopted_pr_makes_the_status_pending_again(env):
     assert _status(gh, head2) == "pending" and _status(gh, head1) == "success"
 
 
+def test_a_head_that_moves_while_ci_is_red_still_reports_pending(env):
+    """AC-3 at the one place a SHA could carry no status at all: a new commit while the gates are
+    red. GitHub evaluates the current head, so "nothing" there is the state #252 exists to remove."""
+    config, gh, clock, origin = env
+    _issue(gh, 18, risk="LOW")
+    pr = _human_pr(config, gh, origin, 18, branch="feature/moving-head")
+    head1 = pr["head"]["sha"]
+    orch = _orch(config, gh, clock, FakeAgentRunner())
+    _tick(orch)
+    assert _status(gh, head1) == "pending" and orch.store.get(18).state == sm.CI
+    _push_more(origin, "feature/moving-head")
+    head2 = gh.get_pr(pr["number"])["head"]["sha"]
+    _red(gh, head2)
+    _tick(orch)
+    assert _status(gh, head2) == "pending"                   # never nothing at all
+    assert orch.store.get(18).state == sm.BLOCKED            # red gates, no repair budget: a human
+    assert not any(c.role in ("fixer", "worker") for c in orch.runner.calls)
+
+
 # ---------------------------------------------------------------------------------------------
 # AC-5: the branch-name recognition still works and native work is untouched
 # ---------------------------------------------------------------------------------------------
