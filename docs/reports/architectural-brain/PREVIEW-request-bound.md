@@ -166,13 +166,88 @@ fixture of every brain response.
 
 ## 6. The honest latency distribution after the change (AC-5)
 
-MEASUREMENT_SECTION_PLACEHOLDER
+Three runs, **back to back in one session**, the control built by `git archive` of this branch's
+base commit `75359f4` so it is the unchanged code and not a remembered number. Production is
+measured in the same loop as the brain in every run, so the multiple between them cannot drift.
+
+| run | 1-minute load before | 1-minute load after |
+|---|---|---|
+| control, `75359f4` | **2.52** | 3.04 |
+| branch, shipped 60 s | **3.04** | 2.60 |
+| branch, a stated 30 s | **2.60** | 2.94 |
+
+Measured against my own stated threshold of 3.0, two of the three readings are below it and the
+third is 3.04, i.e. 1 % above. The only processes above 1 % CPU were `WindowServer` at 25.7 % and
+Chrome at 19.5 % — the owner's desktop, which is what #226 found too. `agentctl status` showed no
+RUNNING agents before any run. Nothing of mine was running; the corpus replays and the test suite
+had finished and drained.
+
+### The distribution
+
+| | production median | production max | brain median | brain max |
+|---|---|---|---|---|
+| **control `75359f4`** (today's code) | 1.07 s | 10.60 s | **31.19 s** | **41.31 s** |
+| **branch, shipped 60 s** | 1.05 s | 10.42 s | **31.15 s** | **40.78 s** |
+| **branch, a stated 30 s** | 1.04 s | 10.34 s | **30.21 s** | **30.94 s** |
+
+Per brief, brain seconds:
+
+| brief | control | branch 60 s | branch 30 s | plans: control → 60 s → 30 s |
+|---|---|---|---|---|
+| B08 | 27.26 | 27.05 | 26.85 | 3 → 3 → 3 |
+| B20 | 30.45 | 30.38 | 30.06 | 3 → 3 → 3 |
+| B02 | 33.57 | 33.60 | 30.15 | 3 → 3 → 3 |
+| B11 | 40.47 | 40.57 | 30.31 | 3 → 3 → 3 |
+| B16 | 41.31 | 40.78 | 30.94 | 2 → 2 → **1** |
+| B19 | 30.95 | 30.86 | 30.11 | 2 → 2 → 2 |
+| B06 | 30.86 | 30.85 | 30.27 | 3 → 3 → 3 |
+| B09 | 31.44 | 31.43 | 30.30 | 3 → 3 → 3 |
+
+**Three things this says.**
+
+1. **At the shipped 60 s the change costs nothing and is invisible**: 31.15 s against the control's
+   31.19 s median, 40.78 s against 41.31 s. That is the point — a ceiling nothing currently reaches.
+2. **At a stated 30 s the bound is real and tight.** Median **30.21 s**, max **30.94 s** — a
+   **0.94 s** overshoot on the worst of eight briefs, against a predicted ceiling of one
+   `embed_band` call (1.65 s). Every one of the eight carries the note.
+3. **#226's figures are confirmed, not contradicted.** It measured 31.6 s median / 48.9 s max; the
+   same-session control here measures 31.19 s / 41.31 s. Production measured 1.38 s / 13.7 s there
+   and 1.07 s / 10.60 s here. The brain is still **roughly 29x production's median**.
 
 ---
 
 ## 7. No plan was lost (AC-6)
 
-REGRESSION_SECTION_PLACEHOLDER
+Two independent halves, both clean.
+
+**The corpus — production's own path, 432 scenarios.** Replayed on the branch and on a
+`git archive` of `75359f4`, with 3 workers each:
+
+```
+planned before=404 after=404   refused before=28 after=28   crashes before=0 after=0
+LOST=0  GAINED=0  new crashes=0  status changes=0  refusal-code changes=0
+primary-signature changes=0  byte-identical primaries=404
+```
+
+`--assert-equal` reports exactly one difference across the two documents: the recorded commit
+`sha`, which is `None` in an archived tree that has no git. Every scenario result is identical.
+This is the expected outcome and the reason it is: production passes no budget, `budget=None` reads
+no clock, and the only other production-visible change is one `time.monotonic()` call at the
+request boundary.
+
+**The brain's own plans — the eight audit briefs.** Compared as per-plan geometry signatures
+(every room's rounded rectangle), because "no plan was lost" has to be a comparison of drawings and
+not of counts:
+
+| | plans lost vs the control | signature-identical briefs |
+|---|---|---|
+| **branch at the shipped 60 s** | **0** | **8 / 8** |
+| branch at a stated 30 s | 1 (B16's second plan) | 7 / 8 |
+
+So AC-6 holds at the shipped value, and the single loss at 30 s is the priced trade-off in §8 and
+not a defect. It is also how the value was chosen: 30 s was tried first and
+`test_the_brain_delivers_at_least_two_genuinely_distinct_plans[B16]` failed with
+`budget_expired=True, 4 of 10 partis were not sized`.
 
 ---
 
@@ -181,7 +256,23 @@ REGRESSION_SECTION_PLACEHOLDER
 The question #226 opened was whether "30 s" described a request. It did not, and after this change
 the stated number is true — but the number that is true is **not 30 s**.
 
-BUDGET_DECISION_PLACEHOLDER
+**The shipped value is 60 s, and the owner is being asked to confirm or lower it.** Both options
+are now priced, which they were not before:
+
+| stated budget | request median | request max | overshoot above the stated value | plans lost | what it means |
+|---|---|---|---|---|---|
+| **60 s (shipped)** | 31.15 s | 40.78 s | — the ceiling binds on no brief | **0** | a true ceiling that nothing reaches today; the honest number for "a brain request can take up to…" |
+| **30 s** | 30.21 s | **30.94 s** | **+0.94 s** | **1** (B16, 2 plans → 1) | a bound that genuinely binds, for one lost alternative on the hardest of eight briefs |
+| below the floor (e.g. 0.2 s) | — | — | the request costs its **floor**: 0.68 s (B08) to 27.8 s (B16) | 1–2 per brief | the budget stops describing the request and the floor does |
+
+**30 s is a defensible choice and it was not before this change.** Before #247 a stated 30 s bought
+a 41–49 s request; now it buys a 30.9 s one for one alternative on one brief. That is the decision
+the owner could not previously make, and it is his.
+
+**What must not be read into the 60 s.** It is not a promise that a request takes 60 s, and it is
+not an argument that the brain is fast enough. A brain request remains **roughly 29 times
+production's median**. The ceiling is honest; the engine is still slow, and §4 names the one lever
+(`embed_band`) that would change that.
 
 ---
 

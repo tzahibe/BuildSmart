@@ -34,7 +34,8 @@ def _project_for(b):
 def _signature(design) -> list:
     """Every room's rounded rectangle — what the drawing actually is. Two plans with the same
     signature ARE the same plan, so this is what "no plan was lost" has to be decided on."""
-    return sorted([r.type, round(r.x, 2), round(r.y, 2), round(r.w, 2), round(r.h, 2)]
+    return sorted([r.type, round(r.x, 2), round(r.y, 2),
+                   round(r.gross_width_m, 2), round(r.gross_depth_m, 2)]
                   for r in design.rooms)
 
 

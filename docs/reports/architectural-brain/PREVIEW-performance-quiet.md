@@ -16,6 +16,16 @@ production figures below depend on the branch.
 
 **Machine**: Apple M1 Pro, **10 cores**, 32 GB. `hw.ncpu` 10, `hw.physicalcpu` 10.
 
+> **Corrected and settled by #247** (`PREVIEW-request-bound.md`), 2026-10-23. Answer 1's finding —
+> that the 30 s budget bounds only the exact-sizer phase — was right and is now fixed: the stated
+> budget bounds the whole request, including the production prefix. Two numbers below are
+> superseded. **Answer 1's attribution of B16's unaccounted time is wrong in its detail**: 26.0 s of
+> B16's 26.7 s production stage is `embed_band`, the band EMBEDDING, not any sizing — the band LP it
+> feeds costs 0.068 s across 438 calls. And "the 30 s budget overruns itself by 16 % on B16" below
+> understates it: the production prefix is a further 13.4 s that this report did not attribute to
+> the request at all. The `31.6 s median / 48.9 s max` figures stand and #247 re-measured them
+> against a same-session control.
+
 ## The four answers, first
 
 1. **Latency**: a brain request is **31.6 s median, 48.9 s max** against production's
@@ -152,6 +162,11 @@ Two facts, both structural:
    sizer before it looks at the clock; only `_improve_exactly` respects `deadline`. A 0.2 s budget
    still costs 23 s on B11 and 35 s on B16, and the **30 s budget overruns itself by 16 % on B16
    (34.8 s) even when honoured.** There is no request timeout on the preview path at all.
+   *(FIXED by #247. One deadline, taken at the request's start, is read by every stage that spends
+   time; a 0.2 s budget now costs 0.68 s on B08 and 27.8 s on B16, and what remains is the floor —
+   the cost of the first plan, which a budget may not take away. The two numbers this item does not
+   account for are the 13.4 s production prefix and the fact that 26.0 s of the 26.7 s production
+   stage is `embed_band`. See `PREVIEW-request-bound.md` §1 and §3.)*
 2. **Expiry degrades silently but audibly.** The request returns **HTTP 200 with a complete plan
    set**, sized by the production sizer, and the plan's notes say
    `exact sizer fell back to production: ...` with the reason. It never raises. The only refusal is
