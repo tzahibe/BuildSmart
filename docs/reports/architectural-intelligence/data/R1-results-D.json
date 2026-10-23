@@ -1,0 +1,2549 @@
+{
+ "aggregate": {
+  "arm1": {
+   "carried": 0,
+   "entries_named_by_check": {
+    "C17": 4,
+    "C2": 9,
+    "C20": 1,
+    "C21": 9,
+    "C22": 11,
+    "C24": 34,
+    "C25": 2,
+    "C26": 2,
+    "C28": 1,
+    "C3": 35,
+    "C5": 42,
+    "C9": 8,
+    "EMPTY_WING": 10
+   },
+   "fragment_entries_named_by_check": {
+    "C17": 0,
+    "C2": 0,
+    "C20": 0,
+    "C21": 0,
+    "C22": 0,
+    "C24": 0,
+    "C25": 0,
+    "C26": 0,
+    "C28": 0,
+    "C3": 0,
+    "C5": 0,
+    "C9": 0,
+    "EMPTY_WING": 0
+   },
+   "plans_failing_check": {
+    "C17": 4,
+    "C2": 9,
+    "C20": 1,
+    "C21": 5,
+    "C22": 6,
+    "C24": 9,
+    "C25": 2,
+    "C26": 2,
+    "C28": 1,
+    "C3": 8,
+    "C5": 9,
+    "C9": 4,
+    "EMPTY_WING": 10
+   },
+   "plans_failing_only_this_check": {
+    "EMPTY_WING": 10
+   },
+   "plans_with_a_whole_room_failure": 19,
+   "refused": 19
+  },
+  "arm2": {
+   "carried": 0,
+   "entries_named_by_check": {
+    "C17": 21,
+    "C19": 38,
+    "C20": 45,
+    "C21": 7,
+    "C24": 98,
+    "C25": 2,
+    "C26": 8,
+    "C3": 43,
+    "C31": 48,
+    "C5": 77,
+    "C8": 38,
+    "C9": 125,
+    "GROUP-C3": 15
+   },
+   "fragment_entries_named_by_check": {
+    "C17": 12,
+    "C19": 38,
+    "C20": 45,
+    "C21": 0,
+    "C24": 73,
+    "C25": 1,
+    "C26": 0,
+    "C3": 0,
+    "C31": 46,
+    "C5": 36,
+    "C8": 38,
+    "C9": 119,
+    "GROUP-C3": 0
+   },
+   "plans_failing_check": {
+    "C17": 10,
+    "C19": 19,
+    "C20": 14,
+    "C21": 4,
+    "C24": 19,
+    "C25": 2,
+    "C26": 5,
+    "C3": 18,
+    "C31": 17,
+    "C5": 17,
+    "C8": 19,
+    "C9": 19,
+    "GROUP-C3": 15
+   },
+   "plans_failing_only_this_check": {},
+   "plans_with_a_whole_room_failure": 19,
+   "refused": 19
+  },
+  "arm2R": {
+   "carried": 0,
+   "entries_named_by_check": {
+    "C17": 27,
+    "C19": 134,
+    "C20": 49,
+    "C24": 178,
+    "C25": 10,
+    "C26": 7,
+    "C28": 2,
+    "C3": 28,
+    "C31": 107,
+    "C5": 122,
+    "C8": 134,
+    "C9": 336,
+    "GROUP-C3": 16
+   },
+   "fragment_entries_named_by_check": {
+    "C17": 18,
+    "C19": 134,
+    "C20": 49,
+    "C24": 152,
+    "C25": 7,
+    "C26": 0,
+    "C28": 2,
+    "C3": 0,
+    "C31": 107,
+    "C5": 93,
+    "C8": 134,
+    "C9": 331,
+    "GROUP-C3": 0
+   },
+   "plans_failing_check": {
+    "C17": 14,
+    "C19": 19,
+    "C20": 15,
+    "C24": 19,
+    "C25": 4,
+    "C26": 4,
+    "C28": 2,
+    "C3": 14,
+    "C31": 15,
+    "C5": 17,
+    "C8": 19,
+    "C9": 19,
+    "GROUP-C3": 16
+   },
+   "plans_failing_only_this_check": {},
+   "plans_with_a_whole_room_failure": 19,
+   "refused": 19
+  }
+ },
+ "arm1_carried": 0,
+ "arm2_carried": 0,
+ "fragment_oracle": {
+  "non_rectangular_total": 30,
+  "per_plan": {
+   "0": {
+    "LIVING_0": true
+   },
+   "1": {
+    "LIVING_0": true
+   },
+   "10": {
+    "LIVING_0": false
+   },
+   "1080": {
+    "BEDROOM_2": false,
+    "LIVING_3": false
+   },
+   "1110": {
+    "CIRCULATION_0": true,
+    "CIRCULATION_1": true,
+    "CIRCULATION_2": true,
+    "LIVING_2": false
+   },
+   "1263": {
+    "CIRCULATION_0": true,
+    "LIVING_0": false
+   },
+   "13578": {
+    "CIRCULATION_0": true
+   },
+   "14": {
+    "BEDROOM_1": false,
+    "BEDROOM_2": false,
+    "LIVING_0": false
+   },
+   "17": {
+    "LIVING_0": false
+   },
+   "18": {
+    "LIVING_0": false
+   },
+   "19": {
+    "LIVING_0": true
+   },
+   "24": {
+    "LIVING_2": false
+   },
+   "25": {
+    "BEDROOM_0": false,
+    "LIVING_0": true
+   },
+   "29": {
+    "LIVING_0": false
+   },
+   "30": {
+    "LIVING_0": false
+   },
+   "31": {
+    "LIVING_0": false
+   },
+   "47": {
+    "BEDROOM_1": false,
+    "LIVING_0": false
+   },
+   "6": {
+    "BEDROOM_0": false,
+    "LIVING_0": false
+   },
+   "7": {
+    "BEDROOM_1": false,
+    "LIVING_0": false
+   }
+  },
+  "rooms_by_role": {
+   "BEDROOM": {
+    "non_rectangular": 4,
+    "some_partition_passes": 0
+   },
+   "HALL": {
+    "non_rectangular": 5,
+    "some_partition_passes": 5
+   },
+   "LIVING": {
+    "non_rectangular": 18,
+    "some_partition_passes": 4
+   },
+   "MASTER_BEDROOM": {
+    "non_rectangular": 3,
+    "some_partition_passes": 0
+   }
+  },
+  "some_partition_passes_total": 9
+ },
+ "n_plans": 19,
+ "pipeline": "D",
+ "plans": {
+  "0": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C2": "5950 unit^2 unassigned inside the footprint",
+      "C22": "BATHROOM_0.S: 2.3/3.6 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous; BEDROOM_1.N: 3.05/4.3 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous; LIVING_0.S: 3.05/6.55 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C3": "KITCHEN_0 net 6.4 m2 outside [9.0,28.0]; KITCHEN_0 short side 2.00 < 2.4",
+      "C5": "BATHROOM_0; BATHROOM_2; BEDROOM_2; KITCHEN_0"
+     },
+     "failing": [
+      "C17",
+      "C2",
+      "C22",
+      "C24",
+      "C3",
+      "C5"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 26.86 of 41.73 m2"
+     ],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 12,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c1 realized 1.10 x 4.05 m (aspect 3.68) past its BEDROOM template's 2.5; LIVING_0__c1 realized 1.20 x 4.10 m (aspect 3.42) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 6.4 m2 outside [9.0,28.0]; KITCHEN_0 short side 2.00 < 2.4",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_2; BEDROOM_2; KITCHEN_0",
+      "C8": "BEDROOM_1__c0; LIVING_0__c2",
+      "C9": "BATHROOM_0__c0 net 1.15x1.60 cannot inscribe (1.6, 1.6) m; BEDROOM_1__c1 net 1.10x4.05 cannot inscribe (2.4, 2.4) m; LIVING_0__c1 net 1.20x4.10 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.20x4.20 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 3,
+     "layout_notes": [],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 21,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c0 (ensuite): entered from nothing, required only from BEDROOM_0__c1",
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); BEDROOM_1__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c0 realized 1.15 x 3.90 m (aspect 3.39) past its BEDROOM template's 2.5; BEDROOM_2__c1 realized 1.10 x 3.20 m (aspect 2.91) past its MASTER_BEDROOM template's 2.5; LIVING_0__c0 realized 1.20 x 3.95 m (aspect 3.29) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c1-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 6.4 m2 outside [9.0,28.0]; KITCHEN_0 short side 2.00 < 2.4",
+      "C31": "LIVING_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_2; BEDROOM_2__c0; BEDROOM_2__c1; KITCHEN_0",
+      "C8": "BEDROOM_1__c0; BEDROOM_1__c2; LIVING_0__c3; LIVING_0__c4; LIVING_0__c6",
+      "C9": "BATHROOM_0__c0 net 1.15x1.60 cannot inscribe (1.6, 1.6) m; BATHROOM_1__c0 net 1.15x2.35 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 1.15x3.90 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 2.25x3.90 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.10x2.30 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c2 net 3.00x1.75 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c3 net 1.10x1.75 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 1.10x3.20 cannot inscribe (2.8, 2.8) m; LIVING_0__c0 net 1.20x3.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.25x3.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.90x3.90 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 1.20x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.20x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.20x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 2.20x1.75 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 6,
+     "layout_notes": [],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 7,
+    "dropped": [
+     "LIVING_1",
+     "LIVING_2"
+    ],
+    "footprint_area_m2": 120.16,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 130.9932,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "1": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C2": "6142 unit^2 unassigned inside the footprint",
+      "C22": "BEDROOM_1.N: 3.0/4.6 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous; LIVING_0.S: 3.0/6.7 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C5": "BATHROOM_0; BATHROOM_2; BEDROOM_2; KITCHEN_0"
+     },
+     "failing": [
+      "C17",
+      "C2",
+      "C22",
+      "C24",
+      "C5"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 30.48 of 45.84 m2"
+     ],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 10,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); LIVING_0__c1 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c1 realized 1.45 x 3.95 m (aspect 2.72) past its BEDROOM template's 2.5",
+      "C24": "BEDROOM_0-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C31": "KITCHEN_0: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_2; BEDROOM_2",
+      "C8": "BEDROOM_1__c0; LIVING_0__c1",
+      "C9": "BEDROOM_1__c1 net 1.45x3.95 cannot inscribe (2.4, 2.4) m"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 2,
+     "layout_notes": [],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 19,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); BEDROOM_1__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room)",
+      "C20": "LIVING_0__c0 realized 1.25 x 4.40 m (aspect 3.52) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C28": "BATHROOM_0-LIVING_0__c5 and KITCHEN_0__c1-LIVING_0__c5: door swing envelopes overlap",
+      "C31": "KITCHEN_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_2; BEDROOM_2__c0; BEDROOM_2__c1",
+      "C8": "BEDROOM_1__c0; BEDROOM_1__c2; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5; LIVING_0__c6",
+      "C9": "BEDROOM_1__c0 net 2.95x2.30 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.45x2.20 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c2 net 2.95x1.75 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c3 net 1.45x1.75 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 1.45x3.15 cannot inscribe (2.8, 2.8) m; KITCHEN_0__c1 net 1.25x3.15 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 1.25x4.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.40x4.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.85x4.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 1.25x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.35x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.25x1.75 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 2.35x1.75 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C28",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 7,
+    "dropped": [
+     "LIVING_1",
+     "LIVING_2"
+    ],
+    "footprint_area_m2": 132.5,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 134.7094,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "10": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 6,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C2": "5310 unit^2 unassigned inside the footprint",
+      "C21": "BEDROOM_0 realized 18.76 m2 past its BEDROOM template's 18 m2 hard maximum; BEDROOM_1 realized 18.70 m2 past its BEDROOM template's 18 m2 hard maximum",
+      "C22": "LIVING_0.S: 4.6/7.0 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous",
+      "C24": "BEDROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C3": "BATHROOM_1 net 4.4 m2 outside [4.5,14.0]; BEDROOM_0 net 18.7625 m2 outside [9.0,18.0]; BEDROOM_1 net 18.7 m2 outside [9.0,18.0]",
+      "C5": "BATHROOM_0; BEDROOM_0; BEDROOM_2"
+     },
+     "failing": [
+      "C2",
+      "C21",
+      "C22",
+      "C24",
+      "C3",
+      "C5"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 29.75 of 43.03 m2"
+     ],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 10,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "LIVING_0__c2 has no exterior wall (interior room)",
+      "C21": "BEDROOM_1 realized 18.70 m2 past its BEDROOM template's 18 m2 hard maximum",
+      "C24": "BEDROOM_0__c0-LIVING_0__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BEDROOM_1 net 18.7 m2 outside [9.0,18.0]",
+      "C31": "LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_0; BEDROOM_2",
+      "C8": "LIVING_0__c2",
+      "C9": "BEDROOM_0__c0 net 4.05x1.85 cannot inscribe (2.4, 2.4) m; LIVING_0__c0 net 3.95x2.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 4.05x2.10 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 2.30x1.75 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 18.95 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C21",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 2,
+     "layout_notes": [],
+     "reported_rotation": 180,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 18,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c1 (ensuite): entered from nothing, required only from BEDROOM_2__c0",
+      "C19": "BEDROOM_0__c1 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C20": "BEDROOM_2__c1 realized 4.55 x 1.75 m (aspect 2.60) past its MASTER_BEDROOM template's 2.5; LIVING_0__c3 realized 1.70 x 4.60 m (aspect 2.71) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c1-LIVING_0__c6 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C31": "LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_0__c0; BATHROOM_0__c1; BEDROOM_2__c0; BEDROOM_2__c1",
+      "C8": "BEDROOM_0__c1; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5",
+      "C9": "BEDROOM_0__c0 net 2.35x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 1.70x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c2 net 2.35x2.90 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c3 net 1.60x2.90 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 2.35x4.40 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.90x4.40 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 4.55x1.95 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 4.55x1.75 cannot inscribe (2.8, 2.8) m; LIVING_0__c0 net 2.35x2.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 1.60x2.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.35x4.55 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 1.70x4.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 1.70x2.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 2.35x2.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 2.30x1.75 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 18.95 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 180,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [],
+    "footprint_area_m2": 116.98,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 120.3094,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 6
+   }
+  },
+  "1080": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 9,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C2": "13771 unit^2 unassigned inside the footprint",
+      "C22": "LIVING_3.S: 2.0/5.85 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous",
+      "C24": "BEDROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; CIRCULATION_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1-LIVING_3 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_3-LIVING_3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_3: reachable from the entrance only by continuing on through another PRIVATE room; KITCHEN_0: reachable from the entrance only by continuing on through another PRIVATE room; LIVING_3: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C25": "CIRCULATION_0 has no opening to a public room or open zone",
+      "C26": "4 corridor dead ends exceeds 2",
+      "C3": "BEDROOM_0 short side 2.15 < 2.6; BEDROOM_2 net 7.8475 m2 outside [9.0,18.0]; BEDROOM_2 short side 2.15 < 2.6; BEDROOM_3 net 3.99 m2 outside [9.0,18.0]; BEDROOM_3 short side 1.90 < 2.6; CIRCULATION_0 net 4.4075 m2 outside [5.0,30.0]; CIRCULATION_1 net 4.945 m2 outside [5.0,30.0]; CIRCULATION_2 net 1.33 m2 outside [5.0,30.0]; CIRCULATION_2 short side 0.95 < 1.2; KITCHEN_0 net 6.205 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.70 < 2.4",
+      "C5": "BEDROOM_0; BEDROOM_2; CIRCULATION_1; CIRCULATION_2",
+      "C9": "BEDROOM_0 net 4.60x2.15 cannot inscribe (2.4, 2.4) m; BEDROOM_2 net 2.15x3.65 cannot inscribe (2.4, 2.4) m; BEDROOM_3 net 1.90x2.10 cannot inscribe (2.4, 2.4) m; KITCHEN_0 net 1.70x3.65 cannot inscribe (2.4, 1.8) m"
+     },
+     "failing": [
+      "C2",
+      "C22",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C9"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_0: single rectangle 11.76 of 19.92 m2",
+      "BEDROOM_2: single rectangle 9.05 of 12.13 m2",
+      "LIVING_3: single rectangle 27.20 of 50.39 m2"
+     ],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 15,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_0__c0 has no exterior wall (interior room); BEDROOM_2__c0 has no exterior wall (interior room); LIVING_3__c4 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 1.55 x 4.60 m (aspect 2.97) past its BEDROOM template's 2.5; LIVING_3__c2 realized 8.20 x 2.60 m (aspect 3.15) past its LIVING template's 2.5; LIVING_3__c3 realized 8.30 x 1.25 m (aspect 6.64) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c0-LIVING_3__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-LIVING_3__c3 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_3-LIVING_3__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; CIRCULATION_0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C26": "3 corridor dead ends exceeds 2",
+      "C3": "BEDROOM_3 net 4.18 m2 outside [9.0,18.0]; BEDROOM_3 short side 1.90 < 2.6; CIRCULATION_0 net 4.4075 m2 outside [5.0,30.0]; CIRCULATION_1 net 4.945 m2 outside [5.0,30.0]; CIRCULATION_2 net 1.575 m2 outside [5.0,30.0]; CIRCULATION_2 short side 1.05 < 1.2; KITCHEN_0 net 6.57 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.80 < 2.4",
+      "C31": "KITCHEN_0: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BEDROOM_2__c0; BEDROOM_2__c1; CIRCULATION_1",
+      "C8": "BEDROOM_0__c0; BEDROOM_2__c0; LIVING_3__c4",
+      "C9": "BEDROOM_0__c1 net 1.55x4.60 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 1.30x2.15 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 3.65x2.20 cannot inscribe (2.4, 2.4) m; BEDROOM_3 net 2.20x1.90 cannot inscribe (2.4, 2.4) m; LIVING_3__c0 net 2.05x1.95 cannot inscribe (3.0, 3.0) m; LIVING_3__c1 net 4.45x2.00 cannot inscribe (3.0, 3.0) m; LIVING_3__c2 net 8.20x2.60 cannot inscribe (3.0, 3.0) m; LIVING_3__c3 net 8.30x1.25 cannot inscribe (3.0, 3.0) m; LIVING_3__c4 net 1.30x2.55 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 18.41 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C26",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 3,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 29,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_0__c2 has no exterior wall (interior room); BEDROOM_0__c3 has no exterior wall (interior room); BEDROOM_1__c0 has no exterior wall (interior room); BEDROOM_1__c1 has no exterior wall (interior room); BEDROOM_2__c1 has no exterior wall (interior room); LIVING_3__c1 has no exterior wall (interior room); LIVING_3__c2 has no exterior wall (interior room); LIVING_3__c3 has no exterior wall (interior room); LIVING_3__c4 has no exterior wall (interior room); LIVING_3__c5 has no exterior wall (interior room); LIVING_3__c6 has no exterior wall (interior room); LIVING_3__c7 has no exterior wall (interior room)",
+      "C24": "BEDROOM_0__c2-LIVING_3__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_3__c4 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_3-LIVING_3__c5 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room; CIRCULATION_0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C28": "BEDROOM_0__c2-LIVING_3__c4 and BEDROOM_1__c0-LIVING_3__c4: door swing envelopes overlap",
+      "C3": "BEDROOM_3 net 4.18 m2 outside [9.0,18.0]; BEDROOM_3 short side 1.90 < 2.6; CIRCULATION_0 net 4.4075 m2 outside [5.0,30.0]; CIRCULATION_1 net 4.945 m2 outside [5.0,30.0]; CIRCULATION_2 net 1.575 m2 outside [5.0,30.0]; CIRCULATION_2 short side 1.05 < 1.2",
+      "C31": "KITCHEN_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c10: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c11: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_3__c9: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BEDROOM_2__c0; BEDROOM_2__c1; BEDROOM_2__c2; CIRCULATION_1",
+      "C8": "BEDROOM_0__c2; BEDROOM_0__c3; BEDROOM_1__c0; BEDROOM_1__c1; BEDROOM_2__c1; LIVING_3__c1; LIVING_3__c2; LIVING_3__c3; LIVING_3__c4; LIVING_3__c5; LIVING_3__c6; LIVING_3__c7",
+      "C9": "BEDROOM_0__c0 net 2.55x1.55 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 2.05x1.55 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c3 net 2.15x2.40 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 2.55x2.35 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 2.15x2.35 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c2 net 2.55x2.10 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c3 net 2.15x2.10 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 2.15x2.30 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 2.15x1.30 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 2.20x1.35 cannot inscribe (2.4, 2.4) m; BEDROOM_3 net 1.90x2.20 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 1.80x2.30 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 1.80x1.35 cannot inscribe (2.4, 1.8) m; LIVING_3__c0 net 2.55x2.30 cannot inscribe (3.0, 3.0) m; LIVING_3__c1 net 1.20x2.40 cannot inscribe (3.0, 3.0) m; LIVING_3__c2 net 2.55x1.40 cannot inscribe (3.0, 3.0) m; LIVING_3__c3 net 1.25x1.40 cannot inscribe (3.0, 3.0) m; LIVING_3__c4 net 2.55x1.30 cannot inscribe (3.0, 3.0) m; LIVING_3__c5 net 1.95x2.35 cannot inscribe (3.0, 3.0) m; LIVING_3__c6 net 2.60x2.40 cannot inscribe (3.0, 3.0) m; LIVING_3__c7 net 1.20x2.40 cannot inscribe (3.0, 3.0) m; LIVING_3__c8 net 1.95x2.05 cannot inscribe (3.0, 3.0) m; LIVING_3__c9 net 2.00x2.10 cannot inscribe (3.0, 3.0) m; LIVING_3__c10 net 2.60x2.10 cannot inscribe (3.0, 3.0) m; LIVING_3__c11 net 1.20x2.10 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 18.41 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C24",
+      "C28",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 7,
+    "dropped": [
+     "LIVING_0",
+     "LIVING_1",
+     "LIVING_2"
+    ],
+    "footprint_area_m2": 130.55,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "BEDROOM_2",
+     "LIVING_3"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 148.6448,
+    "roles": {
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "MASTER_BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "BEDROOM_3": "BEDROOM",
+     "CIRCULATION_0": "HALL",
+     "CIRCULATION_1": "HALL",
+     "CIRCULATION_2": "HALL",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_3": "LIVING"
+    },
+    "rooms": 9
+   }
+  },
+  "1110": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 10,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "2 of 8 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BATHROOM_0: single rectangle 9.10 of 15.26 m2",
+      "BATHROOM_1: single rectangle 5.60 of 16.52 m2",
+      "CIRCULATION_0: single rectangle 10.34 of 41.54 m2",
+      "CIRCULATION_1: single rectangle 9.17 of 20.23 m2",
+      "CIRCULATION_2: single rectangle 11.88 of 14.32 m2",
+      "CIRCULATION_3: single rectangle 15.27 of 25.61 m2",
+      "KITCHEN_0: single rectangle 9.54 of 14.71 m2",
+      "LIVING_2: single rectangle 22.26 of 67.58 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 31,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c2 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_1 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "KITCHEN_0__c0 has no exterior wall (interior room); LIVING_2__c2 has no exterior wall (interior room)",
+      "C24": "TOILET_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C26": "circulation ratio 45% exceeds 24%; 17 corridor dead ends exceeds 2",
+      "C3": "BATHROOM_2 net 3.8775 m2 outside [4.5,14.0]",
+      "C31": "KITCHEN_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1__c0; BATHROOM_1__c1; BATHROOM_1__c2; BATHROOM_2; CIRCULATION_0__c0; CIRCULATION_0__c1; CIRCULATION_0__c2; CIRCULATION_0__c3; CIRCULATION_0__c4; CIRCULATION_0__c5; CIRCULATION_0__c6; CIRCULATION_1__c0; CIRCULATION_1__c1; CIRCULATION_1__c2; CIRCULATION_1__c3; CIRCULATION_2__c0; CIRCULATION_2__c1; TOILET_1",
+      "C8": "KITCHEN_0__c0; LIVING_2__c2",
+      "C9": "LIVING_2__c1 net 2.40x2.05 cannot inscribe (3.0, 3.0) m; LIVING_2__c2 net 4.40x2.20 cannot inscribe (3.0, 3.0) m; LIVING_2__c3 net 2.50x2.00 cannot inscribe (3.0, 3.0) m; LIVING_2__c5 net 4.30x1.80 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BATHROOM_1 net 14.94 m2 vs [4.5,14.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C24",
+      "C26",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 8,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 37,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c2 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_1 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "KITCHEN_0__c1 has no exterior wall (interior room); LIVING_2__c4 has no exterior wall (interior room)",
+      "C24": "TOILET_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C25": "CIRCULATION_0__c3 has no opening to a public room or open zone; 1.64 m of unserved corridor beside the entrance in CIRCULATION_0__c0 exceeds 0.60 m; 1.62 m of unserved corridor beside the entrance in CIRCULATION_0__c1 exceeds 0.60 m; 1.62 m of unserved corridor beside the entrance in CIRCULATION_0__c2 exceeds 0.60 m",
+      "C26": "circulation ratio 45% exceeds 24%; 20 corridor dead ends exceeds 2",
+      "C3": "BATHROOM_2 net 3.8775 m2 outside [4.5,14.0]",
+      "C5": "BATHROOM_0__c0; BATHROOM_0__c1; BATHROOM_1__c0; BATHROOM_1__c1; BATHROOM_1__c2; BATHROOM_2; CIRCULATION_1__c0; CIRCULATION_1__c1; CIRCULATION_1__c2; CIRCULATION_1__c3; CIRCULATION_1__c4; CIRCULATION_2__c0; CIRCULATION_2__c1; CIRCULATION_2__c2; CIRCULATION_3__c0; CIRCULATION_3__c1; CIRCULATION_3__c2; CIRCULATION_3__c3; KITCHEN_0__c0; KITCHEN_0__c1; LIVING_2__c0; LIVING_2__c1; LIVING_2__c2; LIVING_2__c3; LIVING_2__c4; LIVING_2__c5; LIVING_2__c6; TOILET_1",
+      "C8": "KITCHEN_0__c1; LIVING_2__c4",
+      "C9": "LIVING_2__c0 net 2.05x2.40 cannot inscribe (3.0, 3.0) m; LIVING_2__c1 net 3.10x2.40 cannot inscribe (3.0, 3.0) m; LIVING_2__c2 net 1.80x4.30 cannot inscribe (3.0, 3.0) m; LIVING_2__c4 net 2.20x4.40 cannot inscribe (3.0, 3.0) m; LIVING_2__c6 net 2.00x2.50 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BATHROOM_1 net 14.94 m2 vs [4.5,14.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 8,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [
+     "LIVING_0",
+     "LIVING_1",
+     "TOILET_0"
+    ],
+    "footprint_area_m2": 224.54,
+    "hole_area_m2": 19.3,
+    "non_rectangular_rooms": [
+     "CIRCULATION_0",
+     "CIRCULATION_1",
+     "CIRCULATION_2",
+     "LIVING_2"
+    ],
+    "notes": [
+     "TOILET_0: nothing left after snapping"
+    ],
+    "resplan_footprint_area_m2": 247.122,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "CIRCULATION_0": "HALL",
+     "CIRCULATION_1": "HALL",
+     "CIRCULATION_2": "HALL",
+     "CIRCULATION_3": "HALL",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_2": "LIVING",
+     "TOILET_1": "TOILET"
+    },
+    "rooms": 10
+   }
+  },
+  "1263": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 10,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 6 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "CIRCULATION_0: single rectangle 23.54 of 28.05 m2",
+      "CIRCULATION_3: single rectangle 16.24 of 25.37 m2",
+      "KITCHEN_0: single rectangle 14.02 of 20.47 m2",
+      "LIVING_0: single rectangle 54.39 of 74.84 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 19,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_2 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_0 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BATHROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; CIRCULATION_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; CIRCULATION_3: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C26": "circulation ratio 41% exceeds 24%; 14 corridor dead ends exceeds 2",
+      "C3": "BATHROOM_2 net 3.2375 m2 outside [4.5,14.0]; TOILET_0 net 2.0625 m2 outside [2.2,7.0]",
+      "C31": "LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_0; BATHROOM_1__c0; BATHROOM_1__c1; BATHROOM_2; CIRCULATION_0__c0; CIRCULATION_0__c1; CIRCULATION_0__c2; CIRCULATION_1__c0; CIRCULATION_1__c1; CIRCULATION_2; CIRCULATION_3; KITCHEN_0; TOILET_0",
+      "C8": "LIVING_0__c3; LIVING_0__c5",
+      "C9": "LIVING_0__c0 net 5.90x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 6.05x2.55 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 3.00x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 4.55x1.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 2.15x2.15 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "LIVING_0 net 70.67 m2 vs [16.0,50.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C24",
+      "C26",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 30,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_1__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); BATHROOM_2 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_0 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "LIVING_0__c10 has no exterior wall (interior room); LIVING_0__c11 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c9 has no exterior wall (interior room)",
+      "C20": "KITCHEN_0__c1 realized 4.25 x 1.40 m (aspect 3.04) past its KITCHEN template's 3.0",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BATHROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; CIRCULATION_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C25": "CIRCULATION_2 has no other opening at all beyond the entrance door \u2014 a fully sealed dead-end stub; CIRCULATION_2 has no opening to a public room or open zone",
+      "C26": "circulation ratio 41% exceeds 24%; 17 corridor dead ends exceeds 2",
+      "C3": "BATHROOM_2 net 3.2375 m2 outside [4.5,14.0]; TOILET_0 net 2.0625 m2 outside [2.2,7.0]",
+      "C5": "BATHROOM_0; BATHROOM_1__c0; BATHROOM_1__c1; BATHROOM_2; CIRCULATION_0__c0; CIRCULATION_0__c1; CIRCULATION_0__c2; CIRCULATION_0__c3; CIRCULATION_1__c0; CIRCULATION_1__c1; CIRCULATION_1__c2; CIRCULATION_1__c3; CIRCULATION_3__c0; CIRCULATION_3__c1; KITCHEN_0__c0; KITCHEN_0__c1; LIVING_0__c0; LIVING_0__c1; LIVING_0__c10; LIVING_0__c11; LIVING_0__c2; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5; LIVING_0__c6; LIVING_0__c7; LIVING_0__c8; LIVING_0__c9; TOILET_0",
+      "C8": "LIVING_0__c10; LIVING_0__c11; LIVING_0__c2; LIVING_0__c4; LIVING_0__c5; LIVING_0__c9",
+      "C9": "KITCHEN_0__c1 net 4.25x1.40 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 2.35x3.00 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.45x1.30 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.50x1.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 2.45x2.50 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.55x2.50 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 4.45x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 1.80x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 2.45x2.10 cannot inscribe (3.0, 3.0) m; LIVING_0__c8 net 2.55x2.10 cannot inscribe (3.0, 3.0) m; LIVING_0__c9 net 4.45x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c10 net 1.85x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c11 net 2.15x2.15 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "LIVING_0 net 70.47 m2 vs [16.0,50.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 6,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 0,
+    "dropped": [
+     "LIVING_1",
+     "LIVING_2"
+    ],
+    "footprint_area_m2": 196.0,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "CIRCULATION_0",
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 201.7915,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "CIRCULATION_0": "HALL",
+     "CIRCULATION_1": "HALL",
+     "CIRCULATION_2": "HALL",
+     "CIRCULATION_3": "HALL",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING",
+     "TOILET_0": "TOILET"
+    },
+    "rooms": 10
+   }
+  },
+  "13578": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "2 of 5 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_0: single rectangle 22.05 of 30.15 m2",
+      "BEDROOM_1: single rectangle 12.81 of 20.37 m2",
+      "BEDROOM_2: single rectangle 11.00 of 22.00 m2",
+      "CIRCULATION_0: single rectangle 19.60 of 46.30 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 16,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_0__c0 has no exterior wall (interior room); BEDROOM_2__c2 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 0.90 x 4.75 m (aspect 5.28) past its MASTER_BEDROOM template's 2.5; BEDROOM_0__c2 realized 4.20 x 1.65 m (aspect 2.55) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c0 realized 5.30 x 1.85 m (aspect 2.86) past its BEDROOM template's 2.5",
+      "C24": "BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C25": "CIRCULATION_0__c0 has no opening to a public room or open zone",
+      "C26": "circulation ratio 33% exceeds 24%; 4 corridor dead ends exceeds 2",
+      "C3": "BATHROOM_1 net 3.5 m2 outside [4.5,14.0]",
+      "C5": "KITCHEN_0__c0; KITCHEN_0__c1",
+      "C8": "BEDROOM_0__c0; BEDROOM_2__c2",
+      "C9": "BEDROOM_0__c1 net 0.90x4.75 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c2 net 4.20x1.65 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 3.90x1.65 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 5.30x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 3.15x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 2.15x1.95 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 2.05x1.80 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 2.55x1.70 cannot inscribe (2.4, 1.8) m",
+      "GROUP-C3": "BEDROOM_0 net 27.70 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 30,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (ensuite): entered from nothing, required only from BEDROOM_0__c1",
+      "C19": "BEDROOM_0__c0 has no exterior wall (interior room); BEDROOM_0__c1 has no exterior wall (interior room); BEDROOM_0__c3 has no exterior wall (interior room); BEDROOM_0__c4 has no exterior wall (interior room); BEDROOM_1__c1 has no exterior wall (interior room); BEDROOM_2__c3 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c5 realized 0.90 x 3.05 m (aspect 3.39) past its MASTER_BEDROOM template's 2.5",
+      "C24": "BATHROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c5: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c6: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c7: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c8: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c2: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C25": "CIRCULATION_0__c1 has no opening to a public room or open zone; 1.41 m of unserved corridor beside the entrance in CIRCULATION_0__c0 exceeds 0.60 m; 1.21 m of unserved corridor beside the entrance in CIRCULATION_0__c2 exceeds 0.60 m",
+      "C26": "circulation ratio 33% exceeds 24%; 6 corridor dead ends exceeds 2",
+      "C3": "BATHROOM_1 net 3.5 m2 outside [4.5,14.0]",
+      "C5": "KITCHEN_0__c0; KITCHEN_0__c1",
+      "C8": "BEDROOM_0__c0; BEDROOM_0__c1; BEDROOM_0__c3; BEDROOM_0__c4; BEDROOM_1__c1; BEDROOM_2__c3",
+      "C9": "BATHROOM_0__c0 net 1.30x1.90 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 1.30x1.80 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c1 net 2.10x1.80 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c2 net 0.90x1.70 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c3 net 1.30x3.05 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c4 net 2.10x3.05 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c5 net 0.90x3.05 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c6 net 1.20x1.65 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c7 net 2.10x1.65 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c8 net 0.90x1.65 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c0 net 2.05x3.00 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.95x3.00 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c2 net 2.05x1.65 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c3 net 1.85x1.65 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 3.15x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 2.15x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 3.15x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c3 net 2.15x1.95 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 2.05x1.80 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 2.55x1.70 cannot inscribe (2.4, 1.8) m",
+      "GROUP-C3": "BEDROOM_0 net 27.70 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 6,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [],
+    "footprint_area_m2": 143.09,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "CIRCULATION_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 149.6667,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BEDROOM_0": "MASTER_BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "CIRCULATION_0": "HALL",
+     "KITCHEN_0": "KITCHEN",
+     "TOILET_0": "TOILET"
+    },
+    "rooms": 8
+   }
+  },
+  "14": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 6,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 6 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BATHROOM_0: single rectangle 4.32 of 7.20 m2",
+      "BEDROOM_0: single rectangle 10.14 of 18.13 m2",
+      "BEDROOM_1: single rectangle 28.50 of 32.29 m2",
+      "BEDROOM_2: single rectangle 13.12 of 25.51 m2",
+      "LIVING_0: single rectangle 22.26 of 48.87 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 18,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); BEDROOM_2__c3 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c1 realized 1.30 x 4.70 m (aspect 3.62) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c0 realized 4.75 x 1.65 m (aspect 2.88) past its BEDROOM template's 2.5; BEDROOM_2__c1 realized 4.75 x 1.20 m (aspect 3.96) past its BEDROOM template's 2.5; BEDROOM_2__c2 realized 3.35 x 1.30 m (aspect 2.58) past its BEDROOM template's 2.5; BEDROOM_2__c3 realized 3.80 x 1.40 m (aspect 2.71) past its BEDROOM template's 2.5; LIVING_0__c0 realized 6.25 x 1.65 m (aspect 3.79) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c5 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c3-LIVING_0__c5 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c2: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_1 net 4.29 m2 outside [4.5,14.0]",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C8": "BEDROOM_1__c0; BEDROOM_2__c3; LIVING_0__c2; LIVING_0__c5",
+      "C9": "BATHROOM_0__c1 net 2.30x1.15 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c1 net 3.70x1.90 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 1.75x2.00 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 1.30x4.70 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 4.75x1.65 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 4.75x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 3.35x1.30 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c3 net 3.80x1.40 cannot inscribe (2.4, 2.4) m; LIVING_0__c0 net 6.25x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 1.80x2.50 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 3.90x2.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 2.50x2.50 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 1.30x2.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 4.20x2.55 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 29.50 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 27,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); BEDROOM_2__c3 has no exterior wall (interior room); BEDROOM_2__c5 has no exterior wall (interior room); BEDROOM_2__c6 has no exterior wall (interior room); LIVING_0__c10 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room); LIVING_0__c9 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c1 realized 1.30 x 4.70 m (aspect 3.62) past its MASTER_BEDROOM template's 2.5; BEDROOM_1__c3 realized 1.70 x 4.85 m (aspect 2.85) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c2 realized 3.35 x 1.20 m (aspect 2.79) past its BEDROOM template's 2.5; BEDROOM_2__c4 realized 3.35 x 1.30 m (aspect 2.58) past its BEDROOM template's 2.5; LIVING_0__c3 realized 3.90 x 1.20 m (aspect 3.25) past its LIVING template's 2.5; LIVING_0__c6 realized 3.90 x 1.40 m (aspect 2.79) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c0-LIVING_0__c6 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c10 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c6-LIVING_0__c9 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c5: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_1 net 4.29 m2 outside [4.5,14.0]",
+      "C31": "LIVING_0__c10: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c9: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C8": "BEDROOM_1__c0; BEDROOM_2__c3; BEDROOM_2__c5; BEDROOM_2__c6; LIVING_0__c10; LIVING_0__c3; LIVING_0__c5; LIVING_0__c6; LIVING_0__c9",
+      "C9": "BATHROOM_0__c1 net 2.30x1.15 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c1 net 3.70x1.90 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 1.75x2.00 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 1.30x4.70 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c2 net 2.40x4.80 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c3 net 1.70x4.85 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 3.35x1.65 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 1.40x1.65 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 3.35x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c3 net 1.40x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c4 net 3.35x1.30 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c5 net 1.45x1.40 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c6 net 2.35x1.35 cannot inscribe (2.4, 2.4) m; LIVING_0__c0 net 3.75x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.50x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.80x1.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 3.90x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.50x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.80x1.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 3.90x1.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 2.50x1.30 cannot inscribe (3.0, 3.0) m; LIVING_0__c8 net 1.30x2.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c9 net 2.40x2.50 cannot inscribe (3.0, 3.0) m; LIVING_0__c10 net 1.80x2.55 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 29.38 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 5,
+    "dropped": [],
+    "footprint_area_m2": 136.93,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "BEDROOM_1",
+     "BEDROOM_2",
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 133.7803,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "MASTER_BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 6
+   }
+  },
+  "17": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C2": "5951 unit^2 unassigned inside the footprint",
+      "C21": "BEDROOM_2 realized 21.07 m2 past its BEDROOM template's 18 m2 hard maximum",
+      "C24": "BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C3": "BEDROOM_2 net 21.07 m2 outside [9.0,18.0]",
+      "C5": "BATHROOM_1; BATHROOM_2; BEDROOM_0; BEDROOM_1; BEDROOM_2; KITCHEN_0"
+     },
+     "failing": [
+      "C2",
+      "C21",
+      "C24",
+      "C3",
+      "C5"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 38.24 of 53.11 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 10,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "LIVING_0__c1 has no exterior wall (interior room)",
+      "C20": "LIVING_0__c1 realized 8.80 x 1.95 m (aspect 4.51) past its LIVING template's 2.5",
+      "C21": "BEDROOM_2 realized 21.07 m2 past its BEDROOM template's 18 m2 hard maximum",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0__c1 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C3": "BEDROOM_2 net 21.07 m2 outside [9.0,18.0]",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_2; BEDROOM_1; KITCHEN_0",
+      "C8": "LIVING_0__c1",
+      "C9": "LIVING_0__c1 net 8.80x1.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 6.95x2.80 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "LIVING_0 net 50.57 m2 vs [16.0,50.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C21",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 1,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 15,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "LIVING_0__c1 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room)",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c1-LIVING_0__c3 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c1-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_2; BEDROOM_1; KITCHEN_0",
+      "C8": "LIVING_0__c1; LIVING_0__c2; LIVING_0__c3",
+      "C9": "BEDROOM_0__c1 net 4.65x1.90 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 4.30x1.90 cannot inscribe (2.4, 2.4) m; LIVING_0__c1 net 1.80x1.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 4.75x1.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 2.25x1.90 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 4.70x2.80 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 2.25x2.80 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_2 net 21.07 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C24",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 3,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [
+     "LIVING_1"
+    ],
+    "footprint_area_m2": 146.91,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 142.1416,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "MASTER_BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "18": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_1 (ensuite): entered from nothing, required only from BEDROOM_0",
+      "C2": "14860 unit^2 unassigned inside the footprint",
+      "C21": "BEDROOM_1 realized 18.86 m2 past its BEDROOM template's 18 m2 hard maximum; BEDROOM_2 realized 26.46 m2 past its MASTER_BEDROOM template's 23 m2 hard maximum",
+      "C24": "BATHROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2-LIVING_0 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C3": "BATHROOM_1 short side 1.45 < 1.6; BATHROOM_2 net 3.92 m2 outside [4.5,14.0]; BEDROOM_1 net 18.865 m2 outside [9.0,18.0]; BEDROOM_2 net 26.46 m2 outside [11.0,23.0]",
+      "C5": "BATHROOM_1; BEDROOM_0; KITCHEN_0",
+      "C9": "BATHROOM_1 net 1.45x3.70 cannot inscribe (1.6, 1.6) m"
+     },
+     "failing": [
+      "C17",
+      "C2",
+      "C21",
+      "C24",
+      "C3",
+      "C5",
+      "C9"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 37.38 of 74.53 m2"
+     ],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 12,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_1 (ensuite): entered from nothing, required only from BEDROOM_0",
+      "C19": "LIVING_0__c1 has no exterior wall (interior room)",
+      "C21": "BEDROOM_1 realized 19.36 m2 past its BEDROOM template's 18 m2 hard maximum; BEDROOM_2 realized 26.46 m2 past its MASTER_BEDROOM template's 23 m2 hard maximum",
+      "C24": "BATHROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2-LIVING_0__c0 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C3": "BATHROOM_1 short side 1.45 < 1.6; BATHROOM_2 net 4.335 m2 outside [4.5,14.0]; BEDROOM_1 net 19.355 m2 outside [9.0,18.0]; BEDROOM_2 net 26.46 m2 outside [11.0,23.0]",
+      "C31": "LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_0; KITCHEN_0",
+      "C8": "LIVING_0__c1",
+      "C9": "BATHROOM_1 net 1.45x3.80 cannot inscribe (1.6, 1.6) m; LIVING_0__c1 net 3.15x1.80 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 1.55x3.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 4.10x2.70 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "LIVING_0 net 70.31 m2 vs [16.0,50.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C21",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 1,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 18,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_1 (ensuite): entered from nothing, required only from BEDROOM_0",
+      "C19": "LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C20": "BEDROOM_2__c0 realized 6.30 x 1.60 m (aspect 3.94) past its MASTER_BEDROOM template's 2.5; LIVING_0__c1 realized 6.35 x 1.55 m (aspect 4.10) past its LIVING template's 2.5",
+      "C24": "BATHROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1__c0-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c0-LIVING_0__c1 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_1 short side 1.45 < 1.6; BATHROOM_2 net 4.335 m2 outside [4.5,14.0]",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_0; KITCHEN_0",
+      "C8": "LIVING_0__c2; LIVING_0__c4; LIVING_0__c5",
+      "C9": "BATHROOM_1 net 3.80x1.45 cannot inscribe (1.6, 1.6) m; BEDROOM_1__c0 net 1.75x3.95 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 6.30x1.60 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 6.30x2.60 cannot inscribe (2.8, 2.8) m; LIVING_0__c1 net 6.35x1.55 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.80x1.55 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 3.05x1.55 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 1.75x1.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 3.20x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 2.70x1.50 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 3.15x2.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c8 net 2.70x2.60 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 19.36 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 3,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [
+     "LIVING_1",
+     "STORAGE_0"
+    ],
+    "footprint_area_m2": 174.44,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [
+     "STORAGE_0: nothing left after snapping"
+    ],
+    "resplan_footprint_area_m2": 184.877,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "19": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C2": "14723 unit^2 unassigned inside the footprint",
+      "C21": "BEDROOM_0 realized 19.80 m2 past its BEDROOM template's 18 m2 hard maximum; BEDROOM_1 realized 28.07 m2 past its MASTER_BEDROOM template's 23 m2 hard maximum; BEDROOM_2 realized 23.43 m2 past its BEDROOM template's 18 m2 hard maximum",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-BEDROOM_2 (DOOR): role pair ['MASTER_BEDROOM']/['BEDROOM'] is not allowed by the access-rules table",
+      "C3": "BEDROOM_0 net 19.8025 m2 outside [9.0,18.0]; BEDROOM_1 net 28.0675 m2 outside [11.0,23.0]; BEDROOM_2 net 23.4325 m2 outside [9.0,18.0]",
+      "C5": "BATHROOM_0; BATHROOM_2; BEDROOM_1; BEDROOM_2; KITCHEN_0"
+     },
+     "failing": [
+      "C2",
+      "C21",
+      "C24",
+      "C3",
+      "C5"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 29.25 of 66.06 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 10,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "LIVING_0__c2 has no exterior wall (interior room)",
+      "C21": "BEDROOM_0 realized 20.25 m2 past its BEDROOM template's 18 m2 hard maximum; BEDROOM_1 realized 28.07 m2 past its MASTER_BEDROOM template's 23 m2 hard maximum; BEDROOM_2 realized 23.43 m2 past its BEDROOM template's 18 m2 hard maximum",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-BEDROOM_2 (DOOR): role pair ['MASTER_BEDROOM']/['BEDROOM'] is not allowed by the access-rules table; BEDROOM_1-LIVING_0__c2 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table",
+      "C3": "BEDROOM_0 net 20.2475 m2 outside [9.0,18.0]; BEDROOM_1 net 28.0675 m2 outside [11.0,23.0]; BEDROOM_2 net 23.4325 m2 outside [9.0,18.0]",
+      "C31": "LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "KITCHEN_0",
+      "C8": "LIVING_0__c2",
+      "C9": "LIVING_0__c2 net 2.90x3.65 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "LIVING_0 net 62.79 m2 vs [16.0,50.0]"
+     },
+     "failing": [
+      "C19",
+      "C21",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 1,
+     "layout_notes": [],
+     "reported_rotation": 270,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 20,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_2__c1 (ensuite): entered from nothing, required only from BEDROOM_1__c1",
+      "C19": "BEDROOM_0__c1 has no exterior wall (interior room); LIVING_0__c1 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 4.45 x 1.20 m (aspect 3.71) past its BEDROOM template's 2.5; BEDROOM_1__c0 realized 5.15 x 1.70 m (aspect 3.03) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c1 realized 5.15 x 1.20 m (aspect 4.29) past its BEDROOM template's 2.5; LIVING_0__c3 realized 4.30 x 1.25 m (aspect 3.44) past its LIVING template's 2.5; LIVING_0__c6 realized 4.55 x 1.70 m (aspect 2.68) past its LIVING template's 2.5; LIVING_0__c7 realized 4.35 x 1.70 m (aspect 2.56) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c1-LIVING_0__c6 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-BEDROOM_2__c1 (DOOR): role pair ['MASTER_BEDROOM']/['BEDROOM'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c4 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c1-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_1: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "KITCHEN_0",
+      "C8": "BEDROOM_0__c1; LIVING_0__c1; LIVING_0__c2; LIVING_0__c4; LIVING_0__c5; LIVING_0__c6",
+      "C9": "BEDROOM_0__c1 net 4.45x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 5.15x1.70 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 5.15x1.20 cannot inscribe (2.4, 2.4) m; LIVING_0__c1 net 1.65x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.95x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 4.30x1.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 1.65x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 2.00x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 4.55x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 4.35x1.70 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 20.25 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 7,
+    "dropped": [
+     "LIVING_1"
+    ],
+    "footprint_area_m2": 188.24,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 186.735,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "MASTER_BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "24": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 4 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_2: single rectangle 9.34 of 15.35 m2",
+      "KITCHEN_0: single rectangle 7.60 of 13.00 m2",
+      "LIVING_2: single rectangle 23.50 of 39.77 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 15,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_0 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_1 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "KITCHEN_0__c1 has no exterior wall (interior room); LIVING_2__c1 has no exterior wall (interior room)",
+      "C20": "BEDROOM_2__c0 realized 4.25 x 1.20 m (aspect 3.54) past its BEDROOM template's 2.5; LIVING_2__c1 realized 4.05 x 1.35 m (aspect 3.00) past its LIVING template's 2.5; LIVING_2__c2 realized 5.75 x 2.10 m (aspect 2.74) past its LIVING template's 2.5; LIVING_2__c3 realized 7.25 x 1.80 m (aspect 4.03) past its LIVING template's 2.5",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_2__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1-LIVING_2__c3 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c1-LIVING_2__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BEDROOM_1 short side 2.60 < 3.0",
+      "C31": "LIVING_2__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_0; TOILET_0; TOILET_1",
+      "C8": "KITCHEN_0__c1; LIVING_2__c1",
+      "C9": "BEDROOM_0__c0 net 1.75x2.60 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 2.05x2.50 cannot inscribe (2.4, 2.4) m; BEDROOM_1 net 4.25x2.60 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 4.25x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 4.25x2.05 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 3.80x1.75 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 1.75x1.30 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c2 net 2.05x1.20 cannot inscribe (2.4, 1.8) m; LIVING_2__c0 net 3.95x1.75 cannot inscribe (3.0, 3.0) m; LIVING_2__c1 net 4.05x1.35 cannot inscribe (3.0, 3.0) m; LIVING_2__c2 net 5.75x2.10 cannot inscribe (3.0, 3.0) m; LIVING_2__c3 net 7.25x1.80 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 26,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_0 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C); TOILET_1 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_2__c3 has no exterior wall (interior room); KITCHEN_0__c2 has no exterior wall (interior room); LIVING_2__c2 has no exterior wall (interior room); LIVING_2__c3 has no exterior wall (interior room); LIVING_2__c4 has no exterior wall (interior room); LIVING_2__c5 has no exterior wall (interior room); LIVING_2__c7 has no exterior wall (interior room); LIVING_2__c8 has no exterior wall (interior room); LIVING_2__c9 has no exterior wall (interior room)",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_2__c10 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1-LIVING_2__c7 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c3-LIVING_2__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c2: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C31": "LIVING_2__c10: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_2__c9: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_0; TOILET_0; TOILET_1",
+      "C8": "BEDROOM_2__c3; KITCHEN_0__c2; LIVING_2__c2; LIVING_2__c3; LIVING_2__c4; LIVING_2__c5; LIVING_2__c7; LIVING_2__c8; LIVING_2__c9",
+      "C9": "BEDROOM_0__c0 net 1.75x2.60 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 2.05x2.50 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 2.80x2.60 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 1.45x2.60 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 2.80x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 1.45x1.20 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 2.80x2.05 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c3 net 1.45x2.05 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 1.75x1.75 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 2.05x1.75 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c2 net 1.75x1.30 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c3 net 2.05x1.20 cannot inscribe (2.4, 1.8) m; LIVING_2__c0 net 2.05x1.75 cannot inscribe (3.0, 3.0) m; LIVING_2__c1 net 1.90x1.75 cannot inscribe (3.0, 3.0) m; LIVING_2__c2 net 2.15x1.35 cannot inscribe (3.0, 3.0) m; LIVING_2__c3 net 1.90x1.35 cannot inscribe (3.0, 3.0) m; LIVING_2__c4 net 2.15x2.10 cannot inscribe (3.0, 3.0) m; LIVING_2__c5 net 1.95x2.10 cannot inscribe (3.0, 3.0) m; LIVING_2__c6 net 1.65x2.05 cannot inscribe (3.0, 3.0) m; LIVING_2__c7 net 1.45x1.75 cannot inscribe (3.0, 3.0) m; LIVING_2__c8 net 2.20x1.80 cannot inscribe (3.0, 3.0) m; LIVING_2__c9 net 1.95x1.80 cannot inscribe (3.0, 3.0) m; LIVING_2__c10 net 1.65x1.80 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C24",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 8,
+    "dropped": [
+     "LIVING_0",
+     "LIVING_1"
+    ],
+    "footprint_area_m2": 108.86,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_2"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 111.5765,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "MASTER_BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_2": "LIVING",
+     "TOILET_0": "TOILET",
+     "TOILET_1": "TOILET"
+    },
+    "rooms": 8
+   }
+  },
+  "25": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 7,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 5 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_0: single rectangle 10.64 of 18.61 m2",
+      "BEDROOM_1: single rectangle 11.88 of 20.52 m2",
+      "BEDROOM_2: single rectangle 12.26 of 18.81 m2",
+      "KITCHEN_0: single rectangle 4.62 of 7.10 m2",
+      "LIVING_0: single rectangle 18.24 of 39.90 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 13,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "TOILET_0 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c0 realized 1.55 x 5.30 m (aspect 3.42) past its MASTER_BEDROOM template's 2.5; BEDROOM_1__c1 realized 2.05 x 5.20 m (aspect 2.54) past its MASTER_BEDROOM template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; TOILET_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c1-LIVING_0__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1-LIVING_0__c2 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 5.85 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.95 < 2.4; TOILET_0 net 1.95 m2 outside [2.2,7.0]",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "KITCHEN_0; TOILET_0",
+      "C8": "BEDROOM_1__c0; LIVING_0__c3",
+      "C9": "BEDROOM_0__c0 net 2.00x3.20 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c2 net 1.85x1.55 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 1.55x5.30 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 2.05x5.20 cannot inscribe (2.8, 2.8) m; LIVING_0__c0 net 3.50x2.00 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 3.10x2.10 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9"
+     ],
+     "groups": 3,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 24,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "TOILET_0 (guest_wc): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_1__c2 has no exterior wall (interior room); BEDROOM_1__c3 has no exterior wall (interior room); BEDROOM_2__c0 has no exterior wall (interior room); BEDROOM_2__c1 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c7 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 3.05 x 1.15 m (aspect 2.65) past its BEDROOM template's 2.5; BEDROOM_2__c0 realized 3.50 x 1.10 m (aspect 3.18) past its BEDROOM template's 2.5; LIVING_0__c6 realized 3.40 x 1.25 m (aspect 2.72) past its LIVING template's 2.5",
+      "C24": "TOILET_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_0__c7 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c1 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c0-LIVING_0__c6 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c3: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "TOILET_0 net 1.95 m2 outside [2.2,7.0]",
+      "C31": "LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "KITCHEN_0__c0; KITCHEN_0__c1; TOILET_0",
+      "C8": "BEDROOM_1__c2; BEDROOM_1__c3; BEDROOM_2__c0; BEDROOM_2__c1; LIVING_0__c3; LIVING_0__c5; LIVING_0__c7",
+      "C9": "BEDROOM_0__c0 net 3.05x1.25 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 3.05x1.15 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c2 net 3.20x2.00 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c3 net 1.55x1.85 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 2.10x2.05 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 3.10x2.05 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c2 net 2.10x1.55 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c3 net 3.20x1.55 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 3.50x1.10 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 2.10x1.10 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 3.50x2.00 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c3 net 2.10x2.00 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 1.95x1.00 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 1.95x2.00 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 2.00x2.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 3.50x2.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.00x1.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 3.50x1.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 3.40x1.90 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 2.10x1.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 3.40x1.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 2.10x1.25 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "KITCHEN_0 net 5.85 m2 vs [9.0,28.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [
+     "LIVING_1",
+     "LIVING_2",
+     "TOILET_1"
+    ],
+    "footprint_area_m2": 113.83,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "BEDROOM_0",
+     "LIVING_0"
+    ],
+    "notes": [
+     "TOILET_1: nothing left after snapping"
+    ],
+    "resplan_footprint_area_m2": 118.8229,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "MASTER_BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING",
+     "TOILET_0": "TOILET"
+    },
+    "rooms": 7
+   }
+  },
+  "29": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 5 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "LIVING_0: single rectangle 22.00 of 49.99 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 13,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (ensuite): entered from nothing, required only from BEDROOM_1__c1",
+      "C19": "LIVING_0__c1 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c0 realized 1.15 x 3.70 m (aspect 3.22) past its BEDROOM template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 4.655 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.90 < 2.4",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_2; KITCHEN_0",
+      "C8": "LIVING_0__c1",
+      "C9": "BATHROOM_0__c0 net 1.05x2.00 cannot inscribe (1.6, 1.6) m; BEDROOM_1__c0 net 1.15x3.70 cannot inscribe (2.4, 2.4) m; LIVING_0__c1 net 5.40x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 3.80x1.90 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 4.05x1.80 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 18.70 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 3,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 18,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (ensuite): entered from nothing, required only from BEDROOM_1__c2",
+      "C19": "LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 1.15 x 3.45 m (aspect 3.00) past its BEDROOM template's 2.5; BEDROOM_1__c0 realized 1.15 x 3.70 m (aspect 3.22) past its BEDROOM template's 2.5; BEDROOM_1__c1 realized 1.20 x 3.80 m (aspect 3.17) past its BEDROOM template's 2.5; LIVING_0__c0 realized 1.25 x 3.85 m (aspect 3.08) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_0__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c2-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 4.655 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.90 < 2.4",
+      "C31": "LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_2; KITCHEN_0",
+      "C8": "LIVING_0__c2; LIVING_0__c3; LIVING_0__c5",
+      "C9": "BATHROOM_0__c0 net 1.05x2.00 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c1 net 1.15x3.45 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 1.15x3.70 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.20x3.80 cannot inscribe (2.4, 2.4) m; LIVING_0__c0 net 1.25x3.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.25x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 4.15x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.50x1.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.30x1.90 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 4.05x1.80 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 18.70 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [],
+    "footprint_area_m2": 131.68,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [
+     "BEDROOM_2: fell into 2 parts, kept the largest (15.15 m2), discarded 4.87 m2"
+    ],
+    "resplan_footprint_area_m2": 145.579,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "30": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "2 of 6 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BATHROOM_2: single rectangle 6.50 of 9.95 m2",
+      "BEDROOM_0: single rectangle 10.33 of 15.80 m2",
+      "BEDROOM_2: single rectangle 10.71 of 16.38 m2",
+      "LIVING_0: single rectangle 23.78 of 57.66 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 16,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (ensuite): entered from nothing, required only from BEDROOM_1__c1; BATHROOM_2__c0 (ensuite): entered from nothing, required only from BEDROOM_0__c1",
+      "C19": "BEDROOM_0__c0 has no exterior wall (interior room); LIVING_0__c1 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c0 realized 3.95 x 1.30 m (aspect 3.04) past its BEDROOM template's 2.5; BEDROOM_1__c0 realized 1.20 x 3.80 m (aspect 3.17) past its BEDROOM template's 2.5; BEDROOM_2__c0 realized 4.00 x 1.30 m (aspect 3.08) past its MASTER_BEDROOM template's 2.5; LIVING_0__c1 realized 5.70 x 2.25 m (aspect 2.53) past its LIVING template's 2.5; LIVING_0__c2 realized 8.05 x 1.80 m (aspect 4.47) past its LIVING template's 2.5; LIVING_0__c3 realized 4.10 x 1.20 m (aspect 3.42) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 4.9725 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.95 < 2.4",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_2__c0; BEDROOM_2__c1; KITCHEN_0",
+      "C8": "BEDROOM_0__c0; LIVING_0__c1",
+      "C9": "BATHROOM_0__c0 net 1.05x2.05 cannot inscribe (1.6, 1.6) m; BATHROOM_2__c0 net 2.45x1.20 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 3.95x1.30 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 1.20x3.80 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 4.00x1.30 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 4.00x2.40 cannot inscribe (2.8, 2.8) m; LIVING_0__c1 net 5.70x2.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 8.05x1.80 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 4.10x1.20 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 18.99 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 6,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 23,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c0 (ensuite): entered from nothing, required only from BEDROOM_1__c2; BATHROOM_2__c0 (ensuite): entered from nothing, required only from BEDROOM_0__c2",
+      "C19": "BEDROOM_0__c0 has no exterior wall (interior room); BEDROOM_0__c1 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c0 realized 1.20 x 3.80 m (aspect 3.17) past its BEDROOM template's 2.5; BEDROOM_1__c1 realized 1.20 x 3.90 m (aspect 3.25) past its BEDROOM template's 2.5; BEDROOM_2__c0 realized 4.00 x 1.30 m (aspect 3.08) past its MASTER_BEDROOM template's 2.5; LIVING_0__c0 realized 1.45 x 3.95 m (aspect 2.72) past its LIVING template's 2.5; LIVING_0__c7 realized 4.10 x 1.20 m (aspect 3.42) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_0__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c2-LIVING_0__c0 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "KITCHEN_0 net 4.9725 m2 outside [9.0,28.0]; KITCHEN_0 short side 1.95 < 2.4",
+      "C31": "LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_2__c0; BEDROOM_2__c1; KITCHEN_0",
+      "C8": "BEDROOM_0__c0; BEDROOM_0__c1; LIVING_0__c2; LIVING_0__c3; LIVING_0__c5",
+      "C9": "BATHROOM_0__c0 net 1.05x2.05 cannot inscribe (1.6, 1.6) m; BATHROOM_2__c0 net 2.45x1.20 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 2.50x1.30 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 1.45x1.30 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c3 net 1.35x2.40 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 1.20x3.80 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.20x3.90 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 4.00x1.30 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 4.00x2.40 cannot inscribe (2.8, 2.8) m; LIVING_0__c0 net 1.45x3.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.45x2.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 4.25x2.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.40x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.50x1.75 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 4.15x1.80 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 4.10x1.20 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_1 net 18.99 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 6,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [],
+    "footprint_area_m2": 142.88,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [
+     "BEDROOM_2: fell into 2 parts, kept the largest (16.38 m2), discarded 4.59 m2"
+    ],
+    "resplan_footprint_area_m2": 151.6177,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "31": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 4 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_1: single rectangle 15.82 of 22.60 m2",
+      "BEDROOM_2: single rectangle 11.46 of 22.52 m2",
+      "KITCHEN_0: single rectangle 6.64 of 13.07 m2",
+      "LIVING_0: single rectangle 29.05 of 57.44 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 18,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_1__c0 has no exterior wall (interior room); LIVING_0__c1 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 1.00 x 4.80 m (aspect 4.80) past its BEDROOM template's 2.5; BEDROOM_1__c0 realized 5.55 x 1.15 m (aspect 4.83) past its BEDROOM template's 2.5; LIVING_0__c3 realized 6.30 x 2.20 m (aspect 2.86) past its LIVING template's 2.5; LIVING_0__c4 realized 9.85 x 1.70 m (aspect 5.79) past its LIVING template's 2.5; LIVING_0__c5 realized 4.20 x 1.20 m (aspect 3.50) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c0-LIVING_0__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c0-LIVING_0__c4 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_0 net 4.13 m2 outside [4.5,14.0]; BATHROOM_0 short side 1.40 < 1.6",
+      "C31": "KITCHEN_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C8": "BEDROOM_1__c0; LIVING_0__c1; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5",
+      "C9": "BATHROOM_0 net 2.95x1.40 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c1 net 1.00x4.80 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 5.55x1.15 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 3.75x2.65 cannot inscribe (2.8, 2.8) m; KITCHEN_0__c0 net 3.95x1.40 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 3.95x1.55 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 2.00x1.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.10x1.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.05x2.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 6.30x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 9.85x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 4.20x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 4.10x2.65 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 19.99 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 37,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_0__c3 has no exterior wall (interior room); BEDROOM_0__c5 has no exterior wall (interior room); BEDROOM_1__c3 has no exterior wall (interior room); BEDROOM_1__c4 has no exterior wall (interior room); BEDROOM_1__c5 has no exterior wall (interior room); KITCHEN_0__c0 has no exterior wall (interior room); LIVING_0__c10 has no exterior wall (interior room); LIVING_0__c11 has no exterior wall (interior room); LIVING_0__c13 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room); LIVING_0__c7 has no exterior wall (interior room); LIVING_0__c8 has no exterior wall (interior room); LIVING_0__c9 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c1 realized 3.10 x 1.05 m (aspect 2.95) past its BEDROOM template's 2.5; BEDROOM_2__c1 realized 3.75 x 1.20 m (aspect 3.12) past its MASTER_BEDROOM template's 2.5",
+      "C24": "BEDROOM_0__c5-LIVING_0__c9 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c0-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c2-LIVING_0__c8 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c5: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_0 net 4.13 m2 outside [4.5,14.0]; BATHROOM_0 short side 1.40 < 1.6",
+      "C31": "KITCHEN_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; KITCHEN_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c10: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c11: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c12: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c13: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c14: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c7: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c9: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C8": "BEDROOM_0__c3; BEDROOM_0__c5; BEDROOM_1__c3; BEDROOM_1__c4; BEDROOM_1__c5; KITCHEN_0__c0; LIVING_0__c10; LIVING_0__c11; LIVING_0__c13; LIVING_0__c2; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5; LIVING_0__c6; LIVING_0__c7; LIVING_0__c8; LIVING_0__c9",
+      "C9": "BATHROOM_0 net 2.95x1.40 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 1.00x1.05 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 3.10x1.05 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c2 net 1.00x1.70 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c3 net 3.10x1.70 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c4 net 1.00x2.05 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c5 net 3.10x2.15 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 2.00x2.65 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 1.10x2.65 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c3 net 2.00x1.15 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c4 net 1.10x1.15 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c5 net 2.45x1.15 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 3.75x2.65 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c1 net 3.75x1.20 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c2 net 3.75x1.65 cannot inscribe (2.8, 2.8) m; KITCHEN_0__c0 net 2.05x1.55 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 1.90x1.55 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c2 net 2.05x1.40 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c3 net 1.90x1.40 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 2.05x2.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.05x2.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.15x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 2.05x1.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.15x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 2.10x1.70 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 2.05x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 1.10x1.65 cannot inscribe (3.0, 3.0) m; LIVING_0__c8 net 2.45x1.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c9 net 2.15x2.20 cannot inscribe (3.0, 3.0) m; LIVING_0__c10 net 2.10x2.15 cannot inscribe (3.0, 3.0) m; LIVING_0__c11 net 2.05x2.15 cannot inscribe (3.0, 3.0) m; LIVING_0__c12 net 1.05x2.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c13 net 2.10x1.60 cannot inscribe (3.0, 3.0) m; LIVING_0__c14 net 2.00x1.40 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 19.99 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 180,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 7,
+    "dropped": [
+     "LIVING_1",
+     "LIVING_2"
+    ],
+    "footprint_area_m2": 156.78,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 158.3067,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "MASTER_BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  },
+  "47": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 9,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0 (ensuite): entered from nothing, required only from BEDROOM_1",
+      "C2": "22266 unit^2 unassigned inside the footprint",
+      "C22": "LIVING_0.N: 4.1/8.95 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous; no realized connection joins the wings \u2014 two buildings, not one house",
+      "C24": "BATHROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C28": "KITCHEN_0-LIVING_1 and OUTSIDE-LIVING_1: door swing envelopes overlap",
+      "C3": "BEDROOM_1 short side 2.40 < 2.6; BEDROOM_2 short side 2.50 < 2.6; LIVING_1 net 2.4725 m2 outside [16.0,50.0]; LIVING_1 short side 1.15 < 3.0",
+      "C5": "BATHROOM_0; BATHROOM_1; BEDROOM_0; BEDROOM_1; BEDROOM_2; LIVING_0; TOILET_0",
+      "C9": "LIVING_1 net 2.15x1.15 cannot inscribe (3.0, 3.0) m"
+     },
+     "failing": [
+      "C17",
+      "C2",
+      "C22",
+      "C24",
+      "C28",
+      "C3",
+      "C5",
+      "C9"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_0: single rectangle 17.57 of 30.87 m2",
+      "BEDROOM_1: single rectangle 14.04 of 27.48 m2",
+      "BEDROOM_2: single rectangle 14.56 of 24.44 m2",
+      "LIVING_0: single rectangle 52.36 of 71.41 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 17,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_0__c0 has no exterior wall (interior room); BEDROOM_1__c2 has no exterior wall (interior room); BEDROOM_2__c0 has no exterior wall (interior room)",
+      "C20": "BEDROOM_2__c0 realized 5.10 x 1.85 m (aspect 2.76) past its BEDROOM template's 2.5; LIVING_0__c1 realized 4.65 x 1.25 m (aspect 3.72) past its LIVING template's 2.5; LIVING_0__c2 realized 8.75 x 2.15 m (aspect 4.07) past its LIVING template's 2.5; LIVING_0__c3 realized 13.95 x 1.80 m (aspect 7.75) past its LIVING template's 2.5; LIVING_0__c4 realized 8.75 x 1.75 m (aspect 5.00) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c0-LIVING_0__c3 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c2-LIVING_0__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c0-LIVING_0__c3 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "LIVING_1 net 2.8125 m2 outside [16.0,50.0]; LIVING_1 short side 1.25 < 3.0",
+      "C31": "LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "KITCHEN_0; LIVING_1",
+      "C8": "BEDROOM_0__c0; BEDROOM_1__c2; BEDROOM_2__c0",
+      "C9": "BEDROOM_0__c1 net 4.55x2.65 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 1.00x1.95 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c2 net 5.15x2.10 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 5.10x1.85 cannot inscribe (2.4, 2.4) m; LIVING_0__c0 net 2.30x1.30 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 4.65x1.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 8.75x2.15 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 13.95x1.80 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 8.75x1.75 cannot inscribe (3.0, 3.0) m; LIVING_1 net 2.25x1.25 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 29.03 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 40,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c1 (ensuite): entered from nothing, required only from BEDROOM_1__c3; BATHROOM_1__c1 (ensuite): entered from nothing, required only from BEDROOM_0__c4",
+      "C19": "BEDROOM_0__c1 has no exterior wall (interior room); BEDROOM_0__c2 has no exterior wall (interior room); BEDROOM_0__c4 has no exterior wall (interior room); BEDROOM_0__c5 has no exterior wall (interior room); BEDROOM_1__c1 has no exterior wall (interior room); BEDROOM_1__c3 has no exterior wall (interior room); BEDROOM_2__c1 has no exterior wall (interior room); BEDROOM_2__c3 has no exterior wall (interior room); BEDROOM_2__c5 has no exterior wall (interior room); LIVING_0__c10 has no exterior wall (interior room); LIVING_0__c11 has no exterior wall (interior room); LIVING_0__c12 has no exterior wall (interior room); LIVING_0__c13 has no exterior wall (interior room); LIVING_0__c14 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room); LIVING_0__c7 has no exterior wall (interior room); LIVING_0__c8 has no exterior wall (interior room)",
+      "C20": "BEDROOM_2__c2 realized 2.65 x 1.05 m (aspect 2.52) past its BEDROOM template's 2.5; KITCHEN_0__c0 realized 1.20 x 3.90 m (aspect 3.25) past its KITCHEN template's 3.0",
+      "C24": "BEDROOM_0__c2-LIVING_0__c14 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1-LIVING_0__c14 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c1-LIVING_0__c12 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BATHROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c5: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c5: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "LIVING_1 net 2.8125 m2 outside [16.0,50.0]; LIVING_1 short side 1.25 < 3.0",
+      "C31": "LIVING_0__c0: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c10: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c11: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c12: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c13: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c14: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c4: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c8: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c9: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "KITCHEN_0__c0; KITCHEN_0__c1; LIVING_1",
+      "C8": "BEDROOM_0__c1; BEDROOM_0__c2; BEDROOM_0__c4; BEDROOM_0__c5; BEDROOM_1__c1; BEDROOM_1__c3; BEDROOM_2__c1; BEDROOM_2__c3; BEDROOM_2__c5; LIVING_0__c10; LIVING_0__c11; LIVING_0__c12; LIVING_0__c13; LIVING_0__c14; LIVING_0__c6; LIVING_0__c7; LIVING_0__c8",
+      "C9": "BATHROOM_0__c0 net 1.95x1.25 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 2.65x3.40 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c1 net 1.90x3.40 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c2 net 1.75x3.40 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c3 net 2.65x1.15 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c4 net 1.90x1.25 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c5 net 1.75x1.25 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c0 net 1.95x1.00 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c1 net 2.10x1.75 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c2 net 2.55x1.60 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c3 net 2.10x3.40 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c0 net 2.65x2.25 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 1.85x2.35 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c2 net 2.65x1.05 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c3 net 1.85x1.05 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c4 net 2.65x1.70 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c5 net 1.85x1.70 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 1.20x3.90 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 1.30x3.90 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 1.75x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 1.80x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.15x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 1.25x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 1.30x2.30 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.75x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 1.80x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 2.15x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c8 net 1.20x2.30 cannot inscribe (3.0, 3.0) m; LIVING_0__c9 net 1.75x4.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c10 net 1.80x4.10 cannot inscribe (3.0, 3.0) m; LIVING_0__c11 net 2.10x4.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c12 net 1.70x2.40 cannot inscribe (3.0, 3.0) m; LIVING_0__c13 net 1.70x1.05 cannot inscribe (3.0, 3.0) m; LIVING_0__c14 net 1.70x1.70 cannot inscribe (3.0, 3.0) m; LIVING_1 net 1.25x2.25 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 29.03 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 7,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 7,
+    "dropped": [
+     "STORAGE_0"
+    ],
+    "footprint_area_m2": 187.45,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "BEDROOM_1",
+     "LIVING_0"
+    ],
+    "notes": [
+     "STORAGE_0: 4.18 m2 overlapped an earlier room and was removed",
+     "STORAGE_0: nothing left after snapping"
+    ],
+    "resplan_footprint_area_m2": 191.0086,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BEDROOM_0": "MASTER_BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING",
+     "LIVING_1": "LIVING",
+     "TOILET_0": "TOILET"
+    },
+    "rooms": 9
+   }
+  },
+  "6": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 9,
+     "code": "EMPTY_WING",
+     "details": {
+      "EMPTY_WING": "1 of 3 wings hold no cell: footprint no room covers"
+     },
+     "failing": [
+      "EMPTY_WING"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BATHROOM_0: single rectangle 7.08 of 11.64 m2",
+      "BEDROOM_0: single rectangle 22.19 of 28.13 m2",
+      "BEDROOM_2: single rectangle 14.70 of 26.10 m2",
+      "LIVING_0: single rectangle 47.10 of 61.55 m2"
+     ],
+     "reported_rotation": 0,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 14,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "LIVING_0__c2 has no exterior wall (interior room)",
+      "C20": "BEDROOM_2__c0 realized 1.85 x 5.80 m (aspect 3.14) past its BEDROOM template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_0__c2 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c0-LIVING_0__c1 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_0__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_2 net 2.1875 m2 outside [4.5,14.0]; BATHROOM_2 short side 1.25 < 1.6; BATHROOM_3 net 4.025 m2 outside [4.5,14.0]; KITCHEN_0 short side 2.30 < 2.4",
+      "C31": "LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_1; KITCHEN_0",
+      "C8": "LIVING_0__c2",
+      "C9": "BATHROOM_2 net 1.25x1.75 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 3.35x1.80 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 1.85x5.80 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 2.30x5.70 cannot inscribe (2.4, 2.4) m; LIVING_0__c0 net 2.75x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 2.85x2.35 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 26.00 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 23,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C17": "BATHROOM_0__c1 (shared_bathroom): entered from nothing, required only from circulation (or LIVING, specs/009 decision C)",
+      "C19": "BEDROOM_0__c1 has no exterior wall (interior room); LIVING_0__c2 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c6 has no exterior wall (interior room)",
+      "C20": "BEDROOM_0__c3 realized 1.60 x 4.25 m (aspect 2.66) past its MASTER_BEDROOM template's 2.5; BEDROOM_0__c4 realized 1.30 x 4.20 m (aspect 3.23) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c0 realized 1.85 x 5.80 m (aspect 3.14) past its BEDROOM template's 2.5; LIVING_0__c1 realized 1.80 x 5.90 m (aspect 3.28) past its LIVING template's 2.5; LIVING_0__c2 realized 1.60 x 5.95 m (aspect 3.72) past its LIVING template's 2.5; LIVING_0__c3 realized 1.35 x 5.95 m (aspect 4.41) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c1-LIVING_0__c5 (DOOR): role pair ['MASTER_BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_2__c0-LIVING_0__c4 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BATHROOM_3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c0: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c2: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c3: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_0__c4: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_2__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C3": "BATHROOM_2 net 2.1875 m2 outside [4.5,14.0]; BATHROOM_2 short side 1.25 < 1.6; BATHROOM_3 net 4.025 m2 outside [4.5,14.0]",
+      "C31": "LIVING_0__c1: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c2: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c3: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c5: only realized path to it is blocked by furniture in an intermediate room, no way around it; LIVING_0__c6: only realized path to it is blocked by furniture in an intermediate room, no way around it",
+      "C5": "BATHROOM_1; BEDROOM_1; KITCHEN_0__c0; KITCHEN_0__c1; KITCHEN_0__c2",
+      "C8": "BEDROOM_0__c1; LIVING_0__c2; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5; LIVING_0__c6",
+      "C9": "BATHROOM_2 net 1.25x1.75 cannot inscribe (1.6, 1.6) m; BEDROOM_0__c0 net 1.80x1.80 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c1 net 1.55x1.80 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c2 net 1.80x4.25 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c3 net 1.60x4.25 cannot inscribe (2.8, 2.8) m; BEDROOM_0__c4 net 1.30x4.20 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 1.85x5.80 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 2.30x5.70 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c0 net 1.80x2.30 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c1 net 1.60x2.30 cannot inscribe (2.4, 1.8) m; KITCHEN_0__c2 net 1.30x2.30 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 2.75x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 1.80x5.90 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.60x5.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 1.35x5.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.90x5.95 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.55x2.35 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 1.30x2.35 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 25.94 m2 vs [11.0,23.0]"
+     },
+     "failing": [
+      "C17",
+      "C19",
+      "C20",
+      "C24",
+      "C3",
+      "C31",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 5,
+     "layout_notes": [],
+     "reported_rotation": 90,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 6,
+    "dropped": [
+     "TOILET_0"
+    ],
+    "footprint_area_m2": 165.29,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "BEDROOM_0",
+     "LIVING_0"
+    ],
+    "notes": [
+     "TOILET_0: nothing left after snapping"
+    ],
+    "resplan_footprint_area_m2": 167.2254,
+    "roles": {
+     "BATHROOM_0": "BATHROOM",
+     "BATHROOM_1": "BATHROOM",
+     "BATHROOM_2": "BATHROOM",
+     "BATHROOM_3": "BATHROOM",
+     "BEDROOM_0": "MASTER_BEDROOM",
+     "BEDROOM_1": "BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 9
+   }
+  },
+  "7": {
+   "arms": {
+    "arm1": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 8,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C2": "12937 unit^2 unassigned inside the footprint",
+      "C20": "BEDROOM_2 realized 5.60 x 1.90 m (aspect 2.95) past its BEDROOM template's 2.5",
+      "C21": "LIVING_0 realized 54.72 m2 past its LIVING template's 50 m2 hard maximum",
+      "C22": "CIRCULATION_2.N: 1.75/3.05 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous; LIVING_0.S: 4.45/9.7 m abutted by the other wing \u2014 PARTIAL seam, wall type ambiguous",
+      "C24": "BEDROOM_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_2: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; CIRCULATION_1: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in",
+      "C25": "CIRCULATION_0 has no opening to a public room or open zone",
+      "C26": "5 corridor dead ends exceeds 2",
+      "C3": "BEDROOM_0 short side 2.15 < 2.6; BEDROOM_2 short side 1.90 < 2.6; BEDROOM_2 aspect 2.95 > 2.5; CIRCULATION_0 net 2.76 m2 outside [5.0,30.0]; KITCHEN_0 net 7.2775 m2 outside [9.0,28.0]; KITCHEN_0 short side 2.05 < 2.4; LIVING_0 net 54.72 m2 outside [16.0,50.0]",
+      "C5": "BEDROOM_0; BEDROOM_2; CIRCULATION_1; CIRCULATION_2; KITCHEN_0; LIVING_0",
+      "C9": "BEDROOM_0 net 4.95x2.15 cannot inscribe (2.4, 2.4) m; BEDROOM_2 net 5.60x1.90 cannot inscribe (2.4, 2.4) m"
+     },
+     "failing": [
+      "C2",
+      "C20",
+      "C21",
+      "C22",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C9"
+     ],
+     "groups": 0,
+     "layout_notes": [
+      "BEDROOM_0: single rectangle 12.86 of 24.41 m2",
+      "BEDROOM_1: single rectangle 22.33 of 23.96 m2",
+      "BEDROOM_2: single rectangle 12.76 of 24.65 m2",
+      "LIVING_0: single rectangle 57.23 of 64.51 m2"
+     ],
+     "reported_rotation": 180,
+     "thin_cells": 0
+    },
+    "arm2": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 13,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "LIVING_0__c2 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c1 realized 6.90 x 1.20 m (aspect 5.75) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c0 realized 5.60 x 2.00 m (aspect 2.80) past its BEDROOM template's 2.5; BEDROOM_2__c1 realized 5.60 x 2.05 m (aspect 2.73) past its BEDROOM template's 2.5; LIVING_0__c0 realized 9.60 x 3.70 m (aspect 2.59) past its LIVING template's 2.5; LIVING_0__c2 realized 10.95 x 2.00 m (aspect 5.47) past its LIVING template's 2.5",
+      "C24": "KITCHEN_0: no DOOR/CASED_OPENING edge at all \u2014 an enclosed room with no way in; BEDROOM_0__c0-LIVING_0__c2 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C25": "CIRCULATION_0 has no opening to a public room or open zone",
+      "C26": "4 corridor dead ends exceeds 2",
+      "C3": "CIRCULATION_0 net 2.88 m2 outside [5.0,30.0]; KITCHEN_0 net 7.4825 m2 outside [9.0,28.0]; KITCHEN_0 short side 2.05 < 2.4",
+      "C5": "BEDROOM_0__c0; BEDROOM_0__c1; BEDROOM_2__c0; BEDROOM_2__c1; CIRCULATION_1; CIRCULATION_2; KITCHEN_0; LIVING_0__c0; LIVING_0__c1; LIVING_0__c2",
+      "C8": "LIVING_0__c2",
+      "C9": "BEDROOM_0__c0 net 5.05x2.15 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 4.95x2.30 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 5.60x2.45 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 6.90x1.20 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 5.60x2.00 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 5.60x2.05 cannot inscribe (2.4, 2.4) m; LIVING_0__c1 net 2.10x1.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 10.95x2.00 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 22.24 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 4,
+     "layout_notes": [],
+     "reported_rotation": 180,
+     "thin_cells": 0
+    },
+    "arm2R": {
+     "carried": false,
+     "carried_rotations": [],
+     "cells": 24,
+     "code": "VALIDATION_FAILED",
+     "details": {
+      "C19": "BEDROOM_1__c1 has no exterior wall (interior room); LIVING_0__c10 has no exterior wall (interior room); LIVING_0__c3 has no exterior wall (interior room); LIVING_0__c4 has no exterior wall (interior room); LIVING_0__c5 has no exterior wall (interior room); LIVING_0__c7 has no exterior wall (interior room); LIVING_0__c8 has no exterior wall (interior room); LIVING_0__c9 has no exterior wall (interior room)",
+      "C20": "BEDROOM_1__c2 realized 5.65 x 1.20 m (aspect 4.71) past its MASTER_BEDROOM template's 2.5; BEDROOM_2__c0 realized 5.60 x 2.00 m (aspect 2.80) past its BEDROOM template's 2.5; BEDROOM_2__c1 realized 5.60 x 2.05 m (aspect 2.73) past its BEDROOM template's 2.5; LIVING_0__c3 realized 5.20 x 1.25 m (aspect 4.16) past its LIVING template's 2.5; LIVING_0__c7 realized 5.25 x 2.00 m (aspect 2.62) past its LIVING template's 2.5",
+      "C24": "BEDROOM_0__c0-LIVING_0__c7 (DOOR): role pair ['BEDROOM']/['LIVING'] is not allowed by the access-rules table; BEDROOM_1__c1: reachable from the entrance only by continuing on through another PRIVATE room; BEDROOM_1__c2: reachable from the entrance only by continuing on through another PRIVATE room",
+      "C25": "CIRCULATION_0 has no opening to a public room or open zone",
+      "C26": "5 corridor dead ends exceeds 2",
+      "C3": "CIRCULATION_0 net 2.88 m2 outside [5.0,30.0]",
+      "C5": "BEDROOM_0__c0; BEDROOM_0__c1; BEDROOM_2__c0; BEDROOM_2__c1; CIRCULATION_1; CIRCULATION_2__c0; CIRCULATION_2__c1; KITCHEN_0__c0; KITCHEN_0__c1; LIVING_0__c0; LIVING_0__c1; LIVING_0__c10; LIVING_0__c2; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5; LIVING_0__c6; LIVING_0__c7; LIVING_0__c8; LIVING_0__c9",
+      "C8": "BEDROOM_1__c1; LIVING_0__c10; LIVING_0__c3; LIVING_0__c4; LIVING_0__c5; LIVING_0__c7; LIVING_0__c8; LIVING_0__c9",
+      "C9": "BEDROOM_0__c0 net 5.05x2.15 cannot inscribe (2.4, 2.4) m; BEDROOM_0__c1 net 4.95x2.30 cannot inscribe (2.4, 2.4) m; BEDROOM_1__c0 net 5.60x2.45 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c1 net 1.25x1.15 cannot inscribe (2.8, 2.8) m; BEDROOM_1__c2 net 5.65x1.20 cannot inscribe (2.8, 2.8) m; BEDROOM_2__c0 net 5.60x2.00 cannot inscribe (2.4, 2.4) m; BEDROOM_2__c1 net 5.60x2.05 cannot inscribe (2.4, 2.4) m; KITCHEN_0__c1 net 2.05x1.20 cannot inscribe (2.4, 1.8) m; LIVING_0__c0 net 5.20x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c1 net 2.70x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c2 net 1.70x2.45 cannot inscribe (3.0, 3.0) m; LIVING_0__c3 net 5.20x1.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c4 net 2.70x1.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c5 net 1.70x1.25 cannot inscribe (3.0, 3.0) m; LIVING_0__c6 net 2.10x1.85 cannot inscribe (3.0, 3.0) m; LIVING_0__c7 net 5.25x2.00 cannot inscribe (3.0, 3.0) m; LIVING_0__c8 net 2.70x2.00 cannot inscribe (3.0, 3.0) m; LIVING_0__c9 net 1.75x2.00 cannot inscribe (3.0, 3.0) m; LIVING_0__c10 net 1.25x1.95 cannot inscribe (3.0, 3.0) m",
+      "GROUP-C3": "BEDROOM_0 net 22.24 m2 vs [9.0,18.0]"
+     },
+     "failing": [
+      "C19",
+      "C20",
+      "C24",
+      "C25",
+      "C26",
+      "C3",
+      "C5",
+      "C8",
+      "C9",
+      "GROUP-C3"
+     ],
+     "groups": 6,
+     "layout_notes": [],
+     "reported_rotation": 180,
+     "thin_cells": 0
+    }
+   },
+   "conversion": {
+    "access_edges": 4,
+    "dropped": [],
+    "footprint_area_m2": 162.22,
+    "hole_area_m2": 0,
+    "non_rectangular_rooms": [
+     "BEDROOM_1",
+     "LIVING_0"
+    ],
+    "notes": [],
+    "resplan_footprint_area_m2": 171.8706,
+    "roles": {
+     "BEDROOM_0": "BEDROOM",
+     "BEDROOM_1": "MASTER_BEDROOM",
+     "BEDROOM_2": "BEDROOM",
+     "CIRCULATION_0": "HALL",
+     "CIRCULATION_1": "HALL",
+     "CIRCULATION_2": "HALL",
+     "KITCHEN_0": "KITCHEN",
+     "LIVING_0": "LIVING"
+    },
+    "rooms": 8
+   }
+  }
+ },
+ "top_blocking_check_arm2": [
+  "C9",
+  19
+ ],
+ "verdict": "STOP",
+ "why": "arm 2 carries 0 <= 6 of 19"
+}
