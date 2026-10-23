@@ -442,9 +442,7 @@ class FakeGitHub:
         return None
 
     def open_prs_for_base(self, base: str) -> list[dict]:
-        # through get_pr, like find_pr_for_branch: a listed PR carries the branch's current head sha
-        return [self.get_pr(pr["number"]) for pr in list(self.prs.values())
-                if pr.get("state") == "open" and (pr.get("base") or {}).get("ref") == base and not pr.get("merged")]
+        return [pr for pr in self.prs.values() if pr.get("state") == "open" and (pr.get("base") or {}).get("ref") == base and not pr.get("merged")]
 
     def create_pr(self, *, head: str, base: str, title: str, body: str, draft: bool = False) -> dict:
         n = self.next_number

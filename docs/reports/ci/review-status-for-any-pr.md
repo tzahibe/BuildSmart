@@ -305,17 +305,47 @@ $ uv run --project . python -m pytest tests -q        # final full run
 
 $ uv run --project . python -m pytest tests/test_pr_adoption.py tests/test_hardening.py tests/test_orchestrator_lifecycle.py -q
 57 passed in 122.03s (0:02:02)
+
+$ uv run --project . python -m pytest tests -q        # SHIPPED code, with the gate-3 tests
+303 passed in 418.66s (0:06:58)
 ```
 
-The first run's one failure is
-`test_governance_parallel.py::test_dependency_aware_parallelism_follows_the_dag` with
-`sqlite3.InterfaceError: bad parameter or other API misuse` raised in `state_store.get_meta` from a
-worker thread. That is the **pre-existing** full-suite flake documented in
-`docs/reports/ci/feature-branch-gates.md` §4.1 ("the signature of a connection used after close /
-across threads… pre-existing behavior of the state store, out of scope for #209, and worth its own
-Issue"); the file passes 19/19 alone, the second full run of the same code passes 301/301, and this
-diff adds no cross-thread store access — `attempts_remaining` reads a field of the record it is
-already given. It was not chased.
+### The flake, measured rather than waved at
+
+The failures above are all one thing: `sqlite3.InterfaceError: bad parameter or other API misuse`
+raised in `state_store.get_meta` from a **worker thread**, in
+`tests/test_governance_parallel.py` (`test_dependency_aware_parallelism_follows_the_dag` or
+`test_multiple_workers_scheduled_from_one_root`, whichever the timing picks). It is the
+**pre-existing** flake documented in `docs/reports/ci/feature-branch-gates.md` §4.1 — "the signature
+of a connection used after close / across threads… pre-existing behavior of the state store, out of
+scope for #209, and worth its own Issue" — and this diff adds no cross-thread store access
+(`attempts_remaining` now reads a field of the record it is already given; the adoption pass runs on
+the main thread inside reconciliation).
+
+It was not chased, but it was not waved at either, because an early version of this branch made it
+**more frequent**: `FakeGitHub.open_prs_for_base` had been changed to return every listed PR
+through `get_pr`, and the lifecycle fixture's `on_head_sha` hook runs a real `git ls-remote` per
+call — so each tick spawned one git subprocess per open PR inside reconciliation, changing the
+suite's timing enough to widen the race. Measured on that file alone, 1-minute runs:
+
+| code | runs | failures |
+|---|---|---|
+| `origin/main` (baseline, extracted with `git archive`) | 4 | 0 |
+| this branch, listing refreshed through `get_pr` | 5 | 2 |
+| this branch, listing left as a snapshot (shipped) | 4 | 0 |
+
+CI agreed about the middle row: on head `64774a1` (the last one carrying it) **`gate-2-static`
+itself went red** on `test_multiple_workers_scheduled_from_one_root` with the same
+`sqlite3.InterfaceError` — the flake #209's report warned could reach CI ("CI runs this same
+unsharded command in gate-2, so it can flake there too"). That red was read, not re-run blind.
+
+The fix is also the more correct production behavior: a listing **is** a snapshot, so `adopt_pr`
+now re-reads the single pull request it is about to adopt (`github.get_pr`) and publishes the status
+for the head it really has at that moment, instead of trusting the head the listing carried; a PR
+closed or merged in between is not adopted at all. The fake's listing was left exactly as it was.
+
+**The state store's shared-connection defect is still there and still deserves its own Issue**: a
+worker thread reading `self.store` is the bug, and nothing in this change fixes it or is meant to.
 
 ---
 
@@ -330,3 +360,9 @@ already given. It was not chased.
   ROOT open. Noted, not changed.
 - An adopted PR with no CI run at all ends `BLOCKED` after `ci_wait_seconds` with the status still
   `pending`, which is honest but means a human must act. There is no automatic repair, by design.
+- **Cost**: the pass adds one `open_prs_for_base` call per tick plus, per *unrecognised* pull
+  request, one `combined_status` (and one `get_issue` when the binding resolves). With the eight
+  pull requests open today and a 120 s tick that is roughly 500 API calls an hour against a 5000
+  limit. Deliberately not cached: a cache would also hide a status deleted on GitHub.
+- Every open pull request into `main` that nothing binds now gets a `pending` status with its
+  reason, including one opened by a bot. That is the intended reading of "never nothing at all".

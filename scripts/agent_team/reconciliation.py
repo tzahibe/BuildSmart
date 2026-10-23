@@ -257,6 +257,16 @@ def adopt_pr(orch, pr: dict, *, known: set[int] | None = None) -> str:
     if orch.dry_run:
         return f"PR #{pr_no} ({head_ref}): would be adopted for #{issue_no}"
     try:
+        # the listing is a snapshot: re-read the one PR about to be adopted, so the status is
+        # published for the head it really has now and a PR closed in between is not adopted
+        fresh = orch.github.get_pr(pr_no)
+    except Exception as exc:  # noqa: BLE001
+        return not_adopted(f"PR #{pr_no} cannot be re-read ({str(exc)[:60]})", issue_no)
+    if fresh.get("merged") or fresh.get("state") != "open":
+        return ""
+    head_ref = (fresh.get("head") or {}).get("ref") or head_ref
+    head_sha = (fresh.get("head") or {}).get("sha") or head_sha
+    try:
         # a real local checkout of the PR's own branch: the reviewer reads the real diff, exactly as
         # it does for native work — a review without the diff would be a weaker review
         info = orch.worktrees.ensure_named(issue_no, head_ref, slug=f"pr{pr_no}")
