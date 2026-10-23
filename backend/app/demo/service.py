@@ -284,6 +284,12 @@ def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None
                           *, concept_engine_v2: bool | None = None,
                           brain: bool = False,
                           rear_band_preview: bool = False) -> DemoResult:
+    # #247: the instant the REQUEST began, for the one stage that states a wall-clock budget. A
+    # brain request runs production's outline search and selection FIRST and the brain is handed
+    # the outline that came out of it, so a budget taken from inside `run_brain` would exclude the
+    # 0.4-13.7 s that prefix costs and could not describe what a caller waits. Taken here, once,
+    # and read by nothing else.
+    request_started = time.monotonic()
     corridor = spec.program.corridor
     outlines = _outlines_for(project)
 
@@ -329,7 +335,8 @@ def _generate_demo_design(project: Project, spec, on_stage: Callable[[str], None
         # proposed, gated by the critic BEFORE placement, and realized through the unchanged band
         # pipeline and validators. Never a silent fallback: a brief the brain cannot plan returns
         # its own typed refusal rather than the guillotine plan.
-        return _brain_result(project, spec, selection, results, preference_dropped)
+        return _brain_result(project, spec, selection, results, preference_dropped,
+                             request_started=request_started)
     if rear_band_preview:
         # E1 DEVELOPMENT PREVIEW. Replaces the primary with the SAME brief's rear-band plan on the
         # SAME outline, keeping the production plan as the first alternative so the two are drawn
@@ -914,16 +921,37 @@ def _augment_cross_outline_classes(spec, project: Project, results: list[Outline
 #: sizer and the plan's notes say so.
 BRAIN_SIZER = "exact"
 BRAIN_FAMILIES = ("band", "spine", "stack", "cells")
+#: The stated wall-clock budget for ONE brain request, end to end (#247). It is the request's
+#: budget and not a stage's: `_brain_result` hands `run_brain` the instant the request began, so
+#: the production prefix, the production sizing of every parti, the widening ladder and the exact
+#: sizer are all inside it. A request may still overrun it by the last unit of work it had already
+#: begun — nothing is cancelled in flight — and by the FLOOR, the cost of the first plan, which the
+#: budget is not allowed to take away. Both are measured numbers in
+#: `docs/reports/architectural-brain/PREVIEW-request-bound.md`.
+#:
+#: The VALUE is the owner's to set and this constant only makes the stated value true. It is left
+#: at the 30 s the owner was asked to approve, with the measured consequence stated plainly in that
+#: report: on the slowest of the eight audit briefs 30 s is below the floor, so the request costs
+#: the floor and says so, and on the rest it binds and gives up alternatives rather than the plan.
+BRAIN_BUDGET_S = 30.0
 
 
 def _brain_result(project: Project, spec, selection: PlanSelection,
-                  results: list[OutlineResult], preference_dropped: bool) -> DemoResult:
+                  results: list[OutlineResult], preference_dropped: bool,
+                  *, request_started: float | None = None) -> DemoResult:
     """The brain's distinct plans as the demo payload — primary plus alternatives, every one drawn
-    by the same `DemoPlan` the product already uses."""
+    by the same `DemoPlan` the product already uses.
+
+    `request_started` (#247) puts the production prefix above inside `BRAIN_BUDGET_S`, so the
+    stated budget bounds the whole request rather than one stage of it. Expiry is NOT an error: the
+    response is the 200 it always was, with a production-sized plan set and `res.notes` saying what
+    did not run, on every plan. Only a genuine no-plan is the `BRAIN_NO_PLAN` 422 below.
+    """
     orr, _production = selection.primary
     outline = orr.outline
     res = run_brain(spec, (outline.width_m, outline.depth_m), brief=getattr(project, "project_id", "brief"),
-                    sizer=BRAIN_SIZER, families=BRAIN_FAMILIES)
+                    sizer=BRAIN_SIZER, families=BRAIN_FAMILIES, budget_s=BRAIN_BUDGET_S,
+                    request_started=request_started)
     if not res.distinct:
         detail = "; ".join(f"{p.parti} [{p.stage}]: {p.reason[:120]}" for p in res.plans) or "no parti applied"
         raise DemoGenerationError(
@@ -939,7 +967,8 @@ def _brain_result(project: Project, spec, selection: PlanSelection,
         notes = [f"{plan.parti}: {plan.rationale}",
                  f"requested graph preserved — contacts {plan.spatial_preserved}, "
                  f"doors {plan.access_preserved}; {plan.bands} bands",
-                 f"sized by the {plan.sizer} sizer ({plan.family} layout)", *plan.notes]
+                 f"sized by the {plan.sizer} sizer ({plan.family} layout)", *plan.notes,
+                 *res.notes]
         # #197: the area verdict travels WITH the plan. A plan that does not meet the requested
         # area must never be handed over as though it did, and the shortfall is a sentence with
         # the numbers in it rather than a figure the owner has to go and compute.
