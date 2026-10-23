@@ -74,8 +74,6 @@ def measure(bid: str, *, budget_s: float = BUDGET_S) -> dict:
     probe.wrap(svc, "_select_plans", "production prefix: selection")
     probe.wrap(svc, "_brain_result", "brain total (run_brain + payload)")
     probe.wrap(svc, "to_demo_design", "payload: to_demo_design")
-    probe.wrap(svc, "_plan_outlines", "production prefix: _plan_outlines") \
-        if hasattr(svc, "_plan_outlines") else None
     # inside run_brain
     probe.wrap(rn, "_one", "run_brain: _one (a parti, either sizer)")
     probe.wrap(rn, "_improve_exactly", "run_brain: _improve_exactly (BOUNDED today)")
@@ -86,9 +84,7 @@ def measure(bid: str, *, budget_s: float = BUDGET_S) -> dict:
     probe.wrap(bp, "solve_band_layout", "  band LP: solve_band_layout")
     probe.wrap(bp, "realize_layout", "  realize_layout + validators")
     probe.wrap(bp, "embed_band", "  embed_band")
-    # the exact sizer
-    probe.wrap(rn, "run_exact_pipeline", "exact sizer: run_exact_pipeline") \
-        if hasattr(rn, "run_exact_pipeline") else None
+    # the exact sizer. `_one` imports it locally, so the module attribute is the one that counts.
     probe.wrap(ep, "run_exact_pipeline", "exact sizer: run_exact_pipeline")
 
     # `run_brain`'s own signature default binds at DEFINITION time, so setting the module constant

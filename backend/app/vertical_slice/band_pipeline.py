@@ -490,12 +490,13 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
             funnel["sized"] += 1
             sizable.append((idx, pl, prec, sz, oriented_flag))
     best: tuple | None = None                       # (key, idx, realized, sized, oriented) when `prefer`
-    for n, (idx, placement, rec, sz, oriented_flag) in enumerate(sizable[:max_realizations]):
+    realizable = sizable[:max_realizations]
+    for n, (idx, placement, rec, sz, oriented_flag) in enumerate(realizable):
         # Past the deadline, keep the plan already in hand and stop comparing further candidates to
         # it (see the contract above). `best is not None` is the floor: with nothing accepted yet
         # this parti has no plan, so the loop runs on regardless of the clock.
         if budget is not None and best is not None and budget.expired():
-            unrealized = len(sizable[:max_realizations]) - n
+            unrealized = len(realizable) - n
             break
         # the solved interleaving becomes the GridWing's columns; the wing tiles exactly the solved size
         W_m = round(sum(sz.col_w_u) * 0.05, 2); H_m = round(sum(sz.row_h_u) * 0.05, 2)
