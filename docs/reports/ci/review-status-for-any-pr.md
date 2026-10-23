@@ -159,7 +159,58 @@ $ ./scripts/agentctl report 252
 'risk:medium'], have []`. Issue #252 was opened without the labels its own contract declares (the
 same thing #209 found for itself). The labels were added to match the contract; the gate was not
 loosened, and every other row of gate 1 — including `PR body links exactly one Issue | ✅ | Closes:
-[252]` — was already green.
+[252]` — was already green. On the next head gate 1 passed (`pass 10s`).
+
+### The same thing on a second, later head — and the one gate defect found doing it
+
+Pushing the report moved the head to `859320c13727cf6a5ee2d4dd775f0ea2c1c280e9`, which landed with
+**no status again**: a record sitting in `CI` published `pending` only at the moment the PR was
+opened, and GitHub evaluates the *current* head. Two things were fixed for it, both the Issue's own
+shape (a SHA with no status is unreadable — it looks exactly like a check that will never report):
+`_step_ci` now ensures `pending` for the head it is validating, and `agentctl adopt-prs --pr N` on
+an already-adopted PR makes GitHub agree with the store through the existing restart-repair path
+`_ensure_review_status` (which republishes the store's recorded verdict for that exact SHA, and
+`pending` when there is none — it can never invent one):
+
+```
+$ gh api repos/tzahibe/BuildSmart/commits/859320c13727.../status -q '{state:.state,contexts:[.statuses[].context]}'
+{"contexts":[],"state":"pending"}
+
+$ ./scripts/agentctl adopt-prs --pr 253
+PR #253: already adopted for #252; agent-review-result=pending on 859320c13727
+
+$ gh api repos/tzahibe/BuildSmart/commits/859320c13727.../status -q '.state, (.statuses[] | .context+" | "+.state+" | "+.description)'
+pending
+agent-review-result | pending | independent review not yet run
+
+$ gh pr checks 253
+agent-ci-result             fail      3s     .../runs/39942879335/job/120378944115
+gate-3-verification         fail     12s     .../runs/39942879335/job/120378849581
+gate-4-regression           skipping  0      .../runs/39942879335/job/120378946289
+gate-1-contract / contract  pass     10s     .../runs/39942879335/job/120378357034
+gate-2-static               pass     1m5s    .../runs/39942879335/job/120378428348
+agent-review-result         pending   0      https://github.com/tzahibe/BuildSmart/pull/253   independent review not yet run
+```
+
+`gate-3-verification`'s failure on that head was a **real gate defect, not a missing artifact**, and
+it is instructive for exactly the reason this Issue exists — a check that cannot execute its target
+is not evidence of anything:
+
+```
+| AC-1 -> pytest:scripts/agent_team/tests | ❌ | no tests ran in 0.00s |
+| AC-2 -> file:docs/reports/ci/review-status-for-any-pr.md | ✅ | exists, non-empty |
+| AC-6 -> grep:docs/reports/ci/review-status-for-any-pr.md:weakened | ✅ | pattern found |
+| AC-7 -> grep:docs/reports/ci/review-status-for-any-pr.md:status | ✅ | pattern found |
+```
+
+`ci/verify.py` special-cased `scripts/agent_team/tests/` **with a trailing slash**, so the suite
+*directory* — the form every orchestrator Issue's verification plan uses — fell through to the
+backend branch and ran `uv run pytest scripts/agent_team/tests` from `backend/`, collected nothing
+and failed. The prefix is now `scripts/agent_team`, covering the directory, a file and a nodeid
+(`test_run_target_resolves_orchestrator_and_backend_pytest_targets` asserts the exact command for
+all three). Gate 2 was already running that suite correctly on this PR (`pass 1m5s`, including the
+18 new tests), so this only moves a target from "cannot run" to "runs" — no target was weakened or
+removed, and nothing was skipped to make the gate green.
 
 ### What is **not** demonstrated live, and is marked unverified rather than implied
 
@@ -215,27 +266,36 @@ checked out and really diffed.
 | AC-4 | `test_block_verdict_on_an_adopted_pr_publishes_failure_and_the_merge_is_refused` — `failure` published, record `BLOCKED`, **no fixer or worker run**, `GitHubError` raised by the simulated branch protection, and a further adoption pass leaves the `failure` untouched; `test_request_changes_on_an_adopted_pr_stays_failure_after_a_restart` |
 | AC-5 | `test_native_work_is_not_adopted_and_runs_exactly_as_before` (native work keeps its repair budget and reaches `READY_FOR_OWNER`), `test_adoption_never_races_an_agent_that_holds_the_issue`, `test_adoption_is_idempotent_and_dry_run_changes_nothing` |
 | AC-6 | `test_adopted_pr_review_uses_the_same_contract_criteria_and_the_real_diff` — every AC id of the live contract and the branch's real diff (`+work done by hand`) are in the reviewer's prompt |
+| AC-3 (second head) | `test_a_head_that_moves_while_ci_is_red_still_reports_pending` — a commit pushed while the gates are red leaves the new SHA `pending`, not blank, and the record goes `BLOCKED` with no fixer or worker dispatched |
+| gate 3 | `test_run_target_resolves_orchestrator_and_backend_pytest_targets` — the suite directory, a file and a nodeid each resolve to the orchestrator's own project from the repository root |
 
 Counts, verbatim:
 
+Run from `scripts/agent_team`:
+
 ```
-$ uv run --project . python -m pytest tests -q
+$ uv run --project . python -m pytest tests -q        # first full run, with the new tests
 1 failed, 299 passed in 401.31s (0:06:41)
 
 $ uv run --project . python -m pytest tests/test_governance_parallel.py -q
 19 passed in 62.64s (0:01:02)
 
-$ uv run --project . python -m pytest tests/test_pr_adoption.py -q
-17 passed in 22.55s
+$ uv run --project . python -m pytest tests -q        # final full run
+301 passed in 408.92s (0:06:48)
+
+$ uv run --project . python -m pytest tests/test_pr_adoption.py tests/test_hardening.py tests/test_orchestrator_lifecycle.py -q
+57 passed in 122.03s (0:02:02)
 ```
 
-The one failure is `test_governance_parallel.py::test_dependency_aware_parallelism_follows_the_dag`
-with `sqlite3.InterfaceError: bad parameter or other API misuse` raised in `state_store.get_meta`
-from a worker thread. That is the **pre-existing** full-suite flake documented in
+The first run's one failure is
+`test_governance_parallel.py::test_dependency_aware_parallelism_follows_the_dag` with
+`sqlite3.InterfaceError: bad parameter or other API misuse` raised in `state_store.get_meta` from a
+worker thread. That is the **pre-existing** full-suite flake documented in
 `docs/reports/ci/feature-branch-gates.md` §4.1 ("the signature of a connection used after close /
 across threads… pre-existing behavior of the state store, out of scope for #209, and worth its own
-Issue"); the file passes 19/19 alone, and this diff adds no cross-thread store access —
-`attempts_remaining` reads a field of the record it is already given.
+Issue"); the file passes 19/19 alone, the second full run of the same code passes 301/301, and this
+diff adds no cross-thread store access — `attempts_remaining` reads a field of the record it is
+already given. It was not chased.
 
 ---
 

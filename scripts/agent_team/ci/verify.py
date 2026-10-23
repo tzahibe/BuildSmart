@@ -23,7 +23,11 @@ def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tu
         # false PASS (Issue #38 review finding). Harmless for unmarked targets: TEST_MODE only
         # gates marker collection, nothing else reads it.
         env = {"TEST_MODE": "REGRESSION"}
-        if target.startswith("scripts/agent_team/tests/"):
+        # The whole suite directory ("scripts/agent_team/tests") as well as a file or a nodeid under
+        # it: without the directory form, a plan target naming the orchestrator's own suite ran
+        # `uv run pytest scripts/agent_team/tests` from backend/, collected nothing, and failed the
+        # gate for the wrong reason (#252).
+        if target.startswith("scripts/agent_team"):
             proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout, env=env)
         else:
             rel = target[len("backend/"):] if target.startswith("backend/") else target

@@ -237,6 +237,13 @@ def test_run_target_resolves_orchestrator_and_backend_pytest_targets(monkeypatch
     assert cwd == str(tmp_path)          # the repository root, not backend/
     assert env == {"TEST_MODE": "REGRESSION"}
 
+    # #252: the suite DIRECTORY is a plan target too, and ran from backend/ (collecting nothing)
+    ok, detail = verify.run_target("pytest", "scripts/agent_team/tests", tmp_path)
+    assert ok
+    cmd, cwd, env = calls[-1]
+    assert cmd == "uv run --project scripts/agent_team pytest -q -p no:cacheprovider scripts/agent_team/tests"
+    assert cwd == str(tmp_path)
+
     ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
     assert ok
     cmd, cwd, env = calls[-1]
