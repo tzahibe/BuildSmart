@@ -74,6 +74,8 @@ def measure(bid: str, *, budget_s: float = BUDGET_S) -> dict:
     probe.wrap(svc, "_select_plans", "production prefix: selection")
     probe.wrap(svc, "_brain_result", "brain total (run_brain + payload)")
     probe.wrap(svc, "to_demo_design", "payload: to_demo_design")
+    probe.wrap(svc, "_plan_outlines", "production prefix: _plan_outlines") \
+        if hasattr(svc, "_plan_outlines") else None
     # inside run_brain
     probe.wrap(rn, "_one", "run_brain: _one (a parti, either sizer)")
     probe.wrap(rn, "_improve_exactly", "run_brain: _improve_exactly (BOUNDED today)")
@@ -92,9 +94,17 @@ def measure(bid: str, *, budget_s: float = BUDGET_S) -> dict:
     # `run_brain`'s own signature default binds at DEFINITION time, so setting the module constant
     # changes nothing — the first version of this harness did exactly that and silently measured
     # the 30 s default while reporting 0.2 s. The budget is set where the product sets it.
+    #
+    # In an UNCHANGED control tree, which predates `service.BRAIN_BUDGET_S`, the product sets it
+    # nowhere: `_brain_result` takes `run_brain`'s default. There the budget is injected into the
+    # call instead, so the control and the branch are asked for the same number and the before/
+    # after comparison is of the code, not of two different questions.
     prev = getattr(svc, "BRAIN_BUDGET_S", None)
     if prev is not None:
         svc.BRAIN_BUDGET_S = budget_s
+    else:
+        inner = svc.run_brain
+        svc.run_brain = lambda *a, **kw: inner(*a, **{**kw, "budget_s": budget_s})
     out: dict = {"brief": bid, "asked_budget_s": budget_s, "requested_m2": b.built_area_m2,
                  "bedrooms": b.bedrooms, "wet_rooms": b.wet_rooms}
     t0 = time.monotonic()
@@ -111,6 +121,8 @@ def measure(bid: str, *, budget_s: float = BUDGET_S) -> dict:
     finally:
         if prev is not None:
             svc.BRAIN_BUDGET_S = prev
+        else:
+            svc.run_brain = inner
     out["request_s"] = round(time.monotonic() - t0, 3)
     out["overshoot_s"] = round(out["request_s"] - budget_s, 3)
     out["stages"] = probe.rows()

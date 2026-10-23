@@ -534,7 +534,7 @@ def run_band_pipeline(inp: PipelineInput, *, max_candidates: int = DEFAULT_MAX_C
             p for p in ((f"{unscreened} candidate(s) were not sized" if unscreened else ""),
                         (f"{unrealized} sized candidate(s) were not realized" if unrealized else ""))
             if p)
-        warnings = (*warnings, f"request budget reached: {what} for {inp.name}")
+        warnings = (*warnings, f"request budget reached: {what} for {inp.name}")   # the REQUEST's
         if budget is not None:
             budget.gave_up(what + f" for {inp.name}")
 

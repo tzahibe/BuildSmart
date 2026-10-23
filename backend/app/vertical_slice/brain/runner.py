@@ -390,7 +390,8 @@ def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
               max_realizations: int = MAX_REALIZATIONS_PREFERRED,
               sizer: str = SIZER_PRODUCTION, families: tuple[str, ...] = ("band",),
               budget_s: float = REQUEST_BUDGET_S, exact_top: int = EXACT_TOP,
-              request_started: float | None = None) -> BrainResult:
+              request_started: float | None = None,
+              exact_stage_budget_s: float = REQUEST_BUDGET_S) -> BrainResult:
     """`budget_s` bounds the WHOLE request, not one stage of it (#247).
 
     `request_started` is the `time.monotonic()` instant the REQUEST began, which is earlier than
@@ -410,10 +411,19 @@ def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
     A brief the brain cannot plan at all is the one path this does not bound to `budget_s`: with no
     counting plan the floor never lifts, so every parti is tried. That path returns `BRAIN_NO_PLAN`,
     the genuine no-plan refusal, and it is bounded by the proposer's parti count instead.
+
+    `exact_stage_budget_s` IS NOT A SECOND BUDGET and exists so that this Issue changes no plan.
+    The exact sizer's share has always been `REQUEST_BUDGET_S` measured from THIS call, and #205,
+    #207, #216 and #204's gate figures were all calibrated against that share. Widening the request
+    would widen it too and buy exact plans that replace production's — a primary-signature change
+    this Issue is not allowed to make — and narrowing the request would starve it. So the exact
+    stage keeps its own instant, `t0 + exact_stage_budget_s`, capped by the request deadline, and a
+    caller that passes neither gets byte-identical behaviour because the two coincide.
     """
     t0 = time.monotonic()
     budget = RequestBudget(budget_s=budget_s,
                           started=request_started if request_started is not None else t0)
+    exact_deadline = t0 + exact_stage_budget_s
     programme = programme_from_spec(spec, footprint_m)
     proposals = (proposer or DeterministicProposer()).propose(programme)
     result = BrainResult(brief=brief)
@@ -429,7 +439,8 @@ def run_brain(spec, footprint_m: tuple[float, float], *, brief: str = "brief",
     _rank(result, proposals, programme)
     if sizer == SIZER_EXACT:
         _improve_exactly(result, proposals, programme, max_candidates, max_realizations,
-                         families=families, budget=budget, top=exact_top)
+                         families=families, budget=budget, top=exact_top,
+                         exact_deadline=exact_deadline)
         _rank(result, proposals, programme)
     result.notes = budget.notes()
     result.budget_expired = bool(budget.given_up)
@@ -471,7 +482,8 @@ def _decided_by(a: tuple, b: tuple) -> str:
 
 
 def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidates: int,
-                     max_realizations: int, *, families, budget: RequestBudget, top: int) -> None:
+                     max_realizations: int, *, families, budget: RequestBudget, top: int,
+                     exact_deadline: float) -> None:
     """2. the exact sizer, on the best-ranked partis, with the whole remaining budget.
 
     Order: partis production planned, best preference key first; then partis production could not
@@ -482,13 +494,20 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
                     key=lambda i: result.plans[i].rank_key)
     ranked += [i for i, pl in enumerate(result.plans) if not pl.counts and pl.stage != "CRITIC"]
     for n, i in enumerate(ranked):
-        remaining = budget.left()
+        # the SMALLER of what the request has left and what this stage's own share has left, so a
+        # wider request budget can never buy the exact sizer more search than it had before #247
+        remaining = min(budget.left(), exact_deadline - time.monotonic())
         if n < top:
             share = remaining / (top - n)             # the top partis divide the budget
         elif remaining >= EXACT_EXTRA_MIN_S:
             share = remaining                         # a small brief finished early: keep improving
         else:
-            budget.gave_up(f"the exact sizer was not run on the last {len(ranked) - n} parti(s)")
+            # Only the REQUEST running out is a request-budget note. This stage exhausting its own
+            # `exact_stage_budget_s` is the behaviour that existed before #247 and is already
+            # reported by `run_exact_pipeline`'s own warnings — claiming the request budget ran out
+            # when it has 9,970 s left would be a false sentence on a true plan.
+            if budget.expired():
+                budget.gave_up(f"the exact sizer was not run on the last {len(ranked) - n} parti(s)")
             break
         if share <= 0:
             # Nothing is left of the request, so the exact sizer does not start. This is the path
@@ -496,8 +515,9 @@ def _improve_exactly(result: BrainResult, proposals, p: Programme, max_candidate
             # said nothing about an exact sizer that had never run, while still costing 23-35 s in
             # the stages above. It now says so, and the plans are production's, which is what the
             # typed fallback has always returned on expiry — a 200, never an error.
-            budget.gave_up(f"the exact sizer did not run on any of the {len(ranked)} ranked "
-                           f"parti(s); every plan is production-sized")
+            if budget.expired():
+                budget.gave_up(f"the exact sizer did not run on any of the {len(ranked)} ranked "
+                               f"parti(s); every plan is production-sized")
             break
         prod, prop = result.plans[i], proposals[i]
         exact = _one(prop, p, max_candidates, max_realizations, sizer=SIZER_EXACT, families=families,

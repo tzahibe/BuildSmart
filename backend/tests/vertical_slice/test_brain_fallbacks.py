@@ -76,11 +76,19 @@ def test_the_expired_plan_set_is_production_sized_and_names_its_sizer(monkeypatc
 
 
 def test_an_unexpired_request_says_nothing_about_a_budget(monkeypatch):
-    """The note is not a permanent fixture of every brain response."""
+    """The note is not a permanent fixture of every brain response.
+
+    The phrase matters and this test is why it was changed. The EXACT SIZER's own share runs out on
+    a perfectly healthy request, and it used to report that as "request budget reached" — so a
+    request with 9,970 s of budget left carried a sentence saying its budget had run out. The two
+    are now distinguishable, and this asserts the request-level sentence specifically.
+    """
     monkeypatch.setattr(svc, "BRAIN_BUDGET_S", 10_000.0)
     res = svc.generate_demo_design(_project(SMALL), brain=True)
     for plan in (res.design, *res.alternatives):
-        assert not any("request budget" in n for n in (plan.validation.warnings or ()))
+        notes = list(plan.validation.warnings or ())
+        assert not any("request budget of" in n for n in notes), notes
+        assert not any("request budget reached" in n for n in notes), notes
 
 
 # --------------------------------------------- the one genuine refusal is still the only refusal

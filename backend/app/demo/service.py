@@ -929,11 +929,18 @@ BRAIN_FAMILIES = ("band", "spine", "stack", "cells")
 #: budget is not allowed to take away. Both are measured numbers in
 #: `docs/reports/architectural-brain/PREVIEW-request-bound.md`.
 #:
-#: The VALUE is the owner's to set and this constant only makes the stated value true. It is left
-#: at the 30 s the owner was asked to approve, with the measured consequence stated plainly in that
-#: report: on the slowest of the eight audit briefs 30 s is below the floor, so the request costs
-#: the floor and says so, and on the rest it binds and gives up alternatives rather than the plan.
-BRAIN_BUDGET_S = 30.0
+#: The VALUE is the owner's to set and this constant only makes the stated value true. It is NOT
+#: the 30 s the owner was asked to approve, and the difference is the measurement this Issue owes
+#: him: 30 s is a request budget that B16 cannot meet, and enforcing it there costs a plan the
+#: brief returned before (2 distinct plans -> 1, reproduced as a test failure before this value was
+#: chosen). AC-6 forbids losing it, so the shipped value is the smallest round number above the
+#: slowest measured request — #226 measured 48.9 s worst on an idle machine and #247 measured
+#: 49.2 s on a loaded one — and the owner decides whether to lower it knowing what each value
+#: costs (§3 and §8 of the report).
+#:
+#: At 60 s the ceiling does not bind on any of the eight audit briefs, and that is the honest state
+#: of it: what changed is that the request is now bounded at all, not that it became quick.
+BRAIN_BUDGET_S = 60.0
 
 
 def _brain_result(project: Project, spec, selection: PlanSelection,
