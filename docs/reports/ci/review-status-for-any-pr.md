@@ -339,6 +339,15 @@ itself went red** on `test_multiple_workers_scheduled_from_one_root` with the sa
 `sqlite3.InterfaceError` — the flake #209's report warned could reach CI ("CI runs this same
 unsharded command in gate-2, so it can flake there too"). That red was read, not re-run blind.
 
+It came back once on the shipped code too, in `gate-3-verification` on head `a9b7adf` (`1 failed,
+302 passed in 41.50s`, while `gate-2-static` ran the same suite green in the same CI run, and the
+gate's exact command — `TEST_MODE=REGRESSION … pytest -q -p no:cacheprovider
+scripts/agent_team/tests` from the repository root — passes locally at `303 passed in 420.49s`).
+Reading that red exposed one more thing worth fixing in the gate rather than working around:
+`run_target` recorded only pytest's **last line**, so "1 failed, 302 passed" named no test at all
+and the only way to read it was to re-run it and hope. It now appends pytest's own `FAILED …` lines
+to the detail, so a red gate 3 says which test failed.
+
 The fix is also the more correct production behavior: a listing **is** a snapshot, so `adopt_pr`
 now re-reads the single pull request it is about to adopt (`github.get_pr`) and publishes the status
 for the head it really has at that moment, instead of trusting the head the listing carried; a PR

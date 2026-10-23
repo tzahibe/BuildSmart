@@ -34,6 +34,11 @@ def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tu
             proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout, env=env)
         tail = (proc.stdout.strip().splitlines() or [""])[-1]
         detail = tail[:300] or proc.stderr[-300:]
+        # Name what failed. "1 failed, 302 passed" alone cannot be acted on: a red gate has to say
+        # WHICH test, or the only way to read it is to re-run it and hope (#252).
+        failed = [l.split(" ", 1)[1] for l in proc.stdout.splitlines() if l.startswith("FAILED ")]
+        if failed:
+            detail = f"{detail} — FAILED: {'; '.join(failed)}"[:300]
         if proc.returncode == 0 and "passed" not in tail:
             return False, f"no test actually passed (skipped or deselected): {detail}"
         return proc.returncode == 0, detail

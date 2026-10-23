@@ -624,3 +624,20 @@ def test_gate3_a_repeated_target_that_fails_fails_every_criterion_that_names_it(
     rep = verify.evaluate(manifest, Path("/nonexistent"), runner=fake_runner)
     assert not rep.ok
     assert sum(1 for c in rep.checks if not c["ok"]) == 4   # 2 target rows + 2 "evidence passes" rows
+
+
+def test_run_target_pytest_names_the_failing_tests_in_the_detail(monkeypatch, tmp_path: Path):
+    """#252: gate 3 recorded only pytest's last line, so a red gate said "1 failed, 302 passed"
+    and nothing about WHICH test — unreadable without re-running it."""
+    class FakeProc:
+        returncode = 1
+        stdout = ("F\n=== FAILURES ===\n"
+                  "FAILED tests/test_governance_parallel.py::test_multiple_workers_scheduled_from_one_root - assert False\n"
+                  "1 failed, 302 passed in 41.50s")
+        stderr = ""
+
+    monkeypatch.setattr(verify, "run", lambda *a, **k: FakeProc())
+    ok, detail = verify.run_target("pytest", "scripts/agent_team/tests", tmp_path)
+    assert not ok
+    assert "1 failed, 302 passed" in detail
+    assert "test_multiple_workers_scheduled_from_one_root" in detail
