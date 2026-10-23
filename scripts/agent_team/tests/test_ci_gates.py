@@ -592,3 +592,35 @@ def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):
                         "author_association": "OWNER"}, repo_config)
     names = {c["name"]: c["ok"] for c in rep.checks}
     assert names["rollup PR targets main"] and names["rollup PR closes its rollup Issue"] and "branch naming agent/<issue>-<slug>" not in names
+
+
+def test_gate3_runs_a_repeated_target_once_and_reuses_its_result():
+    """#252: four of its criteria name `pytest:scripts/agent_team/tests`. One execution, one
+    verdict applied to every criterion that names it, and the reuse stated in the row."""
+    calls = []
+
+    def fake_runner(kind, target, root):
+        calls.append((kind, target))
+        return True, "301 passed"
+
+    manifest = {"issue": 252,
+                "targets": [{"ac": f"AC-{n}", "kind": "pytest", "target": "scripts/agent_team/tests"} for n in (1, 3, 4, 5)]
+                           + [{"ac": "AC-2", "kind": "file", "target": "docs/x.md"}],
+                "acceptance_criteria": [{"id": f"AC-{n}"} for n in (1, 2, 3, 4, 5)]}
+    rep = verify.evaluate(manifest, Path("/nonexistent"), runner=fake_runner)
+    assert rep.ok
+    assert calls == [("pytest", "scripts/agent_team/tests"), ("file", "docs/x.md")]
+    reused = [c for c in rep.checks if "executed once" in c["detail"]]
+    assert len(reused) == 3                      # AC-3, AC-4, AC-5 reuse AC-1's execution
+
+
+def test_gate3_a_repeated_target_that_fails_fails_every_criterion_that_names_it():
+    def fake_runner(kind, target, root):
+        return False, "1 failed, 300 passed"
+
+    manifest = {"issue": 252,
+                "targets": [{"ac": f"AC-{n}", "kind": "pytest", "target": "scripts/agent_team/tests"} for n in (1, 3)],
+                "acceptance_criteria": [{"id": "AC-1"}, {"id": "AC-3"}]}
+    rep = verify.evaluate(manifest, Path("/nonexistent"), runner=fake_runner)
+    assert not rep.ok
+    assert sum(1 for c in rep.checks if not c["ok"]) == 4   # 2 target rows + 2 "evidence passes" rows

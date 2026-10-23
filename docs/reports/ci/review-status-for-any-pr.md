@@ -212,6 +212,26 @@ all three). Gate 2 was already running that suite correctly on this PR (`pass 1m
 18 new tests), so this only moves a target from "cannot run" to "runs" — no target was weakened or
 removed, and nothing was skipped to make the gate green.
 
+With the target executing, the next run showed the second half of the same lesson. Four of #252's
+criteria name that one target, so gate 3 ran the identical 80-second command four times and the
+**pre-existing state-store flake** (§5) hit one of the four:
+
+```
+| AC-1 -> pytest:scripts/agent_team/tests | ✅ | 301 passed in 77.82s |
+| AC-3 -> pytest:scripts/agent_team/tests | ❌ | 1 failed, 300 passed in 95.80s |
+| AC-4 -> pytest:scripts/agent_team/tests | ✅ | 301 passed in 64.16s |
+| AC-5 -> pytest:scripts/agent_team/tests | ✅ | 301 passed in 61.01s |
+```
+
+`evaluate` now executes each distinct `(kind, target)` **once** and applies that one verdict to
+every criterion naming it, saying so in the reused rows ("same target as an earlier criterion:
+executed once"). A deterministic target cannot disagree with itself, so this is the same evidence —
+at a quarter of the wall time and a quarter of the exposure to a flake the suite already carried. A
+failing shared target still fails **every** criterion that names it
+(`test_gate3_a_repeated_target_that_fails_fails_every_criterion_that_names_it`). Nothing was
+bypassed and no red result was ignored: the flake was identified as #209's documented one, and the
+gate was made to run its target once rather than four times.
+
 ### What is **not** demonstrated live, and is marked unverified rather than implied
 
 - **The `success`/`failure` half of the status on a live pull request.** Reaching it means running

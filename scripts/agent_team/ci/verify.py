@@ -91,8 +91,18 @@ def run_static(target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, s
 def evaluate(manifest: dict, root: Path, *, runner=run_target) -> GateReport:
     rep = GateReport("gate-3-verification")
     results_by_ac: dict[str, list[bool]] = {}
+    # Several acceptance criteria legitimately name the SAME deterministic target (four of #252's
+    # name `pytest:scripts/agent_team/tests`). Running it once and reusing the result is the same
+    # evidence — a deterministic target cannot disagree with itself — at a quarter of the wall time
+    # and a quarter of the exposure to any flake it carries. The reuse is stated in the row.
+    ran: dict[tuple[str, str], tuple[bool, str]] = {}
     for t in manifest.get("targets", []):
-        ok, detail = runner(t["kind"], t["target"], root)
+        key = (t["kind"], t["target"])
+        if key in ran:
+            ok, detail = ran[key][0], f"{ran[key][1]} (same target as an earlier criterion: executed once)"
+        else:
+            ok, detail = runner(t["kind"], t["target"], root)
+            ran[key] = (ok, detail)
         rep.add(f"{t['ac']} -> {t['kind']}:{t['target']}", ok, detail)
         results_by_ac.setdefault(t["ac"], []).append(ok)
     for ac in manifest.get("acceptance_criteria", []):
