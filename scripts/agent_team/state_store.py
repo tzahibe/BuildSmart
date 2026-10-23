@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS issues (
     root_issue       INTEGER,
     parent_issue     INTEGER,
     kind             TEXT NOT NULL DEFAULT 'root',
+    adopted_pr       INTEGER,
     created_at       REAL NOT NULL,
     updated_at       REAL NOT NULL
 );
@@ -186,6 +187,11 @@ class IssueRecord:
     root_issue: int | None = None
     parent_issue: int | None = None
     kind: str = "root"
+    #: The PR this Issue was ADOPTED with: a pull request the orchestrator did not create, on a
+    #: branch outside `agent/`, bound to this contract by its body's single `Closes #<issue>` line.
+    #: It is reviewed exactly like native work; it is never repaired by a fixer, because the branch
+    #: is not the orchestrator's to push to (see `Orchestrator.attempts_remaining`).
+    adopted_pr: int | None = None
     created_at: float = 0.0
     updated_at: float = 0.0
 
@@ -242,7 +248,8 @@ class StateStore:
     def _migrate(self) -> None:
         """Additive column migrations for stores created by an older version (crash-safe: ADD COLUMN is atomic)."""
         have = {r["name"] for r in self._conn.execute("PRAGMA table_info(issues)").fetchall()}
-        for name, ddl in (("root_issue", "INTEGER"), ("parent_issue", "INTEGER"), ("kind", "TEXT NOT NULL DEFAULT 'root'")):
+        for name, ddl in (("root_issue", "INTEGER"), ("parent_issue", "INTEGER"), ("kind", "TEXT NOT NULL DEFAULT 'root'"),
+                          ("adopted_pr", "INTEGER")):
             if name not in have:
                 self._conn.execute(f"ALTER TABLE issues ADD COLUMN {name} {ddl}")
 

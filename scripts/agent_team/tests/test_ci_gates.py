@@ -237,6 +237,13 @@ def test_run_target_resolves_orchestrator_and_backend_pytest_targets(monkeypatch
     assert cwd == str(tmp_path)          # the repository root, not backend/
     assert env == {"TEST_MODE": "REGRESSION"}
 
+    # #252: the suite DIRECTORY is a plan target too, and ran from backend/ (collecting nothing)
+    ok, detail = verify.run_target("pytest", "scripts/agent_team/tests", tmp_path)
+    assert ok
+    cmd, cwd, env = calls[-1]
+    assert cmd == "uv run --project scripts/agent_team pytest -q -p no:cacheprovider scripts/agent_team/tests"
+    assert cwd == str(tmp_path)
+
     ok, detail = verify.run_target("pytest", "backend/tests/test_x.py::test_y", tmp_path)
     assert ok
     cmd, cwd, env = calls[-1]
@@ -585,3 +592,52 @@ def test_gate1_accepts_a_rollup_pr_from_an_integration_branch(repo_config):
                         "author_association": "OWNER"}, repo_config)
     names = {c["name"]: c["ok"] for c in rep.checks}
     assert names["rollup PR targets main"] and names["rollup PR closes its rollup Issue"] and "branch naming agent/<issue>-<slug>" not in names
+
+
+def test_gate3_runs_a_repeated_target_once_and_reuses_its_result():
+    """#252: four of its criteria name `pytest:scripts/agent_team/tests`. One execution, one
+    verdict applied to every criterion that names it, and the reuse stated in the row."""
+    calls = []
+
+    def fake_runner(kind, target, root):
+        calls.append((kind, target))
+        return True, "301 passed"
+
+    manifest = {"issue": 252,
+                "targets": [{"ac": f"AC-{n}", "kind": "pytest", "target": "scripts/agent_team/tests"} for n in (1, 3, 4, 5)]
+                           + [{"ac": "AC-2", "kind": "file", "target": "docs/x.md"}],
+                "acceptance_criteria": [{"id": f"AC-{n}"} for n in (1, 2, 3, 4, 5)]}
+    rep = verify.evaluate(manifest, Path("/nonexistent"), runner=fake_runner)
+    assert rep.ok
+    assert calls == [("pytest", "scripts/agent_team/tests"), ("file", "docs/x.md")]
+    reused = [c for c in rep.checks if "executed once" in c["detail"]]
+    assert len(reused) == 3                      # AC-3, AC-4, AC-5 reuse AC-1's execution
+
+
+def test_gate3_a_repeated_target_that_fails_fails_every_criterion_that_names_it():
+    def fake_runner(kind, target, root):
+        return False, "1 failed, 300 passed"
+
+    manifest = {"issue": 252,
+                "targets": [{"ac": f"AC-{n}", "kind": "pytest", "target": "scripts/agent_team/tests"} for n in (1, 3)],
+                "acceptance_criteria": [{"id": "AC-1"}, {"id": "AC-3"}]}
+    rep = verify.evaluate(manifest, Path("/nonexistent"), runner=fake_runner)
+    assert not rep.ok
+    assert sum(1 for c in rep.checks if not c["ok"]) == 4   # 2 target rows + 2 "evidence passes" rows
+
+
+def test_run_target_pytest_names_the_failing_tests_in_the_detail(monkeypatch, tmp_path: Path):
+    """#252: gate 3 recorded only pytest's last line, so a red gate said "1 failed, 302 passed"
+    and nothing about WHICH test — unreadable without re-running it."""
+    class FakeProc:
+        returncode = 1
+        stdout = ("F\n=== FAILURES ===\n"
+                  "FAILED tests/test_governance_parallel.py::test_multiple_workers_scheduled_from_one_root - assert False\n"
+                  "1 failed, 302 passed in 41.50s")
+        stderr = ""
+
+    monkeypatch.setattr(verify, "run", lambda *a, **k: FakeProc())
+    ok, detail = verify.run_target("pytest", "scripts/agent_team/tests", tmp_path)
+    assert not ok
+    assert "1 failed, 302 passed" in detail
+    assert "test_multiple_workers_scheduled_from_one_root" in detail

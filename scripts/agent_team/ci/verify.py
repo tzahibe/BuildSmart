@@ -23,13 +23,22 @@ def run_target(kind: str, target: str, root: Path, *, timeout: int = 1800) -> tu
         # false PASS (Issue #38 review finding). Harmless for unmarked targets: TEST_MODE only
         # gates marker collection, nothing else reads it.
         env = {"TEST_MODE": "REGRESSION"}
-        if target.startswith("scripts/agent_team/tests/"):
+        # The whole suite directory ("scripts/agent_team/tests") as well as a file or a nodeid under
+        # it: without the directory form, a plan target naming the orchestrator's own suite ran
+        # `uv run pytest scripts/agent_team/tests` from backend/, collected nothing, and failed the
+        # gate for the wrong reason (#252).
+        if target.startswith("scripts/agent_team"):
             proc = run(f"uv run --project scripts/agent_team pytest -q -p no:cacheprovider {target}", root, timeout=timeout, env=env)
         else:
             rel = target[len("backend/"):] if target.startswith("backend/") else target
             proc = run(f"uv run pytest -q -p no:cacheprovider {rel}", root / "backend", timeout=timeout, env=env)
         tail = (proc.stdout.strip().splitlines() or [""])[-1]
         detail = tail[:300] or proc.stderr[-300:]
+        # Name what failed. "1 failed, 302 passed" alone cannot be acted on: a red gate has to say
+        # WHICH test, or the only way to read it is to re-run it and hope (#252).
+        failed = [l.split(" ", 1)[1] for l in proc.stdout.splitlines() if l.startswith("FAILED ")]
+        if failed:
+            detail = f"{detail} — FAILED: {'; '.join(failed)}"[:300]
         if proc.returncode == 0 and "passed" not in tail:
             return False, f"no test actually passed (skipped or deselected): {detail}"
         return proc.returncode == 0, detail
@@ -87,8 +96,18 @@ def run_static(target: str, root: Path, *, timeout: int = 1800) -> tuple[bool, s
 def evaluate(manifest: dict, root: Path, *, runner=run_target) -> GateReport:
     rep = GateReport("gate-3-verification")
     results_by_ac: dict[str, list[bool]] = {}
+    # Several acceptance criteria legitimately name the SAME deterministic target (four of #252's
+    # name `pytest:scripts/agent_team/tests`). Running it once and reusing the result is the same
+    # evidence — a deterministic target cannot disagree with itself — at a quarter of the wall time
+    # and a quarter of the exposure to any flake it carries. The reuse is stated in the row.
+    ran: dict[tuple[str, str], tuple[bool, str]] = {}
     for t in manifest.get("targets", []):
-        ok, detail = runner(t["kind"], t["target"], root)
+        key = (t["kind"], t["target"])
+        if key in ran:
+            ok, detail = ran[key][0], f"{ran[key][1]} (same target as an earlier criterion: executed once)"
+        else:
+            ok, detail = runner(t["kind"], t["target"], root)
+            ran[key] = (ok, detail)
         rep.add(f"{t['ac']} -> {t['kind']}:{t['target']}", ok, detail)
         results_by_ac.setdefault(t["ac"], []).append(ok)
     for ac in manifest.get("acceptance_criteria", []):

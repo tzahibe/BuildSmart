@@ -265,6 +265,24 @@ review is stale for the new SHA and runs again), `success` only when the reviewe
 exact validated SHA, `failure` on REQUEST_CHANGES/BLOCK. Branch protection requires both
 `agent-ci-result` and `agent-review-result`.
 
+**Which pull requests are reviewed (`reconciliation.adopt_open_prs`, Issue #252).** Every tick, the
+orchestrator **adopts** an open pull request into `main` that it did not create, using the same
+binding as gate 1 (`resolve_issue_number`: the `agent/<issue>-<slug>` branch name, otherwise the
+body's single `Closes #n` line) and the same Issue conditions gate 1 applies (open, trusted author,
+not a decomposed ROOT, not on `agent:hold`, contract validates). An adopted PR is tracked at
+`PR_OPEN` with its branch checked out (`worktrees.ensure_named`) and runs the native path from
+there: same gates, same reviewer, same criteria, same status for the same exact head SHA. Until
+#252 `issue_from_branch` was the only recognition, so a PR on a `feature/` branch was never
+reviewed and `agent-review-result` never reported at all — branch protection then refused the merge
+correctly, and the 2026-10-21 admin merges (#225, #244, #241) bypassed a real review, not a broken
+check. Whatever cannot be adopted still reports `pending` **with the reason**
+(`ensure_pending_review_status`, which never overwrites a `success`/`failure` already published for
+that SHA), so "not yet reviewed" is distinguishable from "nothing will ever report". An adopted PR
+has **no repair budget** (`attempts_remaining` is False for a record with `adopted_pr` set): a red
+gate or a rejected review blocks it for a human rather than dispatching a fixer onto a branch the
+orchestrator does not own. `agentctl adopt-prs [--pr N] [--dry-run]` runs the pass once. See
+`docs/reports/ci/review-status-for-any-pr.md`.
+
 **Architectural reference** — a PR whose domains include `geometry`, `validator` or `backend`
 also gets an `# Architectural reference` block in the reviewer prompt pointing at
 `docs/architecture_reference/quality_rubric.md` (the A–O rubric) and `anti_patterns.md` (the
@@ -704,6 +722,8 @@ the token). **Unpair / re-pair:** `agentctl remote unpair`, then `pair` + `/pair
 - Gate 5 runs on the orchestrator machine (local OAuth), not in GitHub Actions; its verdict is
   enforced through the `agent-review-result` commit status the orchestrator publishes, so a
   stopped orchestrator leaves new SHAs `pending` (blocked from merging) rather than unreviewed.
+  Since #252 that also holds for a pull request the orchestrator did not create: it is adopted and
+  reviewed, and an unreviewable one reports `pending` with the reason instead of nothing at all.
 - Telegram V1 is long polling from this machine (no webhook); the interpreter is a headless model
   call per natural-language message (slash commands are free); voice transcription is off unless a
   provider is configured.

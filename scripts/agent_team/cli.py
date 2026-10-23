@@ -839,6 +839,35 @@ def cmd_reconcile(config: Config, args) -> int:
     return 0
 
 
+def cmd_adopt_prs(config: Config, args) -> int:
+    """Run the PR-adoption pass once: recognise open pull requests into main that the orchestrator
+    did not create, so the independent review and its required commit status report for them too.
+    The daemon does this every tick (reconciliation); this is the operator's one-shot."""
+    setup_logging(config)
+    from agent_team.reconciliation import adopt_open_prs, adopt_pr
+    orch = _orchestrator(config, dry_run=args.dry_run, fake_runner=True)
+    try:
+        if args.pr:
+            pr = _github(config, require_auth=not args.dry_run).get_pr(args.pr)
+            note = adopt_pr(orch, pr)
+            if not note:
+                # already recognised: make GitHub's status for the CURRENT head agree with the
+                # store, exactly as a restart does (`_ensure_review_status`) — never a new verdict
+                rec = next((r for r in orch.store.list() if r.pr_number == args.pr), None)
+                head = (pr.get("head") or {}).get("sha") or ""
+                if rec is not None and head and not args.dry_run:
+                    state = orch._ensure_review_status(orch.store, rec, head)
+                    note = f"PR #{args.pr}: already adopted for #{rec.issue_id}; {config.review_status_context}={state} on {head[:12]}"
+            out = [note or f"PR #{args.pr}: nothing to do (not open into {config.base_branch}, or nothing binds it)"]
+        else:
+            out = adopt_open_prs(orch) or [f"no unrecognised open pull request into {config.base_branch}"]
+        for line in out:
+            print(line)
+    finally:
+        orch.release_singleton()
+    return 0
+
+
 def cmd_doctor(config: Config, args) -> int:
     ok = True
     print(f"config: {config.repo_root / '.agent' / 'config.yaml'} (repo {config.repo}, base {config.base_branch})")
@@ -1263,6 +1292,10 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--dry-run", action="store_true")
     s.set_defaults(fn=cmd_resolve)
     s = sub.add_parser("reconcile"); s.add_argument("--dry-run", action="store_true"); s.set_defaults(fn=cmd_reconcile)
+    s = sub.add_parser("adopt-prs", help="review-status coverage: adopt open PRs into main that the orchestrator did not create")
+    s.add_argument("--pr", type=int, help="only this pull request")
+    s.add_argument("--dry-run", action="store_true")
+    s.set_defaults(fn=cmd_adopt_prs)
     s = sub.add_parser("doctor"); s.set_defaults(fn=cmd_doctor)
     s = sub.add_parser("pause"); s.add_argument("--reason"); s.set_defaults(fn=cmd_pause)
     s = sub.add_parser("resume"); s.add_argument("--reason"); s.set_defaults(fn=cmd_resume)
