@@ -245,18 +245,43 @@ class Orchestrator:
             log.warning("comment on #%s failed: %s", issue_id, exc)
 
     # -- the independent-review commit status (enforced by branch protection) ----------------
-    def _publish_review_status(self, store: StateStore, issue_id: int, sha: str, state: str, description: str) -> None:
-        """success only for an APPROVE of this exact SHA; failure for REQUEST_CHANGES/BLOCK; pending otherwise."""
+    def _publish_review_status(self, store: StateStore, issue_id: int | None, sha: str, state: str, description: str,
+                               *, target_url: str | None = None) -> None:
+        """success only for an APPROVE of this exact SHA; failure for REQUEST_CHANGES/BLOCK; pending otherwise.
+
+        `issue_id` may be None for a pull request no contract binds yet: the status still reports
+        (`pending`, with the reason), because a required check that reports nothing is
+        indistinguishable from one that never will.
+        """
         ctx = self.config.review_status_context
         store.record_event(issue_id, "review_status", {"sha": sha, "state": state, "description": description})
         if self.dry_run:
             log.info("DRY-RUN would set status %s=%s on %s (%s)", ctx, state, sha[:12], description)
             return
         try:
-            rec = store.get(issue_id)
-            self.github.set_commit_status(sha, state, ctx, description, target_url=rec.pr_url if rec else None)
+            rec = store.get(issue_id) if issue_id else None
+            self.github.set_commit_status(sha, state, ctx, description, target_url=target_url or (rec.pr_url if rec else None))
         except Exception as exc:  # noqa: BLE001
             log.warning("#%s: publishing %s=%s on %s failed: %s", issue_id, ctx, state, sha[:12], exc)
+
+    def ensure_pending_review_status(self, sha: str, description: str, *, issue_id: int | None = None,
+                                     target_url: str | None = None) -> bool:
+        """Report `pending` for a head that carries no verdict — once per reason, not every tick.
+
+        It publishes only when the context is absent or pending for a different reason: a `success`
+        or `failure` already published for this exact SHA is left exactly as it is, so nothing here
+        can turn a red review green (or a green one yellow).
+        """
+        try:
+            current = self.github.combined_status(sha).get(self.config.review_status_context, {})
+        except Exception:  # noqa: BLE001
+            current = {}
+        if current.get("state") in ("success", "failure", "error"):
+            return False
+        if current.get("state") == "pending" and (current.get("description") or "")[:140] == description[:140]:
+            return False
+        self._publish_review_status(self.store, issue_id, sha, "pending", description, target_url=target_url)
+        return True
 
     def _ensure_review_status(self, store: StateStore, rec: IssueRecord, head: str) -> str:
         """Make GitHub's status for `head` agree with the store (after restarts / failed publishes)."""
@@ -319,7 +344,15 @@ class Orchestrator:
             t.join(timeout=timeout)
 
     def attempts_remaining(self, rec: IssueRecord) -> bool:
-        """attempt_number counts worker runs; repairs allowed on top of the first run."""
+        """attempt_number counts worker runs; repairs allowed on top of the first run.
+
+        An ADOPTED pull request has no repair budget at all: the orchestrator did not create that
+        branch and must not push to it, so a red gate or a rejected review blocks it for a human
+        instead of dispatching a fixer. This is the single choke point every fixer dispatch already
+        goes through (CI red, merge conflict, review REQUEST_CHANGES/BLOCK, worker failure).
+        """
+        if rec.adopted_pr:
+            return False
         return max(0, rec.attempt_number - 1) < self.config.max_repair_attempts
 
     # -- analysis lane ------------------------------------------------------------------------
