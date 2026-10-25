@@ -47,6 +47,37 @@ MAX_SIZINGS = 6
 MAX_CANDIDATES = 60
 CELLS_K = 6
 
+#: the hard ceiling on one solve: nothing is ever given more, however much budget is left.
+SOLVE_CEILING_S = 10.0
+#: no single solve may be given more than this fraction of what is LEFT of the budget (#216).
+#:
+#: One wall-clock budget bounds the whole request and the runner divides it per parti, so a solve
+#: that was allowed `min(SOLVE_CEILING_S, everything left)` could spend a parti's entire share.
+#: B11 traced exactly that: a 1.9 s share, the first candidate's H rungs all INFEASIBLE in 0.02 s
+#: each, then its V rung 3 -- trivially infeasible before the #205 foyer group, a real optimisation
+#: problem now that the group constrains the fronting cell -- took 1.79 s of the 1.8 s it was
+#: handed, returned UNKNOWN, and the NEXT candidate, whose H orientation sizes successfully, was
+#: never reached at all. The ceiling was not the bug: 10 s is simply meaningless next to 1.9 s.
+#:
+#: A quarter decays geometrically instead of truncating: k hard solves leave 0.75**k of the share,
+#: so no single one can starve the rest. Measured on B11's own 1.9 s share, SEVEN consecutive solves
+#: that each spend every second they are handed now fit where ONE used to -- comfortably more than
+#: the four ladder rungs of a single candidate's orientation, which is what has to fit for the next
+#: candidate's H to be reached. The cheap INFEASIBLE screens that dominate these loops (0.00-0.03 s
+#: each across B11's 65 solves) are unaffected either way. It is also wide enough not to change a
+#: normal request: a full 30 s budget still gives its first solve 7.5 s, more than any solve of the
+#: frozen six needs. Family- and shape-agnostic by construction -- every family calls `time_left()`.
+SOLVE_BUDGET_FRACTION = 0.25
+#: ...and never less than this, because below it even a trivially infeasible LP can time out and
+#: come back UNKNOWN. It is the one way a solve may still overrun the deadline, by at most 0.25 s
+#: (it was 1.0 s before #216, so this is strictly tighter than the budget used to be).
+MIN_SOLVE_S = 0.25
+
+
+def solve_time_limit(remaining_s: float) -> float:
+    """The time limit for ONE solve, given `remaining_s` of the budget. See the constants above."""
+    return max(MIN_SOLVE_S, min(SOLVE_CEILING_S, SOLVE_BUDGET_FRACTION * remaining_s))
+
 
 @dataclass
 class ExactPlacement:
@@ -126,6 +157,9 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
     union = sorted({tuple(sorted(e)) for e in inp.required_edges} | {tuple(sorted(e)) for e in access})
     contacts = contact_requirements(zones, union, access)
     env = Envelope.rectangle(*inp.footprint_m)
+    # H before V, for EVERY family: each family's orientation loop is nested inside its candidate
+    # loop and walks this tuple in order, so a candidate's H orientation is always sized before its
+    # own V. (#216 verified this was already true; what it fixes is the budget, see `time_left`.)
     orientations = (("H", env), ("V", transposed_envelope(env)))
     street = {"H": "N", "V": "W"}            # the oracle's street edge per orientation (#207, `STREET_SIDES`)
     best: _Best | None = None
@@ -152,8 +186,9 @@ def run_exact_pipeline(inp: PipelineInput, *, prefer, ladder, rebanded, families
         return time.monotonic() > deadline
 
     def time_left() -> float:
-        # a solve never gets more than what is left of the request, and never less than a second
-        return max(1.0, min(10.0, deadline - time.monotonic()))
+        # a solve never gets more than a bounded FRACTION of what is left of the request, so no
+        # single hard solve can starve the candidates and families queued behind it (#216)
+        return solve_time_limit(deadline - time.monotonic())
 
     def realize(name, rects, intents, wings, orient_tag, placement):
         nonlocal tried, unknown

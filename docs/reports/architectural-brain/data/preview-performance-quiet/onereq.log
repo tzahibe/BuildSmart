@@ -1,0 +1,8 @@
+{"engine": "production", "brief": "B02", "seconds": 4.09, "rss_after_import_mb": 104.3, "peak_rss_mb": 116.9, "rss_of_the_request_mb": 12.6, "cpu_s": 4.08, "cpu_over_wall": 0.997, "plans": 2}
+{"engine": "brain", "brief": "B02", "seconds": 34.21, "rss_after_import_mb": 104.8, "peak_rss_mb": 212.6, "rss_of_the_request_mb": 107.8, "cpu_s": 36.61, "cpu_over_wall": 1.07, "plans": 3}
+{"engine": "production", "brief": "B08", "seconds": 0.43, "rss_after_import_mb": 105.3, "peak_rss_mb": 113.3, "rss_of_the_request_mb": 8.0, "cpu_s": 0.43, "cpu_over_wall": 1.005, "plans": 3}
+{"engine": "brain", "brief": "B08", "seconds": 30.7, "rss_after_import_mb": 104.7, "peak_rss_mb": 177.7, "rss_of_the_request_mb": 73.0, "cpu_s": 32.91, "cpu_over_wall": 1.072, "plans": 3}
+{"engine": "production", "brief": "B11", "seconds": 13.48, "rss_after_import_mb": 105.4, "peak_rss_mb": 117.5, "rss_of_the_request_mb": 12.1, "cpu_s": 13.43, "cpu_over_wall": 0.996, "plans": 2}
+{"engine": "brain", "brief": "B11", "seconds": 43.65, "rss_after_import_mb": 105.6, "peak_rss_mb": 184.1, "rss_of_the_request_mb": 78.5, "cpu_s": 43.97, "cpu_over_wall": 1.007, "plans": 3}
+{"engine": "production", "brief": "B16", "seconds": 13.14, "rss_after_import_mb": 105.9, "peak_rss_mb": 118.0, "rss_of_the_request_mb": 12.1, "cpu_s": 13.12, "cpu_over_wall": 0.998, "plans": 1}
+{"engine": "brain", "brief": "B16", "seconds": 48.49, "rss_after_import_mb": 105.3, "peak_rss_mb": 168.0, "rss_of_the_request_mb": 62.7, "cpu_s": 48.34, "cpu_over_wall": 0.997, "plans": 2}

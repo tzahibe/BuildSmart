@@ -1,0 +1,27 @@
+{
+ "alone": {
+  "seconds": 30.77,
+  "cpu_pct_max": 128.1,
+  "cpu_pct_median": 107.3,
+  "primary": {
+   "family": "brain:PUBLIC_BAND+FOYER",
+   "gross": 131.45,
+   "rooms": 9,
+   "notes": [],
+   "alternatives": 2
+  }
+ },
+ "under_load": {
+  "seconds": 53.64,
+  "cpu_pct_max": 110.3,
+  "cpu_pct_median": 100.2,
+  "primary": {
+   "family": "brain:TWO_HALL",
+   "gross": 129.92,
+   "rooms": 9,
+   "notes": [],
+   "alternatives": 2
+  }
+ },
+ "same_primary_family": false
+}
