@@ -1,0 +1,39 @@
+component_name,type_name,spaces_served
+Door Type A-1,Door Type A,"A104, A101"
+Door Type A-2,Door Type A,"B104, B101"
+Door Type A-3,Door Type A,"B204, B205"
+Door Type A-4,Door Type A,"A204, A205"
+Door Type B-1,Door Type B,B102
+Door Type B-2,Door Type B,A102
+Door Type C-1,Door Type C,"B201, B203"
+Door Type C-2,Door Type C,"A201, A203"
+Door Type C-3,Door Type C,"B201, B202"
+Door Type C-4,Door Type C,"A201, A202"
+Door Type C-5,Door Type C,"B201, B204"
+Door Type C-6,Door Type C,"A201, A204"
+Door Type D-1,Door Type D,A101
+Door Type D-2,Door Type D,B101
+Skylight-1,Skylight,R301
+Skylight-2,Skylight,R301
+Window Type A-1,Window Type A,B203
+Window Type A-2,Window Type A,A203
+Window Type A-3,Window Type A,B202
+Window Type A-4,Window Type A,A202
+Window Type B-1,Window Type B,B102
+Window Type B-2,Window Type B,A102
+Window Type C-1,Window Type C,"B102, B103"
+Window Type C-2,Window Type C,"A102, A103"
+Window Type C-3,Window Type C,A203
+Window Type C-4,Window Type C,B203
+Window Type D-1,Window Type D,B203
+Window Type D-10,Window Type D,A202
+Window Type D-11,Window Type D,A202
+Window Type D-12,Window Type D,A202
+Window Type D-2,Window Type D,B203
+Window Type D-3,Window Type D,B203
+Window Type D-4,Window Type D,A203
+Window Type D-5,Window Type D,A203
+Window Type D-6,Window Type D,A203
+Window Type D-7,Window Type D,B202
+Window Type D-8,Window Type D,B202
+Window Type D-9,Window Type D,B202
