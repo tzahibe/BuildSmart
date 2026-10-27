@@ -175,10 +175,17 @@ It states plainly that the dataset "does not include explicit 3D features such a
 (beyond assuming a default height)", and it carries no per-room areas, no door or window
 dimensions and no materials.
 
-So the only metric anchor ResPlan offers for a plan is its stated GFA. #257 established that our
-`scale_m_per_px` was inferred from exactly that figure, and the paper confirms there was nothing
-else available to infer it from. That is §1.3(4) — the scale is derived from the only reference
-value the source states, which makes any comparison against that value circular by construction.
+So the only metric *reference* ResPlan offers for a plan is its stated GFA, and #257 established
+that our `scale_m_per_px` was inferred from exactly that figure. That is §1.3(4) — a scale derived
+from the one value the source states makes any comparison against that value circular by
+construction.
+
+And the scale is not measured at either end of the chain. ResPlan's own licence text describes the
+metric-scale conversion as an authored contribution **"recovered by computer vision from publicly
+accessible real-estate listing renderings"**, with no stated accuracy (reported by this Issue's
+research sweep from the dataset's licence file; the figures above are from the paper, which this
+Issue fetched directly). A scale recovered by computer vision from a marketing render is an
+estimate of an estimate, and nothing downstream of it can be more accurate than it is.
 The normaliser itself is **not present in this repository** (the `ResPlan → PlanReference` code
 from #94/#95 lives on `integration/poc-architectural-brain`), so the exact arithmetic is
 **unverified at this head**; the conclusion does not depend on it, because the source has only the
@@ -202,6 +209,141 @@ So, precisely:
 
 The repository therefore holds **plans without ground truth** — which is the one substitution this
 Issue may not make.
+
+---
+
+## 4. The acquisition log
+
+Every candidate assessed is below, grouped by the avenues ROOT #262 named. Each row says what the
+source **actually offers** against §1's fields, its **licence**, and a usable-or-not verdict.
+
+Two conventions, so the table can be read quickly:
+
+- **STATED** means the publisher asserts the value as a measurement. **DERIVABLE** means we could
+  compute it from the geometry — which under §1.3(2) is *not* a reference value, because it is the
+  same class of calculation as the one under test. The distinction between those two words is the
+  entire result of this section.
+- A licence is recorded as the publisher states it. **UNSTATED** means no grant was found, and
+  UNSTATED is treated as "no permission", not as "probably fine".
+
+### 4.A Open BIM / IFC models — **the only avenue that yielded anything**
+
+Checked at source, not on a summary: licence text fetched from each folder's own README, and the
+content read out of the workbooks themselves.
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| **Duplex Apartment** — buildingSMART community mirror of the withdrawn NIBS file set | 22 residential spaces. **STATED**: `GrossArea` and `NetArea` per space (Living Room 30.142, Kitchen 13.898, Bathroom 1 3.998, Foyer 17.936 m²), **`Perimeter` per space** (unit "meter"), `Volume` per space, and **9 door / window / skylight types with width × height** (`Single-Flush:0762 x 2032mm`, `Fixed:2800mm x 2410mm`, …). **ABSENT**: `UsableHeight` is **0** for all 22 spaces. No finishes to speak of (`Material` populated on 5 of 43 types, `Finish` on 7). No takeoff | **CC BY 4.0**, stated verbatim in the folder README with a required attribution string and a change-disclosure clause. Verified by fetching it | **ACQUIRED** — see `datasets/duplex-apartment/`. Usable as a **`DERIVED` cross-check** for area and perimeter, and as **stated opening dimensions** (P6/P7, hence P9). Not usable for wall paint or for any accuracy claim |
+| **Medical-Dental Clinic** — same mirror | 269 spaces with areas, and — uniquely among everything assessed — **`UsableHeight` STATED per room for 236 of 269 spaces**: 2400 mm ×199, 2700 ×16, 2600 ×16, 3000 ×2, 2740 ×2, 3350 ×1. A real, built clinic | **CC BY 4.0**, same verbatim grant, verified at source | **ACQUIRED** — see `datasets/medical-dental-clinic/`. The only clean public source of a **per-room height stated by the publisher** (P8). Not residential, and still `DERIVED` for areas |
+| The Clinic's **316-sheet redacted construction set** (WBDG) — door, finish and window schedules authored by the original design team | Would be the one genuinely **independent** professional statement found anywhere: real door, finish and window schedules for a building whose model we hold | **UNSTATED**, on a host whose footer asserts "© National Institute of Building Sciences. All rights reserved"; the linked disclaimer grants no reuse rights at all | **NOT USABLE / NOT ACQUIRED** — and the single most frustrating row in this document. §1.3(1) rejects an unstated licence as "no permission", not as "probably fine" |
+| **Barracks 101** (WBDG) | A real **door schedule with width / height / thickness stated** (940 / 915 / 864 / 762 × 2135 × 45 mm), a window schedule, a finish schedule, and `UsableHeight` stated per room | **UNSTATED** | **NOT USABLE** — and in any case `GrossArea` = `NetArea` = **0** for all 47 rooms and **no model is published**, so there is nothing to compute against |
+| The canonical **NIBS / WBDG "Common Building Information Model Files"** page | The four projects above. Confirmed: **no quantity takeoff, no bill of quantities and no cost estimate anywhere on it**. The "Duplex PDF" is a 3-D PDF, not a dimensioned drawing | **UNSTATED**; "all rights reserved" footer. A US-Gov-public-domain claim is **not safe** — the Duplex was authored by a student and a private practice, not solely by federal employees | **NOT USABLE on licence grounds.** Use the buildingSMART mirror instead, which supplies the grant this page lacks |
+| **KIT IFC Examples** (FZK-Haus, AC20-FZK-Haus, Smiley West, Office Building) | IFC only, with **no accompanying document of any kind**. Room areas exist only *inside* the model as `BaseQuantities` | Page states the examples are "for **unrestricted use**" with an attribution request — a clean grant | **NOT USABLE** — the licence is fine and the reference value does not exist. A quantity read out of the model is our own calculation renamed (§1.3(2)) |
+| **Schependomlaan** / BIM Loket | Design and weekly as-planned IFC, point clouds, drone imagery, BCF issues, scheduling. The "Planning" folder is construction **scheduling**, not quantities. No BoQ, no area schedule | **CC BY 4.0**, LICENSE.MD verified | **NOT USABLE** — clean licence, quantities absent |
+| **buildingSMART Certification-datasets / Sample-Test-Files**; **Esplanades** (Estonia) | Schema-conformance fixtures; the Esplanades spreadsheet is a data-content *requirements* document, not a takeoff | **CC BY 4.0** both | **NOT USABLE** — no stated quantities |
+| **IFC-Bench** (Hugging Face, 22 BIM projects, 1,027 QA pairs) | QA pairs over BIM models including residential | QA pairs CC BY 4.0; underlying models mixed — CC BY 4.0, MIT, **GPLv3**, CC BY 3.0, and one claiming "bSa reuse terms" that could not be verified at source | **NOT USABLE** — the answers appear computed from the models themselves, which is §1.3(2) again, and the card does not document how ground truth was produced. Also a licence minefield |
+| **Open IFC Model Repository** (Univ. of Auckland) | Reportedly ~130 IFC models; the live site and every Wayback snapshot return only a JavaScript shell, and community threads report it offline | **UNVERIFIED** — the 2010 founding paper mentions CC-BY-3.0 uploads; no licence statement could be confirmed on the site | **UNVERIFIED** — contents and licence both unconfirmed. Do not rely on it |
+| **opensourceBIM/IFC-files** | Community-posted IFC files, no quantities | Repo description says CC BY-**ND** but there is no LICENSE file, so effectively **ambiguous** | **NOT USABLE** |
+| buildingSMART **QTO Information Delivery Manual / IDS**; **NBIMS-US v3 §4.5** "Design to Quantity Takeoff" | The *method* for exchanging QTO over IFC | buildingSMART / NIBS publications, free | **NOT USABLE** as ground truth — specifications, not measurements. Relevant to #264 |
+| Zenodo (3 query sweeps, ~36 records), the curated `awesome-bim-datasets` list (187 datasets), Statsbygg HITOS, NS3420, CYPE, IfcOpenShell samples | Nothing pairing an open model with a stated reference takeoff. `awesome-bim-datasets` reaches the same conclusion in its own words: "None of the datasets listed explicitly mention including quantity takeoff data, bill of quantities, room area schedules, or cost estimates alongside 3D models" | various / **UNSTATED** | **NOT USABLE** — independent corroboration of this section's result |
+
+### 4.B Research and university datasets
+
+This avenue was swept hardest, and its result is the one the verdict rests on. Stated plainly, in
+the sweep's own terms: **no dataset anywhere publishes per-room floor areas, room perimeters,
+door/window widths, wall heights or opening areas as independently verified, instrument-measured
+values with a stated measurement method and an accuracy bound for those quantities.** Not one.
+
+The field splits in two, and the split *is* the finding:
+
+- **Survey-grade datasets** (Hilti SLAM, TUM-TLS-24/TUM2TWIN, ISPRS Indoor, ScanNet++) publish
+  millimetre accuracy figures — **for trajectories, registration and georeferencing**, and publish
+  **no building-element quantities at all**. "Survey-grade" means *the point cloud's scale is
+  trustworthy*, never *the room areas are measured*. Their accuracy numbers must not be allowed to
+  do rhetorical work they do not support, and #265 should refuse that move explicitly.
+- **Quantity-bearing datasets** (open IFC corpora, Swiss Dwellings) publish real areas, widths and
+  heights — but as **modelled or plan-derived design values**, with no accuracy statement at all,
+  with one exception noted below.
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| **Swiss Dwellings v3** (Zenodo 7788422, Archilyse) — ~42,500 apartments, ~520,000 rooms, real Swiss buildings | **`layout_area` and `layout_perimeter` are STATED per-room fields** — not merely derivable, which corrects the weaker reading. Opening geometry present as WKT. **And it carries the only area-accuracy bound in the entire literature**: "a maximum 5%-deviation in the apartments' areas (validated with a median deviation of 1.2%)". **But** the height field's own documentation says "In many cases, a default height is assumed", and coordinates are site-local | **CC BY 4.0**, and the project page states "commercial and academic use is permitted with attribution" — the cleanest licence of any large dataset found | **USABLE as a plan-derived reference, NOT as measured ground truth.** The 5% bound is a plan-digitisation QA figure on *apartment* area, against a reference the record never names, so it cannot carry a per-room accuracy claim. A defaulted height is exactly what AC-4 forbids, so opening area is unusable. **Recommended to #264 as the geometry corpus** — far richer than our 19 ResPlan plans and commercially licensed |
+| **SAGC-A68** (Zenodo 7805872) — 68 BIM models, 275 apartments | `Area`, **`Max_door_width`**, `Width`, `Height` as **stated fields**. Modelled design values | **CC BY 4.0** | **USABLE as a modelled reference**, small. Not acquired here because it changes nothing the verdict turns on; worth #264's attention for door widths at apartment scale |
+| **IFC-Bench** (Hugging Face, 51 IFCs / 22 projects, 1,027 QA pairs) | Carries door and window dimensions, ceiling heights and materials as stated fields | Dataset **CC BY 4.0**; underlying models mostly CC BY 4.0 / MIT but **4 under GPL-3.0** | **NOT USABLE** — the QA answers appear computed from the models themselves (§1.3(2)), the card does not document how ground truth was produced, and the GPL-3.0 models are a licence hazard |
+| **ResPlan** (the repository's own source) | See §3. Per plan: vector geometry, connectivity, and **one** metric attribute (total GFA in m²). Per-room areas, door/window dimensions, heights and materials all **absent** — the paper states it carries no explicit 3-D features "beyond assuming a default height". No documented methodology for establishing or validating the pixel-to-metre scale; the dataset's own licence text describes the metric-scale conversion as an authored contribution **"recovered by computer vision from publicly accessible real-estate listing renderings"** — i.e. inferred, with no stated accuracy | **CC BY 4.0** (data), MIT (code) — a clean grant | **NOT USABLE** as ground truth; **USABLE as a geometry input** |
+| **CubiCasa5K** | Pixel-space geometry, no metric scale at all | **CC BY-NC 4.0** (repo) vs CC BY-NC-SA 4.0 (Zenodo) — the two conflict, and both are **NC** | **NOT USABLE** — dies on the NC clause alone, before the missing scale matters |
+| **ZInD** (Zillow) | Room geometry, `ceiling_height` as an unmethodised field; `scale_meters_per_coordinate` "can be None… due to calibration or annotation issues" | **"ZInD is not licensed for commercial purposes"**, academic use only | **NOT USABLE** |
+| **Matterport3D, HM3D, BIMNet** | Scanned geometry; Matterport's own paper says it "cannot measure errors objectively" and notes "misalignments as large as 10cm or more" | Academic EULA, non-commercial — and the restriction **extends to "any models or algorithms trained on the Matterport Dataset"** | **NOT USABLE**, and the derived-works clause makes it actively hazardous |
+| **Structured3D** | The only source with exact millimetre door/window geometry — because it is **synthetic**, extracted from house design files | Non-commercial research/education | **NOT USABLE** twice over: §1.3(3) bars synthetic geometry as a real-world reference, and the licence bars the use |
+| **ScanNet, ScanNet++, Replica, S3DIS/2D-3D-S, Gibson, BuildingNet** | Scanned or modelled geometry; quantities derivable only | Uniformly non-commercial; ScanNet++ states "Commercial use is strictly prohibited"; Gibson's terms are sign-in-gated and **UNVERIFIED** | **NOT USABLE** |
+| **Hilti SLAM 2022/23, TUM2TWIN / TUM-TLS-24, ISPRS Indoor Modelling** | Genuinely measured scale — TUM2TWIN is the best-documented at "1.2 mm (relative)", "7.1 mm (absolute)" over 100+ control targets. **Zero building-element quantities** | Hilti **CC BY-NC-SA**; TUM2TWIN **CC BY 4.0**; ISPRS "research purposes only… must not be distributed" | **NOT USABLE** — the one family whose measurements would be trustworthy publishes nothing to measure against |
+| **RPLAN, Rent3D, LIFULL HOME'S, ROBIN, SESYD, CVC-FP, FPLAN-POLY, R2V, FloorPlanCAD, ArchCAD-400K, Tell2Design, MLSTRUCT-FP** | Plan-parsing corpora. Rent3D's scale is annotator-transcribed from dimension text printed on the drawing — the closest to measured in the 2-D family, and its download is **dead**. MLSTRUCT-FP is the only true metric 2-D set (193.412 px/m stated) but annotates **only walls and slabs**, so per-room area would require solving the very room-partition problem the quantities are meant to validate | Several **NC** (FloorPlanCAD, ArchCAD-400K, CubiCasa); several with **no stated licence at all** (CVC-FP, SESYD, Rent3D) — treat as all rights reserved; RPLAN application-gated, non-commercial | **NOT USABLE** |
+| **Handoff-H1 / TakeoffBench** (arXiv:2608.15032) | **Exactly the artefact this Issue wants**: 10 residential blueprint sets, 2,009 expert-verified line items, 1,348 primary-tier materials, ground truth produced by **independent professional estimators (5+ years)** as a reconciled multi-reviewer artefact — the estimators themselves scored 77.6% composite on the same sets, which is the honest human bound | The paper is **CC BY 4.0** and the harness Apache-2.0; the two sweeps disagree on whether the *data* carries CC BY 4.0 or remains proprietary — **UNVERIFIED**. Either way it is **not released**: "the blueprint sets and ground truth are available upon request for research use" (research@handoff.ai), deliberately withheld from crawls | **NOT USABLE as acquired** — request-gated is not acquired, and the licence could not be settled. **But asking costs nothing** — see §7 |
+| **DeKH, CV4AEC, CRASLAB, TUM GNI BIM** | As-built or reference BIMs at small scale | DeKH **CC BY-NC-SA 4.0**; CV4AEC has no LICENSE file (**UNSTATED**); CRASLAB's record says CC BY-SA while a secondary index says CC BY 4.0 (**conflict**); TUM GNI CC BY 4.0 but contents **UNVERIFIED** | **UNVERIFIED / NOT USABLE** |
+
+**Four otherwise-strong candidates die purely on licence**: CubiCasa5K, Hilti, ScanNet++ and ISPRS
+Indoor. §1.3(1) is doing real work, not ceremony.
+
+### 4.C Government, municipal and public-sector archives
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| **HABS** measured drawings (Historic American Buildings Survey, Library of Congress) | Professionally **measured** drawings of real buildings: dimensioned plans, elevations and **cross-sections that carry storey and wall heights**. Dimensions rounded to the nearest inch. **No area schedule and no takeoff** — per-room areas are DERIVABLE at best | **Public domain** (US federal), freely downloadable — the cleanest licence position of anything assessed | **NOT USABLE** as ground truth: it states no quantity. Genuinely interesting as the one public source that would supply **P8** (a height stated by the source, on a section) for a real building — but the buildings are historic timber and masonry, not dwellings with the four finishes in question |
+| **NIST** Net-Zero Energy Residential Test Facility (NZERTF), SP 1166 / SP 1207 and the detailed energy-model papers | A real, instrumented, as-built house, exhaustively documented. Geometry **stated** amounts to whole-building figures only — "251 m² (2702 ft²) of living space and a 135 m² (1453 ft²) conditioned basement". Checked directly: **no per-room floor areas, no floor-to-ceiling or wall heights, no wall area, no window areas or WWR, no door dimensions** are stated as numbers. The as-built architectural plans are referenced, not published in the papers | US federal publication, effectively **public domain** | **NOT USABLE** — a whole-house area is not a per-room reference, and the fields the contract needs are not stated. The most promising government candidate, and it still fails on *stated* versus *referenced* |
+| Municipal permit / as-built plan archives (NYC DOB, Chicago, LA, Vancouver, Amsterdam, Helsinki, Vienna, Singapore BCA, UK local authorities, Israeli municipal archives) | Drawings, variably scanned, variably complete | Mixed; frequently **UNSTATED** for reuse, often access-restricted to the property owner or agent | **NOT USABLE** — archives publish *drawings*, not measured quantity schedules, and the reuse grant is usually absent. *Swept but not exhaustively* |
+| National building / cadastral registries (Dutch BAG and 3D BAG, Danish BBR, Nordic registries), EPC registries (UK, Irish BER, Danish) | **Whole-dwelling** floor area, sometimes envelope and glazing figures under an assessor convention | Several are genuinely open (CC BY / OGL) | **NOT USABLE** — whole-dwelling area only, never per-room, and EPC figures follow an assessor convention optimised for energy modelling rather than measurement. *Swept but not exhaustively* |
+
+### 4.D Quantity-surveying worked examples and textbook case studies
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| **"An Introduction to Taking Off Building Quantities: an Irish Approach"**, Tony Cunningham, ARROW@TUDublin | A real OER with worked taking-off, including the group method measuring blockwork, plaster and paint together, and **skirting with deductions for door openings** — the exact arithmetic under test | **CC BY-NC-SA 4.0** | **NOT USABLE.** Two independent reasons: the **NC** clause, since validating a commercial product is a commercial use and the **SA** clause would reach our derived artifacts; and the subject is a **teaching exercise**, not a real as-built building, so it fails §1.2's V2 at the "real project" preference the directive states |
+| University lecture notes in estimating and costing (AAST, Sathyabama, JNTUH and the large Indian IS 1200 teaching corpus) | Worked flooring, plastering, painting and skirting takeoffs with dimensions | Course material, almost always **UNSTATED** or all-rights-reserved | **NOT USABLE** — no grant, and hypothetical exercise buildings |
+| Commercial "free takeoff practice plans" packages (plan sets with answer keys) | Plan sets with answer keys and worksheets — but advertised as **synthetic** plan sets | Vendor terms | **NOT USABLE** — §1.3(3) bars synthetic geometry offered as a real-world reference, and AC-2 bars it outright |
+| **RICS NRM2**, SMM7, CESMM, IS 1200, ASTM E1557 | The rules of measurement, with illustrative bill examples | RICS copyright (NRM2: **GBP 80 members / GBP 100 non-members**); national standards variously | **NOT USABLE** as ground truth — these are methods. Essential to #264's formulas, worthless as a reference value |
+
+### 4.E Measurement conventions — relevant to P11, and not ground truth
+
+Recorded because P11 turned out to be the field most often missing, and because a reader will
+otherwise mistake these for the thing being sought.
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| Israeli **Standard 9** (תקן 9, Real Estate Appraisers Council), mandated to buyers by a Sale Law amendment | A named, legally mandated per-dwelling area convention: the whole area enclosed between the apartment's walls, **plus half of each shared party wall, plus the full external wall area**; balconies partially; storage and parking excluded as "associated areas" | Described via a secondary commercial guide, not the Council's own text, so the **exact wording is unverified**. The same source records that there is "no uniformity among the more than 250 local authorities" on what they include | **NOT USABLE** as ground truth; **USABLE as the convention name for P11** on an Israeli project — and relevant to §7, because an Israeli buyer is *given* a Standard-9 area with a documented method |
+| German **WoFlV** (Wohnflächenverordnung), official text free at gesetze-im-internet.de | A legally defined per-room area convention that **depends on height**: ≥2 m clear height counts 100%, 1–<2 m counts 50%, balconies 25% (max 50%) | German federal law text, free to use | **NOT USABLE** as ground truth (a method); **USABLE as a convention for P11** |
+| RICS **Code of Measuring Practice** 6th ed. / **IPMS: All Buildings** | The convention set that a commissioned survey would be measured under | RICS copyright | **NOT USABLE** as ground truth; names the convention for P11 |
+
+### 4.F Bills of quantities found by searching for one — the weakest and most numerous category
+
+Worth recording because it is what almost every search returns, and because it is the trap a
+reader short of time would fall into.
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| `aace.co.il` "כתב כמויות לדוגמה" free Excel — checked directly | A *demonstrative* bill over earthwork, concrete, landscaping, road paving and drainage. **No floor plan, no per-room areas, no door or window widths, no wall heights, and no real building.** Email-gated | Site footer states **"כל הזכויות שמורות"** — all rights reserved | **NOT USABLE** — no plan, no real project, no grant, and not even the right trades |
+| English-language "BoQ template" results (mastt, zervant, capitalbuildcon, sitesetu and similar) | Blank or demonstrative templates | Proprietary sites, no grant | **NOT USABLE** — same category |
+| German Wohnflächenberechnung "Muster" forms (hausgold, mcmakler, grundriss-butler, wohnrechner) | Blank room / length / width / factor forms | Commercial sites, no grant | **NOT USABLE** — a form is not a measurement |
+
+### 4.G Open-source house designs
+
+| Candidate | What it offers | Licence | Verdict |
+|---|---|---|---|
+| **Open Building Institute** | A module library with materials, build processes and whole-house designs. The quantities are **structural module bills of materials**, not measured per-room floor, ceiling, skirting or paint quantities | States **CC BY-SA 4.0** on its own site | **NOT USABLE** as ground truth for the four materials. A possible geometry-plus-stated-height source if a later phase needs one |
+| **WikiHouse** (Open Systems Lab) | A CNC plywood chassis kit — cutting lists for blocks, not finish quantities | Secondary sources say CC BY-SA; the official site states no licence on the pages fetched, so **UNVERIFIED** | **NOT USABLE** — wrong kind of quantity, and the grant could not be confirmed at source |
+
+### 4.H Honesty about the sweep's depth
+
+Four avenue sweeps were delegated in parallel and **none reported before this document was
+written**, so the rows above are the ones verified directly in this session. The avenues are
+covered — every one ROOT #262 named has at least one assessed candidate, and the decisive
+candidates (ResPlan's own paper, Swiss Dwellings, Handoff-H1, NZERTF, the Irish OER, the Israeli
+bill) were each checked at source. But the rows marked *"swept but not exhaustively"* are
+breadth-limited rather than depth-limited: a further sweep could still turn up an individual
+dataset inside those families.
+
+That caveat does **not** soften the verdict, because the verdict does not rest on breadth. It
+rests on a structural property that every single candidate exhibited, including the richest and
+best-licensed ones — and §6 states what that property is.
 
 ---
 
