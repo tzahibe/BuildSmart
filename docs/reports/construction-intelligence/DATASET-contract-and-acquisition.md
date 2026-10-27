@@ -412,7 +412,7 @@ another is defensible only if the tolerance is reported alongside the error.
 
 ## 6. The verdict
 
-# PARTIAL
+## PARTIAL
 
 Two projects were acquired under a verified CC BY 4.0 grant. **No reference quantity for any of the
 four materials was acquired, and none exists in public licensed form.** Those two sentences are the
