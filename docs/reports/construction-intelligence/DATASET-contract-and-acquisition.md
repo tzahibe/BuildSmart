@@ -4,7 +4,7 @@ ROOT: #262 (owner directive 2026-10-27, the mandatory evidence gate before the C
 Intelligence pivot). Child 1 of 3; #264 (schema, formulas, harness) and #265 (comparison report,
 recommendation) are gated behind this one.
 
-**Verdict: see §5. This document is read-only knowledge work — no production file is changed.**
+**Verdict: see §6. This document is read-only knowledge work — no production file is changed.**
 
 The governing principle, in the owner's words, is that *a mathematically correct calculation is not
 evidence that its input measurements are correct.* Everything below follows from it. A reference
@@ -15,9 +15,12 @@ prohibitions are therefore structural, not stylistic:
 - **No ground-truth value may be derived from BuildSmart's own calculation.**
 
 §1 is the contract, written **before** acquisition was attempted so that no source could shape the
-bar it had to clear. §2 says what a partially-compliant project is still worth, because three of the
-four first materials do not need a third dimension. §3 is what the repository already holds and why
-it does not qualify. §4 is the acquisition log. §5 is the verdict.
+bar it had to clear — the commit order on this branch shows it. §2 says what a partially-compliant
+project is still worth, because three of the four first materials do not need a third dimension.
+§3 is what the repository already holds and why it does not qualify. §4 is the acquisition log,
+one row per candidate with its licence and a verdict. §5 names the paid-only routes for the owner
+to decide, none of them taken. §6 is the verdict. §7 is what the owner could supply that no public
+source can.
 
 ---
 
