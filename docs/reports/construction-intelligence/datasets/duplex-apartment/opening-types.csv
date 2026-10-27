@@ -1,0 +1,10 @@
+type_name,description_as_published,nominal_length_m,nominal_width_m,nominal_height_m
+Door Type A,Single-Flush:0762 x 2032mm,0,0,0
+Door Type B,Single-Glass 1:0813 x 2420mm,0,0,0
+Door Type C,Single-Flush:0864 x 2032mm,0,0,0
+Door Type D,Single-Flush:1250mm x 2010mm,1.25,0,2.0099999999999998
+Skylight,Skylight:1180 x 1170mm,0,0,0
+Window Type A,Fixed:2800mm x 2410mm,0,0,0
+Window Type B,Fixed:4835mm x 2420mm,0,0,0
+Window Type C,Fixed:750mm x 2200mm,0,0,0
+Window Type D,Fixed:819mm x 759mm,0.81899999999999995,0,0.75900000000000001
