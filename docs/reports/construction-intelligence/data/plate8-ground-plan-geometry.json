@@ -1,0 +1,114 @@
+{
+  "_what_this_is": "#267 (ROOT #262) step 3. The Entrance Lodge's room geometry TAKEN OFF THE FIGURED GROUND PLAN, Plate 8, independently of the plasterer's dimension columns. Every value below is a figure PRINTED ON THE PLATE, read from the page image, with the plate, the leaf and the pair of wall faces the figure runs between recorded per value. No value here is scaled off the raster and no value here is borrowed from the bill of quantities. Where the plate does not figure a dimension, the room is ABSENT from `rooms_derived` and appears in `rooms_abstained` with the field that is missing.",
+  "why_this_exists": "#265 (PR #266) offered Fletcher's own dimension columns as BOTH the geometry and the reference, and the self-validation guard refused all three ceiling comparisons at a residual of EXACTLY 0.0: a takeoff cannot validate a calculation that starts from the takeoff's own dimensions. The guard is right. The way past it is an independent geometry, which is what this file is.",
+  "source": {
+    "work": "Banister Fletcher & H. P. Fletcher, Quantities, 9th edition",
+    "publisher": "B. T. Batsford",
+    "date": 1923,
+    "archive_identifier": "banisterfletcherh.p.fletcher1923",
+    "archive_url": "https://archive.org/details/banisterfletcherh.p.fletcher1923",
+    "licenseurl": "http://creativecommons.org/publicdomain/mark/1.0/",
+    "licence": "CC Public Domain Mark 1.0",
+    "licence_verified": "read again from the item's own metadata API (https://archive.org/metadata/banisterfletcherh.p.fletcher1923), field `licenseurl`, on 2026-10-27; public domain by age in the US and the UK (published 1923)",
+    "plates_examined": {
+      "leaf502": "Plate 1, South Elevation — NO figured dimension anywhere",
+      "leaf504": "Plate 2, West Elevation — NO figured dimension anywhere",
+      "leaf506": "Plate 3, East Elevation — NO figured dimension anywhere",
+      "leaf508": "Plate 4, North Elevation — NO figured dimension anywhere",
+      "leaf510": "Plate 5, Section A-A — NO figured dimension anywhere; scale bar only",
+      "leaf512": "Plate 6, Section B-B — NO figured dimension anywhere; scale bar only",
+      "leaf514": "Plate 7, First Floor Plan — NO figured dimension anywhere",
+      "leaf516": "Plate 8, Ground Plan — THE ONLY FULLY FIGURED PLATE; the whole of this file comes from it",
+      "leaf518": "Plate 9, Roof Plan — NO figured dimension anywhere",
+      "leaf520": "Plate 10, Drainage Plan — figures drain sizes, falls and a distance to the boundary; NO room dimension and NO height"
+    },
+    "the_finding_about_heights": "ACROSS ALL TEN PLATES, INCLUDING BOTH SECTIONS, NO STOREY HEIGHT AND NO ROOM HEIGHT IS FIGURED. The two sections (Plates 5 and 6) carry a scale bar and not one dimension. The 8'0\" the plasterer squares his walls at exists ONLY in his dimension columns. It is therefore NOT recoverable from the drawings by any method the schema admits -- MeasurementMethod has no member for a value scaled off a raster -- so F2 wall paintable area ABSTAINS for every room of this project. This is #263's height finding reproduced on a complete professional drawing set a century old.",
+    "ocr_warning": "Every figure below was read from the page IMAGE at full scan resolution (leaf 516 is 6845 x 4234). The _djvu.txt OCR does not reproduce the plate's hand-lettered figures at all."
+  },
+  "how_a_figure_was_matched_to_a_pair_of_wall_faces": {
+    "rule": "The PRINTED FIGURE is the only source of a length. A pixel measurement is used ONLY to decide WHICH pair of drawn wall faces a printed figure runs between, never to supply a value. No coordinate in `rooms_derived` comes from a pixel count.",
+    "scan_scale_used_for_matching_only": "63.4 px per foot on the archive scan of leaf 516",
+    "scan_scale_cross_checks": [
+      "overall 31'0\" (right-hand dimension): arrowheads at y=1125 and y=3090, span 1965 px, 1965/31 = 63.4 px/ft",
+      "overall 37'0\" (bottom dimension): arrowheads at x=3565 and x=5912, span 2347 px, 2347/37 = 63.4 px/ft",
+      "overall 22'0\" (left-hand dimension, the covered archway's west wall): wall from y=1680 to y=3069, span 1389 px, predicted 1395 px, -0.4%",
+      "figured 14\" wall thickness: predicted 74 px, measured 75-79 px across four walls (the excess is ink spread of the solid poche)",
+      "figured 9\" wall thickness: predicted 48 px, measured 47-54 px across six walls",
+      "figured 6'6\" (Scullery, E-W): predicted 412 px; the drawn clear between the two wall faces is 414 px, a residual of 0.2 inch -- the tightest match on the plate and the reason the Scullery is the one room this file can close"
+    ],
+    "what_the_scan_scale_is_NOT_used_for": "It is never used to supply a dimension the plate does not figure, and it is never used to override a figure. Where a figure and the draughting disagree, the figure governs -- which is the quantity surveyor's own rule, and the source says so itself (the dimension paper is squared from figures, never from a rule laid on the plate)."
+  },
+  "project_wide_figures": {
+    "overall_west_to_east_ft": {"value": "37'0\"", "cited": "Plate 8, leaf 516, bottom dimension line"},
+    "overall_north_to_south_east_side_ft": {"value": "31'0\"", "cited": "Plate 8, leaf 516, right-hand dimension line"},
+    "overall_north_to_south_archway_west_wall_ft": {"value": "22'0\"", "cited": "Plate 8, leaf 516, left-hand dimension line"},
+    "wall_thickness_external_and_archway_piers_in": {"value": 14, "cited": "Plate 8, leaf 516, five '14\"' leaders"},
+    "wall_thickness_internal_and_service_wing_in": {"value": 9, "cited": "Plate 8, leaf 516, eleven '9\"' leaders"},
+    "measurement_convention": "INTERNAL_CLEAR",
+    "measurement_convention_cited": "p.128: 'Measure the ceilings the full dimensions between the walls'; the Plate 8 figures used here likewise run between wall faces",
+    "scale_bar": "'Scale of 10 ... 5 ... 0 ... 10 ... 20 Feet' below the plan, leaf 516. Present, and deliberately NOT used: the plan is fully figured and a scaled value has no admissible MeasurementMethod.",
+    "unresolved_on_the_plate": [
+      "The bottom 37'0\" does not terminate on a drawn wall face: at the scale its own siblings establish, its right arrowhead falls at x=5912, between the service wing's east face (x=5808) and the W.C.'s east wall (x=5963-6014). The plate's drawn west-to-east extent scales 38'5\". Recorded, not resolved, and nothing in `rooms_derived` depends on it."
+    ]
+  },
+  "rooms_derived": [
+    {
+      "id": "SCULLERY",
+      "name": "Scullery",
+      "shape": "rectangle",
+      "cited": "Plate 8, Ground Plan, leaf 516",
+      "clear_width_ew": {
+        "value_ft_in": "6'6\"",
+        "value_ft": 6.5,
+        "figure_as_printed": "6'.6\"",
+        "runs_between": "the east face of the 9\" Kitchen/Scullery partition and the inner face of the 9\" east external wall",
+        "evidence": "the dimension line's left arrowhead sits on the partition's east face (tip at x=5348, face at x=5343) and its right arrowhead on the east wall's inner face (tip at x=5737, face at x=5757); the drawn clear is 414 px against 412 px predicted for 6'6\", a residual of 0.2 inch",
+        "cited": "Plate 8, leaf 516"
+      },
+      "clear_depth_ns": {
+        "value_ft_in": "9'9\"",
+        "value_ft": 9.75,
+        "figure_as_printed": "9'.9\"",
+        "runs_between": "the inner face of the 9\" north external wall and the north face of the 9\" Scullery/Yard partition",
+        "evidence": "the plate prints TWO figures on this axis that differ by exactly one figured wall thickness and share their lower terminus: the outer line '10'.6\"' runs from the north wall's OUTER face (y=1130) to the partition's north face (arrowhead y=1705), and the inner line '9'.9\"' runs from the north wall's INNER face to the same partition face (arrowheads y=1205 and y=1692). 10'6\" - 9'9\" = 9\" = the figured north wall. The chain closes on the plate's own figures.",
+        "cited": "Plate 8, leaf 516",
+        "RECORDED_UNCERTAINTY": "The draughting does not agree with this figure. The drawn clear depth is 520 px = 8'2.5\" at the plate's own scale, 16% less than the figured 9'9\". A second reading of the same figure -- 9'9\" taken outer face to outer face, giving a clear of 9'9\" minus two 9\" walls = 8'3\" -- fits the draughting to 1.3% but does not close the 10'6\" chain and leaves 10'6\" terminating on nothing. BOTH readings are recorded. The chain reading is the one used, because it is built from two printed figures and their printed difference; the second reading is reported as an interpretation sensitivity and is NEVER aggregated."
+      },
+      "clear_depth_ns_alternative_reading": {
+        "value_ft_in": "8'3\"",
+        "value_ft": 8.25,
+        "derivation": "9'9\" read outer face to outer face, less the two figured 9\" walls",
+        "why_it_is_not_the_one_used": "it leaves the plate's own 10'6\" figure terminating on no drawn face"
+      },
+      "openings_visible_but_not_figured": [
+        {"what": "a door from the Kitchen in the west partition", "width_figured": false},
+        {"what": "a door in the south wall to the lobby", "width_figured": false},
+        {"what": "a window in the east external wall", "width_figured": false}
+      ],
+      "openings_note": "Plate 8 draws these three openings and figures the width of none of them. No opening width and no opening area is figured anywhere on the plate for any room, so the opening schedule is NOT complete, F2 abstains on that ground as well as on the height, and F4 abstains on DOOR_WIDTH_NOT_STATED rather than treat a drawn doorway as solid wall."
+    }
+  ],
+  "rooms_abstained": [
+    {
+      "id": "SITTING_ROOM",
+      "name": "Sitting Room",
+      "what_is_figured": "the clear north-to-south dimension, 10'0\", against the 14\" west wall (Plate 8, leaf 516). It checks out: the west wall runs between the outer faces of its two 14\" cross walls, y=1711 to y=2494, and deducting the two figured 14\" thicknesses leaves a clear of 635 px against 634 px predicted for 10'0\" -- a residual of 0.2 inch, the same accuracy the Scullery's 6'6\" shows, which is why the Scullery's north-to-south figure stands out as the plate's one defective dimension",
+      "what_is_missing": "the clear west-to-east dimension",
+      "abstain_because": "NO west-to-east figure for this room appears anywhere on Plate 8, and no chain of printed figures closes it: the covered archway's clear width is unfigured, and the plate's overall 37'0\" does not terminate on a drawn face. The plasterer's dimension columns square this ceiling at 14'0\" x 10'0\" and THAT NUMBER MAY NOT BE BORROWED -- borrowing it is precisely the circularity #265's guard exists to refuse.",
+      "missing_field": "rooms[SITTING_ROOM].polygon (west-to-east clear dimension)"
+    },
+    {
+      "id": "ROOM_324B",
+      "name": "(unnamed on the transcribed takeoff pages; Plate 8 places the Kitchen in that position)",
+      "what_is_figured": "a west-side vertical chain reading 9\" | 7'6\" | 9\" | 5'0\", and a top chain reading 18'0\" | 9\"",
+      "what_is_missing": "a reading of the 7'6\" segment that lands on a drawn wall face, and any figure for the south wall's west-to-east extent",
+      "abstain_because": "TWO independent reasons, either sufficient. (1) The room's IDENTITY is not established: no heading for ROOM_324B appears on the transcribed pages, so matching it to the plate's Kitchen would be a guess. (2) Even taking it as the Kitchen, the north-to-south chain does not resolve: the 7'6\" segment spans 353-363 px against 476 px predicted, it terminates on no drawn face, and the room's south boundary is part solid wall, part canted wall and part unfigured opening. The west-to-east dimension IS derivable from the top chain as 18'0\" - 9\" - 6'6\" = 10'9\", and one derivable dimension does not close a polygon.",
+      "missing_field": "rooms[ROOM_324B].polygon (north-to-south clear dimension, and the room's identity)"
+    }
+  ],
+  "heights_abstained": {
+    "applies_to": "every room of this project",
+    "abstain_because": "no height is figured on any of the ten plates, both sections included. ROOT #262 AC-4 forbids inferring it, and the schema has no MeasurementMethod a value scaled off the section could declare itself under.",
+    "missing_field": "rooms[*].wall_height"
+  }
+}

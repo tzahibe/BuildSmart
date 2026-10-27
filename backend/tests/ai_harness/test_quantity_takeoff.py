@@ -38,6 +38,7 @@ from app.ai_harness.quantity_takeoff.frozen import (
     Reliability,
 )
 from app.ai_harness.quantity_takeoff.schema import (
+    DOOR_KINDS,
     Measured,
     OpeningKind,
     OpeningRecord,
@@ -677,3 +678,236 @@ def test_the_committed_results_are_consistent_with_the_frozen_module():
     assert "AXIS 1" in fl["what_it_does_not_validate"]
     assert math.isclose(data["identity_evidence"]["max_residual_m2"],
                         F.RESPLAN_MAX_AREA_RESIDUAL_M2, abs_tol=1e-9)
+
+
+# =========================================================== #267 (ROOT #262) — step 3, the
+# ground-truth comparison. The geometry now comes off the FIGURED GROUND PLAN (Plate 8) instead of
+# the plasterer's dimension columns. Nothing frozen is edited and the guard is not weakened; these
+# tests assert exactly that, and they assert what the independent geometry changed.
+
+from app.ai_harness.quantity_takeoff import plate8 as P8  # noqa: E402
+from app.ai_harness.quantity_takeoff import run267 as RUN267  # noqa: E402
+
+STEP3_RESULTS = REPO / "docs/reports/construction-intelligence/data/GROUND-TRUTH-results.json"
+
+
+def test_every_derived_plate8_value_cites_a_plate_a_figure_and_a_pair_of_wall_faces():
+    """AC-1. A reader must be able to check any polygon against the plate, so each value carries
+    the figure as printed, the two wall faces it runs between, and the evidence for that match."""
+    data = P8.load()
+    assert data["source"]["licenseurl"] == P8.EXPECTED_LICENCE_URL
+    assert data["rooms_derived"], "no room was derived at all"
+    for room in data["rooms_derived"]:
+        assert room["cited"].startswith("Plate 8")
+        for key in ("clear_width_ew", "clear_depth_ns"):
+            v = room[key]
+            for field in ("value_ft_in", "value_ft", "figure_as_printed", "runs_between",
+                          "evidence", "cited"):
+                assert str(v.get(field, "")).strip(), f"{room['id']}.{key} has no {field}"
+            assert "leaf 516" in v["cited"]
+
+
+def test_the_plate8_geometry_is_built_only_from_figures_printed_on_the_plate():
+    """The rule that makes the comparison real: a pixel measurement decides WHICH faces a figure
+    runs between and never supplies a value. The polygon is therefore an exact unit conversion of
+    two printed imperial figures, to the bit."""
+    data = P8.load()
+    scullery = next(r for r in data["rooms_derived"] if r["id"] == "SCULLERY")
+    w = float(scullery["clear_width_ew"]["value_ft"]) * P8.FT_TO_M
+    d = float(scullery["clear_depth_ns"]["value_ft"]) * P8.FT_TO_M
+    room = P8.project().room("SCULLERY")
+    assert room is not None and room.polygon is not None
+    assert room.geometry.area_m2() == w * d
+    assert room.geometry.perimeter_m() == 2 * (w + d)
+
+
+def test_the_plate8_geometry_grades_no_higher_than_a_design_drawing_dimension():
+    """#263 V2 calls a design dimension an intent, not a measurement, so nothing taken off a plate
+    may grade VERIFIED -- and the schema, not the caller, enforces it."""
+    p = P8.project()
+    assert p.scale is not None
+    assert p.scale.provenance.method is MeasurementMethod.DESIGN_DRAWING_DIMENSION
+    assert p.scale.provenance.reliability is Reliability.STATED
+    with pytest.raises(ValueError, match="WEAKER"):
+        Provenance(source="s", citation="c", method=MeasurementMethod.DESIGN_DRAWING_DIMENSION,
+                   units="m", revision="r", reliability=Reliability.VERIFIED, independence="i")
+
+
+def test_a_room_the_plate_does_not_figure_carries_no_geometry_and_abstains():
+    """AC-1's other half: where the plan does not figure a dimension, abstain. The bill squares the
+    Sitting Room at 14'0" x 10'0" and that number is exactly what may not be borrowed."""
+    p = P8.project()
+    data = P8.load()
+    abstained = {r["id"] for r in data["rooms_abstained"]}
+    assert abstained == {"SITTING_ROOM", "ROOM_324B"}
+    for rid in abstained:
+        room = p.room(rid)
+        assert room is not None
+        assert room.polygon is None and room.stated_area is None
+        assert room.stated_perimeter is None
+        qs = FO.compute_all(p, room)
+        for material, q in qs.items():
+            assert q.outcome is FO.Outcome.ABSTAINED, f"{rid}/{material} did not abstain"
+            assert q.missing_field
+
+
+def test_nothing_in_the_plate8_geometry_equals_a_dimension_from_the_bill():
+    """The circularity #265's guard exists to refuse, tested directly: none of the three rooms'
+    plan geometry reproduces the dimension pair the plasterer squared his quantity from."""
+    takeoff = {r["id"]: r for r in FL.load()["rooms"]}
+    plate = P8.load()
+    derived = {r["id"]: r for r in plate["rooms_derived"]}
+    assert derived, "nothing was derived, so the test would be vacuous"
+    for rid, room in derived.items():
+        figured_ft = {float(room["clear_width_ew"]["value_ft"]),
+                      float(room["clear_depth_ns"]["value_ft"])}
+        booked_ft = set(takeoff[rid]["ceiling_dimensions_ft"])
+        assert not (figured_ft & booked_ft), (
+            f"{rid}: a plate figure reproduces a dimension the bill squared from")
+    p = P8.project()
+    for r in p.rooms:
+        if r.polygon is None:
+            continue
+        booked = takeoff[r.id]["ceiling_dimensions_ft"]
+        area_ft2 = r.geometry.area_m2() / P8.FT2_TO_M2
+        assert abs(area_ft2 - booked[0] * booked[1]) > 1.0, (
+            f"{r.id}: the plate-derived area reproduces the bill's own squaring")
+
+
+def test_no_height_is_figured_on_any_of_the_ten_plates_so_wall_paint_abstains():
+    """The single most consequential abstention here, and #263's height finding reproduced on a
+    complete professional drawing set: both sections carry a scale bar and not one dimension."""
+    ev = P8.heights_are_figured_on_no_plate()
+    assert ev["plates_examined"] == 10
+    assert len(ev["sections_examined"]) == 2
+    assert ev["sections_with_any_figure"] == []
+    p = P8.project()
+    assert all(r.wall_height is None for r in p.rooms)
+    q = FO.wall_paint_area(p, p.room("SCULLERY"))
+    assert q.outcome is FO.Outcome.ABSTAINED
+    assert q.reason is A.WALL_HEIGHT_NOT_STATED
+
+
+def test_a_drawn_door_with_no_figured_width_abstains_rather_than_count_as_solid_wall():
+    p = P8.project()
+    doors = [o for o in p.openings_of("SCULLERY") if o.kind in DOOR_KINDS]
+    assert doors and all(o.width is None and o.area is None for o in doors)
+    q = FO.baseboard_length(p, p.room("SCULLERY"))
+    assert q.outcome is FO.Outcome.ABSTAINED
+    assert q.reason is A.DOOR_WIDTH_NOT_STATED
+
+
+def test_the_independent_geometry_clears_the_identity_guard_that_refused_265():
+    """THE measurement this Issue exists to take. R2 refused #265's ceiling comparisons at a
+    residual of exactly 0.0 because the geometry WAS the reference. With the geometry taken off
+    Plate 8, the one comparison the plate can close clears R2 by a wide margin -- and R1 still
+    refuses it on the declared calculation class, which is a property of the instrument."""
+    ev = RUN267.guard_before_and_after()
+    before, after = ev["arms"]
+    ceilings_before = [r for r in before["detail"] if r["material"] == "CEILING_PAINT_AREA"]
+    assert ceilings_before and all(r["identity_residual"] == 0.0 for r in ceilings_before)
+    assert all(r["r2_refused_it_as_an_identity"] for r in ceilings_before)
+
+    assert len(after["detail"]) == 1
+    row = after["detail"][0]
+    assert row["material"] == "CEILING_PAINT_AREA" and row["scope"] == "SCULLERY"
+    assert row["identity_residual"] > row["identity_band"]
+    assert row["headroom_over_the_band"] > 30.0
+    assert row["r2_refused_it_as_an_identity"] is False
+    assert row["r1_refusals"] == ["SAME_CALCULATION_CLASS"]
+
+
+def test_r1_still_refuses_every_reference_on_the_declared_class_and_that_is_reported():
+    """Not a defect of the source and not something to work around: `REFERENCE_VALUE_CLASS_CONFLICT`
+    compares the KIND of arithmetic, so a professional's squared ceiling is refused however
+    independent its inputs are. Frozen, applied, and reported as the finding it is."""
+    p = P8.project()
+    assert len(p.references) == 6
+    for ref in p.references:
+        refusals = SC.refuse_declared(p, ref)
+        reasons = {r.reason for r in refusals}
+        assert RefusalReason.SAME_CALCULATION_CLASS in reasons
+        assert SC.worst(refusals) is SC.Severity.FATAL
+
+
+def test_the_scullery_misses_the_frozen_tolerance_under_both_readings_of_the_plate():
+    """Both readings of the plate's own north-to-south figure are reported, they bracket the 1923
+    quantity from opposite sides, and NEITHER is inside the frozen 2.0%. No threshold is moved to
+    make either of them pass."""
+    sens = P8.interpretation_sensitivity()
+    assert sens["tolerance_rel"] == F.TOLERANCE_REL[Material.CEILING_PAINT_AREA] == 0.020
+    assert len(sens["readings"]) == 2
+    pcts = [r["percentage_error"] for r in sens["readings"]]
+    assert pcts[0] > 0 > pcts[1], "the two readings must bracket the reference"
+    assert all(abs(x) > 100 * sens["tolerance_rel"] for x in pcts)
+    assert not any(r["within_frozen_tolerance"] for r in sens["readings"])
+
+
+def test_step_3_computes_the_scullery_from_the_plate_and_reports_every_directive_metric():
+    """AC-2: absolute error, percentage error, missing measurements, unsupported categories,
+    manual correction effort, provenance completeness, failure rate and abstention rate."""
+    r = RUN267.main()
+    s = r["summary"]
+    assert s["scopes_attempted"] == 15 and s["quantities_failed"] == 0
+    assert s["quantities_computed"] == 2 and s["quantities_abstained"] == 13
+    assert s["reference_values_offered"] == 6 and s["comparisons_refused"] == 6
+    assert s["comparisons_scored_as_accuracy"] == 0
+    assert s["verdict_from_the_frozen_function"] == "NOT_EVALUABLE"
+    cmp_ = next(c for c in r["comparisons"] if c["scope"] == "SCULLERY")
+    assert cmp_["within_tolerance"] is False
+    assert cmp_["absolute_error"] is not None and cmp_["percentage_error"] is not None
+    for mm in r["report"]["comparison_a"]["per_material"].values():
+        assert mm["failure_rate"] == 0.0
+        assert mm["passes"] is None, "no material may pass or fail without an accuracy comparison"
+        assert mm["provenance_completeness"]
+        assert "manual_correction_effort_total" in mm
+
+
+def test_step_3_reports_comparison_b_separately_and_still_not_applicable():
+    r = RUN267.main()
+    assert r["comparison_b"]["status"] == "NOT APPLICABLE" == F.COMPARISON_B_STATUS
+    assert r["comparison_b"]["reason"] == F.COMPARISON_B_REASON
+    assert "numerator" in r["comparison_b"]["reason"]
+    b = r["report"]["comparison_b"]
+    assert b["applicable"] is False
+    assert not any(isinstance(v, (int, float)) and not isinstance(v, bool) for v in b.values())
+
+
+def test_step_3_revised_no_frozen_threshold_and_no_frozen_convention():
+    """AC-4. The thresholds and conventions step 3 reports against are byte-for-byte the ones
+    committed before any result existed."""
+    out = subprocess.run(["git", "log", "--format=%H", "--", "backend/app/ai_harness/"
+                          "quantity_takeoff/frozen.py"], cwd=REPO, capture_output=True, text=True)
+    commits = [c for c in out.stdout.split() if c]
+    if len(commits) > 1:
+        raise AssertionError(f"frozen.py was touched after its freeze commit: {commits}")
+    assert F.TOLERANCE_REL[Material.CEILING_PAINT_AREA] == 0.020
+    assert F.TOLERANCE_REL[Material.WALL_PAINT_AREA] == 0.030
+    assert F.TOLERANCE_REL[Material.BASEBOARD_LENGTH] == 0.025
+    assert F.MIN_WITHIN_TOLERANCE_RATE == 0.90 and F.MAX_ABSTENTION_RATE == 0.25
+    assert F.WALL_PAINT_DEDUCTS_SKIRTING_BAND is False
+    assert F.BASEBOARD_BREAKS_AT_DOOR_OPENINGS is True
+    assert F.CEILING_IS_FLAT_AND_COINCIDENT_WITH_FLOOR is True
+
+
+def test_the_convention_disagreement_is_larger_than_every_frozen_tolerance():
+    """AC-5. The joiner and the plasterer, in the same book, on the same room."""
+    audit = FL.convention_audit()
+    f4 = [d for d in audit["measured_divergences"] if d["formula"].startswith("F4")]
+    assert f4 and all(d["exceeds_tolerance"] for d in f4)
+    worst = max(abs(d["divergence_pct"]) for d in f4)
+    assert worst > 100 * max(F.TOLERANCE_REL.values())
+    f3 = [d for d in audit["measured_divergences"] if d["formula"].startswith("F3")]
+    assert f3 and f3[0]["divergence_pct"] > 100 * F.TOLERANCE_REL[Material.CEILING_PAINT_AREA]
+
+
+def test_the_committed_step_3_results_match_a_fresh_run():
+    if not STEP3_RESULTS.exists():
+        pytest.skip("step 3 has not been run into a results file yet")
+    committed = json.loads(STEP3_RESULTS.read_text())
+    fresh = RUN267.main()
+    assert committed["summary"] == fresh["summary"]
+    assert committed["comparisons"] == fresh["comparisons"]
+    assert committed["abstentions"] == fresh["abstentions"]
+    assert committed["frozen_thresholds_as_applied"]["tolerance_rel"] == {
+        m.value: v for m, v in F.TOLERANCE_REL.items()}
