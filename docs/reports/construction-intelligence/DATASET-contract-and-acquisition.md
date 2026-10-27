@@ -199,3 +199,44 @@ So, precisely:
 
 The repository therefore holds **plans without ground truth** — which is the one substitution this
 Issue may not make.
+
+---
+
+## 5. Paid-only options, named for the owner to decide
+
+AC-6: **nothing was purchased, and no payment was attempted.** The directive puts paid acquisition
+behind the owner's explicit approval, so the viable paid routes are named here with cost and
+licence and left alone. Costs are indicative market figures with their source named, not quotations
+— none was requested, because requesting one is the start of a purchase.
+
+| Route | Cost (indicative) | What it would supply against the contract | Licence | Source of the figure |
+|---|---|---|---|---|
+| **A. Outsourced professional quantity takeoff**, ordered per plan | **USD ~150–400** per single-family residential takeoff; ~USD 250 typical single-trade start; alternative model USD 0.02–0.10 per sq ft | P4, P5, P6 and the reference quantities themselves, at reliability **`VERIFIED`** under V5 — a human quantity surveyor's measurement, independent of BuildSmart | Work-for-hire; the commissioning party holds the deliverable, so redistribution inside the repo is ours to grant | 2026 estimating-market pricing guides (commercial publishers) |
+| **B. RICS/IPMS measured building survey**, commissioned on a real dwelling | **GBP 1,500–15,000** per building, scaling with floor area and detail | **The entire contract, including P8/P9/P11** — the standard deliverable is scaled plans with wall thicknesses, doors, windows and room dimensions *plus cross-sections giving floor-to-ceiling heights*, measured under a named convention | Survey contract; client-owned deliverable | A chartered surveyor's own published cost guide — a commercial source, not a tariff |
+| **C. Phone-scan floor-plan service** (CubiCasa, Matterport and equivalents) | **USD 22.99–29.99 per scan** (CubiCasa base/plus); USD 15–50 per property standalone; ANSI-compliant GLA certification as a paid add-on | P3, P4, P5 and — for the 3-D products — a measurable wall height. Convention is **named** (ANSI Z765), which satisfies P11 | Service terms; **requires physical access to the dwelling** | Vendor pricing pages and review aggregators, 2026 |
+| **D. Unit-rate databases** — RSMeans, Dekel (מחירון דקל), and insurance-valuation datasets such as Verisk 360Value or CoreLogic | Subscription, various | **Nothing.** They supply unit *rates*, not a project's measured *quantities* | Proprietary, no redistribution | Named only so the list is complete |
+
+Three things follow from the table and are worth stating rather than leaving implicit.
+
+**Route A is cheap enough to be a real decision rather than a project.** Five plans at roughly
+USD 250 is on the order of USD 1,250 — within the range of things that get approved without a
+business case. And it can be ordered against plans **we already hold under CC BY 4.0**: a surveyor
+takes off the 19 ResPlan plans and the reference values are then independent of BuildSmart in both
+measurer and method, which is what ROOT #262's AC-2 actually asks for.
+
+**But route A inherits our scale, and that limit must not be glossed.** A takeoff produced from our
+rendering of a ResPlan plan is measured against **our** `scale_m_per_px` and **our** wall-thickness
+convention. It therefore tests layers 2, 3 and 4 of ROOT #262's five — canonical geometry, material
+quantities, calculation logic — and does **not** test layer 1, source measurement accuracy. That is
+a genuinely useful experiment, and it is a smaller claim than "BuildSmart's quantities are accurate".
+#265 would have to say so in exactly those words.
+
+**Route D is listed to close it off.** Price books are the thing most easily mistaken for
+construction ground truth, and they contain none: a rate per square metre of painting is not a
+measurement of any building.
+
+**Route C's independence has a caveat of its own.** A phone-scan product is itself an automated
+measurement system, published at 1–3% against physical ANSI measurement. It is independent of
+BuildSmart, which is what AC-2 requires, so it grades **`STATED`** under V5 with a published
+tolerance — not `VERIFIED`, and not a professional takeoff. Comparing one automated measurer against
+another is defensible only if the tolerance is reported alongside the error.
