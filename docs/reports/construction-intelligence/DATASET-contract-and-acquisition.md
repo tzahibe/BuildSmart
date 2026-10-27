@@ -4,7 +4,9 @@ ROOT: #262 (owner directive 2026-10-27, the mandatory evidence gate before the C
 Intelligence pivot). Child 1 of 3; #264 (schema, formulas, harness) and #265 (comparison report,
 recommendation) are gated behind this one.
 
-**Verdict: see §6. This document is read-only knowledge work — no production file is changed.**
+**Verdict: PARTIAL — §6.** Two real projects acquired under a verified CC BY 4.0 grant; **no
+reference quantity for any of the four materials was acquired, and none exists in public licensed
+form.** No production file is changed.
 
 The governing principle, in the owner's words, is that *a mathematically correct calculation is not
 evidence that its input measurements are correct.* Everything below follows from it. A reference
@@ -20,7 +22,7 @@ project is still worth, because three of the four first materials do not need a 
 §3 is what the repository already holds and why it does not qualify. §4 is the acquisition log,
 one row per candidate with its licence and a verdict. §5 names the paid-only routes for the owner
 to decide, none of them taken. §6 is the verdict. §7 is what the owner could supply that no public
-source can.
+source can. §8 lists everything left unverified.
 
 ---
 
@@ -286,12 +288,22 @@ Indoor. §1.3(1) is doing real work, not ceremony.
 
 ### 4.C Government, municipal and public-sector archives
 
-| Candidate | What it offers | Licence | Verdict |
+| Candidate | What it STATES (as against derivable) | Licence | Verdict |
 |---|---|---|---|
-| **HABS** measured drawings (Historic American Buildings Survey, Library of Congress) | Professionally **measured** drawings of real buildings: dimensioned plans, elevations and **cross-sections that carry storey and wall heights**. Dimensions rounded to the nearest inch. **No area schedule and no takeoff** — per-room areas are DERIVABLE at best | **Public domain** (US federal), freely downloadable — the cleanest licence position of anything assessed | **NOT USABLE** as ground truth: it states no quantity. Genuinely interesting as the one public source that would supply **P8** (a height stated by the source, on a section) for a real building — but the buildings are historic timber and masonry, not dwellings with the four finishes in question |
-| **NIST** Net-Zero Energy Residential Test Facility (NZERTF), SP 1166 / SP 1207 and the detailed energy-model papers | A real, instrumented, as-built house, exhaustively documented. Geometry **stated** amounts to whole-building figures only — "251 m² (2702 ft²) of living space and a 135 m² (1453 ft²) conditioned basement". Checked directly: **no per-room floor areas, no floor-to-ceiling or wall heights, no wall area, no window areas or WWR, no door dimensions** are stated as numbers. The as-built architectural plans are referenced, not published in the papers | US federal publication, effectively **public domain** | **NOT USABLE** — a whole-house area is not a per-room reference, and the fields the contract needs are not stated. The most promising government candidate, and it still fails on *stated* versus *referenced* |
-| Municipal permit / as-built plan archives (NYC DOB, Chicago, LA, Vancouver, Amsterdam, Helsinki, Vienna, Singapore BCA, UK local authorities, Israeli municipal archives) | Drawings, variably scanned, variably complete | Mixed; frequently **UNSTATED** for reuse, often access-restricted to the property owner or agent | **NOT USABLE** — archives publish *drawings*, not measured quantity schedules, and the reuse grant is usually absent. *Swept but not exhaustively* |
-| National building / cadastral registries (Dutch BAG and 3D BAG, Danish BBR, Nordic registries), EPC registries (UK, Irish BER, Danish) | **Whole-dwelling** floor area, sometimes envelope and glazing figures under an assessor convention | Several are genuinely open (CC BY / OGL) | **NOT USABLE** — whole-dwelling area only, never per-room, and EPC figures follow an assessor convention optimised for energy modelling rather than measurement. *Swept but not exhaustively* |
+| **USACE Army Standard Designs** (Centers of Standardization, hosted on MRSI) | The only public source found that puts a **per-room area and a ceiling height on the same drawing**. Verified by extracting the PDF text layer: 492 `NNN SF` tags across 17 plan sheets, each beside a room name and number, plus **FINISH SCHEDULE** tables with columns `ROOM NO / ROOM NAME / … / MIN. CLNG HEIGHT / NET SF` — e.g. `108 SR LEADERS QUARTERS … 8'-0" 285 SF`, `108A BATH … 8'-0" 39 SF`, `110 LAUNDRY … 9'-0" 289 SF`. **Not stated**: perimeters, any door or window schedule, any takeoff | US Government work (USACE / ERDC-CERL) → **not subject to US copyright, 17 U.S.C. §105**. No distribution marking. Free, no login | **USABLE for P4 + P8** — and that is the high-water mark of this entire avenue. Three caveats: the schedule's own note says the net SF is "as reflected in the standard floor plan" and "may change", so it is a **design figure, not an as-built survey**; the programme is barracks, HQ and dining, not family housing; and there is still **no reference quantity** for any of the four materials |
+| **2025 Army UH (barracks) Standard** + required room-module configurations | Residential module **minimums**: E1–E4 shared bedroom 240 NSF, E5–E6 bedroom 140 NSF, closet 30 NSF/soldier, 485 GSF/occupant, min bedroom width 10'-0", and the DoD net-area definition quoted ("within the interior face of full height walls… does not include the area of a closet") | US Gov work → **public domain** | **USABLE as a room-area reference**, weaker than the row above because the plan graphics carry no per-room tags. Minimum requirements, not plan measurements |
+| **UK EPC open data** | `TOTAL_FLOOR_AREA` in m², defined as the "total enclosed floor area … measured to the internal face of the external walls … follows recognised professional standards (RICS)", and **`FLOOR_HEIGHT` in m, "Measured from finished floor level to the ceiling for each storey"** at national scale. Method documented (RdSAP conventions, 0.1 m precision). **`GLAZED_AREA` is a BAND, not a number**. No per-room areas, no perimeters, no opening widths | **Open Government Licence v3.0** for all fields other than address/postcode — verified verbatim | **USABLE for dwelling-level area and storey height; NOT for per-room.** The best-licensed *measured* figure found anywhere, and at the wrong granularity |
+| **SEAI BER Research Tool** (Ireland) | The only source found stating **`WindowArea` AND `DoorArea`** plus per-storey heights (`GroundFloorHeight`, `FirstFloorHeight`, …) as data, per dwelling. Method: DEAP/BER assessor survey. No per-room areas. Known trap: the `FloorArea` / `GroundFloorArea` columns are inverted relative to their names | **CONFLICTING** — data.gov.ie states CC BY 4.0; SEAI's own T&Cs are narrower, "may be used for personal, research or education purposes" | **USABLE for research with attribution; commercial reuse UNVERIFIED.** Do not rely on the CC BY claim without asking SEAI |
+| **NIST NZERTF** (TN 1847, TN 1767) | TN 1847 Table 1 states **per-façade** exterior wall surface area (71.3 / 71.3 / 83.7 / 83.7 / 310 m² total) and glazing area (11.7 / 16.5 / 6.2 / 4.2 / 38.6 m²). TN 1767 states 251.7 m² conditioned floor area actual (141.0 first / 110.6 second) against 284.6 m² in the energy model, with the 32.9 m² discrepancy itemised. **Rooms are named but never area-tabulated** — the model has two conditioned zones, i.e. whole floors. No door or window widths | NIST Technical Notes, US Gov → **public domain in the US** | **PARTIALLY USABLE** — an excellent single-house envelope and glazing reference, useless per-room. Note the 33 m² gap between the as-built area and the model's: a worked example of why "stated" needs a revision field (V4) |
+| **HABS measured drawings** (Library of Congress / NPS) | **No area schedule exists, by design.** The guidelines say "Every drawing… should have at least one string of dimensions" but also "Avoid excessive dimensioning. For example, in plans it is not necessary to dimension every opening, only major massing features"; room dimensions are merely optional, "For significant rooms, it may also be useful to note the overall room dimensions". Measurement method is best-in-class — metal tapes, continuous running strings to avoid cumulative error, "to the nearest 1/8"", laser total station for irregular rooms | NPS (US federal) → public domain expected; the LoC rights statement itself is **UNVERIFIED** (403 on two attempts) | **NOT USABLE** — the finest measurement method found and it produces no numeric reference: zero areas, no opening widths, dimensions existing only as drawing annotations. This settles the HABS question directly |
+| **VA PG-18-9 / PG-18-12**; **UK Nationally Described Space Standard** | Room areas in NSF by function, and NDSS minimum GIA by bedrooms/bedspaces, single bedroom ≥7.5 m² and ≥2.15 m wide, floor-to-ceiling ≥2.3 m over 75% of GIA | US federal public domain; NDSS under **OGL** | **USABLE as room-size priors and a validation rule set**, not as ground truth. These are programming criteria, never measurements of a built plan |
+| **Dutch BAG / 3D BAG; Danish BBR** | BAG: `oppervlakte` per dwelling, measured under **NEN 2580:2007** from the inside of the enclosing construction, with a stated tolerance of 1.15·√(area). 3D BAG: per-building exterior wall area, party-wall area, roof areas, volumes and height percentiles with published RMSE. BBR: per-unit totals and a **room count**, areas measured *including* internal and external walls | 3D BAG **CC BY 4.0**; BAG open register, exact instrument **UNSTATED**; BBR open via Datafordeler, instrument **UNVERIFIED** | **NOT USABLE** for per-room. Notable for one thing only: BAG is the one source with a **stated measurement tolerance**, which is what V5 reliability should look like |
+| **Hong Kong Housing Authority standard block plans** | Verified by extracting the PDF text: labels only — `1B / 2B / 3B / 1P`, `LIFT LOBBY`, `METER ROOM`, a title and a scale bar. **Zero dimensions, zero areas** | **Not open** — "any reproduction, adaptation, distribution … is strictly prohibited" without written authorisation; download for "personal or non-commercial use" only | **NOT USABLE** — no numbers *and* a prohibitive licence |
+| **Singapore HDB BTO sales brochures** | Per **flat type** only: "Approx. Floor Area 48 sqm / Inclusive of Internal Floor Area of 46 sqm and Air-Con Ledge". Raster plans with room labels, no room dimensions, no area schedule | Brochure terms **UNSTATED** (terms URL 404); data.gov.sg datasets under the Singapore Open Data Licence carry dwelling counts, not room geometry | **NOT USABLE** for per-room |
+| **Municipal permit / as-built archives** — NYC DOB, Amsterdam bouwdossiers, Tel Aviv, Vancouver Archives, Helsinki | Plan sets, not quantities. **One exception worth recording for §7**: an Israeli permit set must by regulation (תקנות חישוב שטחים ואחוזי בנייה) contain a **building-areas table by floor and by use** — a genuine stated area schedule, though by use and floor rather than per room | Third-party architect copyright throughout; archive terms **UNSTATED**. NYC paper copies $8 first page + $5/page; Helsinki must be purchased | **NOT USABLE / UNVERIFIED** — no stated numbers as data and no reuse licence |
+| **UK local-authority planning portals** | Full drawing sets free to download, sometimes including an applicant's area schedule — as pictures, not data | **Not open** — restricted to "consultation purposes", copyright vests in the architect, and a 2017 High Court ruling confirmed that portal availability is not a reuse licence | **NOT USABLE** |
+| **GSA IOLP**; DOE/PNNL and ORNL research houses | Building rentable square feet; prototype boxes (PNNL 30 ft × 40 ft, 2400 ft² CFA, window area assumed at 15% of CFA; NIST TN 1765 19.5 m × 7.6 m, 148.6 m² CFA, 2.4 m ceiling, doors 0.9 × 2.0 m — **and no interior partitions at all**; ORNL footprint and volume per floor) | US federal → **public domain** | **NOT USABLE** for per-room — every one is a single zone or a per-floor box |
+| **Public-sector bills of quantities** (e.g. national public-works tender BoQs) and **Statsbygg HITOS** open IFC | The only two routes that would give a genuine takeoff, or IFC `Qto_SpaceBaseQuantities` plus door/window `OverallWidth` | **UNSTATED** — BoQ licences are per-tender; Statsbygg's published IFCs carry no stated licence | **UNVERIFIED** — plausible, and neither the drawing-to-quantity pairing nor the licence could be confirmed |
 
 ### 4.D Quantity-surveying worked examples and textbook case studies
 
@@ -333,17 +345,27 @@ reader short of time would fall into.
 
 ### 4.H Honesty about the sweep's depth
 
-Four avenue sweeps were delegated in parallel and **none reported before this document was
-written**, so the rows above are the ones verified directly in this session. The avenues are
-covered — every one ROOT #262 named has at least one assessed candidate, and the decisive
-candidates (ResPlan's own paper, Swiss Dwellings, Handoff-H1, NZERTF, the Irish OER, the Israeli
-bill) were each checked at source. But the rows marked *"swept but not exhaustively"* are
-breadth-limited rather than depth-limited: a further sweep could still turn up an individual
-dataset inside those families.
+Four avenue sweeps were delegated in parallel. **Three reported** — open BIM/IFC, research and
+university datasets, and government archives — and each verified its decisive candidates at source
+rather than from summaries: PDF text layers extracted, licence files fetched, workbooks read. The
+acquisitions in §4.A were then re-verified independently for this document: the CC BY 4.0 grants
+were fetched from their own READMEs, and every content claim about the Duplex and the Clinic was
+read out of the workbooks here, including the three defects recorded in `datasets/README.md`.
 
-That caveat does **not** soften the verdict, because the verdict does not rest on breadth. It
-rests on a structural property that every single candidate exhibited, including the richest and
-best-licensed ones — and §6 states what that property is.
+**The quantity-surveying worked-examples sweep did not report.** §4.D is therefore the one
+avenue covered only by direct research in this session, and it is **breadth-limited**: the Irish
+OER, the Indian IS 1200 teaching corpus, the standards bodies and the commercial template
+category were each checked, but a further sweep could still surface an individually licensed
+worked example that was missed.
+
+That gap does not change the verdict, and it is worth saying why rather than asserting it. A
+textbook worked example is a **hypothetical building**, so even a perfectly licensed one fails the
+directive's stated preference for real projects with documented as-built measurements, and it
+could not test layer 1 (source measurement accuracy) under any licence. The verdict turns on a
+property every candidate in every avenue exhibited — §6 names it — not on how many candidates were
+counted.
+
+Unverified items are listed in §8.
 
 ---
 
@@ -385,3 +407,176 @@ measurement system, published at 1–3% against physical ANSI measurement. It is
 BuildSmart, which is what AC-2 requires, so it grades **`STATED`** under V5 with a published
 tolerance — not `VERIFIED`, and not a professional takeoff. Comparing one automated measurer against
 another is defensible only if the tolerance is reported alongside the error.
+
+---
+
+## 6. The verdict
+
+# PARTIAL
+
+Two projects were acquired under a verified CC BY 4.0 grant. **No reference quantity for any of the
+four materials was acquired, and none exists in public licensed form.** Those two sentences are the
+whole verdict, and they point in opposite directions, so §6.1 says exactly what is covered and
+§6.2 exactly what is not.
+
+The temptation here was to call this ACQUIRED, and it must be refused. Two real buildings with
+publisher-stated per-room areas is a genuine result and it is **not** the thing ROOT #262 asked
+for.
+
+### 6.1 What is covered
+
+| Project | Licence | Provenance | Fields it supplies |
+|---|---|---|---|
+| **Duplex Apartment**, 22 residential spaces | **CC BY 4.0**, grant quoted verbatim, attribution string recorded | Published in Germany → US Army ERDC-CERL → NIBS 2009–2020 → buildingSMART mirror. `ExtSystem` = `Autodesk Revit Architecture 2011` | P1, P2, P3 (SI), **P4** area, **P5 perimeter**, **P6/P7** door and window width × height, **P9** opening areas |
+| **Medical-Dental Clinic**, 269 spaces | **CC BY 4.0**, grant quoted verbatim | → ERDC-CERL → NIBS 2010–2020 → buildingSMART mirror; the US "COBie Challenge" test model | P1, P2, P3, **P4** area, and **P8 — a per-room height stated by the source for 236 of 269 rooms** |
+
+So three things are genuinely now possible that were not before:
+
+1. **An area and perimeter cross-check against a third party's figures** for the same building —
+   the first reference numbers in this repository that did not come out of its own arithmetic.
+2. **Baseboard length with real door deductions**, because the Duplex states door width × height
+   per type and maps 36 opening instances to the spaces they serve. Nothing else public does this.
+3. **Wall height and opening area as inputs carrying provenance**, satisfying ROOT #262's AC-4
+   without inferring either — the Clinic's `UsableHeight` for the height, the Duplex's stated
+   opening dimensions for the areas.
+
+Also recommended to #264, assessed but deliberately not acquired because they change nothing the
+verdict turns on: **Swiss Dwellings v3** (CC BY 4.0, commercial use permitted, ~520,000 rooms with
+`layout_area` *and* `layout_perimeter` stated) as the geometry corpus in place of our 19 ResPlan
+plans, and **SAGC-A68** (CC BY 4.0, 275 apartments) for `Max_door_width`.
+
+### 6.2 What is missing — and it is the thing the gate exists to test
+
+**No public, licensed source states a quantity of flooring, ceiling paintable area, baseboard
+length or wall paintable area for any building.** Not one, across every avenue in §4. Every source
+found publishes *inputs* — areas, heights, opening sizes — and never the *output* this experiment
+was built to validate.
+
+**And nothing acquired is a measurement.** Both acquisitions self-declare as a Revit export, so
+both grade `DERIVED` under V5, which §1.2 restricts to a cross-check that "may not carry an
+accuracy claim". The §4.B sweep put the general case beyond argument: no dataset anywhere publishes
+per-room areas, perimeters, opening widths or heights as independently verified, instrument-measured
+values with a stated method and an accuracy bound. The field splits into survey-grade datasets that
+measure *trajectories* to a millimetre and publish no building quantities, and quantity-bearing
+datasets that publish modelled design values with no accuracy figure at all.
+
+Three measured facts from §3 and §4 that each independently block the stronger claim:
+
+- The repository's own 19 plans are disqualified by an identity: across all 179 real rooms,
+  `area_m2` equals the shoelace area of the room's own polygon to within **0.00061 m²**. Comparing
+  against it would report an identity as an accuracy.
+- The Duplex's stated `Volume` cannot supply the missing height: `Volume / GrossArea` spans
+  **2.045 m to 4.225 m** and differs between a bathroom and a kitchen on one storey. The tempting
+  inference is both forbidden and wrong.
+- The one artefact that is exactly right — Handoff-H1's 10 residential blueprint sets with 2,009
+  expert-verified line items from independent professional estimators — is **not released**, and
+  the two sweeps could not even agree on its data licence.
+
+### 6.3 What this binds on #264 and #265
+
+Stated as constraints rather than advice, because the gate's value depends on them:
+
+1. **§1.4's minimum viable set is not met** — zero projects carry a `VERIFIED` or independently
+   `STATED` reference value. #265 **may not report an accuracy figure for the system**. It may
+   report a per-project cross-check, labelled as a cross-check.
+2. **Layer 1 of ROOT #262's five — source measurement accuracy — cannot be tested at all** on what
+   was acquired, and must be reported as such alongside comparison B's existing "not applicable".
+   Two of five layers unmeasurable is itself a finding for the pivot decision.
+3. **Comparison A is bounded to layers 2–4** (canonical geometry, material quantities, calculation
+   logic), against publisher-`DERIVED` references, on two buildings of which one is a clinic.
+4. **Survey-grade accuracy figures may not be borrowed.** A dataset's 1.2 mm registration accuracy
+   says nothing about its room areas, and #265 must refuse that substitution explicitly.
+
+### 6.4 Why not BLOCKED, and why not ACQUIRED
+
+**Not BLOCKED**, because two legally usable real projects were obtained and they move real work
+forward: #264 can now build the schema and formulas against stated opening dimensions, a stated
+per-room height and third-party areas, instead of against nothing.
+
+**Not ACQUIRED**, because ROOT #262 asks whether BuildSmart can produce *trustworthy construction
+quantities*, and after a full sweep of six avenues not a single public licensed source states one.
+Calling two Revit exports "ground truth" would be the precise failure the owner's directive names.
+
+---
+
+## 7. What the owner could supply that no public source can
+
+This is the most useful part of a PARTIAL verdict, so it is a checklist rather than prose. The
+single gap is a **reference quantity measured on a real building**. The owner can close it; the
+internet cannot.
+
+### 7.1 The one artefact that would change everything
+
+**One real project, with its professional takeoff.** An Israeli project the owner can reach — his
+own, a client's, or a contractor or quantity surveyor he knows — supplying all seven items:
+
+| # | Artefact | Why no public source has it | Contract field |
+|---|---|---|---|
+| 1 | **The plan at a stated scale** — PDF or DWG with a title-block scale, or dimension strings on the drawing | Public plans are either unlicensed or carry an inferred scale | P1, P3 |
+| 2 | **Per-room floor areas as measured on site**, with the method named (tape / laser) and the convention stated (Standard 9, or net clear internal) | Every public per-room area found is a design or model figure, never a site measurement | P4, V2 |
+| 3 | **Room perimeters**, or dimensioned room geometry to derive them | One public source states perimeters; it is a Revit export | P5 |
+| 4 | **Door and window schedule** — width **and** height per opening, as built | Found exactly twice in public, both under an unstated licence | P6, P7, P9 |
+| 5 | **Wall heights, measured** — floor-to-ceiling per room | The scarcest field in this entire report. One public source states it per room, for a US clinic | P8 |
+| 6 | **Wall thickness and the measurement convention** | Essentially never stated | P11 |
+| 7 | **The professional takeoff — the כתב כמויות** for flooring, ceiling paint, skirting and wall paint, with units and the measurer's name | **This is the item that exists in no public, licensed source anywhere on earth.** §4 found one such artefact and it is request-gated and proprietary | The reference values themselves, at `VERIFIED` |
+
+**Item 7 is the whole ask.** Items 1–6 are inputs the experiment can already partly cover; item 7
+is the only thing that makes the comparison a measurement of trustworthiness rather than a
+consistency check. One project with item 7 beats every public source assessed in this document,
+combined.
+
+Two facts that make this more reachable for the owner than for most people, both recorded in §4:
+an Israeli permit set must by regulation contain a **building-areas table by floor and by use**;
+and an Israeli buyer is *given* a **Standard 9** area with a documented convention — "the whole
+area enclosed between the apartment's walls, plus half of each shared party wall, plus the full
+external wall area". A named, legally mandated convention satisfies P11, which almost nothing else
+does.
+
+### 7.2 Three cheaper fallbacks, in order of value per effort
+
+1. **Tape-measure three dwellings he can enter.** Room-by-room clear internal dimensions, the wall
+   height, and every door and window width and height. **Free**, independent of BuildSmart, and the
+   only route in this document that grades **`VERIFIED`** under V5 — a human physically measuring a
+   real building. It supplies P3–P11 but not item 7, so #265 could test layers 1–3 and still not
+   compare against a professional's judgement. Even so it is more than anything public offers,
+   and it is the cheapest thing on this list.
+2. **Ask Handoff for the benchmark.** Email research@handoff.ai requesting the TakeoffBench
+   blueprint sets and ground truth for research use: 10 residential sets, 2,009 expert-verified
+   line items, ground truth reconciled across multiple professional estimators, with a published
+   human bound of 77.6% composite. **No payment, and asking costs nothing.** Two caveats the owner
+   should weigh himself: the data licence could not be settled from public sources, and the
+   publisher is commercially adjacent to this product area.
+3. **One phone call to a quantity surveyor.** A QS asked for a single past project's drawings plus
+   its כתב כמויות, for validating software, is a far smaller favour than it sounds and is the
+   fastest path to item 7.
+
+### 7.3 If he will authorise spend
+
+§5 has the costs and licences; nothing was purchased. In short: a professional takeoff at
+**USD 150–400 per plan** is the cheapest route to item 7 and can be ordered against plans already
+held under CC BY 4.0 — but it inherits our scale and convention, so it tests layers 2–4 and not
+layer 1. A commissioned **RICS/IPMS measured building survey at GBP 1,500–15,000** is the only paid
+route that satisfies the entire contract, heights and openings included.
+
+### 7.4 What the owner should not do
+
+Supply a plan **without** item 7 and expect an accuracy verdict. That is the position this report
+is already in, with two buildings; adding a third changes nothing. The missing artefact is the
+measured quantity, not more geometry.
+
+---
+
+## 8. Unverified, and what would settle each
+
+| # | Claim | How it would be settled |
+|---|---|---|
+| 1 | The exact arithmetic by which our `scale_m_per_px` was derived — #257's finding is cited, the normaliser is on `integration/poc-architectural-brain` from #94/#95 and not at this head | Read the normaliser on that branch. The §3 conclusion does not depend on it |
+| 2 | ResPlan's licence-file wording about the computer-vision scale recovery came from a research sweep, not a direct fetch | Fetch the licence file from the Kaggle release. The paper's own statements in §3 and §4.B were fetched directly |
+| 3 | Handoff-H1's **data** licence — one sweep reports CC BY 4.0, another reports proprietary | The access request in §7.2(2) would settle it |
+| 4 | Israeli **Standard 9**'s exact wording, taken from a secondary commercial guide rather than the Real Estate Appraisers Council's own text | Read the Council's published standard |
+| 5 | The Clinic's 316-sheet construction set — whether any reuse is permitted | Ask NIBS/WBDG. It is the one genuinely independent professional artefact found |
+| 6 | **WikiHouse**'s licence — secondary sources say CC BY-SA, the official site states none on the pages fetched | Read the licence in its GitHub repositories |
+| 7 | **SEAI BER**'s commercial-reuse terms — data.gov.ie says CC BY 4.0, SEAI's own T&Cs are narrower | Ask SEAI |
+| 8 | Statsbygg HITOS, public-sector tender BoQs, Open IFC Model Repository (site returns a JS shell), Gibson and S3DIS full terms (sign-in gated), CRASLAB's licence (two sources conflict) | Each named in §4 with what blocked verification |
+| 9 | §4.D's breadth — the quantity-surveying worked-example sweep did not report | A further sweep. §4.H says why the verdict does not turn on it |
+| 10 | Whether a US-federal public-domain claim is safe for the NIBS-hosted files, given a private practice co-authored the Duplex | Moot in practice: the buildingSMART mirror supplies an explicit CC BY 4.0 grant, which is what was relied on |
