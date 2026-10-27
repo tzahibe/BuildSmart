@@ -1,0 +1,1345 @@
+{
+ "issue": 267,
+ "root": 262,
+ "what_this_is": "Step 3's comparison. The 1923 professional takeoff's quantities are scored against quantities computed from geometry taken off the FIGURED GROUND PLAN (Plate 8), independently of the dimension columns the takeoff was squared from. No threshold was revised, nothing frozen was edited and the self-validation guard was not weakened.",
+ "correctness_note": "A unit test on synthetic geometry establishes CORRECTNESS -- that the formula computes the quantity it documents, with the deductions and conventions it documents. It establishes NOTHING about accuracy against a real building, and is never reported as accuracy.",
+ "geometry_provenance": "docs/reports/construction-intelligence/data/plate8-ground-plan-geometry.json \u2014 one citation per figure, naming the plate, the leaf and the pair of wall faces the figure runs between",
+ "summary": {
+  "rooms_in_the_takeoff": 3,
+  "rooms_the_plate_could_close": 1,
+  "scopes_attempted": 15,
+  "quantities_computed": 2,
+  "quantities_abstained": 13,
+  "quantities_failed": 0,
+  "reference_values_offered": 6,
+  "comparisons_refused": 6,
+  "comparisons_cross_check_only": 0,
+  "comparisons_scored_as_accuracy": 0,
+  "verdict_from_the_frozen_function": "NOT_EVALUABLE",
+  "verdict_reason": "no material has a single accuracy-bearing reference value: #263 acquired none, so no accuracy figure may be reported (ROOT #262 AC-2)"
+ },
+ "self_validation_guard_before_and_after": {
+  "what_this_shows": "R2 refused #265's three ceiling comparisons at a residual of EXACTLY 0.0 because the geometry and the reference were the same numbers. With the geometry taken off Plate 8 instead, the one comparison the plate can close clears R2 by a wide margin. R1 still refuses it on the declared calculation class, which is a property of the instrument and not of the source.",
+  "arms": [
+   {
+    "arm": "#265: geometry from the takeoff's own dimension columns",
+    "comparisons_with_a_computed_quantity": 4,
+    "detail": [
+     {
+      "material": "CEILING_PAINT_AREA",
+      "scope": "SCULLERY",
+      "computed": 5.52773088,
+      "reference": 5.52773088,
+      "identity_residual": 0.0,
+      "identity_band": 0.01,
+      "headroom_over_the_band": 0.0,
+      "r2_refused_it_as_an_identity": true,
+      "r1_refusals": [
+       "SAME_CALCULATION_CLASS"
+      ]
+     },
+     {
+      "material": "CEILING_PAINT_AREA",
+      "scope": "ROOM_324B",
+      "computed": 8.17546752,
+      "reference": 8.17546752,
+      "identity_residual": 0.0,
+      "identity_band": 0.01,
+      "headroom_over_the_band": 0.0,
+      "r2_refused_it_as_an_identity": true,
+      "r1_refusals": [
+       "SAME_CALCULATION_CLASS"
+      ]
+     },
+     {
+      "material": "BASEBOARD_LENGTH",
+      "scope": "ROOM_324B",
+      "computed": 8.229600000000001,
+      "reference": 10.820400000000001,
+      "identity_residual": 2.5907999999999998,
+      "identity_band": 0.01,
+      "headroom_over_the_band": 259.08,
+      "r2_refused_it_as_an_identity": false,
+      "r1_refusals": [
+       "SAME_CALCULATION_CLASS"
+      ]
+     },
+     {
+      "material": "CEILING_PAINT_AREA",
+      "scope": "SITTING_ROOM",
+      "computed": 13.993520400000001,
+      "reference": 13.993520400000001,
+      "identity_residual": 0.0,
+      "identity_band": 0.01,
+      "headroom_over_the_band": 0.0,
+      "r2_refused_it_as_an_identity": true,
+      "r1_refusals": [
+       "SAME_CALCULATION_CLASS"
+      ]
+     }
+    ]
+   },
+   {
+    "arm": "#267: geometry figured on Plate 8",
+    "comparisons_with_a_computed_quantity": 1,
+    "detail": [
+     {
+      "material": "CEILING_PAINT_AREA",
+      "scope": "SCULLERY",
+      "computed": 5.88773016,
+      "reference": 5.52773088,
+      "identity_residual": 0.35999928000000025,
+      "identity_band": 0.01,
+      "headroom_over_the_band": 35.999928000000025,
+      "r2_refused_it_as_an_identity": false,
+      "r1_refusals": [
+       "SAME_CALCULATION_CLASS"
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "heights_are_figured_on_no_plate": {
+  "plates_examined": 10,
+  "plates_with_any_figure": [
+   "leaf516",
+   "leaf520"
+  ],
+  "sections_examined": [
+   "leaf510",
+   "leaf512"
+  ],
+  "sections_with_any_figure": [],
+  "finding": "ACROSS ALL TEN PLATES, INCLUDING BOTH SECTIONS, NO STOREY HEIGHT AND NO ROOM HEIGHT IS FIGURED. The two sections (Plates 5 and 6) carry a scale bar and not one dimension. The 8'0\" the plasterer squares his walls at exists ONLY in his dimension columns. It is therefore NOT recoverable from the drawings by any method the schema admits -- MeasurementMethod has no member for a value scaled off a raster -- so F2 wall paintable area ABSTAINS for every room of this project. This is #263's height finding reproduced on a complete professional drawing set a century old.",
+  "consequence": "F2 wall paintable area abstains for every room of this project on WALL_HEIGHT_NOT_STATED, and would abstain on OPENING_SCHEDULE_NOT_COMPLETE as well"
+ },
+ "interpretation_sensitivity": {
+  "material": "CEILING_PAINT_AREA",
+  "scope": "SCULLERY",
+  "reference_m2": 5.52773088,
+  "reference_as_booked": "8'6\" x 7'0\" = 59.5 sq ft (p.324)",
+  "tolerance_rel": 0.02,
+  "readings": [
+   {
+    "reading": "chain (used in comparison A)",
+    "why": "9'9\" and 10'6\" share their lower terminus and differ by the figured 9\" north wall",
+    "clear_ft": [
+     6.5,
+     9.75
+    ],
+    "computed_m2": 5.88773016,
+    "absolute_error_m2": 0.35999928000000025,
+    "percentage_error": 6.512605042016811,
+    "within_frozen_tolerance": false
+   },
+   {
+    "reading": "outer face to outer face (sensitivity only)",
+    "why": "9'9\" read across both walls, less the two figured 9\" thicknesses",
+    "clear_ft": [
+     6.5,
+     8.25
+    ],
+    "computed_m2": 4.981925520000001,
+    "absolute_error_m2": -0.5458053599999992,
+    "percentage_error": -9.873949579831919,
+    "within_frozen_tolerance": false
+   }
+  ],
+  "conclusion": "the two readings of the plate's own figure bracket the 1923 quantity from opposite sides and NEITHER is inside the frozen 2.0% tolerance, so no choice of reading rescues it: the disagreement is in the source, not in the arithmetic"
+ },
+ "convention_audit": {
+  "source": "Banister Fletcher & H. P. Fletcher, Quantities, 9th edition",
+  "licence": "CC Public Domain Mark 1.0",
+  "rules": [
+   {
+    "formula": "F3 ceiling paintable area",
+    "our_frozen_choice": "CEILING_IS_FLAT_AND_COINCIDENT_WITH_FLOOR = True; no cornice or chimney-breast deduction",
+    "fletcher_rule": "Measure the ceilings the full dimensions between the walls; but where cornices occur, it is customary to make a deduction of the width of the cornice upon each dimension for width and length of ceiling. ... Make the deductions for chimney breasts, &c.",
+    "cited": "p.128, leaf 147 (prose chapter, Plasterer \u2014 Internal Work)",
+    "agrees": false,
+    "worked_example_in_source": "a room 20'0\" x 16'0\" with a 12\" cornice is booked 19'0\" x 15'0\" = 285 sq ft instead of 320 sq ft",
+    "divergence_in_the_sources_own_example_pct": 10.9375
+   },
+   {
+    "formula": "F2 wall paintable area \u2014 the skirting band",
+    "our_frozen_choice": "WALL_PAINT_DEDUCTS_SKIRTING_BAND = False (measured floor to ceiling)",
+    "fletcher_rule": "Rendering to walls is measured the length by the height, the latter being taken from the top of the skirting grounds to the ceiling, and where there is a cornice it is customary to deduct from this dimension half the height of the cornice.",
+    "cited": "p.130, leaf 149",
+    "agrees": false,
+    "note": "This is a DIRECT, CITED contradiction of the frozen choice, on the very term the frozen module placed outside the tolerance budget because it is worth ~4.0% at a 0.10 m skirting on a 2.50 m height. The frozen value is NOT revised; the divergence is recorded."
+   },
+   {
+    "formula": "F2 wall paintable area \u2014 the opening deduction",
+    "our_frozen_choice": "WALL_PAINT_DEDUCTS_EVERY_STATED_OPENING = True, at the stated area",
+    "fletcher_rule": "In the case of deductions for doors and windows, take the full dimensions for length and height to the outside of the grounds, and not the net dimensions. In the case of doors, the height, where there is a skirting, must be taken from the top of skirting grounds, and not from the floor.",
+    "cited": "p.130-131, leaves 149-150",
+    "agrees": "PARTIALLY",
+    "note": "Agrees that every opening is deducted, and specifies WHICH dimensions: the structural opening including grounds, not the clear opening. Our schema's P9 'opening area stated by the source' does not say which of the two it is, and this is the gap step 3 must close per project."
+   },
+   {
+    "formula": "F4 baseboard length",
+    "our_frozen_choice": "BASEBOARD_BREAKS_AT_DOOR_OPENINGS = True, full stated opening width deducted",
+    "fletcher_rule_joiner": "Skirtings. \u2014 Collect on 'Waste' the lengths of the several walls, making the deductions for doors, chimney-pieces, &c., and bring the total length of skirting to each room, forward in one dimension only.",
+    "cited_joiner": "p.84, leaf 103 (Joiner \u2014 Floors and Skirtings)",
+    "fletcher_rule_plasterer": "Cement Skirtings. \u2014 Take the lengths and collect the same on 'Waste.' State the height, and bill and value at per foot run.",
+    "cited_plasterer": "p.132, leaf 151",
+    "agrees": "THE TWO TRADES IN THE SAME BOOK DISAGREE",
+    "observed_in_the_takeoff": "On p.325 the cement skirting of ROOM_324B is booked at 35'6\", which is the room's FULL collected girth, with the breaks numbered separately as 8 stopped ends, 2 mitres and 4 irregular. The joiner's prose rule would have deducted the three 2'10\" door openings. OBSERVATION, not a settled claim: the trades differ and step 3 must match the trade before it matches the number.",
+    "note": "This is the contested convention the directive asks to be named as a choice. It is now contested on the page, not in the abstract."
+   },
+   {
+    "formula": "F1 flooring purchase quantity \u2014 the wastage allowance",
+    "our_frozen_choice": "the wastage allowance is an INPUT with provenance, never a guess",
+    "fletcher_rule": "Where the room is irregular, it will be necessary to ascertain the average size of the flooring, so as to arrive at the net area, and make an allowance for all irregular cuttings, taking the length by a width of 3 in. for the cutting and waste.",
+    "cited": "p.84, leaf 103",
+    "agrees": true,
+    "note": "A cited professional precedent that a cutting-and-waste allowance is STATED as a rule with a dimension, not assumed as a percentage."
+   }
+  ],
+  "measured_divergences": [
+   {
+    "formula": "F4 baseboard length",
+    "scope": "ROOM_324B",
+    "our_frozen_convention": "BASEBOARD_BREAKS_AT_DOOR_OPENINGS = True",
+    "source_convention_as_booked": "6\" skirting in P. C. (square.)",
+    "ours_m": 8.2296,
+    "source_m": 10.820400000000001,
+    "divergence_m": -2.5908,
+    "divergence_pct": -23.943661971830984,
+    "frozen_tolerance_pct": 2.5,
+    "exceeds_tolerance": true,
+    "this_is_not_an_error": "the two figures book the same work under two conventions that the SAME BOOK states for two different trades; see the joiner's rule at p.84 and the plasterer's at p.132",
+    "labours_the_source_numbered_instead": {
+     "mitres": 2,
+     "irregular": 4,
+     "stopped_ends": 8
+    }
+   },
+   {
+    "formula": "F3 ceiling paintable area",
+    "scope": "the source's own worked example (p.128), not this project",
+    "our_frozen_convention": "CEILING_IS_FLAT_AND_COINCIDENT_WITH_FLOOR = True; no cornice or chimney-breast deduction",
+    "source_convention_as_booked": "a room 20'0\" x 16'0\" with a 12\" cornice is booked 19'0\" x 15'0\" = 285 sq ft instead of 320 sq ft",
+    "divergence_pct": 10.9375,
+    "frozen_tolerance_pct": 2.0,
+    "exceeds_tolerance": true,
+    "this_is_not_an_error": "a cornice deduction is a booking convention; no plan-view field in #263's contract states whether a cornice exists"
+   }
+  ]
+ },
+ "comparison_b": {
+  "status": "NOT APPLICABLE",
+  "reason": "NOT APPLICABLE: comparison B scores quantities computed from AUTOMATICALLY EXTRACTED measurements, and #257 (PR #258) established that no plan or document ingestion capability exists -- no PDF, raster, OCR, DXF, DWG, IFC or SVG-parsing dependency on any of 71 branch tips or anywhere in history, and python-multipart is absent from the lockfile, so the service cannot physically accept an uploaded file. There is nothing to extract with, so B has no numerator and no denominator. It is reported separately and is never folded into A.",
+  "note": "reported here as its own object, exactly as the harness types it: there is no field in it a number could be written into"
+ },
+ "frozen_thresholds_as_applied": {
+  "tolerance_rel": {
+   "FLOORING_AREA": 0.02,
+   "CEILING_PAINT_AREA": 0.02,
+   "BASEBOARD_LENGTH": 0.025,
+   "WALL_PAINT_AREA": 0.03,
+   "FLOORING_PURCHASE": 0.0
+  },
+  "tolerance_abs": {
+   "FLOORING_AREA": 0.1,
+   "CEILING_PAINT_AREA": 0.1,
+   "BASEBOARD_LENGTH": 0.1,
+   "WALL_PAINT_AREA": 0.1,
+   "FLOORING_PURCHASE": 0.0
+  },
+  "min_within_tolerance_rate": 0.9,
+  "max_abstention_rate": 0.25,
+  "max_failure_rate": 0.0,
+  "identity_abs_m2": 0.01,
+  "identity_abs_m": 0.01,
+  "identity_rel": 0.0005,
+  "min_meaningful_denominator": {
+   "FLOORING_AREA": 1.0,
+   "CEILING_PAINT_AREA": 1.0,
+   "BASEBOARD_LENGTH": 1.0,
+   "WALL_PAINT_AREA": 1.0,
+   "FLOORING_PURCHASE": 1.0
+  },
+  "min_projects_with_height": 3,
+  "min_projects_without_height": 5,
+  "min_distinct_publishers": 2
+ },
+ "report": {
+  "projects": [
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "publisher": "B. T. Batsford (Banister Fletcher & H. P. Fletcher)",
+    "licence": "CC Public Domain Mark 1.0 (archive.org licenseurl, re-verified 2026-10-27)",
+    "rooms": 3,
+    "openings": 3,
+    "convention": "INTERNAL_CLEAR",
+    "opening_schedule_complete": false,
+    "has_stated_scale": true,
+    "has_wall_thickness": true,
+    "rooms_with_stated_height": 0,
+    "reference_values": 6
+   }
+  ],
+  "quantities": [
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "FLOORING_AREA",
+    "scope": "SCULLERY",
+    "outcome": "COMPUTED",
+    "unit": "m2",
+    "value": 5.88773016,
+    "reason": null,
+    "reason_detail": "",
+    "missing_field": null,
+    "conventions": [
+     "FLOORING_DEDUCTS_FIXTURE_FOOTPRINT=False (CHOICE: SMM7/NRM2 make no deduction for a void <= 0.50 m2 and no schema field states a fixture footprint; the alternative deducts them. Bound: a shower tray or chimney breast is 0.6-1.0 m2)",
+     "FLOORING_INCLUDES_DOOR_REVEAL=False (CHOICE: measured to the room face of the wall, not carried under the leaf. Bound: ~0.09 m2 per doorway)"
+    ],
+    "assumptions": [
+     "the floor is a single horizontal plane coincident with the room's plan outline; a split level or a stepped floor is not detectable from any schema field",
+     "the measurement convention is whatever P11 states; a comparison across two conventions measures the convention, not the engine, which is why an UNSTATED P11 is refused the accuracy claim rather than compared loosely"
+    ],
+    "inputs_used": [
+     "P1 polygon (shoelace, layer 3)",
+     "P11 convention=INTERNAL_CLEAR"
+    ],
+    "workings": {
+     "net_floor_area_m2": 5.88773016
+    }
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "FLOORING_PURCHASE",
+    "scope": "SCULLERY",
+    "outcome": "ABSTAINED",
+    "unit": "pack",
+    "value": null,
+    "reason": "FINISH_NOT_STATED",
+    "reason_detail": "P10 does not state this room's floor finish, so there is no product and therefore no pack size; a purchase quantity without a product is a guess",
+    "missing_field": "rooms[SCULLERY].finishes[FLOOR]",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "WALL_PAINT_AREA",
+    "scope": "SCULLERY",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "WALL_HEIGHT_NOT_STATED",
+    "reason_detail": "P8 wall height is not stated by the source. ROOT #262 AC-4 forbids inferring it and #263 measured why a volume cannot supply it: Volume/GrossArea spans 2.045-4.225 m on one storey",
+    "missing_field": "rooms[SCULLERY].wall_height",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "CEILING_PAINT_AREA",
+    "scope": "SCULLERY",
+    "outcome": "COMPUTED",
+    "unit": "m2",
+    "value": 5.88773016,
+    "reason": null,
+    "reason_detail": "",
+    "missing_field": null,
+    "conventions": [
+     "CEILING_DEDUCTS_EVERY_STATED_OPENING=True (same reasoning as F2: a stated measurement is not discarded to follow a rounding rule)"
+    ],
+    "assumptions": [
+     "CEILING_IS_FLAT_AND_COINCIDENT_WITH_FLOOR=True. THE ASSUMPTION THAT MATTERS, AND IT IS NOT CHECKABLE: no plan-view field detects a slope, a vault or a dropped bulkhead, and #263's contract has no field for a ceiling form, so this cannot be made an input without inventing a field the contract never required. Bound: a 30 degree monopitch understates the developed area by 15.5%; a 0.4 m bulkhead around a 14 m perimeter adds 5.6 m2 of vertical face this formula does not count. Both exceed F3's 2.0% tolerance by an order of magnitude",
+     "ceiling paint covers the whole soffit: no deduction for a light fitting or a grille"
+    ],
+    "inputs_used": [
+     "P1 polygon (shoelace, layer 3)",
+     "0 stated ceiling opening(s)",
+     "P11 convention=INTERNAL_CLEAR"
+    ],
+    "workings": {
+     "net_plan_area_m2": 5.88773016,
+     "ceiling_opening_deduction_m2": 0
+    },
+    "comparisons": [
+     {
+      "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+      "material": "CEILING_PAINT_AREA",
+      "scope": "SCULLERY",
+      "unit": "m2",
+      "status": "REFUSED",
+      "computed": 5.88773016,
+      "reference": 5.52773088,
+      "absolute_error": 0.35999928000000025,
+      "percentage_error": 6.512605042016811,
+      "within_tolerance": false,
+      "refusals": [
+       {
+        "reason": "SAME_CALCULATION_CLASS",
+        "severity": "FATAL",
+        "detail": "the reference is a PLAN_POLYGON_AREA figure and CEILING_PAINT_AREA IS a PLAN_POLYGON_AREA calculation: polygon in, polygon out (#263 1.3 condition 2)"
+       }
+      ],
+      "identity_residual": 0.35999928000000025,
+      "identity_band": 0.01
+     }
+    ]
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "BASEBOARD_LENGTH",
+    "scope": "SCULLERY",
+    "outcome": "ABSTAINED",
+    "unit": "m",
+    "value": null,
+    "reason": "DOOR_WIDTH_NOT_STATED",
+    "reason_detail": "P6 door width is not stated for ['SCULLERY-PLATE8-0', 'SCULLERY-PLATE8-1']. Baseboard length computed without door deductions is not a defensible quantity (#263 2), and treating the opening as solid wall is a silent one-directional error",
+    "missing_field": "openings[SCULLERY-PLATE8-0].width",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "FLOORING_AREA",
+    "scope": "SITTING_ROOM",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "FLOOR_AREA_NOT_STATED",
+    "reason_detail": "the room carries neither a P1 polygon nor a P4 stated area",
+    "missing_field": "rooms[SITTING_ROOM].polygon or .stated_area",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "FLOORING_PURCHASE",
+    "scope": "SITTING_ROOM",
+    "outcome": "ABSTAINED",
+    "unit": "pack",
+    "value": null,
+    "reason": "FLOOR_AREA_NOT_STATED",
+    "reason_detail": "the flooring area abstained: the room carries neither a P1 polygon nor a P4 stated area",
+    "missing_field": "rooms[SITTING_ROOM].polygon or .stated_area",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "WALL_PAINT_AREA",
+    "scope": "SITTING_ROOM",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "PERIMETER_NOT_AVAILABLE",
+    "reason_detail": "the room carries neither a P1 polygon nor a P5 stated perimeter",
+    "missing_field": "rooms[SITTING_ROOM].polygon or .stated_perimeter",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {},
+    "comparisons": [
+     {
+      "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+      "material": "WALL_PAINT_AREA",
+      "scope": "SITTING_ROOM",
+      "unit": "m2",
+      "status": "REFUSED",
+      "computed": null,
+      "reference": 32.273483840000004,
+      "absolute_error": null,
+      "percentage_error": null,
+      "within_tolerance": null,
+      "refusals": [
+       {
+        "reason": "SAME_CALCULATION_CLASS",
+        "severity": "FATAL",
+        "detail": "the reference is a PERIMETER_TIMES_HEIGHT figure and WALL_PAINT_AREA IS a PERIMETER_TIMES_HEIGHT calculation: polygon in, polygon out (#263 1.3 condition 2)"
+       }
+      ],
+      "identity_residual": null,
+      "identity_band": 0.016136741920000003
+     }
+    ]
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "CEILING_PAINT_AREA",
+    "scope": "SITTING_ROOM",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "FLOOR_AREA_NOT_STATED",
+    "reason_detail": "the room carries neither a P1 polygon nor a P4 stated area, and the ceiling's plan area is the floor's",
+    "missing_field": "rooms[SITTING_ROOM].polygon or .stated_area",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {},
+    "comparisons": [
+     {
+      "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+      "material": "CEILING_PAINT_AREA",
+      "scope": "SITTING_ROOM",
+      "unit": "m2",
+      "status": "REFUSED",
+      "computed": null,
+      "reference": 13.993520400000001,
+      "absolute_error": null,
+      "percentage_error": null,
+      "within_tolerance": null,
+      "refusals": [
+       {
+        "reason": "SAME_CALCULATION_CLASS",
+        "severity": "FATAL",
+        "detail": "the reference is a PLAN_POLYGON_AREA figure and CEILING_PAINT_AREA IS a PLAN_POLYGON_AREA calculation: polygon in, polygon out (#263 1.3 condition 2)"
+       }
+      ],
+      "identity_residual": null,
+      "identity_band": 0.01
+     }
+    ]
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "BASEBOARD_LENGTH",
+    "scope": "SITTING_ROOM",
+    "outcome": "ABSTAINED",
+    "unit": "m",
+    "value": null,
+    "reason": "PERIMETER_NOT_AVAILABLE",
+    "reason_detail": "the room carries neither a P1 polygon nor a P5 stated perimeter",
+    "missing_field": "rooms[SITTING_ROOM].polygon or .stated_perimeter",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "FLOORING_AREA",
+    "scope": "ROOM_324B",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "FLOOR_AREA_NOT_STATED",
+    "reason_detail": "the room carries neither a P1 polygon nor a P4 stated area",
+    "missing_field": "rooms[ROOM_324B].polygon or .stated_area",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "FLOORING_PURCHASE",
+    "scope": "ROOM_324B",
+    "outcome": "ABSTAINED",
+    "unit": "pack",
+    "value": null,
+    "reason": "FLOOR_AREA_NOT_STATED",
+    "reason_detail": "the flooring area abstained: the room carries neither a P1 polygon nor a P4 stated area",
+    "missing_field": "rooms[ROOM_324B].polygon or .stated_area",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {}
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "WALL_PAINT_AREA",
+    "scope": "ROOM_324B",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "PERIMETER_NOT_AVAILABLE",
+    "reason_detail": "the room carries neither a P1 polygon nor a P5 stated perimeter",
+    "missing_field": "rooms[ROOM_324B].polygon or .stated_perimeter",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {},
+    "comparisons": [
+     {
+      "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+      "material": "WALL_PAINT_AREA",
+      "scope": "ROOM_324B",
+      "unit": "m2",
+      "status": "REFUSED",
+      "computed": null,
+      "reference": 19.083832800000003,
+      "absolute_error": null,
+      "percentage_error": null,
+      "within_tolerance": null,
+      "refusals": [
+       {
+        "reason": "SAME_CALCULATION_CLASS",
+        "severity": "FATAL",
+        "detail": "the reference is a PERIMETER_TIMES_HEIGHT figure and WALL_PAINT_AREA IS a PERIMETER_TIMES_HEIGHT calculation: polygon in, polygon out (#263 1.3 condition 2)"
+       }
+      ],
+      "identity_residual": null,
+      "identity_band": 0.01
+     }
+    ]
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "CEILING_PAINT_AREA",
+    "scope": "ROOM_324B",
+    "outcome": "ABSTAINED",
+    "unit": "m2",
+    "value": null,
+    "reason": "FLOOR_AREA_NOT_STATED",
+    "reason_detail": "the room carries neither a P1 polygon nor a P4 stated area, and the ceiling's plan area is the floor's",
+    "missing_field": "rooms[ROOM_324B].polygon or .stated_area",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {},
+    "comparisons": [
+     {
+      "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+      "material": "CEILING_PAINT_AREA",
+      "scope": "ROOM_324B",
+      "unit": "m2",
+      "status": "REFUSED",
+      "computed": null,
+      "reference": 8.17546752,
+      "absolute_error": null,
+      "percentage_error": null,
+      "within_tolerance": null,
+      "refusals": [
+       {
+        "reason": "SAME_CALCULATION_CLASS",
+        "severity": "FATAL",
+        "detail": "the reference is a PLAN_POLYGON_AREA figure and CEILING_PAINT_AREA IS a PLAN_POLYGON_AREA calculation: polygon in, polygon out (#263 1.3 condition 2)"
+       }
+      ],
+      "identity_residual": null,
+      "identity_band": 0.01
+     }
+    ]
+   },
+   {
+    "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+    "material": "BASEBOARD_LENGTH",
+    "scope": "ROOM_324B",
+    "outcome": "ABSTAINED",
+    "unit": "m",
+    "value": null,
+    "reason": "PERIMETER_NOT_AVAILABLE",
+    "reason_detail": "the room carries neither a P1 polygon nor a P5 stated perimeter",
+    "missing_field": "rooms[ROOM_324B].polygon or .stated_perimeter",
+    "conventions": [],
+    "assumptions": [],
+    "inputs_used": [],
+    "workings": {},
+    "comparisons": [
+     {
+      "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+      "material": "BASEBOARD_LENGTH",
+      "scope": "ROOM_324B",
+      "unit": "m",
+      "status": "REFUSED",
+      "computed": null,
+      "reference": 10.820400000000001,
+      "absolute_error": null,
+      "percentage_error": null,
+      "within_tolerance": null,
+      "refusals": [
+       {
+        "reason": "SAME_CALCULATION_CLASS",
+        "severity": "FATAL",
+        "detail": "the reference is a PLAN_POLYGON_PERIMETER figure and BASEBOARD_LENGTH IS a PLAN_POLYGON_PERIMETER calculation: polygon in, polygon out (#263 1.3 condition 2)"
+       }
+      ],
+      "identity_residual": null,
+      "identity_band": 0.01
+     }
+    ]
+   }
+  ],
+  "comparison_a": {
+   "label": "A",
+   "description": "quantities computed from VERIFIED INPUT MEASUREMENTS supplied in the schema, scored against reference values that cleared all three gates",
+   "applicable": true,
+   "per_material": {
+    "FLOORING_AREA": {
+     "material": "FLOORING_AREA",
+     "unit": "m2",
+     "tolerance_rel": 0.02,
+     "tolerance_abs": 0.1,
+     "scopes_attempted": 3,
+     "computed": 1,
+     "abstained": 2,
+     "failed": 0,
+     "abstention_rate": 0.6666666666666666,
+     "failure_rate": 0.0,
+     "accuracy_comparisons": 0,
+     "cross_check_comparisons": 0,
+     "refused_comparisons": 0,
+     "mean_absolute_error": null,
+     "max_absolute_error": null,
+     "mean_percentage_error": null,
+     "max_abs_percentage_error": null,
+     "within_tolerance": 0,
+     "within_tolerance_rate": null,
+     "passes": null,
+     "missing_measurements": [
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SITTING_ROOM",
+       "field": "rooms[SITTING_ROOM].polygon or .stated_area",
+       "reason": "FLOOR_AREA_NOT_STATED",
+       "detail": "the room carries neither a P1 polygon nor a P4 stated area"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "ROOM_324B",
+       "field": "rooms[ROOM_324B].polygon or .stated_area",
+       "reason": "FLOOR_AREA_NOT_STATED",
+       "detail": "the room carries neither a P1 polygon nor a P4 stated area"
+      }
+     ],
+     "unsupported_categories": [],
+     "manual_correction_effort": {
+      "rooms[SITTING_ROOM].polygon or .stated_area": 1,
+      "rooms[ROOM_324B].polygon or .stated_area": 1
+     },
+     "manual_correction_effort_total": 2,
+     "abstention_reasons": {
+      "FLOOR_AREA_NOT_STATED": 2
+     },
+     "refusal_reasons": {},
+     "provenance_completeness": {
+      "fletcher-1923-entrance-lodge-PLATE8": {
+       "p_fields_required": [
+        "P1|P4",
+        "P2",
+        "P3",
+        "P10",
+        "P11"
+       ],
+       "p_field_slots": 15,
+       "p_field_slots_present": 10,
+       "p_fraction": 0.6666666666666666,
+       "p_fields_missing_counts": {
+        "P10": 3,
+        "P1|P4": 2
+       },
+       "reference_values": 0,
+       "v_fields_per_value": 6,
+       "v_fields_complete_fraction": null,
+       "v_fields_note": "V1-V6 are enforced by the constructor, so an incomplete provenance cannot exist; the informative figures are the count and the grades",
+       "v5_grades": {},
+       "v2_weaker_methods": 0
+      }
+     }
+    },
+    "FLOORING_PURCHASE": {
+     "material": "FLOORING_PURCHASE",
+     "unit": "pack",
+     "tolerance_rel": 0.0,
+     "tolerance_abs": 0.0,
+     "scopes_attempted": 3,
+     "computed": 0,
+     "abstained": 3,
+     "failed": 0,
+     "abstention_rate": 1.0,
+     "failure_rate": 0.0,
+     "accuracy_comparisons": 0,
+     "cross_check_comparisons": 0,
+     "refused_comparisons": 0,
+     "mean_absolute_error": null,
+     "max_absolute_error": null,
+     "mean_percentage_error": null,
+     "max_abs_percentage_error": null,
+     "within_tolerance": 0,
+     "within_tolerance_rate": null,
+     "passes": null,
+     "missing_measurements": [
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SCULLERY",
+       "field": "rooms[SCULLERY].finishes[FLOOR]",
+       "reason": "FINISH_NOT_STATED",
+       "detail": "P10 does not state this room's floor finish, so there is no product and therefore no pack size; a purchase quantity without a product is a guess"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SITTING_ROOM",
+       "field": "rooms[SITTING_ROOM].polygon or .stated_area",
+       "reason": "FLOOR_AREA_NOT_STATED",
+       "detail": "the flooring area abstained: the room carries neither a P1 polygon nor a P4 stated area"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "ROOM_324B",
+       "field": "rooms[ROOM_324B].polygon or .stated_area",
+       "reason": "FLOOR_AREA_NOT_STATED",
+       "detail": "the flooring area abstained: the room carries neither a P1 polygon nor a P4 stated area"
+      }
+     ],
+     "unsupported_categories": [],
+     "manual_correction_effort": {
+      "rooms[SCULLERY].finishes[FLOOR]": 1,
+      "rooms[SITTING_ROOM].polygon or .stated_area": 1,
+      "rooms[ROOM_324B].polygon or .stated_area": 1
+     },
+     "manual_correction_effort_total": 3,
+     "abstention_reasons": {
+      "FINISH_NOT_STATED": 1,
+      "FLOOR_AREA_NOT_STATED": 2
+     },
+     "refusal_reasons": {},
+     "provenance_completeness": {
+      "fletcher-1923-entrance-lodge-PLATE8": {
+       "p_fields_required": [
+        "P1|P4",
+        "P2",
+        "P3",
+        "P10",
+        "P11",
+        "L5:pack",
+        "L5:wastage"
+       ],
+       "p_field_slots": 21,
+       "p_field_slots_present": 10,
+       "p_fraction": 0.47619047619047616,
+       "p_fields_missing_counts": {
+        "P10": 3,
+        "L5:pack": 3,
+        "L5:wastage": 3,
+        "P1|P4": 2
+       },
+       "reference_values": 0,
+       "v_fields_per_value": 6,
+       "v_fields_complete_fraction": null,
+       "v_fields_note": "V1-V6 are enforced by the constructor, so an incomplete provenance cannot exist; the informative figures are the count and the grades",
+       "v5_grades": {},
+       "v2_weaker_methods": 0
+      }
+     }
+    },
+    "WALL_PAINT_AREA": {
+     "material": "WALL_PAINT_AREA",
+     "unit": "m2",
+     "tolerance_rel": 0.03,
+     "tolerance_abs": 0.1,
+     "scopes_attempted": 3,
+     "computed": 0,
+     "abstained": 3,
+     "failed": 0,
+     "abstention_rate": 1.0,
+     "failure_rate": 0.0,
+     "accuracy_comparisons": 0,
+     "cross_check_comparisons": 0,
+     "refused_comparisons": 2,
+     "mean_absolute_error": null,
+     "max_absolute_error": null,
+     "mean_percentage_error": null,
+     "max_abs_percentage_error": null,
+     "within_tolerance": 0,
+     "within_tolerance_rate": null,
+     "passes": null,
+     "missing_measurements": [
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SCULLERY",
+       "field": "rooms[SCULLERY].wall_height",
+       "reason": "WALL_HEIGHT_NOT_STATED",
+       "detail": "P8 wall height is not stated by the source. ROOT #262 AC-4 forbids inferring it and #263 measured why a volume cannot supply it: Volume/GrossArea spans 2.045-4.225 m on one storey"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SITTING_ROOM",
+       "field": "rooms[SITTING_ROOM].polygon or .stated_perimeter",
+       "reason": "PERIMETER_NOT_AVAILABLE",
+       "detail": "the room carries neither a P1 polygon nor a P5 stated perimeter"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "ROOM_324B",
+       "field": "rooms[ROOM_324B].polygon or .stated_perimeter",
+       "reason": "PERIMETER_NOT_AVAILABLE",
+       "detail": "the room carries neither a P1 polygon nor a P5 stated perimeter"
+      }
+     ],
+     "unsupported_categories": [],
+     "manual_correction_effort": {
+      "rooms[SCULLERY].wall_height": 1,
+      "rooms[SITTING_ROOM].polygon or .stated_perimeter": 1,
+      "rooms[ROOM_324B].polygon or .stated_perimeter": 1
+     },
+     "manual_correction_effort_total": 3,
+     "abstention_reasons": {
+      "WALL_HEIGHT_NOT_STATED": 1,
+      "PERIMETER_NOT_AVAILABLE": 2
+     },
+     "refusal_reasons": {
+      "SAME_CALCULATION_CLASS": 2
+     },
+     "provenance_completeness": {
+      "fletcher-1923-entrance-lodge-PLATE8": {
+       "p_fields_required": [
+        "P1|P5",
+        "P2",
+        "P3",
+        "P6",
+        "P7",
+        "P8",
+        "P9",
+        "P11"
+       ],
+       "p_field_slots": 24,
+       "p_field_slots_present": 14,
+       "p_fraction": 0.5833333333333334,
+       "p_fields_missing_counts": {
+        "P6": 1,
+        "P7": 1,
+        "P8": 3,
+        "P9": 3,
+        "P1|P5": 2
+       },
+       "reference_values": 2,
+       "v_fields_per_value": 6,
+       "v_fields_complete_fraction": 1.0,
+       "v_fields_note": "V1-V6 are enforced by the constructor, so an incomplete provenance cannot exist; the informative figures are the count and the grades",
+       "v5_grades": {
+        "STATED": 2
+       },
+       "v2_weaker_methods": 0
+      }
+     }
+    },
+    "CEILING_PAINT_AREA": {
+     "material": "CEILING_PAINT_AREA",
+     "unit": "m2",
+     "tolerance_rel": 0.02,
+     "tolerance_abs": 0.1,
+     "scopes_attempted": 3,
+     "computed": 1,
+     "abstained": 2,
+     "failed": 0,
+     "abstention_rate": 0.6666666666666666,
+     "failure_rate": 0.0,
+     "accuracy_comparisons": 0,
+     "cross_check_comparisons": 0,
+     "refused_comparisons": 3,
+     "mean_absolute_error": null,
+     "max_absolute_error": null,
+     "mean_percentage_error": null,
+     "max_abs_percentage_error": null,
+     "within_tolerance": 0,
+     "within_tolerance_rate": null,
+     "passes": null,
+     "missing_measurements": [
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SITTING_ROOM",
+       "field": "rooms[SITTING_ROOM].polygon or .stated_area",
+       "reason": "FLOOR_AREA_NOT_STATED",
+       "detail": "the room carries neither a P1 polygon nor a P4 stated area, and the ceiling's plan area is the floor's"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "ROOM_324B",
+       "field": "rooms[ROOM_324B].polygon or .stated_area",
+       "reason": "FLOOR_AREA_NOT_STATED",
+       "detail": "the room carries neither a P1 polygon nor a P4 stated area, and the ceiling's plan area is the floor's"
+      }
+     ],
+     "unsupported_categories": [],
+     "manual_correction_effort": {
+      "rooms[SITTING_ROOM].polygon or .stated_area": 1,
+      "rooms[ROOM_324B].polygon or .stated_area": 1
+     },
+     "manual_correction_effort_total": 2,
+     "abstention_reasons": {
+      "FLOOR_AREA_NOT_STATED": 2
+     },
+     "refusal_reasons": {
+      "SAME_CALCULATION_CLASS": 3
+     },
+     "provenance_completeness": {
+      "fletcher-1923-entrance-lodge-PLATE8": {
+       "p_fields_required": [
+        "P1|P4",
+        "P2",
+        "P3",
+        "P10",
+        "P11"
+       ],
+       "p_field_slots": 15,
+       "p_field_slots_present": 10,
+       "p_fraction": 0.6666666666666666,
+       "p_fields_missing_counts": {
+        "P10": 3,
+        "P1|P4": 2
+       },
+       "reference_values": 3,
+       "v_fields_per_value": 6,
+       "v_fields_complete_fraction": 1.0,
+       "v_fields_note": "V1-V6 are enforced by the constructor, so an incomplete provenance cannot exist; the informative figures are the count and the grades",
+       "v5_grades": {
+        "STATED": 3
+       },
+       "v2_weaker_methods": 0
+      }
+     }
+    },
+    "BASEBOARD_LENGTH": {
+     "material": "BASEBOARD_LENGTH",
+     "unit": "m",
+     "tolerance_rel": 0.025,
+     "tolerance_abs": 0.1,
+     "scopes_attempted": 3,
+     "computed": 0,
+     "abstained": 3,
+     "failed": 0,
+     "abstention_rate": 1.0,
+     "failure_rate": 0.0,
+     "accuracy_comparisons": 0,
+     "cross_check_comparisons": 0,
+     "refused_comparisons": 1,
+     "mean_absolute_error": null,
+     "max_absolute_error": null,
+     "mean_percentage_error": null,
+     "max_abs_percentage_error": null,
+     "within_tolerance": 0,
+     "within_tolerance_rate": null,
+     "passes": null,
+     "missing_measurements": [
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SCULLERY",
+       "field": "openings[SCULLERY-PLATE8-0].width",
+       "reason": "DOOR_WIDTH_NOT_STATED",
+       "detail": "P6 door width is not stated for ['SCULLERY-PLATE8-0', 'SCULLERY-PLATE8-1']. Baseboard length computed without door deductions is not a defensible quantity (#263 2), and treating the opening as solid wall is a silent one-directional error"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "SITTING_ROOM",
+       "field": "rooms[SITTING_ROOM].polygon or .stated_perimeter",
+       "reason": "PERIMETER_NOT_AVAILABLE",
+       "detail": "the room carries neither a P1 polygon nor a P5 stated perimeter"
+      },
+      {
+       "project_id": "fletcher-1923-entrance-lodge-PLATE8",
+       "scope": "ROOM_324B",
+       "field": "rooms[ROOM_324B].polygon or .stated_perimeter",
+       "reason": "PERIMETER_NOT_AVAILABLE",
+       "detail": "the room carries neither a P1 polygon nor a P5 stated perimeter"
+      }
+     ],
+     "unsupported_categories": [],
+     "manual_correction_effort": {
+      "openings[SCULLERY-PLATE8-0].width": 1,
+      "rooms[SITTING_ROOM].polygon or .stated_perimeter": 1,
+      "rooms[ROOM_324B].polygon or .stated_perimeter": 1
+     },
+     "manual_correction_effort_total": 3,
+     "abstention_reasons": {
+      "DOOR_WIDTH_NOT_STATED": 1,
+      "PERIMETER_NOT_AVAILABLE": 2
+     },
+     "refusal_reasons": {
+      "SAME_CALCULATION_CLASS": 1
+     },
+     "provenance_completeness": {
+      "fletcher-1923-entrance-lodge-PLATE8": {
+       "p_fields_required": [
+        "P1|P5",
+        "P2",
+        "P3",
+        "P6",
+        "P11"
+       ],
+       "p_field_slots": 15,
+       "p_field_slots_present": 12,
+       "p_fraction": 0.8,
+       "p_fields_missing_counts": {
+        "P6": 1,
+        "P1|P5": 2
+       },
+       "reference_values": 1,
+       "v_fields_per_value": 6,
+       "v_fields_complete_fraction": 1.0,
+       "v_fields_note": "V1-V6 are enforced by the constructor, so an incomplete provenance cannot exist; the informative figures are the count and the grades",
+       "v5_grades": {
+        "STATED": 1
+       },
+       "v2_weaker_methods": 0
+      }
+     }
+    }
+   }
+  },
+  "comparison_b": {
+   "label": "B",
+   "description": "quantities computed from AUTOMATICALLY EXTRACTED measurements, scored against the same reference values",
+   "applicable": false,
+   "status": "NOT APPLICABLE",
+   "reason": "NOT APPLICABLE: comparison B scores quantities computed from AUTOMATICALLY EXTRACTED measurements, and #257 (PR #258) established that no plan or document ingestion capability exists -- no PDF, raster, OCR, DXF, DWG, IFC or SVG-parsing dependency on any of 71 branch tips or anywhere in history, and python-multipart is absent from the lockfile, so the service cannot physically accept an uploaded file. There is nothing to extract with, so B has no numerator and no denominator. It is reported separately and is never folded into A."
+  },
+  "verdict": "NOT_EVALUABLE",
+  "verdict_reason": "no material has a single accuracy-bearing reference value: #263 acquired none, so no accuracy figure may be reported (ROOT #262 AC-2)",
+  "layer_1_source_measurement_accuracy": "NOT TESTABLE: layer 1 asks whether the SOURCE's measurements are right, which needs an independent measurement of the same building. #263 acquired none, so this layer is unmeasurable today -- and together with comparison B that is two of the directive's five layers, which is itself a finding for the pivot.",
+  "correctness_note": "A unit test on synthetic geometry establishes CORRECTNESS -- that the formula computes the quantity it documents, with the deductions and conventions it documents. It establishes NOTHING about accuracy against a real building, and is never reported as accuracy.",
+  "frozen_thresholds": {
+   "tolerance_rel": {
+    "FLOORING_AREA": 0.02,
+    "CEILING_PAINT_AREA": 0.02,
+    "BASEBOARD_LENGTH": 0.025,
+    "WALL_PAINT_AREA": 0.03,
+    "FLOORING_PURCHASE": 0.0
+   },
+   "tolerance_abs": {
+    "FLOORING_AREA": 0.1,
+    "CEILING_PAINT_AREA": 0.1,
+    "BASEBOARD_LENGTH": 0.1,
+    "WALL_PAINT_AREA": 0.1,
+    "FLOORING_PURCHASE": 0.0
+   },
+   "min_within_tolerance_rate": 0.9,
+   "max_abstention_rate": 0.25,
+   "max_failure_rate": 0.0,
+   "identity_abs_m2": 0.01,
+   "identity_abs_m": 0.01,
+   "identity_rel": 0.0005,
+   "min_meaningful_denominator": {
+    "FLOORING_AREA": 1.0,
+    "CEILING_PAINT_AREA": 1.0,
+    "BASEBOARD_LENGTH": 1.0,
+    "WALL_PAINT_AREA": 1.0,
+    "FLOORING_PURCHASE": 1.0
+   },
+   "min_projects_with_height": 3,
+   "min_projects_without_height": 5,
+   "min_distinct_publishers": 2
+  }
+ },
+ "comparisons": [
+  {
+   "material": "CEILING_PAINT_AREA",
+   "scope": "SCULLERY",
+   "status": "REFUSED",
+   "computed": 5.88773016,
+   "reference": 5.52773088,
+   "absolute_error": 0.35999928000000025,
+   "percentage_error": 6.512605042016811,
+   "within_tolerance": false,
+   "identity_residual": 0.35999928000000025,
+   "identity_band": 0.01,
+   "refusals": [
+    "SAME_CALCULATION_CLASS"
+   ]
+  },
+  {
+   "material": "WALL_PAINT_AREA",
+   "scope": "SITTING_ROOM",
+   "status": "REFUSED",
+   "computed": null,
+   "reference": 32.273483840000004,
+   "absolute_error": null,
+   "percentage_error": null,
+   "within_tolerance": null,
+   "identity_residual": null,
+   "identity_band": 0.016136741920000003,
+   "refusals": [
+    "SAME_CALCULATION_CLASS"
+   ]
+  },
+  {
+   "material": "CEILING_PAINT_AREA",
+   "scope": "SITTING_ROOM",
+   "status": "REFUSED",
+   "computed": null,
+   "reference": 13.993520400000001,
+   "absolute_error": null,
+   "percentage_error": null,
+   "within_tolerance": null,
+   "identity_residual": null,
+   "identity_band": 0.01,
+   "refusals": [
+    "SAME_CALCULATION_CLASS"
+   ]
+  },
+  {
+   "material": "WALL_PAINT_AREA",
+   "scope": "ROOM_324B",
+   "status": "REFUSED",
+   "computed": null,
+   "reference": 19.083832800000003,
+   "absolute_error": null,
+   "percentage_error": null,
+   "within_tolerance": null,
+   "identity_residual": null,
+   "identity_band": 0.01,
+   "refusals": [
+    "SAME_CALCULATION_CLASS"
+   ]
+  },
+  {
+   "material": "CEILING_PAINT_AREA",
+   "scope": "ROOM_324B",
+   "status": "REFUSED",
+   "computed": null,
+   "reference": 8.17546752,
+   "absolute_error": null,
+   "percentage_error": null,
+   "within_tolerance": null,
+   "identity_residual": null,
+   "identity_band": 0.01,
+   "refusals": [
+    "SAME_CALCULATION_CLASS"
+   ]
+  },
+  {
+   "material": "BASEBOARD_LENGTH",
+   "scope": "ROOM_324B",
+   "status": "REFUSED",
+   "computed": null,
+   "reference": 10.820400000000001,
+   "absolute_error": null,
+   "percentage_error": null,
+   "within_tolerance": null,
+   "identity_residual": null,
+   "identity_band": 0.01,
+   "refusals": [
+    "SAME_CALCULATION_CLASS"
+   ]
+  }
+ ],
+ "abstentions": [
+  {
+   "material": "FLOORING_AREA",
+   "scope": "SITTING_ROOM",
+   "reason": "FLOOR_AREA_NOT_STATED",
+   "missing_field": "rooms[SITTING_ROOM].polygon or .stated_area"
+  },
+  {
+   "material": "FLOORING_AREA",
+   "scope": "ROOM_324B",
+   "reason": "FLOOR_AREA_NOT_STATED",
+   "missing_field": "rooms[ROOM_324B].polygon or .stated_area"
+  },
+  {
+   "material": "FLOORING_PURCHASE",
+   "scope": "SCULLERY",
+   "reason": "FINISH_NOT_STATED",
+   "missing_field": "rooms[SCULLERY].finishes[FLOOR]"
+  },
+  {
+   "material": "FLOORING_PURCHASE",
+   "scope": "SITTING_ROOM",
+   "reason": "FLOOR_AREA_NOT_STATED",
+   "missing_field": "rooms[SITTING_ROOM].polygon or .stated_area"
+  },
+  {
+   "material": "FLOORING_PURCHASE",
+   "scope": "ROOM_324B",
+   "reason": "FLOOR_AREA_NOT_STATED",
+   "missing_field": "rooms[ROOM_324B].polygon or .stated_area"
+  },
+  {
+   "material": "WALL_PAINT_AREA",
+   "scope": "SCULLERY",
+   "reason": "WALL_HEIGHT_NOT_STATED",
+   "missing_field": "rooms[SCULLERY].wall_height"
+  },
+  {
+   "material": "WALL_PAINT_AREA",
+   "scope": "SITTING_ROOM",
+   "reason": "PERIMETER_NOT_AVAILABLE",
+   "missing_field": "rooms[SITTING_ROOM].polygon or .stated_perimeter"
+  },
+  {
+   "material": "WALL_PAINT_AREA",
+   "scope": "ROOM_324B",
+   "reason": "PERIMETER_NOT_AVAILABLE",
+   "missing_field": "rooms[ROOM_324B].polygon or .stated_perimeter"
+  },
+  {
+   "material": "CEILING_PAINT_AREA",
+   "scope": "SITTING_ROOM",
+   "reason": "FLOOR_AREA_NOT_STATED",
+   "missing_field": "rooms[SITTING_ROOM].polygon or .stated_area"
+  },
+  {
+   "material": "CEILING_PAINT_AREA",
+   "scope": "ROOM_324B",
+   "reason": "FLOOR_AREA_NOT_STATED",
+   "missing_field": "rooms[ROOM_324B].polygon or .stated_area"
+  },
+  {
+   "material": "BASEBOARD_LENGTH",
+   "scope": "SCULLERY",
+   "reason": "DOOR_WIDTH_NOT_STATED",
+   "missing_field": "openings[SCULLERY-PLATE8-0].width"
+  },
+  {
+   "material": "BASEBOARD_LENGTH",
+   "scope": "SITTING_ROOM",
+   "reason": "PERIMETER_NOT_AVAILABLE",
+   "missing_field": "rooms[SITTING_ROOM].polygon or .stated_perimeter"
+  },
+  {
+   "material": "BASEBOARD_LENGTH",
+   "scope": "ROOM_324B",
+   "reason": "PERIMETER_NOT_AVAILABLE",
+   "missing_field": "rooms[ROOM_324B].polygon or .stated_perimeter"
+  }
+ ],
+ "manual_correction_effort": {
+  "FLOORING_AREA": {
+   "per_field": {
+    "rooms[SITTING_ROOM].polygon or .stated_area": 1,
+    "rooms[ROOM_324B].polygon or .stated_area": 1
+   },
+   "total": 2
+  },
+  "FLOORING_PURCHASE": {
+   "per_field": {
+    "rooms[SCULLERY].finishes[FLOOR]": 1,
+    "rooms[SITTING_ROOM].polygon or .stated_area": 1,
+    "rooms[ROOM_324B].polygon or .stated_area": 1
+   },
+   "total": 3
+  },
+  "WALL_PAINT_AREA": {
+   "per_field": {
+    "rooms[SCULLERY].wall_height": 1,
+    "rooms[SITTING_ROOM].polygon or .stated_perimeter": 1,
+    "rooms[ROOM_324B].polygon or .stated_perimeter": 1
+   },
+   "total": 3
+  },
+  "CEILING_PAINT_AREA": {
+   "per_field": {
+    "rooms[SITTING_ROOM].polygon or .stated_area": 1,
+    "rooms[ROOM_324B].polygon or .stated_area": 1
+   },
+   "total": 2
+  },
+  "BASEBOARD_LENGTH": {
+   "per_field": {
+    "openings[SCULLERY-PLATE8-0].width": 1,
+    "rooms[SITTING_ROOM].polygon or .stated_perimeter": 1,
+    "rooms[ROOM_324B].polygon or .stated_perimeter": 1
+   },
+   "total": 3
+  }
+ },
+ "unsupported_categories": {}
+}
