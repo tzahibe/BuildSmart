@@ -164,12 +164,22 @@ comparing a polygon area to the same polygon's area — exactly §1.3(2), and ex
 #262's AC-2 and the owner's "do not manufacture ground truth from BuildSmart's own calculations"
 forbid. The agreement would be an identity, reported as an accuracy.
 
-The scale compounds it. `scale_m_per_px` is derived, and #257 established that it was inferred from
-the dataset's own stated gross area — which is §1.3(4), circularity. The derivation code is **not
-present in this repository** (the `ResPlan → PlanReference` normaliser from #94/#95 lives on
-`integration/poc-architectural-brain`), so the inference method is **unverified at this head**;
-what *is* verified here is that the field is marked `derived` and that ResPlan, being a vector-graph
-dataset, publishes no surveyed dimension for any individual plan.
+The scale compounds it, and the upstream dataset's own paper settles that rather than leaving it to
+inference. ResPlan (arXiv:2508.14006) publishes, per plan, **one** metric metadata attribute — "an
+area value indicating the total internal floor area in square meters (gross floor area, GFA)" —
+and the paper documents **no methodology for establishing or validating the pixel-to-metre scale**.
+It states plainly that the dataset "does not include explicit 3D features such as ceiling heights
+(beyond assuming a default height)", and it carries no per-room areas, no door or window
+dimensions and no materials.
+
+So the only metric anchor ResPlan offers for a plan is its stated GFA. #257 established that our
+`scale_m_per_px` was inferred from exactly that figure, and the paper confirms there was nothing
+else available to infer it from. That is §1.3(4) — the scale is derived from the only reference
+value the source states, which makes any comparison against that value circular by construction.
+The normaliser itself is **not present in this repository** (the `ResPlan → PlanReference` code
+from #94/#95 lives on `integration/poc-architectural-brain`), so the exact arithmetic is
+**unverified at this head**; the conclusion does not depend on it, because the source has only the
+one number to offer.
 
 **Contract grade: the 19 ResPlan plans fail P3, P4, P8, P9, P10 and P11.** They satisfy P1, P2
 (CC BY 4.0, cleanly), P5 and — uniquely among everything assessed in §4 — **P6 and P7 in derivable
