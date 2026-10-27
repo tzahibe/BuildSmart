@@ -107,6 +107,22 @@ def main(out_path: str | None = None) -> dict:
     for arm in RP.ARMS:
         report = H.evaluate(RP.projects(arm))
         js = H.to_json(report)
+        # The 19 plans produce 895 quantities per arm, each carrying the same conventions and
+        # assumptions. They are aggregated in `comparison_a` already, so the per-quantity detail
+        # is reduced to its outcome here. Fletcher's is kept in full: it is three rooms.
+        js["quantities"] = [
+            {k: q[k] for k in ("project_id", "material", "scope", "outcome", "value", "reason")}
+            | ({"comparisons": [{"status": c["status"], "computed": c["computed"],
+                                 "reference": c["reference"],
+                                 "identity_residual": c["identity_residual"],
+                                 "identity_band": c["identity_band"],
+                                 "refusals": [r["reason"] for r in c["refusals"]]}
+                                for c in q["comparisons"]]} if q.get("comparisons") else {})
+            for q in js["quantities"]
+        ]
+        for mm in js["comparison_a"]["per_material"].values():
+            mm["missing_measurements_sample"] = mm["missing_measurements"][:3]
+            mm["missing_measurements"] = len(mm["missing_measurements"])
         refused = sum(mm["refused_comparisons"] for mm in js["comparison_a"]["per_material"].values())
         cross = sum(mm["cross_check_comparisons"] for mm in js["comparison_a"]["per_material"].values())
         acc = sum(mm["accuracy_comparisons"] for mm in js["comparison_a"]["per_material"].values())

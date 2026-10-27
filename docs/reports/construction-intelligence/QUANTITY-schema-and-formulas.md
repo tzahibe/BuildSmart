@@ -10,7 +10,9 @@ Intelligence pivot). Child 2 of 3. Child 1 is **#263** (PR #264, verdict PARTIAL
 > nothing to be accurate *against* yet. This child builds the schema, the four formulas and the
 > harness so that when one reference project with a professional takeoff arrives, the comparison is
 > a **run**, not a project. No accuracy figure is reported here, because none can honestly be
-> produced. §9 states exactly what input makes step 3 runnable.
+> produced. §8 is the one real reference quantity that could be acquired — a 1923 professional
+> takeoff in the public domain — and §8.1 says sharply what it does and does not validate. §10
+> states exactly what input makes step 3 runnable.
 
 **Harness only.** Everything lives in `backend/app/ai_harness/quantity_takeoff/` and
 `backend/tests/ai_harness/test_quantity_takeoff.py`. No production file is changed, no existing
@@ -27,7 +29,7 @@ Each is a measurement somebody already made, not a position.
 |---|---|---|
 | Across all **179** real rooms in the repository's **19** ResPlan plans, the stated `area_m2` equals the **shoelace area of the room's own polygon** to **0.00061299 m²** | #263, re-measured here | The repository's own area field is an **identity**, not a reference. §7 makes offering it as ground truth impossible — not discouraged, refused. |
 | **0 of 20** fixtures carry a height, material, finish or paint field, and the one acquired model's `Volume / GrossArea` spans **2.045 m to 4.225 m** on a single storey | #263 | A wall height is **an input with provenance or it is absent**. Never a quotient, never a default. The schema has **no field a quotient could enter under** (§2.3). |
-| The generator's validators refused a **policy** condition unrelated to geometry in **18 of 19** real plans | #242's R1 (PR #259) | They encode what the generator *may build*, not what a building *is*. **Not imported here for any building-validity purpose** — §10 asserts it with a test. |
+| The generator's validators refused a **policy** condition unrelated to geometry in **18 of 19** real plans | #242's R1 (PR #259) | They encode what the generator *may build*, not what a building *is*. **Not imported here for any building-validity purpose** — §11 asserts it with a test. |
 
 ---
 
@@ -394,22 +396,244 @@ unconditionally.
 > independent measurers agree to the published rounding at best, and a survey-versus-drawing
 > comparison on one convention differs by of the order of 1% — **20×** the relative term.
 
-**The demonstration the Issue asks for** is §8: feed the harness the 19 real plans with their own
+**The demonstration the Issue asks for** is §9.1: feed the harness the 19 real plans with their own
 `area_m2` offered as the flooring reference and it must decline rather than report a near-perfect
 score.
 
 ---
 
-## 8. Results
+## 8. The 1923 Fletcher takeoff — a real reference quantity, and the two claims it must never mix
 
-*Empty on purpose in the commit that freezes §2–§7.* The thresholds in `frozen.py` and §3's
-conventions were committed **before** any result existed; the git order on
-`feature/quantity-takeoff-harness` is the evidence for AC-6. The results commit fills this section
-and changes nothing above it.
+> **Banister Fletcher & H. P. Fletcher, *Quantities*, 9th ed., B. T. Batsford, 1923, Chapter XXII,
+> "Proposed Entrance Lodge."**
+> `archive.org/details/banisterfletcherh.p.fletcher1923` — **CC Public Domain Mark 1.0**, read from
+> the item's own metadata API (`licenseurl`) on 2026-10-27, and public domain by age in the US and
+> the UK. It is a **professional quantity takeoff**: a plasterer's dimension paper room by room,
+> the opening deductions written out, the skirting as its own item in running measure, ceiling
+> plaster and whitening, a separate Taking Off for Painter, and ten plates including a figured
+> ground plan (Plate 8) and two sections.
+
+**It was identified after §6's thresholds were frozen, and no threshold was revised in its light.**
+That is the right order and it is the order the git history shows: `frozen.py` is commit 1 on this
+branch and the Fletcher fixture is commit 2.
+
+### 8.1 The two claims, kept as far apart as A is from B
+
+| | Fletcher validates | Fletcher says nothing about |
+|---|---|---|
+| **Which of the owner's five axes** | **2 geometric calculation, 3 material quantity, 4 completeness of required inputs, 5 provenance and auditability** | **1 source measurement accuracy** |
+| **Why** | the conventions and the deductions are **written out on the page**, which no other source does | **nobody measured this lodge. It was never built.** It is a designed exercise taken off by a professional |
+| **What would change it** | nothing; this is what it is for | a real project, measured on site, with its כתב כמויות — see §10 |
+
+**No source found anywhere measures a verified *built* house.** Every one of the public-domain
+quantity-surveying works is a designed exercise. So axis 1 joins comparison B on the list of things
+this gate **cannot** measure, and the report must say so in the same breath as any Fletcher figure —
+exactly as it must never fold B into A.
+
+### 8.2 Why the OCR was not used
+
+The `_djvu.txt` of this work is **unusable for the dimension-paper columns**: the three-column
+waste / dimension / squaring layout does not survive text extraction. Every figure in
+`data/fletcher-1923-entrance-lodge.json` was read **from the page image**, with the leaf and the
+printed page recorded per item. The prose chapters OCR correctly, and §8.4's convention quotations
+come from there.
+
+### 8.3 How the transcription was checked
+
+A reading that did not reproduce the book's own printed arithmetic was not recorded. Eight checks
+pass, and `test_the_fletcher_transcription_reproduces_the_books_own_printed_totals` re-runs them:
+
+| Check | Result |
+|---|---|
+| Scullery girth: 4'3"+4'0"+2'6"+2'0"+7'0"+1'0" | **20'9"**, as printed (p.324) |
+| Scullery render: 20'9" × 5'0" | **103.75 sq ft**, printed `103·9` |
+| Room-324B girth: 5'0"+4'3"+6'6"+2'3"+6'6"+11'0" | **35'6"**, as printed |
+| Room-324B walls: 35'6" × 8'0" | **284.0 sq ft**, printed `284·0` |
+| Room-324B deductions: 3/(2'10"×6'4") + 4'6"×2'6" + 4'6"×2'6" + 2/½(1'6"×1'6") | **78.583 sq ft**, printed `78·7` |
+| Sitting Room girth: thirteen lengths collected on waste | **56'3"**, as printed |
+| Sitting Room walls: 56'3" × 8'0" | **450.0 sq ft**, printed `450·0` |
+| Sitting Room deductions: five lines | **102.611 sq ft**, printed `102·7` |
+
+Three rooms were transcribed: **Scullery**, **Sitting Room**, and one room the transcribed pages do
+not name. The takeoff order and Plate 8 make it the Kitchen; **that is not a transcription**, so it
+is carried under the neutral id `ROOM_324B` and no claim is made about which room it is. The
+Scullery's 20'9" is the **rendered length, not the room perimeter** — a room of 8'6" × 7'0" has a
+perimeter of 31'0" — so it is **not** offered as a P5 perimeter, and F2 and F4 abstain for that room
+rather than use a number that means something else. That refusal is the schema working.
+
+### 8.4 Every contested convention is now contested *on the page*, not in the abstract
+
+This is what §3's choices were waiting for. Each is quoted from the source's own
+method-of-measurement chapters, with the page.
+
+| Formula | Our frozen choice | Fletcher's stated rule | Agrees? |
+|---|---|---|---|
+| **F3 ceiling** | net plan area; no cornice or chimney-breast deduction | *"Measure the ceilings the full dimensions between the walls; but where cornices occur, it is customary to make a deduction of the width of the cornice upon each dimension... Make the deductions for chimney breasts"* (p.128) | **No.** His own worked example books a 20'0"×16'0" room with a 12" cornice as 19'0"×15'0" = 285 sq ft instead of 320 — a **10.94%** divergence, five times F3's tolerance |
+| **F2 skirting band** | `WALL_PAINT_DEDUCTS_SKIRTING_BAND = False`, floor to ceiling | *"Rendering to walls is measured the length by the height, **the latter being taken from the top of the skirting grounds to the ceiling**"* (p.130) | **No — a direct, cited contradiction** of the one term §6 placed outside the tolerance budget because it is worth ~4.0%. The frozen value stands; the divergence is recorded |
+| **F2 opening deduction** | deduct every opening at its stated area | *"take the full dimensions for length and height **to the outside of the grounds, and not the net dimensions**"* (p.130–131) | **Partly.** He agrees every opening is deducted and specifies *which* dimensions. Our P9 does not say whether a stated area is the structural or the clear opening — a gap step 3 must close per project |
+| **F4 baseboard** | breaks at every door opening, full stated width deducted | The **joiner's** rule deducts: *"making the deductions for doors, chimney-pieces, &c."* (p.84). The **plasterer's** cement-skirting rule does not: on p.325 `ROOM_324B`'s 6" cement skirting is booked at **35'6", the full collected girth**, with the breaks numbered separately as 8 stopped ends, 2 mitres and 4 irregular | **The two trades in the same book disagree.** Measured on this room, our convention gives 27'0" against his 35'6" — a **−23.94%** divergence, ten times F4's tolerance |
+| **F1 wastage** | an input with provenance, never a guess | *"make an allowance for all irregular cuttings, taking the length by a width of 3 in. for the cutting and waste"* (p.84) | **Yes** — a cited precedent that a cutting-and-waste allowance is a *stated rule with a dimension*, not an assumed percentage |
+
+A sixth convention is relayed but **not read here**: Nichols 1908 deducts **half** the opening area
+(13,141 sq ft gross − (32×40 + 34×15)/2 = **12,246** net — the arithmetic checks exactly, and a test
+asserts it). That is a *third* convention, different from both ours and Fletcher's. Leaning 1897 and
+Brooks 1870 are named as step-3 candidates and were **not fetched or read** in this work; Fletcher's
+own two trades are the independent corroboration that F4's convention is genuinely contested.
+
+**A convention divergence is not an error.** It is the difference between two defensible ways of
+booking the same work, and conflating it with an error is how an instrument gets blamed for a
+disagreement about a rule. `fletcher.convention_audit()` reports them as their own output, labelled,
+and never inside comparison A.
 
 ---
 
-## 9. What step 3 needs
+## 9. Results
 
-*Written with §8 empty, so it cannot be shaped by a result.*
+Produced by `PYTHONPATH=backend python -m app.ai_harness.quantity_takeoff.run`, written to
+`data/QUANTITY-harness-results.json`. **No accuracy figure appears below, because none can honestly
+be produced.** `frozen.verdict()` returns **`NOT_EVALUABLE`** before examining anything.
 
+### 9.1 AC-5, on the repository's own 19 plans
+
+Both arms: 19 plans, 179 rooms, **358 reference values offered** (each room's `area_m2` for both
+area materials), **358 refused, 0 scored, 0 even admitted as a cross-check.**
+
+| Arm | What the reference claimed | R1, the declarations | R2, the residual |
+|---|---|---|---|
+| **as_graded** — the plans described honestly | `DERIVED`, `PUBLISHER_COMPUTED`, no stated convention | refuses 358× `SAME_CALCULATION_CLASS`, 358× `NOT_ACCURACY_BEARING`, 358× `CONVENTION_UNSTATED` | refuses 358× `GEOMETRIC_IDENTITY` |
+| **optimistic** — the same number in the strongest form an advocate could claim: `STATED`, `DESIGN_DRAWING_DIMENSION`, a full V6 statement, a declared `INTERNAL_CLEAR` convention and a stated scale | nothing wrong with it | **raises nothing at all** | **refuses all 358 on the residual alone** |
+
+**The optimistic arm is the demonstration.** A guard that only reads declarations is a guard that
+trusts them. R2 ignores every declaration, recomputes the area from the supplied polygon, and finds
+the reference inside the identity band — so it declines rather than report a near-perfect score.
+
+Re-measured here, not quoted: across all **179** rooms the residual between the stated `area_m2` and
+the shoelace area of the room's own polygon never exceeds **0.00061299 m²** (worst case plan `13578`,
+`CIRCULATION_0`: stated 48.8074, shoelace 48.808013). **179 of 179 inside the band, 0 outside**, with
+**39.8× headroom** at the worst room. The band was frozen before this was run.
+
+### 9.2 What the harness computed and abstained on, on real data
+
+Identical in both arms, because the inputs are the same; 895 scopes per arm, **0 failures**.
+
+| Material | Computed | Abstained | Rate | Why it abstained |
+|---|---|---|---|---|
+| Flooring area | 179 | 0 | 0.00 | — |
+| Ceiling paint area | 179 | 0 | 0.00 | — |
+| Baseboard length | 30 | **149** | 0.83 | `DOOR_WIDTH_NOT_STATED` ×149. ResPlan lists the doors but states no width, and a width read off the door polygon would be a figure computed from the supplied geometry — the very thing §7 refuses. The 30 that computed are rooms with no door at all |
+| Wall paint area | 0 | **179** | 1.00 | `WALL_HEIGHT_NOT_STATED` ×179 — 0 of 20 fixtures carry one, and a quotient is forbidden |
+| Flooring purchase | 0 | **179** | 1.00 | `FINISH_NOT_STATED` ×179 — no fixture carries a material or finish field |
+
+**Manual correction effort: 507 fields** across the two area-free materials and the purchase count
+(179 heights + 179 finishes + 149 door widths). That is the count the directive asks for, and it is
+a count of enum codes, not an opinion.
+
+### 9.3 The 1923 Fletcher takeoff, through the same harness
+
+3 rooms, 14 openings, **6 reference values offered** — the first real reference quantities in this
+work. **0 scored as accuracy.** The reasons are the finding:
+
+| Material | Outcome | What happened |
+|---|---|---|
+| **Ceiling paint area** | **3 refused, residual exactly 0.0** | `GEOMETRIC_IDENTITY` **and** `SAME_CALCULATION_CLASS`. The geometry came from the same dimension columns the quantity was squared from, so recomputing it is **arithmetic, not accuracy** — and the harness says so instead of reporting three perfect scores. **The guard catches a real professional takeoff, not just our own fixtures.** |
+| **Wall paint area** | 3 abstained | `OPENING_SCHEDULE_NOT_COMPLETE` ×2 (the deduction lines give an opening's size but not its wall, and the joinery schedule was not transcribed) and `PERIMETER_NOT_AVAILABLE` ×1 (the Scullery's partial girth is not a perimeter) |
+| **Baseboard length** | 2 computed, 1 abstained, 1 refused | computed 8.230 m against the takeoff's 10.820 m. Residual 2.59 m — **not** an identity, so R2 passes it; refused on `SAME_CALCULATION_CLASS` alone. The gap is **entirely the skirting convention of §8.4**, and it is reported as a convention divergence, never as an error |
+| **Flooring purchase** | 3 abstained | `FINISH_NOT_STATED` — the finishes are in the painter's and joiner's takeoffs, which were not transcribed |
+| **Flooring area** | 3 computed | no reference offered for it |
+
+Provenance completeness for wall paint on this project: **18 of 24 P-field slots present (0.75)**,
+missing `P9` ×3, `P7` ×2, `P1|P5` ×1; **2 reference values, both graded `STATED`, 0 weaker methods**.
+That is the most complete provenance any source in this work has produced.
+
+### 9.4 The one thing §9.3 proves about the instrument
+
+Fletcher is the first artefact that could have produced a number, and the harness **still** produced
+none — for a stated, checkable reason, on a reference it had every incentive to accept. The three
+ceiling refusals with a residual of exactly `0.0` are the proof that §7 is not decoration.
+
+---
+
+## 10. What step 3 needs
+
+*Written with §9 empty, before any result existed, and unchanged since.*
+
+### 10.1 The single input that makes step 3 a run rather than a project
+
+> **The room polygons of the Entrance Lodge, taken off the figured ground plan (Plate 8, leaf 516),
+> independently of the dimension columns.**
+
+That one input converts Fletcher's six refused comparisons into six real ones. The plan is fully
+figured (37'0" × 22'0"/31'0" overall, wall thicknesses 14" and 9", rooms figured) and carries a drawn
+scale bar, so the geometry has a source that is **not** the takeoff — which is exactly what the
+identity refusal in §9.3 is asking for. It is a day of careful reading off a page image, and it
+needs nothing bought, nothing licensed and nobody's permission.
+
+With it, step 3 can report, for the first time, a **per-project cross-check of axes 2 to 5** on a
+real professional takeoff: does our geometry → quantity chain reproduce what a quantity surveyor
+booked, and where it does not, is the gap a calculation error or a convention difference? §8.4
+already names which conventions will account for which gaps, so the answer will be attributable
+rather than mysterious.
+
+### 10.2 The input that nothing in this work can substitute for
+
+> **Axis 1, source measurement accuracy, needs a real project measured on site.**
+
+No public source anywhere measures a verified **built** house. Fletcher is a designed exercise;
+ResPlan is a vectorisation; the two CC BY 4.0 projects #263 acquired are Revit exports. Until one
+real building is measured — a professional takeoff, the **כתב כמויות**, with units and the measurer's
+name, alongside the plan at a stated scale, per-room areas measured on site with the method and
+convention named, the door and window schedule with width **and** height, measured wall heights and
+the wall thickness with its convention — **axis 1 cannot be tested at all**, and step 3 must report
+it as unmeasurable alongside comparison B. **Two of the directive's five axes unmeasurable is itself
+a finding for the pivot.**
+
+### 10.3 What step 3 may not do
+
+1. **Report a system accuracy figure.** #263 §1.4's minimum is not met and §6 restates the bar:
+   ≥3 projects with P8/P9, ≥5 without, ≥2 publishers, every value `VERIFIED` or `STATED`.
+   `frozen.verdict()` returns `NOT_EVALUABLE` and step 3 may run it, not replace it.
+2. **Widen a tolerance.** §6 is frozen and commit 1 proves when. A refusal and an abstention are
+   results.
+3. **Present a synthetic figure as accuracy.** The unit tests build rectangles and L-shapes with
+   known areas. That is correctness. It is not evidence about any building.
+4. **Fold comparison B into A**, or fold a convention divergence into an error. Both are separate
+   outputs for the same reason.
+
+### 10.4 Cheap inputs that would each buy one material
+
+| Missing input | Buys | Cheapest source |
+|---|---|---|
+| Door widths per room | baseboard length on 149 of 179 real rooms | the ResPlan door polygons are **not** a source; a figured plan is |
+| A stated wall height | wall paint — the only material of the four that needs a third dimension | Fletcher states 8'0" per storey; the two CC BY 4.0 projects #263 acquired state one for 236 of 269 rooms |
+| A floor finish per room | the purchase quantity on every room | Fletcher's joiner's and painter's takeoffs, not yet transcribed |
+| The joinery schedule | closes `OPENING_SCHEDULE_NOT_COMPLETE` on Fletcher's wall paint | the same book, Chapter XXII, pages not yet read |
+
+---
+
+## 11. Isolation, and what was not done (AC-7)
+
+* **No production file is changed.** The diff is `backend/app/ai_harness/quantity_takeoff/`, one
+  test file, and this report with its two data files. A test asserts exactly that, so deleting the
+  directory restores the tree.
+* **Nothing outside the directory imports it** — asserted by a scan of every `.py` under
+  `backend/app`.
+* **No generator validator is imported, for any purpose.** #242's R1 measured why: they refused a
+  policy condition unrelated to geometry in **18 of 19** real plans, so they encode what the
+  generator may build, not what a building is. An AST test lists the forbidden modules and fails on
+  an import of any of them.
+* **Nothing is rebound or patched** in any imported module — AST-checked, with `monkeypatch` and
+  `setattr` banned outright.
+* **Layer 6, pricing, is absent rather than stubbed.** An identifier scan fails on `price`, `cost`,
+  `rate_per`, `currency` and the rest.
+* **No existing test is weakened**; none is touched.
+* Nothing is merged, deployed, bought or notified.
+
+### Test counts
+
+```
+backend/tests/ai_harness/test_quantity_takeoff.py   56 passed, 1 skipped
+```
+
+The skip is `test_git_history_shows_the_thresholds_were_committed_before_any_result` when run on a
+tree where the results file is not yet committed — it passes once it is, and a skip there is itself
+compatible with the ordering claim.
