@@ -1,0 +1,176 @@
+{
+  "_what_this_is": "A TRANSCRIPTION, read off the page images of a public-domain professional quantity takeoff. Every item carries the leaf and the printed page it was read from. Nothing here is computed by BuildSmart and nothing here is inferred: a figure that could not be read with confidence is absent, and an absent figure makes the harness abstain. The imperial figures are the primary record; the metric values are an exact unit conversion (1 ft = 0.3048 m exactly, international definition 1959), not a measurement.",
+  "source": {
+    "work": "Banister Fletcher & H. P. Fletcher, Quantities, 9th edition",
+    "publisher": "B. T. Batsford",
+    "date": 1923,
+    "chapter": "Chapter XXII — Examples of Taking Off, Abstracting and Billing: Proposed Entrance Lodge",
+    "archive_identifier": "banisterfletcherh.p.fletcher1923",
+    "archive_url": "https://archive.org/details/banisterfletcherh.p.fletcher1923",
+    "licenseurl": "http://creativecommons.org/publicdomain/mark/1.0/",
+    "licence": "CC Public Domain Mark 1.0",
+    "licence_verified": "read from the item's own metadata API (https://archive.org/metadata/banisterfletcherh.p.fletcher1923), field `licenseurl`, on 2026-10-27. Public domain by age in the US and the UK (published 1923).",
+    "collection": ["buildingtechnologyheritagelibrary", "catalogs"],
+    "leaf_to_printed_page": "leaf 343 = p.324, leaf 344 = p.325, leaf 345 = p.326; the plan plates are leaves 502-520, Plate 8 (Ground Plan) on leaf 516, Plate 6 (Section B-B) on leaf 512",
+    "ocr_warning": "The _djvu.txt OCR of this work is UNUSABLE for the dimension-paper columns: the three-column waste/dimension/squaring layout does not survive text extraction. Every figure below was read from the page IMAGE. The prose chapters OCR correctly and the convention quotations were taken from there and spot-checked against the images."
+  },
+  "transcription_verification": {
+    "method": "Each transcribed girth was checked against the sum of its own 'waste' column, and each squaring against the product of its own dimension pair, as printed. A transcription that did not reproduce the book's printed total was not recorded.",
+    "checks_passed": [
+      "Scullery girth: 4'3\"+4'0\"+2'6\"+2'0\"+7'0\"+1'0\" = 20'9\", as printed (p.324)",
+      "Scullery render: 20'9\" x 5'0\" = 103.75 sq ft, printed 103.9 (103 9/12) (p.324)",
+      "Room-324B girth: 5'0\"+4'3\"+6'6\"+2'3\"+6'6\"+11'0\" = 35'6\", as printed (p.324)",
+      "Room-324B walls: 35'6\" x 8'0\" = 284.0 sq ft, printed 284.0 (p.324)",
+      "Room-324B deductions: 3/(2'10\"x6'4\") + 4'6\"x2'6\" + 4'6\"x2'6\" + 2/half(1'6\"x1'6\") = 78.583 sq ft, printed 78.7 (78 7/12) (p.325)",
+      "Sitting Room girth: 10'0\"+1'6\"+3'6\"+3'9\"+7'6\"+3'6\"+3'6\"+1'0\"+2'0\"+7'0\"+2'0\"+1'0\"+10'0\" = 56'3\", as printed (p.325)",
+      "Sitting Room walls: 56'3\" x 8'0\" = 450.0 sq ft, printed 450.0 (p.325)",
+      "Sitting Room deductions: 2/(3'9\"x6'0\") + 7'0\"x3'0\" + 6'10\"x2'10\" + 2'0\"x3'0\" + 2'3\"x5'0\" = 102.611 sq ft, printed 102.7 (102 7/12) (p.326)"
+    ]
+  },
+  "project": {
+    "name": "Proposed Entrance Lodge",
+    "overall_figured_dimensions_ft": {"a": "37'0\"", "b": "22'0\"", "c": "31'0\"",
+      "cited": "Plate 8, Ground Plan, leaf 516"},
+    "wall_thicknesses_in": [14, 9],
+    "wall_thickness_cited": "Plate 8, Ground Plan, leaf 516 — the figured wall thicknesses are 14\" (external and the archway piers) and 9\" (internal and the scullery/W.C. walls)",
+    "measurement_convention": "INTERNAL_CLEAR",
+    "measurement_convention_cited": "p.128: 'Measure the ceilings the full dimensions between the walls' — the dimensions are taken between wall faces, i.e. internal clear.",
+    "storey_wall_height_ft": 8.0,
+    "storey_wall_height_cited": "the ground-floor rooms are squared at a height of 8'0\" in the dimension columns (p.324 Room-324B 35'6\" x 8'0\"; p.325 Sitting Room 56'3\" x 8'0\"). The Scullery is squared in two bands, 5'0\" of Portland cement render plus 3'6\" of render-float-and-set, totalling 8'6\" (p.324).",
+    "opening_schedule_complete": false,
+    "opening_schedule_note": "The plasterer's deduction lines give an opening's size but not which wall it sits in, and the joinery schedule was not transcribed. The schedule is therefore NOT declared complete and F2 abstains rather than deduct zero."
+  },
+  "rooms": [
+    {
+      "id": "SCULLERY",
+      "name": "Scullery",
+      "cited": "p.324, leaf 343",
+      "ceiling_dimensions_ft": [8.5, 7.0],
+      "ceiling_area_ft2": 59.5,
+      "ceiling_item": "L. P. F. and S. to ceiling and 2ce whiten",
+      "wall_girth_ft": 20.75,
+      "wall_girth_is_partial": true,
+      "wall_girth_note": "20'9\" is the girth of the RENDERED length only; a room of 8'6\" x 7'0\" has a full perimeter of 31'0\". The two are different measurements and the partial girth is NOT offered as a room perimeter.",
+      "wall_height_ft": 8.5,
+      "wall_height_note": "5'0\" of Portland cement render plus 3'6\" of render, float and set, as squared on p.324.",
+      "doors_ft": [],
+      "doors_note": "Not transcribed for this room; p.324 books an 'Add do. over door' of 2/ 1'9\" x 3'0\" but states no door WIDTH for a skirting deduction."
+    },
+    {
+      "id": "ROOM_324B",
+      "name": "(unnamed on the transcribed pages)",
+      "name_note": "The takeoff order is Scullery -> this room -> Sitting Room, and Plate 8 places the Kitchen between them, so this is almost certainly the Kitchen. NOT VERIFIED: no heading for it appears on the transcribed pages, so it is carried under a neutral id and no claim is made about which room it is.",
+      "cited": "p.324-325, leaves 343-344",
+      "ceiling_dimensions_ft": [8.0, 11.0],
+      "ceiling_area_ft2": 88.0,
+      "ceiling_item": "L. P. F. and S. to C. and 2ce W.",
+      "wall_girth_ft": 35.5,
+      "wall_girth_is_partial": false,
+      "wall_height_ft": 8.0,
+      "wall_gross_ft2": 284.0,
+      "wall_deductions_ft2": [
+        {"n": 3, "w_ft": 2.8333333333333335, "h_ft": 6.333333333333333, "total_ft2": 53.83333333333333, "item": "Ddt. do.", "reading": "3/ 2'10\" x 6'4\""},
+        {"n": 1, "w_ft": 4.5, "h_ft": 2.5, "total_ft2": 11.25, "item": "Ddt. do. (fire.)", "reading": "4'6\" x 2'6\""},
+        {"n": 1, "w_ft": 4.5, "h_ft": 2.5, "total_ft2": 11.25, "item": "Ddt. (sash).", "reading": "4'6\" x 2'6\""},
+        {"n": 1, "w_ft": 1.5, "h_ft": 1.5, "total_ft2": 2.25, "item": "Ddt.", "reading": "2/1/2 1'6\" x 1'6\""}
+      ],
+      "wall_deductions_total_ft2": 78.58333333333333,
+      "wall_net_ft2": 205.41666666666669,
+      "skirting_run_ft": 35.5,
+      "skirting_item": "6\" skirting in P. C. (square.)",
+      "skirting_labours": {"mitres": 2, "irregular": 4, "stopped_ends": 8},
+      "door_widths_ft": [2.8333333333333335, 2.8333333333333335, 2.8333333333333335],
+      "door_widths_note": "Read from the '3/ 2'10\" x 6'4\"' deduction line: three openings 2'10\" wide by 6'4\" high, which are door-sized. Their WALL is not stated, so they are attributed to this room only, which is what the deduction line itself does."
+    },
+    {
+      "id": "SITTING_ROOM",
+      "name": "Sitting Room",
+      "cited": "p.325-326, leaves 344-345",
+      "ceiling_dimensions_ft": [14.0, 10.0],
+      "ceiling_area_ft2": 150.625,
+      "ceiling_item": "L. P. F. and S. to ceiling and twice W., plus 'Add ditto' 2/1/2 4'3\" x 2'6\" = 10.625 sq ft",
+      "ceiling_is_not_a_rectangle": true,
+      "wall_girth_ft": 56.25,
+      "wall_girth_is_partial": false,
+      "wall_height_ft": 8.0,
+      "wall_gross_ft2": 450.0,
+      "wall_deductions_ft2": [
+        {"n": 2, "w_ft": 3.75, "h_ft": 6.0, "total_ft2": 45.0, "item": "Ddt.", "reading": "2/ 3'9\" x 6'0\""},
+        {"n": 1, "w_ft": 7.0, "h_ft": 3.0, "total_ft2": 21.0, "item": "Ddt.", "reading": "7'0\" x 3'0\""},
+        {"n": 1, "w_ft": 6.833333333333333, "h_ft": 2.8333333333333335, "total_ft2": 19.36111111111111, "item": "Ddt.", "reading": "6'10\" x 2'10\""},
+        {"n": 1, "w_ft": 2.0, "h_ft": 3.0, "total_ft2": 6.0, "item": "Ddt.", "reading": "2'0\" x 3'0\""},
+        {"n": 1, "w_ft": 2.25, "h_ft": 5.0, "total_ft2": 11.25, "item": "Ddt. do.", "reading": "2'3\" x 5'0\""}
+      ],
+      "wall_deductions_total_ft2": 102.61111111111111,
+      "wall_net_ft2": 347.3888888888889,
+      "door_widths_ft": [3.75, 3.75],
+      "door_widths_note": "Read from the '2/ 3'9\" x 6'0\"' deduction line: two openings 3'9\" wide by 6'0\" high. The remaining deductions are sash, fire and small openings."
+    }
+  ],
+  "stated_conventions": [
+    {
+      "formula": "F3 ceiling paintable area",
+      "our_frozen_choice": "CEILING_IS_FLAT_AND_COINCIDENT_WITH_FLOOR = True; no cornice or chimney-breast deduction",
+      "fletcher_rule": "Measure the ceilings the full dimensions between the walls; but where cornices occur, it is customary to make a deduction of the width of the cornice upon each dimension for width and length of ceiling. ... Make the deductions for chimney breasts, &c.",
+      "cited": "p.128, leaf 147 (prose chapter, Plasterer — Internal Work)",
+      "agrees": false,
+      "worked_example_in_source": "a room 20'0\" x 16'0\" with a 12\" cornice is booked 19'0\" x 15'0\" = 285 sq ft instead of 320 sq ft",
+      "divergence_in_the_sources_own_example_pct": 10.9375
+    },
+    {
+      "formula": "F2 wall paintable area — the skirting band",
+      "our_frozen_choice": "WALL_PAINT_DEDUCTS_SKIRTING_BAND = False (measured floor to ceiling)",
+      "fletcher_rule": "Rendering to walls is measured the length by the height, the latter being taken from the top of the skirting grounds to the ceiling, and where there is a cornice it is customary to deduct from this dimension half the height of the cornice.",
+      "cited": "p.130, leaf 149",
+      "agrees": false,
+      "note": "This is a DIRECT, CITED contradiction of the frozen choice, on the very term the frozen module placed outside the tolerance budget because it is worth ~4.0% at a 0.10 m skirting on a 2.50 m height. The frozen value is NOT revised; the divergence is recorded."
+    },
+    {
+      "formula": "F2 wall paintable area — the opening deduction",
+      "our_frozen_choice": "WALL_PAINT_DEDUCTS_EVERY_STATED_OPENING = True, at the stated area",
+      "fletcher_rule": "In the case of deductions for doors and windows, take the full dimensions for length and height to the outside of the grounds, and not the net dimensions. In the case of doors, the height, where there is a skirting, must be taken from the top of skirting grounds, and not from the floor.",
+      "cited": "p.130-131, leaves 149-150",
+      "agrees": "PARTIALLY",
+      "note": "Agrees that every opening is deducted, and specifies WHICH dimensions: the structural opening including grounds, not the clear opening. Our schema's P9 'opening area stated by the source' does not say which of the two it is, and this is the gap step 3 must close per project."
+    },
+    {
+      "formula": "F4 baseboard length",
+      "our_frozen_choice": "BASEBOARD_BREAKS_AT_DOOR_OPENINGS = True, full stated opening width deducted",
+      "fletcher_rule_joiner": "Skirtings. — Collect on 'Waste' the lengths of the several walls, making the deductions for doors, chimney-pieces, &c., and bring the total length of skirting to each room, forward in one dimension only.",
+      "cited_joiner": "p.84, leaf 103 (Joiner — Floors and Skirtings)",
+      "fletcher_rule_plasterer": "Cement Skirtings. — Take the lengths and collect the same on 'Waste.' State the height, and bill and value at per foot run.",
+      "cited_plasterer": "p.132, leaf 151",
+      "agrees": "THE TWO TRADES IN THE SAME BOOK DISAGREE",
+      "observed_in_the_takeoff": "On p.325 the cement skirting of ROOM_324B is booked at 35'6\", which is the room's FULL collected girth, with the breaks numbered separately as 8 stopped ends, 2 mitres and 4 irregular. The joiner's prose rule would have deducted the three 2'10\" door openings. OBSERVATION, not a settled claim: the trades differ and step 3 must match the trade before it matches the number.",
+      "note": "This is the contested convention the directive asks to be named as a choice. It is now contested on the page, not in the abstract."
+    },
+    {
+      "formula": "F1 flooring purchase quantity — the wastage allowance",
+      "our_frozen_choice": "the wastage allowance is an INPUT with provenance, never a guess",
+      "fletcher_rule": "Where the room is irregular, it will be necessary to ascertain the average size of the flooring, so as to arrive at the net area, and make an allowance for all irregular cuttings, taking the length by a width of 3 in. for the cutting and waste.",
+      "cited": "p.84, leaf 103",
+      "agrees": true,
+      "note": "A cited professional precedent that a cutting-and-waste allowance is STATED as a rule with a dimension, not assumed as a percentage."
+    }
+  ],
+  "cross_checks_not_transcribed": [
+    {
+      "source": "Nichols, 1908",
+      "claim_relayed": "plaster 13,141 sq ft gross, 32 doors at 40 sq ft and 34 windows at 15 sq ft, HALF deducted, 12,246 net; storey wall heights 9'0\" and 8'6\"",
+      "arithmetic_checked_here": "13141 - (32*40 + 34*15)/2 = 12246 EXACTLY",
+      "status": "the arithmetic was verified internally; the source itself was NOT fetched or read in this work",
+      "why_it_matters": "a HALF deduction for openings is a third convention, different from both ours (deduct the whole stated area) and Fletcher's (deduct the full structural opening)"
+    },
+    {
+      "source": "Leaning, 1897",
+      "claim_relayed": "per-room skirting runs, and the explicit convention that some surveyors measure skirting ACROSS openings and deduct when measuring the joinery",
+      "status": "NOT fetched or read in this work. It is named because Fletcher's own pages show the same divergence, which is the independent corroboration.",
+      "why_it_matters": "it is the same contested convention F4 names"
+    },
+    {
+      "source": "Brooks, 1870",
+      "claim_relayed": "a complete dwelling bill of quantities",
+      "status": "NOT fetched or read in this work"
+    }
+  ]
+}
