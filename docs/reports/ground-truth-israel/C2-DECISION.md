@@ -149,7 +149,7 @@ reading the numeric columns separately. Neither is exotic and neither is free.
 
 - **No accuracy claim is made anywhere in these seven documents.** The single comparison that was computed is reported as four answers under four conventions and is explicitly **not** offered as a validation, including the reading that lands within 0.25 %.
 - **No copyrighted drawing, plate, table, bill or page is copied into this repository.** All three sources prohibit redistribution; every document is linked and described, and factual quantities are cited with publisher, document, page and item number. The downloads were read in a session scratchpad outside the repository.
-- **No production code, test, fixture, flag, dependency or threshold was changed.** The diff is **six Markdown files, 972 insertions, nothing else**; `frozen.py` was not opened. `backend-import` passes (`import app.main` succeeds; it requires `OPENAI_API_KEY` to be set to any value, a pre-existing environment requirement unrelated to this branch).
+- **No production code, test, fixture, flag, dependency or threshold was changed.** The diff is **seven Markdown files, 1,139 insertions, nothing else**; `frozen.py` was not opened. `backend-import` passes (`import app.main` succeeds; it requires `OPENAI_API_KEY` to be set to any value, a pre-existing environment requirement unrelated to this branch).
 - **Nothing was sent and nobody was contacted.** No message, no form, no call, no registration. The drafts are drafts.
 - **No merge, no deploy, no spend, no `agentctl notify`**, and none of the 16 open pull requests or the merge queue was touched.
 
